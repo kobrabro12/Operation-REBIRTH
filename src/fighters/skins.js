@@ -18,6 +18,9 @@ const MW = {
   wood: { h: [15, 40], s: [0.4, 1], center: 27 },
 };
 
+// dark -> light polished gold
+const GOLD_RAMP = [0x2a1804, 0x4a2c08, 0x6e440e, 0x965f16, 0xbb7f1f, 0xd9a32e, 0xedc04c, 0xf8d878, 0xfff0b8];
+
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -43,6 +46,8 @@ export const SKINS = {
     { name: 'VERDANT', swatch: 0x3f8f4c, fx: 0x9be36a, groups: HK, rules: { suit: { to: 135, sat: 2 }, sash: { to: 40 }, white: { hue: 110, satAdd: 0.18 } } },
     { name: 'SHADOW', swatch: 0x4a3a6a, fx: 0xb07ad0, groups: HK, rules: { suit: { to: 270, val: 0.65 }, steel: { val: 0.5 }, white: { hue: 275, satAdd: 0.4, val: 0.9 }, sash: { to: 280 } } },
     { name: 'AZURE', swatch: 0x2f6fd0, fx: 0x78a0c6, groups: HK, rules: { suit: { to: 220, sat: 2.6, val: 1.1 }, sash: { to: 45, val: 1.4 }, white: { hue: 205, satAdd: 0.2 } } },
+    // every colour mapped by brightness onto a polished-gold ramp: armour, scarf, sash and sword all solid gold
+    { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
@@ -81,7 +86,11 @@ function recolorFn(skin) {
     for (const [name, grp] of Object.entries(skin.groups)) {
       if (!inRange(h, grp.h) || !inRange(s, grp.s) || !inRange(v, grp.v)) continue;
       const rule = skin.rules[name];
-      if (rule) {
+      if (rule && rule.ramp) {                            // remap by brightness onto a fixed colour ramp (e.g. solid gold)
+        const k = Math.min(1, Math.max(0, (v - (rule.lo ?? 0.05)) / ((rule.hi ?? 0.95) - (rule.lo ?? 0.05))));
+        const c = rule.ramp[Math.min(rule.ramp.length - 1, Math.floor(k * rule.ramp.length))];
+        out = [(c >> 16) & 255, (c >> 8) & 255, c & 255];
+      } else if (rule) {
         const nh = rule.hue !== undefined ? rule.hue : rule.to !== undefined ? (h + rule.to - grp.center + 720) % 360 : h;
         const ns = Math.min(1, Math.max(0, s * (rule.sat ?? 1) + (rule.satAdd || 0)));
         const nv = Math.min(1, v * (rule.val ?? 1));
