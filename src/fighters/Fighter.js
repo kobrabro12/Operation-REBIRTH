@@ -38,6 +38,7 @@ export class Fighter {
     const s = this.scene;
     this.skin = opts.skin || 0;
     this.sheets = skinSheets(s, def, this.skin);   // this fighter's colour variation
+    this.worn = !!(skinInfo(def.id, this.skin).worn && def.wornSheets); this.wornStage = 0;
     this.sprite = s.add.sprite(0, 0, this.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
     this.sprite.setTint(PLAYER_TINTS[slot]);
     this.fx = s.add.graphics();
@@ -73,6 +74,7 @@ export class Fighter {
     }
     if (this.possessImmune > 0) this.possessImmune--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
+    if (this.worn) this.updateWorn();
     if (this.possessed > 0) c = this.possessedInput(c);
     // remember presses so they fire as soon as the fighter can act
     for (const b of Object.keys(this.buffer)) {
@@ -815,6 +817,21 @@ export class Fighter {
       g.lineStyle(w, 0xffffff, 0.95 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
     }
     if (U.from) { g.fillStyle(0x9ad8f0, 0.35); g.fillRect(U.from.x - 6, U.from.y - 44, 12, 40); }   // afterimage where she just was
+  }
+
+  // ------------------------------------------------------------------ Battle-Worn costume
+  // Damage stage = stocks lost (0-3). In Stamina battles (one stock) it follows her HP instead:
+  // below 75%, 50% and 25% of her stamina.
+  updateWorn() {
+    const stage = this.match.mode === 'stamina'
+      ? Math.min(3, Math.floor((1 - Math.max(0, this.hp) / this.maxHp) * 4))
+      : Math.min(3, this.falls);
+    if (stage === this.wornStage) return;
+    this.wornStage = stage; this.sheets = this.def.wornSheets[stage];
+    if (stage > 0 && this.alive) {                    // pieces of armour break off
+      for (let i = 0; i < 6 + stage * 4; i++) this.match.puff(this.x + (Math.random() - 0.5) * 20, this.y - 20 - Math.random() * 28, i % 3 ? 0x929ca0 : 0x4c5a5f, 1);
+      sfx('shield', 0.6, 0.5); sfx('land', 0.6, 0.7);
+    }
   }
 
   // ------------------------------------------------------------------ stamina death

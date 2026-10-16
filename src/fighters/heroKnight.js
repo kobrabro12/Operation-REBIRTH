@@ -14,6 +14,10 @@ export const HERO_KNIGHT = {
   name: 'LACY',
   // every strip is 150x90 per frame, feet at (66, 86) inside the frame
   sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard' },
+  // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
+  // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
+  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard']
+    .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,

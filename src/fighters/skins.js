@@ -47,6 +47,8 @@ export const SKINS = {
     { name: 'SHADOW', swatch: 0x4a3a6a, fx: 0xb07ad0, groups: HK, rules: { suit: { to: 270, val: 0.65 }, steel: { val: 0.5 }, white: { hue: 275, satAdd: 0.4, val: 0.9 }, sash: { to: 280 } } },
     { name: 'AZURE', swatch: 0x2f6fd0, fx: 0x78a0c6, groups: HK, rules: { suit: { to: 220, sat: 2.6, val: 1.1 }, sash: { to: 45, val: 1.4 }, white: { hue: 205, satAdd: 0.2 } } },
     // every colour mapped by brightness onto a polished-gold ramp: armour, scarf, sash and sword all solid gold
+    // changes during the match: the armour cracks more each time she loses a stock (see Fighter.updateWorn)
+    { name: 'BATTLE-WORN', swatch: 0x6a5e58, worn: true },
     { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
   ],
   'mr-wake': [
