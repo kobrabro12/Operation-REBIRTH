@@ -2,9 +2,14 @@
 // Position (x, y) is the point between the fighter's feet; y grows downward.
 import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT } from '../config.js';
 import { sfx } from '../audio/sfx.js';
+import { Controller } from '../input/controllers.js';
+import { skinSheets, skinInfo } from './skins.js';
 
 let nextAttackId = 1;
 const BUFFER = 7;   // frames an early button press is remembered
+
+// climbing up from a ledge with an attack: a low sweep in front
+const LEDGE_ATTACK = { box: [-8, -30, 50, 26], dmg: 7, angle: 30, base: 3.0, growth: 3.4 };
 
 export class Fighter {
   constructor(match, def, slot, controller, opts) {
@@ -26,10 +31,14 @@ export class Fighter {
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
     this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0 };
     this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
+    this.ledge = null; this.ledgeCooldown = 0; this.ledgeGrabs = 0;
+    this.possessed = 0; this.possessMax = 1; this.possessImmune = 0; this.possessDir = 1; this.forced = new Controller();
     this.stats = { damageDealt: 0, damageTaken: 0 };
 
     const s = this.scene;
-    this.sprite = s.add.sprite(0, 0, def.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
+    this.skin = opts.skin || 0;
+    this.sheets = skinSheets(s, def, this.skin);   // this fighter's colour variation
+    this.sprite = s.add.sprite(0, 0, this.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
     this.sprite.setTint(PLAYER_TINTS[slot]);
     this.fx = s.add.graphics();
     this.tag = s.add.text(0, 0, this.label, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 1);
@@ -45,7 +54,7 @@ export class Fighter {
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1); }
-  get fxColor() { return this.def.fxColor ?? 0x78a0c6; }
+  get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
   // a direction pressed within the last few frames before attack = a smash attack
   smashed(at) { return this.age - at <= 6; }
   attackOr(name, fallback) { this.startAttack(this.def.moves[name] ? name : fallback); }
@@ -57,11 +66,14 @@ export class Fighter {
 
   // ------------------------------------------------------------------ per-frame logic
   step() {
-    const c = this.ctrl;
+    let c = this.ctrl;
     if (!this.alive) {
       if (!this.eliminated && --this.respawnTimer <= 0) this.respawn();
       return;
     }
+    if (this.possessImmune > 0) this.possessImmune--;
+    if (this.ledgeCooldown > 0) this.ledgeCooldown--;
+    if (this.possessed > 0) c = this.possessedInput(c);
     // remember presses so they fire as soon as the fighter can act
     for (const b of Object.keys(this.buffer)) {
       if (c.pressed(b)) this.buffer[b] = BUFFER; else if (this.buffer[b] > 0) this.buffer[b]--;
@@ -85,6 +97,36 @@ export class Fighter {
     if (handler) handler.call(this, c);
     this.physics(c);
     this.checkBlast();
+  }
+
+  // ---- Soul Hex possession: the real controller only counts wiggles; a forced controller walks
+  // the fighter toward the nearest edge of the stage until the curse wears off or is mashed away.
+  possess(frames) {
+    if (this.possessImmune > 0 || this.possessed > 0) return false;
+    this.possessed = frames; this.possessMax = frames;
+    this.possessDir = this.x >= 0 ? 1 : -1;           // nearest edge
+    for (const b of Object.keys(this.buffer)) this.buffer[b] = 0;
+    this.stopChargeSound();
+    return true;
+  }
+  endPossession(broke) {
+    this.possessed = 0; this.possessImmune = 240;     // can't be hexed again for 4 s
+    if (broke) { this.match.popText(this, 'BROKE FREE!', '#f3c358'); sfx('select', 0.6); this.match.puff(this.x, this.y - 30, 0xb07ad0, 10); }
+  }
+  possessedInput(real) {
+    let wiggles = 0;
+    for (const b of ['jump', 'attack', 'special', 'shield', 'grab', 'limit']) if (real.pressed(b)) wiggles++;
+    if (real.tappedSide() || real.tappedDown() || (real.y < -0.5 && real.py >= -0.5)) wiggles++;
+    this.possessed -= 1 + wiggles * 10;
+    if (wiggles) this.wiggleFx = 6;
+    if (this.possessed <= 0) { this.endPossession(wiggles > 0); return real; }
+    const f = this.forced;
+    f.beginFrame();
+    for (const b in f.cur) f.cur[b] = false;
+    // walk (or drift) toward the edge; keep the direction even once off the stage
+    if (this.grounded && this.platform && !this.platform.solid) { f.x = 0; f.y = f.py > 0.5 ? 0 : 1; }   // drop through clouds
+    else { f.x = this.possessDir; f.y = 0; }
+    return f;
   }
 
   // ------------------------------------------------------------------ states
@@ -119,7 +161,7 @@ export class Fighter {
     if (this.buffer.special) {
       const M = this.def.moves;
       this.buffer.special = 0;
-      if (c.down) { if (M.summon) this.startSummon(); else if (M.downB) this.startAttack('downB'); return true; }
+      if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB) { this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB) this.startAttack('neutralB');
@@ -172,7 +214,7 @@ export class Fighter {
   }
 
   st_helpless(c) {
-    // after Soul Ascent: drift only, until landing
+    // after the up special: drift only, until landing
     if (this.t % 8 === 0) this.match.puff(this.x, this.y - 30, this.fxColor, 1);
   }
 
@@ -186,6 +228,7 @@ export class Fighter {
   st_attack(c) {
     const m = this.move;
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
+    if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
     if (this.t >= m.frames) {
       this.setState(this.grounded ? 'idle' : 'air'); return;
     }
@@ -201,6 +244,17 @@ export class Fighter {
     };
     if (this.state === 'attack' && this.move.hits) {
       for (const h of this.move.hits) if (this.t >= h.from && this.t <= h.to) add(h, this.move);
+    }
+    if (this.state === 'ledgeattack' && this.t >= 14 && this.t <= 18) add(LEDGE_ATTACK, { fx: 'arc' });
+    if (this.state === 'counterstrike' && this.counterStrike) {
+      const K = this.counterStrike;
+      if (this.t >= K.from && this.t <= K.to) add(K, { anim: 'attack2' });
+      return out;
+    }
+    if (this.state === 'upb' && this.def.moves.upb.spin && this.spinGround) {
+      const st = this.spinStart >= 0 ? this.t - this.spinStart : -1, h = this.spinHit;
+      if (h && st >= h.from && st <= h.to) add(h, this.def.moves.upb);
+      return out;
     }
     if (this.state === 'upb') for (const h of this.def.moves.upb.hits) if (this.t >= h.from && this.t <= h.to) add(h, this.def.moves.upb);
     return out;
@@ -280,18 +334,98 @@ export class Fighter {
     if (this.t >= m.frames) this.setState(this.grounded ? 'idle' : 'air');
   }
 
-  // ---- up special: Soul Ascent
+  // ---- counter (Lacy's Riposte): a guard window that answers a hit with a stronger slash
+  startCounter() { this.setState('counter'); this.vx *= 0.3; if (!this.grounded) this.vy = Math.min(this.vy, 0) * 0.5; }
+  counterReady() { const C = this.def.moves.counter; return this.state === 'counter' && C && this.t >= C.start && this.t <= C.end; }
+  st_counter() {
+    const C = this.def.moves.counter;
+    if (!this.grounded) this.vy = Math.min(this.vy, 1.2);         // floats a little in the air
+    if (this.t === C.start) sfx('shield', 0.5, 1.8);              // the guard goes up with a glint
+    if (this.t >= C.frames) this.setState(this.grounded ? 'idle' : 'air');
+  }
+  // called by the match when a hit lands during the guard window
+  counterHit(hb) {
+    const C = this.def.moves.counter, src = hb.owner;
+    const inDmg = (hb.h && hb.h.dmg) || 6;
+    const tx = hb.projectile ? hb.projectile.x : src ? src.x : (hb.x1 + hb.x2) / 2;
+    this.facing = Math.sign(tx - this.x) || this.facing;
+    this.counterStrike = { ...C.strike, dmg: Math.max(C.minDmg, Math.round(inDmg * C.mult)) };
+    this.setState('counterstrike'); this.attackId = nextAttackId++; this.hitList = new Set();
+    this.vx = 0; this.vy = 0; this.lx = this.ly = 0;
+    // freeze the attacker as a shadow for a beat
+    if (src && src !== this && !hb.projectile && !hb.soul) { src.hitstop = Math.max(src.hitstop, 22); src.silhouette = 22; }
+    this.hitstop = 10; this.counterFlash = 26;
+    this.match.shake(6, 3); sfx('shield', 0.9, 2.2); sfx('bighit', 0.6, 1.5);
+    this.match.popText(this, 'COUNTER!', '#9ad8f0');
+  }
+  st_counterstrike() {
+    const K = this.counterStrike;
+    if (this.t === K.from) sfx('swing', 0.9, 0.8);
+    if (this.t >= K.frames) this.setState(this.grounded ? 'idle' : 'air');
+  }
+
+  // ---- up special (Soul Summoner: Soulfire Jet, Mr Wake: burst)
   startUpB(c) {
     this.usedUpB = true; this.setState('upb'); this.attackId = nextAttackId++; this.hitList = new Set();
     if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
     this.vx = 0; this.vy = 0; this.lx = this.ly = 0;
+    this.spinGround = this.grounded; this.spinCharge = 0; this.spinStart = -1; this.spinHit = null;   // Cyclone Slash bookkeeping
   }
   st_upb(c) {
     const u = this.def.moves.upb;
+    if (u.hits.length > 1 && !(u.spin && this.spinGround) && u.hits.some((h) => h.from === this.t) && this.t > u.riseAt) { this.attackId = nextAttackId++; }   // multi-hit: each window hits again
+    if (u.jet) return this.jetUpB(c, u);
+    if (u.spin) return this.spinUpB(c, u);
     if (this.t < u.riseAt) { this.vy = 0; return; }
     if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('djump', 0.7, 0.7); }
     this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
     if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
+    if (this.t >= u.frames) this.setState('helpless');
+  }
+
+  // Cyclone Slash (Lacy): an air spin that rises with multi-hits, or a chargeable spin on the ground
+  spinUpB(c, u) {
+    if (this.spinGround) {
+      const G = u.ground;
+      this.usedUpB = false;                                   // a ground spin doesn't use up the recovery
+      if (this.spinStart < 0) {                               // charging while the button is held
+        if (c.held('special') && this.spinCharge < G.chargeMax) {
+          this.spinCharge++;
+          if (this.spinCharge === G.chargeMax) { sfx('limitready', 0.5, 1.4); this.match.puff(this.x + this.facing * 16, this.y - 46, 0xb8fff4, 8); }
+          return;
+        }
+        this.spinStart = this.t; this.attackId = nextAttackId++;
+        const k = this.spinCharge / G.chargeMax;
+        this.spinHit = { ...G.hit, dmg: Math.round(G.hit.dmg + (G.hit.maxDmg - G.hit.dmg) * k), base: G.hit.base + 1.2 * k };
+        sfx('swing', 0.8, 0.8); sfx('dodge', 0.5, 0.7);
+      }
+      const st = this.t - this.spinStart;
+      if (st % 6 === 0 && st < G.spin - 6) sfx('swing', 0.5, 1.1);
+      if (st >= G.spin) this.setState('idle');
+      return;
+    }
+    // air spin
+    if (this.t < u.riseAt) { this.vy *= 0.5; return; }
+    if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('swing', 0.8, 0.8); }
+    if (this.t > u.riseAt && this.t < 26 && this.t % 4 === 2) sfx('swing', 0.45, 1.2);
+    this.vx = c.x * u.drift;
+    if (this.t >= u.frames) this.setState('helpless');
+  }
+  // Soulfire Jet: steady thrust from flames under the feet instead of a single burst
+  jetUpB(c, u) {
+    const j = u.jet;
+    if (this.t < u.riseAt) { this.vy = 0; this.vx *= 0.8; if (this.t % 2 === 0) this.match.puff(this.x, this.y + 2, this.fxColor, 1); return; }
+    if (this.t === u.riseAt) {
+      this.vy = u.kick; this.grounded = false; this.platform = null;
+      sfx('djump', 0.7, 0.6);
+      if (this.scene.cache.audio.exists('fireball_throw')) this.scene.sound.play('fireball_throw', { volume: 0.5 * this.match.sfxVol(), rate: 0.75 });
+    }
+    if (this.t <= j.to) {
+      this.vy = Math.max(j.maxRise, this.vy - j.thrust);
+      if (this.t % 3 === 0) this.match.puff(this.x + (Math.random() - 0.5) * 10, this.y + 30 + Math.random() * 16, this.t % 6 ? 0x78a0c6 : 0x076cc2, 1);
+    }
+    this.vx = c.x * u.drift;
+    if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
     if (this.t >= u.frames) this.setState('helpless');
   }
 
@@ -332,7 +466,11 @@ export class Fighter {
     if (this.state === 'roll') return this.t >= 4 && this.t <= 16;
     if (this.state === 'spotdodge') return this.t >= 3 && this.t <= 16;
     if (this.state === 'airdodge') return this.t >= 3 && this.t <= 20;
-    if (this.state === 'limit') return true;
+    if (this.state === 'limit' || this.state === 'dying') return true;
+    if (this.state === 'counterstrike') return this.t <= 12;
+    if (this.state === 'ledgeclimb') return this.t <= 12;
+    if (this.state === 'ledgeroll') return this.t <= 22;
+    if (this.state === 'ledgeattack') return this.t <= 10;
     return false;
   }
 
@@ -368,6 +506,7 @@ export class Fighter {
     const s = this.state;
     if (s === 'grabbed') return;
     if (s === 'respawn') return;
+    if (s.startsWith('ledge')) return;                    // hanging / climbing: the state places the fighter
     if (this.dropTimer > 0) this.dropTimer--;
 
     const canSteerAir = ['air', 'helpless', 'attack', 'charge', 'summon'].includes(s) && !this.grounded;
@@ -410,6 +549,75 @@ export class Fighter {
     this.x += this.vx + this.lx;
     this.y += this.vy + this.ly;
     this.collide(px, py, c);
+    this.tryLedgeGrab(c);
+  }
+
+  // ------------------------------------------------------------------ ledges
+  // Falling (or recovering) next to a corner of the solid stage catches the edge. From the ledge:
+  // toward the stage or up = climb, jump = jump up, attack = climb with a sweeping attack,
+  // shield = roll onto the stage, away or down = let go. Hanging too long (5 s) lets go by itself.
+  hangPos(L) { return { x: L.x + L.side * (this.body.w / 2 + 1), y: L.y + this.body.h - 14 }; }
+  tryLedgeGrab(c) {
+    const s = this.state;
+    if (this.grounded || this.ledgeCooldown > 0 || this.possessed > 0) return;
+    if (!['air', 'helpless', 'upb', 'airdodge'].includes(s)) return;
+    if (s === 'upb' && this.t < (this.def.moves.upb.riseAt || 0) + 2) return;
+    if (c.y > 0.5) return;                                      // holding down: don't grab
+    for (const p of this.match.stage.platforms) {
+      if (!p.solid) continue;
+      for (const side of [-1, 1]) {
+        const L = { p, side, x: side < 0 ? p.x1 : p.x2, y: p.y };
+        const h = this.hangPos(L);
+        if (side < 0 ? this.x > p.x1 : this.x < p.x2) continue;  // must be outside the stage
+        if (Math.abs(this.x - h.x) > 20) continue;
+        const top = this.y - this.body.h - L.y;                  // head height relative to the ledge
+        if (top < -34 || top > 22) continue;
+        if (s !== 'upb' && this.vy < -1.5) continue;             // rising past it on a jump: no grab
+        if (this.match.fighters.some((f) => f !== this && f.alive && f.ledge && f.ledge.p === p && f.ledge.side === side && f.state.startsWith('ledge'))) continue;
+        this.grabLedge(L); return;
+      }
+    }
+  }
+  grabLedge(L) {
+    const h = this.hangPos(L);
+    this.ledge = L; this.setState('ledge');
+    this.x = h.x; this.y = h.y; this.vx = this.vy = this.lx = this.ly = 0;
+    this.facing = -L.side; this.fastFalling = false;
+    this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;          // a fresh recovery
+    if (this.ledgeGrabs === 0) this.invincible = Math.max(this.invincible, 36); // safe on the first grab only
+    this.ledgeGrabs++;
+    this.stopChargeSound();
+    sfx('land', 0.5, 1.4); this.match.puff(L.x, L.y, 0xf0f2f3, 3);
+  }
+  letGoLedge(cooldown = 30) {
+    this.ledgeCooldown = cooldown; this.setState('air'); this.vy = 1; this.ledge = null;
+  }
+  st_ledge(c) {
+    const L = this.ledge, toward = -L.side;
+    if (this.t < 8) return;                                     // short hang before acting
+    if (this.t > 300) { this.letGoLedge(60); return; }
+    if (this.buffer.jump) { this.buffer.jump = 0; this.ledge = null; this.setState('air'); this.y = L.y - 6; this.vy = this.def.jumpV; this.vx = toward * 1.2; this.ledgeCooldown = 20; sfx('jump', 0.5); return; }
+    if (this.buffer.attack) { this.buffer.attack = 0; this.setState('ledgeattack'); return; }
+    if (this.buffer.shield) { this.buffer.shield = 0; this.setState('ledgeroll'); sfx('dodge', 0.5); return; }
+    if (c.x * toward > 0.5 || c.y < -0.5) { this.setState('ledgeclimb'); return; }
+    if (c.x * toward < -0.5 || c.y > 0.5) { this.letGoLedge(); return; }
+  }
+  // move from the hang position onto the stage over `frames`, ending `dist` px in from the edge
+  climbTo(frames, dist) {
+    const L = this.ledge, h = this.hangPos(L), k = Math.min(1, this.t / frames);
+    const up = Math.min(1, k * 2), over = Math.max(0, k * 2 - 1);
+    this.x = h.x + (-L.side) * (this.body.w / 2 + 1 + dist) * over;
+    this.y = h.y + (L.y - h.y) * up;
+    if (this.t >= frames) { this.x = L.x - L.side * dist; this.y = L.y; this.grounded = true; this.platform = L.p; this.ledge = null; return true; }
+    return false;
+  }
+  st_ledgeclimb() { if (this.climbTo(18, 18)) this.setState('idle'); }
+  st_ledgeroll() { if (this.climbTo(28, 72)) { this.setState('idle'); } }
+  st_ledgeattack() {
+    if (this.t < 14) { this.climbTo(14, 14); return; }
+    if (this.ledge) this.climbTo(14, 14);
+    if (this.t === 14) { this.attackId = nextAttackId++; this.hitList = new Set(); sfx('swing', 0.6); }
+    if (this.t >= 30) this.setState('idle');
   }
 
   collide(px, py, c) {
@@ -445,7 +653,7 @@ export class Fighter {
       if (this.state === 'hitstun' && this.ly > 4) { this.ly = -this.ly * 0.6; this.y = landed.y; this.match.puff(this.x, this.y, 0xd99350, 6); return; }
       this.y = landed.y; this.vy = 0; this.ly = 0;
       this.grounded = true; this.platform = landed;
-      this.jumpsLeft = 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false;
+      this.jumpsLeft = 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false; this.ledgeGrabs = 0;
       this.onLand();
     } else if (landed && this.grounded) {
       this.y = landed.y; this.platform = landed;
@@ -473,7 +681,7 @@ export class Fighter {
   }
 
   ko() {
-    this.alive = false; this.stopChargeSound();
+    this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
     this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear();
@@ -481,11 +689,67 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.possessed = 0; this.possessImmune = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
     this.sprite.setVisible(true); this.tag.setVisible(true);
+  }
+
+  // ------------------------------------------------------------------ stamina death
+  // Stamina ran out: play the death animation (fighters that have one), then the KO happens.
+  startDying() {
+    this.setState('dying'); this.lx = this.ly = 0; this.vx = 0; this.hitstun = 0;
+    this.stopChargeSound(); this.possessed = 0;
+    if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
+    if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
+    this.match.popText(this, 'DEFEATED', '#ff5a5a');
+  }
+  st_dying() { if (this.t >= 80) this.match.onKO(this); }
+
+  // Which strip and frame to show, for fighters with their own animations (def.ownAnims).
+  animFrame(s) {
+    const S = this.sheets, N = this.def.frameCounts;
+    const loop = (k, rate) => ({ sheet: S[k], frame: Math.floor(this.anim / rate) % N[k] });
+    const once = (k, t, total) => ({ sheet: S[k], frame: Math.max(0, Math.min(N[k] - 1, Math.floor((t / total) * N[k]))) });
+    // taking damage: the Take Hit strip plays through (16 ticks) even if the hitstun is shorter
+    if (this.hurtAnim > 0 && !['attack', 'upb', 'dying', 'limit', 'ledge', 'ledgeclimb', 'ledgeroll', 'ledgeattack', 'grabbed'].includes(s)) {
+      return { sheet: S.hit, frame: Math.min(N.hit - 1, Math.floor((16 - this.hurtAnim) / 4)) };
+    }
+    switch (s) {
+      case 'run': {
+        this.runPhase = ((this.runPhase || 0) + 0.1 + Math.abs(this.vx) * 0.06) % N.run;
+        return { sheet: S.run, frame: Math.floor(this.runPhase) };
+      }
+      case 'air': return this.vy < 0 ? once('jump', this.t, 12) : loop('fall', 6);
+      case 'helpless': return { ...loop('fall', 8), alpha: this.anim % 16 < 8 ? 1 : 0.8 };
+      case 'airdodge': return { ...loop('fall', 6), alpha: 0.55 };
+      case 'hitstun': return once('hit', this.t, 16);                      // the Take Hit strip on every hit
+      case 'grabbed': return { sheet: S.hit, frame: N.hit - 1 };
+      case 'dizzy': return { sheet: S.hit, frame: N.hit - 1, rot: Math.sin(this.t * 0.2) * 0.15 };
+      case 'dying': return once('death', this.t, 66);
+      case 'attack': { const m = this.move || {}; return { ...once(m.anim || 'attack2', this.t, m.frames || 28), flip: !!m.flip }; }
+      case 'upb': {
+        const u = this.def.moves.upb;
+        if (!u.spin) return once('attack1', this.t, u.frames);
+        if (this.spinGround && this.spinStart < 0) return { sheet: S.attack1, frame: 1, rot: (this.spinCharge >= u.ground.chargeMax && this.anim % 4 < 2) ? 0.04 : 0 };   // charging, sword raised
+        const st = this.spinGround ? this.t - this.spinStart : this.t - u.riseAt;
+        const spinning = this.spinGround ? st < u.ground.spin - 6 : (st >= 0 && st < 22);
+        if (!spinning) return st < 0 ? { sheet: S.attack1, frame: 1 } : { sheet: S.attack2, frame: 6 };
+        return { sheet: S.attack2, frame: 1, flip: Math.floor(st / 3) % 2 === 1 };   // sword held out, turning
+      }
+      case 'holding': return { sheet: S.attack2, frame: 0 };
+      case 'counter': return { sheet: S.guard || S.attack2, frame: 0 };      // crouched guard, sword angled down toward the opponent
+      case 'counterstrike': return this.t < 2 ? { sheet: S.attack2, frame: 2 } : once('attack2', this.t - 2 + 6, 26);
+      case 'limit': return this.t < this.def.limit.beamStart ? once('attack1', this.t, this.def.limit.beamStart) : { sheet: S.attack1, frame: 5 };
+      case 'ledge': return { sheet: S.fall, frame: 0 };
+      case 'ledgeclimb': return once('jump', this.t, 18);
+      case 'ledgeattack': return this.t < 14 ? once('jump', this.t, 14) : once('attack2', this.t - 14, 16);
+      case 'ledgeroll': case 'roll': return { ...loop('run', 3), alpha: 0.55 };
+      case 'spotdodge': return { ...loop('idle', 6), alpha: 0.55 };
+      case 'land': case 'jumpsquat': return { sheet: S.idle, frame: 0 };
+      default: return loop('idle', 6);
+    }
   }
 
   // ------------------------------------------------------------------ drawing
@@ -498,10 +762,15 @@ export class Fighter {
     spr.setFlipX(d.facesLeft ? this.facing > 0 : this.facing < 0);
     spr.setRotation(0); spr.setScale(1, 1); spr.setAlpha(1);
 
-    const alt = d.sheets.juggle || d.sheets.idle;   // pose sheet (fighters without one reuse their idle frames)
-    let sheet = d.sheets.idle, frame = Math.floor(this.anim / 6) % 32;
+    const alt = this.sheets.juggle || this.sheets.idle;   // pose sheet (fighters without one reuse their idle frames)
+    let sheet = this.sheets.idle, frame = Math.floor(this.anim / 6) % 32;
     const s = this.state;
-    if (s === 'run') { frame = Math.floor(this.anim / 3) % 32; spr.setRotation(0.1 * this.facing); spr.y -= (Math.floor(this.anim / 5) % 2); }
+    if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
+      this.walkPhase = ((this.walkPhase || 0) + Math.max(0.08, Math.abs(this.vx) * 0.055)) % 8;
+      sheet = this.sheets.walk; frame = Math.floor(this.walkPhase);
+      spr.setRotation(Phaser.Math.Clamp(this.vx * 0.012, -0.05, 0.05));
+    }
+    else if (s === 'run') { frame = Math.floor(this.anim / 3) % 32; spr.setRotation(0.1 * this.facing); spr.y -= (Math.floor(this.anim / 5) % 2); }
     else if (s === 'jumpsquat' || s === 'land') spr.setScale(1.08, 0.9);
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { frame = 4; spr.setRotation(Phaser.Math.Clamp(this.vx * 0.04, -0.2, 0.2)); }
     else if (s === 'hitstun' || s === 'dizzy') { frame = 10; spr.setRotation(Math.sin(this.t * 0.5) * 0.35 * this.facing); }
@@ -516,18 +785,50 @@ export class Fighter {
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
     else if (s === 'limit') { sheet = alt; frame = 12; spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
+    else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
+    else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
+    else if (s === 'ledgeroll') { spr.setAlpha(0.55); frame = 6; }
     else if (s === 'holding') { sheet = alt; frame = 1; }
     else if (s === 'grabbed') { frame = 10; spr.setRotation(-0.2 * this.facing); }
+    if (this.hurtAnim > 0) this.hurtAnim--;
+    if (d.ownAnims) {                          // fighters drawn from their own animation strips
+      const a = this.animFrame(s);
+      sheet = a.sheet; frame = a.frame;
+      spr.setRotation(a.rot || 0); spr.setAlpha(a.alpha ?? 1); spr.y = Math.round(this.y);
+      if (s !== 'jumpsquat' && s !== 'land') spr.setScale(1, 1);
+      if (a.flip) spr.setFlipX(!spr.flipX);
+    }
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
 
     // hit flash and invincibility blink
-    if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
-    else { spr.setTint(this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
-    if (this.isIntangible() && s !== 'limit' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.silhouette > 0) { this.silhouette--; spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
+    else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
+    else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
+    if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
 
     // name tag
     this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));
 
+    // possessed by Soul Hex: wisps circling the head and a bar that shrinks as you wiggle free
+    if (this.possessed > 0) {
+      const top = this.y - (d.tagY || 60) - 26;
+      for (let k = 0; k < 4; k++) {
+        const a = this.anim * 0.15 + k * Math.PI / 2;
+        g.fillStyle(k % 2 ? 0x6d26bd : 0xb07ad0, 1); g.fillRect(this.x + Math.cos(a) * 16 - 2, this.y - (d.body.h + 6) + Math.sin(a) * 5 - 2, 4, 4);
+      }
+      const w = 36, k = Math.max(0, this.possessed / this.possessMax), shake = this.wiggleFx > 0 ? (this.anim % 2 ? 2 : -2) : 0;
+      if (this.wiggleFx > 0) this.wiggleFx--;
+      g.fillStyle(0x0b0a14, 0.85); g.fillRect(this.x - w / 2 - 1 + shake, top - 1, w + 2, 6);
+      g.fillStyle(0xb07ad0, 1); g.fillRect(this.x - w / 2 + shake, top, w * k, 4);
+      if (!this.isCpu && this.anim % 30 < 20) { g.fillStyle(0xf3c358, 1); g.fillTriangle(this.x - 4 + shake, top - 9, this.x + 4 + shake, top - 9, this.x + shake, top - 3); }
+    }
+    // hands gripping the stage edge while hanging
+    if (s === 'ledge' && this.ledge) {
+      const L = this.ledge, hx = L.x - L.side * 3;
+      g.fillStyle(0x0b0a14, 1); g.fillRect(hx - 4, L.y - 3, 8, 5);
+      g.fillStyle(0x3a3440, 1); g.fillRect(hx - 3, L.y - 2, 6, 3);
+      g.fillStyle(0xf3c358, 1); g.fillRect(hx - 3, L.y - 2, 6, 1);
+    }
     // respawn platform
     if (s === 'respawn') {
       g.fillStyle(0x78a0c6, 1); g.fillRect(this.x - 22, this.y, 44, 4);
@@ -549,10 +850,100 @@ export class Fighter {
       g.fillStyle(0xf0f2f3, 1); g.fillRect(hx - r * 0.3, hy - r * 0.3, r * 0.6, r * 0.6);
       if (k >= 1 && this.t % 10 < 5) { g.lineStyle(1, 0xf0f2f3, 1); g.strokeRect(hx - r - 3, hy - r - 3, r * 2 + 6, r * 2 + 6); }
     }
+    // Soulfire Jet: a flickering column of blue flame under his feet
+    if (s === 'upb' && d.moves.upb.jet) {
+      const u = d.moves.upb, j = u.jet;
+      if (this.t >= u.riseAt && this.t <= j.to + 4) {
+        const fade = this.t > j.to ? 1 - (this.t - j.to) / 5 : Math.min(1, (this.t - u.riseAt + 1) / 3);
+        const len = (46 + (this.anim % 4) * 5) * fade, fy = this.y - 2;
+        const cols = [[0x1a1020, 1.12], [0x076cc2, 1], [0x78a0c6, 0.62], [0xf0f2f3, 0.26]];   // outer, middle, white-hot core
+        for (const [col, wk] of cols) {
+          g.fillStyle(col, 1);
+          for (let k = 0; k < len; k += 2) {
+            const taper = 1 - k / (len + 2);
+            const wob = Math.round(Math.sin(this.anim * 0.7 - k * 0.22) * 3 * (k / len));      // the column sways as it flows down
+            const jag = (((this.anim * 7 + k * 13) % 5) - 2) * (wk > 0.9 ? 1 : 0.5);              // ragged flame edges
+            const w = Math.max(2, Math.round((26 * wk * (0.3 + 0.7 * taper) + jag) / 2) * 2);
+            if (wk < 0.5 && taper < 0.35) continue;                                                // the hot core fades out first
+            g.fillRect(this.x - w / 2 + wob, fy + k, w, 2);
+          }
+        }
+        // licks of flame breaking off the tail
+        g.fillStyle(0x78a0c6, 1);
+        for (let k = 0; k < 3; k++) { const ph = (this.anim * 3 + k * 7) % 18; g.fillRect(this.x - 6 + k * 5 + ((this.anim + k) % 3) - 1, fy + len + ph - 6, 3, 3); }
+      }
+    }
+    // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
+    if (s === 'counter' && this.counterReady()) {
+      const gx = this.x + this.facing * 44, gy = this.y - 19, tw = this.t - d.moves.counter.start;   // glint on the lowered blade
+      g.fillStyle(0xe0f4ff, tw < 6 ? 1 : 0.55); g.fillRect(gx - 1, gy - 6, 2, 12); g.fillRect(gx - 6, gy - 1, 12, 2);
+      if (tw < 6) { g.fillStyle(0x9ad8f0, 0.5); g.fillRect(gx - 9, gy, 18, 1); g.fillRect(gx, gy - 9, 1, 18); }
+      g.fillStyle(0x9ad8f0, 0.12 + 0.08 * Math.sin(this.anim * 0.6)); g.fillEllipse(this.x, this.y - 26, 40, 58);
+    }
+    if (this.counterFlash > 0) {
+      const k = this.counterFlash / 26, cx = this.x + this.facing * 10, cy = this.y - 30;
+      this.counterFlash--;
+      for (let i = 0; i < 12; i++) {                                   // light rays bursting out
+        const a = i * 0.52 + 0.2, len = (40 + (i % 3) * 22) * (1.2 - k * 0.4);
+        g.fillStyle(i % 2 ? 0xffffff : 0x9ad8f0, 0.75 * k);
+        for (let r = 8; r < len; r += 3) g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), Math.max(1, 3 - r / 30), Math.max(1, 3 - r / 30));
+      }
+      if (s === 'counterstrike' && this.t >= 2 && this.t <= 12) {     // the long horizontal slash streak
+        const reach = 90 * Math.min(1, (this.t - 1) / 4), y0 = this.y - 34;
+        g.fillStyle(0x9ad8f0, 0.5 * k + 0.2); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 4, reach, 9);
+        g.fillStyle(0xffffff, 0.95); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 1, reach, 3);
+      }
+    }
+    // Cyclone Slash: a glowing ring of light around her while she spins; sparks gather while charging
+    if (s === 'upb' && d.moves.upb.spin) {
+      const u = d.moves.upb, cx = this.x, cy = this.y - 26;
+      if (this.spinGround && this.spinStart < 0) {
+        const k = this.spinCharge / u.ground.chargeMax, tx = this.x - this.facing * 3, ty = this.y - 68;
+        for (let i = 0; i < 6; i++) {
+          const a = this.anim * 0.3 + i * 1.05, r = 18 * (1 - ((this.anim + i * 5) % 20) / 20);
+          g.fillStyle(i % 2 ? 0xb8fff4 : 0x4ae0e0, 0.9); g.fillRect(Math.round(tx + Math.cos(a) * r) - 1, Math.round(ty + Math.sin(a) * r) - 1, 2, 2);
+        }
+        g.fillStyle(0xb8fff4, 0.25 + 0.5 * k); g.fillCircle(tx, ty, 2 + 4 * k);
+        if (k >= 1 && this.anim % 8 < 4) { g.fillStyle(0xffffff, 1); g.fillRect(tx - 1, ty - 1, 3, 3); }
+      } else {
+        const st = this.spinGround ? this.t - this.spinStart : this.t - u.riseAt;
+        const len = this.spinGround ? u.ground.spin - 6 : 22;
+        if (st >= 0 && st < len + 6) {
+          const fade = st < len ? 1 : 1 - (st - len) / 6;
+          const big = this.spinGround ? 1 + 0.3 * (this.spinCharge / u.ground.chargeMax) : 1;
+          const rx = 38 * big, ry = (this.spinGround ? 13 : 20) * big, head = st * 0.95 * this.facing;
+          const cols = [0xffffff, 0xe0fffa, 0xb8fff4, 0x7af0e8, 0x4ae0e0, 0x22b8c8, 0x1a8aa0];
+          // a faint full ring, then a thick glowing crescent sweeping around it
+          for (let k = 0; k < 40; k++) {
+            const a = (k / 40) * Math.PI * 2;
+            g.fillStyle(0x7af0e8, 0.22 * fade); g.fillRect(Math.round(cx + Math.cos(a) * rx) - 1, Math.round(cy + Math.sin(a) * ry) - 1, 3, 2);
+          }
+          for (let pass = 0; pass < 2; pass++) {
+            for (let k = 0; k < 34; k++) {
+              const a = head - k * 0.15 * this.facing;
+              const sz = Math.max(2, Math.round((9 - k * 0.22) * big)) + (pass ? 0 : 4);
+              const px = cx + Math.cos(a) * rx, py = cy + Math.sin(a) * ry;
+              g.fillStyle(pass ? cols[Math.min(cols.length - 1, Math.floor(k / 5))] : 0x4ae0e0, (pass ? 0.95 : 0.25) * (1 - k / 36) * fade);
+              g.fillRect(Math.round(px - sz / 2), Math.round(py - sz / 2), sz, sz);
+            }
+          }
+          if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, 0x7af0e8, 1);   // light streaming below as she rises
+        }
+      }
+    }
     // attack swipe effects (placeholder until attack animations are drawn)
     for (const hb of this.activeHitboxes()) {
+      if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
+      if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
       g.fillStyle((hb.src && hb.src.fxTint) || this.fxColor, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
+      if (fx === 'hex') {     // Soul Hex: a swirling purple curse with a dark eye
+        const cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, rx = (hb.x2 - hb.x1) / 2, ry = (hb.y2 - hb.y1) / 2;
+        for (let k = 0; k < 10; k++) { const a = this.t * 0.4 + k * 0.63, r = 0.35 + 0.65 * (k / 10);
+          g.fillStyle(k % 2 ? 0xb07ad0 : 0x6d26bd, 1); g.fillRect(cx + Math.cos(a) * rx * r - 2, cy + Math.sin(a) * ry * r - 2, 4, 4); }
+        g.fillStyle(0x0b0a14, 1); g.fillEllipse(cx, cy, 12, 8); g.fillStyle(0xf3c358, 1); g.fillRect(cx - 1, cy - 1, 3, 3);
+        continue;
+      }
       if (fx === 'spin' || fx === undefined) g.fillCircle((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) / 2);
       else g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, hb.x2 - hb.x1, hb.y2 - hb.y1);
       g.fillStyle(0xf0f2f3, 0.8);

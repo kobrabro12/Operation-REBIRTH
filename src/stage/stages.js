@@ -1,6 +1,8 @@
 // Every stage shown on the stage select screen, in grid order.
 // Locked entries are placeholders for stages still being made.
 import { SkyStage, PAL } from './skyStage.js';
+import { SpireStage, drawSpirePreview } from './spireStage.js';
+import { MoonStage, drawMoonPreview } from './moonStage.js';
 
 export const STAGES = [
   {
@@ -8,6 +10,18 @@ export const STAGES = [
     blurb: ['A flat island floating above the clouds,', 'with three cloud ledges to jump through.'],
     hazard: 'LIGHTNING STORM: A WARNING FLASHES,\nTHEN LIGHTNING STRIKES THAT SPOT.',
     preview: drawSkyPreview,
+  },
+  {
+    id: 'verdant-spires', name: 'VERDANT SPIRES', available: true, make: (scene) => new SpireStage(scene),
+    blurb: ['A jungle island of rock spires above the sea,', 'with a shelf, a temple roof and a high crag.'],
+    hazard: 'HAZARDS AND ITEMS: COMING SOON',
+    preview: drawSpirePreview,
+  },
+  {
+    id: 'gravemoon-bridge', name: 'GRAVEMOON BRIDGE', available: true, make: (scene) => new MoonStage(scene),
+    blurb: ['A stone bridge over a misty chasm, held up', 'by horned gargoyles under a giant moon.'],
+    hazard: 'HAZARDS AND ITEMS: COMING SOON',
+    preview: drawMoonPreview,
   },
 ];
 

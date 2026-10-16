@@ -3,6 +3,7 @@ import { MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { sfx } from '../audio/sfx.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
 
 export class ResultsScene extends Phaser.Scene {
   constructor() { super('Results'); }
@@ -15,7 +16,7 @@ export class ResultsScene extends Phaser.Scene {
     this.add.text(VIEW_W / 2, 18, MODE_NAMES[data.mode] + ' - RESULTS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(0.5);
     this.add.text(VIEW_W / 2 + 40, 62, win.label + ' WINS!', { fontFamily: FONT, fontSize: '22px', color: PLAYER_CSS[win.slot], stroke: '#0b0a14', strokeThickness: 6 }).setOrigin(0.5);
     this.heroDef = (ROSTER.find((r) => r.id === win.fighter) || ROSTER[0]).def;
-    this.hero = showFighter(this.add.sprite(120, 112, this.heroDef.sheets.idle, 0), this.heroDef).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
+    this.hero = showFighter(this.add.sprite(120, 112, this.heroDef.sheets.idle, 0), this.heroDef, 0, win.skin || 0).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
     const unit = data.mode === 'stamina' ? ' HP' : '%';
     for (const [txt, x] of [['PLACE', 60], ['PLAYER', 116], ['KOS', 254], ['FALLS', 310], ['DEALT', 386], ['TAKEN', 486]]) {
       this.add.text(x, 144, txt, { fontFamily: FONT, fontSize: '7px', color: '#8a87a3' });
@@ -29,11 +30,12 @@ export class ResultsScene extends Phaser.Scene {
     this.prompt = this.add.text(VIEW_W / 2, 336, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
     sfx('limitready', 0.8);
     this.clicked = false;
-    this.input.on('pointerdown', () => { this.clicked = true; });
+    this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });
+    addFullscreenButton(this, VIEW_W - 8, 6);
   }
   update() {
     this.t++;
-    this.hero.setFrame(Math.floor(this.t / 6) % 32);
+    this.hero.setFrame(Math.floor(this.t / 6) % ((this.heroDef.frameCounts && this.heroDef.frameCounts.idle) || 32));
     this.prompt.setVisible(this.t % 60 < 40);
     if (this.t <= 40) this.clicked = false;
     const m = this.menu.poll();

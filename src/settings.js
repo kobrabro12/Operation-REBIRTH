@@ -10,6 +10,7 @@ export const settings = {
   items: true,
   hazards: true,
   crt: false,
+  touch: 'auto',      // on-screen touch controls: 'auto' (touch screens) | 'on' | 'off'
   musicVolume: 0.6,
   sfxVolume: 0.8,
   // Controllers that joined on the setup screen. p1Pad = pad index that also drives player 1.
@@ -18,6 +19,7 @@ export const settings = {
   // Chosen on the fighter select screen, one entry per player slot.
   stage: 'sky-sanctum', // stage id or 'random'
   picks: [],          // fighter id or 'random'
+  skins: [],          // colour variation per slot (index into SKINS[fighter])
   cpuLevels: [],      // per-CPU difficulty (falls back to `difficulty`)
 };
 

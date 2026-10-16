@@ -52,7 +52,7 @@ const RAW = {
   neutralB:    { startup: 12, active: 1, endlag: 18, projectile: { speed: 9, life: 70, damage: 7, baseKB: 3, kbScale: 0.5, angle: 25, w: 16, h: 12 } },
   sideB:       { startup: 16, active: 1, endlag: 22, projectile: { speed: 5, life: 120, damage: 11, baseKB: 5, kbScale: 0.8, angle: 40, w: 24, h: 20, homing: 0.15 } },
   upB:         { startup: 8,  active: 10, endlag: 20, damage: 5, baseKB: 4, kbScale: 0.5, angle: 80, hitbox: { x: -20, y: 20, w: 40, h: 30 } },
-  downB:       { startup: 10, active: 24, endlag: 16, damage: 4, baseKB: 2, kbScale: 0.3, angle: 90, hitbox: { x: -40, y: 28, w: 80, h: 10 }, slowVictim: 0.5 },
+  downB:       { startup: 10, active: 24, endlag: 16, damage: 4, baseKB: 2, kbScale: 0.3, angle: 90, hitbox: { x: -75, y: 28, w: 150, h: 10 }, slowVictim: 0.5 },   // widened from 80 to 150 on request
 };
 
 const upB = convert(RAW.upB);
@@ -61,10 +61,11 @@ export const MR_WAKE = {
   id: 'mr-wake',
   name: 'MR WAKE',
   sheets: { idle: 'wake_idle' },
-  facesLeft: true,                 // the sprite looks left (gem end of the staff points left)
+  facesLeft: false,                // he looks right in the sprite (his face and hat brim point right;
+                                   // the gem end of the staff trails behind him on the left)
   originX: 36 / 64,                // body centre column
   originY: 62 / 64,                // feet sit on row 61
-  handOffset: { x: 22, y: -46 },   // the gem: where bolts come out
+  handOffset: { x: 18, y: -40 },   // in front of him at chest height: where bolts and his beam come out
   portrait: [22, 0, 40, 36],       // crop of the idle frame for the select grid
   tagY: 68,
   fxColor: 0x9b5de5,
@@ -89,7 +90,9 @@ export const MR_WAKE = {
     dair: convert(RAW.dair, { landLag: 14 }),
     neutralB: convert(RAW.neutralB),                  // Wake Bolt
     sideB: convert(RAW.sideB),                        // Drifting Soul: slow, curves toward a foe
-    downB: convert(RAW.downB, { fx: 'low', fxTint: 0x2a1040 }),         // Shadow Pool: sticky puddle that slows
+    // Shadow Pool: his blob body seeps out into a wide puddle. The splash hits for 4%; the puddle then
+    // stays on the ground for 4 s, and any opponent who steps in is slowed for 2 s after leaving it.
+    downB: convert(RAW.downB, { fx: 'low', fxTint: 0x2a1040, pool: { width: 120, life: 240, slow: 120 } }),
     // Gem Rocket: blasts the staff downward and launches up, then helpless
     upb: { frames: upB.frames, riseAt: RAW.upB.startup, riseV: -12, pushX: 2.4, drift: 2.0, hits: upB.hits },
   },

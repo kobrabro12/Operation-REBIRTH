@@ -1,6 +1,7 @@
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -17,10 +18,11 @@ export class TitleScene extends Phaser.Scene {
     this.hero = this.add.sprite(VIEW_W / 2, 262, 'ss_idle', 0).setOrigin(0.5, 59 / 64).setScale(2);
     this.glow = this.add.graphics();
     this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
-    this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
+    this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT   (TOUCH CONTROLS ON PHONES)', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
     this.menu = new MenuInput(this);
     this.clicked = false;
-    this.input.on('pointerdown', () => { this.clicked = true; });
+    this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });
+    addFullscreenButton(this, VIEW_W - 8, 8);
   }
   update() {
     this.t++;

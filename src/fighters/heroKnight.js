@@ -1,0 +1,86 @@
+// Lacy: fighter #3 (code id 'hero-knight'). A grey-armoured swordsman with a white scarf (sprites: the Hero Knight asset
+// pack, CC0). Animated from the pack's own strips instead of the shared pose frames:
+//   idle = Idle, run = Run, neutral special = Attack1, jab = Attack2, jump = Jump, fall = Fall,
+//   any hit taken = Take Hit, and Death plays only when his stamina runs out in a Stamina battle.
+// Only the jab and neutral special are designed so far. Every other move is a PLACEHOLDER that reuses
+// those two sword animations until his real moves are designed.
+import { DEFAULT_GRAB } from './common.js';
+
+// Limit beam colours: steel and white
+const BEAM_STEEL = { outline: 0x14181c, deep: 0x4c5a5f, mid: 0x929ca0, light: 0xc9c9c9, core: 0xffffff };
+
+export const HERO_KNIGHT = {
+  id: 'hero-knight',
+  name: 'LACY',
+  // every strip is 150x90 per frame, feet at (66, 86) inside the frame
+  sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard' },
+  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1 },
+  ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
+  originX: 66 / 150, originY: 86 / 90,
+  handOffset: { x: 20, y: -30 },
+  portrait: [46, 34, 40, 36],
+  fxColor: 0xc9c9c9,
+  body: { w: 22, h: 48 },
+  tagY: 60,
+  weight: 1.0,
+  walkSpeed: 3.3, runAccel: 0.6, groundFriction: 0.55,
+  airSpeed: 2.8, airAccel: 0.25, airFriction: 0.04,
+  jumpV: -9.2, shortHopV: -6.3, doubleJumpV: -8.8,
+
+  moves: {
+    // ---- designed
+    // Jab (Attack2): the sword is drawn back, then a big rising cut in front. 7 frames x 4 ticks.
+    jab: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 18, box: [10, -76, 66, 74], dmg: 5, angle: 40, base: 2.6, growth: 2.4 }] },
+    // Neutral special (Attack1): a heavy overhead slash, arcing from behind the head to the ground in front.
+    neutralB: { frames: 35, anim: 'attack1', hits: [{ from: 15, to: 25, box: [-6, -66, 50, 66], dmg: 12, angle: 45, base: 3.4, growth: 6.0 }] },
+
+    // ---- PLACEHOLDERS until his real moves are designed (reuse the two sword animations)
+    ftilt: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 16, box: [10, -50, 60, 40], dmg: 8, angle: 35, base: 3.0, growth: 5.6 }] },
+    utilt: { frames: 30, anim: 'attack1', hits: [{ from: 12, to: 18, box: [-24, -76, 50, 40], dmg: 7, angle: 85, base: 3.0, growth: 5.4 }] },
+    dtilt: { frames: 24, anim: 'attack2', hits: [{ from: 10, to: 14, box: [8, -22, 56, 22], dmg: 6, angle: 22, base: 2.6, growth: 3.6 }] },
+    nair: { frames: 28, landLag: 7, anim: 'attack1', hits: [{ from: 10, to: 18, box: [-30, -60, 60, 60], dmg: 7, angle: 45, base: 2.8, growth: 4.0 }] },
+    fair: { frames: 28, landLag: 9, anim: 'attack2', hits: [{ from: 12, to: 16, box: [8, -60, 56, 56], dmg: 10, angle: 40, base: 3.0, growth: 6.0 }] },
+    bair: { frames: 26, landLag: 9, anim: 'attack1', flip: true, hits: [{ from: 10, to: 14, box: [-50, -50, 42, 40], dmg: 11, angle: 145, base: 3.2, growth: 6.2 }] },
+    uair: { frames: 26, landLag: 6, anim: 'attack1', hits: [{ from: 10, to: 16, box: [-24, -84, 50, 40], dmg: 8, angle: 86, base: 3.0, growth: 5.8 }] },
+    dair: { frames: 32, landLag: 13, anim: 'attack1', hits: [{ from: 14, to: 18, box: [-16, -14, 40, 30], dmg: 11, angle: -78, base: 3.0, growth: 4.2 }] },
+    ...DEFAULT_GRAB,
+    grab: { ...DEFAULT_GRAB.grab, anim: 'attack2' },
+    // Down special: Riposte - a counter. She raises her guard; if an attack (or projectile) hits her
+    // while the guard is up (ticks 5-28), she takes no damage, the attacker freezes as a shadow in a
+    // flash of light, and she slashes back for 1.2x the blocked damage (at least 8%). Whiffing leaves
+    // her open until tick 52. Grabs, stage hazards and Limits can't be countered.
+    counter: {
+      start: 5, end: 28, frames: 52, mult: 1.2, minDmg: 8,
+      strike: { frames: 30, from: 4, to: 8, box: [-6, -66, 74, 68], angle: 38, base: 4.4, growth: 6.6 },
+    },
+    // Up special: Cyclone Slash - she spins with her sword held out, wrapped in a ring of light.
+    //  In the air: rises while spinning; four quick hits drag opponents along, the last one launches.
+    //    Good sideways drift, then helpless until landing.
+    //  On the ground: hold the button to charge (up to 1 s), release to spin in place. One big hit
+    //    all around her, stronger the longer it charged (9% -> 16%). She stays on the ground.
+    upb: {
+      spin: true, frames: 40, riseAt: 6, riseV: -8.8, drift: 2.7,
+      hits: [
+        { from: 6, to: 7, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },
+        { from: 10, to: 11, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },
+        { from: 14, to: 15, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },
+        { from: 18, to: 19, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },
+        { from: 23, to: 26, box: [-38, -60, 76, 64], dmg: 4, angle: 55, base: 3.4, growth: 5.4 },
+      ],
+      ground: { chargeMax: 60, spin: 30, hit: { from: 4, to: 16, box: [-40, -46, 80, 46], dmg: 9, maxDmg: 16, angle: 38, base: 3.4, growth: 6.2 } },
+    },
+  },
+
+  // Limit PLACEHOLDER: a beam of steel-white light from his sword, 50% like the others.
+  limit: {
+    name: 'BLADE STORM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 18, colors: BEAM_STEEL,
+    hits: [
+      { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 60, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 70, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 80, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 92, dmg: 10, angle: 32, base: 5.5, growth: 6.5 },
+    ],
+  },
+};

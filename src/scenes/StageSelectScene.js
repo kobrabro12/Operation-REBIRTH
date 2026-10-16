@@ -6,6 +6,7 @@ import { STAGES, STAGE_SLOTS } from '../stage/stages.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
 const COLS = 2, TILE_W = 118, TILE_H = 58, GAP = 6;
@@ -52,6 +53,7 @@ export class StageSelectScene extends Phaser.Scene {
 
     // mouse: hover a tile to preview it, click a tile (or the big preview) to choose it
     this.input.mouse.disableContextMenu();
+    addFullscreenButton(this, 520, 5);
     this.backBtn = makeButton(this, 170, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
     this.clicked = false;
     const tileAt = (x, y) => this.tiles.findIndex((t) => x >= t.x && x < t.x + TILE_W && y >= t.y && y < t.y + TILE_H);

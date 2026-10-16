@@ -7,7 +7,7 @@ import { BEAM_BLUE } from './common.js';
 export const SOUL_SUMMONER = {
   id: 'soul-summoner',
   name: 'SOUL SUMMONER',
-  sheets: { idle: 'ss_idle', juggle: 'ss_juggle' },
+  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', walk: 'ss_walk' },
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid
@@ -41,10 +41,25 @@ export const SOUL_SUMMONER = {
     // ---- specials (K)
     // Neutral special: fireball. Hold K to charge (full at 84 frames = when the charge sound's chime rings).
     fireball: { chargeMax: 84, minDmg: 4, maxDmg: 16, speed: 4.6, life: 90 },
+    // Side special: Soul Hex - a short-range curse. A cursed opponent loses control and walks toward the
+    // nearest edge of the stage for up to 2.5 s. They break free sooner by mashing buttons (wiggling).
+    sideB: { frames: 34, fx: 'hex', fxTint: 0x6d26bd, hits: [{ from: 9, to: 13, box: [8, -46, 44, 38], dmg: 3, angle: 20, base: 0.8, growth: 0, stun: 10, possess: 150 }] },
     // Down special: raise a soul from the grave (max 2 at once).
     summon: { frames: 40, spawnAt: 20, maxSouls: 2, cooldown: 60 },
-    // Up special: Soul Ascent - recovery burst, then helpless until landing.
-    upb: { frames: 34, riseAt: 5, riseV: -11.5, drift: 2.2, hits: [{ from: 5, to: 16, box: [-18, -58, 36, 60], dmg: 6, angle: 80, base: 3.2, growth: 3.0 }] },
+    // Up special: Soulfire Jet - he blasts blue flames out below his feet and rides them upward.
+    // Hold left/right to steer. The jet burns anyone underneath (light hits that drag them down),
+    // and a burst at the top pops away anyone next to him. Helpless until landing afterwards.
+    upb: {
+      frames: 40, riseAt: 6, drift: 2.4, kick: -3.5,
+      jet: { from: 6, to: 27, thrust: 0.95, maxRise: -8.6 },
+      hits: [
+        { from: 6, to: 8, box: [-13, 0, 26, 50], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },
+        { from: 12, to: 14, box: [-13, 0, 26, 50], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },
+        { from: 18, to: 20, box: [-13, 0, 26, 46], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },
+        { from: 24, to: 26, box: [-13, 0, 26, 40], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },
+        { from: 30, to: 33, box: [-22, -58, 44, 62], dmg: 4, angle: 80, base: 3.2, growth: 4.0 },
+      ],
+    },
   },
 
   // Limit (O, unlocked after taking 100%): Soulfire Beam - a beam of blue fire from his hand, straight ahead.

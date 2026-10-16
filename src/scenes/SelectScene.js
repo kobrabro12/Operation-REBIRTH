@@ -1,12 +1,15 @@
 // Fighter select: a grid of fighters on top, one card per player below, and a cursor for each
 // human. Move your cursor onto a fighter and press attack to pick; press special to change your mind.
 // Point at a CPU card and press attack to change that CPU's level.
+// Colour variations: Q / E (keyboard), X / Y or LB / RB (controller), or click a colour swatch on a card.
 import { VIEW_W, VIEW_H, FONT, PLAYER_COLORS, PLAYER_CSS, PLAYER_TINTS, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
 import { ROSTER, GRID_SLOTS, showFighter } from '../fighters/roster.js';
 import { readPad } from '../input/controllers.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
+import { skinsFor, skinInfo, resolveSkins } from '../fighters/skins.js';
 
 const COLS = 6, TILE_W = 72, TILE_H = 50, GAP = 4;
 const GRID_X = Math.round((VIEW_W - (COLS * TILE_W + (COLS - 1) * GAP)) / 2), GRID_Y = 30;
@@ -33,6 +36,7 @@ export class SelectScene extends Phaser.Scene {
     this.players.forEach((p, i) => {
       p.slot = i;
       p.pick = p.kind === 'cpu' ? 'random' : null;
+      p.skin = s.skins[i] || 0;
       if (p.kind === 'cpu') s.cpuLevels[i] = s.cpuLevels[i] ?? s.difficulty;
       p.x = GRID_X + 30 + i * 40; p.y = GRID_Y + TILE_H + 20; p.prev = {};
     });
@@ -77,6 +81,8 @@ export class SelectScene extends Phaser.Scene {
       card.input = this.add.text(x + cardW - 8, CARD_Y + 9, p.input, { fontFamily: FONT, fontSize: '6px', color: '#0b0a14' }).setOrigin(1, 0);
       card.name = this.add.text(x + cardW / 2, CARD_Y + 162, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
       card.status = this.add.text(x + cardW / 2, CARD_Y + 184, '', { fontFamily: FONT, fontSize: '7px', color: '#c9c4dc' }).setOrigin(0.5);
+      card.skinName = this.add.text(x + cardW / 2, CARD_Y + 170, '', { fontFamily: FONT, fontSize: '5px', color: '#c9c4dc' }).setOrigin(0.5, 0).setDepth(2);
+      card.swatchG = this.add.graphics().setDepth(2); card.swatches = [];
       return card;
     });
 
@@ -85,11 +91,12 @@ export class SelectScene extends Phaser.Scene {
 
     this.banner = this.add.graphics().setDepth(30);
     this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!  CLICK HERE OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' }).setOrigin(0.5).setDepth(31);
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOUSE OR MOVE CURSOR   CLICK / J / A PICK   RIGHT CLICK / K / B UNDO', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.add.text(VIEW_W / 2, VIEW_H - 4, 'CLICK / J / A PICK   RIGHT CLICK / K / B UNDO   Q E / X Y / CLICK SWATCH: COLOUR', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
 
     const K = Phaser.Input.Keyboard.KeyCodes;
     // mouse drives player 1's cursor: left click picks, right click undoes, click the yellow bar to start
     this.input.mouse.disableContextMenu();
+    addFullscreenButton(this, 520, 5);
     makeButton(this, 180, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
     this.mouse = { moved: false, left: false, right: false, x: 0, y: 0 };
     this.input.on('pointermove', (p) => { this.mouse.moved = true; this.mouse.x = p.x; this.mouse.y = p.y; });
@@ -100,7 +107,7 @@ export class SelectScene extends Phaser.Scene {
     this.bannerZone = this.add.zone(0, CARD_Y - 18, VIEW_W, 24).setOrigin(0).setInteractive({ useHandCursor: true }).setDepth(32);
     this.bannerZone.on('pointerdown', (p) => { if (p.leftButtonDown() && this.players.every((pl) => pl.pick)) this.mouse.start = true; });
 
-    this.keys = this.input.keyboard.addKeys({ w: K.W, a: K.A, s: K.S, d: K.D, up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT, j: K.J, k: K.K, enter: K.ENTER, space: K.SPACE, esc: K.ESC }, false);
+    this.keys = this.input.keyboard.addKeys({ w: K.W, a: K.A, s: K.S, d: K.D, up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT, j: K.J, k: K.K, q: K.Q, e: K.E, enter: K.ENTER, space: K.SPACE, esc: K.ESC }, false);
   }
 
   drawDie(g, cx, cy) {
@@ -119,11 +126,12 @@ export class SelectScene extends Phaser.Scene {
   // read one human's stick and buttons; returns edge-triggered presses
   readPlayer(p) {
     const k = this.keys, JD = Phaser.Input.Keyboard.JustDown;
-    let x = 0, y = 0, ok = false, back = false, start = false;
+    let x = 0, y = 0, ok = false, back = false, start = false, skin = 0;
     if (p.kind === 'kb') {
       x = (k.d.isDown || k.right.isDown ? 1 : 0) - (k.a.isDown || k.left.isDown ? 1 : 0);
       y = (k.s.isDown || k.down.isDown ? 1 : 0) - (k.w.isDown || k.up.isDown ? 1 : 0);
       ok = JD(k.j) || JD(k.space); back = JD(k.k); start = JD(k.enter);
+      if (JD(k.q)) skin = -1; if (JD(k.e)) skin = 1;
     }
     if (p.pad !== null && p.pad !== undefined) {
       const pad = readPad(p.pad);
@@ -133,12 +141,13 @@ export class SelectScene extends Phaser.Scene {
         if (Math.abs(ax) < 0.2) ax = 0; if (Math.abs(ay) < 0.2) ay = 0;
         if (b(14)) ax = -1; if (b(15)) ax = 1; if (b(12)) ay = -1; if (b(13)) ay = 1;
         if (Math.abs(ax) > Math.abs(x)) x = ax; if (Math.abs(ay) > Math.abs(y)) y = ay;
-        const now = { a: b(0), b: b(1), st: b(9) };
+        const now = { a: b(0), b: b(1), st: b(9), sp: b(2) || b(4), sn: b(3) || b(5) };
         ok = ok || (now.a && !p.prev.a); back = back || (now.b && !p.prev.b); start = start || (now.st && !p.prev.st);
+        if (now.sp && !p.prev.sp) skin = -1; if (now.sn && !p.prev.sn) skin = 1;
         p.prev = now;
       }
     }
-    return { x, y, ok, back, start };
+    return { x, y, ok, back, start, skin };
   }
 
   tileAt(x, y) { return this.tiles.find((t) => x >= t.x && x < t.x + TILE_W && y >= t.y && y < t.y + TILE_H); }
@@ -161,9 +170,15 @@ export class SelectScene extends Phaser.Scene {
         if (mo.start) { inp.start = true; mo.start = false; }
       }
       if (inp.start) startPressed = true;
+      if (inp.skin) {                                    // next / previous colour for this player's fighter
+        const id = this.shownFighter(p);
+        if (id && id !== 'random') { const n = skinsFor(id).length; p.skin = ((p.skin + inp.skin) % n + n) % n; sfx('menu', 0.6, 1.1); }
+      }
       if (inp.ok) {
         const tile = this.tileAt(p.x, p.y), card = this.cardAt(p.x, p.y);
-        if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); }
+        const sw = card && card.swatches.find((w) => p.x >= w.x - 1 && p.x < w.x + w.w + 1 && p.y >= w.y - 1 && p.y < w.y + w.h + 1);
+        if (sw) { card.p.skin = sw.i; sfx('menu', 0.6, 1.1); }
+        else if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); }
         else if (tile) sfx('curse', 0.4, 1.4);
         else if (card && card.p.kind === 'cpu') { s.cpuLevels[card.p.slot] = (s.cpuLevels[card.p.slot] + 1) % 3; sfx('menu', 0.6, 1.2); }
       }
@@ -173,6 +188,7 @@ export class SelectScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) { sfx('menu', 0.6); this.scene.start('StageSelect'); return; }
     if (ready && startPressed) {
       s.picks = this.players.map((p) => p.pick);
+      s.skins = this.players.map((p) => p.skin);
       sfx('go', 0.9);
       this.scene.start('Match');
       return;
@@ -180,8 +196,18 @@ export class SelectScene extends Phaser.Scene {
     this.draw(ready);
   }
 
+  // the fighter a player's card is showing: their pick, or the tile they're hovering
+  shownFighter(p) {
+    if (p.pick) return p.pick;
+    const t = this.players.find((h) => h.kind !== 'cpu' && h.slot === p.slot) && this.tileAt(p.x, p.y);
+    return t && t.f.available ? t.f.id : null;
+  }
+
   draw(ready) {
     const s = settings;
+    // the colours each card will really get (two players on the same fighter never share one)
+    const shownIds = this.players.map((p) => { const id = this.shownFighter(p); return id && id !== 'random' ? id : '?' + p.slot; });
+    const finalSkins = resolveSkins(shownIds, this.players.map((p) => p.skin));
     // hovered tiles get the hovering player's colour frame
     const hg = this.hoverG; hg.clear();
     for (const p of this.players) {
@@ -206,7 +232,19 @@ export class SelectScene extends Phaser.Scene {
       const hasFighter = shown && shown !== 'random';
       const fdef = hasFighter && ROSTER.find((r) => r.id === shown).def;
       c.sprite.setVisible(!!fdef).setAlpha(p.pick ? 1 : 0.55);
-      if (fdef) showFighter(c.sprite, fdef, Math.floor((this.t + p.slot * 7) / 6) % 32);
+      if (fdef) showFighter(c.sprite, fdef, Math.floor((this.t + p.slot * 7) / 6) % 32, finalSkins[p.slot]);
+      // colour swatches (click one to choose it)
+      const sg = c.swatchG; sg.clear(); c.swatches = [];
+      if (fdef) {
+        const list = skinsFor(shown), sw = 9, gap = 3, x0 = Math.round(c.x + c.w / 2 - (list.length * (sw + gap) - gap) / 2);
+        list.forEach((k, i) => {
+          const x = x0 + i * (sw + gap), y = c.y + 29, on = i === finalSkins[p.slot];
+          sg.fillStyle(on ? 0xffffff : 0x0b0a14, 1); sg.fillRect(x - 1, y - 1, sw + 2, sw + 2);
+          sg.fillStyle(k.swatch, 1); sg.fillRect(x, y, sw, sw);
+          c.swatches.push({ x, y, w: sw, h: sw, i });
+        });
+        c.skinName.setText(skinInfo(shown, finalSkins[p.slot]).name);
+      } else c.skinName.setText('');
       c.unknown.setVisible(!hasFighter).setText(shown === 'random' ? '?' : '?');
       const f = ROSTER.find((r) => r.id === shown);
       c.name.setText(shown === 'random' ? 'RANDOM' : f ? f.name : '');

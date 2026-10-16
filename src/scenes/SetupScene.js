@@ -5,6 +5,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { DUMMY_MODES, DUMMY_NAMES } from './training.js';
 
@@ -42,6 +43,7 @@ export class SetupScene extends Phaser.Scene {
     // right click steps back, clicking CHOOSE STAGE continues
     this.input.mouse.disableContextMenu();
     makeButton(this, 12, 8, '< BACK', () => this.scene.start('Title'));
+    addFullscreenButton(this, VIEW_W - 12, 8);
     this.click = null;
     this.input.on('pointermove', (p) => {
       const i = this.rowAt(p.x, p.y);
@@ -75,6 +77,7 @@ export class SetupScene extends Phaser.Scene {
       { label: 'CPU LEVEL', value: DIFFICULTY[s.difficulty].name, change: (d) => { s.difficulty = (s.difficulty + d + 3) % 3; } },
       { label: 'ITEMS', value: s.items ? 'ON' : 'OFF', change: () => { s.items = !s.items; } },
       { label: 'STAGE HAZARDS', value: s.hazards ? 'ON' : 'OFF', change: () => { s.hazards = !s.hazards; } },
+      { label: 'TOUCH CONTROLS', value: s.touch.toUpperCase(), change: (d) => { const o = ['auto', 'on', 'off']; s.touch = o[(o.indexOf(s.touch) + d + 3) % 3]; } },
       { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; } },
       { label: 'SFX VOLUME', value: String(Math.round(s.sfxVolume * 10)), change: (d) => { s.sfxVolume = Phaser.Math.Clamp(Math.round(s.sfxVolume * 10 + d), 0, 10) / 10; } },
       { label: 'CHOOSE STAGE', value: '', start: true },

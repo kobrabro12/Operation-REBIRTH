@@ -26,7 +26,8 @@ export class DummyController extends CpuController {
     this.x = 0; this.y = 0;
     const me = this.fighter;
     if (!me || !me.alive || this.match.frozen) return;
-    if (me.state === 'respawn') return;
+    if (me.state === 'respawn' || me.possessed > 0) return;   // a hexed practice dummy doesn't struggle
+    if (me.state === 'ledge') { if (me.t > 30) this.x = -me.ledge.side; return; }   // climbs back up from a ledge
     const P = this.match.stage.platforms[0];
     if (!me.grounded && (me.x < P.x1 - 4 || me.x > P.x2 + 4 || me.y > P.y + 4)) return this.recover(me, P);
     if (mode === 'shield') this.cur.shield = me.grounded && (me.state === 'shield' ? me.shieldHp > 12 : me.shieldHp > 40);
@@ -88,6 +89,7 @@ export class Training {
     const m = this.match;
     for (const p of m.projectiles) p.kill();
     for (const s of m.souls) s.kill(false);
+    for (const p of m.pools) p.kill();
     m.fighters.forEach((f, i) => {
       if (!f.alive) f.respawn();
       const sp = m.stage.spawns[i];
@@ -135,6 +137,8 @@ export class Training {
       else if (hb.soul) name = 'SOUL';
       else if (hb.pillar) name = 'LIMIT: ' + owner.def.limit.name;
       else if (owner.state === 'upb') name = 'UP SPECIAL';
+      else if (owner.state === 'ledgeattack') name = 'LEDGE ATTACK';
+      else if (owner.state === 'counterstrike') name = 'COUNTER';
       else if (owner.state === 'holding' || owner.moveName === 'grab') name = 'THROW';
       else name = MOVE_NAMES[owner.moveName] || (owner.moveName || '').toUpperCase();
     }

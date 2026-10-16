@@ -3,58 +3,10 @@ import { sfx } from '../audio/sfx.js';
 
 let nextId = 100000;
 
-// Pixel maps for the summoned soul (two frames so its tail flickers). Letters map to palette colours.
-const SOUL_MAP = [
-  [
-    '.....oooooo.....',
-    '...oowwwwwwoo...',
-    '..owwlllllllwo..',
-    '.owlllllllllldo.',
-    '.owllpplllppldo.',
-    'owlllpplllppllo.',
-    'owllllllllllldo.',
-    'owllllooolllldo.',
-    'owlllllllllllddo',
-    '.olllllllllldddo',
-    '.oddlllllllddddo',
-    '..odddllllddddo.',
-    '..oddddddddddo..',
-    '...oddo.oddo....',
-    '....oo...odo....',
-    '..........o.....',
-  ],
-  [
-    '.....oooooo.....',
-    '...oowwwwwwoo...',
-    '..owwlllllllwo..',
-    '.owlllllllllldo.',
-    '.owllpplllppldo.',
-    'owlllpplllppllo.',
-    'owllllllllllldo.',
-    'owllllooolllldo.',
-    'owlllllllllllddo',
-    '.olllllllllldddo',
-    '.oddlllllllddddo',
-    '..odddllllddddo.',
-    '..oddddddddddo..',
-    '....oddo.oddo...',
-    '....odo...oo....',
-    '.....o..........',
-  ],
-];
-const SOUL_COLORS = { o: 0x0b1a33, w: 0xf0f2f3, l: 0x78a0c6, d: 0x076cc2, p: 0xf50f96 };
-
-export function makeSoulTextures(scene) {
-  if (scene.textures.exists('soul0')) return;
-  SOUL_MAP.forEach((rows, f) => {
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    rows.forEach((row, y) => [...row].forEach((ch, x) => {
-      if (SOUL_COLORS[ch] !== undefined) { g.fillStyle(SOUL_COLORS[ch], 1); g.fillRect(x, y, 1, 1); }
-    }));
-    g.generateTexture('soul' + f, 16, 16);
-    g.destroy();
-  });
-}
+// Soul Summoner's summoned soul: the designer's burning skull flame, animated by
+// tools/sprites/soul_minion.py into a 12-frame wildly flickering loop (60x68 frames). Drawn a bit smaller than a fighter.
+const SOUL_SCALE = 0.7;
+const SOUL_ORIGIN = { x: 23 / 60, y: 45 / 68 };   // the skull's centre sits on the soul's position
 
 export class Fireball {
   constructor(match, owner, k) {
@@ -153,6 +105,58 @@ export class EnergyBolt {
   }
 }
 
+// Mr Wake's Shadow Pool: a puddle of his blob body left on the ground. Opponents who step in are slowed
+// (the slow keeps refreshing while they stand in it, then lasts `slow` frames after they leave).
+export class ShadowPool {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.x = owner.x; this.w = spec.width; this.life = spec.life; this.t = 0; this.alive = true;
+    // settle on the platform under him (a pool cast in the air drips down)
+    let best = null;
+    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
+    if (!best) { this.alive = false; return; }
+    this.y = best.y;
+    const pf = best; this.x1 = Math.max(pf.x1, this.x - this.w / 2); this.x2 = Math.min(pf.x2, this.x + this.w / 2);
+    this.g = match.add.graphics();
+    match.addWorld(this.g);
+    sfx('curse', 0.5, 0.7);
+  }
+  step() {
+    if (!this.alive) return;
+    this.t++;
+    for (const f of this.match.fighters) {
+      if (!f.alive || f.team === this.owner.team) continue;
+      if (f.x >= this.x1 && f.x <= this.x2 && Math.abs(f.y - this.y) < 6) {
+        if (f.slow <= 0) this.match.puff(f.x, f.y - 4, 0x2a1040, 4);
+        f.slow = Math.max(f.slow, this.spec.slow);
+      }
+    }
+    if (this.t % 7 === 0) this.match.puff(this.x1 + Math.random() * (this.x2 - this.x1), this.y - 2, this.t % 14 ? 0x6d26bd : 0x2a1040, 1);
+    if (this.t >= this.life) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; if (this.g) this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, grow = Math.min(1, this.t / 10), fade = this.life - this.t < 30 ? (this.life - this.t) / 30 : 1;
+    const cx = (this.x1 + this.x2) / 2, half = ((this.x2 - this.x1) / 2) * grow;
+    g.clear();
+    // stepped blob shape: wider at the base, wobbling edge
+    const wob = Math.round(Math.sin(this.t * 0.15) * 2);
+    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half, this.y - 4, half * 2, 6);
+    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half + 5 + wob, this.y - 7, half * 2 - 10, 3);
+    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half + 14 - wob, this.y - 9, half * 2 - 28, 2);
+    g.fillStyle(0x2a1040, fade); g.fillRect(cx - half + 4, this.y - 5, half * 2 - 8, 4);
+    // purple sheen and bubbles
+    g.fillStyle(0x6d26bd, 0.9 * fade); g.fillRect(cx - half * 0.6 - wob, this.y - 6, half * 0.5, 1);
+    g.fillStyle(0x6d26bd, 0.9 * fade); g.fillRect(cx + half * 0.2 + wob, this.y - 4, half * 0.4, 1);
+    for (let k = 0; k < 4; k++) {
+      const bx = cx - half + ((k * 37 + this.t * 2) % Math.max(1, half * 2));
+      const by = this.y - 9 - ((this.t + k * 11) % 16) / 2;
+      g.fillStyle(0x9b5de5, fade); g.fillRect(bx, by, 2, 2);
+    }
+  }
+}
+
 // A soul raised from the grave by Soul Summoner. Floats toward the nearest opponent and bites.
 export class Soul {
   constructor(match, owner) {
@@ -160,12 +164,12 @@ export class Soul {
     this.x = owner.x + owner.facing * 30; this.y = owner.y; this.rise = 24;
     this.vx = 0; this.vy = 0; this.hp = 18; this.life = 900; this.cool = 30;
     this.alive = true; this.t = 0; this.id = nextId++; this.attackId = nextId++; this.flash = 0;
-    this.sprite = match.add.sprite(this.x, this.y, 'soul0').setScale(1.5);
+    this.sprite = match.add.sprite(this.x, this.y, 'soul_minion', 0).setScale(SOUL_SCALE).setOrigin(SOUL_ORIGIN.x, SOUL_ORIGIN.y);
     this.sprite.setTint(owner.slot === 0 ? 0xffffff : 0xddeeff);
     match.addWorld(this.sprite);
     match.puff(this.x, this.y, 0x6b5b73, 10);
   }
-  hurtbox() { return { x1: this.x - 10, x2: this.x + 10, y1: this.y - 12, y2: this.y + 10 }; }
+  hurtbox() { return { x1: this.x - 12, x2: this.x + 12, y1: this.y - 14, y2: this.y + 10 }; }
   target() {
     let best = null, bd = 1e9;
     for (const f of this.match.fighters) {
@@ -194,7 +198,7 @@ export class Soul {
   hitbox() {
     if (this.rise > 0 || this.cool > 0) return null;
     return {
-      x1: this.x - 9, x2: this.x + 9, y1: this.y - 10, y2: this.y + 9,
+      x1: this.x - 11, x2: this.x + 11, y1: this.y - 12, y2: this.y + 9,
       h: { dmg: 4, angle: 50, base: 2.6, growth: 2.2 },
       owner: this.owner, id: this.attackId, facing: Math.sign(this.vx) || 1, soul: this,
     };
@@ -215,8 +219,10 @@ export class Soul {
     if (!this.alive) return;
     const s = this.sprite;
     s.setPosition(Math.round(this.x), Math.round(this.y + Math.sin(this.t * 0.12) * 2));
-    s.setTexture('soul' + (Math.floor(this.t / 8) % 2));
-    s.setFlipX(this.vx < 0);
+    s.setFrame(Math.floor(this.t / 3) % 12);                      // burning loop, 20 fps
+    // the art flies down-left (skull first, tail trailing up-right); mirror it when moving right
+    const right = this.vx > 0.05;
+    s.setFlipX(right).setOrigin(right ? 1 - SOUL_ORIGIN.x : SOUL_ORIGIN.x, SOUL_ORIGIN.y);
     s.setAlpha(this.life < 120 && this.life % 10 < 5 ? 0.4 : this.rise > 0 ? 0.6 : 0.95);
     if (this.flash > 0) s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     else s.setTint(0xffffff).setTintMode(Phaser.TintModes.MULTIPLY);

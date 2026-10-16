@@ -21,7 +21,9 @@ export class CpuController extends Controller {
     if (me.state === 'respawn') { if (Math.random() < 0.03) this.x = Math.random() < 0.5 ? -1 : 1; return; }
     if (me.state === 'charge') { this.cur.special = true; return; }
     this.holdSpecial = false;
+    if (me.possessed > 0) { if (Math.random() < this.lv.mash) this.tap(['attack', 'jump', 'special', 'shield'][Math.floor(Math.random() * 4)]); return; }
 
+    if (me.state === 'ledge') return this.ledgeAction(me);
     const P = this.match.stage.platforms[0];
     const offstage = !me.grounded && (me.x < P.x1 - 4 || me.x > P.x2 + 4 || me.y > P.y + 4);
     if (offstage) return this.recover(me, P);
@@ -36,6 +38,7 @@ export class CpuController extends Controller {
     // react to an incoming attack by shielding (after a human-like delay)
     if (tgt.state === 'attack' && tgt.attackId !== this.seenAttack && adx < 70 && Math.abs(dy) < 60 && me.grounded) {
       this.seenAttack = tgt.attackId;
+      if (me.def.moves.counter && Math.random() < L.shieldChance * 0.8) { this.y = 1; this.tap('special'); return; }
       if (Math.random() < L.shieldChance) { this.shieldFor = 14 + Math.floor(Math.random() * 10); this.wait = Math.max(this.wait, 4); return; }
     }
     if (this.wait > 0) { this.wait--; this.continuePlan(me, tgt, dx, dy); return; }
@@ -50,6 +53,10 @@ export class CpuController extends Controller {
     if (M.summon && me.souls.length < 2 && me.summonCooldown <= 0 && adx > 90 && me.grounded && Math.random() < 0.18 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
+    // Soul Hex: close range, and only on someone who isn't already hexed or immune
+    if (M.sideB && (M.sideB.hits || []).some((h) => h.possess) && adx < 56 && Math.abs(dy) < 36 && !(tgt.possessImmune > 0) && !(tgt.possessed > 0) && Math.random() < 0.3 * L.aggression) {
+      this.x = Math.sign(dx); this.tap('special'); return;
+    }
     // Mr Wake: drop a Shadow Pool when someone is close
     if (M.downB && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
@@ -57,9 +64,10 @@ export class CpuController extends Controller {
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
       if (M.fireball) {
-        this.x = Math.sign(dx) * 0.6; this.tap('special'); this.holdSpecial = true;
+        if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }   // turn first: side+special is the Soul Hex
+        this.tap('special'); this.holdSpecial = true;
         me.cpuChargeTarget = 10 + Math.floor(Math.random() * (adx > 260 ? 74 : 30));
-      } else if (M.sideB && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
+      } else if (M.sideB && !(M.sideB.hits || []).some((h) => h.possess) && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
         this.x = Math.sign(dx); this.tap('special');               // Drifting Soul
       } else {
         this.tap('special');                                       // Wake Bolt
@@ -97,6 +105,17 @@ export class CpuController extends Controller {
         this.tap('attack');
       }
     }
+  }
+
+  // hanging on a ledge: wait a moment, then pick a way back up (mixing it up so it isn't predictable)
+  ledgeAction(me) {
+    if (me.t === 1) { this.ledgeWait = 10 + Math.floor(Math.random() * 30); this.ledgePick = Math.random(); }
+    if (me.t < this.ledgeWait) return;
+    const toward = -me.ledge.side, r = this.ledgePick;
+    if (r < 0.4) this.x = toward;                      // climb
+    else if (r < 0.6) this.tap('jump');
+    else if (r < 0.8) this.tap('shield');              // roll in
+    else this.tap('attack');                           // climb with an attack
   }
 
   recover(me, P) {

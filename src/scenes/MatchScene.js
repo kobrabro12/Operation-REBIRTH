@@ -1,18 +1,21 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
+import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
 import { KeyboardController, GamepadController, MergedController, readPad } from '../input/controllers.js';
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool } from '../fighters/entities.js';
 import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
 import { Training, DummyController } from './training.js';
+import { TouchPad, TouchController, touchEnabled } from '../input/touch.js';
 
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
@@ -21,7 +24,7 @@ export class MatchScene extends Phaser.Scene {
     this.mode = settings.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
     this.frame = 0; this.acc = 0; this.frozen = 0; this.paused = false; this.over = 0;
-    this.hits = new Set(); this.particles = []; this.limitHits = []; this.projectiles = []; this.souls = []; this.pops = [];
+    this.hits = new Set(); this.particles = []; this.limitHits = []; this.pools = []; this.projectiles = []; this.souls = []; this.pops = [];
     this.shakeAmt = 0; this.shakeTime = 0;
 
     // three cameras: background (no zoom), world (zooms to fit the fighters), UI (fixed)
@@ -35,24 +38,37 @@ export class MatchScene extends Phaser.Scene {
     const bg = [], world = [];
     this.stage.draw(world, bg);
     this.addBg(...bg); this.addWorld(...world);
+    // stage music (loops until the match ends; cleanup() stops all sounds)
+    if (this.stage.music && this.cache.audio.exists(this.stage.music) && settings.musicVolume > 0) {
+      this.music = this.sound.add(this.stage.music, { loop: true, volume: 0.55 * settings.musicVolume });
+      this.music.play();
+    }
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest
     this.fighters = [];
     const humans = [];
     const kb = new KeyboardController(this);
-    humans.push({ ctrl: settings.p1Pad !== null ? new MergedController([kb, new GamepadController(settings.p1Pad)]) : new MergedController([kb]), label: 'P1' });
+    // player 1: keyboard, plus their controller and on-screen touch controls when present
+    this.touchPad = touchEnabled() ? new TouchPad(this, () => this.fighters[0]) : null;
+    const p1Parts = [kb];
+    if (settings.p1Pad !== null) p1Parts.push(new GamepadController(settings.p1Pad));
+    if (this.touchPad) p1Parts.push(new TouchController(this.touchPad));
+    humans.push({ ctrl: new MergedController(p1Parts), label: 'P1' });
     for (const pad of settings.extraPads) humans.push({ ctrl: new GamepadController(pad), label: 'P' + (humans.length + 1) });
     const slots = Math.min(4, humans.length + settings.cpuCount);
     this.isTraining = this.mode === 'training';
     const stocks = this.mode === 'stock' ? settings.stocks : this.mode === 'stamina' ? 1 : 0;
+    const defs = [];
+    for (let i = 0; i < slots; i++) defs.push(fighterById(settings.picks[i]).def);   // 'random' is decided here
+    const skins = resolveSkins(defs.map((d) => d.id), settings.skins);
     for (let i = 0; i < slots; i++) {
       const human = humans[i];
       const level = settings.cpuLevels[i] ?? settings.difficulty;
       const ctrl = human ? human.ctrl : this.isTraining ? new DummyController(this, level) : new CpuController(this, level);
       const label = human ? human.label : (this.isTraining ? 'DUMMY' : 'CPU') + (i + 1);
-      const def = fighterById(settings.picks[i]).def;
-      const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp });
+      const def = defs[i];
+      const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp, skin: skins[i] });
       if (!human) ctrl.fighter = f;
       const sp = this.stage.spawns[i];
       f.placeAt(sp.x, sp.y - 1); f.facing = sp.x < 0 ? 1 : -1;
@@ -81,7 +97,8 @@ export class MatchScene extends Phaser.Scene {
     this.pauseBtn = makeButton(this, VIEW_W - 8, 6, 'II  PAUSE', () => { this.mouseToggle = true; }, { originX: 1, depth: 25, size: '6px' });
     this.resumeBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 34, 'RESUME', () => { this.mouseToggle = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
     this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
-    this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn);
+    this.fullBtn = addFullscreenButton(this, VIEW_W - 80, 6, { depth: 25 });
+    this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn, this.fullBtn);
     this.qKey = this.input.keyboard.addKey('Q');
     this.events.once('shutdown', () => this.cleanup());
   }
@@ -166,6 +183,8 @@ export class MatchScene extends Phaser.Scene {
     for (const f of this.fighters) f.step();
     for (const p of this.projectiles) p.step();
     this.projectiles = this.projectiles.filter((p) => p.alive);
+    for (const p of this.pools) p.step();
+    this.pools = this.pools.filter((p) => p.alive);
     for (const s of this.souls) s.step();
     this.souls = this.souls.filter((s) => s.alive);
     if (this.items) this.items.step();
@@ -203,6 +222,12 @@ export class MatchScene extends Phaser.Scene {
         if (!overlap(hb, t.hurtbox())) continue;
         this.hits.add(key);
         if (hb.grab) { if (hb.owner.state === 'attack' && t.grounded) hb.owner.onGrab(t); continue; }
+        if (t.counterReady && t.counterReady() && !hb.hazard && !hb.pillar) {   // countered: no damage, she strikes back
+          t.counterHit(hb);
+          if (hb.projectile) hb.projectile.kill();
+          if (hb.soul) hb.soul.onBite();
+          continue;
+        }
         if (t.state === 'shield' && !hb.hazard && !hb.pillar) this.shieldHit(t, hb);
         else this.applyHit(t, hb, (hb.x1 + hb.x2) / 2);
         if (hb.projectile) hb.projectile.kill();
@@ -255,13 +280,21 @@ export class MatchScene extends Phaser.Scene {
     t.vx = 0; t.vy = 0; t.fastFalling = false;
     if (t.ly < -0.5 || kb > PHYS.tumbleKb) { t.grounded = false; t.platform = null; }
     if (t.grounded && t.ly > 0) t.ly = -t.ly * 0.5;   // spiked on the ground: pops up
+    if (h.pull && hb.owner) {                          // multi-hit that carries the target along with the attacker
+      const o = hb.owner;
+      t.lx = o.vx + (o.x - t.x) * 0.12; t.ly = Math.min(o.vy, -1) + (o.y - 10 - t.y) * 0.08;
+      t.grounded = false; t.platform = null;
+    }
     t.hitstun = h.stun || Math.max(8, Math.floor(kb * PHYS.hitstunPerKb));
     const comboing = t.state === 'hitstun' || t.state === 'grabbed';
-    t.setState('hitstun');
+    t.setState('hitstun'); t.hurtAnim = 16;      // the Take Hit animation plays out in full
     if (this.training) this.training.onHit(t, hb, dmg, comboing);
     t.jumpsLeft = 1; t.usedUpB = false; t.airdodged = false;
     if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
     if (h.slow) t.slow = h.slow;      // Shadow Pool: stuck in the puddle
+    if (h.possess && t.alive && t.possess(h.possess)) {   // Soul Hex
+      this.popText(t, 'POSSESSED!  MASH TO BREAK FREE', '#b07ad0'); sfx('curse', 0.9, 0.8);
+    }
 
     const stop = Math.min(14, 3 + Math.floor(dmg / 2.5));
     t.hitstop = stop; t.flash = 5;
@@ -272,7 +305,11 @@ export class MatchScene extends Phaser.Scene {
     this.puff(c.x, c.y, 0xf3c358, 4);
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
 
-    if (this.mode === 'stamina' && t.hp <= 0) { t.hp = 0; this.onKO(t); }
+    if (this.mode === 'stamina' && t.hp <= 0 && t.state !== 'dying') {
+      t.hp = 0;
+      if (t.def.sheets.death) t.startDying();      // fighters with a death animation play it first
+      else this.onKO(t);
+    }
   }
 
   onKO(f) {
@@ -309,12 +346,16 @@ export class MatchScene extends Phaser.Scene {
     let order;
     if (this.mode === 'time') order = [...this.fighters].sort((a, b) => (b.kos - b.falls) - (a.kos - a.falls) || a.percent - b.percent);
     else order = [...this.fighters].sort((a, b) => (b.eliminated ? 0 : 1) - (a.eliminated ? 0 : 1) || b.stocks - a.stocks || (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
-    const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
+    const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, skin: f.skin, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
     this.scene.start('Results', { results, mode: this.mode });
   }
 
   // ------------------------------------------------------------------ spawns used by fighters
   spawnFireball(owner, k) { const p = new Fireball(this, owner, k); this.projectiles.push(p); return p; }
+  spawnPool(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner) p.kill();          // one puddle per Mr Wake
+    const p = new ShadowPool(this, owner, spec); if (p.alive) this.pools.push(p); return p;
+  }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 
@@ -371,6 +412,7 @@ export class MatchScene extends Phaser.Scene {
   draw() {
     for (const f of this.fighters) f.render(this.frame);
     for (const p of this.projectiles) p.render();
+    for (const p of this.pools) p.render();
     for (const s of this.souls) s.render();
     if (this.items) this.items.render();
 
@@ -447,6 +489,7 @@ export class MatchScene extends Phaser.Scene {
 
     this.updateCamera();
     this.hud.update(this.frame);
+    if (this.touchPad) this.touchPad.draw();
   }
 
   updateCamera() {

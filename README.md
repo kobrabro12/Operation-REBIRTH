@@ -21,6 +21,13 @@ A 2D pixel-art platform fighter for the browser, built with Phaser 4 and modern 
 | Limit | O | LB + RB together |
 | Pause | Esc | Start |
 
+**Soul Summoner specials:** K = fireball (hold to charge), A/D + K = Soul Hex (short-range curse: the target walks
+toward the nearest edge for up to 2.5 s; mash any button to break free sooner), S + K = summon a soul, W + K = Soulfire Jet (flames under his feet blast him upward; hold A/D to steer).
+
+**Ledges:** fall or recover next to the edge of the main stage to grab it (you're briefly invincible on the
+first grab). Then: toward the stage or up = climb, jump = jump up, attack = climb with an attack,
+shield = roll onto the stage, away or down = let go. Hold down while falling to not grab.
+
 On the setup screen, press A on a controller to join as a new player, Y to control player 1, B to leave.
 
 ## Folders
