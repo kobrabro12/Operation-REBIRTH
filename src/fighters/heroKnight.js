@@ -18,6 +18,8 @@ export const HERO_KNIGHT = {
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
   wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard']
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
+  // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
+  costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard'].map((k) => [k, 'hk_sam_' + k])) },
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,

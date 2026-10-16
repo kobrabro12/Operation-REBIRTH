@@ -52,6 +52,8 @@ export const SKINS = {
     // every colour mapped by brightness onto a polished-gold ramp: armour, scarf, sash and sword all solid gold
     // changes during the match: the armour cracks more each time she loses a stock (see Fighter.updateWorn)
     { name: 'BATTLE-WORN', swatch: 0x6a5e58, worn: true },
+    // red lacquered samurai armour, black kabuto with a gold crest, and a katana (pre-drawn strips, see heroKnight.costumeSheets)
+    { name: 'SAMURAI', swatch: 0xb81e28, fx: 0xe85a4a, sheetSet: 'samurai' },
     { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
   ],
   'mr-wake': [
@@ -148,6 +150,8 @@ export function skinTexture(scene, key, id, i) {
 
 // All of a fighter's sheets for one skin: { idle, juggle, walk, ... } -> recoloured texture keys.
 export function skinSheets(scene, def, i) {
+  const set = skinInfo(def.id, i).sheetSet;
+  if (set && def.costumeSheets && def.costumeSheets[set]) return { ...def.costumeSheets[set] };   // a costume with its own drawn strips
   const out = {};
   for (const [k, key] of Object.entries(def.sheets)) out[k] = skinTexture(scene, key, def.id, i);
   return out;

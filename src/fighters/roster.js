@@ -16,6 +16,8 @@ export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones s
 // Show a fighter's idle sprite on a menu: right texture, origin and facing (all face right on menus).
 export function showFighter(sprite, def, frame = 0, skin = 0) {
   let key = skinTexture(sprite.scene, def.sheets.idle, def.id, skin);
+  const set = skinInfo(def.id, skin).sheetSet;
+  if (set && def.costumeSheets && def.costumeSheets[set]) key = def.costumeSheets[set].idle;
   if (skinInfo(def.id, skin).worn && def.wornSheets) key = def.wornSheets[Math.floor(sprite.scene.time.now / 1200) % 4].idle;   // preview every damage stage
   frame %= (def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
   if (sprite.texture.key !== key) sprite.setTexture(key, frame); else sprite.setFrame(frame);
