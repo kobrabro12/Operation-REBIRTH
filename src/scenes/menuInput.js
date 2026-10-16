@@ -32,6 +32,8 @@ export class MenuInput {
         now[key] = b(btn);
       }
     }
+    // ignore buttons still held from the previous screen
+    if (!this.started) { this.started = true; this.prev = now; return { pads: [] }; }
     const out = { pads: padPresses };
     for (const a of ['up', 'down', 'left', 'right', 'ok', 'back']) {
       // first press, then auto-repeat while held

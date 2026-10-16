@@ -81,7 +81,7 @@ export class SelectScene extends Phaser.Scene {
 
     this.banner = this.add.graphics().setDepth(30);
     this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!  PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' }).setOrigin(0.5).setDepth(31);
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOVE CURSOR  J / A PICK   K / B UNDO   ESC BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOVE CURSOR  J / A PICK   K / B UNDO   ESC STAGE SELECT', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
 
     const K = Phaser.Input.Keyboard.KeyCodes;
     this.keys = this.input.keyboard.addKeys({ w: K.W, a: K.A, s: K.S, d: K.D, up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT, j: K.J, k: K.K, enter: K.ENTER, space: K.SPACE, esc: K.ESC }, false);
@@ -147,7 +147,7 @@ export class SelectScene extends Phaser.Scene {
       if (inp.back && p.pick) { p.pick = null; sfx('menu', 0.6, 0.8); }
     }
     const ready = this.players.every((p) => p.pick);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) { sfx('menu', 0.6); this.scene.start('Setup'); return; }
+    if (Phaser.Input.Keyboard.JustDown(this.keys.esc)) { sfx('menu', 0.6); this.scene.start('StageSelect'); return; }
     if (ready && startPressed) {
       s.picks = this.players.map((p) => p.pick);
       sfx('go', 0.9);

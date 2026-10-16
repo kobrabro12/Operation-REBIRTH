@@ -7,7 +7,7 @@ import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
 import { Fireball, Soul } from '../fighters/entities.js';
-import { SkyStage } from '../stage/skyStage.js';
+import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
 import { sfx } from '../audio/sfx.js';
@@ -28,7 +28,7 @@ export class MatchScene extends Phaser.Scene {
     this.uiCam = this.cameras.add(0, 0, VIEW_W, VIEW_H);
     this.worldCam.setZoom(1); this.worldCam.centerOn(0, -80);
 
-    this.stage = new SkyStage(this);
+    this.stage = stageById(settings.stage).make(this);
     this.stage.hazardsOn = settings.hazards;
     const bg = [], world = [];
     this.stage.draw(world, bg);

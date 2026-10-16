@@ -15,6 +15,7 @@ export const settings = {
   p1Pad: null,
   extraPads: [],      // pad indexes for players 2-4
   // Chosen on the fighter select screen, one entry per player slot.
+  stage: 'sky-sanctum', // stage id or 'random'
   picks: [],          // fighter id or 'random'
   cpuLevels: [],      // per-CPU difficulty (falls back to `difficulty`)
 };
