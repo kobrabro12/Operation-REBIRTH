@@ -62,7 +62,8 @@ export class SelectScene extends Phaser.Scene {
       this.tiles.push({ x, y, f });
       g.fillStyle(f.available ? 0x241d57 : 0x15122a, 1); g.fillRect(x, y, TILE_W, TILE_H);
       g.fillStyle(0x0b0a14, 1); g.fillRect(x, y + TILE_H - 12, TILE_W, 12);
-      if (f.def) this.add.image(x + TILE_W / 2, y + 20, f.def.sheets.idle, 'portrait').setFlipX(!!f.def.facesLeft);
+      if (f.def && this.hasIcon(f.id)) this.add.image(x, y, 'icon_' + f.id).setOrigin(0);         // close-up icon art (tools/sprites/fighter_icons.py)
+      else if (f.def) this.add.image(x + TILE_W / 2, y + 20, f.def.sheets.idle, 'portrait').setFlipX(!!f.def.facesLeft);
       else if (isRandom) this.drawDie(g, x + TILE_W / 2, y + 19);
       else this.drawLocked(g, x + TILE_W / 2, y + 19, false);
       this.add.text(x + TILE_W / 2, y + TILE_H - 6, f.name, { fontFamily: FONT, fontSize: f.name.length > 10 ? '5px' : '6px', color: f.available ? '#ffffff' : '#4a4560' }).setOrigin(0.5);
@@ -111,6 +112,8 @@ export class SelectScene extends Phaser.Scene {
 
     this.keys = this.input.keyboard.addKeys({ w: K.W, a: K.A, s: K.S, d: K.D, up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT, j: K.J, k: K.K, q: K.Q, e: K.E, enter: K.ENTER, space: K.SPACE, esc: K.ESC }, false);
   }
+
+  hasIcon(id) { return this.textures.exists('icon_' + id); }
 
   drawDie(g, cx, cy) {
     g.fillStyle(0xf0f2f3, 1); g.fillRect(cx - 12, cy - 12, 24, 24);
