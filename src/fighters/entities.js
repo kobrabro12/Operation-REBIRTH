@@ -103,6 +103,56 @@ export class Fireball {
   }
 }
 
+// An energy bolt fired from a staff gem (Mr Wake's Wake Bolt and Drifting Soul).
+// `spec` comes from the move data: speed, life, w, h, homing, hit { dmg, angle, base, growth }.
+export class EnergyBolt {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * (owner.def.handOffset.x + 4);
+    this.y = owner.y + owner.def.handOffset.y;
+    this.vx = this.dir * spec.speed; this.vy = 0;
+    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.color = owner.fxColor;
+    this.g = match.add.graphics();
+    match.addWorld(this.g);
+    sfx('djump', 0.4, spec.homing ? 0.6 : 1.4);
+  }
+  hitbox() {
+    const w = this.spec.w, h = this.spec.h;
+    return { x1: this.x - w / 2, x2: this.x + w / 2, y1: this.y - h / 2, y2: this.y + h / 2, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this };
+  }
+  step() {
+    this.t++;
+    if (this.spec.homing) {
+      // curve toward the nearest opponent's height
+      let best = null, bd = 1e9;
+      for (const f of this.match.fighters) {
+        if (!f.alive || f.team === this.owner.team) continue;
+        const d = Math.abs(f.x - this.x); if (d < bd) { bd = d; best = f; }
+      }
+      if (best) this.vy = Phaser.Math.Clamp(this.vy + Math.sign(best.y - 28 - this.y) * this.spec.homing, -2.5, 2.5);
+    }
+    this.x += this.vx; this.y += this.vy;
+    if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.spec.w / 2, this.y, this.t % 6 ? 0x9b5de5 : 0x560c83, 1);
+    const P = this.match.stage.platforms[0];
+    if (this.x > P.x1 && this.x < P.x2 && this.y > P.y + 2 && this.y < P.bottom) this.kill();
+    if (--this.life <= 0) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0x9b5de5, 8); this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, w = this.spec.w, h = this.spec.h, x = Math.round(this.x), y = Math.round(this.y);
+    const p = this.t % 4 < 2 ? 1 : 0;
+    g.clear();
+    g.fillStyle(0x1a0a2e, 1); g.fillRect(x - w / 2 - 1, y - h / 2 - 1 + p, w + 2, h + 2 - p * 2);
+    g.fillStyle(0x6d26bd, 1); g.fillRect(x - w / 2, y - h / 2 + p, w, h - p * 2);
+    g.fillStyle(0x9b5de5, 1); g.fillRect(x - w / 3, y - h / 3, (w * 2) / 3, (h * 2) / 3);
+    g.fillStyle(0xdab8fe, 1); g.fillRect(x - w / 8 + this.dir * w / 6, y - h / 6, w / 4, h / 3);
+    g.fillStyle(0x6d26bd, 0.7); g.fillRect(this.dir > 0 ? x - w / 2 - 8 : x + w / 2, y - h / 4, 8, h / 2);   // trail
+  }
+}
+
 // A soul raised from the grave by Soul Summoner. Floats toward the nearest opponent and bites.
 export class Soul {
   constructor(match, owner) {

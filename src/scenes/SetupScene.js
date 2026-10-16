@@ -5,6 +5,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { ROSTER, showFighter } from '../fighters/roster.js';
 
 const MODES = ['stock', 'time', 'stamina'];
 const HPS = [100, 150, 200, 300];
@@ -134,11 +135,15 @@ export class SetupScene extends Phaser.Scene {
     const total = humans.length + s.cpuCount;
     for (let i = 0; i < 4; i++) {
       let txt = '';
-      if (i < humans.length) txt = humans[i] + '\nSOUL SUMMONER';
-      else if (i < total) txt = 'CPU ' + (i + 1) + '  ' + DIFFICULTY[s.difficulty].name + '\nSOUL SUMMONER';
+      const pick = ROSTER.find((r) => r.id === s.picks[i] && r.available);
+      const fname = pick ? pick.name : 'PICK ON FIGHTER SELECT';
+      if (i < humans.length) txt = humans[i] + '\n' + fname;
+      else if (i < total) txt = 'CPU ' + (i + 1) + '  ' + DIFFICULTY[s.difficulty].name + '\n' + fname;
       else txt = '---  EMPTY';
       this.slotTexts[i].setText(txt).setColor(i < total ? PLAYER_CSS[i] : '#4a4560');
-      this.portraits[i].setVisible(i < total).setFrame(Math.floor((this.t + i * 9) / 6) % 32);
+      const pick2 = ROSTER.find((r) => r.id === s.picks[i] && r.available);
+      this.portraits[i].setVisible(i < total && !!pick2);
+      if (pick2) showFighter(this.portraits[i], pick2.def, Math.floor((this.t + i * 9) / 6) % 32).setOrigin(0.5);
     }
     const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean).length : 0;
     this.padStatus.setText(pads ? pads + ' CONTROLLER' + (pads > 1 ? 'S' : '') + ' DETECTED' : 'NO CONTROLLER DETECTED\nPAIR ONE, THEN PRESS A BUTTON');

@@ -6,7 +6,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt } from '../fighters/entities.js';
 import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
@@ -253,6 +253,7 @@ export class MatchScene extends Phaser.Scene {
     t.setState('hitstun');
     t.jumpsLeft = 1; t.usedUpB = false; t.airdodged = false;
     if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
+    if (h.slow) t.slow = h.slow;      // Shadow Pool: stuck in the puddle
 
     const stop = Math.min(14, 3 + Math.floor(dmg / 2.5));
     t.hitstop = stop; t.flash = 5;
@@ -300,12 +301,13 @@ export class MatchScene extends Phaser.Scene {
     let order;
     if (this.mode === 'time') order = [...this.fighters].sort((a, b) => (b.kos - b.falls) - (a.kos - a.falls) || a.percent - b.percent);
     else order = [...this.fighters].sort((a, b) => (b.eliminated ? 0 : 1) - (a.eliminated ? 0 : 1) || b.stocks - a.stocks || (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
-    const results = order.map((f) => ({ label: f.label, slot: f.slot, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
+    const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
     this.scene.start('Results', { results, mode: this.mode });
   }
 
   // ------------------------------------------------------------------ spawns used by fighters
   spawnFireball(owner, k) { const p = new Fireball(this, owner, k); this.projectiles.push(p); return p; }
+  spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 
   startLimit(f) {
@@ -374,8 +376,8 @@ export class MatchScene extends Phaser.Scene {
       const b = this.beamBox(f);
       if (f.t < L.beamStart) {                       // charging glow in the hand
         const r = 4 + (f.t - L.beamStart + 6) * 2;
-        g.fillStyle(0x78a0c6, 0.9); g.fillRect(b.hx - r, b.hy - r, r * 2, r * 2);
-        g.fillStyle(0xf0f2f3, 1); g.fillRect(b.hx - r / 2, b.hy - r / 2, r, r);
+        g.fillStyle(L.colors.light, 0.9); g.fillRect(b.hx - r, b.hy - r, r * 2, r * 2);
+        g.fillStyle(L.colors.core, 1); g.fillRect(b.hx - r / 2, b.hy - r / 2, r, r);
         continue;
       }
       const grow = Math.min(1, (f.t - L.beamStart + 1) / 6);
@@ -386,17 +388,17 @@ export class MatchScene extends Phaser.Scene {
         const x = dir > 0 ? b.hx : b.hx - len;
         g.fillStyle(color, alpha * fade); g.fillRect(x, b.hy - half, len, half * 2);
       };
-      const H = L.beamHalf;
-      band(H + 6 + flick, 0x0b1a33, 0.85);             // dark outline keeps it readable on the sky
-      band(H + 4 + flick, 0x076cc2, 1);
-      band(H - 4, 0x3f86d0, 1);
-      band(H - 8, 0x78a0c6, 1);
-      band(Math.max(3, H - 13 - flick), 0xf0f2f3, 1);
+      const H = L.beamHalf, C = L.colors;
+      band(H + 6 + flick, C.outline, 0.85);            // dark outline keeps it readable on the sky
+      band(H + 4 + flick, C.deep, 1);
+      band(H - 4, C.mid, 1);
+      band(H - 8, C.light, 1);
+      band(Math.max(3, H - 13 - flick), C.core, 1);
       // chunks of flame streaming away from the hand
       const x0 = dir > 0 ? b.hx : b.hx - len;
       for (let k = (this.frame * 9) % 28; k < len; k += 28) {
         const cx = dir > 0 ? x0 + k : x0 + len - k - 14;
-        g.fillStyle(0xf0f2f3, 0.85 * fade); g.fillRect(cx, b.hy - H + 7, 14, 3); g.fillRect(cx + 6, b.hy + H - 10, 10, 3);
+        g.fillStyle(C.core, 0.85 * fade); g.fillRect(cx, b.hy - H + 7, 14, 3); g.fillRect(cx + 6, b.hy + H - 10, 10, 3);
       }
       // flame tongues licking off the top and bottom edges: stepped pixel flames that rise and flicker
       const hash = (n) => { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
@@ -412,13 +414,13 @@ export class MatchScene extends Phaser.Scene {
           for (let row = 0; row < tall; row += 2) {           // narrows toward the tip
             const w = Math.max(2, 8 - Math.floor(row / tall * 8));
             const yy = up < 0 ? b.hy - H - 4 - row - 2 : b.hy + H + 4 + row;
-            const c = row < tall * 0.4 ? 0x3f86d0 : row < tall * 0.75 ? 0x78a0c6 : 0xf0f2f3;
+            const c = row < tall * 0.4 ? C.mid : row < tall * 0.75 ? C.light : C.core;
             g.fillStyle(c, fade); g.fillRect(fx + (8 - w) / 2, yy, w, 2);
           }
         }
       }
       // bright burst at the hand
-      g.fillStyle(0xf0f2f3, fade); g.fillRect(b.hx - 10, b.hy - 14, 20, 28);
+      g.fillStyle(C.core, fade); g.fillRect(b.hx - 10, b.hy - 14, 20, 28);
     }
     for (const p of this.particles) { g.fillStyle(p.color, Math.min(1, p.life / 10)); g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size); }
 

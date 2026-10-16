@@ -1,6 +1,7 @@
 import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, PLAYER_COLORS, PLAYER_TINTS } from '../config.js';
 import { MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
+import { ROSTER, showFighter } from '../fighters/roster.js';
 import { sfx } from '../audio/sfx.js';
 
 export class ResultsScene extends Phaser.Scene {
@@ -13,7 +14,8 @@ export class ResultsScene extends Phaser.Scene {
     g.fillStyle(PLAYER_COLORS[win.slot], 0.2); g.fillRect(0, 30, VIEW_W, 90);
     this.add.text(VIEW_W / 2, 18, MODE_NAMES[data.mode] + ' - RESULTS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(0.5);
     this.add.text(VIEW_W / 2 + 40, 62, win.label + ' WINS!', { fontFamily: FONT, fontSize: '22px', color: PLAYER_CSS[win.slot], stroke: '#0b0a14', strokeThickness: 6 }).setOrigin(0.5);
-    this.hero = this.add.sprite(120, 112, 'ss_idle', 0).setOrigin(0.5, 59 / 64).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
+    this.heroDef = (ROSTER.find((r) => r.id === win.fighter) || ROSTER[0]).def;
+    this.hero = showFighter(this.add.sprite(120, 112, this.heroDef.sheets.idle, 0), this.heroDef).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
     const unit = data.mode === 'stamina' ? ' HP' : '%';
     for (const [txt, x] of [['PLACE', 60], ['PLAYER', 116], ['KOS', 254], ['FALLS', 310], ['DEALT', 386], ['TAKEN', 486]]) {
       this.add.text(x, 144, txt, { fontFamily: FONT, fontSize: '7px', color: '#8a87a3' });

@@ -2,6 +2,7 @@
 // Boxes are [x, y, w, h] relative to the fighter's feet while facing right (negative y = up).
 // angle: launch direction in degrees, 0 = forward, 90 = straight up, >90 = backwards, <0 = down.
 // Knockback = base + growth * (target % after the hit) / 100, in pixels per frame.
+import { BEAM_BLUE } from './common.js';
 
 export const SOUL_SUMMONER = {
   id: 'soul-summoner',
@@ -9,6 +10,8 @@ export const SOUL_SUMMONER = {
   sheets: { idle: 'ss_idle', juggle: 'ss_juggle' },
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
+  portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid
+  fxColor: 0x78a0c6,
   body: { w: 24, h: 50 },
   weight: 1.0,
   walkSpeed: 3.0, runAccel: 0.55, groundFriction: 0.5,
@@ -47,7 +50,7 @@ export const SOUL_SUMMONER = {
   // Limit (O, unlocked after taking 100%): Soulfire Beam - a beam of blue fire from his hand, straight ahead.
   // Five quick hits hold opponents in the beam, then a final blast launches them: 8+8+8+8+8+10 = 50%.
   limit: {
-    name: 'SOULFIRE BEAM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 20,
+    name: 'SOULFIRE BEAM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 20, colors: BEAM_BLUE,
     hits: [
       { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
       { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },

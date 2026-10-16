@@ -41,18 +41,29 @@ export class CpuController extends Controller {
     if (this.wait > 0) { this.wait--; this.continuePlan(me, tgt, dx, dy); return; }
     this.wait = L.react + Math.floor(Math.random() * L.react);
 
-    // Limit when an opponent is close enough to be caught by the pillars
+    // Limit when an opponent is level with the beam
     if (me.limit >= LIMIT_MAX && adx < 360 && Math.abs(dy) < 40) { this.tap('limit'); return; }
 
-    // summon souls from a distance
+    const M = me.def.moves;
+    // Soul Summoner: summon souls from a distance
     me.souls = me.souls.filter((s) => s.alive);
-    if (me.souls.length < 2 && me.summonCooldown <= 0 && adx > 90 && me.grounded && Math.random() < 0.18 * L.aggression) {
+    if (M.summon && me.souls.length < 2 && me.summonCooldown <= 0 && adx > 90 && me.grounded && Math.random() < 0.18 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
-    // fireball zoning
+    // Mr Wake: drop a Shadow Pool when someone is close
+    if (M.downB && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
+      this.y = 1; this.tap('special'); return;
+    }
+    // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
-      this.x = Math.sign(dx) * 0.6; this.tap('special'); this.holdSpecial = true;
-      me.cpuChargeTarget = 10 + Math.floor(Math.random() * (adx > 260 ? 74 : 30));
+      if (M.fireball) {
+        this.x = Math.sign(dx) * 0.6; this.tap('special'); this.holdSpecial = true;
+        me.cpuChargeTarget = 10 + Math.floor(Math.random() * (adx > 260 ? 74 : 30));
+      } else if (M.sideB && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
+        this.x = Math.sign(dx); this.tap('special');               // Drifting Soul
+      } else {
+        this.tap('special');                                       // Wake Bolt
+      }
       return;
     }
     this.plan = adx < 52 && Math.abs(dy) < 56 ? 'attack' : 'approach';

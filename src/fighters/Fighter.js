@@ -25,10 +25,11 @@ export class Fighter {
     this.charge = 0; this.chargeSound = null; this.summonCooldown = 0; this.souls = [];
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
     this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0 };
+    this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
     this.stats = { damageDealt: 0, damageTaken: 0 };
 
     const s = this.scene;
-    this.sprite = s.add.sprite(0, 0, def.sheets.idle, 0).setOrigin(0.5, def.originY);
+    this.sprite = s.add.sprite(0, 0, def.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
     this.sprite.setTint(PLAYER_TINTS[slot]);
     this.fx = s.add.graphics();
     this.tag = s.add.text(0, 0, this.label, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 1);
@@ -43,6 +44,11 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1); }
+  get fxColor() { return this.def.fxColor ?? 0x78a0c6; }
+  // a direction pressed within the last few frames before attack = a smash attack
+  smashed(at) { return this.age - at <= 6; }
+  attackOr(name, fallback) { this.startAttack(this.def.moves[name] ? name : fallback); }
 
   placeAt(x, y) {
     this.x = x; this.y = y; this.vx = this.vy = this.lx = this.ly = 0;
@@ -60,9 +66,14 @@ export class Fighter {
     for (const b of Object.keys(this.buffer)) {
       if (c.pressed(b)) this.buffer[b] = BUFFER; else if (this.buffer[b] > 0) this.buffer[b]--;
     }
+    this.age++;
+    if (c.tappedSide()) this.tapX = this.age;
+    if (c.y < -0.5 && c.py >= -0.5) this.tapUp = this.age;
+    if (c.tappedDown()) this.tapDown = this.age;
     if (this.hitstop > 0) { this.hitstop--; return; }
 
     this.t++;
+    if (this.slow > 0) this.slow--;
     if (this.invincible > 0) this.invincible--;
     if (this.curse > 0) this.curse--;
     if (this.summonCooldown > 0) this.summonCooldown--;
@@ -106,25 +117,28 @@ export class Fighter {
   tryCommon(c, ground) {
     if (this.buffer.limit && this.limit >= LIMIT_MAX) { this.buffer.limit = 0; this.startLimit(); return true; }
     if (this.buffer.special) {
+      const M = this.def.moves;
       this.buffer.special = 0;
-      if (c.down) { this.startSummon(); return true; }
-      if (c.up && !this.usedUpB) { this.startUpB(c); return true; }
-      if (c.up && this.usedUpB) return false;
-      if (Math.abs(c.x) > 0.5) this.facing = Math.sign(c.x);
-      this.startCharge(); return true;
+      if (c.down) { if (M.summon) this.startSummon(); else if (M.downB) this.startAttack('downB'); return true; }
+      if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB) { this.startAttack('sideB'); return true; } }
+      if (M.fireball) this.startCharge(); else if (M.neutralB) this.startAttack('neutralB');
+      return true;
     }
     if (this.buffer.grab && ground) { this.buffer.grab = 0; this.startAttack('grab'); return true; }
     if (this.buffer.attack) {
       this.buffer.attack = 0;
+      const M = this.def.moves;
       if (ground) {
-        if (c.up) this.startAttack('utilt');
-        else if (c.down) this.startAttack('dtilt');
-        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack('ftilt'); }
+        // tap a direction and attack together for a smash attack (if the fighter has one)
+        if (c.up) this.startAttack(M.usmash && this.smashed(this.tapUp) ? 'usmash' : 'utilt');
+        else if (c.down) this.startAttack(M.dsmash && this.smashed(this.tapDown) ? 'dsmash' : 'dtilt');
+        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack(M.fsmash && this.smashed(this.tapX) ? 'fsmash' : 'ftilt'); }
         else this.startAttack('jab');
       } else {
-        if (c.up) this.startAttack('uair');
-        else if (c.down) this.startAttack('dair');
-        else if (Math.abs(c.x) > 0.5) this.startAttack(Math.sign(c.x) === this.facing ? 'fair' : 'bair');
+        if (c.up) this.attackOr('uair', 'nair');
+        else if (c.down) this.attackOr('dair', 'nair');
+        else if (Math.abs(c.x) > 0.5) this.attackOr(Math.sign(c.x) === this.facing ? 'fair' : 'bair', 'nair');
         else this.startAttack('nair');
       }
       return true;
@@ -134,7 +148,7 @@ export class Fighter {
 
   st_jumpsquat(c) {
     // W doubles as jump; pressing attack/special during the squat turns it into an up attack / up special
-    if (this.buffer.attack && c.up) { this.buffer.attack = 0; this.startAttack('utilt'); return; }
+    if (this.buffer.attack && c.up) { this.buffer.attack = 0; this.startAttack(this.def.moves.usmash && this.smashed(this.tapUp) ? 'usmash' : 'utilt'); return; }
     if (this.buffer.special && c.up && !this.usedUpB) { this.buffer.special = 0; this.startUpB(c); return; }
     if (this.t >= 4) {
       const full = c.held('jump');
@@ -159,7 +173,7 @@ export class Fighter {
 
   st_helpless(c) {
     // after Soul Ascent: drift only, until landing
-    if (this.t % 8 === 0) this.match.puff(this.x, this.y - 30, 0x78a0c6, 1);
+    if (this.t % 8 === 0) this.match.puff(this.x, this.y - 30, this.fxColor, 1);
   }
 
   // ---- attacks
@@ -171,6 +185,7 @@ export class Fighter {
   }
   st_attack(c) {
     const m = this.move;
+    if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (this.t >= m.frames) {
       this.setState(this.grounded ? 'idle' : 'air'); return;
     }
@@ -275,8 +290,8 @@ export class Fighter {
     const u = this.def.moves.upb;
     if (this.t < u.riseAt) { this.vy = 0; return; }
     if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('djump', 0.7, 0.7); }
-    this.vx = c.x * u.drift;
-    if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, 0x78a0c6, 2);
+    this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
+    if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
     if (this.t >= u.frames) this.setState('helpless');
   }
 
@@ -342,7 +357,7 @@ export class Fighter {
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
-      this.match.puff(this.x + this.facing * this.def.handOffset.x, this.y + this.def.handOffset.y, this.t % 4 ? 0x78a0c6 : 0xf0f2f3, 2);
+      this.match.puff(this.x + this.facing * this.def.handOffset.x, this.y + this.def.handOffset.y, this.t % 4 ? this.fxColor : 0xf0f2f3, 2);
     }
     if (this.t >= L.frames) { this.invincible = 30; this.setState(this.grounded ? 'idle' : 'air'); }
   }
@@ -360,7 +375,7 @@ export class Fighter {
 
     if (this.grounded) {
       if (groundMove) {
-        const target = c.x * d.walkSpeed * (this.curse > 0 ? 0.6 : 1);
+        const target = c.x * d.walkSpeed * this.speedMult;
         this.vx += Math.sign(target - this.vx) * Math.min(Math.abs(target - this.vx), d.runAccel);
       } else if (s !== 'roll') {
         this.vx -= Math.sign(this.vx) * Math.min(Math.abs(this.vx), d.groundFriction);
@@ -368,7 +383,7 @@ export class Fighter {
       this.vy = 0;
     } else {
       if (canSteerAir) {
-        const max = d.airSpeed * (this.curse > 0 ? 0.6 : 1) * (s === 'helpless' ? 0.7 : 1);
+        const max = d.airSpeed * this.speedMult * (s === 'helpless' ? 0.7 : 1);
         if (Math.abs(c.x) > 0.2) {
           const target = c.x * max;
           this.vx += Math.sign(target - this.vx) * Math.min(Math.abs(target - this.vx), d.airAccel);
@@ -466,7 +481,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
@@ -480,37 +495,38 @@ export class Fighter {
     if (!this.alive) return;
     this.anim++;
     spr.setPosition(Math.round(this.x), Math.round(this.y));
-    spr.setFlipX(this.facing < 0);
+    spr.setFlipX(d.facesLeft ? this.facing > 0 : this.facing < 0);
     spr.setRotation(0); spr.setScale(1, 1); spr.setAlpha(1);
 
+    const alt = d.sheets.juggle || d.sheets.idle;   // pose sheet (fighters without one reuse their idle frames)
     let sheet = d.sheets.idle, frame = Math.floor(this.anim / 6) % 32;
     const s = this.state;
     if (s === 'run') { frame = Math.floor(this.anim / 3) % 32; spr.setRotation(0.1 * this.facing); spr.y -= (Math.floor(this.anim / 5) % 2); }
     else if (s === 'jumpsquat' || s === 'land') spr.setScale(1.08, 0.9);
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { frame = 4; spr.setRotation(Phaser.Math.Clamp(this.vx * 0.04, -0.2, 0.2)); }
     else if (s === 'hitstun' || s === 'dizzy') { frame = 10; spr.setRotation(Math.sin(this.t * 0.5) * 0.35 * this.facing); }
-    else if (s === 'charge') { sheet = d.sheets.juggle; frame = 1 + (Math.floor(this.t / 8) % 2); }
+    else if (s === 'charge') { sheet = alt; frame = 1 + (Math.floor(this.t / 8) % 2); }
     else if (s === 'attack') {
-      sheet = d.sheets.juggle; frame = this.t < 4 ? 1 : 3;
-      const lean = { ftilt: 0.18, fair: 0.2, bair: -0.2, dtilt: 0.1, utilt: -0.1, uair: -0.12, dair: 0.15, nair: 0, jab: 0.08, grab: 0.12, throw: 0.15 }[this.moveName] || 0;
-      if (this.moveName === 'nair' && this.t > 3 && this.t < 14) spr.setRotation(this.t * 0.9 * this.facing);
+      sheet = alt; frame = this.t < 4 ? 1 : 3;
+      const lean = { ftilt: 0.18, fsmash: 0.25, fair: 0.2, bair: -0.2, dtilt: 0.1, utilt: -0.1, usmash: -0.15, uair: -0.12, dair: 0.15, nair: 0, jab: 0.08, grab: 0.12, throw: 0.15, neutralB: 0.12, sideB: 0.12 }[this.moveName] || 0;
+      if ((this.moveName === 'nair' || this.moveName === 'dsmash') && this.t > 3 && this.t < 14) spr.setRotation(this.t * 0.9 * this.facing);
       else spr.setRotation(lean * this.facing);
     }
-    else if (s === 'summon') { sheet = d.sheets.juggle; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
+    else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = d.sheets.juggle; frame = 12; spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
-    else if (s === 'holding') { sheet = d.sheets.juggle; frame = 1; }
+    else if (s === 'holding') { sheet = alt; frame = 1; }
     else if (s === 'grabbed') { frame = 10; spr.setRotation(-0.2 * this.facing); }
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
 
     // hit flash and invincibility blink
     if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
-    else { spr.setTint(this.curse > 0 ? 0xb07ad0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
+    else { spr.setTint(this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
     if (this.isIntangible() && s !== 'limit' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
 
     // name tag
-    this.tag.setPosition(Math.round(this.x), Math.round(this.y - 60 - (s === 'limit' ? 16 : 0)));
+    this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));
 
     // respawn platform
     if (s === 'respawn') {
@@ -536,7 +552,7 @@ export class Fighter {
     // attack swipe effects (placeholder until attack animations are drawn)
     for (const hb of this.activeHitboxes()) {
       const fx = hb.src && hb.src.fx;
-      g.fillStyle(0x78a0c6, 0.55);
+      g.fillStyle((hb.src && hb.src.fxTint) || this.fxColor, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
       if (fx === 'spin' || fx === undefined) g.fillCircle((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) / 2);
       else g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, hb.x2 - hb.x1, hb.y2 - hb.y1);
       g.fillStyle(0xf0f2f3, 0.8);

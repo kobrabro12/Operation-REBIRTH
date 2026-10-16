@@ -3,7 +3,7 @@
 // Point at a CPU card and press attack to change that CPU's level.
 import { VIEW_W, VIEW_H, FONT, PLAYER_COLORS, PLAYER_CSS, PLAYER_TINTS, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
-import { ROSTER, GRID_SLOTS } from '../fighters/roster.js';
+import { ROSTER, GRID_SLOTS, showFighter } from '../fighters/roster.js';
 import { readPad } from '../input/controllers.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
@@ -18,9 +18,12 @@ export class SelectScene extends Phaser.Scene {
   create() {
     this.t = 0;
     const s = settings;
-    // portrait crop of Soul Summoner's idle frame (head and shoulders)
-    const tex = this.textures.get('ss_idle');
-    if (!tex.has('portrait')) tex.add('portrait', 0, 12, 4, 40, 36);
+    // portrait crops (head and shoulders) of each fighter's idle frame
+    for (const r of ROSTER) {
+      if (!r.def) continue;
+      const tex = this.textures.get(r.def.sheets.idle);
+      if (!tex.has('portrait')) tex.add('portrait', 0, ...r.def.portrait);
+    }
 
     // ---- who is playing
     this.players = [{ kind: 'kb', pad: s.p1Pad, label: 'P1', input: s.p1Pad !== null ? 'KEYBOARD + PAD ' + (s.p1Pad + 1) : 'KEYBOARD' }];
@@ -53,11 +56,11 @@ export class SelectScene extends Phaser.Scene {
       this.tiles.push({ x, y, f });
       g.fillStyle(f.available ? 0x241d57 : 0x15122a, 1); g.fillRect(x, y, TILE_W, TILE_H);
       g.fillStyle(0x0b0a14, 1); g.fillRect(x, y + TILE_H - 12, TILE_W, 12);
-      if (f.def) this.add.image(x + TILE_W / 2, y + 20, 'ss_idle', 'portrait').setScale(1);
+      if (f.def) this.add.image(x + TILE_W / 2, y + 20, f.def.sheets.idle, 'portrait').setFlipX(!!f.def.facesLeft);
       else if (isRandom) this.drawDie(g, x + TILE_W / 2, y + 19);
-      else this.drawLocked(g, x + TILE_W / 2, y + 19, f.id === 'mr-wake');
+      else this.drawLocked(g, x + TILE_W / 2, y + 19, false);
       this.add.text(x + TILE_W / 2, y + TILE_H - 6, f.name, { fontFamily: FONT, fontSize: f.name.length > 10 ? '5px' : '6px', color: f.available ? '#ffffff' : '#4a4560' }).setOrigin(0.5);
-      if (f.id === 'mr-wake') this.add.text(x + TILE_W - 3, y + 3, 'SOON', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14', backgroundColor: '#f3c358', padding: { x: 2, y: 1 } }).setOrigin(1, 0);
+      if (!f.available && f.id === 'mr-wake') this.add.text(x + TILE_W - 3, y + 3, 'SOON', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14', backgroundColor: '#f3c358', padding: { x: 2, y: 1 } }).setOrigin(1, 0);
     }
     this.hoverG = this.add.graphics();
 
@@ -201,7 +204,9 @@ export class SelectScene extends Phaser.Scene {
       g.fillStyle(0x0b0a14, 1); g.fillRect(c.x, c.y + c.h - 30, c.w, 30);
       if (p.pick) { g.lineStyle(2, col, 1); g.strokeRect(c.x + 1, c.y + 1, c.w - 2, c.h - 2); }
       const hasFighter = shown && shown !== 'random';
-      c.sprite.setVisible(!!hasFighter).setFrame(Math.floor((this.t + p.slot * 7) / 6) % 32).setAlpha(p.pick ? 1 : 0.55);
+      const fdef = hasFighter && ROSTER.find((r) => r.id === shown).def;
+      c.sprite.setVisible(!!fdef).setAlpha(p.pick ? 1 : 0.55);
+      if (fdef) showFighter(c.sprite, fdef, Math.floor((this.t + p.slot * 7) / 6) % 32);
       c.unknown.setVisible(!hasFighter).setText(shown === 'random' ? '?' : '?');
       const f = ROSTER.find((r) => r.id === shown);
       c.name.setText(shown === 'random' ? 'RANDOM' : f ? f.name : '');
