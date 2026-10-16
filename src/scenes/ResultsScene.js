@@ -24,14 +24,17 @@ export class ResultsScene extends Phaser.Scene {
       const cols = [['#' + (i + 1), 60], [r.label, 116], [String(r.kos), 254], [String(r.falls), 310], [r.dealt + unit, 386], [r.taken + unit, 486]];
       for (const [txt, x] of cols) this.add.text(x, y, txt, { fontFamily: FONT, fontSize: '8px', color: x === 116 ? PLAYER_CSS[r.slot] : '#ffffff' });
     });
-    this.prompt = this.add.text(VIEW_W / 2, 336, 'ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
+    this.prompt = this.add.text(VIEW_W / 2, 336, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
     sfx('limitready', 0.8);
+    this.clicked = false;
+    this.input.on('pointerdown', () => { this.clicked = true; });
   }
   update() {
     this.t++;
     this.hero.setFrame(Math.floor(this.t / 6) % 32);
     this.prompt.setVisible(this.t % 60 < 40);
+    if (this.t <= 40) this.clicked = false;
     const m = this.menu.poll();
-    if (this.t > 40 && (m.ok || m.pads.some((p) => p.button === 'a' || p.button === 'start'))) { sfx('select', 0.8); this.scene.start('Setup'); }
+    if (this.t > 40 && (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start'))) { sfx('select', 0.8); this.scene.start('Setup'); }
   }
 }

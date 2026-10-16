@@ -5,6 +5,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { STAGES, STAGE_SLOTS } from '../stage/stages.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
+import { makeButton } from '../ui/button.js';
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
 const COLS = 2, TILE_W = 118, TILE_H = 58, GAP = 6;
@@ -46,8 +47,24 @@ export class StageSelectScene extends Phaser.Scene {
     this.name = this.add.text(PREV.x, PREV.y + PREV.h + 12, '', { fontFamily: FONT, fontSize: '14px', color: '#f3c358', stroke: '#4a280b', strokeThickness: 4 });
     this.blurb = this.add.text(PREV.x, PREV.y + PREV.h + 36, '', { fontFamily: FONT, fontSize: '7px', color: '#c9c4dc', lineSpacing: 6 });
     this.hazard = this.add.text(PREV.x, PREV.y + PREV.h + 70, '', { fontFamily: FONT, fontSize: '6px', color: '#ffd34f', lineSpacing: 5 });
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOVE  SELECT    J / ENTER / A  CONFIRM    K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.add.text(VIEW_W / 2, VIEW_H - 4, 'CLICK A STAGE  OR  MOVE + J / ENTER / A    K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
     this.lastSel = -1;
+
+    // mouse: hover a tile to preview it, click a tile (or the big preview) to choose it
+    this.input.mouse.disableContextMenu();
+    this.backBtn = makeButton(this, 170, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
+    this.clicked = false;
+    const tileAt = (x, y) => this.tiles.findIndex((t) => x >= t.x && x < t.x + TILE_W && y >= t.y && y < t.y + TILE_H);
+    this.input.on('pointermove', (p) => {
+      const i = tileAt(p.x, p.y);
+      if (i >= 0 && i !== this.sel) { this.sel = i; sfx('menu', 0.3); }
+    });
+    this.input.on('pointerdown', (p) => {
+      if (!p.leftButtonDown()) return;
+      const i = tileAt(p.x, p.y);
+      const inPreview = p.x >= PREV.x && p.x < PREV.x + PREV.w && p.y >= PREV.y && p.y < PREV.y + PREV.h;
+      if (i >= 0) { this.sel = i; this.clicked = true; } else if (inPreview) this.clicked = true;
+    });
   }
 
   drawLocked(g, x, y, w, h) {
@@ -76,8 +93,9 @@ export class StageSelectScene extends Phaser.Scene {
     if (m.down && this.sel + COLS < n) { this.sel += COLS; moved = true; }
     if (moved) sfx('menu', 0.5);
     const tile = this.tiles[this.sel];
-    const confirm = m.ok || m.pads.some((p) => p.button === 'a' || p.button === 'start');
+    const confirm = m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start');
     const back = m.back || m.pads.some((p) => p.button === 'b');
+    this.clicked = false;
     if (confirm) {
       if (tile.st.available) { settings.stage = tile.st.id; sfx('select', 0.8); this.scene.start('Select'); return; }
       sfx('curse', 0.4, 1.4);

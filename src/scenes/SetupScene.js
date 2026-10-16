@@ -4,6 +4,7 @@ import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
+import { makeButton } from '../ui/button.js';
 
 const MODES = ['stock', 'time', 'stamina'];
 const HPS = [100, 150, 200, 300];
@@ -33,7 +34,25 @@ export class SetupScene extends Phaser.Scene {
     this.add.text(376, 248, 'CONTROLLERS', { fontFamily: FONT, fontSize: '7px', color: '#78a0c6' });
     this.add.text(376, 262, 'A  JOIN AS NEW PLAYER\nY  CONTROL PLAYER 1\nB  LEAVE', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3', lineSpacing: 6 });
     this.padStatus = this.add.text(376, 306, '', { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc', lineSpacing: 5 });
-    this.hint = this.add.text(VIEW_W / 2, 350, 'W/S SELECT   A/D CHANGE   ENTER CONFIRM   ESC BACK', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
+    this.hint = this.add.text(VIEW_W / 2, 350, 'CLICK OR W/S SELECT   CLICK  <  >  OR A/D CHANGE   ENTER CONFIRM', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
+
+    // mouse: hover picks a row, left click changes it (left half of the value = back one step),
+    // right click steps back, clicking CHOOSE STAGE continues
+    this.input.mouse.disableContextMenu();
+    makeButton(this, 12, 8, '< BACK', () => this.scene.start('Title'));
+    this.click = null;
+    this.input.on('pointermove', (p) => {
+      const i = this.rowAt(p.x, p.y);
+      if (i >= 0 && i !== this.sel) { this.sel = i; sfx('menu', 0.3); }
+    });
+    this.input.on('pointerdown', (p) => { this.click = { x: p.x, y: p.y, right: p.rightButtonDown() }; });
+  }
+
+  rowAt(x, y) {
+    if (x < 22 || x > 340) return -1;
+    const i = Math.floor((y - 70) / 22);
+    if (i < 0 || i >= this.items().length || y - 70 - i * 22 > 16) return -1;
+    return i;
   }
 
   items() {
@@ -79,6 +98,20 @@ export class SetupScene extends Phaser.Scene {
     if (m.down) { this.sel = (this.sel + 1) % rows.length; sfx('menu', 0.5); }
     const row = rows[this.sel];
     if ((m.left || m.right) && row.change) { row.change(m.left ? -1 : 1); sfx('menu', 0.5, 1.2); }
+    if (this.click) {
+      const c = this.click; this.click = null;
+      const i = this.rowAt(c.x, c.y);
+      if (i >= 0) {
+        this.sel = i;
+        const r = rows[i];
+        if (r.start && !c.right) { sfx('go', 0.8); this.scene.start('StageSelect'); return; }
+        if (r.change) {
+          const v = this.rows[i].value, mid = v.x - v.width / 2;
+          const d = c.right || (c.x > 200 && c.x < mid) ? -1 : 1;
+          r.change(d); sfx('menu', 0.5, 1.2);
+        }
+      }
+    }
     if (m.ok) {
       if (row.start) { sfx('go', 0.8); this.scene.start('StageSelect'); return; }
       if (row.change) { row.change(1); sfx('menu', 0.5, 1.2); }

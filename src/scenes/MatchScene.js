@@ -11,6 +11,7 @@ import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
 import { sfx } from '../audio/sfx.js';
+import { makeButton } from '../ui/button.js';
 
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
@@ -70,6 +71,13 @@ export class MatchScene extends Phaser.Scene {
 
     this.countdown = 200;   // "3, 2, 1, GO!"
     this.escKey = this.input.keyboard.addKey('ESC');
+    // mouse: a pause button in the corner, and Resume / Quit buttons on the pause screen
+    this.input.mouse.disableContextMenu();
+    this.mouseToggle = false; this.mouseQuit = false;
+    this.pauseBtn = makeButton(this, VIEW_W - 8, 6, 'II  PAUSE', () => { this.mouseToggle = true; }, { originX: 1, depth: 25, size: '6px' });
+    this.resumeBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 34, 'RESUME', () => { this.mouseToggle = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
+    this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
+    this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn);
     this.qKey = this.input.keyboard.addKey('Q');
     this.events.once('shutdown', () => this.cleanup());
   }
@@ -109,15 +117,17 @@ export class MatchScene extends Phaser.Scene {
       if (down && !this.startHeld[i]) padStart = true;
       this.startHeld[i] = down;
     }
-    if ((esc || padStart) && this.countdown <= 0 && !this.over) {
+    const mouse = this.mouseToggle; this.mouseToggle = false;
+    if ((esc || padStart || mouse) && this.countdown <= 0 && !this.over) {
       this.paused = !this.paused;
       sfx('menu', 0.6);
       this.bigText.setText(this.paused ? 'PAUSED' : '');
-      this.smallText.setText(this.paused ? 'ESC / START  RESUME\n\nQ / SELECT  QUIT TO SETUP' : '');
+      this.smallText.setText(this.paused ? 'ESC / START  RESUME     Q / SELECT  QUIT' : '');
+      this.resumeBtn.setVisible(this.paused); this.quitBtn.setVisible(this.paused); this.pauseBtn.setVisible(!this.paused);
       if (this.paused) this.sound.pauseAll(); else this.sound.resumeAll();
     }
     if (this.paused) {
-      let quit = Phaser.Input.Keyboard.JustDown(this.qKey);
+      let quit = Phaser.Input.Keyboard.JustDown(this.qKey) || this.mouseQuit;
       for (const i of pads) { const pad = readPad(i); if (pad && pad.buttons[8] && pad.buttons[8].pressed) quit = true; }
       if (quit) { this.scene.start('Setup'); return true; }
       this.draw();

@@ -6,6 +6,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { ROSTER, GRID_SLOTS } from '../fighters/roster.js';
 import { readPad } from '../input/controllers.js';
 import { sfx } from '../audio/sfx.js';
+import { makeButton } from '../ui/button.js';
 
 const COLS = 6, TILE_W = 72, TILE_H = 50, GAP = 4;
 const GRID_X = Math.round((VIEW_W - (COLS * TILE_W + (COLS - 1) * GAP)) / 2), GRID_Y = 30;
@@ -80,10 +81,22 @@ export class SelectScene extends Phaser.Scene {
     this.cursorTags = this.players.map((p) => p.kind === 'cpu' ? null : this.add.text(0, 0, p.label, { fontFamily: FONT, fontSize: '6px', color: '#ffffff', backgroundColor: PLAYER_CSS[p.slot], padding: { x: 2, y: 1 } }).setDepth(21));
 
     this.banner = this.add.graphics().setDepth(30);
-    this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!  PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' }).setOrigin(0.5).setDepth(31);
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOVE CURSOR  J / A PICK   K / B UNDO   ESC STAGE SELECT', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!  CLICK HERE OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' }).setOrigin(0.5).setDepth(31);
+    this.add.text(VIEW_W / 2, VIEW_H - 4, 'MOUSE OR MOVE CURSOR   CLICK / J / A PICK   RIGHT CLICK / K / B UNDO', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
 
     const K = Phaser.Input.Keyboard.KeyCodes;
+    // mouse drives player 1's cursor: left click picks, right click undoes, click the yellow bar to start
+    this.input.mouse.disableContextMenu();
+    makeButton(this, 180, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
+    this.mouse = { moved: false, left: false, right: false, x: 0, y: 0 };
+    this.input.on('pointermove', (p) => { this.mouse.moved = true; this.mouse.x = p.x; this.mouse.y = p.y; });
+    this.input.on('pointerdown', (p) => {
+      this.mouse.x = p.x; this.mouse.y = p.y; this.mouse.moved = true;
+      if (p.rightButtonDown()) this.mouse.right = true; else this.mouse.left = true;
+    });
+    this.bannerZone = this.add.zone(0, CARD_Y - 18, VIEW_W, 24).setOrigin(0).setInteractive({ useHandCursor: true }).setDepth(32);
+    this.bannerZone.on('pointerdown', (p) => { if (p.leftButtonDown() && this.players.every((pl) => pl.pick)) this.mouse.start = true; });
+
     this.keys = this.input.keyboard.addKeys({ w: K.W, a: K.A, s: K.S, d: K.D, up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT, j: K.J, k: K.K, enter: K.ENTER, space: K.SPACE, esc: K.ESC }, false);
   }
 
@@ -137,6 +150,13 @@ export class SelectScene extends Phaser.Scene {
       const inp = this.readPlayer(p);
       p.x = Phaser.Math.Clamp(p.x + inp.x * 3.2, 4, VIEW_W - 4);
       p.y = Phaser.Math.Clamp(p.y + inp.y * 3.2, 26, VIEW_H - 8);
+      if (p.slot === 0) {
+        const mo = this.mouse;
+        if (mo.moved) { p.x = mo.x; p.y = mo.y; mo.moved = false; }
+        if (mo.left) { inp.ok = true; mo.left = false; }
+        if (mo.right) { inp.back = true; mo.right = false; }
+        if (mo.start) { inp.start = true; mo.start = false; }
+      }
       if (inp.start) startPressed = true;
       if (inp.ok) {
         const tile = this.tileAt(p.x, p.y), card = this.cardAt(p.x, p.y);

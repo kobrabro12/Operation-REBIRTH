@@ -16,9 +16,11 @@ export class TitleScene extends Phaser.Scene {
     this.logo = this.add.text(VIEW_W / 2, 96, 'REBIRTH', { fontFamily: FONT, fontSize: '40px', color: '#f3c358', stroke: '#4a280b', strokeThickness: 8 }).setOrigin(0.5);
     this.hero = this.add.sprite(VIEW_W / 2, 262, 'ss_idle', 0).setOrigin(0.5, 59 / 64).setScale(2);
     this.glow = this.add.graphics();
-    this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK HERE, THEN PRESS ENTER OR START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
+    this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
     this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
     this.menu = new MenuInput(this);
+    this.clicked = false;
+    this.input.on('pointerdown', () => { this.clicked = true; });
   }
   update() {
     this.t++;
@@ -33,7 +35,7 @@ export class TitleScene extends Phaser.Scene {
     this.glow.clear();
     this.glow.fillStyle(0x78a0c6, 0.15); this.glow.fillRect(VIEW_W / 2 - 60, 262, 120, 4);
     const m = this.menu.poll();
-    if (m.ok || m.pads.some((p) => p.button === 'start' || p.button === 'a')) {
+    if (m.ok || this.clicked || m.pads.some((p) => p.button === 'start' || p.button === 'a')) {
       sfx('select', 0.8);
       if (this.sound.context && this.sound.context.state === 'suspended') this.sound.context.resume();
       this.scene.start('Setup');
