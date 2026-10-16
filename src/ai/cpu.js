@@ -45,7 +45,7 @@ export class CpuController extends Controller {
     this.wait = L.react + Math.floor(Math.random() * L.react);
 
     // Limit when an opponent is level with the beam
-    if (me.limit >= LIMIT_MAX && adx < 360 && Math.abs(dy) < 40) { this.tap('limit'); return; }
+    if (me.limit >= LIMIT_MAX && adx < (me.def.limit.reach || 360) && Math.abs(dy) < (me.def.limit.reach ? 70 : 40)) { this.tap('limit'); return; }
 
     const M = me.def.moves;
     // Soul Summoner: summon souls from a distance

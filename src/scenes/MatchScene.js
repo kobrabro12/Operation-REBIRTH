@@ -24,6 +24,7 @@ export class MatchScene extends Phaser.Scene {
   create() {
     this.mode = settings.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
+    this.cutscene = null;
     this.frame = 0; this.acc = 0; this.frozen = 0; this.paused = false; this.over = 0;
     this.hits = new Set(); this.particles = []; this.limitHits = []; this.pools = []; this.projectiles = []; this.souls = []; this.pops = [];
     this.shakeAmt = 0; this.shakeTime = 0;
@@ -420,6 +421,7 @@ export class MatchScene extends Phaser.Scene {
     for (const f of this.fighters) {
       if (f.state !== 'limit' || !f.alive) continue;
       const L = f.def.limit;
+      if (L.type === 'blade') continue;               // drawn by the fighter itself
       if (f.t < L.beamStart - 6 || f.t > L.beamEnd + 6) continue;
       const b = this.beamBox(f);
       if (f.t < L.beamStart) {                       // charging glow in the hand
@@ -476,6 +478,10 @@ export class MatchScene extends Phaser.Scene {
     // Limit banner and darkening
     this.overlay.clear();
     if (this.paused) { this.overlay.fillStyle(0x0b0a14, 0.6); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H); }
+    if (this.cutscene) {                               // Limit cutscene: darken and letterbox
+      this.overlay.fillStyle(0x0b0a14, 0.35); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
+      this.overlay.fillStyle(0x000000, 1); this.overlay.fillRect(0, 0, VIEW_W, 34); this.overlay.fillRect(0, VIEW_H - 34, VIEW_W, 34);
+    }
     if (this.limitBanner) {
       const b = this.limitBanner, a = b.t < 34 ? 1 : 1 - (b.t - 34) / 14;
       this.overlay.fillStyle(0x0b0a14, 0.45 * a); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -503,6 +509,7 @@ export class MatchScene extends Phaser.Scene {
     let cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 + 18;
     const limiter = this.fighters.find((f) => f.state === 'limit' && f.t < 34);
     if (limiter) { zoom = 1.5; cx = limiter.x; cy = limiter.y - 40; }
+    if (this.cutscene && this.cutscene.ult && this.cutscene.ult.victims[0]) { const v = this.cutscene.ult.victims[0]; zoom = 1.7; cx = v.x; cy = v.y - 26; }
     cx = Phaser.Math.Clamp(cx, -320, 320); cy = Phaser.Math.Clamp(cy, -260, 120);
     cam.setZoom(cam.zoom + (zoom - cam.zoom) * 0.08);
     const cur = cam.midPoint;

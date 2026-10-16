@@ -492,6 +492,7 @@ export class Fighter {
   }
   st_limit() {
     const L = this.def.limit;
+    if (L.type === 'blade') return this.bladeLimit(L);
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
@@ -507,6 +508,7 @@ export class Fighter {
     if (s === 'grabbed') return;
     if (s === 'respawn') return;
     if (s.startsWith('ledge')) return;                    // hanging / climbing: the state places the fighter
+    if (s === 'limit' && this.ult && this.ult.phase === 'cutscene') return;   // teleporting in the Limit cutscene
     if (this.dropTimer > 0) this.dropTimer--;
 
     const canSteerAir = ['air', 'helpless', 'attack', 'charge', 'summon'].includes(s) && !this.grounded;
@@ -675,6 +677,7 @@ export class Fighter {
   }
 
   checkBlast() {
+    if (this.ult && this.ult.phase === 'cutscene') return;
     if (this.x < BLAST.left || this.x > BLAST.right || this.y > BLAST.bottom || (this.y < BLAST.top && this.state === 'hitstun')) {
       this.match.onKO(this);
     }
@@ -694,6 +697,114 @@ export class Fighter {
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
     this.sprite.setVisible(true); this.tag.setVisible(true);
+  }
+
+  // ------------------------------------------------------------------ blade Limit (Lacy: Thousand Cuts)
+  // grow the giant sword -> one big slash -> miss: fade away / hit: teleporting cut cutscene
+  bladeLimit(L) {
+    const m = this.match;
+    if (this.t === 1) this.ult = { phase: 'grow', victims: [], slashes: [], cut: 0, origin: { x: this.x, y: this.y } };
+    const U = this.ult;
+    if (!this.grounded) this.vy = Math.min(this.vy, 0.5);
+    if (U.phase === 'grow' && this.t >= L.slashFrom) { U.phase = 'slash'; sfx('swing', 1, 0.5); sfx('dodge', 0.8, 0.5); }
+    if (U.phase === 'slash') {
+      const [bx, by, bw, bh] = L.box, x1 = this.facing > 0 ? this.x + bx : this.x - bx - bw;
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o)) continue;
+        const hb = o.hurtbox();
+        if (hb.x2 > x1 && hb.x1 < x1 + bw && hb.y2 > this.y + by && hb.y1 < this.y + by + bh) U.victims.push(o);
+      }
+      if (U.victims.length && this.t >= L.slashFrom + 3) {        // caught someone: into the cutscene
+        U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this;
+        for (const v of U.victims) { v.vx = v.vy = v.lx = v.ly = 0; v.stopChargeSound(); v.setState('hitstun'); v.hitstun = 999; }
+        sfx('limitready', 1, 0.6); m.shake(10, 8);
+        return;
+      }
+      if (this.t >= L.slashTo) { U.phase = 'whiff'; sfx('dodge', 0.6, 0.6); }
+    }
+    if (U.phase === 'whiff' && this.t >= L.whiffEnd) return this.endBladeLimit();
+    if (U.phase === 'cutscene') return this.bladeCutscene(L, U);
+  }
+  bladeCutscene(L, U) {
+    const m = this.match;
+    U.ct++;
+    U.victims = U.victims.filter((v) => v.alive && v.state !== 'dying');
+    for (const s of U.slashes) s.life--;
+    U.slashes = U.slashes.filter((s) => s.life > 0);
+    if (!U.victims.length) return this.endBladeLimit();
+    const v = U.victims[0], c = v.center();
+    if (U.cut < L.cuts && U.ct % L.cutEvery === 0) {
+      // teleport to a new spot around the target and cut straight through to the other side
+      const a = U.cut * 2.39996 + 0.4, r = 46 + (U.cut % 3) * 8;            // golden-angle spiral: never the same spot twice
+      const sx = c.x + Math.cos(a) * r, sy = c.y + Math.sin(a) * r * 0.75;
+      const ex = c.x - Math.cos(a) * r, ey = c.y - Math.sin(a) * r * 0.75;
+      U.from = { x: this.x, y: this.y };
+      this.x = ex; this.y = ey + this.body.h / 2; this.facing = Math.sign(ex - sx) || 1;
+      U.slashes.push({ x1: sx, y1: sy, x2: ex, y2: ey, life: 10 });
+      U.cut++;
+      for (const t of U.victims) m.applyHit(t, { h: L.cut, owner: this, facing: this.facing, id: 'cut' + this.slot + ':' + U.cut, pillar: true }, this.x);
+      for (const t of U.victims) { t.lx = t.ly = 0; t.hitstun = 999; }
+      sfx('swing', 0.7, 1.3 + (U.cut % 4) * 0.1);
+      m.shake(2, 2);
+    }
+    const finalAt = L.cuts * L.cutEvery + 14;
+    if (U.ct === finalAt - 10) {                                       // reappear for the last cut
+      this.x = c.x - this.facing * 40; this.y = v.y; this.facing = Math.sign(c.x - this.x) || 1;
+      sfx('limitready', 0.8, 0.8);
+    }
+    if (U.ct === finalAt) {
+      U.slashes.push({ x1: c.x - this.facing * 60, y1: c.y + 20, x2: c.x + this.facing * 70, y2: c.y - 30, life: 18, big: true });
+      for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'cutfinal' + this.slot, pillar: true }, this.x); }
+      sfx('bighit', 1, 0.6); m.shake(14, 12);
+    }
+    if (U.ct >= finalAt + 24) return this.endBladeLimit();
+  }
+  endBladeLimit() {
+    const U = this.ult, m = this.match;
+    if (U && U.phase === 'cutscene') { this.x = U.origin.x; this.y = U.origin.y; m.frozen = 0; m.cutscene = null; }
+    this.ult = null; this.invincible = 30; this.grounded = false;
+    this.setState('air');
+  }
+
+  drawBladeLimit(g, L, U) {
+    const C = L.colors;
+    if (U.phase !== 'cutscene') {
+      // blade angle: held up behind her while it grows, swung down through the front, then fading
+      let ang, len = 190 * Math.min(1, this.t / L.growUntil), alpha = 1;
+      if (U.phase === 'grow') ang = -1.75 + Math.sin(this.t * 0.2) * 0.03;
+      else if (U.phase === 'slash') ang = -1.75 + 2.25 * Math.min(1, (this.t - L.slashFrom) / (L.slashTo - L.slashFrom));
+      else { ang = 0.5; alpha = Math.max(0, 1 - (this.t - L.slashTo) / (L.whiffEnd - L.slashTo)); }
+      const hx = this.x + this.facing * 8, hy = this.y - 34, dx = Math.cos(ang) * this.facing, dy = Math.sin(ang);
+      const nx = -dy, ny = dx;                                 // blade normal
+      const blade = (w, col, a) => {
+        g.fillStyle(col, a * alpha);
+        g.fillPoints([
+          { x: hx + nx * w, y: hy + ny * w }, { x: hx + dx * len * 0.86 + nx * w, y: hy + dy * len * 0.86 + ny * w },
+          { x: hx + dx * len, y: hy + dy * len },
+          { x: hx + dx * len * 0.86 - nx * w, y: hy + dy * len * 0.86 - ny * w }, { x: hx - nx * w, y: hy - ny * w },
+        ], true);
+      };
+      if (len > 4) {
+        blade(13, 0x4ae0e0, 0.25 + 0.1 * Math.sin(this.anim * 0.5));   // glow
+        blade(8, C.outline, 1); blade(6, C.mid, 1); blade(3, C.core, 1);
+        g.fillStyle(0xf3c358, alpha); g.fillRect(hx - 8, hy - 3, 16, 6);    // crossguard
+        if (U.phase === 'slash') {                                         // swing trail
+          for (let k = 1; k < 7; k++) {
+            const a2 = ang - k * 0.16;
+            g.lineStyle(10 - k, k < 3 ? 0xffffff : 0x9ad8f0, 0.5 - k * 0.06);
+            g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx + Math.cos(a2) * this.facing * len, hy + Math.sin(a2) * len); g.strokePath();
+          }
+        }
+      }
+      return;
+    }
+    // cutscene: every cut leaves a streak of light through the target
+    for (const sl of U.slashes) {
+      const k = sl.life / (sl.big ? 18 : 10), w = sl.big ? 10 : 5;
+      g.lineStyle(w + 6, 0x4ae0e0, 0.35 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
+      g.lineStyle(w, 0xffffff, 0.95 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
+    }
+    if (U.from) { g.fillStyle(0x9ad8f0, 0.35); g.fillRect(U.from.x - 6, U.from.y - 44, 12, 40); }   // afterimage where she just was
   }
 
   // ------------------------------------------------------------------ stamina death
@@ -741,7 +852,14 @@ export class Fighter {
       case 'holding': return { sheet: S.attack2, frame: 0 };
       case 'counter': return { sheet: S.guard || S.attack2, frame: 0 };      // crouched guard, sword angled down toward the opponent
       case 'counterstrike': return this.t < 2 ? { sheet: S.attack2, frame: 2 } : once('attack2', this.t - 2 + 6, 26);
-      case 'limit': return this.t < this.def.limit.beamStart ? once('attack1', this.t, this.def.limit.beamStart) : { sheet: S.attack1, frame: 5 };
+      case 'limit': {
+        const L = this.def.limit, U = this.ult;
+        if (L.type !== 'blade') return this.t < L.beamStart ? once('attack1', this.t, L.beamStart) : { sheet: S.attack1, frame: 5 };
+        if (!U || U.phase === 'grow') return { sheet: S.attack1, frame: 1 };                       // giant sword held high
+        if (U.phase === 'slash') return { sheet: S.attack1, frame: 3 + Math.min(2, Math.floor((this.t - L.slashFrom) / 3)) };
+        if (U.phase === 'whiff') return { sheet: S.attack1, frame: 6 };
+        return { sheet: S.attack2, frame: U.ct % L.cutEvery < 2 ? 4 : 5 };                        // mid-dash between cuts
+      }
       case 'ledge': return { sheet: S.fall, frame: 0 };
       case 'ledgeclimb': return once('jump', this.t, 18);
       case 'ledgeattack': return this.t < 14 ? once('jump', this.t, 14) : once('attack2', this.t - 14, 16);
@@ -873,6 +991,8 @@ export class Fighter {
         for (let k = 0; k < 3; k++) { const ph = (this.anim * 3 + k * 7) % 18; g.fillRect(this.x - 6 + k * 5 + ((this.anim + k) % 3) - 1, fy + len + ph - 6, 3, 3); }
       }
     }
+    // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
+    if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
       const gx = this.x + this.facing * 44, gy = this.y - 19, tw = this.t - d.moves.counter.start;   // glint on the lowered blade

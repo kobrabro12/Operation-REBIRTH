@@ -71,16 +71,16 @@ export const HERO_KNIGHT = {
     },
   },
 
-  // Limit PLACEHOLDER: a beam of steel-white light from his sword, 50% like the others.
+  // Limit: THOUSAND CUTS. Her sword grows into a giant blade of light and she makes one huge forward
+  // slash. A miss does nothing more. A hit freezes everyone else in a cutscene: she teleports around
+  // the opponent, cutting through them 25 times (2% each), then a final cut (10%) launches them:
+  // 60% in total. If several opponents are caught, every cut hits all of them.
   limit: {
-    name: 'BLADE STORM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 18, colors: BEAM_STEEL,
-    hits: [
-      { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 60, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 70, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 80, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 92, dmg: 10, angle: 32, base: 5.5, growth: 6.5 },
-    ],
+    name: 'THOUSAND CUTS', type: 'blade', reach: 200,
+    growUntil: 34, slashFrom: 40, slashTo: 48, whiffEnd: 72,
+    box: [0, -130, 200, 150],                      // the giant slash, in front of her
+    cuts: 25, cutEvery: 5, cut: { dmg: 2, angle: 90, base: 0, growth: 0, stun: 12 },
+    final: { dmg: 10, angle: 40, base: 7.5, growth: 7.0 },
+    colors: BEAM_STEEL,
   },
 };
