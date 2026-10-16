@@ -1,6 +1,6 @@
 # Operation REBIRTH
 
-A 2D pixel-art platform fighter for the browser, built with Phaser 4 and modern JavaScript.
+A 2D pixel-art platform fighter for the browser, built with Phaser 4 and modern JavaScript by an awesome artist.
 
 ## Run it locally
 
