@@ -38,6 +38,9 @@ export const SKINS = {
     { name: 'PLAGUE', swatch: 0x4caf50, fx: 0x7ccf6a, groups: SS, rules: { gold: { to: 26, sat: 0.8, val: 0.82 }, cape: { to: 125, sat: 1.3 }, flame: { to: 110 }, eyes: { to: 80 } } },
     { name: 'SHADOW', swatch: 0x6d26bd, fx: 0xb07ad0, groups: SS, rules: { armor: { val: 0.6 }, gold: { to: 282, sat: 0.9 }, cape: { sat: 0.25, val: 0.7 }, flame: { to: 272 }, eyes: { to: 0, sat: 0, val: 1.1 } } },
     { name: 'ROYAL', swatch: 0x2b4fd8, fx: 0xf3c358, groups: SS, rules: { cape: { to: 228, sat: 1.9, val: 1.15 }, flame: { to: 45, sat: 0.9 }, eyes: { to: 205 } } },
+    // pure black and white like an old monochrome handheld, with a white outline so he reads on any
+    // stage; he raises his own 1-bit ghosts instead of flaming skulls (tools/sprites/onebit_minion.py)
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit' },
   ],
   'hero-knight': [
     { name: 'KNIGHT', swatch: 0x667980 },
@@ -122,6 +125,20 @@ export function skinTexture(scene, key, id, i) {
     if (!p[n + 3]) continue;
     const [r, g, b] = fn(p[n], p[n + 1], p[n + 2]);
     p[n] = r; p[n + 1] = g; p[n + 2] = b;
+  }
+  if (skin.outline !== undefined) {                      // 1 px outline around the silhouette, inside each frame
+    const W = cv.width, H = cv.height, fw = f0.width, fh = f0.height, o = skin.outline;
+    const a = new Uint8Array(W * H);
+    for (let n = 0; n < W * H; n++) a[n] = p[n * 4 + 3] > 0 ? 1 : 0;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (a[y * W + x]) continue;
+        const fx = x % fw, fy = y % fh;
+        if ((fx > 0 && a[y * W + x - 1]) || (fx < fw - 1 && a[y * W + x + 1]) || (fy > 0 && a[(y - 1) * W + x]) || (fy < fh - 1 && a[(y + 1) * W + x])) {
+          const n = (y * W + x) * 4; p[n] = (o >> 16) & 255; p[n + 1] = (o >> 8) & 255; p[n + 2] = o & 255; p[n + 3] = 255;
+        }
+      }
+    }
   }
   ctx.putImageData(data, 0, 0);
   tm.addSpriteSheet(nk, cv, { frameWidth: f0.width, frameHeight: f0.height });
