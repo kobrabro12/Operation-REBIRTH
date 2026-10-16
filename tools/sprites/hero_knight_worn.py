@@ -22,10 +22,16 @@ FW, FH = 150, 90
 CRACK, CHIP_LIGHT, HOLE, SCORCH = (26, 20, 24), (226, 226, 226), (34, 28, 34), (48, 40, 36)
 
 def hsv(p): return colorsys.rgb_to_hsv(p[0] / 255, p[1] / 255, p[2] / 255)
+def is_hair(p):
+    # her white hair / scarf: the bright, colourless pixels. Never damaged, so it can't look like it
+    # passes through holes in her helmet.
+    if p[3] < 255: return False
+    h, s, v = hsv(p)
+    return s < 0.12 and v >= 0.76
 def is_armor(p):
     if p[3] < 255: return False
     h, s, v = hsv(p)
-    return s < 0.12 and 0.28 < v < 0.9
+    return s < 0.12 and 0.28 < v < 0.76
 def is_suit(p):
     if p[3] < 255: return False
     h, s, v = hsv(p)
@@ -70,7 +76,7 @@ def chunks(stage):
     n = [0, 0, 4, 10][stage]
     return [(rng.randint(-14, 12), rng.choice([-6, 2, 5, 13, 15, 17]), rng.randint(2, 3 if stage == 2 else 4), rng.randint(1, 3)) for _ in range(n)]
 
-def damage(frame, stage):
+def damage(frame, stage, frame_index=0):
     out = frame.copy(); px = out.load(); src = frame.load()
     a = anchor(frame)
     if not a: return out
@@ -115,15 +121,37 @@ def damage(frame, stage):
     if stage == 3:
         ex, ey = int(ax + 2), int(ay - 4)
         hole = [(-1, -1), (0, -1), (1, -1), (2, -1), (-1, 0), (0, 0), (1, 0), (2, 0), (3, 0), (0, 1), (1, 1), (2, 1)]
+        helmet = lambda X, Y: 0 <= X < FW and 0 <= Y < FH and src[X, Y][3] == 255 and not is_hair(src[X, Y]) and not is_red(src[X, Y])
         for dx, dy in hole:
             X, Y = ex + dx, ey + dy
-            if 0 <= X < FW and 0 <= Y < FH and src[X, Y][3]: px[X, Y] = (40, 24, 26, 255)      # dark inside of the helmet
+            if helmet(X, Y): px[X, Y] = (40, 24, 26, 255)                                      # dark inside of the helmet
         for dx, dy in [(-2, -2), (3, -1), (4, 0), (-2, 1), (3, 2)]:                           # jagged broken edge
             X, Y = ex + dx, ey + dy
             if 0 <= X < FW and 0 <= Y < FH and is_armor(src[X, Y]): px[X, Y] = CHIP_LIGHT + (255,)
         for (dx, dy, c) in [(0, 0, (236, 230, 222)), (1, 0, (92, 168, 230)), (2, 0, (236, 230, 222)), (1, -1, (60, 40, 40))]:
             X, Y = ex + dx, ey + dy                                                           # the eye: white, blue iris, lid shadow
-            if 0 <= X < FW and 0 <= Y < FH and src[X, Y][3]: px[X, Y] = c + (255,)
+            if helmet(X, Y): px[X, Y] = c + (255,)
+    # stage 3: a hole torn through the chest plate, showing her heart. The heart alternates between a
+    # big and a small beat on every animation frame, so it pumps as she moves.
+    if stage == 3:
+        cx, cy = int(ax), int(ay + 6)
+        body = lambda X, Y: 0 <= X < FW and 0 <= Y < FH and src[X, Y][3] == 255 and not is_hair(src[X, Y])
+        cavity = [(dx, dy) for dy in range(-3, 4) for dx in range(-4, 5) if (dx * dx) / 18 + (dy * dy) / 11 <= 1]
+        for dx, dy in cavity:
+            if body(cx + dx, cy + dy): px[cx + dx, cy + dy] = (52, 14, 20, 255)                   # dark flesh inside
+        for dx, dy in cavity:                                                                 # jagged broken rim
+            for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                X, Y = cx + dx + ox, cy + dy + oy
+                if (dx + ox, dy + oy) not in cavity and body(X, Y) and (X + Y) % 3:
+                    px[X, Y] = CHIP_LIGHT + (255,) if oy < 0 or (X % 2) else CRACK + (255,)
+        big = frame_index % 2 == 0
+        heart = ([' X X ', 'XXXXX', 'XXXXX', ' XXX ', '  X  '] if big else ['X X', 'XXX', ' X '])
+        hx, hy = cx - len(heart[0]) // 2, cy - len(heart) // 2
+        for r, row in enumerate(heart):
+            for c2, ch in enumerate(row):
+                if ch == 'X' and body(hx + c2, hy + r):
+                    col = (255, 120, 120) if (r == 1 and c2 <= 1) else (110, 10, 20) if r == len(heart) - 1 else (205, 32, 44)
+                    px[hx + c2, hy + r] = col + (255,)
     return out
 
 for stage in (1, 2, 3):
@@ -132,6 +160,6 @@ for stage in (1, 2, 3):
         sheet = Image.open(os.path.join(DIR, name + '_sheet.png')).convert('RGBA')
         out = Image.new('RGBA', sheet.size, (0, 0, 0, 0))
         for i in range(sheet.width // FW):
-            out.alpha_composite(damage(sheet.crop((i * FW, 0, (i + 1) * FW, FH)), stage), (i * FW, 0))
+            out.alpha_composite(damage(sheet.crop((i * FW, 0, (i + 1) * FW, FH)), stage, i), (i * FW, 0))
         out.save(os.path.join(od, name + '_sheet.png'))
     print('stage', stage, 'done')
