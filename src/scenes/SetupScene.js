@@ -56,7 +56,7 @@ export class SetupScene extends Phaser.Scene {
       { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; } },
       { label: 'SFX VOLUME', value: String(Math.round(s.sfxVolume * 10)), change: (d) => { s.sfxVolume = Phaser.Math.Clamp(Math.round(s.sfxVolume * 10 + d), 0, 10) / 10; } },
       { label: 'STAGE', value: 'SKY SANCTUM', change: () => {} },
-      { label: 'START BATTLE', value: '', start: true },
+      { label: 'CHOOSE FIGHTERS', value: '', start: true },
     );
     return rows;
   }
@@ -81,7 +81,7 @@ export class SetupScene extends Phaser.Scene {
     const row = rows[this.sel];
     if ((m.left || m.right) && row.change) { row.change(m.left ? -1 : 1); sfx('menu', 0.5, 1.2); }
     if (m.ok) {
-      if (row.start) { sfx('go', 0.8); this.scene.start('Match'); return; }
+      if (row.start) { sfx('go', 0.8); this.scene.start('Select'); return; }
       if (row.change) { row.change(1); sfx('menu', 0.5, 1.2); }
     }
     if (m.back) { this.scene.start('Title'); return; }

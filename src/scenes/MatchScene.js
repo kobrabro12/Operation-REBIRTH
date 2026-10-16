@@ -5,7 +5,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { KeyboardController, GamepadController, MergedController, readPad } from '../input/controllers.js';
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
-import { SOUL_SUMMONER } from '../fighters/soulSummoner.js';
+import { fighterById } from '../fighters/roster.js';
 import { Fireball, Soul } from '../fighters/entities.js';
 import { SkyStage } from '../stage/skyStage.js';
 import { ItemSpawner } from '../items/items.js';
@@ -45,9 +45,10 @@ export class MatchScene extends Phaser.Scene {
     const stocks = this.mode === 'stock' ? settings.stocks : this.mode === 'stamina' ? 1 : 0;
     for (let i = 0; i < slots; i++) {
       const human = humans[i];
-      const ctrl = human ? human.ctrl : new CpuController(this, settings.difficulty);
+      const ctrl = human ? human.ctrl : new CpuController(this, settings.cpuLevels[i] ?? settings.difficulty);
       const label = human ? human.label : 'CPU' + (i + 1);
-      const f = new Fighter(this, SOUL_SUMMONER, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp });
+      const def = fighterById(settings.picks[i]).def;
+      const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp });
       if (!human) ctrl.fighter = f;
       const sp = this.stage.spawns[i];
       f.placeAt(sp.x, sp.y - 1); f.facing = sp.x < 0 ? 1 : -1;
