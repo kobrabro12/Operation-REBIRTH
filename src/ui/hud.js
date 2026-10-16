@@ -49,7 +49,7 @@ export class Hud {
       let sub = '';
       if (m.mode === 'time') sub = 'SCORE ' + (f.kos - f.falls);
       p.sub.setText(sub);
-      if (m.mode !== 'time') {
+      if (m.mode !== 'time' && m.mode !== 'training') {
         for (let i = 0; i < Math.min(f.stocks, 6); i++) {
           const sx = p.x + 8 + i * 10, sy = p.y + 20;
           g.fillStyle(PLAYER_COLORS[f.slot], 1); g.fillRect(sx, sy, 7, 7);

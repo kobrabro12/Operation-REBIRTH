@@ -1,6 +1,7 @@
 // Match settings chosen on the setup screen, shared between scenes.
 export const settings = {
-  mode: 'stock',      // 'stock' | 'time' | 'stamina'
+  mode: 'stock',      // 'stock' | 'time' | 'stamina' | 'training'
+  dummy: 'stand',     // training dummy behaviour
   stocks: 3,
   minutes: 3,
   hp: 150,
@@ -20,4 +21,4 @@ export const settings = {
   cpuLevels: [],      // per-CPU difficulty (falls back to `difficulty`)
 };
 
-export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA' };
+export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };

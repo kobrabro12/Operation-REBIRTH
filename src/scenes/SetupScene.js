@@ -6,8 +6,9 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
+import { DUMMY_MODES, DUMMY_NAMES } from './training.js';
 
-const MODES = ['stock', 'time', 'stamina'];
+const MODES = ['stock', 'time', 'stamina', 'training'];
 const HPS = [100, 150, 200, 300];
 
 export class SetupScene extends Phaser.Scene {
@@ -63,13 +64,14 @@ export class SetupScene extends Phaser.Scene {
     s.cpuCount = Math.min(s.cpuCount, maxCpu);
     if (humans + s.cpuCount < 2) s.cpuCount = Math.max(1, 2 - humans);
     const rows = [
-      { label: 'MODE', value: MODE_NAMES[s.mode], change: (d) => { s.mode = MODES[(MODES.indexOf(s.mode) + d + 3) % 3]; } },
+      { label: 'MODE', value: MODE_NAMES[s.mode], change: (d) => { s.mode = MODES[(MODES.indexOf(s.mode) + d + MODES.length) % MODES.length]; } },
     ];
     if (s.mode === 'stock') rows.push({ label: 'STOCKS', value: String(s.stocks), change: (d) => { s.stocks = Phaser.Math.Clamp(s.stocks + d, 1, 5); } });
     if (s.mode === 'time') rows.push({ label: 'TIME', value: s.minutes + ' MIN', change: (d) => { s.minutes = Phaser.Math.Clamp(s.minutes + d, 1, 5); } });
+    if (s.mode === 'training') rows.push({ label: 'DUMMY', value: DUMMY_NAMES[s.dummy], change: (d) => { s.dummy = DUMMY_MODES[(DUMMY_MODES.indexOf(s.dummy) + d + DUMMY_MODES.length) % DUMMY_MODES.length]; } });
     if (s.mode === 'stamina') rows.push({ label: 'STAMINA HP', value: String(s.hp), change: (d) => { s.hp = HPS[(HPS.indexOf(s.hp) + d + HPS.length) % HPS.length]; } });
     rows.push(
-      { label: 'CPU PLAYERS', value: String(s.cpuCount), change: (d) => { s.cpuCount = Phaser.Math.Clamp(s.cpuCount + d, humans >= 2 ? 0 : 1, maxCpu); } },
+      { label: s.mode === 'training' ? 'DUMMIES' : 'CPU PLAYERS', value: String(s.cpuCount), change: (d) => { s.cpuCount = Phaser.Math.Clamp(s.cpuCount + d, humans >= 2 ? 0 : 1, maxCpu); } },
       { label: 'CPU LEVEL', value: DIFFICULTY[s.difficulty].name, change: (d) => { s.difficulty = (s.difficulty + d + 3) % 3; } },
       { label: 'ITEMS', value: s.items ? 'ON' : 'OFF', change: () => { s.items = !s.items; } },
       { label: 'STAGE HAZARDS', value: s.hazards ? 'ON' : 'OFF', change: () => { s.hazards = !s.hazards; } },

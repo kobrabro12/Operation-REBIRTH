@@ -12,6 +12,7 @@ import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
+import { Training, DummyController } from './training.js';
 
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
@@ -43,11 +44,13 @@ export class MatchScene extends Phaser.Scene {
     humans.push({ ctrl: settings.p1Pad !== null ? new MergedController([kb, new GamepadController(settings.p1Pad)]) : new MergedController([kb]), label: 'P1' });
     for (const pad of settings.extraPads) humans.push({ ctrl: new GamepadController(pad), label: 'P' + (humans.length + 1) });
     const slots = Math.min(4, humans.length + settings.cpuCount);
+    this.isTraining = this.mode === 'training';
     const stocks = this.mode === 'stock' ? settings.stocks : this.mode === 'stamina' ? 1 : 0;
     for (let i = 0; i < slots; i++) {
       const human = humans[i];
-      const ctrl = human ? human.ctrl : new CpuController(this, settings.cpuLevels[i] ?? settings.difficulty);
-      const label = human ? human.label : 'CPU' + (i + 1);
+      const level = settings.cpuLevels[i] ?? settings.difficulty;
+      const ctrl = human ? human.ctrl : this.isTraining ? new DummyController(this, level) : new CpuController(this, level);
+      const label = human ? human.label : (this.isTraining ? 'DUMMY' : 'CPU') + (i + 1);
       const def = fighterById(settings.picks[i]).def;
       const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp });
       if (!human) ctrl.fighter = f;
@@ -59,6 +62,7 @@ export class MatchScene extends Phaser.Scene {
 
     this.items = settings.items ? new ItemSpawner(this) : null;
     this.hud = new Hud(this);
+    this.training = this.isTraining ? new Training(this) : null;
     this.timeLeft = settings.minutes * 3600;
 
     // overlays (UI camera)
@@ -69,7 +73,7 @@ export class MatchScene extends Phaser.Scene {
     this.bigText.setDepth(20); this.smallText.setDepth(20); this.addUI(this.bigText, this.smallText, this.modeText);
     if (settings.crt) this.makeCrt();
 
-    this.countdown = 200;   // "3, 2, 1, GO!"
+    this.countdown = this.isTraining ? 0 : 200;   // "3, 2, 1, GO!" (training starts right away)
     this.escKey = this.input.keyboard.addKey('ESC');
     // mouse: a pause button in the corner, and Resume / Quit buttons on the pause screen
     this.input.mouse.disableContextMenu();
@@ -100,7 +104,8 @@ export class MatchScene extends Phaser.Scene {
   // ------------------------------------------------------------------ main loop
   update(time, delta) {
     if (this.handlePause()) return;
-    this.acc += Math.min(delta, 100);
+    if (this.training) this.training.input();
+    this.acc += Math.min(delta, 100) * (this.training ? this.training.speed : 1);
     let steps = 0;
     while (this.acc >= STEP_MS && steps < 5) { this.tick(); this.acc -= STEP_MS; steps++; }
     this.draw();
@@ -167,6 +172,7 @@ export class MatchScene extends Phaser.Scene {
     const hazard = this.stage.step(this);
     this.resolveHits(hazard);
     this.stepEffects();
+    if (this.training) this.training.step();
 
     // rules
     if (this.mode === 'time' && !this.over) {
@@ -250,7 +256,9 @@ export class MatchScene extends Phaser.Scene {
     if (t.ly < -0.5 || kb > PHYS.tumbleKb) { t.grounded = false; t.platform = null; }
     if (t.grounded && t.ly > 0) t.ly = -t.ly * 0.5;   // spiked on the ground: pops up
     t.hitstun = h.stun || Math.max(8, Math.floor(kb * PHYS.hitstunPerKb));
+    const comboing = t.state === 'hitstun' || t.state === 'grabbed';
     t.setState('hitstun');
+    if (this.training) this.training.onHit(t, hb, dmg, comboing);
     t.jumpsLeft = 1; t.usedUpB = false; t.airdodged = false;
     if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
     if (h.slow) t.slow = h.slow;      // Shadow Pool: stuck in the puddle
@@ -279,12 +287,12 @@ export class MatchScene extends Phaser.Scene {
     }
     if (f.lastHitBy && f.lastHitBy !== f) f.lastHitBy.kos++;
     f.falls++;
-    if (this.mode !== 'time') {
+    if (this.mode !== 'time' && !this.isTraining) {
       f.stocks--;
       if (f.stocks <= 0) { f.eliminated = true; for (const s of f.souls) s.kill(true); }
     }
     f.ko();
-    if (this.mode !== 'time') {
+    if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
       if (left.length <= 1 && !this.over) this.endMatch('GAME!');
     }
@@ -423,6 +431,7 @@ export class MatchScene extends Phaser.Scene {
       g.fillStyle(C.core, fade); g.fillRect(b.hx - 10, b.hy - 14, 20, 28);
     }
     for (const p of this.particles) { g.fillStyle(p.color, Math.min(1, p.life / 10)); g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size); }
+    if (this.training) this.training.draw(g);
 
     // Limit banner and darkening
     this.overlay.clear();
