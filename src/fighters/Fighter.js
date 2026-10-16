@@ -769,31 +769,41 @@ export class Fighter {
   drawBladeLimit(g, L, U) {
     const C = L.colors;
     if (U.phase !== 'cutscene') {
-      // blade angle: held up behind her while it grows, swung down through the front, then fading
-      let ang, len = 190 * Math.min(1, this.t / L.growUntil), alpha = 1;
-      if (U.phase === 'grow') ang = -1.75 + Math.sin(this.t * 0.2) * 0.03;
-      else if (U.phase === 'slash') ang = -1.75 + 2.25 * Math.min(1, (this.t - L.slashFrom) / (L.slashTo - L.slashFrom));
-      else { ang = 0.5; alpha = Math.max(0, 1 - (this.t - L.slashTo) / (L.whiffEnd - L.slashTo)); }
-      const hx = this.x + this.facing * 8, hy = this.y - 34, dx = Math.cos(ang) * this.facing, dy = Math.sin(ang);
-      const nx = -dy, ny = dx;                                 // blade normal
+      // Her own sword grows: the blade starts exactly on the sprite's sword (same hilt, angle and length)
+      // and stretches into a giant blade of light. Raised pose (attack1 frame 1): hilt (-27,-41), pointing
+      // up and slightly back. Guard pose (sword at the shoulder): hilt (37,-26), pointing down and forward.
+      const RAISED = { x: -27, y: -41, ang: -1.774 }, GUARD = { x: 37, y: -26, ang: 0.59 };
+      const ease = (k) => 1 - (1 - k) * (1 - k);
+      let pose = RAISED, grow = ease(Math.min(1, this.t / L.growUntil));
+      if (U.phase === 'slash') {
+        const k = Math.min(1, (this.t - L.slashFrom) / (L.slashTo - L.slashFrom));
+        pose = { x: RAISED.x + (GUARD.x - RAISED.x) * k, y: RAISED.y + (GUARD.y - RAISED.y) * k, ang: RAISED.ang + (GUARD.ang - RAISED.ang) * k };
+      } else if (U.phase === 'whiff') {
+        pose = GUARD; grow = 1 - ease(Math.min(1, (this.t - L.slashTo) / (L.whiffEnd - L.slashTo)));   // shrinks back to normal
+      }
+      const len = 30 + 160 * grow, half = 1.5 + 6 * grow, glow = grow;
+      const ang = pose.ang, hx = this.x + this.facing * pose.x, hy = this.y + pose.y;
+      const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), nx = -dy, ny = dx;
       const blade = (w, col, a) => {
-        g.fillStyle(col, a * alpha);
+        g.fillStyle(col, a);
         g.fillPoints([
-          { x: hx + nx * w, y: hy + ny * w }, { x: hx + dx * len * 0.86 + nx * w, y: hy + dy * len * 0.86 + ny * w },
+          { x: hx + nx * w, y: hy + ny * w }, { x: hx + dx * len * 0.88 + nx * w, y: hy + dy * len * 0.88 + ny * w },
           { x: hx + dx * len, y: hy + dy * len },
-          { x: hx + dx * len * 0.86 - nx * w, y: hy + dy * len * 0.86 - ny * w }, { x: hx - nx * w, y: hy - ny * w },
+          { x: hx + dx * len * 0.88 - nx * w, y: hy + dy * len * 0.88 - ny * w }, { x: hx - nx * w, y: hy - ny * w },
         ], true);
       };
-      if (len > 4) {
-        blade(13, 0x4ae0e0, 0.25 + 0.1 * Math.sin(this.anim * 0.5));   // glow
-        blade(8, C.outline, 1); blade(6, C.mid, 1); blade(3, C.core, 1);
-        g.fillStyle(0xf3c358, alpha); g.fillRect(hx - 8, hy - 3, 16, 6);    // crossguard
-        if (U.phase === 'slash') {                                         // swing trail
-          for (let k = 1; k < 7; k++) {
-            const a2 = ang - k * 0.16;
-            g.lineStyle(10 - k, k < 3 ? 0xffffff : 0x9ad8f0, 0.5 - k * 0.06);
-            g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx + Math.cos(a2) * this.facing * len, hy + Math.sin(a2) * len); g.strokePath();
-          }
+      if (glow > 0.05) blade(half + 6, 0x4ae0e0, (0.2 + 0.1 * Math.sin(this.anim * 0.5)) * glow);   // light around it
+      blade(half + 1.5, C.outline, 1);
+      blade(half, glow > 0.5 ? C.light : C.mid, 1);                                              // steel brightening into light
+      blade(Math.max(0.6, half * 0.45), C.core, 0.6 + 0.4 * glow);
+      g.fillStyle(C.outline, 1); g.fillRect(hx - nx * (half + 4) - 1, hy - ny * (half + 4) - 1, 3, 3); g.fillRect(hx + nx * (half + 4) - 1, hy + ny * (half + 4) - 1, 3, 3);
+      g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);       // hilt in her hands
+      if (U.phase === 'grow' && this.t % 3 === 0 && grow < 1) this.match.puff(hx + dx * len, hy + dy * len, 0x9ad8f0, 1);   // sparks at the growing tip
+      if (U.phase === 'slash') {                                                                 // swing trail
+        for (let k = 1; k < 7; k++) {
+          const a2 = ang - k * 0.16;
+          g.lineStyle(10 - k, k < 3 ? 0xffffff : 0x9ad8f0, 0.5 - k * 0.06);
+          g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx + Math.cos(a2) * this.facing * len, hy + Math.sin(a2) * len); g.strokePath();
         }
       }
       return;
@@ -856,8 +866,8 @@ export class Fighter {
         const L = this.def.limit, U = this.ult;
         if (L.type !== 'blade') return this.t < L.beamStart ? once('attack1', this.t, L.beamStart) : { sheet: S.attack1, frame: 5 };
         if (!U || U.phase === 'grow') return { sheet: S.attack1, frame: 1 };                       // giant sword held high
-        if (U.phase === 'slash') return { sheet: S.attack1, frame: 3 + Math.min(2, Math.floor((this.t - L.slashFrom) / 3)) };
-        if (U.phase === 'whiff') return { sheet: S.attack1, frame: 6 };
+        if (U.phase === 'slash') return (this.t - L.slashFrom) < (L.slashTo - L.slashFrom) * 0.3 ? { sheet: S.attack1, frame: 1 } : { sheet: S.guard, frame: 0 };   // raised -> swung down
+        if (U.phase === 'whiff') return { sheet: S.guard, frame: 0 };
         return { sheet: S.attack2, frame: U.ct % L.cutEvery < 2 ? 4 : 5 };                        // mid-dash between cuts
       }
       case 'ledge': return { sheet: S.fall, frame: 0 };
