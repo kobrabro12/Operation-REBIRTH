@@ -2,6 +2,7 @@
 // human. Move your cursor onto a fighter and press attack to pick; press special to change your mind.
 // Point at a CPU card and press attack to change that CPU's level.
 // Colour variations: Q / E (keyboard), X / Y or LB / RB (controller), or click a colour swatch on a card.
+import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT, PLAYER_COLORS, PLAYER_CSS, PLAYER_TINTS, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
 import { ROSTER, GRID_SLOTS, showFighter } from '../fighters/roster.js';
@@ -21,6 +22,7 @@ export class SelectScene extends Phaser.Scene {
   create() {
     this.t = 0;
     const s = settings;
+    playMusic(this, 'bgm_select');
     // portrait crops (head and shoulders) of each fighter's idle frame
     for (const r of ROSTER) {
       if (!r.def) continue;

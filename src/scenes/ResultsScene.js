@@ -1,3 +1,4 @@
+import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, PLAYER_COLORS, PLAYER_TINTS } from '../config.js';
 import { MODE_NAMES } from '../settings.js';
 import { MenuInput } from './menuInput.js';
@@ -9,6 +10,7 @@ export class ResultsScene extends Phaser.Scene {
   constructor() { super('Results'); }
   create(data) {
     this.menu = new MenuInput(this); this.t = 0;
+    playMusic(this, 'bgm_title');
     const g = this.add.graphics();
     g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
     const win = data.results[0];

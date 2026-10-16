@@ -1,3 +1,4 @@
+import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
@@ -8,6 +9,7 @@ export class TitleScene extends Phaser.Scene {
   create() {
     this.t = 0;
     const g = this.add.graphics();
+    playMusic(this, 'bgm_title');
     const bands = [0x0b0a14, 0x131029, 0x1b1640, 0x241d57, 0x2e246c];
     bands.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(0, i * 72, VIEW_W, 72); });
     this.stars = this.add.graphics();

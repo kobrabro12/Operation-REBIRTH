@@ -23,4 +23,15 @@ export const settings = {
   cpuLevels: [],      // per-CPU difficulty (falls back to `difficulty`)
 };
 
+// Volumes are remembered in this browser between visits.
+const VOL_KEY = 'rebirth.volumes';
+try {
+  const v = JSON.parse(localStorage.getItem(VOL_KEY) || 'null');
+  if (v && typeof v.sfx === 'number') settings.sfxVolume = v.sfx;
+  if (v && typeof v.music === 'number') settings.musicVolume = v.music;
+} catch (e) { /* storage unavailable: keep the defaults */ }
+export function saveVolumes() {
+  try { localStorage.setItem(VOL_KEY, JSON.stringify({ sfx: settings.sfxVolume, music: settings.musicVolume })); } catch (e) { /* ignore */ }
+}
+
 export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };

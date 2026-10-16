@@ -1,5 +1,6 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
+import { playMusic, stopMusic } from '../audio/music.js';
 import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
@@ -38,11 +39,8 @@ export class MatchScene extends Phaser.Scene {
     const bg = [], world = [];
     this.stage.draw(world, bg);
     this.addBg(...bg); this.addWorld(...world);
-    // stage music (loops until the match ends; cleanup() stops all sounds)
-    if (this.stage.music && this.cache.audio.exists(this.stage.music) && settings.musicVolume > 0) {
-      this.music = this.sound.add(this.stage.music, { loop: true, volume: 0.55 * settings.musicVolume });
-      this.music.play();
-    }
+    // stage music (stages without a track of their own play silence for now)
+    if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest
@@ -518,6 +516,6 @@ export class MatchScene extends Phaser.Scene {
 
   cleanup() {
     for (const f of this.fighters || []) f.stopChargeSound();
-    this.sound.stopAll();
+    this.sound.stopAll(); stopMusic();
   }
 }

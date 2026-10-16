@@ -1,5 +1,6 @@
 // Stage select: a large preview of the highlighted stage on the left, the stage grid on the right.
 // Move with WASD / arrows / stick, confirm with J / Enter / A, go back with K / Esc / B.
+import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
 import { STAGES, STAGE_SLOTS } from '../stage/stages.js';
@@ -19,6 +20,7 @@ export class StageSelectScene extends Phaser.Scene {
     this.menu = new MenuInput(this);
     this.t = 0;
     this.tiles = [];
+    playMusic(this, 'bgm_title');
     for (let i = 0; i < STAGE_SLOTS; i++) {
       const random = i === STAGE_SLOTS - 1;
       const st = random ? { id: 'random', name: 'RANDOM', available: true } : STAGES[i] || { id: null, name: '???', available: false };

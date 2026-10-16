@@ -1,7 +1,8 @@
 // Match setup: mode and rules, CPUs, items/hazards, and controller join.
 // Controllers: press A to join as a new player (P2-P4), Y to drive Player 1, B to leave.
 import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, DIFFICULTY } from '../config.js';
-import { settings, MODE_NAMES } from '../settings.js';
+import { settings, MODE_NAMES, saveVolumes } from '../settings.js';
+import { playMusic, updateMusicVolume } from '../audio/music.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
@@ -26,12 +27,14 @@ export class SetupScene extends Phaser.Scene {
     this.add.text(30, 52, 'RULES', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' });
     this.add.text(376, 52, 'PLAYERS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' });
     this.rows = [];
-    for (let i = 0; i < 11; i++) {
+    for (let i = 0; i < 12; i++) {
       const label = this.add.text(30, 74 + i * 22, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' });
       const value = this.add.text(334, 74 + i * 22, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(1, 0);
       this.rows.push({ label, value });
     }
     this.cursor = this.add.graphics();
+    this.bars = this.add.graphics();
+    playMusic(this, 'bgm_title');
     this.slotTexts = [0, 1, 2, 3].map((i) => this.add.text(376, 76 + i * 40, '', { fontFamily: FONT, fontSize: '8px', color: PLAYER_CSS[i], lineSpacing: 6 }));
     this.portraits = [0, 1, 2, 3].map((i) => this.add.sprite(596, 92 + i * 40, 'ss_idle', 0).setScale(0.6));
     this.add.text(376, 248, 'CONTROLLERS', { fontFamily: FONT, fontSize: '7px', color: '#78a0c6' });
@@ -79,7 +82,8 @@ export class SetupScene extends Phaser.Scene {
       { label: 'STAGE HAZARDS', value: s.hazards ? 'ON' : 'OFF', change: () => { s.hazards = !s.hazards; } },
       { label: 'TOUCH CONTROLS', value: s.touch.toUpperCase(), change: (d) => { const o = ['auto', 'on', 'off']; s.touch = o[(o.indexOf(s.touch) + d + 3) % 3]; } },
       { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; } },
-      { label: 'SFX VOLUME', value: String(Math.round(s.sfxVolume * 10)), change: (d) => { s.sfxVolume = Phaser.Math.Clamp(Math.round(s.sfxVolume * 10 + d), 0, 10) / 10; } },
+      { label: 'SFX VOLUME', bar: Math.round(s.sfxVolume * 10), value: Math.round(s.sfxVolume * 10) ? String(Math.round(s.sfxVolume * 10)) : 'OFF', change: (d) => { s.sfxVolume = Phaser.Math.Clamp(Math.round(s.sfxVolume * 10 + d), 0, 10) / 10; saveVolumes(); }, set: (k) => { s.sfxVolume = k / 10; saveVolumes(); } },
+      { label: 'MUSIC VOLUME', bar: Math.round(s.musicVolume * 10), value: Math.round(s.musicVolume * 10) ? String(Math.round(s.musicVolume * 10)) : 'OFF', change: (d) => { s.musicVolume = Phaser.Math.Clamp(Math.round(s.musicVolume * 10 + d), 0, 10) / 10; saveVolumes(); updateMusicVolume(); }, set: (k) => { s.musicVolume = k / 10; saveVolumes(); updateMusicVolume(); } },
       { label: 'CHOOSE STAGE', value: '', start: true },
     );
     return rows;
@@ -111,7 +115,9 @@ export class SetupScene extends Phaser.Scene {
         this.sel = i;
         const r = rows[i];
         if (r.start && !c.right) { sfx('go', 0.8); this.scene.start('StageSelect'); return; }
-        if (r.change) {
+        if (r.set && c.x >= 184 && c.x < 256 && !c.right) {      // click a bar segment to set the volume
+          r.set(Phaser.Math.Clamp(Math.floor((c.x - 184) / 7) + 1, 0, 10)); sfx('menu', 0.5, 1.2);
+        } else if (r.change) {
           const v = this.rows[i].value, mid = v.x - v.width / 2;
           const d = c.right || (c.x > 200 && c.x < mid) ? -1 : 1;
           r.change(d); sfx('menu', 0.5, 1.2);
@@ -126,13 +132,21 @@ export class SetupScene extends Phaser.Scene {
 
     // draw rows
     const fresh = this.items();
-    this.cursor.clear();
+    this.cursor.clear(); this.bars.clear();
     this.rows.forEach((r, i) => {
       const it = fresh[i];
       r.label.setText(it ? it.label : ''); r.value.setText(it ? (it.change && it.value && fresh[i] !== undefined ? '< ' + it.value + ' >' : it.value) : '');
       const on = i === this.sel;
       r.label.setColor(on ? '#ffffff' : '#c9c4dc');
       if (it && it.start) r.label.setColor(on ? (this.t % 30 < 15 ? '#f3c358' : '#ffffff') : '#f3c358');
+      if (it && it.bar !== undefined) {               // volume bar: 10 steps, getting taller to the right
+        const x0 = 186, y = 70 + i * 22;
+        for (let k = 0; k < 10; k++) {
+          const h = 4 + Math.round(k * 0.9), lit = k < it.bar;
+          this.bars.fillStyle(lit ? (k < 7 ? 0x78a0c6 : 0xf3c358) : 0x2a2550, 1);
+          this.bars.fillRect(x0 + k * 7, y + 13 - h, 5, h);
+        }
+      }
       if (on) { this.cursor.fillStyle(0x78a0c6, 0.25); this.cursor.fillRect(22, 70 + i * 22, 318, 16); this.cursor.fillStyle(0x78a0c6, 1); this.cursor.fillRect(22, 70 + i * 22, 3, 16); }
     });
     // player slots
