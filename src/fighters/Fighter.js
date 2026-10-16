@@ -340,7 +340,10 @@ export class Fighter {
   st_limit() {
     const L = this.def.limit;
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
-    if (L.waves.includes(this.t)) this.match.limitWave(this, L.waves.indexOf(this.t));
+    L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
+    if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
+      this.match.puff(this.x + this.facing * this.def.handOffset.x, this.y + this.def.handOffset.y, this.t % 4 ? 0x78a0c6 : 0xf0f2f3, 2);
+    }
     if (this.t >= L.frames) { this.invincible = 30; this.setState(this.grounded ? 'idle' : 'air'); }
   }
 

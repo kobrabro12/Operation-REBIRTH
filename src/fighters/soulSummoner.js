@@ -44,6 +44,17 @@ export const SOUL_SUMMONER = {
     upb: { frames: 34, riseAt: 5, riseV: -11.5, drift: 2.2, hits: [{ from: 5, to: 16, box: [-18, -58, 36, 60], dmg: 6, angle: 80, base: 3.2, growth: 3.0 }] },
   },
 
-  // Limit (O, unlocked after taking 100%): Requiem of Souls - three waves of soul pillars erupt under every opponent.
-  limit: { name: 'REQUIEM OF SOULS', frames: 110, waves: [36, 56, 76], dmg: [8, 8, 12], base: [3.0, 3.0, 4.6], growth: [2.5, 2.5, 6.2] },
+  // Limit (O, unlocked after taking 100%): Soulfire Beam - a beam of blue fire from his hand, straight ahead.
+  // Five quick hits hold opponents in the beam, then a final blast launches them: 8+8+8+8+8+10 = 50%.
+  limit: {
+    name: 'SOULFIRE BEAM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 20,
+    hits: [
+      { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 60, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 70, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 80, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 92, dmg: 10, angle: 32, base: 5.5, growth: 6.5 },
+    ],
+  },
 };

@@ -42,7 +42,7 @@ export class CpuController extends Controller {
     this.wait = L.react + Math.floor(Math.random() * L.react);
 
     // Limit when an opponent is close enough to be caught by the pillars
-    if (me.limit >= LIMIT_MAX && adx < 260) { this.tap('limit'); return; }
+    if (me.limit >= LIMIT_MAX && adx < 360 && Math.abs(dy) < 40) { this.tap('limit'); return; }
 
     // summon souls from a distance
     me.souls = me.souls.filter((s) => s.alive);

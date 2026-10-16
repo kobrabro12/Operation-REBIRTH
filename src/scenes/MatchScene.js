@@ -20,7 +20,7 @@ export class MatchScene extends Phaser.Scene {
     this.mode = settings.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
     this.frame = 0; this.acc = 0; this.frozen = 0; this.paused = false; this.over = 0;
-    this.hits = new Set(); this.particles = []; this.pillars = []; this.projectiles = []; this.souls = []; this.pops = [];
+    this.hits = new Set(); this.particles = []; this.limitHits = []; this.projectiles = []; this.souls = []; this.pops = [];
     this.shakeAmt = 0; this.shakeTime = 0;
 
     // three cameras: background (no zoom), world (zooms to fit the fighters), UI (fixed)
@@ -34,7 +34,7 @@ export class MatchScene extends Phaser.Scene {
     const bg = [], world = [];
     this.stage.draw(world, bg);
     this.addBg(...bg); this.addWorld(...world);
-    this.fxG = this.add.graphics(); this.addWorld(this.fxG);
+    this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest
     this.fighters = [];
@@ -183,7 +183,7 @@ export class MatchScene extends Phaser.Scene {
     for (const f of this.fighters) if (f.alive && f.hitstop === 0) hbs.push(...f.activeHitboxes());
     for (const p of this.projectiles) if (p.alive) hbs.push(p.hitbox());
     for (const s of this.souls) { const h = s.hitbox(); if (h) hbs.push(h); }
-    for (const pl of this.pillars) if (pl.t >= 8 && pl.t <= 16) hbs.push(pl.hb);
+    for (const lh of this.limitHits) if (lh.t < 2) hbs.push(lh.hb);
     if (hazard) hbs.push({ ...hazard, h: hazard, owner: null, facing: 1 });
 
     const overlap = (a, b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
@@ -197,7 +197,7 @@ export class MatchScene extends Phaser.Scene {
         if (!overlap(hb, t.hurtbox())) continue;
         this.hits.add(key);
         if (hb.grab) { if (hb.owner.state === 'attack' && t.grounded) hb.owner.onGrab(t); continue; }
-        if (t.state === 'shield' && !hb.hazard) this.shieldHit(t, hb);
+        if (t.state === 'shield' && !hb.hazard && !hb.pillar) this.shieldHit(t, hb);
         else this.applyHit(t, hb, (hb.x1 + hb.x2) / 2);
         if (hb.projectile) hb.projectile.kill();
         if (hb.soul) hb.soul.onBite();
@@ -249,7 +249,7 @@ export class MatchScene extends Phaser.Scene {
     t.vx = 0; t.vy = 0; t.fastFalling = false;
     if (t.ly < -0.5 || kb > PHYS.tumbleKb) { t.grounded = false; t.platform = null; }
     if (t.grounded && t.ly > 0) t.ly = -t.ly * 0.5;   // spiked on the ground: pops up
-    t.hitstun = Math.max(8, Math.floor(kb * PHYS.hitstunPerKb));
+    t.hitstun = h.stun || Math.max(8, Math.floor(kb * PHYS.hitstunPerKb));
     t.setState('hitstun');
     t.jumpsLeft = 1; t.usedUpB = false; t.airdodged = false;
     if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
@@ -313,21 +313,23 @@ export class MatchScene extends Phaser.Scene {
     sfx('limit', 1);
     this.shake(6, 30);
     this.limitBanner = { t: 0, name: f.def.limit.name, color: f.color };
+    let best = null, bd = 1e9;
+    for (const o of this.fighters) if (o.alive && o.team !== f.team && Math.abs(o.x - f.x) < bd) { bd = Math.abs(o.x - f.x); best = o; }
+    if (best && best.x !== f.x) f.facing = Math.sign(best.x - f.x);
     for (const p of this.projectiles) if (p.owner !== f) p.kill();
   }
-  limitWave(f, i) {
+  // where the Limit beam is right now (from the hand, straight ahead)
+  beamBox(f) {
     const L = f.def.limit;
-    const targets = this.fighters.filter((o) => o.alive && o.team !== f.team && !o.eliminated);
-    const xs = targets.map((o) => o.x);
-    if (i === 2) xs.push(f.x - 120, f.x + 120);
-    for (const x of xs) {
-      const id = 'pillar' + f.slot + ':' + this.frame + ':' + x;
-      this.pillars.push({
-        x, t: 0, owner: f,
-        hb: { x1: x - 24, x2: x + 24, y1: -420, y2: 20, h: { dmg: L.dmg[i], angle: 86, base: L.base[i], growth: L.growth[i] }, owner: f, facing: 1, id, pillar: true },
-      });
-    }
-    sfx('bighit', 0.8, 0.6); this.shake(8, 8);
+    const hx = f.x + f.facing * (f.def.handOffset.x + 4), hy = f.y + f.def.handOffset.y;
+    return { x1: f.facing > 0 ? hx : hx - L.beamLength, x2: f.facing > 0 ? hx + L.beamLength : hx, y1: hy - L.beamHalf, y2: hy + L.beamHalf, hx, hy };
+  }
+  limitHit(f, i) {
+    const L = f.def.limit, h = L.hits[i], b = this.beamBox(f);
+    this.limitHits.push({ t: 0, hb: { x1: b.x1, x2: b.x2, y1: b.y1, y2: b.y2, h, owner: f, facing: f.facing, id: 'beam' + f.slot + ':' + this.frame, pillar: true } });
+    const last = i === L.hits.length - 1;
+    sfx(last ? 'bighit' : 'hit', last ? 1 : 0.6, last ? 0.6 : 0.8);
+    this.shake(last ? 12 : 4, last ? 12 : 4);
   }
 
   // ------------------------------------------------------------------ effects
@@ -347,11 +349,11 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life--; }
     this.particles = this.particles.filter((p) => p.life > 0);
     if (this.particles.length > 600) this.particles.splice(0, this.particles.length - 600);
-    for (const pl of this.pillars) pl.t++;
-    this.pillars = this.pillars.filter((p) => p.t < 30);
+    for (const lh of this.limitHits) lh.t++;
+    this.limitHits = this.limitHits.filter((lh) => lh.t < 3);
     for (const p of this.pops) { p.life--; p.t.y -= 0.4; p.t.setAlpha(Math.min(1, p.life / 20)); if (p.life <= 0) p.t.destroy(); }
     this.pops = this.pops.filter((p) => p.life > 0);
-    if (this.limitBanner) { this.limitBanner.t++; if (this.limitBanner.t > 80) this.limitBanner = null; }
+    if (this.limitBanner) { this.limitBanner.t++; if (this.limitBanner.t > 48) this.limitBanner = null; }
     if (this.shakeTime > 0) this.shakeTime--;
   }
 
@@ -364,15 +366,59 @@ export class MatchScene extends Phaser.Scene {
 
     const g = this.fxG;
     g.clear();
-    // soul pillars from a Limit
-    for (const pl of this.pillars) {
-      const grow = Math.min(1, pl.t / 8), fade = pl.t > 20 ? 1 - (pl.t - 20) / 10 : 1;
-      const w = 48 * grow, top = -420 * grow;
-      if (pl.t < 8) { g.fillStyle(0x78a0c6, 0.8); g.fillRect(pl.x - 20, -4, 40, 4); }
-      g.fillStyle(0x076cc2, 0.75 * fade); g.fillRect(pl.x - w / 2, top, w, -top + 4);
-      g.fillStyle(0x78a0c6, 0.9 * fade); g.fillRect(pl.x - w / 3, top, (w * 2) / 3, -top + 4);
-      g.fillStyle(0xf0f2f3, fade); g.fillRect(pl.x - w / 8, top, w / 4, -top + 4);
-      for (let k = 0; k < 6; k++) { g.fillStyle(0xf0f2f3, fade); g.fillRect(pl.x - w / 2 + ((k * 13 + pl.t * 5) % Math.max(1, w)), -((k * 61 + pl.t * 9) % 400), 3, 3); }
+    // Limit beams: blue soul-fire from the hand, flickering in pixel bands
+    for (const f of this.fighters) {
+      if (f.state !== 'limit' || !f.alive) continue;
+      const L = f.def.limit;
+      if (f.t < L.beamStart - 6 || f.t > L.beamEnd + 6) continue;
+      const b = this.beamBox(f);
+      if (f.t < L.beamStart) {                       // charging glow in the hand
+        const r = 4 + (f.t - L.beamStart + 6) * 2;
+        g.fillStyle(0x78a0c6, 0.9); g.fillRect(b.hx - r, b.hy - r, r * 2, r * 2);
+        g.fillStyle(0xf0f2f3, 1); g.fillRect(b.hx - r / 2, b.hy - r / 2, r, r);
+        continue;
+      }
+      const grow = Math.min(1, (f.t - L.beamStart + 1) / 6);
+      const fade = f.t > L.beamEnd ? 1 - (f.t - L.beamEnd) / 6 : 1;
+      const len = L.beamLength * grow, dir = f.facing;
+      const flick = (this.frame >> 1) % 2;
+      const band = (half, color, alpha) => {
+        const x = dir > 0 ? b.hx : b.hx - len;
+        g.fillStyle(color, alpha * fade); g.fillRect(x, b.hy - half, len, half * 2);
+      };
+      const H = L.beamHalf;
+      band(H + 6 + flick, 0x0b1a33, 0.85);             // dark outline keeps it readable on the sky
+      band(H + 4 + flick, 0x076cc2, 1);
+      band(H - 4, 0x3f86d0, 1);
+      band(H - 8, 0x78a0c6, 1);
+      band(Math.max(3, H - 13 - flick), 0xf0f2f3, 1);
+      // chunks of flame streaming away from the hand
+      const x0 = dir > 0 ? b.hx : b.hx - len;
+      for (let k = (this.frame * 9) % 28; k < len; k += 28) {
+        const cx = dir > 0 ? x0 + k : x0 + len - k - 14;
+        g.fillStyle(0xf0f2f3, 0.85 * fade); g.fillRect(cx, b.hy - H + 7, 14, 3); g.fillRect(cx + 6, b.hy + H - 10, 10, 3);
+      }
+      // flame tongues licking off the top and bottom edges: stepped pixel flames that rise and flicker
+      const hash = (n) => { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; };
+      const tick = Math.floor(this.frame / 3);
+      for (let k = 0; k < len / 10; k++) {
+        const along = k * 10 + ((this.frame * 4) % 10);
+        if (along > len - 6) break;
+        for (const up of [-1, 1]) {
+          const r = hash(k * 7 + tick * 131 + (up > 0 ? 977 : 0));
+          if (r < 0.35) continue;
+          const tall = 3 + Math.floor(r * 12) * (up < 0 ? 1 : 0.6);
+          const fx = dir > 0 ? b.hx + along : b.hx - along - 8;
+          for (let row = 0; row < tall; row += 2) {           // narrows toward the tip
+            const w = Math.max(2, 8 - Math.floor(row / tall * 8));
+            const yy = up < 0 ? b.hy - H - 4 - row - 2 : b.hy + H + 4 + row;
+            const c = row < tall * 0.4 ? 0x3f86d0 : row < tall * 0.75 ? 0x78a0c6 : 0xf0f2f3;
+            g.fillStyle(c, fade); g.fillRect(fx + (8 - w) / 2, yy, w, 2);
+          }
+        }
+      }
+      // bright burst at the hand
+      g.fillStyle(0xf0f2f3, fade); g.fillRect(b.hx - 10, b.hy - 14, 20, 28);
     }
     for (const p of this.particles) { g.fillStyle(p.color, Math.min(1, p.life / 10)); g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size); }
 
@@ -380,12 +426,12 @@ export class MatchScene extends Phaser.Scene {
     this.overlay.clear();
     if (this.paused) { this.overlay.fillStyle(0x0b0a14, 0.6); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H); }
     if (this.limitBanner) {
-      const b = this.limitBanner, a = b.t < 60 ? 1 : 1 - (b.t - 60) / 20;
+      const b = this.limitBanner, a = b.t < 34 ? 1 : 1 - (b.t - 34) / 14;
       this.overlay.fillStyle(0x0b0a14, 0.45 * a); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
       const slide = Math.min(1, b.t / 10);
-      this.overlay.fillStyle(b.color, 0.9 * a); this.overlay.fillRect(0, VIEW_H / 2 - 52, VIEW_W * slide, 34);
-      this.overlay.fillStyle(0x0b0a14, 0.9 * a); this.overlay.fillRect(0, VIEW_H / 2 - 48, VIEW_W * slide, 26);
-      if (!this.paused && this.over === 0) { this.bigText.setText(b.name); this.bigText.setFontSize(16); this.bigText.setAlpha(a); this.bigText.y = VIEW_H / 2 - 35; }
+      this.overlay.fillStyle(b.color, 0.9 * a); this.overlay.fillRect(0, 42, VIEW_W * slide, 34);
+      this.overlay.fillStyle(0x0b0a14, 0.9 * a); this.overlay.fillRect(0, 46, VIEW_W * slide, 26);
+      if (!this.paused && this.over === 0) { this.bigText.setText(b.name); this.bigText.setFontSize(16); this.bigText.setAlpha(a); this.bigText.y = 59; }
     } else if (this.bigText.style.fontSize === '16px' && this.over === 0) { this.bigText.setText(''); this.bigText.setFontSize(28); this.bigText.setAlpha(1); this.bigText.y = VIEW_H / 2 - 30; }
 
     this.updateCamera();
