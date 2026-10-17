@@ -2,6 +2,14 @@
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { addKO } from '../progress.js';
 
+// Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
+const STYLE_HIT = {
+  onebit: { shape: 'pixel', colors: [0xf4f4f0, 0x0e0e10], n: 9, ring: 0xf4f4f0, sound: 'glitch' },
+  rose: { shape: 'rosepetal', colors: [0xd6336c, 0xff7aa8, 0x9a1240, 0x3c8c38], n: 9, sound: 'petal' },
+  samurai: { shape: 'sakura', colors: [0xffb7c5, 0xffffff, 0xff8fab], n: 7, ink: true, kanji: true },
+};
+const KANJI = ['斬', '撃', '閃', '刃'];
+
 // Title-screen demo: a random all-CPU match (random stage, 2-4 random fighters in random costumes).
 function demoSettings() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -333,10 +341,15 @@ export class MatchScene extends Phaser.Scene {
     const c = t.center();
     this.puff(c.x, c.y, 0xffffff, 6 + Math.floor(kb));
     this.puff(c.x, c.y, 0xf3c358, 4);
-    if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir);
+    if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir, dmg);
+    if (owner && owner.def.hitSfx && !hb.projectile && !hb.pillar) sfx(owner.def.hitSfx, 0.32, 0.9 + Math.random() * 0.2);   // steel ringing on steel
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
     if (h.homerun && h.full) {                      // a fully charged Grand Slam: crack of the bat
       this.popText(t, 'HOME RUN!', '#ffe08a'); this.shake(14, 8); sfx('ko', 0.6, 1.6);
+      if (owner.style === 'samurai') {                // Samurai: one flash of the blade
+        const k = this.add.text(t.x, t.y - 90, '一閃', { fontFamily: 'serif', fontSize: '34px', fontStyle: 'bold', color: '#ffffff', stroke: '#c8102e', strokeThickness: 7 }).setOrigin(0.5).setDepth(6);
+        this.addWorld(k); this.pops.push({ t: k, life: 70 }); sfx('taiko', 1); sfx('shing', 0.8, 0.8);
+      }
       for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; this.particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5, life: 18, color: i % 2 ? 0xffe08a : 0xffffff, size: 3, drag: 0.9, grav: 0 }); }
       this.particles.push({ shape: 'ring', x: c.x, y: c.y, vx: 0, vy: 0, life: 14, maxLife: 14, color: 0xffe08a, grav: 0, r: 6, dr: 4 });
     }
@@ -406,6 +419,9 @@ export class MatchScene extends Phaser.Scene {
   startLimit(f) {
     this.frozen = 34;
     sfx('limit', 1);
+    if (f.style === 'samurai') { sfx('taiko', 1); sfx('shing', 0.7, 0.9); }
+    if (f.style === 'onebit') sfx('glitch', 0.8, 0.8);
+    if (f.style === 'rose') sfx('petal', 0.8, 0.7);
     this.shake(6, 30);
     this.limitBanner = { t: 0, name: f.def.limit.name, color: f.color };
     let best = null, bd = 1e9;
@@ -434,9 +450,15 @@ export class MatchScene extends Phaser.Scene {
     }
   }
   // Milestone costumes: each has its own hit effect (skins.js vfx.hit), bigger at higher milestones.
-  skinHitFx(owner, x, y, kb, dir) {
-    const v = owner.vfx && owner.vfx.hit;
+  skinHitFx(owner, x, y, kb, dir, dmg = 0) {
+    const v = (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];
     if (!v) return;
+    if (v.sound) sfx(v.sound, 0.35, 0.9 + Math.random() * 0.3);
+    if (v.kanji && (dmg >= 10 || kb > 7)) {            // Samurai: a brush-stroke kanji on the big hits
+      const k = this.add.text(x + (Math.random() - 0.5) * 20, y - 30, KANJI[Math.floor(Math.random() * KANJI.length)], { fontFamily: 'serif', fontSize: '22px', fontStyle: 'bold', color: '#c8102e', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5).setDepth(6);
+      this.addWorld(k); this.pops.push({ t: k, life: 50 });
+      sfx('shing', 0.4, 0.9);
+    }
     const P = this.particles, cols = v.colors, col = (i) => cols[i % cols.length], R = Math.random;
     const n = v.n + Math.floor(kb / 2);
     const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
@@ -456,6 +478,7 @@ export class MatchScene extends Phaser.Scene {
     if (v.drops) for (let i = 0; i < 6; i++) add({ shape: 'drop', x, y, vx: dir * (0.5 + R() * 2.5), vy: -1.5 - R() * 2.5, life: 28, color: cols[0], grav: 0.2 });
     if (v.bubbles) for (let i = 0; i < 6; i++) add({ shape: 'bubble', x: x + (R() - 0.5) * 20, y: y + (R() - 0.5) * 14, vx: 0, vy: -0.5 - R(), life: 40, color: cols[i % cols.length], grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6 });
     if (v.whirl) add({ shape: 'whirl', x, y, vx: 0, vy: 0, life: 30, maxLife: 30, color: cols[0], color2: cols[1], grav: 0 });
+    if (v.ink) for (let i = 0; i < 7; i++) { const a = (dir > 0 ? 0 : Math.PI) + (R() - 0.5) * 1.6, sp = 2 + R() * 3.5; add({ shape: 'ink', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.6, life: 20 + R() * 10, color: 0x0b0a14, grav: 0.12, drag: 0.9, r: 1 + Math.floor(R() * 3) }); }
     if (v.glint) add({ shape: 'glint', x, y, vx: 0, vy: 0, life: 8, maxLife: 8, color: 0xffffff, grav: 0, dir });
     if (v.ring) add({ shape: 'ring', x, y, vx: 0, vy: 0, life: 14, maxLife: 14, color: v.ring, grav: 0, r: 4, dr: 2 + kb * 0.15 });
     if (v.ring2) add({ shape: 'ring', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, color: v.ring2, grav: 0, r: 2, dr: 3.4 + kb * 0.2 });
@@ -484,6 +507,19 @@ export class MatchScene extends Phaser.Scene {
       }
       case 'glint': { const k = p.life / p.maxLife; g.fillStyle(p.color, k); g.fillRect(X - 16, Y - 1, 32, 2); g.fillRect(X - 1, Y - 8, 2, 16); g.fillStyle(p.color, k * 0.5); g.fillRect(X - 24 * k, Y, 48 * k, 1); break; }
       case 'pillar': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.35 * k); g.fillRect(X - 10, Y - 140, 20, 160); g.fillStyle(0xffffff, 0.7 * k); g.fillRect(X - 3, Y - 140, 6, 160); break; }
+      case 'pixel': g.fillStyle(0x0e0e10, a); g.fillRect(X - 2, Y - 2, 5, 5); g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); break;   // 1-BIT: hard-edged pixels
+      case 'rosepetal': {                             // a curled rose petal, tumbling
+        const f = Math.sin((p.life + (p.sway || 0)) * 0.3);
+        g.fillStyle(p.color, a); g.fillEllipse(X, Y, 4 + Math.abs(f) * 2, 3); g.fillStyle(0xffffff, a * 0.5); g.fillRect(X - 1, Y - 1, 1, 1);
+        break;
+      }
+      case 'sakura': {                                // a tiny cherry blossom: five petals and a pale centre
+        for (let k = 0; k < 5; k++) { const ang = k * 1.2566 + p.life * 0.15; g.fillStyle(p.color, a); g.fillRect(Math.round(X + Math.cos(ang) * 2) - 1, Math.round(Y + Math.sin(ang) * 2) - 1, 2, 2); }
+        g.fillStyle(0xfff0a0, a); g.fillRect(X, Y, 1, 1);
+        break;
+      }
+      case 'ink': g.fillStyle(p.color, a * 0.9); g.fillCircle(X, Y, p.r); break;                        // ink splash
+      case 'smoke': { const k = 1 - p.life / p.maxLife; g.fillStyle(p.color, 0.55 * (1 - k)); g.fillCircle(X, Y, p.r + k * 6); break; }
       case 'flash': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.8 * k); g.fillCircle(X, Y, p.r * (1.5 - k * 0.5)); break; }
       default: g.fillStyle(p.color, a); g.fillRect(X, Y, p.size, p.size);
     }
@@ -529,19 +565,25 @@ export class MatchScene extends Phaser.Scene {
       const b = this.beamBox(f);
       if (f.t < L.beamStart) {                       // charging glow in the hand
         const r = 4 + (f.t - L.beamStart + 6) * 2;
-        g.fillStyle(L.colors.light, 0.9); g.fillRect(b.hx - r, b.hy - r, r * 2, r * 2);
-        g.fillStyle(L.colors.core, 1); g.fillRect(b.hx - r / 2, b.hy - r / 2, r, r);
+        g.fillStyle(f.pal.light, 0.9); g.fillRect(b.hx - r, b.hy - r, r * 2, r * 2);
+        g.fillStyle(f.pal.core, 1); g.fillRect(b.hx - r / 2, b.hy - r / 2, r, r);
         continue;
       }
       const grow = Math.min(1, (f.t - L.beamStart + 1) / 6);
       const fade = f.t > L.beamEnd ? 1 - (f.t - L.beamEnd) / 6 : 1;
       const len = L.beamLength * grow, dir = f.facing;
       const flick = (this.frame >> 1) % 2;
+      const glitch = f.style === 'onebit';              // 1-BIT: a possessed, glitching beam
       const band = (half, color, alpha) => {
         const x = dir > 0 ? b.hx : b.hx - len;
-        g.fillStyle(color, alpha * fade); g.fillRect(x, b.hy - half, len, half * 2);
+        if (glitch && (this.frame >> 2) % 7 === 0) color = color === C.core ? C.deep : color === C.deep ? C.core : color;   // inverts for a beat
+        if (!glitch) { g.fillStyle(color, alpha * fade); g.fillRect(x, b.hy - half, len, half * 2); return; }
+        for (let yy = -half; yy < half; yy += 4) {   // torn into scanlines that jitter sideways
+          const off = ((Math.sin((yy + this.frame * 13) * 12.9898) * 43758.5453) % 1) * 10 * ((this.frame >> 1) % 3 === 0 ? 1 : 0.2);
+          g.fillStyle(color, alpha * fade); g.fillRect(x + off, b.hy + yy, len, Math.min(4, half - yy));
+        }
       };
-      const H = L.beamHalf, C = L.colors;
+      const H = L.beamHalf, C = f.pal;                 // the beam takes the costume's colours
       band(H + 6 + flick, C.outline, 0.85);            // dark outline keeps it readable on the sky
       band(H + 4 + flick, C.deep, 1);
       band(H - 4, C.mid, 1);

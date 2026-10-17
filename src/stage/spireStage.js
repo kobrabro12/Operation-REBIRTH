@@ -1,7 +1,15 @@
 // "Verdant Spires": a jungle island floating high above the sea, crowned with tall rock spires.
 // A rock shelf on the left (with a waterfall), a ruined stone temple on the right whose roof is a
 // platform, and a crag jutting from the great central peak up top. All art is drawn in code.
-// Hazards and items for this stage come later; step() is where they will go.
+// Plays its own music ("Overgrown", tools/audio/spires_music.py).
+//
+// Stage hazards, one at a time every 10-14 s, each announced with a CAUTION banner first:
+//   GEYSERS         - the ground bubbles in two or three spots, then columns of water blast
+//                     straight up from them, launching anyone standing there.
+//   ROLLING BOULDER - the central peak rumbles and sheds a boulder that rolls in from one edge and
+//                     bounces all the way across the island. Jump it, or wait it out on a ledge.
+import { sfx } from '../audio/sfx.js';
+import { HazardCycle } from './hazardCycle.js';
 
 export const SPAL = {
   skyTop: 0x7fb0dc, skyLow: 0xd4e8f4,
@@ -30,6 +38,8 @@ export class SpireStage {
     this.spawns = [{ x: -150, y: 0 }, { x: 150, y: 0 }, { x: -50, y: 0 }, { x: 50, y: 0 }];
     this.hazardsOn = true;
     this.t = 0;
+    this.music = 'bgm_spires';
+    this.cycle = new HazardCycle(this, ['geyser', 'boulder'], { color: '#b4ee6a', stroke: '#16200c' });
   }
 
   // ---------------------------------------------------------------- drawing helpers
@@ -194,7 +204,9 @@ export class SpireStage {
 
     // animated water (waterfalls + the shelf's pool), redrawn each frame
     this.waterG = s.add.graphics();
-    worldLayer.push(this.waterG);
+    this.hzG = s.add.graphics();                                   // geysers and boulders
+    worldLayer.push(this.waterG, this.hzG);
+    this.cycle.makeBanner(s);
   }
 
   // one waterfall: a column of falling stripes from (x, y1) to y2
@@ -236,7 +248,93 @@ export class SpireStage {
     for (let k = 0; k < 4; k++) { const p = (t + k * 9) % 36; wg.fillStyle(SPAL.foam, 1); wg.fillRect(270 + (k % 2 ? 14 : -4) + (p >> 3), 230 + p, 2, 2); }
     // a water glint on the shelf's top edge
     if (t % 90 < 6) { wg.fillStyle(0xffffff, 1); wg.fillRect(L.x2 - 25, L.y + 5, 8, 2); }
-    return null;    // no hazard yet
+    this.hzG.clear();
+    return this.cycle.run(match, []);
+  }
+
+  // ---------------------------------------------------------------- hazards
+  // ---- GEYSERS: bubbling warning spots, then tall water columns that launch upward
+  start_geyser(match, h) {
+    h.title = 'GEYSERS - MOVE!';
+    const n = Math.random() < 0.5 ? 2 : 3, xs = [];
+    while (xs.length < n) { const x = Math.round(-250 + Math.random() * 500); if (xs.every((o) => Math.abs(o - x) > 110)) xs.push(x); }
+    h.spots = xs.map((x, i) => ({ x, delay: i * 14 }));
+  }
+  step_geyser(match, h, out) {
+    const g = this.hzG, P = SPAL;
+    let busy = false;
+    for (const s of h.spots) {
+      const lt = h.t - s.delay;
+      if (lt < 0) { busy = true; continue; }
+      if (lt < 90) {                                            // the ground cracks and bubbles
+        busy = true;
+        const k = lt / 90, w = 10 + k * 12;
+        g.fillStyle(P.outline, 1); g.fillRect(s.x - w / 2 - 1, -2, w + 2, 4);
+        g.fillStyle(P.waterDark, 1); g.fillRect(s.x - w / 2, -1, w, 2);
+        for (let i = 0; i < 4; i++) {                             // droplets hopping up
+          const ph = (lt * (1 + k) + i * 9) % 18, bx = s.x - w / 2 + ((i * 7 + lt) % Math.max(1, w));
+          g.fillStyle(i % 2 ? P.water : P.waterLight, 1); g.fillRect(Math.round(bx), Math.round(-2 - ph * (1 - ph / 18) * (1 + k * 2)), 2, 2);
+        }
+        if (lt % 20 === 0) sfx('item', 0.2, 0.5 + k);
+        if (lt === 89) { sfx('geyser', 0.9); match.shake(4, 10); }
+        continue;
+      }
+      const et = lt - 90;
+      if (et > 70) continue;
+      busy = true;
+      const H = et < 8 ? et * 22 : et < 50 ? 176 + Math.sin(et * 0.5) * 6 : 176 * (1 - (et - 50) / 20);   // shoot up, hold, collapse
+      const half = 11 + Math.sin(et * 0.8) * 2;
+      g.fillStyle(P.outline, 1); g.fillRect(s.x - half - 1, -H - 1, half * 2 + 2, H + 1);
+      g.fillStyle(P.waterDark, 1); g.fillRect(s.x - half, -H, half * 2, H);
+      for (let y = -H + ((et * 6) % 14); y < 0; y += 14) { g.fillStyle(P.water, 1); g.fillRect(s.x - half + 2, y, half * 2 - 4, 8); }   // water rushing up
+      g.fillStyle(P.waterLight, 1); g.fillRect(s.x - half + 3, -H, 2, H);
+      g.fillStyle(P.foam, 1);                                      // foaming crown and spray
+      for (let i = 0; i < 6; i++) { const a = et * 0.3 + i; g.fillRect(Math.round(s.x + Math.cos(a) * (half + 4)), Math.round(-H - 3 + Math.sin(a * 1.7) * 4), 3, 3); }
+      g.fillRect(s.x - half - 3, -5, half * 2 + 6, 4);
+      if (et % 4 === 0) match.puff(s.x + (Math.random() - 0.5) * 30, -H, P.waterLight, 2);
+      if (et >= 2 && et < 50) out.push({ x1: s.x - half, x2: s.x + half, y1: -H, y2: 2, dmg: 9, angle: 88, base: 5.2, growth: 4.6, id: 'geyser' + h.id + ':' + s.x, hazard: true });
+    }
+    return !busy;
+  }
+
+  // ---- ROLLING BOULDER: rumbles loose from the peak and bounces across the island
+  start_boulder(match, h) {
+    h.side = Math.random() < 0.5 ? -1 : 1;                       // the edge it comes in from
+    h.title = 'ROLLING BOULDER - JUMP!';
+    h.x = h.side * 330; h.y = -18; h.vy = 0; h.rot = 0;
+  }
+  step_boulder(match, h, out) {
+    const g = this.hzG, P = SPAL, R = 17;
+    if (h.t < 90) {                                              // rumbling: pebbles rain at that edge
+      if (h.t % 20 === 1) { sfx('rumble', 0.6); match.shake(2, 12); }
+      for (let i = 0; i < 5; i++) {
+        const py = ((h.t * 3 + i * 31) % 120) - 140, px = h.side * (250 + ((i * 13) % 30));
+        g.fillStyle(P.rockMid, 1); g.fillRect(px, py, 3, 3);
+      }
+      g.fillStyle(P.outline, 0.4); g.fillRect(h.side * 280 - 20, -2, 40, 2);      // its shadow growing
+      return false;
+    }
+    h.x += -h.side * 4.4; h.rot += -h.side * 4.4 / R;
+    h.vy += 0.5; h.y += h.vy;
+    const over = Math.abs(h.x) < 296 || Math.sign(h.x) === h.side;   // over the island (or still coming in): off the far edge it just falls
+    if (over && h.y >= -R) {                                     // bounce along the ground
+      h.y = -R;
+      if (Math.abs(h.x) < 296) { h.vy = h.t % 60 < 30 ? -4.2 : -2.6; match.shake(3, 6); sfx('rumble', 0.4, 1.3); match.puff(h.x, -2, P.rockLight, 5); }
+      else h.vy = 0;
+    }
+    const x = Math.round(h.x), y = Math.round(h.y);
+    g.fillStyle(P.outline, 0.35); g.fillEllipse(x, -1, R * 2, 4);
+    g.fillStyle(P.outline, 1); g.fillCircle(x, y, R + 2);
+    g.fillStyle(P.rockMid, 1); g.fillCircle(x, y, R);
+    g.fillStyle(P.rock, 1); g.fillCircle(x - 3, y - 3, R - 4);
+    g.fillStyle(P.rockLight, 1); g.fillCircle(x - 6, y - 7, 4);
+    for (let k = 0; k < 3; k++) {                                // cracks and moss turning with it
+      const a = h.rot + k * 2.1;
+      g.fillStyle(k === 0 ? P.jungleDark : P.rockShade, 1); g.fillRect(Math.round(x + Math.cos(a) * 10) - 2, Math.round(y + Math.sin(a) * 10) - 2, 5, 4);
+    }
+    if (h.t % 3 === 0 && h.y >= -R - 1) match.puff(h.x + h.side * R, -3, P.rockLight, 1);
+    out.push({ x1: x - R, x2: x + R, y1: y - R, y2: y + R, dmg: 13, angle: 40, base: 5.4, growth: 5.2, dirX: -h.side, id: 'boulder' + h.id, hazard: true });
+    return Math.abs(h.x) > 360 || h.y > 300;
   }
 }
 

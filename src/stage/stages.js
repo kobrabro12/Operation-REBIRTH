@@ -15,13 +15,13 @@ export const STAGES = [
   {
     id: 'verdant-spires', name: 'VERDANT SPIRES', available: true, make: (scene) => new SpireStage(scene),
     blurb: ['A jungle island of rock spires above the sea,', 'with a shelf, a temple roof and a high crag.'],
-    hazard: 'HAZARDS AND ITEMS: COMING SOON',
+    hazard: 'GEYSERS BLAST UP FROM BUBBLING GROUND;\nBOULDERS ROLL ACROSS THE ISLAND.',
     preview: drawSpirePreview,
   },
   {
     id: 'gravemoon-bridge', name: 'GRAVEMOON BRIDGE', available: true, make: (scene) => new MoonStage(scene),
     blurb: ['A stone bridge over a misty chasm, held up', 'by horned gargoyles under a giant moon.'],
-    hazard: 'HAZARDS AND ITEMS: COMING SOON',
+    hazard: 'GARGOYLE GAZE: AN ANKLE-HIGH EYE-BEAM;\nBAT SWARM: BATS STREAM ACROSS THE SKY.',
     preview: drawMoonPreview,
   },
   {

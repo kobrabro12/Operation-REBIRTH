@@ -3,7 +3,7 @@
 import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { Controller } from '../input/controllers.js';
-import { skinSheets, skinInfo } from './skins.js';
+import { skinSheets, skinInfo, paletteFor } from './skins.js';
 
 let nextAttackId = 1;
 const BUFFER = 7;   // frames an early button press is remembered
@@ -42,6 +42,8 @@ export class Fighter {
     this.dragonSpin = skinInfo(def.id, this.skin).sheetSet === 'samurai';   // SAMURAI costume: a dragon for Cyclone Slash
     this.fxBack = s.add.graphics();                 // effects drawn behind the fighter (e.g. the far side of the Samurai dragon)
     this.vfx = skinInfo(def.id, this.skin).vfx || null;   // milestone costume effects (skins.js)
+    this.pal = paletteFor(def, this.skin) || def.pal;       // ability colours, matched to the costume
+    this.style = skinInfo(def.id, this.skin).style || null; // costumes that reshape abilities: 'onebit', 'rose', 'samurai'
     this.ghosts = this.vfx && this.vfx.trail ? [0, 1, 2].map(() => s.add.sprite(0, 0, this.sheets.idle, 0).setVisible(false)) : [];
     this.trailHist = [];
     this.sprite = s.add.sprite(0, 0, this.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
@@ -239,7 +241,13 @@ export class Fighter {
     this.move = this.def.moves[name]; this.moveName = name; this.attackId = nextAttackId++;
     this.setState('attack'); this.hitList = new Set();
     if (this.move.lunge && this.grounded) this.vx = this.facing * this.move.lunge;
-    sfx('swing', 0.35, name === 'jab' ? 1.4 : 1);
+    this.swingSound(name === 'jab' ? 1.3 : 1);
+  }
+  // the whoosh of a swing: each fighter's own weapon sound (Samurai Lacy: a ninja swish, sometimes a katana ring)
+  swingSound(rate = 1, vol = 0.45) {
+    if (this.style === 'samurai') { sfx('whoosh', vol + 0.1, rate * (0.9 + Math.random() * 0.25)); if (Math.random() < 0.35) sfx('shing', 0.25, 1 + Math.random() * 0.2); return; }
+    sfx(this.def.swingSfx || 'swing', vol, rate * (0.92 + Math.random() * 0.16));
+    if (this.style === 'onebit' && Math.random() < 0.4) sfx('glitch', 0.25, 1.2);
   }
   st_attack(c) {
     const m = this.move;
@@ -326,7 +334,7 @@ export class Fighter {
     this.move = { ...nb, hits: nb.hits.map((h) => ({ ...h, base: h.base + (h.maxBase - h.base) * k, growth: h.growth + (h.maxGrowth - h.growth) * k, full: k >= 1 })) };
     this.moveName = 'neutralB'; this.attackId = nextAttackId++; this.hitList = new Set();
     this.setState('attack');
-    sfx('swing', 0.9, 0.7);
+    this.swingSound(0.7, 0.9);
     if (this.grounded) this.vx = this.facing * 1.6;                   // steps into the swing
   }
 
@@ -355,7 +363,7 @@ export class Fighter {
     const fb = this.def.moves.fireball;
     this.charge = Math.min(fb.chargeMax, this.charge + 1);
     if (!this.grounded) this.vy = Math.min(this.vy, 1.5);       // hover a little while charging in the air
-    if (this.t % 6 === 0) this.match.puff(this.x + this.facing * this.def.handOffset.x, this.y + this.def.handOffset.y, 0x78a0c6, 1);
+    if (this.t % 6 === 0) this.match.puff(this.x + this.facing * this.def.handOffset.x, this.y + this.def.handOffset.y, this.pal.light, 1);
     const release = !c.held('special') && this.t > 3;
     if (release || (this.isCpu && this.t >= (this.cpuChargeTarget || 20))) this.releaseFireball();
     else if (this.buffer.shield && this.grounded) { this.buffer.shield = 0; this.stopChargeSound(); this.setState('shield'); }
@@ -411,6 +419,11 @@ export class Fighter {
     this.hitstop = 10; this.counterFlash = 26;
     this.match.shake(6, 3); sfx('shield', 0.9, 2.2); sfx('bighit', 0.6, 1.5);
     this.match.popText(this, 'COUNTER!', '#9ad8f0');
+    if (this.style === 'samurai') {                   // Samurai: a ninja's smoke bomb and a ring of steel
+      sfx('smoke', 0.8); sfx('shing', 0.6);
+      for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, sp = 0.6 + Math.random() * 1.8;
+        this.match.particles.push({ shape: 'smoke', x: this.x, y: this.y - 24, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 0.3, life: 30 + Math.random() * 20, maxLife: 50, color: i % 3 ? 0xd8d4dc : 0xa8a4b0, grav: -0.01, drag: 0.95, r: 4 + Math.random() * 5 }); }
+    }
   }
   st_counterstrike() {
     const K = this.counterStrike;
@@ -445,7 +458,7 @@ export class Fighter {
       if (this.spinStart < 0) {                               // charging while the button is held
         if (c.held('special') && this.spinCharge < G.chargeMax) {
           this.spinCharge++;
-          if (this.spinCharge === G.chargeMax) { sfx('limitready', 0.5, 1.4); this.match.puff(this.x + this.facing * 16, this.y - 46, 0xb8fff4, 8); }
+          if (this.spinCharge === G.chargeMax) { sfx('limitready', 0.5, 1.4); this.match.puff(this.x + this.facing * 16, this.y - 46, this.pal.core, 8); }
           return;
         }
         this.spinStart = this.t; this.attackId = nextAttackId++;
@@ -476,7 +489,7 @@ export class Fighter {
     }
     if (this.t <= j.to) {
       this.vy = Math.max(j.maxRise, this.vy - j.thrust);
-      if (this.t % 3 === 0) this.match.puff(this.x + (Math.random() - 0.5) * 10, this.y + 30 + Math.random() * 16, this.t % 6 ? 0x78a0c6 : 0x076cc2, 1);
+      if (this.t % 3 === 0) this.match.puff(this.x + (Math.random() - 0.5) * 10, this.y + 30 + Math.random() * 16, this.t % 6 ? this.pal.light : this.pal.deep, 1);
     }
     this.vx = c.x * u.drift;
     if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
@@ -776,10 +789,10 @@ export class Fighter {
         if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o) || o.isIntangible()) continue;
         if (o.grounded && Math.abs(o.y - U.y) < 3 && o.x > x1 && o.x < x2) {
           U.victims.push(o); o.vx = o.vy = o.lx = o.ly = 0; o.stopChargeSound(); o.setState('hitstun'); o.hitstun = 999;
-          m.puff(o.x, o.y - 4, 0x2a1040, 8); sfx('curse', 0.6, 0.7);
+          m.puff(o.x, o.y - 4, this.pal.shade, 8); sfx('curse', 0.6, 0.7);
         }
       }
-      if (U.ft % 6 === 0) m.puff(x1 + Math.random() * (x2 - x1), U.y - 3, Math.random() < 0.5 ? 0x6d26bd : this.fxColor, 1);
+      if (U.ft % 6 === 0) m.puff(x1 + Math.random() * (x2 - x1), U.y - 3, Math.random() < 0.5 ? this.pal.mid : this.fxColor, 1);
       if (U.ft >= L.flood) {
         if (U.victims.length) {                                           // caught someone: into the abyss
           U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this; U.chomp = 0;
@@ -808,7 +821,7 @@ export class Fighter {
     }
     const spitAt = start + L.chomps * L.chompEvery + L.spitAfter;
     if (U.ct === spitAt) {                                                    // spat out of the deep
-      for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'spit' + this.slot, pillar: true }, t.x); m.puff(t.x, t.y - 20, 0x6d26bd, 18); m.puff(t.x, t.y - 20, 0xffffff, 8); }
+      for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'spit' + this.slot, pillar: true }, t.x); m.puff(t.x, t.y - 20, this.pal.mid, 18); m.puff(t.x, t.y - 20, 0xffffff, 8); }
       sfx('ko', 0.7, 0.8); m.shake(14, 12);
       return this.endUndertow();
     }
@@ -821,7 +834,7 @@ export class Fighter {
     this.ult = null; this.invincible = 30;
     this.reform = 16;                                                         // rises back out of the puddle
     this.setState(this.grounded ? 'idle' : 'air');
-    m.puff(this.x, this.y - 10, 0x6d26bd, 12);
+    m.puff(this.x, this.y - 10, this.pal.mid, 12);
   }
   // the deep's two giant glowing eyes, opening and blinking, slit pupils on the victim
   drawAbyssEyes(g, c, jawEdge, ct) {
@@ -841,12 +854,12 @@ export class Fighter {
       const w = U.phase === 'cutscene' ? L.spread : U.w, y = U.y;
       for (let x = -w; x < w; x += 4) {
         const edge = 1 - Math.abs(x) / Math.max(1, w), h = 2 + Math.round(4 * Math.min(1, edge * 4)) + Math.round(Math.sin(x * 0.2 + t * 0.15) * 1.2);
-        g.fillStyle(0x0c0521, 0.95); g.fillRect(U.cx + x, y - h, 4, h + 2);
+        g.fillStyle(this.pal.void, 0.95); g.fillRect(U.cx + x, y - h, 4, h + 2);
         if ((x / 4 + (t >> 3)) % 7 === 0) { g.fillStyle(col, 0.8); g.fillRect(U.cx + x, y - h, 3, 1); }
       }
       for (let k = 0; k < 6; k++) {                                        // bubbles
         const bx = U.cx + Math.sin(k * 71.3) * w * 0.9, by = y - 3 - ((t + k * 13) % 24) * 0.5;
-        g.fillStyle(0x9b5de5, 1 - ((t + k * 13) % 24) / 24); g.fillRect(Math.round(bx), Math.round(by), 2, 2);
+        g.fillStyle(this.pal.light, 1 - ((t + k * 13) % 24) / 24); g.fillRect(Math.round(bx), Math.round(by), 2, 2);
       }
     }
     if (U.phase !== 'cutscene') return;
@@ -854,10 +867,10 @@ export class Fighter {
     const v = U.victims[0]; if (!v) return;
     const c = v.center(), ct = U.ct, W = 440, H = 280;
     g.fillStyle(0x020108, 1); g.fillRect(c.x - W / 2, c.y - H / 2, W, H);
-    for (let i = 0; i < 6; i++) { g.fillStyle(0x1a0a2e, 0.25 - i * 0.03); g.fillEllipse(c.x, c.y + 20, 420 - i * 60, 220 - i * 30); }
+    for (let i = 0; i < 6; i++) { g.fillStyle(this.pal.outline, 0.25 - i * 0.03); g.fillEllipse(c.x, c.y + 20, 420 - i * 60, 220 - i * 30); }
     for (let k = 0; k < 18; k++) {                                         // drifting motes in the dark
       const mx = c.x + Math.sin(k * 12.9) * 200, my = c.y + 120 - ((ct * (0.4 + (k % 3) * 0.2) + k * 30) % 260);
-      g.fillStyle(k % 3 ? 0x6d26bd : col, 0.6); g.fillRect(Math.round(mx), Math.round(my), 2, 2);
+      g.fillStyle(k % 3 ? this.pal.mid : col, 0.6); g.fillRect(Math.round(mx), Math.round(my), 2, 2);
     }
     // jaws: open wide, then snap shut on every chomp
     if (ct < L.eyesFor - 10) return this.drawAbyssEyes(g, c, c.y - 80, ct);   // eyes first, in the dark
@@ -868,7 +881,7 @@ export class Fighter {
     for (const side of [-1, 1]) {
       const edge = c.y + side * gap / 2;                                     // where the teeth meet
       g.fillStyle(0x12061f, 1); g.fillRect(c.x - 190, side < 0 ? edge - 120 : edge, 380, 120);   // the jaw itself
-      g.fillStyle(0x2a1040, 1); g.fillRect(c.x - 190, side < 0 ? edge - 8 : edge, 380, 8);         // gums
+      g.fillStyle(this.pal.shade, 1); g.fillRect(c.x - 190, side < 0 ? edge - 8 : edge, 380, 8);         // gums
       for (let tx = c.x - 184; tx < c.x + 184; tx += 20) {                   // teeth
         const big = Math.abs(tx - c.x) < 60 ? 1.4 : 1;
         g.fillStyle(0xe8e0f0, 1); g.fillTriangle(tx, edge, tx + 16, edge, tx + 8, edge - side * 18 * big);      // fangs point at the victim
@@ -971,7 +984,7 @@ export class Fighter {
           { x: hx + dx * len * 0.88 - nx * w, y: hy + dy * len * 0.88 - ny * w }, { x: hx - nx * w, y: hy - ny * w },
         ], true);
       };
-      if (glow > 0.05) blade(half + 6, 0x4ae0e0, (0.2 + 0.1 * Math.sin(this.anim * 0.5)) * glow);   // light around it
+      if (glow > 0.05) blade(half + 6, this.pal.mid, (0.2 + 0.1 * Math.sin(this.anim * 0.5)) * glow);   // light around it
       blade(half + 1.5, C.outline, 1);
       blade(half, glow > 0.5 ? C.light : C.mid, 1);                                              // steel brightening into light
       blade(Math.max(0.6, half * 0.45), C.core, 0.6 + 0.4 * glow);
@@ -990,7 +1003,7 @@ export class Fighter {
     // cutscene: every cut leaves a streak of light through the target
     for (const sl of U.slashes) {
       const k = sl.life / (sl.big ? 18 : 10), w = sl.big ? 10 : 5;
-      g.lineStyle(w + 6, 0x4ae0e0, 0.35 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
+      g.lineStyle(w + 6, this.pal.mid, 0.35 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
       g.lineStyle(w, 0xffffff, 0.95 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
     }
     if (U.from) { g.fillStyle(0x9ad8f0, 0.35); g.fillRect(U.from.x - 6, U.from.y - 44, 12, 40); }   // afterimage where she just was
@@ -1111,9 +1124,9 @@ export class Fighter {
     let sheet = this.sheets.idle, frame = Math.floor(this.anim / 6) % 32;
     const s = this.state;
     if (s !== 'run') this.runPhase = 0;
-    if (s === 'run' && this.sheets.run && !d.ownAnims) {   // run: ease in through frames 0-2 once, then loop the stride 3-7, faster at speed
-      this.runPhase = (this.runPhase || 0) + 0.09 + Math.abs(this.vx) * 0.035;
-      sheet = this.sheets.run; frame = this.runPhase < 3 ? Math.floor(this.runPhase) : 3 + Math.floor(this.runPhase - 3) % 5;
+    if (s === 'run' && this.sheets.run && !d.ownAnims) {   // run: straight into the stride (frames 3-7) the moment he moves, faster at speed
+      this.runPhase = (this.runPhase || 0) + 0.11 + Math.abs(this.vx) * 0.035;
+      sheet = this.sheets.run; frame = 3 + Math.floor(this.runPhase) % 5;
     }
     else if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
       this.walkPhase = ((this.walkPhase || 0) + Math.max(0.08, Math.abs(this.vx) * 0.055)) % 8;
@@ -1157,7 +1170,7 @@ export class Fighter {
     if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) {          // The Undertow: melted into the puddle
       const U = this.ult;
-      if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(0x2a1040).setTintMode(Phaser.TintModes.FILL); }
+      if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(this.pal.shade).setTintMode(Phaser.TintModes.FILL); }
       else spr.setAlpha(0);
     } else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
@@ -1207,9 +1220,10 @@ export class Fighter {
       const k = this.charge / d.moves.fireball.chargeMax;
       const hx = this.x + this.facing * d.handOffset.x, hy = this.y + d.handOffset.y;
       const r = 3 + k * 7 + (this.t % 6 < 3 ? 1 : 0);
-      g.fillStyle(0x076cc2, 1); g.fillRect(hx - r, hy - r, r * 2, r * 2);
-      g.fillStyle(0x78a0c6, 1); g.fillRect(hx - r * 0.65, hy - r * 0.65, r * 1.3, r * 1.3);
-      g.fillStyle(0xf0f2f3, 1); g.fillRect(hx - r * 0.3, hy - r * 0.3, r * 0.6, r * 0.6);
+      const P = this.pal;
+      g.fillStyle(P.deep, 1); g.fillRect(hx - r, hy - r, r * 2, r * 2);
+      g.fillStyle(P.light, 1); g.fillRect(hx - r * 0.65, hy - r * 0.65, r * 1.3, r * 1.3);
+      g.fillStyle(P.core, 1); g.fillRect(hx - r * 0.3, hy - r * 0.3, r * 0.6, r * 0.6);
       if (k >= 1 && this.t % 10 < 5) { g.lineStyle(1, 0xf0f2f3, 1); g.strokeRect(hx - r - 3, hy - r - 3, r * 2 + 6, r * 2 + 6); }
     }
     // Soulfire Jet: a flickering column of blue flame under his feet
@@ -1218,7 +1232,7 @@ export class Fighter {
       if (this.t >= u.riseAt && this.t <= j.to + 4) {
         const fade = this.t > j.to ? 1 - (this.t - j.to) / 5 : Math.min(1, (this.t - u.riseAt + 1) / 3);
         const len = (46 + (this.anim % 4) * 5) * fade, fy = this.y - 2;
-        const cols = [[0x1a1020, 1.12], [0x076cc2, 1], [0x78a0c6, 0.62], [0xf0f2f3, 0.26]];   // outer, middle, white-hot core
+        const cols = [[0x1a1020, 1.12], [this.pal.deep, 1], [this.pal.light, 0.62], [this.pal.core, 0.26]];   // outer, middle, white-hot core
         for (const [col, wk] of cols) {
           g.fillStyle(col, 1);
           for (let k = 0; k < len; k += 2) {
@@ -1231,7 +1245,7 @@ export class Fighter {
           }
         }
         // licks of flame breaking off the tail
-        g.fillStyle(0x78a0c6, 1);
+        g.fillStyle(this.pal.light, 1);
         for (let k = 0; k < 3; k++) { const ph = (this.anim * 3 + k * 7) % 18; g.fillRect(this.x - 6 + k * 5 + ((this.anim + k) % 3) - 1, fy + len + ph - 6, 3, 3); }
       }
     }
@@ -1266,9 +1280,9 @@ export class Fighter {
         const k = this.spinCharge / u.ground.chargeMax, tx = this.x - this.facing * 3, ty = this.y - 68;
         for (let i = 0; i < 6; i++) {
           const a = this.anim * 0.3 + i * 1.05, r = 18 * (1 - ((this.anim + i * 5) % 20) / 20);
-          g.fillStyle(this.dragonSpin ? (i % 2 ? 0xf3c358 : 0xe0402a) : (i % 2 ? 0xb8fff4 : 0x4ae0e0), 0.9); g.fillRect(Math.round(tx + Math.cos(a) * r) - 1, Math.round(ty + Math.sin(a) * r) - 1, 2, 2);
+          g.fillStyle(this.dragonSpin ? (i % 2 ? 0xf3c358 : 0xe0402a) : (i % 2 ? this.pal.core : this.pal.mid), 0.9); g.fillRect(Math.round(tx + Math.cos(a) * r) - 1, Math.round(ty + Math.sin(a) * r) - 1, 2, 2);
         }
-        g.fillStyle(this.dragonSpin ? 0xf3c358 : 0xb8fff4, 0.25 + 0.5 * k); g.fillCircle(tx, ty, 2 + 4 * k);
+        g.fillStyle(this.dragonSpin ? 0xf3c358 : this.pal.core, 0.25 + 0.5 * k); g.fillCircle(tx, ty, 2 + 4 * k);
         if (k >= 1 && this.anim % 8 < 4) { g.fillStyle(0xffffff, 1); g.fillRect(tx - 1, ty - 1, 3, 3); }
       } else {
         const st = this.spinGround ? this.t - this.spinStart : this.t - u.riseAt;
@@ -1281,22 +1295,22 @@ export class Fighter {
             this.drawSpinDragon(g, cx, cy, rx, ry, head, fade, big);
             if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, Math.random() < 0.5 ? 0xf3c358 : 0xe0402a, 1);
           } else {
-          const cols = [0xffffff, 0xe0fffa, 0xb8fff4, 0x7af0e8, 0x4ae0e0, 0x22b8c8, 0x1a8aa0];
+          const P = this.pal, cols = [0xffffff, P.core, P.core, P.light, P.mid, P.deep, P.shade];
           // a faint full ring, then a thick glowing crescent sweeping around it
           for (let k = 0; k < 40; k++) {
             const a = (k / 40) * Math.PI * 2;
-            g.fillStyle(0x7af0e8, 0.22 * fade); g.fillRect(Math.round(cx + Math.cos(a) * rx) - 1, Math.round(cy + Math.sin(a) * ry) - 1, 3, 2);
+            g.fillStyle(P.light, 0.22 * fade); g.fillRect(Math.round(cx + Math.cos(a) * rx) - 1, Math.round(cy + Math.sin(a) * ry) - 1, 3, 2);
           }
           for (let pass = 0; pass < 2; pass++) {
             for (let k = 0; k < 34; k++) {
               const a = head - k * 0.15 * this.facing;
               const sz = Math.max(2, Math.round((9 - k * 0.22) * big)) + (pass ? 0 : 4);
               const px = cx + Math.cos(a) * rx, py = cy + Math.sin(a) * ry;
-              g.fillStyle(pass ? cols[Math.min(cols.length - 1, Math.floor(k / 5))] : 0x4ae0e0, (pass ? 0.95 : 0.25) * (1 - k / 36) * fade);
+              g.fillStyle(pass ? cols[Math.min(cols.length - 1, Math.floor(k / 5))] : P.mid, (pass ? 0.95 : 0.25) * (1 - k / 36) * fade);
               g.fillRect(Math.round(px - sz / 2), Math.round(py - sz / 2), sz, sz);
             }
           }
-          if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, 0x7af0e8, 1);   // light streaming below as she rises
+          if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, P.light, 1);   // light streaming below as she rises
           }
         }
       }
@@ -1306,11 +1320,12 @@ export class Fighter {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
-      g.fillStyle((hb.src && hb.src.fxTint) || this.fxColor, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
+      const tint = hb.src && hb.src.fxTint ? (this.pal === d.pal ? hb.src.fxTint : (fx === 'hex' ? this.pal.mid : this.pal.shade)) : this.fxColor;
+      g.fillStyle(tint, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
       if (fx === 'hex') {     // Soul Hex: a swirling purple curse with a dark eye
         const cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, rx = (hb.x2 - hb.x1) / 2, ry = (hb.y2 - hb.y1) / 2;
         for (let k = 0; k < 10; k++) { const a = this.t * 0.4 + k * 0.63, r = 0.35 + 0.65 * (k / 10);
-          g.fillStyle(k % 2 ? 0xb07ad0 : 0x6d26bd, 1); g.fillRect(cx + Math.cos(a) * rx * r - 2, cy + Math.sin(a) * ry * r - 2, 4, 4); }
+          g.fillStyle(k % 2 ? (this.pal === d.pal ? 0xb07ad0 : this.pal.light) : (this.pal === d.pal ? 0x6d26bd : this.pal.mid), 1); g.fillRect(cx + Math.cos(a) * rx * r - 2, cy + Math.sin(a) * ry * r - 2, 4, 4); }
         g.fillStyle(0x0b0a14, 1); g.fillEllipse(cx, cy, 12, 8); g.fillStyle(0xf3c358, 1); g.fillRect(cx - 1, cy - 1, 3, 3);
         continue;
       }

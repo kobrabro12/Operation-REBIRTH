@@ -1,7 +1,15 @@
 // "Gravemoon Bridge": a stone bridge over a misty chasm at night. A huge full moon, castle spires
 // and a smouldering volcano behind, horned gargoyle pillars holding up the bridge, and a red
 // lantern hanging from a crossbeam above the middle. All art is drawn in code.
-// Plays its own music (gravemoon). Hazards and items for this stage come later; step() is where they go.
+// Plays its own music (gravemoon).
+//
+// Stage hazards, one at a time every 10-14 s, each announced with a CAUTION banner first:
+//   GARGOYLE GAZE - a gargoyle's head rises over one end of the bridge, its eyes burning brighter,
+//                   then it fires a red eye-beam along the deck at ankle height. Jump!
+//   BAT SWARM     - a swarm of bats streams across the moonlit sky in a wave, through the ledges
+//                   and the air above the bridge. Stay low.
+import { sfx } from '../audio/sfx.js';
+import { HazardCycle } from './hazardCycle.js';
 
 export const MPAL = {
   outline: 0x0a0818,
@@ -29,6 +37,7 @@ export class MoonStage {
     this.hazardsOn = true;
     this.t = 0;
     this.music = 'bgm_gravemoon';
+    this.cycle = new HazardCycle(this, ['gaze', 'bats'], { color: '#ff6a6a', stroke: '#0a0818' });
   }
 
   // ---------------------------------------------------------------- helpers
@@ -219,7 +228,9 @@ export class MoonStage {
     // animated: lantern glow and mist drifting through the gargoyles
     this.lanternG = s.add.graphics();
     this.fogG = s.add.graphics();
-    worldLayer.push(this.fogG, this.lanternG);
+    this.hzG = s.add.graphics();                                   // gargoyle head, eye-beam, bats
+    worldLayer.push(this.fogG, this.lanternG, this.hzG);
+    this.cycle.makeBanner(s);
   }
 
   // ---------------------------------------------------------------- per frame
@@ -261,7 +272,91 @@ export class MoonStage {
       }
     }
     f.fillStyle(0x2a2c58, 0.5); f.fillRect(-700, 230, 1400, 400);          // the chasm fades into deep mist
-    return null;    // no hazard yet
+    this.hzG.clear();
+    return this.cycle.run(match, []);
+  }
+
+  // ---------------------------------------------------------------- hazards
+  // ---- GARGOYLE GAZE: a stone head rises at one end and sweeps an ankle-high eye-beam down the bridge
+  start_gaze(match, h) {
+    h.side = Math.random() < 0.5 ? -1 : 1;
+    h.title = 'GARGOYLE GAZE - JUMP!';
+  }
+  gargoyleHead(g, x, y, dir, glow) {
+    const S = MPAL;
+    g.fillStyle(S.outline, 1); g.fillRect(x - 15, y - 14, 30, 30);
+    g.fillStyle(S.stoneMid, 1); g.fillRect(x - 13, y - 12, 26, 26);
+    g.fillStyle(S.stoneLight, 1); g.fillRect(x - 13, y - 12, 8, 26);
+    g.fillStyle(S.stoneDark, 1); g.fillRect(x + dir * 2 - 9, y + 6, 18, 6);                  // jaw
+    g.fillStyle(0xe6eaff, 1); for (let k = -2; k <= 2; k++) g.fillRect(x + dir * 2 + k * 4 - 1, y + 6, 2, 3);   // fangs
+    this.horn(g, x - 9, y - 12, -1, 16, 1.6, 5); this.horn(g, x + 9, y - 12, 1, 16, 1.6, 5);
+    g.fillStyle(S.eye, 0.25 * glow); g.fillCircle(x + dir * 4, y - 3, 10 + glow * 6);             // eye glow
+    for (const ex of [-5, 5]) { g.fillStyle(S.outline, 1); g.fillRect(x + dir * 3 + ex - 3, y - 6, 6, 5); g.fillStyle(glow > 0.9 ? 0xffd0d0 : S.eye, 0.4 + 0.6 * glow); g.fillRect(x + dir * 3 + ex - 2, y - 5, 4, 3); }
+  }
+  step_gaze(match, h, out) {
+    const g = this.hzG, S = MPAL, hx = h.side * 274, dir = -h.side, beamY = -9;
+    const rise = h.t < 30 ? h.t / 30 : h.t > 160 ? Math.max(0, 1 - (h.t - 160) / 24) : 1;
+    const hy = Math.round(30 - rise * 48);
+    if (h.t === 2) sfx('rumble', 0.6, 0.7);
+    const glow = Math.min(1, h.t / 88);
+    this.gargoyleHead(g, hx, hy, dir, h.t < 140 ? glow : 1 - (h.t - 140) / 20);
+    if (h.t > 60 && h.t < 90) for (let i = 0; i < 3; i++) {       // light gathering in its eyes
+      const a = h.t * 0.4 + i * 2.1, d = 20 - (h.t - 60) * 0.6;
+      g.fillStyle(S.eye, 1); g.fillRect(Math.round(hx + dir * 4 + Math.cos(a) * d), Math.round(hy - 3 + Math.sin(a) * d), 2, 2);
+    }
+    if (h.t === 90) { sfx('laser', 0.9); match.shake(5, 50); }
+    if (h.t >= 90 && h.t < 140) {                               // the beam: shoots out fast, then holds
+      const bt = h.t - 90, len = Math.min(640, bt * 26), x0 = hx + dir * 8, x1 = x0 + dir * len;
+      const fade = bt > 42 ? (50 - bt) / 8 : 1, wob = (bt % 4 < 2 ? 1 : 0);
+      const lo = Math.min(x0, x1), w = Math.abs(x1 - x0);
+      g.fillStyle(S.eye, 0.35 * fade); g.fillRect(lo, beamY - 7 - wob, w, 14 + wob * 2);
+      g.fillStyle(S.eye, fade); g.fillRect(lo, beamY - 4, w, 8);
+      g.fillStyle(0xffd0d0, fade); g.fillRect(lo, beamY - 1, w, 2);
+      for (let k = 0; k < 8; k++) { const sx = x0 + dir * ((bt * 9 + k * 83) % Math.max(1, len)); g.fillStyle(0xffffff, fade); g.fillRect(Math.round(sx), beamY - 5 + (k % 3) * 4, 3, 1); }
+      if (bt % 3 === 0) match.puff(x1, beamY, S.eye, 2);                          // scorching the stones where it ends
+      if (bt % 12 === 0 && bt) sfx('laser', 0.35, 0.7);
+      if (bt < 46) out.push({ x1: lo, x2: lo + w, y1: beamY - 6, y2: beamY + 6, dmg: 10, angle: 72, base: 4.6, growth: 4.4, dirX: dir, id: 'gaze' + h.id, hazard: true });
+    }
+    return h.t > 186;
+  }
+
+  // ---- BAT SWARM: bats pour across the sky above the bridge in a wave
+  start_bats(match, h) {
+    h.side = Math.random() < 0.5 ? -1 : 1;
+    h.title = 'BAT SWARM - STAY LOW!';
+    h.bats = [];
+    for (let i = 0; i < 12; i++) h.bats.push({ x: h.side * (360 + i * 30 + Math.random() * 20), y: -80 - Math.random() * 80, ph: Math.random() * 6, sp: 3 + Math.random() * 0.8, id: i, hit: true });
+  }
+  bat(g, x, y, flap) {                                          // a chunky bat, rimmed in moonlight so it reads on the night sky
+    const S = MPAL, up = flap ? -6 : 3;
+    const wing = (c, o) => {
+      g.fillStyle(c, 1);
+      g.fillRect(x - 4 - o, y - 4 - o, 9 + o * 2, 9 + o * 2);                                  // body
+      g.fillRect(x - 15 - o, y + up - o, 11 + o, 4 + o * 2); g.fillRect(x - 9 - o, y + up / 2 - o, 5 + o, 4 + o * 2);   // wings
+      g.fillRect(x + 5, y + up - o, 11 + o, 4 + o * 2); g.fillRect(x + 5, y + up / 2 - o, 5 + o, 4 + o * 2);
+      g.fillRect(x - 4 - o, y - 8 - o, 2 + o * 2, 4 + o); g.fillRect(x + 3 - o, y - 8 - o, 2 + o * 2, 4 + o);   // ears
+    };
+    wing(S.streak, 1); wing(S.outline, 0);
+    g.fillStyle(S.eye, 1); g.fillRect(x - 2, y - 2, 2, 2); g.fillRect(x + 1, y - 2, 2, 2);
+  }
+  step_bats(match, h, out) {
+    const g = this.hzG, dir = -h.side;
+    if (h.t < 90) {                                              // a few scouts flit about the far edge
+      if (h.t % 30 === 5) sfx('bats', 0.4);
+      for (let i = 0; i < 4; i++) { const a = h.t * 0.12 + i * 1.6; this.bat(g, Math.round(h.side * 262 + Math.cos(a) * 26), Math.round(-120 + Math.sin(a * 1.3) * 22), (h.t >> 2) % 2 === i % 2); }
+      return false;
+    }
+    if (h.t % 18 === 0) sfx('bats', 0.5, 0.9 + Math.random() * 0.3);
+    let left = 0;
+    for (const b of h.bats) {
+      b.x += dir * b.sp;
+      const y = Math.round(b.y + Math.sin(h.t * 0.12 + b.ph) * 18), x = Math.round(b.x);
+      if (dir * b.x > 420) continue;                             // flown off the far side
+      left++;
+      this.bat(g, x, y, ((h.t >> 2) + b.id) % 2 === 0);
+      out.push({ x1: x - 12, x2: x + 12, y1: y - 7, y2: y + 7, dmg: 3, angle: 65, base: 3, growth: 2.2, dirX: dir, id: 'bat' + h.id + ':' + b.id, hazard: true });
+    }
+    return left === 0;
   }
 }
 

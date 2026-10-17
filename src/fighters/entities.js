@@ -9,6 +9,39 @@ let nextId = 100000;
 const SOUL_SCALE = 0.7;
 const SOUL_ORIGIN = { x: 23 / 60, y: 45 / 68 };   // the skull's centre sits on the soul's position
 
+// --- costume shapes (skins.js `style`) -------------------------------------------------------
+// A rose seen from above: rings of petals around a curled centre, turning as it flies.
+function drawRose(g, x, y, r, spin, P, open = 1) {
+  g.fillStyle(P.shade, 1);                                              // two leaves behind it
+  for (const s of [-1, 1]) g.fillEllipse(x + Math.cos(spin + s * 2.4) * r * 0.95, y + Math.sin(spin + s * 2.4) * r * 0.95, r * 0.9, r * 0.5);
+  g.fillStyle(P.outline, 1); g.fillCircle(x, y, r * (0.75 + 0.3 * open) + 1);
+  const rings = [[r * open, 6, P.deep], [r * 0.7 * (0.5 + open / 2), 5, P.mid], [r * 0.42, 4, P.light]];
+  rings.forEach(([rr, n, c], k) => {
+    for (let i = 0; i < n; i++) { const a = spin * (k % 2 ? -1 : 1) + (i / n) * Math.PI * 2 + k * 0.4; g.fillStyle(c, 1); g.fillCircle(x + Math.cos(a) * rr * 0.55, y + Math.sin(a) * rr * 0.55, rr * 0.5); }
+  });
+  g.fillStyle(P.core, 1); g.fillCircle(x, y, Math.max(1, r * 0.18));
+  g.lineStyle(1, P.deep, 1); g.beginPath(); g.arc(x, y, r * 0.28, spin, spin + 3.6); g.strokePath();   // the spiral at its heart
+}
+// 1-BIT: a possessed skull - black with a hard white outline, hollow eyes with pinprick pupils.
+// Every few frames it inverts, like a glitching screen.
+function drawSkull(g, x, y, r, dir, t) {
+  const inv = (t >> 2) % 6 === 0, B = inv ? 0xf4f4f0 : 0x0e0e10, W = inv ? 0x0e0e10 : 0xf4f4f0;
+  const j = (t % 9 === 0) ? (dir > 0 ? 1 : -1) : 0;                    // a twitch now and then
+  g.fillStyle(W, 1); g.fillRect(x - r - 1 + j, y - r - 1, r * 2 + 2, r * 1.5 + 2); g.fillRect(x - r * 0.6 - 1 + j, y + r * 0.5 - 1, r * 1.2 + 2, r * 0.6 + 2);
+  g.fillStyle(B, 1); g.fillRect(x - r + j, y - r, r * 2, r * 1.5); g.fillRect(x - r * 0.6 + j, y + r * 0.5, r * 1.2, r * 0.6);
+  const ex = Math.max(2, Math.round(r * 0.45));
+  for (const s of [-1, 1]) {                                           // hollow eyes, pupils glaring forward
+    g.fillStyle(W, 1); g.fillRect(x + s * r * 0.45 - ex / 2 + j, y - r * 0.35, ex, ex);
+    g.fillStyle(B, 1); g.fillRect(x + s * r * 0.45 - ex / 2 + 1 + j, y - r * 0.35 + 1, ex - 2, ex - 2);
+    g.fillStyle(W, 1); g.fillRect(x + s * r * 0.45 + dir + j, y - r * 0.35 + ex / 2 - 1, 1, 1);
+  }
+  g.fillStyle(W, 1); for (let k = -1; k <= 1; k++) g.fillRect(x + k * r * 0.35 + j, y + r * 0.6, 1, r * 0.4);   // teeth
+  for (let i = 1; i <= 3; i++) {                                       // a torn, dithered trail of static
+    const tx = x - dir * (r + i * 4);
+    for (let yy = -r + 1; yy < r; yy += 2) if (((yy + i + t) & 1) === 0) { g.fillStyle(i % 2 ? W : B, 1 - i * 0.25); g.fillRect(tx + ((yy * 7 + t) % 3), y + yy, 2, 1); }
+  }
+}
+
 export class Fireball {
   constructor(match, owner, k) {
     const fb = owner.def.moves.fireball;
@@ -36,23 +69,25 @@ export class Fireball {
     this.t++;
     this.x += this.vx;
     this.y += Math.sin(this.t * 0.25) * 0.4;
-    if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.r, this.y, this.t % 6 ? 0x78a0c6 : 0x076cc2, 1);
+    if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.r, this.y, this.t % 6 ? this.owner.pal.light : this.owner.pal.deep, 1);
     // fizzles against the island's sides
     const P = this.match.stage.platforms[0];
     if (this.x > P.x1 && this.x < P.x2 && this.y > P.y + 2 && this.y < P.bottom) this.kill();
     if (--this.life <= 0) this.kill();
   }
-  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0x78a0c6, 8); this.g.destroy(); }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, this.owner.pal.light, 8); this.g.destroy(); }
   render() {
     if (!this.alive) return;
     const g = this.g, r = this.r, x = Math.round(this.x), y = Math.round(this.y);
     const pulse = this.t % 4 < 2 ? 1 : 0;
     g.clear();
-    g.fillStyle(0x076cc2, 1); g.fillRect(x - r - pulse, y - r + 1, r * 2 + pulse * 2, r * 2 - 2); g.fillRect(x - r + 1, y - r - pulse, r * 2 - 2, r * 2 + pulse * 2);
-    g.fillStyle(0x78a0c6, 1); g.fillRect(x - r * 0.65, y - r * 0.65, r * 1.3, r * 1.3);
-    g.fillStyle(0xf0f2f3, 1); g.fillRect(x - r * 0.3 + this.dir * 2, y - r * 0.3, r * 0.6, r * 0.6);
+    const P = this.owner.pal;
+    if (this.owner.style === 'onebit') { drawSkull(g, x, y, r + 1, this.dir, this.t); return; }
+    g.fillStyle(P.deep, 1); g.fillRect(x - r - pulse, y - r + 1, r * 2 + pulse * 2, r * 2 - 2); g.fillRect(x - r + 1, y - r - pulse, r * 2 - 2, r * 2 + pulse * 2);
+    g.fillStyle(P.light, 1); g.fillRect(x - r * 0.65, y - r * 0.65, r * 1.3, r * 1.3);
+    g.fillStyle(P.core, 1); g.fillRect(x - r * 0.3 + this.dir * 2, y - r * 0.3, r * 0.6, r * 0.6);
     // trailing tail
-    g.fillStyle(0x076cc2, 0.8); g.fillRect(x - this.dir * (r + 6), y - r * 0.4, 6 * this.dir > 0 ? 6 : 6, r * 0.8);
+    g.fillStyle(P.deep, 0.8); g.fillRect(x - this.dir * (r + 6), y - r * 0.4, 6 * this.dir > 0 ? 6 : 6, r * 0.8);
   }
 }
 
@@ -87,22 +122,28 @@ export class EnergyBolt {
       if (best) this.vy = Phaser.Math.Clamp(this.vy + Math.sign(best.y - 28 - this.y) * this.spec.homing, -2.5, 2.5);
     }
     this.x += this.vx; this.y += this.vy;
-    if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.spec.w / 2, this.y, this.t % 6 ? 0x9b5de5 : 0x560c83, 1);
+    if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.spec.w / 2, this.y, this.t % 6 ? this.owner.pal.light : this.owner.pal.deep, 1);
     const P = this.match.stage.platforms[0];
     if (this.x > P.x1 && this.x < P.x2 && this.y > P.y + 2 && this.y < P.bottom) this.kill();
     if (--this.life <= 0) this.kill();
   }
-  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0x9b5de5, 8); this.g.destroy(); }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, this.owner.pal.light, 8); this.g.destroy(); }
   render() {
     if (!this.alive) return;
     const g = this.g, w = this.spec.w, h = this.spec.h, x = Math.round(this.x), y = Math.round(this.y);
     const p = this.t % 4 < 2 ? 1 : 0;
     g.clear();
-    g.fillStyle(0x1a0a2e, 1); g.fillRect(x - w / 2 - 1, y - h / 2 - 1 + p, w + 2, h + 2 - p * 2);
-    g.fillStyle(0x6d26bd, 1); g.fillRect(x - w / 2, y - h / 2 + p, w, h - p * 2);
-    g.fillStyle(0x9b5de5, 1); g.fillRect(x - w / 3, y - h / 3, (w * 2) / 3, (h * 2) / 3);
-    g.fillStyle(0xdab8fe, 1); g.fillRect(x - w / 8 + this.dir * w / 6, y - h / 6, w / 4, h / 3);
-    g.fillStyle(0x6d26bd, 0.7); g.fillRect(this.dir > 0 ? x - w / 2 - 8 : x + w / 2, y - h / 4, 8, h / 2);   // trail
+    const P = this.owner.pal;
+    if (this.owner.style === 'rose') {                    // Rosebud: a thrown rose, spinning as it flies
+      g.lineStyle(2, P.shade, 1); g.lineBetween(x - this.dir * 4, y, x - this.dir * (w / 2 + 8), y + 2);   // its stem
+      drawRose(g, x, y, Math.max(w, h) * 0.55, this.t * 0.3 * this.dir, P);
+      return;
+    }
+    g.fillStyle(P.outline, 1); g.fillRect(x - w / 2 - 1, y - h / 2 - 1 + p, w + 2, h + 2 - p * 2);
+    g.fillStyle(P.mid, 1); g.fillRect(x - w / 2, y - h / 2 + p, w, h - p * 2);
+    g.fillStyle(P.light, 1); g.fillRect(x - w / 3, y - h / 3, (w * 2) / 3, (h * 2) / 3);
+    g.fillStyle(P.core, 1); g.fillRect(x - w / 8 + this.dir * w / 6, y - h / 6, w / 4, h / 3);
+    g.fillStyle(P.mid, 0.7); g.fillRect(this.dir > 0 ? x - w / 2 - 8 : x + w / 2, y - h / 4, 8, h / 2);   // trail
   }
 }
 
@@ -128,11 +169,11 @@ export class ShadowPool {
     for (const f of this.match.fighters) {
       if (!f.alive || f.team === this.owner.team) continue;
       if (f.x >= this.x1 && f.x <= this.x2 && Math.abs(f.y - this.y) < 6) {
-        if (f.slow <= 0) this.match.puff(f.x, f.y - 4, 0x2a1040, 4);
+        if (f.slow <= 0) this.match.puff(f.x, f.y - 4, this.owner.pal.shade, 4);
         f.slow = Math.max(f.slow, this.spec.slow);
       }
     }
-    if (this.t % 7 === 0) this.match.puff(this.x1 + Math.random() * (this.x2 - this.x1), this.y - 2, this.t % 14 ? 0x6d26bd : 0x2a1040, 1);
+    if (this.t % 7 === 0) this.match.puff(this.x1 + Math.random() * (this.x2 - this.x1), this.y - 2, this.t % 14 ? this.owner.pal.mid : this.owner.pal.shade, 1);
     if (this.t >= this.life) this.kill();
   }
   kill() { if (!this.alive) return; this.alive = false; if (this.g) this.g.destroy(); }
@@ -143,17 +184,22 @@ export class ShadowPool {
     g.clear();
     // stepped blob shape: wider at the base, wobbling edge
     const wob = Math.round(Math.sin(this.t * 0.15) * 2);
-    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half, this.y - 4, half * 2, 6);
-    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half + 5 + wob, this.y - 7, half * 2 - 10, 3);
-    g.fillStyle(0x0c0521, 0.95 * fade); g.fillRect(cx - half + 14 - wob, this.y - 9, half * 2 - 28, 2);
-    g.fillStyle(0x2a1040, fade); g.fillRect(cx - half + 4, this.y - 5, half * 2 - 8, 4);
+    const P = this.owner.pal;
+    g.fillStyle(P.void, 0.95 * fade); g.fillRect(cx - half, this.y - 4, half * 2, 6);
+    g.fillStyle(P.void, 0.95 * fade); g.fillRect(cx - half + 5 + wob, this.y - 7, half * 2 - 10, 3);
+    g.fillStyle(P.void, 0.95 * fade); g.fillRect(cx - half + 14 - wob, this.y - 9, half * 2 - 28, 2);
+    g.fillStyle(P.shade, fade); g.fillRect(cx - half + 4, this.y - 5, half * 2 - 8, 4);
     // purple sheen and bubbles
-    g.fillStyle(0x6d26bd, 0.9 * fade); g.fillRect(cx - half * 0.6 - wob, this.y - 6, half * 0.5, 1);
-    g.fillStyle(0x6d26bd, 0.9 * fade); g.fillRect(cx + half * 0.2 + wob, this.y - 4, half * 0.4, 1);
+    g.fillStyle(P.mid, 0.9 * fade); g.fillRect(cx - half * 0.6 - wob, this.y - 6, half * 0.5, 1);
+    g.fillStyle(P.mid, 0.9 * fade); g.fillRect(cx + half * 0.2 + wob, this.y - 4, half * 0.4, 1);
     for (let k = 0; k < 4; k++) {
       const bx = cx - half + ((k * 37 + this.t * 2) % Math.max(1, half * 2));
       const by = this.y - 9 - ((this.t + k * 11) % 16) / 2;
-      g.fillStyle(0x9b5de5, fade); g.fillRect(bx, by, 2, 2);
+      g.fillStyle(P.light, fade); g.fillRect(bx, by, 2, 2);
+    }
+    if (this.owner.style === 'rose') for (let k = 0; k < 5; k++) {     // Rosebud: rose petals floating on the pool
+      const px = cx - half + 6 + ((k * 53 + Math.floor(this.t / 3)) % Math.max(1, half * 2 - 12)), py = this.y - 6 + Math.round(Math.sin(this.t * 0.1 + k) * 1.5);
+      g.fillStyle(k % 2 ? P.mid : P.light, fade); g.fillEllipse(px, py, 4, 2);
     }
   }
 }
@@ -213,7 +259,7 @@ export class Soul {
   kill(popped) {
     if (!this.alive) return;
     this.alive = false;
-    this.match.puff(this.x, this.y, popped ? 0xf0f2f3 : 0x78a0c6, popped ? 12 : 6);
+    this.match.puff(this.x, this.y, popped ? 0xf0f2f3 : this.owner.pal.light, popped ? 12 : 6);
     if (popped) sfx('soulhit', 0.5, 0.6);
     this.sprite.destroy();
   }
@@ -267,7 +313,7 @@ export class ThrownSword {
       this.ang += 0.75;
       this.vx = 0; this.vy = Math.sin(this.pt * 0.12) * 0.25;
       const held = o.ctrl && o.ctrl.held && o.ctrl.held('special');
-      if (this.pt % 9 === 0) sfx('swing', 0.35, 1.3);
+      if (this.pt % 9 === 0) sfx(this.owner.style === 'samurai' ? 'shuriken' : this.owner.def.swingSfx || 'swing', 0.35, 1.3);
       if (this.pt >= S.spinTime + (held ? S.holdExtra : 0) || this.pt >= S.spinTime + S.holdExtra) this.recall();
     } else {
       this.ang += 0.5;
@@ -354,24 +400,27 @@ export class VoidOrb {
         f.lx *= 0.5; f.ly *= 0.5;
       }
       if (this.pt >= S.implode) { this.phase = 'explode'; this.pt = 0; sfx('bighit', 0.9, 0.7); this.match.shake(7, 6);
-        this.match.puff(this.x, this.y, 0xffffff, 10); this.match.puff(this.x, this.y, this.owner.fxColor, 14); }
+        this.match.puff(this.x, this.y, 0xffffff, 10); this.match.puff(this.x, this.y, this.owner.fxColor, 14);
+        if (this.owner.style === 'rose') sfx('petal', 1, 0.8); }
     } else if (this.pt >= 16) this.remove();
   }
   render() {
     if (!this.alive) return;
     const g = this.g, x = Math.round(this.x), y = Math.round(this.y), S = this.spec, col = this.owner.fxColor, t = this.t;
     g.clear();
+    if (this.owner.style === 'rose') { this.renderRose(g, x, y, S, t); return; }
     if (this.phase === 'fly') {
       const r = this.r;
       g.fillStyle(col, 0.18); g.fillCircle(x, y, r + 5 + (t % 6 < 3 ? 1 : 0));
-      g.fillStyle(0x1a0a2e, 1); g.fillCircle(x, y, r);
-      g.fillStyle(0x560c83, 1); g.fillCircle(x, y, r * 0.8);
+      const P = this.owner.pal;
+      g.fillStyle(P.outline, 1); g.fillCircle(x, y, r);
+      g.fillStyle(P.deep, 1); g.fillCircle(x, y, r * 0.8);
       g.fillStyle(0x0b0518, 1); g.fillCircle(x, y, r * 0.45);                       // dark core
       for (let k = 0; k < 4; k++) {                                                  // swirling streaks on the surface
         const a = t * 0.18 + k * Math.PI / 2;
-        g.lineStyle(2, k % 2 ? col : 0xdab8fe, 0.9); g.beginPath(); g.arc(x, y, r * 0.7, a, a + 0.9); g.strokePath();
+        g.lineStyle(2, k % 2 ? col : P.core, 0.9); g.beginPath(); g.arc(x, y, r * 0.7, a, a + 0.9); g.strokePath();
       }
-      for (let k = 0; k < 5; k++) { const a = -t * 0.12 + k * 1.26; g.fillStyle(0xdab8fe, 1); g.fillRect(Math.round(x + Math.cos(a) * (r + 4)) - 1, Math.round(y + Math.sin(a) * (r + 4)) - 1, 2, 2); }
+      for (let k = 0; k < 5; k++) { const a = -t * 0.12 + k * 1.26; g.fillStyle(P.core, 1); g.fillRect(Math.round(x + Math.cos(a) * (r + 4)) - 1, Math.round(y + Math.sin(a) * (r + 4)) - 1, 2, 2); }
       g.fillStyle(0xffffff, 0.9); g.fillRect(x - Math.round(r * 0.4), y - Math.round(r * 0.5), 2, 2);
     } else if (this.phase === 'implode') {
       const k = this.pt / S.implode, R = S.pullR * (1 - k * 0.7);
@@ -379,7 +428,7 @@ export class VoidOrb {
       g.lineStyle(2, col, 0.9); g.strokeCircle(x, y, R);
       for (let i = 0; i < 16; i++) {                                                // streaks rushing inward
         const a = i * 0.39 + this.pt * 0.25, d = R * (1 - ((this.pt * 3 + i * 7) % 20) / 20);
-        g.lineStyle(1, i % 2 ? 0xdab8fe : col, 0.9); g.lineBetween(x + Math.cos(a) * d, y + Math.sin(a) * d, x + Math.cos(a) * (d + 6), y + Math.sin(a) * (d + 6));
+        g.lineStyle(1, i % 2 ? this.owner.pal.core : col, 0.9); g.lineBetween(x + Math.cos(a) * d, y + Math.sin(a) * d, x + Math.cos(a) * (d + 6), y + Math.sin(a) * (d + 6));
       }
       g.fillStyle(0x0b0518, 1); g.fillCircle(x, y, 5 + 6 * k);
       g.fillStyle(0xffffff, k); g.fillCircle(x, y, 2 + 2 * k);
@@ -387,7 +436,39 @@ export class VoidOrb {
       const k = this.pt / 16;
       g.fillStyle(0xffffff, 0.7 * (1 - k)); g.fillCircle(x, y, S.blastR * (0.4 + k * 0.5));
       g.lineStyle(4, col, 1 - k); g.strokeCircle(x, y, S.blastR * (0.5 + k * 0.8));
-      g.lineStyle(2, 0xdab8fe, 1 - k); g.strokeCircle(x, y, S.blastR * (0.3 + k * 1.1));
+      g.lineStyle(2, this.owner.pal.core, 1 - k); g.strokeCircle(x, y, S.blastR * (0.3 + k * 1.1));
     }
+  }
+  // Rosebud: the orb is a closed rosebud on a short stem; it draws petals in as it implodes, then
+  // bursts into full bloom - a ring of petals flung outward.
+  renderRose(g, x, y, S, t) {
+    const P = this.owner.pal;
+    if (this.phase === 'fly') {
+      const r = this.r, sway = Math.sin(t * 0.2) * 0.25;
+      g.lineStyle(2, P.shade, 1); g.lineBetween(x, y + r * 0.6, x - this.dir * 3, y + r + 6);
+      g.fillStyle(P.shade, 1); g.fillEllipse(x - r * 0.5, y + r * 0.6, r * 0.8, r * 0.4); g.fillEllipse(x + r * 0.5, y + r * 0.6, r * 0.8, r * 0.4);   // sepals
+      g.fillStyle(P.outline, 1); g.fillEllipse(x, y, r * 1.5 + 2, r * 2 + 2);
+      g.fillStyle(P.deep, 1); g.fillEllipse(x, y, r * 1.5, r * 2);
+      g.fillStyle(P.mid, 1); g.fillEllipse(x + sway * r, y - r * 0.2, r * 0.9, r * 1.5);
+      g.fillStyle(P.light, 1); g.fillEllipse(x + sway * r - r * 0.15, y - r * 0.5, r * 0.35, r * 0.7);
+      return;
+    }
+    if (this.phase === 'implode') {
+      const k = this.pt / S.implode, R = S.pullR * (1 - k * 0.7);
+      g.fillStyle(P.void, 0.15 + 0.2 * k); g.fillCircle(x, y, R);
+      for (let i = 0; i < 14; i++) {                                // petals swirling in
+        const a = i * 0.45 + this.pt * 0.2, d = R * (1 - ((this.pt * 3 + i * 7) % 20) / 20);
+        g.fillStyle(i % 3 ? P.mid : P.light, 0.95); g.fillEllipse(x + Math.cos(a) * d, y + Math.sin(a) * d, 5, 3);
+      }
+      drawRose(g, x, y, 6 + 4 * k, this.pt * 0.25, P, 0.3 + 0.5 * k);
+      return;
+    }
+    const k = this.pt / 16, R = S.blastR * (0.4 + k * 0.9);                   // full bloom
+    g.fillStyle(P.light, 0.5 * (1 - k)); g.fillCircle(x, y, S.blastR * (0.5 + k * 0.4));
+    for (let i = 0; i < 10; i++) {
+      const a = i * 0.628 + k * 0.8;
+      g.fillStyle(i % 2 ? P.deep : P.mid, 1 - k); g.fillEllipse(x + Math.cos(a) * R * 0.7, y + Math.sin(a) * R * 0.7, 16 * (1 - k * 0.4), 10 * (1 - k * 0.4));
+    }
+    drawRose(g, x, y, 14 * (1 - k * 0.5), k * 2, P, 1);
   }
 }

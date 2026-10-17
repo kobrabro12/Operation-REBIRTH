@@ -2,18 +2,20 @@
 // Boxes are [x, y, w, h] relative to the fighter's feet while facing right (negative y = up).
 // angle: launch direction in degrees, 0 = forward, 90 = straight up, >90 = backwards, <0 = down.
 // Knockback = base + growth * (target % after the hit) / 100, in pixels per frame.
-import { BEAM_BLUE } from './common.js';
+import { BEAM_BLUE, PAL_BLUE } from './common.js';
 
 export const SOUL_SUMMONER = {
   id: 'soul-summoner',
   name: 'SOUL SUMMONER',
-  // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py) - frames 0-2 ease into the stride,
-  // 3-7 loop. It replaced the older walk cycle (walk_sheet.png, still in the repo).
+  // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py). The stride (frames 3-7) loops from
+  // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
   sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run' },
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid
   fxColor: 0x78a0c6,
+  swingSfx: 'flame',               // his swings crackle with soul-fire
+  pal: PAL_BLUE,                  // ability colours for the default costume (other costumes: skins.paletteFor)
   body: { w: 24, h: 50 },
   headTop: 44,                     // top of the head above the feet (milestone crowns and halos sit here)
   weight: 1.0,

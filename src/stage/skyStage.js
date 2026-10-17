@@ -21,6 +21,7 @@ export class SkyStage {
     this.spawns = [{ x: -150, y: 0 }, { x: 150, y: 0 }, { x: -50, y: 0 }, { x: 50, y: 0 }];
     this.storm = { timer: 900 + Math.floor(Math.random() * 600), warn: 0, strike: 0, x: 0 };
     this.hazardsOn = true;
+    this.music = 'bgm_sky';                               // "Above the Clouds", tools/audio/sky_music.py
   }
 
   // ---------------------------------------------------------------- drawing

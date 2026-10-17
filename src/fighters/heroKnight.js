@@ -4,7 +4,7 @@
 //   any hit taken = Take Hit, and Death plays only when his stamina runs out in a Stamina battle.
 // Only the jab and neutral special are designed so far. Every other move is a PLACEHOLDER that reuses
 // those two sword animations until his real moves are designed.
-import { DEFAULT_GRAB } from './common.js';
+import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
 
 // Limit beam colours: steel and white
 const BEAM_STEEL = { outline: 0x14181c, deep: 0x4c5a5f, mid: 0x929ca0, light: 0xc9c9c9, core: 0xffffff };
@@ -28,6 +28,8 @@ export const HERO_KNIGHT = {
   handOffset: { x: 20, y: -30 },
   portrait: [46, 34, 40, 36],
   fxColor: 0xc9c9c9,
+  swingSfx: 'slash', hitSfx: 'clang',   // steel swishes, and steel ringing when they land
+  pal: PAL_CYAN,                  // her spin ring and the glow of her Limit blade
   body: { w: 22, h: 48 },
   headTop: 46,
   tagY: 60,

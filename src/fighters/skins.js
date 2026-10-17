@@ -46,7 +46,8 @@ export const SKINS = {
     { name: 'ROYAL', swatch: 0x2b4fd8, fx: 0xf3c358, groups: SS, rules: { cape: { to: 228, sat: 1.9, val: 1.15 }, flame: { to: 45, sat: 0.9 }, eyes: { to: 205 } } },
     // pure black and white like an old monochrome handheld, with a white outline so he reads on any
     // stage; he raises his own 1-bit ghosts instead of flaming skulls (tools/sprites/onebit_minion.py)
-    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit' },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit', style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
@@ -82,7 +83,8 @@ export const SKINS = {
     // changes during the match: the armour cracks more each time she loses a stock (see Fighter.updateWorn)
     { name: 'BATTLE-WORN', swatch: 0x6a5e58, worn: true },
     // red lacquered samurai armour, black kabuto with a gold crest, and a katana (pre-drawn strips, see heroKnight.costumeSheets)
-    { name: 'SAMURAI', swatch: 0xb81e28, fx: 0xe85a4a, sheetSet: 'samurai' },
+    { name: 'SAMURAI', swatch: 0xb81e28, fx: 0xe85a4a, sheetSet: 'samurai', style: 'samurai',
+      pal: { outline: 0x1a0406, deep: 0xa01820, mid: 0xe0402a, light: 0xffb7c5, core: 0xffffff, shade: 0x2a0a0c, void: 0x0a0204 } },
     { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
@@ -114,7 +116,8 @@ export const SKINS = {
     { name: 'GHOST', swatch: 0xc9c4dc, fx: 0x9ad8f0, groups: MW, rules: { robe: { sat: 0.12, val: 2.4 }, cloth: { sat: 0.4, val: 1.6 }, magic: { to: 190 } } },
     { name: 'VENOM', swatch: 0x3f9a2a, fx: 0x9be564, groups: MW, rules: { robe: { to: 112 }, magic: { to: 84 } } },
     // overgrown with roses, and his staff is a giant tulip (pre-drawn sheet, see mrWake.costumeSheets)
-    { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses' },
+    { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses', style: 'rose',
+      pal: { outline: 0x3a0412, deep: 0x9a1240, mid: 0xd6336c, light: 0xff7aa8, core: 0xffc8da, shade: 0x1d3d1e, void: 0x0a1a0c } },
     { name: 'NOBLE', swatch: 0x24357a, fx: 0xf3c358, groups: MW, rules: { robe: { to: 228 }, magic: { to: 45 }, cloth: { to: 220 } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.
@@ -197,7 +200,7 @@ export function skinTexture(scene, key, id, i) {
 
 // The minion a milestone costume raises: Soul Summoner's soul sheet with its flame recoloured.
 export function minionTexture(scene, id, i) {
-  const skin = skinInfo(id, i), m = skin.vfx && skin.vfx.minion;
+  const skin = skinInfo(id, i), m = (skin.vfx && skin.vfx.minion) || (skin.groups === SS && skin.rules);   // milestone souls, or the costume's own colours
   if (!m || !scene.textures.exists('soul_minion')) return null;
   return recolorTexture(scene, 'soul_minion', 'soul_minion@' + skin.name, { groups: SS, rules: m });
 }
@@ -243,6 +246,22 @@ export function skinSheets(scene, def, i) {
   const out = {};
   for (const [k, key] of Object.entries(def.sheets)) out[k] = skinTexture(scene, key, def.id, i);
   return out;
+}
+
+// ---- ability palettes: the colours a fighter's specials, projectiles and Limit are drawn in.
+// The default costume keeps the fighter's own palette (def.pal); every other costume derives one from
+// its signature colour (skin.fx) so fireballs, bolts, rings and beams match the outfit.
+// keys: outline (darkest), deep, mid, light, core (brightest), shade and void (very dark, for pools/abysses)
+export function paletteFor(def, i) {
+  const skin = skinInfo(def.id, i);
+  if (skin.pal) return skin.pal;                                   // special costumes pick their own
+  if (!(i % skinsFor(def.id).length) || skin.fx === undefined) return def.pal;
+  const c = skin.fx, [h, sat, v] = rgb2hsv((c >> 16) & 255, (c >> 8) & 255, c & 255);
+  const hex = (hh, ss, vv) => { const [r, g, b] = hsv2rgb(hh, Math.max(0, Math.min(1, ss)), Math.max(0, Math.min(1, vv))); return (r << 16) | (g << 8) | b; };
+  return {
+    outline: hex(h, sat + 0.2, 0.16), deep: hex(h, sat + 0.15, Math.max(0.35, v * 0.55)), mid: hex(h, sat, v * 0.8),
+    light: c, core: hex(h, sat * 0.3, 1), shade: hex(h, sat + 0.1, 0.25), void: hex(h, sat + 0.3, 0.08),
+  };
 }
 
 // Milestone costumes are locked until the fighter has enough KOs (see progress.js).

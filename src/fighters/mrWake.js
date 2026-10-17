@@ -7,7 +7,7 @@
 //     fighters at 1x and measures from the FEET, so boxes are divided by 1.25 and moved down 29 px
 //   - baseKB x 0.55 and kbScale x 7 give knockback on the same scale as Soul Summoner's moves
 //   - startup / active / endlag become the hit window (from..to) and the move's total length
-import { DEFAULT_GRAB, BEAM_PURPLE } from './common.js';
+import { DEFAULT_GRAB, BEAM_PURPLE, PAL_PURPLE } from './common.js';
 
 const SCALE = 1.25, CENTER_ABOVE_FEET = 29;
 const base = (b) => +(b * 0.55).toFixed(2);
@@ -71,6 +71,8 @@ export const MR_WAKE = {
   portrait: [22, 0, 40, 36],       // crop of the idle frame for the select grid
   tagY: 68,
   fxColor: 0x9b5de5,
+  swingSfx: 'staff',              // heavy staff whooshes
+  pal: PAL_PURPLE,
   body: { w: 24, h: 56 },
   headTop: 56,
   weight: 0.95,                    // tall, light caster: launches a bit earlier

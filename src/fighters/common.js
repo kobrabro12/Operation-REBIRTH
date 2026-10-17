@@ -12,3 +12,7 @@ export const DEFAULT_GRAB = {
 // Colours for a Limit beam (outline, deep, mid, light, core, sparks).
 export const BEAM_BLUE = { outline: 0x0b1a33, deep: 0x076cc2, mid: 0x3f86d0, light: 0x78a0c6, core: 0xf0f2f3 };
 export const BEAM_PURPLE = { outline: 0x1a0a2e, deep: 0x560c83, mid: 0x6d26bd, light: 0x9b5de5, core: 0xdab8fe };
+// default ability palettes (see skins.paletteFor): beam colours plus shade / void for pools and abysses
+export const PAL_BLUE = { ...BEAM_BLUE, shade: 0x0e2a4a, void: 0x050c18 };
+export const PAL_PURPLE = { ...BEAM_PURPLE, shade: 0x2a1040, void: 0x0c0521 };
+export const PAL_CYAN = { outline: 0x0a3a44, deep: 0x22b8c8, mid: 0x4ae0e0, light: 0x7af0e8, core: 0xb8fff4, shade: 0x1a8aa0, void: 0x04181c };

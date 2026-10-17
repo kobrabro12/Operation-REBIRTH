@@ -21,6 +21,8 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_arcade', ['assets/audio/music/arcade.ogg', 'assets/audio/music/arcade.mp3']);
     this.load.audio('bgm_title', ['assets/audio/music/title.ogg', 'assets/audio/music/title.mp3']);
     this.load.audio('bgm_select', ['assets/audio/music/select.ogg', 'assets/audio/music/select.mp3']);
+    this.load.audio('bgm_sky', ['assets/audio/music/sky.ogg', 'assets/audio/music/sky.mp3']);
+    this.load.audio('bgm_spires', ['assets/audio/music/spires.ogg', 'assets/audio/music/spires.mp3']);
     this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
     this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
     this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');
