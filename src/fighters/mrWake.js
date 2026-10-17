@@ -61,6 +61,8 @@ export const MR_WAKE = {
   id: 'mr-wake',
   name: 'MR WAKE',
   sheets: { idle: 'wake_idle' },
+  // ROSEBUD costume: covered in roses, with a giant tulip for a staff (tools/sprites/mr_wake_roses.py)
+  costumeSheets: { roses: { idle: 'wake_roses_idle' } },
   facesLeft: false,                // he looks right in the sprite (his face and hat brim point right;
                                    // the gem end of the staff trails behind him on the left)
   originX: 36 / 64,                // body centre column

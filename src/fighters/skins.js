@@ -62,6 +62,8 @@ export const SKINS = {
     { name: 'GILDED', swatch: 0xb8862b, fx: 0xf0a040, groups: MW, rules: { robe: { to: 38 }, magic: { to: 28 } } },
     { name: 'GHOST', swatch: 0xc9c4dc, fx: 0x9ad8f0, groups: MW, rules: { robe: { sat: 0.12, val: 2.4 }, cloth: { sat: 0.4, val: 1.6 }, magic: { to: 190 } } },
     { name: 'VENOM', swatch: 0x3f9a2a, fx: 0x9be564, groups: MW, rules: { robe: { to: 112 }, magic: { to: 84 } } },
+    // overgrown with roses, and his staff is a giant tulip (pre-drawn sheet, see mrWake.costumeSheets)
+    { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses' },
     { name: 'NOBLE', swatch: 0x24357a, fx: 0xf3c358, groups: MW, rules: { robe: { to: 228 }, magic: { to: 45 }, cloth: { to: 220 } } },
   ],
 };
