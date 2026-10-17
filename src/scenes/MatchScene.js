@@ -209,7 +209,7 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.projectiles) if (p.alive) hbs.push(p.hitbox());
     for (const s of this.souls) { const h = s.hitbox(); if (h) hbs.push(h); }
     for (const lh of this.limitHits) if (lh.t < 2) hbs.push(lh.hb);
-    if (hazard) hbs.push({ ...hazard, h: hazard, owner: null, facing: 1 });
+    if (hazard) for (const hz of [].concat(hazard)) hbs.push({ ...hz, h: hz, owner: null, facing: 1 });   // a stage can return one hazard or a list
 
     const overlap = (a, b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
     for (const hb of hbs) {
@@ -271,7 +271,7 @@ export class MatchScene extends Phaser.Scene {
 
     const kb = (h.base + h.growth * kbPct / 100) / t.def.weight;
     let dir = hb.facing || 1;
-    if (!owner) dir = Math.sign(t.x - srcX) || 1;
+    if (!owner) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel
     const rad = h.angle * Math.PI / 180;
     t.stopChargeSound();
     if (t.grabbed) { t.grabbed.grabbedBy = null; t.grabbed.setState('air'); t.grabbed = null; }

@@ -3,6 +3,7 @@
 import { SkyStage, PAL } from './skyStage.js';
 import { SpireStage, drawSpirePreview } from './spireStage.js';
 import { MoonStage, drawMoonPreview } from './moonStage.js';
+import { ArcadeStage, drawArcadePreview } from './arcadeStage.js';
 
 export const STAGES = [
   {
@@ -22,6 +23,12 @@ export const STAGES = [
     blurb: ['A stone bridge over a misty chasm, held up', 'by horned gargoyles under a giant moon.'],
     hazard: 'HAZARDS AND ITEMS: COMING SOON',
     preview: drawMoonPreview,
+  },
+  {
+    id: 'neon-arcade', name: 'NEON ARCADE', available: true, make: (scene) => new ArcadeStage(scene),
+    blurb: ['The control panel of a giant arcade cabinet,', 'under a synthwave sunset. Insert coin!'],
+    hazard: 'RETRO MOVES: PIXEL WAVE, SPIN DASH,\nBLOCK DROP AND INVADER RAID.',
+    preview: drawArcadePreview,
   },
 ];
 
