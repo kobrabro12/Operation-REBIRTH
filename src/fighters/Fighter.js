@@ -288,7 +288,7 @@ export class Fighter {
       const th = this.def.moves.throws[dir];
       t.grabbedBy = null; this.grabbed = null;
       this.match.applyHit(t, { h: th, owner: this, facing: this.facing, id: nextAttackId++ }, this.x);
-      this.setState('attack'); this.move = { frames: 18 }; this.attackId = nextAttackId++;
+      this.setState('attack'); this.move = { frames: 18 }; this.moveName = 'throw'; this.throwDir = dir; this.attackId = nextAttackId++;
     }
   }
   st_grabbed() {
@@ -871,7 +871,18 @@ export class Fighter {
       case 'grabbed': return { sheet: S.hit, frame: N.hit - 1 };
       case 'dizzy': return { sheet: S.hit, frame: N.hit - 1, rot: Math.sin(this.t * 0.2) * 0.15 };
       case 'dying': return once('death', this.t, 66);
-      case 'attack': { const m = this.move || {}; return { ...once(m.anim || 'attack2', this.t, m.frames || 28), flip: !!m.flip }; }
+      case 'attack': {
+        const m = this.move || {}, G = S.grab;
+        if (this.moveName === 'grab' && G) {        // reach out, grab at full stretch, pull the empty hand back on a miss
+          const t = this.t;
+          return { sheet: G, frame: t < 3 ? 0 : t < 5 ? 1 : t < 12 ? 2 : t < 18 ? 1 : 0 };
+        }
+        if (this.moveName === 'throw' && G) {       // throws land instantly, so she's in the throw pose from the first frame
+          const d = this.throwDir;
+          return { sheet: G, frame: d === 'up' ? 6 : d === 'down' ? 7 : 5, flip: d === 'back' };
+        }
+        return { ...once(m.anim || 'attack2', this.t, m.frames || 28), flip: !!m.flip };
+      }
       case 'upb': {
         const u = this.def.moves.upb;
         if (!u.spin) return once('attack1', this.t, u.frames);
@@ -881,7 +892,7 @@ export class Fighter {
         if (!spinning) return st < 0 ? { sheet: S.attack1, frame: 1 } : { sheet: S.attack2, frame: 6 };
         return { sheet: S.attack2, frame: 1, flip: Math.floor(st / 3) % 2 === 1 };   // sword held out, turning
       }
-      case 'holding': return { sheet: S.attack2, frame: 0 };
+      case 'holding': return S.grab ? { sheet: S.grab, frame: this.t < 4 ? 3 : 4 } : { sheet: S.attack2, frame: 0 };   // grip, then hold them at arm's length
       case 'counter': return { sheet: S.guard || S.attack2, frame: 0 };      // crouched guard, sword angled down toward the opponent
       case 'counterstrike': return this.t < 2 ? { sheet: S.attack2, frame: 2 } : once('attack2', this.t - 2 + 6, 26);
       case 'limit': {

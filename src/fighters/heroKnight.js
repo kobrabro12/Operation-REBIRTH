@@ -13,14 +13,14 @@ export const HERO_KNIGHT = {
   id: 'hero-knight',
   name: 'LACY',
   // every strip is 150x90 per frame, feet at (66, 86) inside the frame
-  sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard' },
+  sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard', grab: 'hk_grab' },
   // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
-  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard']
+  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab']
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
-  costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard'].map((k) => [k, 'hk_sam_' + k])) },
-  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1 },
+  costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab'].map((k) => [k, 'hk_sam_' + k])) },
+  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 8 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,
   handOffset: { x: 20, y: -30 },
@@ -51,7 +51,9 @@ export const HERO_KNIGHT = {
     uair: { frames: 26, landLag: 6, anim: 'attack1', hits: [{ from: 10, to: 16, box: [-24, -84, 50, 40], dmg: 8, angle: 86, base: 3.0, growth: 5.8 }] },
     dair: { frames: 32, landLag: 13, anim: 'attack1', hits: [{ from: 14, to: 18, box: [-16, -14, 40, 30], dmg: 11, angle: -78, base: 3.0, growth: 4.2 }] },
     ...DEFAULT_GRAB,
-    grab: { ...DEFAULT_GRAB.grab, anim: 'attack2' },
+    // Grab: she reaches out with her free hand (the grab strip, tools/sprites/hero_knight_grab.py) and
+    // throws with her arm too: a shove forward or back, a heave upward, a slam into the floor.
+    grab: { ...DEFAULT_GRAB.grab, anim: 'grab' },
     // Down special: Riposte - a counter. She raises her guard; if an attack (or projectile) hits her
     // while the guard is up (ticks 5-28), she takes no damage, the attacker freezes as a shadow in a
     // flash of light, and she slashes back for 1.2x the blocked damage (at least 8%). Whiffing leaves

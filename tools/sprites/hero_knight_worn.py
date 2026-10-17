@@ -17,7 +17,7 @@ import colorsys, math, os, random
 from PIL import Image
 
 DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'assets', 'fighters', 'hero-knight')
-STRIPS = ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard']
+STRIPS = ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab']
 FW, FH = 150, 90
 CRACK, CHIP_LIGHT, HOLE, SCORCH = (26, 20, 24), (226, 226, 226), (34, 28, 34), (48, 40, 36)
 
