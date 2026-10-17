@@ -13,6 +13,9 @@ She keeps her sword held back over her shoulder and reaches out with her other, 
   5  shove        - throws her weight forward, arm punched straight out (forward throw; flipped for back throw)
   6  heave        - fist raised over her head (up throw)
   7  slam         - crouched, fist driven down to the floor (down throw)
+  8  sword thrown - her sword is gone from her shoulder, open hand thrust forward (side special:
+                    she commands the spinning sword)
+  9  sword thrown - the same, hand slightly lower (alternates with 8 while she waits)
 The arm is drawn in her own armour colours relative to her red scarf, so it sits on her shoulder.
 """
 import colorsys, math, os
@@ -34,6 +37,19 @@ def anchor(frame):
     top = min(y for x, y in reds)
     xs = [x for x, y in reds if y <= top + 3]
     return (round(sum(xs) / len(xs)), top)
+
+def unarmed(frame):
+    """Erase the sword she holds back over her shoulder (blade pixels up and behind her head)."""
+    out = frame.copy(); px = out.load()
+    ax, ay = anchor(frame)
+    for y in range(FH):
+        for x in range(FW):
+            p = px[x, y]
+            if p[3] == 0: continue
+            blade = p[:3] in ((201, 201, 201), (194, 194, 194))
+            behind = x <= ax - 6 and y <= ay - 6 and p[:3] in ((136, 136, 136), (158, 157, 157), (163, 163, 163))
+            if (blade and y < ay + 2) or behind: px[x, y] = (0, 0, 0, 0)
+    return out
 
 def shifted(frame, dx, dy=0):
     out = Image.new('RGBA', (FW, FH), (0, 0, 0, 0)); out.alpha_composite(frame, (dx, dy)); return out
@@ -91,7 +107,9 @@ POSES = [(idle, -1, (7, 9), 'fist', 3),
          (idle, 1, (17, 7), 'fist', 3),
          (idle, 6, (25, 3), 'open', 0),
          (idle, 0, (8, -17), 'fist', -3),
-         (guard, 2, (17, 18), 'fist', 2)]
+         (guard, 2, (17, 18), 'fist', 2),
+         (unarmed(idle), 3, (24, 3), 'open', 0),
+         (unarmed(idle), 3, (23, 5), 'open', 1)]
 sheet = Image.new('RGBA', (FW * len(POSES), FH), (0, 0, 0, 0))
 for i, (base, dx, (ox, oy), hand, bend) in enumerate(POSES):
     f = shifted(base, dx)

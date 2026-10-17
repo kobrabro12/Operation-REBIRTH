@@ -9,7 +9,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword } from '../fighters/entities.js';
 import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
@@ -224,13 +224,14 @@ export class MatchScene extends Phaser.Scene {
         if (hb.grab) { if (hb.owner.state === 'attack' && t.grounded) hb.owner.onGrab(t); continue; }
         if (t.counterReady && t.counterReady() && !hb.hazard && !hb.pillar) {   // countered: no damage, she strikes back
           t.counterHit(hb);
-          if (hb.projectile) hb.projectile.kill();
+          if (hb.projectile) hb.projectile.kill();             // (a thrown sword bounces back to its owner instead)
           if (hb.soul) hb.soul.onBite();
           continue;
         }
-        if (t.state === 'shield' && !hb.hazard && !hb.pillar) this.shieldHit(t, hb);
+        const blocked = t.state === 'shield' && !hb.hazard && !hb.pillar;
+        if (blocked) this.shieldHit(t, hb);
         else this.applyHit(t, hb, (hb.x1 + hb.x2) / 2);
-        if (hb.projectile) hb.projectile.kill();
+        if (hb.projectile && (!hb.persist || blocked)) hb.projectile.kill();   // a thrown sword keeps spinning through hits, but a shield knocks it back
         if (hb.soul) hb.soul.onBite();
       }
       // fighters' attacks and fireballs can destroy enemy souls
@@ -241,7 +242,7 @@ export class MatchScene extends Phaser.Scene {
         if (this.hits.has(key) || !overlap(hb, s.hurtbox())) continue;
         this.hits.add(key);
         s.damage(hb.h.dmg || 6, Math.sign(s.x - (hb.x1 + hb.x2) / 2) || 1);
-        if (hb.projectile) hb.projectile.kill();
+        if (hb.projectile && !hb.persist) hb.projectile.kill();
       }
     }
     if (this.hits.size > 4000) this.hits.clear();
@@ -363,6 +364,7 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.pools) if (p.owner === owner) p.kill();          // one puddle per Mr Wake
     const p = new ShadowPool(this, owner, spec); if (p.alive) this.pools.push(p); return p;
   }
+  spawnSword(owner, spec) { const p = new ThrownSword(this, owner, spec); this.projectiles.push(p); return p; }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 

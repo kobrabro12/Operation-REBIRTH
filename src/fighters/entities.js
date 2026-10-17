@@ -230,3 +230,85 @@ export class Soul {
     else s.setTint(0xffffff).setTintMode(Phaser.TintModes.MULTIPLY);
   }
 }
+
+// Lacy's side special, Blade Toss: her sword flies out, spins in place in front of her for a couple of
+// seconds (holding the button keeps it spinning longer), then flies back to her hand.
+//   out    - thrown forward, slowing to a stop (one hit)
+//   spin   - whirls in place, hitting again every few frames and holding opponents in it
+//   return - homes back to her hand, striking anything on the way
+// She can't attack while it's gone. Blocked or countered, it bounces straight back to her.
+export class ThrownSword {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * 18; this.y = owner.y - 34;
+    this.vx = this.dir * spec.speed; this.vy = 0;
+    this.phase = 'out'; this.t = 0; this.pt = 0; this.ang = 0; this.alive = true;
+    this.id = nextId++; this.persist = true;
+    this.g = match.add.graphics();
+    match.addWorld(this.g);
+    sfx('swing', 0.8, 0.7);
+  }
+  hitbox() {
+    const S = this.spec, r = this.phase === 'spin' ? S.spinR : 14;
+    const h = this.phase === 'out' ? S.out : this.phase === 'spin' ? S.spin : S.ret;
+    const id = this.phase === 'spin' ? this.id + ':' + Math.floor(this.pt / S.spinEvery) : this.id + this.phase;   // a fresh hit every few frames while spinning
+    return { x1: this.x - r, x2: this.x + r, y1: this.y - r, y2: this.y + r, h, owner: this.owner, id, facing: Math.sign(this.vx) || this.dir, projectile: this, persist: true };
+  }
+  step() {
+    const S = this.spec, o = this.owner;
+    this.t++; this.pt++;
+    if (!o.alive) { this.kill(); return; }
+    if (this.phase === 'out') {
+      this.vx -= this.dir * S.decel;
+      this.ang += 0.6;
+      if (Math.sign(this.vx) !== this.dir || this.pt > 20) { this.vx = 0; this.phase = 'spin'; this.pt = 0; sfx('dodge', 0.5, 0.7); }
+    } else if (this.phase === 'spin') {
+      this.ang += 0.75;
+      this.vx = 0; this.vy = Math.sin(this.pt * 0.12) * 0.25;
+      const held = o.ctrl && o.ctrl.held && o.ctrl.held('special');
+      if (this.pt % 9 === 0) sfx('swing', 0.35, 1.3);
+      if (this.pt >= S.spinTime + (held ? S.holdExtra : 0) || this.pt >= S.spinTime + S.holdExtra) this.recall();
+    } else {
+      this.ang += 0.5;
+      const tx = o.x + o.facing * 14, ty = o.y - 34, dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy) || 1;
+      const sp = Math.min(S.returnSpeed + this.pt * 0.15, 14);
+      this.vx = dx / d * sp; this.vy = dy / d * sp;
+      if (d < 16) { this.caught(); return; }
+    }
+    this.x += this.vx; this.y += this.vy;
+    if (this.t % 3 === 0) this.match.puff(this.x, this.y, this.owner.fxColor, 1);
+  }
+  recall() { if (this.phase !== 'return') { this.phase = 'return'; this.pt = 0; sfx('djump', 0.5, 1.2); } }
+  // projectiles get killed when they're blocked or countered: the sword bounces back to her instead
+  kill() {
+    if (!this.alive) return;
+    if (this.owner.alive && this.phase !== 'return' && this.t > 0) { this.recall(); return; }
+    this.remove();
+  }
+  caught() { this.match.puff(this.x, this.y, 0xffffff, 6); sfx('shield', 0.6, 1.4); this.remove(); if (this.owner.swordOut === this) this.owner.catchSword(); }
+  remove() { this.alive = false; this.g.destroy(); if (this.owner.swordOut === this) this.owner.swordOut = null; }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = this.x, y = this.y, L = 18, c = Math.cos(this.ang), s = Math.sin(this.ang), col = this.owner.fxColor;
+    g.clear();
+    if (this.phase === 'spin') {                    // the blur of the spinning blade and a ring of light
+      g.fillStyle(col, 0.16); g.fillCircle(x, y, this.spec.spinR);
+      g.lineStyle(2, 0xffffff, 0.5); g.strokeCircle(x, y, this.spec.spinR - 2);
+      for (let k = 1; k <= 5; k++) {
+        const a = this.ang - k * 0.32;
+        g.lineStyle(3, col, 0.55 - k * 0.1);
+        g.lineBetween(x - Math.cos(a) * L, y - Math.sin(a) * L, x + Math.cos(a) * L, y + Math.sin(a) * L);
+      }
+    } else {
+      for (let k = 1; k <= 3; k++) { g.fillStyle(col, 0.35 - k * 0.1); g.fillCircle(x - this.vx * k * 1.2, y - this.vy * k * 1.2, 6 - k); }
+    }
+    // the sword: dark outline, steel blade with a bright edge, crossguard and grip
+    const tipX = x + c * L, tipY = y + s * L, butX = x - c * L * 0.55, butY = y - s * L * 0.55;
+    g.lineStyle(4, 0x14181c, 1); g.lineBetween(butX, butY, tipX, tipY);
+    g.lineStyle(2, 0xc9c9c9, 1); g.lineBetween(x - c * 3, y - s * 3, tipX, tipY);
+    g.lineStyle(1, 0xffffff, 1); g.lineBetween(x, y, tipX - c, tipY - s);
+    g.lineStyle(3, this.owner.dragonSpin ? 0xf3c358 : 0x6a7880, 1); g.lineBetween(x - c * 3 - s * 5, y - s * 3 + c * 5, x - c * 3 + s * 5, y - s * 3 - c * 5);   // crossguard
+    g.lineStyle(2, 0x2a2430, 1); g.lineBetween(x - c * 4, y - s * 4, butX, butY);                                                                         // grip
+  }
+}

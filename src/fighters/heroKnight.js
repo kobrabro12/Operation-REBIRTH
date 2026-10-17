@@ -20,7 +20,7 @@ export const HERO_KNIGHT = {
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
   costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab'].map((k) => [k, 'hk_sam_' + k])) },
-  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 8 },
+  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 10 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,
   handOffset: { x: 20, y: -30 },
@@ -54,6 +54,19 @@ export const HERO_KNIGHT = {
     // Grab: she reaches out with her free hand (the grab strip, tools/sprites/hero_knight_grab.py) and
     // throws with her arm too: a shove forward or back, a heave upward, a slam into the floor.
     grab: { ...DEFAULT_GRAB.grab, anim: 'grab' },
+    // Side special: Blade Toss. She hurls her sword forward; it slows to a stop and spins in place for
+    // about 1.5 s (hold the button to keep it spinning up to 2.5 s), hitting every 12 frames and holding
+    // opponents in the whirl, then it flies back to her hand, striking anything in the way. She stands
+    // with her hand out (or floats down slowly in the air) until she catches it. A shield or a counter
+    // knocks the sword straight back to her.
+    sideB: {
+      sword: {
+        throwAt: 8, speed: 8.5, decel: 0.42, spinTime: 90, holdExtra: 60, spinEvery: 12, spinR: 22, returnSpeed: 5,
+        out: { dmg: 4, angle: 40, base: 2.6, growth: 2.4 },
+        spin: { dmg: 2, angle: 80, base: 1.2, growth: 0, stun: 12 },
+        ret: { dmg: 4, angle: 45, base: 3.2, growth: 4.6 },
+      },
+    },
     // Down special: Riposte - a counter. She raises her guard; if an attack (or projectile) hits her
     // while the guard is up (ticks 5-28), she takes no damage, the attacker freezes as a shadow in a
     // flash of light, and she slashes back for 1.2x the blocked damage (at least 8%). Whiffing leaves

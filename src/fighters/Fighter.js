@@ -170,7 +170,7 @@ export class Fighter {
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB) { this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -293,6 +293,23 @@ export class Fighter {
   }
   st_grabbed() {
     if (!this.grabbedBy || this.t > 60) { this.grabbedBy = null; this.setState('idle'); }
+  }
+
+  // ---- side special (Lacy): Blade Toss - throw the sword, it spins in front of her, then flies back
+  startSwordThrow() {
+    this.setState('swordthrow'); this.lx = 0;
+    if (this.grounded) this.vx *= 0.3;
+  }
+  st_swordthrow(c) {
+    const S = this.def.moves.sideB.sword;
+    if (this.t === S.throwAt) this.swordOut = this.match.spawnSword(this, S);
+    if (!this.grounded) this.vy = Math.min(this.vy, 2.2);          // floats down slowly while the sword is out
+    if (this.t > S.throwAt && !this.swordOut) { this.setState(this.grounded ? 'idle' : 'air'); return; }
+    if (this.t > 420) { if (this.swordOut) this.swordOut.remove(); this.swordOut = null; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+  catchSword() {
+    this.swordOut = null;
+    if (this.state === 'swordthrow') { this.setState('attack'); this.move = { frames: 8 }; this.moveName = 'catch'; }
   }
 
   // ---- neutral special: chargeable fireball
@@ -873,6 +890,7 @@ export class Fighter {
       case 'dying': return once('death', this.t, 66);
       case 'attack': {
         const m = this.move || {}, G = S.grab;
+        if (this.moveName === 'catch') return { sheet: S.idle, frame: 0 };   // sword back in hand
         if (this.moveName === 'grab' && G) {        // reach out, grab at full stretch, pull the empty hand back on a miss
           const t = this.t;
           return { sheet: G, frame: t < 3 ? 0 : t < 5 ? 1 : t < 12 ? 2 : t < 18 ? 1 : 0 };
@@ -891,6 +909,10 @@ export class Fighter {
         const spinning = this.spinGround ? st < u.ground.spin - 6 : (st >= 0 && st < 22);
         if (!spinning) return st < 0 ? { sheet: S.attack1, frame: 1 } : { sheet: S.attack2, frame: 6 };
         return { sheet: S.attack2, frame: 1, flip: Math.floor(st / 3) % 2 === 1 };   // sword held out, turning
+      }
+      case 'swordthrow': {                           // wind up with the sword, then hand out while it spins
+        if (this.t < this.def.moves.sideB.sword.throwAt) return { sheet: S.attack2, frame: this.t < 4 ? 0 : 1 };
+        return { sheet: S.grab, frame: 8 + ((this.anim >> 4) % 2) };
       }
       case 'holding': return S.grab ? { sheet: S.grab, frame: this.t < 4 ? 3 : 4 } : { sheet: S.attack2, frame: 0 };   // grip, then hold them at arm's length
       case 'counter': return { sheet: S.guard || S.attack2, frame: 0 };      // crouched guard, sword angled down toward the opponent
