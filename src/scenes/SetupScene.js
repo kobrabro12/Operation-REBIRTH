@@ -45,7 +45,7 @@ export class SetupScene extends Phaser.Scene {
     // mouse: hover picks a row, left click changes it (left half of the value = back one step),
     // right click steps back, clicking CHOOSE STAGE continues
     this.input.mouse.disableContextMenu();
-    makeButton(this, 12, 8, '< BACK', () => this.scene.start('Title'));
+    makeButton(this, 12, 8, '< BACK', () => this.scene.start('Menu'));
     addFullscreenButton(this, VIEW_W - 12, 8);
     this.click = null;
     this.input.on('pointermove', (p) => {
@@ -80,10 +80,7 @@ export class SetupScene extends Phaser.Scene {
       { label: 'CPU LEVEL', value: DIFFICULTY[s.difficulty].name, change: (d) => { s.difficulty = (s.difficulty + d + 3) % 3; } },
       { label: 'ITEMS', value: s.items ? 'ON' : 'OFF', change: () => { s.items = !s.items; } },
       { label: 'STAGE HAZARDS', value: s.hazards ? 'ON' : 'OFF', change: () => { s.hazards = !s.hazards; } },
-      { label: 'TOUCH CONTROLS', value: s.touch.toUpperCase(), change: (d) => { const o = ['auto', 'on', 'off']; s.touch = o[(o.indexOf(s.touch) + d + 3) % 3]; } },
-      { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; } },
-      { label: 'SFX VOLUME', bar: Math.round(s.sfxVolume * 10), value: Math.round(s.sfxVolume * 10) ? String(Math.round(s.sfxVolume * 10)) : 'OFF', change: (d) => { s.sfxVolume = Phaser.Math.Clamp(Math.round(s.sfxVolume * 10 + d), 0, 10) / 10; saveVolumes(); }, set: (k) => { s.sfxVolume = k / 10; saveVolumes(); } },
-      { label: 'MUSIC VOLUME', bar: Math.round(s.musicVolume * 10), value: Math.round(s.musicVolume * 10) ? String(Math.round(s.musicVolume * 10)) : 'OFF', change: (d) => { s.musicVolume = Phaser.Math.Clamp(Math.round(s.musicVolume * 10 + d), 0, 10) / 10; saveVolumes(); updateMusicVolume(); }, set: (k) => { s.musicVolume = k / 10; saveVolumes(); updateMusicVolume(); } },
+      // sound, CRT filter and touch controls live on the OPTIONS screen (main menu)
       { label: 'CHOOSE STAGE', value: '', start: true },
     );
     return rows;
@@ -128,7 +125,7 @@ export class SetupScene extends Phaser.Scene {
       if (row.start) { sfx('go', 0.8); this.scene.start('StageSelect'); return; }
       if (row.change) { row.change(1); sfx('menu', 0.5, 1.2); }
     }
-    if (m.back) { this.scene.start('Title'); return; }
+    if (m.back) { this.scene.start('Menu'); return; }
 
     // draw rows
     const fresh = this.items();

@@ -34,6 +34,17 @@ export function saveVolumes() {
   try { localStorage.setItem(VOL_KEY, JSON.stringify({ sfx: settings.sfxVolume, music: settings.musicVolume })); } catch (e) { /* ignore */ }
 }
 
+// Other options (CRT filter, touch controls) are remembered the same way.
+const OPT_KEY = 'rebirth.options';
+try {
+  const o = JSON.parse(localStorage.getItem(OPT_KEY) || 'null');
+  if (o && typeof o.crt === 'boolean') settings.crt = o.crt;
+  if (o && ['auto', 'on', 'off'].includes(o.touch)) settings.touch = o.touch;
+} catch (e) { /* storage unavailable: keep the defaults */ }
+export function saveOptions() {
+  try { localStorage.setItem(OPT_KEY, JSON.stringify({ crt: settings.crt, touch: settings.touch })); } catch (e) { /* ignore */ }
+}
+
 export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };
 
 // One-shot request for the next Match to be the title screen's demo. (Phaser re-uses the data passed to

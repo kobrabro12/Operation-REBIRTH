@@ -56,7 +56,7 @@ export class TitleScene extends Phaser.Scene {
       setSfxMuted(false);
       sfx('select', 0.8);
       if (this.sound.context && this.sound.context.state === 'suspended') this.sound.context.resume();
-      this.scene.start('Setup');
+      this.scene.start('Menu');
     }
   }
 }
