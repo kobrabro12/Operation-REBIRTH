@@ -6,6 +6,7 @@ import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
 import { sfx, setSfxMuted } from '../audio/sfx.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { demoRequest } from '../settings.js';
 
 const WORD = 'REBIRTH';
 
@@ -15,7 +16,7 @@ export class TitleScene extends Phaser.Scene {
     this.t = 0;
     playMusic(this, 'bgm_title');
     // the demo match plays behind the title
-    if (!this.scene.isActive('Match')) this.scene.launch('Match', { demo: true });
+    if (!this.scene.isActive('Match')) { demoRequest.next = true; this.scene.launch('Match'); }
     this.scene.bringToTop();
 
     // shade the top and bottom so the logo and prompts read over the action

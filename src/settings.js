@@ -35,3 +35,8 @@ export function saveVolumes() {
 }
 
 export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };
+
+// One-shot request for the next Match to be the title screen's demo. (Phaser re-uses the data passed to
+// the previous scene.start, so a flag passed that way would leak into the next real match.) The Match
+// clears it as soon as it reads it.
+export const demoRequest = { next: false };

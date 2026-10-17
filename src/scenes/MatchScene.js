@@ -19,7 +19,7 @@ function demoSettings() {
 import { playMusic, stopMusic } from '../audio/music.js';
 import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
-import { settings, MODE_NAMES } from '../settings.js';
+import { settings, MODE_NAMES, demoRequest } from '../settings.js';
 import { KeyboardController, GamepadController, MergedController, readPad } from '../input/controllers.js';
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
@@ -40,9 +40,9 @@ import { TouchPad, TouchController, touchEnabled } from '../input/touch.js';
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
 
-  create(data) {
+  create() {
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
-    this.demo = !!(data && data.demo); this.demoTime = 0;
+    this.demo = demoRequest.next; demoRequest.next = false; this.demoTime = 0;
     const S = this.demo ? demoSettings() : settings;
     this.mode = S.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
@@ -148,7 +148,7 @@ export class MatchScene extends Phaser.Scene {
   update(time, delta) {
     if (this.demo) {                                  // title demo: a new random match every 25 s, or when one ends
       this.demoTime += delta;
-      if (this.demoTime > 25000 || this.over === 1) { this.scene.restart({ demo: true }); return; }
+      if (this.demoTime > 25000 || this.over === 1) { demoRequest.next = true; this.scene.restart(); return; }
     } else if (this.handlePause()) return;
     if (this.training) this.training.input();
     this.acc += Math.min(delta, 100) * (this.training ? this.training.speed : 1);
