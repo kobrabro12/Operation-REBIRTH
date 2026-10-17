@@ -4,6 +4,7 @@ import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT, VIEW_W, VIEW
 import { sfx } from '../audio/sfx.js';
 import { Controller } from '../input/controllers.js';
 import { skinSheets, skinInfo, paletteFor } from './skins.js';
+import { drawBubble, popBubble } from './entities.js';
 
 let nextAttackId = 1;
 const BUFFER = 7;   // frames an early button press is remembered
@@ -346,6 +347,9 @@ export class Fighter {
     if (m.multi && m.hits && m.hits.some((h) => h.from === this.t)) this.attackId = nextAttackId++;   // each beat of a multi-hit hits again
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
+    if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
+    if (m.pane && this.t === m.spawnAt) this.match.spawnPane(this, m.pane);
+    if (m.spring && this.t === m.spawnAt) this.match.spawnSpring(this, m.spring);
     if (m.dive && this.t >= m.dive.from && this.t <= m.dive.to) {     // NU's STAGE DIVE: flat out through the air
       const D = m.dive, k = (this.t - D.from) / (D.to - D.from);
       this.vx = this.facing * D.vx * (1 - 0.45 * k);
@@ -581,6 +585,8 @@ export class Fighter {
     if (this.t < u.riseAt) { this.vy = 0; return; }
     if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('djump', 0.7, 0.7); }
     this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
+    if (u.bubble && this.t > u.riseAt && this.t < u.popAt) this.vy = -3.4;                   // AERO's bubble: a steady float upward
+    if (u.bubble && this.t === u.popAt) { popBubble(this.match, this.x, this.y - 22, 26, this.pal); this.vy = -4; }
     if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
     if (this.t >= u.frames) this.setState('helpless');
   }
@@ -697,6 +703,7 @@ export class Fighter {
     if (L.type === 'blade') return this.bladeLimit(L);
     if (L.type === 'undertow') return this.undertowLimit(L);
     if (L.type === 'mosh') return this.moshLimit(L);
+    if (L.type === 'screensaver') return this.screensaverLimit(L);
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
@@ -712,6 +719,10 @@ export class Fighter {
     if (s === 'grabbed') return;
     if (s === 'respawn') return;
     if (s.startsWith('ledge')) return;                    // hanging / climbing: the state places the fighter
+    if (this.bubbled > 0) {                               // sealed in AERO's bubble: drifting upward until it pops
+      if (--this.bubbled === 0 || s !== 'hitstun') { this.bubbled = 0; popBubble(this.match, this.x, this.y - this.body.h / 2, 22, { light: 0x9ff0ff }); }
+      else { this.vx *= 0.9; this.lx *= 0.85; this.ly = 0; this.vy = -0.55; this.grounded = false; this.platform = null; this.x += this.vx + this.lx; this.y += this.vy; this.checkBlast(); return; }
+    }
     if (s === 'limit' && this.ult && this.ult.phase === 'cutscene') return;   // teleporting in the Limit cutscene
     if (this.dropTimer > 0) this.dropTimer--;
 
@@ -989,6 +1000,89 @@ export class Fighter {
       g.fillStyle(0x0b0a14, 0.9 * k); g.fillRect(x - 2, top, 4, 22);
       g.fillStyle(i % 2 ? 0xf0c09a : 0xd8986e, k); g.fillRect(x - 2, top - 3, 4, 4);   // open hands
       g.fillRect(x - 3 + (i % 2), top - 5, 1, 2); g.fillRect(x + 2 - (i % 2), top - 5, 1, 2);
+    }
+  }
+
+  // ------------------------------------------------------------------ Screensaver Limit (AERO)
+  // Spreads his arms and the whole screen goes glossy: a fan of giant bubbles drifts out. Anyone caught
+  // is sealed in and floats up to the top of the sky - then every caught bubble pops at once in a lens
+  // flare. The bubbles can be dodged.
+  screensaverLimit(L) {
+    const m = this.match;
+    if (this.t === 1) this.ult = { bubbles: [], caught: [] };
+    const U = this.ult;
+    this.vx = 0; this.lx = 0; if (!this.grounded) this.vy = Math.min(this.vy + 0.1, 1);
+    if (this.t === L.releaseAt) {
+      for (let i = 0; i < L.count; i++) {
+        const a = (-L.spread / 2 + (L.spread * i) / (L.count - 1)) * Math.PI / 180;
+        for (const dir of [1, -1]) U.bubbles.push({ x: this.x + dir * 20, y: this.y - 30, vx: Math.cos(a) * L.speed * dir, vy: Math.sin(a) * L.speed, r: 22, life: L.life, alive: true, victim: null });
+      }
+      sfx('item', 0.9, 1.2); sfx('summon', 0.6, 1.8);
+    }
+    for (const b of U.bubbles) {
+      if (!b.alive) continue;
+      if (b.victim) {                                                   // carrying someone up toward the top of the sky
+        const v = b.victim; b.y = Math.max(L.topY, b.y - 1.6); b.x += (v.x - b.x) * 0.2;
+        v.x = b.x; v.y = b.y + v.body.h / 2; v.vx = v.vy = v.lx = v.ly = 0; v.hitstun = 999; v.bubbled = 0;
+        continue;
+      }
+      b.x += b.vx; b.y += b.vy - 0.2; b.vx *= 0.995;
+      if (--b.life <= 0) { b.alive = false; popBubble(m, b.x, b.y, b.r, this.pal); continue; }
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || U.caught.includes(o) || o.isIntangible() || o.state === 'respawn') continue;
+        const c = o.center();
+        if (Math.hypot(c.x - b.x, c.y - b.y) < b.r + 12) {
+          b.victim = o; U.caught.push(o);
+          m.applyHit(o, { h: L.trap, owner: this, facing: this.facing, id: 'ssv' + this.slot + ':' + o.slot + ':' + this.age, pillar: true }, b.x);
+          o.hitstun = 999; o.stopChargeSound(); sfx('item', 0.7, 1.4);
+          break;
+        }
+      }
+    }
+    if (this.t === L.popAt) {                                           // every caught bubble pops in a lens flare
+      for (const b of U.bubbles) if (b.victim && b.victim.alive) {
+        const v = b.victim; v.hitstun = 0;
+        m.applyHit(v, { h: L.pop, owner: this, facing: Math.sign(v.x - this.x) || this.facing, id: 'ssvp' + this.slot + ':' + v.slot + ':' + this.age, pillar: true }, b.x);
+        popBubble(m, b.x, b.y, 30, this.pal); b.flare = 18;
+      }
+      if (U.caught.length) { sfx('limitready', 1, 1.6); sfx('bighit', 0.8, 1.2); m.shake(10, 8); }
+      for (const b of U.bubbles) if (!b.victim) b.alive = false;
+    }
+    for (const b of U.bubbles) if (b.flare) b.flare--;
+    if (this.t >= L.frames) {
+      for (const v of U.caught) if (v.alive && v.hitstun >= 999) v.hitstun = 1;
+      this.invincible = 30; this.ult = null; this.setState(this.grounded ? 'idle' : 'air');
+    }
+  }
+  drawScreensaver(g, L, U) {
+    const m = this.match, v = m.worldCam.worldView, t = this.t, P = this.pal;
+    const k = Math.min(1, t / 20) * Math.min(1, (L.frames - t) / 16);
+    // the whole sky washes aqua, with two glossy light ribbons sweeping across it
+    g.fillStyle(P.light, 0.18 * k); g.fillRect(v.x, v.y, v.width, v.height);
+    for (let r = 0; r < 2; r++) {
+      for (let i = 0; i <= 60; i++) {
+        const x = v.x + (i / 60) * v.width, y = v.y + v.height * (0.35 + r * 0.22) + Math.sin(i * 0.12 + t * 0.05 + r * 2) * 26;
+        g.fillStyle(r ? 0x8be04a : P.core, 0.35 * k); g.fillRect(x, y, v.width / 60 + 1, 6 - r * 2);
+        g.fillStyle(0xffffff, 0.5 * k); g.fillRect(x, y, v.width / 60 + 1, 1);
+      }
+    }
+    for (let i = 0; i < 18; i++) {                                     // bubbles rising everywhere
+      const x = v.x + ((i * 97) % 100) / 100 * v.width + Math.sin(t * 0.05 + i) * 8, y = v.bottom - ((t * (1 + (i % 3) * 0.5) + i * 40) % (v.height + 40));
+      drawBubble(g, x, y, 3 + (i % 4) * 2, P, 0.7 * k);
+    }
+    for (let i = 0; i < 3; i++) {                                      // goldfish swimming across the sky
+      const x = v.x - 30 + ((t * (1.4 + i * 0.4) + i * 160) % (v.width + 60)), y = v.y + v.height * (0.25 + i * 0.2) + Math.sin(t * 0.1 + i) * 6;
+      g.fillStyle(0xff8a2a, k); g.fillEllipse(x, y, 10, 6); g.fillTriangle(x - 5, y, x - 10, y - 4, x - 10, y + 4);
+      g.fillStyle(0xffffff, k); g.fillRect(x + 2, y - 1, 1, 1);
+    }
+    for (const b of U.bubbles) {
+      if (b.alive) drawBubble(g, b.x, b.y, b.victim ? 30 : b.r + Math.sin(t * 0.3) * 0.8, P, 0.95);
+      if (b.flare) {                                                   // lens flare: a bright core, rays and a line of ghost rings
+        const f = b.flare / 18;
+        g.fillStyle(0xffffff, f); g.fillCircle(b.x, b.y, 10 + 20 * (1 - f));
+        g.fillRect(b.x - 70 * f, b.y - 1, 140 * f, 3); g.fillRect(b.x - 1, b.y - 50 * f, 3, 100 * f);
+        for (let j = 1; j <= 3; j++) { g.lineStyle(2, j % 2 ? P.light : 0x8be04a, 0.7 * f); g.strokeCircle(b.x + j * 22, b.y + j * 14, 6 + j * 3); }
+      }
     }
   }
 
@@ -1598,7 +1692,7 @@ export class Fighter {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; if (d.limit.type !== 'undertow' && d.limit.type !== 'mosh') spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'mosh', 'screensaver'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -1723,6 +1817,9 @@ export class Fighter {
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'mosh' && this.ult) this.drawMosh(g, d.limit, this.ult);
     if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
+    if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);
+    if (this.bubbled > 0) drawBubble(g, this.x, this.y - this.body.h / 2, 26 + Math.sin(this.anim * 0.4), { light: 0x9ff0ff, core: 0xffffff, mid: 0x3fc8ea });
+    if (s === 'limit' && d.limit.type === 'screensaver' && this.ult) this.drawScreensaver(g, d.limit, this.ult);
     if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
@@ -1861,6 +1958,29 @@ export class Fighter {
           g.fillStyle(cols[c], fade * 0.9); g.fillRect(Math.min(bx + len * (1 - w), bx + len), yy + dy, Math.abs(len * w), dy ? 1 : 2);
         }
         g.fillStyle(cols[3], fade); g.fillRect(bx + len - 2, yy - 3, 4, 6);
+        break;
+      }
+      case 'flare': {                                                // lens flare: a blinding core, rays, ghost rings
+        const front = f > 0 ? x2 : x1, yy = (y1 + y2) / 2, k = S.k * fade;
+        g.fillStyle(0xffffff, k); g.fillCircle(front - f * 10, yy, 6 + 10 * S.k);
+        g.fillStyle(0xffffff, 0.8 * k); g.fillRect(front - f * 10 - 40 * S.k, yy - 1, 80 * S.k, 2); g.fillRect(front - f * 10 - 1, yy - 26 * S.k, 2, 52 * S.k);
+        for (let j = 1; j <= 3; j++) { g.lineStyle(2, cols[1 + (j % 3)], 0.6 * k); g.strokeCircle(front - f * (10 + j * 16), yy + j * 8, 3 + j * 2); }
+        break;
+      }
+      case 'aurora': {                                               // a glossy ribbon of light, green over aqua
+        const r = Math.max(22, reachX * 0.85), a0 = -1.4, a1 = 0.8, lead = a0 + (a1 - a0) * S.k;
+        for (let a = a0; a <= lead; a += 0.05) {
+          const q = (lead - a) / (a1 - a0), px = bx + Math.cos(a) * r * f, py = cy + Math.sin(a) * r;
+          g.fillStyle(0x8be04a, fade * (0.8 - q)); g.fillRect(Math.round(px) - 2, Math.round(py) - 3, 4, 3);
+          g.fillStyle(cols[2], fade * (0.9 - q)); g.fillRect(Math.round(px) - 2, Math.round(py), 4, 3);
+          g.fillStyle(0xffffff, fade * (1 - q)); g.fillRect(Math.round(px) - 2, Math.round(py) - 1, 4, 1);
+        }
+        break;
+      }
+      case 'bubble': {                                               // a bubble popping in front of the palm
+        const front = f > 0 ? x2 : x1, yy = (y1 + y2) / 2, r = 6 + 8 * S.k;
+        g.lineStyle(2, 0xffffff, fade * (1 - S.k * 0.5)); g.strokeCircle(front - f * 12, yy, r);
+        g.fillStyle(cols[2], 0.3 * fade); g.fillCircle(front - f * 12, yy, r);
         break;
       }
       default: {                                                     // spin: a ring the swing goes round

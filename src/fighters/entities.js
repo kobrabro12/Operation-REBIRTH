@@ -501,7 +501,7 @@ export class SoundWave {
     this.dir = owner.facing;
     this.x = owner.x + owner.facing * (owner.def.handOffset.x + 4);
     this.y = owner.y + owner.def.handOffset.y + 6;
-    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++; this.kind = 'CROWD CALL';
     this.g = match.add.graphics(); match.addWorld(this.g);
     sfx('summon', 0.5, 1.6); sfx('bighit', 0.25, 1.8);
   }
@@ -577,5 +577,124 @@ export class GraffitiTag {
     }
     // a crown scrawled over the middle
     if (paint >= 1) { g.fillStyle(P.core, fade); for (const [dx, dy] of [[-4, -8], [0, -10], [4, -8]]) g.fillRect(cx + dx, y + dy, 2, 3); g.fillRect(cx - 4, y - 6, 10, 2); }
+  }
+}
+
+// AERO's BUBBLE TRAP: a big glossy bubble drifting forward. Whoever it touches is sealed inside and
+// floats helplessly upward for a moment before it pops.
+export class AeroBubble {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * (owner.def.handOffset.x + 8); this.y = owner.y + owner.def.handOffset.y + 4;
+    this.vx = this.dir * spec.speed; this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.r = spec.r; this.kind = 'BUBBLE TRAP';
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('item', 0.5, 1.6);
+  }
+  hitbox() { return { x1: this.x - this.r, x2: this.x + this.r, y1: this.y - this.r, y2: this.y + this.r, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
+  step() {
+    this.t++;
+    this.vx *= 0.99; this.x += this.vx; this.y += -0.25 + Math.sin(this.t * 0.12) * 0.35;
+    if (--this.life <= 0) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; popBubble(this.match, this.x, this.y, this.r, this.owner.pal); this.g.destroy(); }
+  render() { if (!this.alive) return; this.g.clear(); drawBubble(this.g, this.x, this.y, this.r + Math.sin(this.t * 0.3) * 0.6, this.owner.pal, Math.min(1, this.life / 12)); }
+}
+// a glossy bubble: a thin bright rim, a faint tinted body, a hard white shine and a little rainbow sheen
+export function drawBubble(g, x, y, r, P, a = 1) {
+  g.fillStyle(P.light, 0.16 * a); g.fillCircle(x, y, r);
+  g.lineStyle(2, P.core, 0.85 * a); g.strokeCircle(x, y, r);
+  g.lineStyle(1, P.mid, 0.6 * a); g.beginPath(); g.arc(x, y, r - 2, 0.2, 1.6); g.strokePath();
+  g.lineStyle(1, 0xffb0e8, 0.45 * a); g.beginPath(); g.arc(x, y, r - 1, 3.6, 4.4); g.strokePath();   // rainbow sheen
+  g.fillStyle(0xffffff, 0.95 * a); g.fillRect(x - r * 0.55, y - r * 0.55, Math.max(2, r * 0.3), 2); g.fillRect(x - r * 0.55, y - r * 0.55, 2, Math.max(2, r * 0.3));
+  g.fillRect(x + r * 0.35, y + r * 0.35, 2, 2);
+}
+export function popBubble(m, x, y, r, P) {
+  for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; m.particles.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 1.6, life: 12, color: i % 2 ? 0xffffff : P.light, size: 2, grav: 0.02 }); }
+  sfx('item', 0.35, 2.2);
+}
+
+// AERO's GLASS WINDOW: a pane of glossy glass standing in front of him for a few seconds. Projectiles that
+// hit it bounce straight back, faster, and now belong to AERO.
+export class GlassPane {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
+    this.facing = owner.facing; this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y; this.h = spec.h;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('shield', 0.6, 1.8);
+  }
+  box() { return { x1: this.x - 6, x2: this.x + 6, y1: this.y - this.h, y2: this.y }; }
+  step() {
+    this.t++;
+    const b = this.box();
+    for (const p of this.match.projectiles) {
+      if (!p.alive || p.owner.team === this.owner.team || p.reflectedBy === this || p.kind === 'BLADE TOSS') continue;
+      const h = p.hitbox && p.hitbox(); if (!h) continue;
+      if (h.x1 < b.x2 && h.x2 > b.x1 && h.y1 < b.y2 && h.y2 > b.y1) {
+        p.reflectedBy = this; p.owner = this.owner; p.id = (p.id || 0) + 'r' + this.t;
+        if (p.vx !== undefined) p.vx = -p.vx * 1.2;
+        if (p.dir !== undefined) p.dir = -p.dir;
+        if (p.life !== undefined) p.life = Math.max(p.life, 40);
+        this.flash = 8; sfx('shield', 0.9, 2.4); this.match.puff(this.x, (h.y1 + h.y2) / 2, 0xffffff, 8);
+      }
+    }
+    if (this.flash > 0) this.flash--;
+    if (this.t >= this.life) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y - this.h / 2, this.owner.pal.light, 10); this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, P = this.owner.pal, b = this.box(), grow = Math.min(1, this.t / 6), fade = this.life - this.t < 20 ? (this.life - this.t) / 20 : 1;
+    const top = b.y2 - this.h * grow;
+    g.clear();
+    g.fillStyle(this.flash ? 0xffffff : P.light, (this.flash ? 0.6 : 0.28) * fade); g.fillRect(b.x1, top, b.x2 - b.x1, b.y2 - top);
+    g.lineStyle(1, P.core, 0.9 * fade); g.strokeRect(b.x1, top, b.x2 - b.x1, b.y2 - top);
+    g.fillStyle(0xffffff, 0.8 * fade);                                  // two diagonal glass glints sliding across
+    const s = (this.t * 2) % (this.h + 30);
+    for (const off of [0, 12]) { const yy = b.y2 - s + off; if (yy > top && yy < b.y2) g.fillRect(b.x1 + 1, yy, b.x2 - b.x1 - 2, 2); }
+    g.fillStyle(P.mid, 0.9 * fade); g.fillRect(b.x1 - 1, top - 3, b.x2 - b.x1 + 2, 3);   // a glossy title bar
+  }
+}
+
+// AERO's LEAF SPRING: a glossy sprout that springs up from the ground. AERO bounces high off it; anyone
+// else who steps on it gets launched up. One at a time.
+export class LeafSpring {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.cool = new Map();
+    this.x = owner.x + owner.facing * spec.ahead;
+    let best = null;
+    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
+    if (!best) { this.alive = false; return; }
+    this.y = best.y; this.boing = 0;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+  }
+  step() {
+    this.t++;
+    if (this.boing > 0) this.boing--;
+    if (this.t > 10) for (const f of this.match.fighters) {
+      if (!f.alive || f.state === 'respawn' || (this.cool.get(f) || 0) > this.t) continue;
+      if (Math.abs(f.x - this.x) < 13 && f.y >= this.y - 8 && f.y <= this.y + 2 && (f.grounded || f.vy >= 0)) {
+        this.cool.set(f, this.t + 30); this.boing = 12;
+        sfx('djump', 0.8, 1.6);
+        if (f.team === this.owner.team) { f.vy = this.spec.bounce; f.grounded = false; f.platform = null; f.jumpsLeft = Math.max(f.jumpsLeft, 1); f.usedUpB = false; if (['idle', 'run', 'land', 'air'].includes(f.state)) f.setState('air'); }
+        else this.match.applyHit(f, { h: this.spec.hit, owner: this.owner, facing: 1, id: 'spring' + this.t + ':' + f.slot }, this.x);
+      }
+    }
+    if (this.t >= this.life) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y - 6, 0x8be04a, 8); if (this.g) this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, grow = Math.min(1, this.t / 10), sq = this.boing > 6 ? 0.6 : this.boing > 0 ? 1.25 : 1;
+    const fade = this.life - this.t < 30 ? (this.life - this.t) / 30 : 1, x = this.x, y = this.y, h = 12 * grow * sq;
+    g.clear();
+    g.fillStyle(0x4a9a1e, fade); g.fillRect(x - 1, y - h, 3, h);                       // stem
+    for (const s of [-1, 1]) {                                                         // two glossy leaves
+      g.fillStyle(0x8be04a, fade); g.fillEllipse(x + s * 6, y - h * 0.5, 10 * grow, 5 * grow);
+      g.fillStyle(0xd6ff9a, fade); g.fillRect(x + s * 6 - 2, y - h * 0.5 - 2, 3, 1);
+    }
+    g.fillStyle(0xffffff, fade); g.fillCircle(x, y - h - 3, 4 * grow);                 // a white flower pad on top
+    g.fillStyle(0xffe14a, fade); g.fillCircle(x, y - h - 3, 1.6 * grow);
   }
 }

@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GlassPane, LeafSpring } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -333,6 +333,7 @@ export class MatchScene extends Phaser.Scene {
     t.jumpsLeft = 1; t.usedUpB = false; t.airdodged = false;
     if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
     if (h.slow) t.slow = h.slow;      // Shadow Pool: stuck in the puddle
+    t.bubbled = h.bubble || 0;        // AERO's Bubble Trap: sealed in a bubble, floating up
     if (h.possess && t.alive && t.possess(h.possess)) {   // Soul Hex
       this.popText(t, 'POSSESSED!  MASH TO BREAK FREE', '#b07ad0'); sfx('curse', 0.9, 0.8);
     }
@@ -421,6 +422,15 @@ export class MatchScene extends Phaser.Scene {
   spawnTag(owner, spec) {
     for (const p of this.pools) if (p.owner === owner && p instanceof GraffitiTag) p.kill();   // one tag per NU
     const p = new GraffitiTag(this, owner, spec); if (p.alive) this.pools.push(p); return p;
+  }
+  spawnAeroBubble(owner, spec) { const p = new AeroBubble(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnPane(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof GlassPane) p.kill();
+    const p = new GlassPane(this, owner, spec); this.pools.push(p); return p;
+  }
+  spawnSpring(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof LeafSpring) p.kill();
+    const p = new LeafSpring(this, owner, spec); if (p.alive) this.pools.push(p); return p;
   }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 

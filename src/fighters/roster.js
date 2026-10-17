@@ -4,6 +4,7 @@ import { SOUL_SUMMONER } from './soulSummoner.js';
 import { MR_WAKE } from './mrWake.js';
 import { HERO_KNIGHT } from './heroKnight.js';
 import { NU } from './nu.js';
+import { AERO } from './aero.js';
 import { skinTexture, skinInfo } from './skins.js';
 
 export const ROSTER = [
@@ -20,6 +21,11 @@ export const TEST_ROSTER = [
       + 'JAB  RAP BARRAGE      FTILT  MIC SWING\nFSMASH  KICK           USMASH  BREAKDOWN\nDSMASH  GROUND POUND   DAIR  STAGE DIVE\n\n'
       + 'K      CROWD CALL - A WALL OF SOUND\nSIDE K STAGE DIVE - A LONG FLYING DIVE\nUP K   CROWD SURF - THE CROWD LIFTS HIM\n'
       + 'DOWN K GRAFFITI TAG - STAND ON IT FOR\n       RAGE MODE (+20% DAMAGE)\n\nLIMIT  MOSH PIT - JUMP THE SHOCKWAVE!' },
+  { id: 'aero', name: 'AERO', def: AERO, tag: 'PROTOTYPE 02',
+    notes: 'GLOSSY GLASS, AQUA SKIES, BUBBLES AND\nA GOLDFISH IN A FISHBOWL. LIGHT AND FLOATY.\n\n'
+      + 'JAB  BUBBLE POP      FTILT  AURORA SWOOSH\nFSMASH  LENS FLARE    USMASH  GEYSER\nDSMASH  RIPPLE        DAIR  RAINDROP\n\n'
+      + 'K      BUBBLE TRAP - SEALS THEM IN A BUBBLE\nSIDE K GLASS WINDOW - BOUNCES PROJECTILES\nUP K   BUBBLE RIDE - FLOAT UP AND POP\n'
+      + 'DOWN K LEAF SPRING - BOUNCE SKY-HIGH\n\nLIMIT  SCREENSAVER - DODGE THE BUBBLES!' },
 ];
 
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"

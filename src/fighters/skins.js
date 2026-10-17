@@ -33,6 +33,11 @@ const NUG = {
   hair: { h: [38, 62], s: [0.06, 0.5], v: [0.6, 1], center: 48 },
   cloth: { h: [230, 300], s: [0.05, 0.35], v: [0.1, 0.4], center: 258 },
 };
+const AEG = {
+  aqua: { h: [180, 215], s: [0.3, 1], v: [0.3, 1], center: 196 },
+  lime: { h: [75, 110], s: [0.3, 1], center: 92 },
+  fish: { h: [10, 40], s: [0.5, 1], v: [0.5, 1], center: 24 },
+};
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -149,6 +154,24 @@ export const SKINS = {
       pal: { outline: 0x2a1c06, deep: 0x8a6a1c, mid: 0xd9a32e, light: 0xf3c358, core: 0xfff4c8, shade: 0x3a2a0a, void: 0x120c02 },
       vfx: { hit: { shape: 'note', colors: [0xf3c358, 0xfff4c8, 0xffffff], n: 7, glint: true } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+  ],
+  // AERO (test fighter): glossy bubbles on every hit
+  'aero': [
+    { name: 'AERO', swatch: 0x3fc8ea, vfx: { hit: { shape: 'bubble', colors: [0x9ff0ff, 0xffffff], n: 7, ring: 0x9ff0ff, glint: true } } },
+    { name: 'MEADOW', swatch: 0x8be04a, fx: 0xd6ff9a, groups: AEG, rules: { aqua: { to: 112, sat: 0.9 }, lime: { to: 52, sat: 1.1 } },
+      pal: { outline: 0x1e3a0a, deep: 0x3a8a1a, mid: 0x6fd03a, light: 0xc8ff8a, core: 0xffffff, shade: 0x1e4a0a, void: 0x081404 },
+      vfx: { hit: { shape: 'feather', colors: [0xc8ff8a, 0xffffff, 0x6fd03a], n: 6, glint: true } } },
+    { name: 'BLOSSOM', swatch: 0xff9ad0, fx: 0xffc8e8, groups: AEG, rules: { aqua: { to: 330, sat: 0.7, val: 1.05 }, lime: { to: 300, sat: 0.6 }, fish: { to: 0, sat: 0.2, val: 1.2 } },
+      pal: { outline: 0x4a0e30, deep: 0xc0408a, mid: 0xff7ac0, light: 0xffc8e8, core: 0xffffff, shade: 0x5a1a40, void: 0x180610 },
+      vfx: { hit: { shape: 'sakura', colors: [0xffc8e8, 0xffffff, 0xff7ac0], n: 7 } } },
+    { name: 'NIGHT GLASS', swatch: 0x1a2a6a, fx: 0x7ad6ff, groups: AEG, rules: { aqua: { to: 225, sat: 1.1, val: 0.55 }, lime: { to: 190 } },
+      pal: { outline: 0x050a1e, deep: 0x1a2a6a, mid: 0x3a6ad0, light: 0x7ad6ff, core: 0xffffff, shade: 0x0a1030, void: 0x02040e },
+      vfx: { hit: { shape: 'star', colors: [0x7ad6ff, 0xffffff, 0xffe08a], n: 6, glint: true } } },
+    { name: 'KOI', swatch: 0xffffff, fx: 0xff6a4a, groups: AEG, rules: { aqua: { to: 12, sat: 0.9 }, lime: { to: 44, sat: 1.0 }, fish: { sat: 0.15, val: 1.3 } },
+      pal: { outline: 0x3a0a04, deep: 0xc03a1a, mid: 0xff6a4a, light: 0xffc0a8, core: 0xffffff, shade: 0x4a1a0a, void: 0x140402 },
+      vfx: { hit: { shape: 'bubble', colors: [0xffc0a8, 0xffffff], n: 7, ring: 0xff6a4a } } },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.6 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],
   'mr-wake': [

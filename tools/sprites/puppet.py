@@ -93,6 +93,8 @@ class Rig:
         """Base -> canvas transform of a part for a pose {part: (angle, dx, dy)}, root: pose['root']."""
         p = self.parts[name]
         a, dx, dy, sx, sy = (list(pose.get(name, ())) + [0, 0, 0, 1, 1][len(pose.get(name, ())):])[:5]
+        if abs(sx) < 0.05: sx = 0.05 if sx >= 0 else -0.05      # a part turning round passes through zero width
+        if abs(sy) < 0.05: sy = 0.05
         if p.upright and p.parent: a -= p.upright * self.world_angle(p.parent, pose)
         if p.drag and p.parent and '_prev' in pose:
             d = self.world_angle(p.parent, pose['_prev']) - self.world_angle(p.parent, pose)

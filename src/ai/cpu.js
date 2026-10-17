@@ -75,7 +75,7 @@ export class CpuController extends Controller {
       this.x = Math.sign(dx); this.tap('special'); return;
     }
     // Mr Wake: drop a Shadow Pool when someone is close
-    if (M.downB && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
+    if (M.downB && !M.downB.spring && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
     // Lacy's Grand Slam: a charged home-run swing up close
@@ -85,8 +85,15 @@ export class CpuController extends Controller {
       me.cpuChargeTarget = 8 + Math.floor(Math.random() * (Math.random() < 0.2 ? 170 : 50));   // usually quick, sometimes a big wind-up
       return;
     }
+    // AERO: put up a Glass Window when an enemy projectile is flying at him
+    if (M.sideB && M.sideB.pane && me.grounded && this.match.projectiles.some((p) => p.alive && p.owner.team !== me.team && Math.abs(p.x - me.x) < 110 && Math.abs(p.y - (me.y - 30)) < 50 && Math.sign(me.x - p.x) === Math.sign(p.vx || p.dir || 0)) && Math.random() < 0.3 + L.accuracy * 0.4) {
+      this.x = Math.sign(dx); this.tap('special'); return;
+    }
+    // AERO: plant a Leaf Spring now and then when there's room
+    if (M.downB && M.downB.spring && adx > 120 && me.grounded && Math.random() < 0.05 * L.aggression) { this.y = 1; this.tap('special'); return; }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
+      if (M.sideB && M.sideB.pane) { if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; } this.tap('special'); return; }   // AERO: Bubble Trap
       if (M.fireball) {
         if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }   // turn first: side+special is the Soul Hex
         this.tap('special'); this.holdSpecial = true;
@@ -171,6 +178,10 @@ export class CpuController extends Controller {
         if (me.grounded) { this.tap('jump'); this.x = Math.sign(me.x - o.x) || 1; return true; }
         if (me.vy > 0 && me.jumpsLeft > 0 && U.phase === 'flood') { this.tap('jump'); return true; }
         this.x = Math.sign(me.x - o.x) || 1; return true;
+      }
+      if (lim.type === 'screensaver') {                  // slow bubbles: jump over them and drift away
+        if (o.t > lim.releaseAt - 6 && o.t < lim.releaseAt + 50) { if (me.grounded || (me.vy > 0 && me.jumpsLeft > 0)) this.tap('jump'); this.x = Math.sign(me.x - o.x) || 1; return true; }
+        return false;
       }
       if (lim.type === 'mosh') {                         // jump the mic-drop shockwave as it comes
         const until = o.t - lim.dropAt;
