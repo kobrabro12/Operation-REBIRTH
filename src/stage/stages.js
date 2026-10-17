@@ -4,6 +4,7 @@ import { SkyStage, PAL } from './skyStage.js';
 import { SpireStage, drawSpirePreview } from './spireStage.js';
 import { MoonStage, drawMoonPreview } from './moonStage.js';
 import { ArcadeStage, drawArcadePreview } from './arcadeStage.js';
+import { ForestStage, drawForestPreview } from './forestStage.js';
 
 export const STAGES = [
   {
@@ -29,6 +30,12 @@ export const STAGES = [
     blurb: ['The control panel of a giant arcade cabinet,', 'under a synthwave sunset. Insert coin!'],
     hazard: 'RETRO MOVES: PIXEL WAVE, SPIN DASH,\nBLOCK DROP AND INVADER RAID.',
     preview: drawArcadePreview,
+  },
+  {
+    id: 'elderwood-hollow', name: 'ELDERWOOD HOLLOW', available: true, make: (scene) => new ForestStage(scene),
+    blurb: ['A mossy root at the foot of a glowing world', 'tree, deep in a mythical forest at night.'],
+    hazard: 'BRAMBLE SNARE: THORNS BURST FROM THE MOSS;\nSPIRIT STAG: A GLOWING STAG CHARGES ACROSS.',
+    preview: drawForestPreview,
   },
 ];
 
