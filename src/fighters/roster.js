@@ -11,6 +11,10 @@ export const ROSTER = [
   { id: 'hero-knight', name: 'LACY', def: HERO_KNIGHT, available: true },
 ];
 
+// TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a
+// CPU before they join the real roster. They never appear on the fighter select screen or as RANDOM.
+export const TEST_ROSTER = [];
+
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"
 
 // Show a fighter's idle sprite on a menu: right texture, origin and facing (all face right on menus).
@@ -28,5 +32,5 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
 export function fighterById(id) {
   const avail = ROSTER.filter((f) => f.available);
   if (id === 'random' || !id) return avail[Math.floor(Math.random() * avail.length)];
-  return ROSTER.find((f) => f.id === id && f.available) || avail[0];
+  return ROSTER.find((f) => f.id === id && f.available) || TEST_ROSTER.find((f) => f.id === id) || avail[0];
 }

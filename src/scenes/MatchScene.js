@@ -479,6 +479,9 @@ export class MatchScene extends Phaser.Scene {
       case 'bubble': for (let i = 0; i < n; i++) add({ shape: 'bubble', x: x + (R() - 0.5) * 18, y: y + (R() - 0.5) * 12, vx: (R() - 0.5) * 0.8, vy: -0.4 - R() * 1, life: 36 + R() * 20, color: col(i), grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6 }); break;
       case 'whirl': add({ shape: 'whirl', x, y, vx: 0, vy: 0, life: 30, maxLife: 30, color: col(0), color2: col(1), grav: 0 }); break;
       case 'cross': for (let i = 0; i < n; i++) add({ shape: 'cross', x: x + (R() - 0.5) * 26, y: y + (R() - 0.5) * 22, vx: 0, vy: -0.3, life: 22 + R() * 12, color: col(i), grav: 0, r: 2 + Math.floor(R() * 2) }); break;
+      case 'bat': for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.2; add({ shape: 'bat', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 36 + R() * 20, color: col(i % 2), grav: -0.02, drag: 0.97 }); } break;
+      case 'star': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.6 + R() * 3; add({ shape: 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.8, life: 26 + R() * 16, color: col(i), grav: 0.05, drag: 0.94 }); } break;
+      case 'pixel2': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 18 + R() * 14, color: col(i), drag: 0.9, grav: 0 }); } break;
       case 'feather': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'feather', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 50 + R() * 30, color: col(i), grav: 0.03, drag: 0.93, sway: R() * 6 }); } break;
       default: for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 14 + R() * 12, color: col(i), drag: 0.9, size: 2 + (i % 4 === 0) }); }
     }
@@ -526,7 +529,16 @@ export class MatchScene extends Phaser.Scene {
         g.fillStyle(0xfff0a0, a); g.fillRect(X, Y, 1, 1);
         break;
       }
-      case 'ink': g.fillStyle(p.color, a * 0.9); g.fillCircle(X, Y, p.r); break;                        // ink splash
+      case 'ink': g.fillStyle(p.color, a * 0.9); g.fillCircle(X, Y, p.r); break;
+      case 'bat': {                                   // a little bat, wings flapping
+        const up = (p.life >> 2) % 2;
+        g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 2);
+        if (up) { g.fillRect(X - 4, Y - 3, 3, 2); g.fillRect(X + 2, Y - 3, 3, 2); } else { g.fillRect(X - 4, Y, 3, 1); g.fillRect(X + 2, Y, 3, 1); g.fillRect(X - 5, Y + 1, 1, 1); g.fillRect(X + 5, Y + 1, 1, 1); }
+        g.fillStyle(0xffb02a, a); g.fillRect(X - 1, Y - 1, 1, 1); g.fillRect(X + 1, Y - 1, 1, 1);
+        break;
+      }
+      case 'star': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 3, 2, 7); g.fillRect(X - 3, Y - 1, 7, 2); g.fillStyle(0xffffff, a); g.fillRect(X - 1, Y - 1, 2, 2); break;   // a four-point star
+      case 'pixel2': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.35); g.fillRect(X - 3, Y - 3, 7, 7); break;   // a neon pixel with a soft glow                        // ink splash
       case 'smoke': { const k = 1 - p.life / p.maxLife; g.fillStyle(p.color, 0.55 * (1 - k)); g.fillCircle(X, Y, p.r + k * 6); break; }
       case 'flash': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.8 * k); g.fillCircle(X, Y, p.r * (1.5 - k * 0.5)); break; }
       default: g.fillStyle(p.color, a); g.fillRect(X, Y, p.size, p.size);

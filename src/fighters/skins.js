@@ -25,6 +25,7 @@ const GOLD_RAMP = [0x2a1804, 0x4a2c08, 0x6e440e, 0x965f16, 0xbb7f1f, 0xd9a32e, 0
 // ---- milestone costume ramps
 const ABYSS_RAMP = [0x02060c, 0x041222, 0x072238, 0x0c3452, 0x13496c, 0x1c6288];
 const RADIANT_RAMP = [0x5a3a10, 0x8a5e1c, 0xb8862b, 0xdcae4a, 0xf3cf74, 0xffe7a8, 0xfff6dc, 0xffffff];
+const PUMPKIN_RAMP = [0x2a0e04, 0x5a2006, 0x8e3608, 0xc4520c, 0xe8701a, 0xffa040];
 const KING_CAPE_RAMP = [0x050307, 0x0d0910, 0x17101a, 0x241826, 0x342234];
 
 const HK = {
@@ -48,6 +49,9 @@ export const SKINS = {
     // stage; he raises his own 1-bit ghosts instead of flaming skulls (tools/sprites/onebit_minion.py)
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit', style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // a carved-pumpkin knight: orange cape, a candle-yellow flame, eyes like cut-out holes; his hits scatter bats
+    { name: "JACK-O'-LANTERN", swatch: 0xf07a1a, fx: 0xffb02a, groups: SS, rules: { cape: { ramp: PUMPKIN_RAMP, lo: 0.08, hi: 0.55 }, flame: { to: 44, sat: 1.1, val: 1.2 }, gold: { to: 28, sat: 1.15, val: 1.05 }, eyes: { to: 50, val: 1.2 }, armor: { sat: 0.4, val: 0.55 } },
+      vfx: { hit: { shape: 'bat', colors: [0x16101c, 0x2a1a30, 0xffb02a], n: 6, sparks: [0xffb02a, 0xf07a1a] }, minion: { flame: { to: 40, sat: 1.1 }, eyes: { to: 48 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
@@ -98,6 +102,9 @@ export const SKINS = {
     // into crystal shards with sound-effect lettering, and her Limit is a named secret art (style 'hero')
     { name: 'AKATSUKI', swatch: 0xb0202c, fx: 0x6fd6f0, sheetSet: 'akatsuki', style: 'hero',
       pal: { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff, shade: 0x0a2a3a, void: 0x04121a } },
+    // STARLIGHT: a night-sky knight - midnight-blue suit, gold sash, silver-white steel; her hits throw stars
+    { name: 'STARLIGHT', swatch: 0x22306a, fx: 0xffe08a, groups: HK, rules: { suit: { to: 228, sat: 2.0, val: 0.62 }, sash: { to: 44, sat: 1.1, val: 1.5 }, white: { hue: 50, satAdd: 0.12 }, steel: { hue: 220, satAdd: 0.1, val: 1.2 } },
+      vfx: { hit: { shape: 'star', colors: [0xffe08a, 0xffffff, 0x9ab8ff], n: 7, glint: true } } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,
@@ -131,6 +138,13 @@ export const SKINS = {
     { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses', style: 'rose',
       pal: { outline: 0x3a0412, deep: 0x9a1240, mid: 0xd6336c, light: 0xff7aa8, core: 0xffc8da, shade: 0x1d3d1e, void: 0x0a1a0c } },
     { name: 'NOBLE', swatch: 0x24357a, fx: 0xf3c358, groups: MW, rules: { robe: { to: 228 }, magic: { to: 45 }, cloth: { to: 220 } } },
+    // 1-BIT: the third of the monochrome-handheld set - black and white, a white outline, black lines where
+    // his parts meet; his orb, pool and Undertow glitch in pixels and he talks like a terminal
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.05, hi: 0.27 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // NEON: straight out of the Neon Arcade - hot pink robe, electric cyan gem, hits that burst into neon pixels
+    { name: 'NEON', swatch: 0xff4fd8, fx: 0x4ff0ff, groups: MW, rules: { robe: { to: 318, sat: 1.25, val: 1.6 }, magic: { to: 186, sat: 1.1, val: 1.25 }, cloth: { to: 262, sat: 1.4, val: 1.2 }, wood: { to: 300, sat: 0.9 } },
+      vfx: { hit: { shape: 'pixel2', colors: [0xff4fd8, 0x4ff0ff, 0xffffff, 0xb46bff], n: 9, ring: 0x4ff0ff } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.
     { name: 'RIPTIDE', milestone: 1, swatch: 0x2a8ad0, fx: 0x7ad0ff,

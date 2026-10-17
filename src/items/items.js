@@ -2,6 +2,8 @@
 //   Soul Heart  - heals 25% (or 25 HP in Stamina)          helpful
 //   Limit Orb   - fills half of your Limit gauge             helpful
 //   Cursed Skull- 8 s curse: slower and 30% weaker attacks   harmful
+//   Swift Feather - 8 s: faster on foot and in the air, plus an extra mid-air jump
+//   Star Candy  - 5 s of invincibility: hits pass straight through, and you glow every colour
 import { sfx } from '../audio/sfx.js';
 import { LIMIT_MAX } from '../config.js';
 
@@ -9,10 +11,13 @@ const MAPS = {
   heart: ['.oo..oo.', 'orrooRro', 'orrrrRro', 'orrrrrro', '.orrrro.', '..orro..', '...oo...', '........'],
   orb: ['..oooo..', '.obbwwo.', 'obbbbwbo', 'obbbbbbo', 'oddbbbbo', 'odddbbdo', '.odddbo.', '..oooo..'],
   skull: ['.oooooo.', 'owwwwwwo', 'owoowoow', 'owoowoow', 'owwwwwwo', '.owowow.', '.oooooo.', '........'],
+  feather: ['.....oo.', '....ofgo', '...ofggo', '..ofggo.', '.ofggo..', '.oggo...', 'oo.o....', 'o.......'],
+  star: ['...oo...', '...yy...', 'oooyyooo', 'oyyYYyyo', '.oyYYyo.', '.oyyyyo.', 'oyo..oyo', 'oo....oo'],
 };
-const COLORS = { o: 0x1a1020, r: 0xff3b5c, R: 0xffb0c0, b: 0x78a0c6, w: 0xf0f2f3, d: 0x076cc2 };
-const TYPES = ['heart', 'orb', 'skull'];
-const NAMES = { heart: 'SOUL HEART', orb: 'LIMIT ORB', skull: 'CURSED SKULL' };
+const COLORS = { o: 0x1a1020, r: 0xff3b5c, R: 0xffb0c0, b: 0x78a0c6, w: 0xf0f2f3, d: 0x076cc2, f: 0xf0f2f3, g: 0x5ee07a, y: 0xf3c358, Y: 0xfff4b0 };
+const TYPES = ['heart', 'orb', 'skull', 'feather', 'star'];
+const WEIGHTS = { heart: 3, orb: 2, skull: 2, feather: 2, star: 1 };       // how often each drops
+const NAMES = { heart: 'SOUL HEART', orb: 'LIMIT ORB', skull: 'CURSED SKULL', feather: 'SWIFT FEATHER', star: 'STAR CANDY' };
 
 export function makeItemTextures(scene) {
   for (const [k, rows] of Object.entries(MAPS)) {
@@ -55,11 +60,17 @@ class Item {
     } else if (this.type === 'orb') {
       f.limit = Math.min(LIMIT_MAX, f.limit + 50);
       sfx('item', 0.7, 1.3); m.puff(f.x, f.y - 30, 0x78a0c6, 10);
+    } else if (this.type === 'feather') {
+      f.swift = 480; f.jumpsLeft = Math.max(f.jumpsLeft, 2);
+      sfx('djump', 0.8, 1.4); m.puff(f.x, f.y - 30, 0x5ee07a, 12);
+    } else if (this.type === 'star') {
+      f.star = 300;
+      sfx('limitready', 0.7, 1.5); m.puff(f.x, f.y - 30, 0xf3c358, 16);
     } else {
       f.curse = 480;
       sfx('curse', 0.8); m.puff(f.x, f.y - 30, 0xb07ad0, 12);
     }
-    m.popText(f, NAMES[this.type], this.type === 'skull' ? '#b07ad0' : this.type === 'heart' ? '#ff6b88' : '#78a0c6');
+    m.popText(f, NAMES[this.type], { skull: '#b07ad0', heart: '#ff6b88', orb: '#78a0c6', feather: '#5ee07a', star: '#f3c358' }[this.type]);
     this.kill();
   }
   kill() { if (!this.alive) return; this.alive = false; this.sprite.destroy(); }
@@ -77,7 +88,8 @@ export class ItemSpawner {
     if (--this.timer <= 0) {
       this.timer = 600 + Math.floor(Math.random() * 360);
       if (this.items.length < 2) {
-        const type = TYPES[Math.floor(Math.random() * TYPES.length)];
+        let r = Math.random() * TYPES.reduce((a, k) => a + WEIGHTS[k], 0), type = TYPES[0];
+        for (const k of TYPES) { r -= WEIGHTS[k]; if (r < 0) { type = k; break; } }
         const x = Math.round(-240 + Math.random() * 480);
         this.items.push(new Item(this.match, type, x));
       }

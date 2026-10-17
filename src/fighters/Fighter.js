@@ -24,6 +24,14 @@ const QUIPS = {
     grab: [0.8, 'GOT YOU.'], throw: [0.7, 'DELETE.', 'DRAG > TRASH'],
     limit: [1, 'RUN THOUSAND_CUTS'], ko: [1, 'CTRL+ALT+DEL.', 'USER LOGGED OFF.'],
   },
+  // Mr Wake in 1-BIT: a wizard who turned out to be a very old program
+  'mr-wake:onebit': {
+    jab: [0.3, '> bonk()', 'NULL.'],
+    attack: [0.22, 'CAST.', '> spell()', '0xDEAD', 'EXEC;'],
+    smash: [0.6, 'KERNEL PANIC!', 'rm -rf you'],
+    grab: [0.7, 'LOCKED.'], throw: [0.7, 'EJECT.', 'PIPE > /DEV/NULL'],
+    upb: [0.5, 'GOTO 10'], limit: [1, 'SINK();'], ko: [1, 'SEGFAULT.', 'PROCESS ENDED.'],
+  },
   // AKATSUKI: an anime hero, shouting her moves
   'hero-knight:hero': {
     jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
@@ -41,6 +49,8 @@ const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
 };
+// swoosh shape for moves that don't name one (Fighter.drawSwoosh)
+const SWOOSH_BY_MOVE = { jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
 const CRYSTAL_BLADE = { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff };
 
 export class Fighter {
@@ -93,7 +103,7 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1); }
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1); }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
   // a direction pressed within the last few frames before attack = a smash attack
   smashed(at) { return this.age - at <= 6; }
@@ -138,6 +148,8 @@ export class Fighter {
     if (this.slow > 0) this.slow--;
     if (this.invincible > 0) this.invincible--;
     if (this.curse > 0) this.curse--;
+    if (this.swift > 0) this.swift--;
+    if (this.star > 0) this.star--;
     if (this.summonCooldown > 0) this.summonCooldown--;
     if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
     if (this.state !== 'shield' && this.shieldHp < 60) this.shieldHp = Math.min(60, this.shieldHp + 0.12);
@@ -153,7 +165,7 @@ export class Fighter {
   // the fighter toward the nearest edge of the stage until the curse wears off or is mashed away.
   possess(frames) {
     if (this.possessImmune > 0 || this.possessed > 0) return false;
-    this.possessed = frames; this.possessMax = frames;
+    this.possessed = frames; this.possessMax = frames; this.walkedOff = false;
     this.possessDir = this.x >= 0 ? 1 : -1;           // nearest edge
     for (const b of Object.keys(this.buffer)) this.buffer[b] = 0;
     this.stopChargeSound();
@@ -170,6 +182,13 @@ export class Fighter {
     this.possessed -= 1 + wiggles * 10;
     if (wiggles) this.wiggleFx = 6;
     if (this.possessed <= 0) { this.endPossession(wiggles > 0); return real; }
+    const P0 = this.match.stage.platforms[0];
+    if (!this.grounded && this.state !== 'hitstun' && this.walkedOff && (this.x < P0.x1 || this.x > P0.x2)) {   // stumbled off the edge: the fall snaps them out of it
+      this.walkedOff = false; this.endPossession(false);
+      this.match.popText(this, 'SNAPPED OUT OF IT!', '#f3c358'); this.match.puff(this.x, this.y - 30, 0xb07ad0, 10);
+      return real;
+    }
+    if (this.grounded) this.walkedOff = true;
     const f = this.forced;
     f.beginFrame();
     for (const b in f.cur) f.cur[b] = false;
@@ -223,9 +242,10 @@ export class Fighter {
       const M = this.def.moves;
       if (ground) {
         // tap a direction and attack together for a smash attack (if the fighter has one)
-        if (c.up) this.startAttack(M.usmash && this.smashed(this.tapUp) ? 'usmash' : 'utilt');
-        else if (c.down) this.startAttack(M.dsmash && this.smashed(this.tapDown) ? 'dsmash' : 'dtilt');
-        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack(M.fsmash && this.smashed(this.tapX) ? 'fsmash' : 'ftilt'); }
+        const sm = (at) => this.smashed(at) || c.smash;        // the CPU asks for a smash outright
+        if (c.up) this.startAttack(M.usmash && sm(this.tapUp) ? 'usmash' : 'utilt');
+        else if (c.down) this.startAttack(M.dsmash && sm(this.tapDown) ? 'dsmash' : 'dtilt');
+        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack(M.fsmash && sm(this.tapX) ? 'fsmash' : 'ftilt'); }
         else this.startAttack('jab');
       } else {
         if (c.up) this.attackOr('uair', 'nair');
@@ -365,11 +385,13 @@ export class Fighter {
     const t = this.grabbed;
     if (!t || !t.alive) { this.grabbed = null; this.setState('idle'); return; }
     t.x = this.x + this.facing * 26; t.y = this.y;
+    if (this.pummelCd > 0) this.pummelCd--;
     let dir = null;
     if (this.t > 6) {
       if (c.up) dir = 'up'; else if (c.down) dir = 'down';
       else if (Math.abs(c.x) > 0.5) dir = Math.sign(c.x) === this.facing ? 'forward' : 'back';
-      else if (this.buffer.attack || this.buffer.grab) dir = 'forward';
+      else if (this.buffer.grab) dir = 'forward';
+      else if (this.buffer.attack && !(this.pummelCd > 0)) { this.buffer.attack = 0; this.pummel(t); }   // attack with no direction: a quick knee / jab
     }
     if (this.t > 50) dir = 'forward';
     if (dir) {
@@ -380,8 +402,32 @@ export class Fighter {
       this.quip('throw');
     }
   }
-  st_grabbed() {
-    if (!this.grabbedBy || this.t > 60) { this.grabbedBy = null; this.setState('idle'); }
+  // a pummel while holding someone: 2%, no knockback, at most one every 12 frames
+  pummel(t) {
+    const m = this.match, dmg = 2;
+    if (m.mode === 'stamina') t.hp -= dmg; else t.percent = Math.min(999, t.percent + dmg);
+    if (t.state !== 'limit') t.limit = Math.min(LIMIT_MAX, t.limit + dmg);
+    t.stats.damageTaken += dmg; this.stats.damageDealt += dmg;
+    t.flash = 3; t.hitstop = this.hitstop = 4; this.pummelCd = 12;
+    m.puff(t.x - this.facing * 6, t.y - t.body.h * 0.6, 0xffffff, 3);
+    m.skinHitFx(this, t.x, t.y - t.body.h * 0.6, 1, this.facing, dmg);
+    sfx('hit', 0.45, 1.35 + Math.random() * 0.15);
+    if (m.mode === 'stamina' && t.hp <= 0) { t.hp = 0; this.grabbed = null; t.grabbedBy = null; if (t.def.sheets.death) t.startDying(); else m.onKO(t); this.setState('idle'); }
+  }
+  st_grabbed(c) {
+    // mash any button (or wiggle) to break free sooner; the higher your damage, the longer it takes
+    let mash = 0;
+    for (const b of ['jump', 'attack', 'special', 'shield', 'grab']) if (c.pressed(b)) mash++;
+    if (c.tappedSide() || c.tappedDown()) mash++;
+    if (mash) { this.t += mash * Math.max(2, 5 - Math.floor(this.percent / 60)); if (this.grabbedBy) this.match.puff(this.x, this.y - 30, 0xffffff, 1); }
+    if (!this.grabbedBy || this.t > 60) {
+      const h = this.grabbedBy;
+      if (h && h.grabbed === this) {                    // broke free: both pushed apart
+        h.grabbed = null; h.setState('idle'); h.lx = -h.facing * 2.2;
+        this.lx = h.facing * 2.6; sfx('dodge', 0.5, 1.2); this.match.popText(this, 'ESCAPED!', '#9ad8f0');
+      }
+      this.grabbedBy = null; this.setState('idle');
+    }
   }
 
   // ---- neutral special (Lacy): Grand Slam - hold to wind up a home-run swing, release to swing
@@ -607,7 +653,7 @@ export class Fighter {
     if (this.t >= 28) this.setState('air');
   }
   isIntangible() {
-    if (this.invincible > 0 || this.state === 'respawn') return true;
+    if (this.invincible > 0 || this.star > 0 || this.state === 'respawn') return true;
     if (this.state === 'roll') return this.t >= 4 && this.t <= 16;
     if (this.state === 'spotdodge') return this.t >= 3 && this.t <= 16;
     if (this.state === 'airdodge') return this.t >= 3 && this.t <= 20;
@@ -801,7 +847,7 @@ export class Fighter {
       if (this.state === 'hitstun' && this.ly > 4) { this.ly = -this.ly * 0.6; this.y = landed.y; this.match.puff(this.x, this.y, 0xd99350, 6); return; }
       this.y = landed.y; this.vy = 0; this.ly = 0;
       this.grounded = true; this.platform = landed;
-      this.jumpsLeft = 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false; this.ledgeGrabs = 0;
+      this.jumpsLeft = this.swift > 0 ? 2 : 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false; this.ledgeGrabs = 0;
       this.onLand();
     } else if (landed && this.grounded) {
       this.y = landed.y; this.platform = landed;
@@ -838,7 +884,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.possessed = 0; this.possessImmune = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.possessed = 0; this.possessImmune = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
@@ -988,7 +1034,7 @@ export class Fighter {
       }
       const pad = b.half + 2;
       for (const o of m.fighters) {
-        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o)) continue;
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o) || o.isIntangible()) continue;
         const hb = o.hurtbox();
         if (pts.some(([x, y]) => x > hb.x1 - pad && x < hb.x2 + pad && y > hb.y1 - pad && y < hb.y2 + pad)) U.victims.push(o);
       }
@@ -1202,7 +1248,7 @@ export class Fighter {
     } else if (U.phase === 'whiff') {
       pose = GUARD; grow = 1 - ease(Math.min(1, (t - L.slashTo) / (L.whiffEnd - L.slashTo)));   // shrinks back to normal
     }
-    return { len: 30 + 160 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
+    return { len: 30 + 145 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
   }
   drawBladeLimit(g, L, U) {
     const C = this.style === 'hero' ? CRYSTAL_BLADE : L.colors;
@@ -1482,7 +1528,12 @@ export class Fighter {
     if (this.silhouette > 0) { this.silhouette--; spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
     else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
-    if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.star > 0 && !this.silhouette && !this.flash) {         // Star Candy: cycling through every colour, sparkling
+      const c = Phaser.Display.Color.HSVToRGB(((this.anim * 8) % 360) / 360, 0.55, 1);
+      spr.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b)).setTintMode(Phaser.TintModes.MULTIPLY);
+      if (this.anim % 4 === 0) this.match.particles.push({ shape: 'star', x: this.x + (Math.random() - 0.5) * 28, y: this.y - Math.random() * this.body.h, vx: 0, vy: -0.4, life: 18, color: [0xf3c358, 0xffffff, 0x9ab8ff, 0xff7aa8][(this.anim >> 2) % 4], grav: 0 });
+    } else if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.swift > 0 && Math.abs(this.vx) > 1.5 && this.anim % 3 === 0) this.match.particles.push({ x: this.x - Math.sign(this.vx) * 10, y: this.y - 6 - Math.random() * 30, vx: -this.vx * 0.3, vy: 0, life: 12, color: 0x5ee07a, size: 2, grav: 0 });
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) {          // The Undertow: melted into the puddle
       const U = this.ult;
       if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(this.pal.shade).setTintMode(Phaser.TintModes.FILL); }
@@ -1632,13 +1683,13 @@ export class Fighter {
         }
       }
     }
-    // attack swipe effects (placeholder until attack animations are drawn)
+    // attack swooshes: a pixel crescent (or ring, sweep, streak) that follows the swing through its
+    // active frames and fades out just after, in the costume's ability colours
     for (const hb of this.activeHitboxes()) {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
-      const tint = hb.src && hb.src.fxTint ? (this.pal === d.pal ? hb.src.fxTint : (fx === 'hex' ? this.pal.mid : this.pal.shade)) : this.fxColor;
-      g.fillStyle(tint, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
+      if (fx === 'grab') continue;
       if (fx === 'hex') {     // Soul Hex: a swirling purple curse with a dark eye
         const cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, rx = (hb.x2 - hb.x1) / 2, ry = (hb.y2 - hb.y1) / 2;
         for (let k = 0; k < 10; k++) { const a = this.t * 0.4 + k * 0.63, r = 0.35 + 0.65 * (k / 10);
@@ -1646,12 +1697,73 @@ export class Fighter {
         g.fillStyle(0x0b0a14, 1); g.fillEllipse(cx, cy, 12, 8); g.fillStyle(0xf3c358, 1); g.fillRect(cx - 1, cy - 1, 3, 3);
         continue;
       }
-      if (fx === 'spin' || fx === undefined) g.fillCircle((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) / 2);
-      else g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, hb.x2 - hb.x1, hb.y2 - hb.y1);
-      g.fillStyle(0xf0f2f3, 0.8);
-      g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) * 0.5, Math.max(3, (hb.y2 - hb.y1) * 0.3));
+      const h = hb.h, span = Math.max(1, (h.to ?? this.t) - (h.from ?? this.t) + 1);
+      const k = h.from !== undefined ? Math.min(1, (this.t - h.from + 1) / span) : 1;
+      this.swooshFx = { fx: fx || (this.state === 'upb' ? 'spin' : this.state === 'attack' && SWOOSH_BY_MOVE[this.moveName]) || 'spin', hb: { ...hb }, k, life: 7, x: this.x, y: this.y, facing: this.facing };
+    }
+    if (this.swooshFx) {
+      const S = this.swooshFx;
+      if (!this.activeHitboxes().length) { S.life--; S.k = 1; }
+      if (S.life <= 0 || !this.alive) this.swooshFx = null;
+      else this.drawSwoosh(g, S, (this.x - S.x), (this.y - S.y));
     }
     // off-screen arrow is handled by the HUD
+  }
+
+  // One swoosh. S.k = how far through the swing (0..1), S.life fades it out after the hit window.
+  // Shapes: arc (overhead to forward), up (front over the head to the back), back (behind), down (a
+  // stab under), low (a sweep along the floor), low2 (both sides), spin (a full ring), jab / thrust (streaks)
+  drawSwoosh(g, S, ox, oy) {
+    const P = this.pal, f = S.facing, hb = S.hb, fade = Math.min(1, S.life / 7);
+    const x1 = hb.x1 + ox, x2 = hb.x2 + ox, y1 = hb.y1 + oy, y2 = hb.y2 + oy;
+    const bx = S.x + ox, by = S.y + oy, bodyH = this.body.h;
+    const cols = [P.deep, P.mid, P.light, P.core];
+    // a crescent: arc from a0 to a1 (radians, facing right), the lead at a0 + (a1 - a0) * k
+    const crescent = (cx, cy, r, a0, a1, w) => {
+      const lead = a0 + (a1 - a0) * S.k, len = Math.abs(lead - a0), dir = Math.sign(a1 - a0) || 1;
+      if (len < 0.05) return;
+      const steps = Math.max(6, Math.round(r * len / 2));
+      for (let i = 0; i <= steps; i++) {
+        const q = i / steps, a = lead - dir * len * q;                // q = 0 at the leading edge
+        const thick = Math.max(1, w * (1 - q) ** 0.8);
+        for (let j = 0; j < thick; j += 2) {
+          const rr = r - j, px = cx + Math.cos(a) * rr * f, py = cy + Math.sin(a) * rr;
+          const c = cols[Math.min(3, Math.floor((1 - q) * 3 + (j < 2 ? 1 : 0)))];
+          g.fillStyle(c, fade * (0.95 - q * 0.6)); g.fillRect(Math.round(px) - 1, Math.round(py) - 1, 2, 2);
+        }
+      }
+    };
+    const cy = by - bodyH * 0.55;
+    const reachX = Math.max(Math.abs(x1 - bx), Math.abs(x2 - bx)), reachUp = by - y1, reachDown = y2 - cy;
+    switch (S.fx) {
+      case 'arc': case 'slash': case 'staff': case 'flame': crescent(bx, cy, Math.max(20, Math.hypot(reachX * 0.85, (y2 - y1) * 0.4)), -1.35, 0.75, 9); break;
+      case 'up': crescent(bx, cy + 6, Math.max(20, Math.min(reachUp - bodyH * 0.35, 48)), 0.2, -3.35, 9); break;
+      case 'back': crescent(bx, cy, Math.max(20, reachX * 0.9), -1.8, -4.2, 9); break;
+      case 'down': crescent(bx, cy, Math.max(18, reachDown), 0.2, 2.9, 8); break;
+      case 'low': case 'low2': {
+        const front = f > 0 ? x2 : x1, back = S.fx === 'low2' ? (f > 0 ? x1 : x2) : bx;
+        for (const [from, to] of S.fx === 'low2' ? [[bx, front], [bx, back]] : [[back, front]]) {
+          const len = (to - from) * S.k;
+          for (let i = 0; i < 3; i++) {
+            const yy = by - 3 - i * 4, l = len * (1 - i * 0.22);
+            g.fillStyle(cols[3 - i], fade * (0.9 - i * 0.2)); g.fillRect(Math.min(from, from + l), yy, Math.abs(l), 2);
+          }
+        }
+        break;
+      }
+      case 'jab': case 'thrust': {
+        const front = f > 0 ? x2 : x1, len = (front - bx) * (0.4 + 0.6 * S.k), yy = (y1 + y2) / 2;
+        for (const [dy, w, c] of [[0, 1, 3], [-4, 0.7, 2], [4, 0.6, 2], [-8, 0.4, 1], [8, 0.35, 1]]) {
+          g.fillStyle(cols[c], fade * 0.9); g.fillRect(Math.min(bx + len * (1 - w), bx + len), yy + dy, Math.abs(len * w), dy ? 1 : 2);
+        }
+        g.fillStyle(cols[3], fade); g.fillRect(bx + len - 2, yy - 3, 4, 6);
+        break;
+      }
+      default: {                                                     // spin: a ring the swing goes round
+        const cx = (x1 + x2) / 2, ccy = (y1 + y2) / 2, r = Math.max(14, (x2 - x1) / 2);
+        crescent(cx, ccy, r, -1.6, -1.6 + Math.PI * 2 * 0.9, 7);
+      }
+    }
   }
 
   // SAMURAI costume's Cyclone Slash: a red-and-gold Eastern dragon chasing its tail around her.

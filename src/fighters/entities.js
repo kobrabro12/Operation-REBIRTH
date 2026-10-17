@@ -61,7 +61,7 @@ export class Fireball {
   hitbox() {
     return {
       x1: this.x - this.r, x2: this.x + this.r, y1: this.y - this.r, y2: this.y + this.r,
-      h: { dmg: this.dmg, angle: 32, base: 2.2 + 3.2 * this.k, growth: 2.0 + 5.0 * this.k },
+      h: { dmg: this.dmg, angle: 32, base: 2.2 + 2.6 * this.k, growth: 2.0 + 4.0 * this.k },
       owner: this.owner, id: this.id, facing: this.dir, projectile: this,
     };
   }
@@ -209,7 +209,7 @@ export class Soul {
   constructor(match, owner) {
     this.match = match; this.owner = owner; this.team = owner.team;
     this.x = owner.x + owner.facing * 30; this.y = owner.y; this.rise = 24;
-    this.vx = 0; this.vy = 0; this.hp = 18; this.life = 900; this.cool = 30;
+    this.vx = 0; this.vy = 0; this.hp = 18; this.life = 660; this.cool = 30;
     this.alive = true; this.t = 0; this.id = nextId++; this.attackId = nextId++; this.flash = 0;
     const minionKey = skinInfo(owner.def.id, owner.skin).minion || minionTexture(match, owner.def.id, owner.skin);   // some costumes raise their own kind of soul
     this.sprite = match.add.sprite(this.x, this.y, minionKey && match.textures.exists(minionKey) ? minionKey : 'soul_minion', 0).setScale(SOUL_SCALE).setOrigin(SOUL_ORIGIN.x, SOUL_ORIGIN.y);
@@ -247,11 +247,11 @@ export class Soul {
     if (this.rise > 0 || this.cool > 0) return null;
     return {
       x1: this.x - 11, x2: this.x + 11, y1: this.y - 12, y2: this.y + 9,
-      h: { dmg: 4, angle: 50, base: 2.6, growth: 2.2 },
+      h: { dmg: 3, angle: 50, base: 2.6, growth: 2.2 },
       owner: this.owner, id: this.attackId, facing: Math.sign(this.vx) || 1, soul: this,
     };
   }
-  onBite() { this.cool = 55; this.attackId = nextId++; this.vx *= -1.5; this.vy = -1.5; sfx('soulhit', 0.4); }
+  onBite() { this.cool = 65; this.attackId = nextId++; this.vx *= -1.5; this.vy = -1.5; sfx('soulhit', 0.4); }
   damage(dmg, dirX) {
     this.hp -= dmg; this.flash = 6; this.vx = dirX * 3; this.vy = -2;
     if (this.hp <= 0) this.kill(true);

@@ -55,7 +55,14 @@ GHOST = (120, 160, 198)        # 78A0C6 - his light flame blue (skins recolour i
 # ---------------------------------------------------------------- poses
 # A pose is {part: (angle, dx, dy[, sx, sy])}, 'root': (angle, dx, dy, sx, sy) around the feet.
 # Positive angles turn clockwise on screen. The arm points right (forward) at 0; -90 is straight up.
-def P(**kw): return kw
+def P(**kw):
+    """A pose. The arm never slides off his shoulder: a push forward (dx) stretches the sleeve from the
+    shoulder instead (the arm is about 10 px long), so the hand reaches without coming detached."""
+    if 'arm' in kw:
+        a = list(kw['arm']) + [0, 0, 0, 1, 1][len(kw['arm']):]
+        a[3] = a[3] * (1 + max(-0.3, a[1] / 10)); a[1] = 0; a[2] = max(-1, min(1, a[2]))
+        kw['arm'] = tuple(a)
+    return kw
 REST = P()
 
 def k(t, pose, ease='inout'): return (t, pose, ease)
@@ -65,12 +72,12 @@ def move(name, ticks, keys, step=2, smear=('arm', 'flame'), loop=False, center=N
     MOVES[name] = (ticks, keys, step, smear, loop, center)
 
 # --- jab: a quick flame punch - shoulder dips back, arm snaps forward, settles
-move('jab', 16, [
+move('jab', 18, [
     k(0, P(root=(0, 0, 0, 1, 1))),
     k(2, P(arm=(-25, -2, 0), torso=(-4, 0, 0), head=(3, 0, 0), root=(0, 0, 0, 1.02, 0.98)), 'out'),
-    k(4, P(arm=(8, 6, 1), torso=(6, 2, 0), head=(-3, 0, 0), cape=(-10, 0, 0), fleg=(-6, 0, 0)), 'snap'),
-    k(9, P(arm=(4, 5, 1), torso=(5, 2, 0), head=(-2, 0, 0), cape=(-14, 0, 0), fleg=(-6, 0, 0)), 'linear'),
-    k(16, REST, 'inout'),
+    k(5, P(arm=(8, 6, 1), torso=(6, 2, 0), head=(-3, 0, 0), cape=(-10, 0, 0), fleg=(-6, 0, 0)), 'snap'),
+    k(10, P(arm=(4, 5, 1), torso=(5, 2, 0), head=(-2, 0, 0), cape=(-14, 0, 0), fleg=(-6, 0, 0)), 'linear'),
+    k(18, REST, 'inout'),
 ])
 # --- ftilt: a wide forward rake of flame - wind back high, then sweep down across, weight onto the front foot
 move('ftilt', 28, [
@@ -145,6 +152,34 @@ move('dair', 32, [
     k(20, P(arm=(88, 0, 3), torso=(4, 0, 2), head=(-6, 0, 0), cape=(-14, 0, 1), root=(0, 0, 3, 0.96, 1.06), bleg=(4, 0, 3), fleg=(-4, 0, 3)), 'linear'),
     k(32, AIRREST, 'inout'),
 ])
+
+# ---- smash attacks
+# Soul Flare: draws the flame back behind him, swelling, then shoves it forward underhand with a lunge
+move('fsmash', 44, [
+    k(0, REST),
+    k(10, P(arm=(150, -4, 2), torso=(-12, -2, 0), head=(6, 0, 0), cape=(16, 0, 0), bleg=(6, 0, 0), fleg=(-8, 0, 0), root=(0, -3, 0, 1.03, 0.97), flame=(0, 0, 0, 1.3, 1.3)), 'out'),
+    k(15, P(arm=(156, -4, 2), torso=(-14, -2, 0), head=(8, 0, 0), cape=(20, 0, 0), bleg=(6, 0, 0), fleg=(-8, 0, 0), root=(0, -3, 0, 1.05, 0.95), flame=(0, 0, 0, 1.45, 1.45))),
+    k(17, P(arm=(-8, 10, 1), torso=(18, 4, 1), head=(-8, 1, 0), cape=(-28, 0, 0), bleg=(20, 0, 0), fleg=(-18, 3, 0), root=(0, 7, 0, 1.06, 0.94), flame=(0, 0, 0, 1.7, 1.25)), 'snap'),
+    k(26, P(arm=(-4, 9, 1), torso=(16, 4, 1), head=(-6, 1, 0), cape=(-20, 0, 0), bleg=(18, 0, 0), fleg=(-16, 3, 0), root=(0, 7, 0), flame=(0, 0, 0, 1.2, 1.1)), 'linear'),
+    k(44, REST, 'inout'),
+])
+# Pyre: crouches low, then thrusts the flame straight up as it roars into a pillar
+move('usmash', 42, [
+    k(0, REST),
+    k(9, P(arm=(40, 0, 2), torso=(10, 0, 2), head=(6, 0, 0), cape=(-6, 0, 0), root=(0, 0, 0, 1.1, 0.84), bleg=(16, -1, 0), fleg=(-18, 2, 0), flame=(0, 0, 0, 1.2, 1.2)), 'out'),
+    k(14, P(arm=(-95, -2, -4), torso=(-6, 0, -1), head=(-14, 0, 0), cape=(22, 0, 0), root=(0, 0, -4, 0.9, 1.14), flame=(0, 0, 0, 1.7, 2.1)), 'snap'),
+    k(21, P(arm=(-100, -2, -4), torso=(-8, 0, -1), head=(-12, 0, 0), cape=(16, 0, 0), root=(0, 0, -3, 0.94, 1.08), flame=(0, 0, 0, 1.8, 2.2)), 'linear'),
+    k(42, REST, 'inout'),
+])
+# Grave Sweep: crouches and sweeps the flame low in front, then round behind him
+move('dsmash', 42, [
+    k(0, REST),
+    k(8, P(arm=(-20, -2, 0), torso=(16, 0, 2), head=(-6, 0, 0), cape=(-8, 0, 0), root=(0, 0, 0, 1.08, 0.86), bleg=(18, -1, -1), fleg=(-22, 2, -1), flame=(0, 0, 0, 1.2, 1.2)), 'out'),
+    k(11, P(arm=(70, 6, 5), torso=(24, 3, 3), head=(-10, 0, 0), cape=(-20, 0, 0), root=(0, 2, 0, 1.12, 0.82), bleg=(22, -1, -1), fleg=(-28, 2, -1), flame=(0, 0, 0, 1.3, 1.0)), 'snap'),
+    k(15, P(arm=(160, -8, 5), torso=(-6, -2, 3), head=(4, 0, 0), cape=(24, 0, 0), root=(0, -2, 0, 1.12, 0.82), bleg=(22, -1, -1), fleg=(-28, 2, -1), flame=(0, 0, 0, 1.3, 1.0)), 'linear'),
+    k(22, P(arm=(150, -7, 4), torso=(-4, -2, 3), head=(4, 0, 0), cape=(16, 0, 0), root=(0, -2, 0, 1.1, 0.85), bleg=(18, -1, -1), fleg=(-24, 2, -1)), 'out'),
+    k(42, REST, 'inout'),
+], smear=('arm', 'flame', 'cape'))
 
 # ---- grab and throws
 move('grab', 26, [
@@ -223,13 +258,13 @@ move('upb', 40, [
     k(40, AIRREST, 'inout'),
 ])
 # Soulfire Beam (Limit): gathers the fire overhead, then braces and holds his palm out at the enemy
-move('limit', 112, [
+move('limit', 118, [
     k(0, REST),
-    k(14, P(arm=(-105, -3, -3), torso=(-8, 0, -1), head=(-16, 0, 0), cape=(20, 0, 0), root=(0, 0, -2, 0.96, 1.06), flame=(0, 0, 0, 1.3, 1.4))),
-    k(30, P(arm=(-112, -3, -4), torso=(-12, 0, -1), head=(-18, 0, 0), cape=(26, 0, 0), root=(0, 0, -3, 0.95, 1.08), flame=(0, 0, 0, 1.6, 1.7))),
-    k(36, P(arm=(-4, 7, 1), torso=(10, 2, 1), head=(-4, 0, 0), cape=(-30, 0, 0), bleg=(18, -1, 0), fleg=(-18, 3, 0), root=(0, 3, 0, 1.06, 0.94), flame=(0, 0, 0, 0.9, 0.9)), 'snap'),
-    k(96, P(arm=(-2, 7, 1), torso=(12, 2, 1), head=(-6, 0, 0), cape=(-36, 0, 0), bleg=(20, -1, 0), fleg=(-20, 3, 0), root=(0, 3, 0, 1.07, 0.93), flame=(0, 0, 0, 0.9, 0.9)), 'linear'),
-    k(112, REST, 'inout'),
+    k(16, P(arm=(-105, -3, -3), torso=(-8, 0, -1), head=(-16, 0, 0), cape=(20, 0, 0), root=(0, 0, -2, 0.96, 1.06), flame=(0, 0, 0, 1.3, 1.4))),
+    k(34, P(arm=(-112, -3, -4), torso=(-12, 0, -1), head=(-18, 0, 0), cape=(26, 0, 0), root=(0, 0, -3, 0.95, 1.08), flame=(0, 0, 0, 1.6, 1.7))),
+    k(42, P(arm=(-4, 7, 1), torso=(10, 2, 1), head=(-4, 0, 0), cape=(-30, 0, 0), bleg=(18, -1, 0), fleg=(-18, 3, 0), root=(0, 3, 0, 1.06, 0.94), flame=(0, 0, 0, 0.9, 0.9)), 'snap'),
+    k(102, P(arm=(-2, 7, 1), torso=(12, 2, 1), head=(-6, 0, 0), cape=(-36, 0, 0), bleg=(20, -1, 0), fleg=(-20, 3, 0), root=(0, 3, 0, 1.07, 0.93), flame=(0, 0, 0, 0.9, 0.9)), 'linear'),
+    k(118, REST, 'inout'),
 ], step=4)
 
 # ---- reactions

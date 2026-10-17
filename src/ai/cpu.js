@@ -10,18 +10,21 @@ export class CpuController extends Controller {
     this.fighter = null;
     this.wait = 0;            // frames until the next decision
     this.plan = null;         // current intention
-    this.shieldFor = 0; this.seenAttack = 0; this.holdSpecial = false;
+    this.shieldFor = 0; this.seenAttack = 0; this.holdSpecial = false; this.smash = false; this.hopAttack = 0;
   }
   tap(b) { this.cur[b] = !this.prev[b]; }   // press on one frame, release the next
   poll() {
     for (const b in this.cur) if (b !== 'special' || !this.holdSpecial) this.cur[b] = false;
-    this.x = 0; this.y = 0;
+    this.x = 0; this.y = 0; this.smash = false;
     const me = this.fighter;
     if (!me || !me.alive || this.match.frozen) return;
+    if (me.state === 'grabbed') { if (Math.random() < this.lv.mash * 1.5) this.tap(['attack', 'jump', 'shield'][Math.floor(Math.random() * 3)]); return; }
+    if (me.state === 'holding') return this.throwPlan(me);
     if (me.state === 'respawn') { if (Math.random() < 0.03) this.x = Math.random() < 0.5 ? -1 : 1; return; }
     if (me.state === 'charge' || me.state === 'swingcharge') { this.cur.special = true; return; }
     this.holdSpecial = false;
     if (me.possessed > 0) { if (Math.random() < this.lv.mash) this.tap(['attack', 'jump', 'special', 'shield'][Math.floor(Math.random() * 4)]); return; }
+    if (this.dodgeLimit(me)) return;
 
     if (me.state === 'ledge') return this.ledgeAction(me);
     const P = this.match.stage.platforms[0];
@@ -45,6 +48,15 @@ export class CpuController extends Controller {
       this.seenAttack = tgt.attackId;
       if (me.def.moves.counter && Math.random() < L.shieldChance * 0.8) { this.y = 1; this.tap('special'); return; }
       if (Math.random() < L.shieldChance) { this.shieldFor = 14 + Math.floor(Math.random() * 10); this.wait = Math.max(this.wait, 4); return; }
+    }
+    if (this.hopAttack > 0 && !me.grounded) {          // mid short hop: drift in and swing
+      this.x = Math.sign(dx);
+      if (--this.hopAttack === 0 || adx < 40) {         // forward air if they're ahead, back air if behind, neutral air on top of them
+        this.hopAttack = 0; this.x = adx > 8 ? Math.sign(dx) : 0;
+        if (dy > 26) { this.x = 0; this.y = 1; }
+        this.tap('attack');
+      }
+      return;
     }
     if (this.wait > 0) { this.wait--; this.continuePlan(me, tgt, dx, dy); return; }
     this.wait = L.react + Math.floor(Math.random() * L.react);
@@ -86,6 +98,11 @@ export class CpuController extends Controller {
       }
       return;
     }
+    // close the gap with a short hop and an aerial now and then (harder CPUs more often)
+    if (me.grounded && adx > 50 && adx < 110 && Math.abs(dy) < 40 && Math.random() < 0.18 * L.aggression) {
+      if (me.facing !== Math.sign(dx)) this.x = Math.sign(dx);
+      this.tap('jump'); this.hopAttack = 10 + Math.floor(Math.random() * 6); return;
+    }
     this.plan = adx < 52 && Math.abs(dy) < 56 ? 'attack' : 'approach';
     this.continuePlan(me, tgt, dx, dy, true);
   }
@@ -107,16 +124,68 @@ export class CpuController extends Controller {
       if (tgt.state === 'shield' && me.grounded) { this.tap('grab'); return; }
       if (dy < -34) { this.y = -1; this.tap('attack'); return; }
       if (me.grounded) {
-        const r = Math.random();
-        if (r < 0.45) { this.x = Math.sign(dx); this.tap('attack'); }
-        else if (r < 0.7) this.tap('attack');
-        else if (r < 0.85) { this.y = 1; this.tap('attack'); }
+        const r = Math.random(), M = me.def.moves;
+        // finish them: a smash attack once they're damaged enough to fly (more often the higher they are)
+        const killPct = tgt.percent > 85 && Math.random() < Math.min(0.75, (tgt.percent - 70) / 100 + L.aggression * 0.3);
+        if (killPct && (M.fsmash || M.usmash || M.dsmash)) {
+          this.smash = true;
+          if (dy < -30 && M.usmash) { this.y = -1; this.tap('attack'); return; }
+          if (M.fsmash && Math.random() < 0.6) { this.x = Math.sign(dx); this.tap('attack'); return; }
+          if (M.dsmash) { this.y = 1; this.tap('attack'); return; }
+        }
+        if (r < 0.4) { this.x = Math.sign(dx); this.tap('attack'); }
+        else if (r < 0.62) this.tap('attack');
+        else if (r < 0.78) { this.y = 1; this.tap('attack'); }
+        else if (r < 0.88 && tgt.percent > 40) { this.y = -1; this.tap('attack'); }
         else this.tap('grab');
       } else {
         if (dy > 20) this.y = 1; else if (Math.sign(dx) !== me.facing) this.x = Math.sign(dx);
         this.tap('attack');
       }
     }
+  }
+
+  // holding someone: a pummel or two, then a throw - toward the nearest edge, or up once they're high
+  throwPlan(me) {
+    const t = me.grabbed; if (!t) return;
+    if (me.t < 8) return;
+    if (me.t < 30 && Math.random() < 0.12 + this.lv.aggression * 0.1) { this.tap('attack'); return; }
+    if (me.t < 22) return;
+    const P = this.match.stage.platforms[0], edge = me.x > (P.x1 + P.x2) / 2 ? 1 : -1;
+    if (t.percent > 110 && Math.random() < 0.5) { this.y = -1; return; }
+    if (Math.abs(me.x - (edge > 0 ? P.x2 : P.x1)) < 160) { this.x = edge; return; }   // throw them out toward the edge
+    this.x = Math.random() < 0.5 ? 1 : -1;
+  }
+
+  // a Limit is coming: jump clear of a flood or a beam, dodge the giant blade as it falls
+  dodgeLimit(me) {
+    const L = this.lv;
+    for (const o of this.match.fighters) {
+      if (o === me || !o.alive || o.team === me.team || o.state !== 'limit') continue;
+      const lim = o.def.limit, adx = Math.abs(o.x - me.x);
+      const key = o.slot + ':' + (o.age - o.t);            // one decision per Limit: do they see it coming?
+      if (this.limitSeen !== key) { this.limitSeen = key; this.limitReact = Math.random() < 0.25 + L.shieldChance * 1.6; }
+      if (!this.limitReact) return false;
+      if (lim.type === 'undertow') {                    // stay off the floor until the flood drains
+        const U = o.ult; if (!U || U.phase === 'cutscene') return false;
+        if (me.grounded) { this.tap('jump'); this.x = Math.sign(me.x - o.x) || 1; return true; }
+        if (me.vy > 0 && me.jumpsLeft > 0 && U.phase === 'flood') { this.tap('jump'); return true; }
+        this.x = Math.sign(me.x - o.x) || 1; return true;
+      }
+      if (lim.type === 'blade') {                       // the giant sword hangs raised, then falls: roll away or dodge as it drops
+        if (adx > (lim.reach || 170) + 40) return false;
+        const fall = lim.slashFrom - o.t;
+        const away = Math.sign(me.x - o.x) || 1;
+        if (!me.grounded) { if (fall <= 4 && fall >= -2) this.tap('shield'); else this.x = away; return true; }   // air dodge as it falls
+        if (fall > 9) { this.x = away; return true; }                                                       // run
+        if (fall > 5) { this.cur.shield = true; return true; }                                              // brace...
+        if (fall >= -2) { this.cur.shield = true; this.x = me.state === 'shield' ? away : 0; return true; }  // ...and roll out under it
+        return false;
+      }
+      // a beam at hand height: jump over it
+      if (Math.abs(o.y - me.y) < 60 && o.t > lim.beamStart - 16 && o.t < (lim.beamEnd || 100)) { if (me.grounded || (me.vy > 0 && me.jumpsLeft > 0)) this.tap('jump'); this.x = Math.sign(me.x - o.x) || 1; return true; }
+    }
+    return false;
   }
 
   // hanging on a ledge: wait a moment, then pick a way back up (mixing it up so it isn't predictable)

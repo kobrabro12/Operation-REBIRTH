@@ -60,11 +60,21 @@ export const HERO_KNIGHT = {
     },
 
     // ---- tilts and aerials: drawn in her moves sheet (HK_MOVES); `anim` is the old strip, kept as a fallback
-    ftilt: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 16, box: [10, -50, 60, 40], dmg: 8, angle: 35, base: 3.0, growth: 5.6 }] },
+    ftilt: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 16, box: [10, -50, 64, 40], dmg: 9, angle: 35, base: 3.0, growth: 6.2 }] },
     utilt: { frames: 30, anim: 'attack1', hits: [{ from: 12, to: 18, box: [-24, -76, 50, 40], dmg: 7, angle: 85, base: 3.0, growth: 5.4 }] },
     dtilt: { frames: 24, anim: 'attack2', hits: [{ from: 10, to: 14, box: [8, -22, 56, 22], dmg: 6, angle: 22, base: 2.6, growth: 3.6 }] },
-    nair: { frames: 28, landLag: 7, anim: 'attack1', hits: [{ from: 10, to: 18, box: [-30, -60, 60, 60], dmg: 7, angle: 45, base: 2.8, growth: 4.0 }] },
-    fair: { frames: 28, landLag: 9, anim: 'attack2', hits: [{ from: 12, to: 16, box: [8, -60, 56, 56], dmg: 10, angle: 40, base: 3.0, growth: 6.0 }] },
+    // smash attacks (tap a direction and attack together): her own animations in the moves sheet
+    // Heaven Splitter: the sword raised high, then a lunging overhead cleave through a huge crescent
+    fsmash: { frames: 48, lunge: 2.2, anim: 'attack2', hits: [{ from: 18, to: 22, box: [8, -84, 80, 86], dmg: 17, angle: 38, base: 4.4, growth: 8.2 }] },
+    // Rising Moon: crouches, then springs up with a full crescent over her head
+    usmash: { frames: 44, anim: 'attack1', hits: [{ from: 14, to: 20, box: [-36, -112, 72, 70], dmg: 15, angle: 88, base: 4.2, growth: 7.8 }] },
+    // Twin Sweep: a low cut in front, then she spins and cuts low behind
+    dsmash: { frames: 42, anim: 'attack2', hits: [
+      { from: 12, to: 15, box: [6, -22, 64, 24], dmg: 13, angle: 26, base: 3.8, growth: 7.0 },
+      { from: 19, to: 22, box: [-70, -22, 64, 24], dmg: 13, angle: 154, base: 3.8, growth: 7.0 },
+    ] },
+    nair: { frames: 28, landLag: 7, anim: 'attack1', hits: [{ from: 10, to: 18, box: [-30, -60, 60, 60], dmg: 8, angle: 45, base: 2.8, growth: 4.0 }] },
+    fair: { frames: 28, landLag: 9, anim: 'attack2', hits: [{ from: 12, to: 16, box: [8, -60, 56, 56], dmg: 11, angle: 40, base: 3.0, growth: 6.4 }] },
     bair: { frames: 26, landLag: 9, anim: 'attack1', flip: true, hits: [{ from: 10, to: 14, box: [-50, -50, 42, 40], dmg: 11, angle: 145, base: 3.2, growth: 6.2 }] },
     uair: { frames: 26, landLag: 6, anim: 'attack1', hits: [{ from: 10, to: 16, box: [-24, -84, 50, 40], dmg: 8, angle: 86, base: 3.0, growth: 5.8 }] },
     dair: { frames: 32, landLag: 13, anim: 'attack1', hits: [{ from: 14, to: 18, box: [-16, -14, 40, 30], dmg: 11, angle: -78, base: 3.0, growth: 4.2 }] },
@@ -116,8 +126,8 @@ export const HERO_KNIGHT = {
   // the opponent, cutting through them 25 times (2% each), then a final cut (10%) launches them:
   // 60% in total. If several opponents are caught, every cut hits all of them.
   limit: {
-    name: 'THOUSAND CUTS', type: 'blade', reach: 200,
-    growUntil: 34, slashFrom: 40, slashTo: 48, whiffEnd: 72,
+    name: 'THOUSAND CUTS', type: 'blade', reach: 170,
+    growUntil: 34, slashFrom: 52, slashTo: 60, whiffEnd: 84,   // the blade hangs raised for a beat after the freeze: time to dodge or jump
     box: [0, -130, 200, 150],                      // the giant slash, in front of her
     cuts: 25, cutEvery: 5, cut: { dmg: 2, angle: 90, base: 0, growth: 0, stun: 12 },
     final: { dmg: 10, angle: 40, base: 7.5, growth: 7.0 },

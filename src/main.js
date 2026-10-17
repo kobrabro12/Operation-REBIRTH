@@ -7,6 +7,7 @@ import { OptionsScene } from './scenes/OptionsScene.js';
 import { OtherScene } from './scenes/OtherScene.js';
 import { TrinketsScene } from './scenes/TrinketsScene.js';
 import { FilesScene } from './scenes/FilesScene.js';
+import { TestFightersScene } from './scenes/TestFightersScene.js';
 import { SetupScene } from './scenes/SetupScene.js';
 import { StageSelectScene } from './scenes/StageSelectScene.js';
 import { SelectScene } from './scenes/SelectScene.js';
@@ -22,7 +23,7 @@ const config = {
   pixelArt: true,
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, TrinketsScene, FilesScene, SetupScene, StageSelectScene, SelectScene, MatchScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, TrinketsScene, FilesScene, TestFightersScene, SetupScene, StageSelectScene, SelectScene, MatchScene, ResultsScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.
