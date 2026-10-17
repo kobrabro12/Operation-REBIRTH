@@ -314,6 +314,8 @@ export class Fighter {
   }
 
   // ---- neutral special (Lacy): Grand Slam - hold to wind up a home-run swing, release to swing
+  // Grand Slam spark colours: her own steel-and-gold, or the costume's palette
+  chargeColors() { return this.pal === this.def.pal ? [this.fxColor, 0xffe08a] : [this.pal.light, this.pal.core]; }
   startSwingCharge() { this.setState('swingcharge'); this.swingCharge = 0; sfx('swing', 0.4, 0.6); }
   st_swingcharge(c) {
     const nb = this.def.moves.neutralB, C = nb.charge;
@@ -324,9 +326,10 @@ export class Fighter {
     const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1];
     if (this.swingCharge === C.max && this.t === C.max) { sfx('limitready', 0.6, 1.2); this.match.puff(tx, ty, 0xffffff, 12); this.match.shake(3, 6); }
     const n = full ? 3 : (R() < 0.4 + k ? 1 + (R() < k ? 1 : 0) : 0);
+    const [spark, hot] = this.chargeColors();
     for (let i = 0; i < n; i++) {
       const a = -Math.PI / 2 + (R() - 0.5) * 2.2 - this.facing * 0.5, sp = 1 + R() * (1.5 + 3 * k);
-      this.match.particles.push({ x: tx, y: ty, vx: Math.cos(a) * sp - this.facing * 0.6, vy: Math.sin(a) * sp, life: 10 + R() * (8 + 12 * k), color: full ? (R() < 0.5 ? 0xffe08a : 0xffffff) : (R() < 0.3 ? 0xffffff : this.fxColor), size: R() < 0.25 + 0.4 * k ? 2 : 1, grav: 0.14 });
+      this.match.particles.push({ x: tx, y: ty, vx: Math.cos(a) * sp - this.facing * 0.6, vy: Math.sin(a) * sp, life: 10 + R() * (8 + 12 * k), color: full ? (R() < 0.5 ? hot : 0xffffff) : (R() < 0.3 ? 0xffffff : spark), size: R() < 0.25 + 0.4 * k ? 2 : 1, grav: 0.14 });
     }
     if (this.t % (full ? 6 : 14) === 0) sfx('soulhit', 0.12 + 0.2 * k, 1.8 + k);   // crackle
     const release = (!c.held('special') && this.t > 2) || this.t >= C.hold || (this.isCpu && this.t >= (this.cpuChargeTarget || 30));
@@ -900,11 +903,19 @@ export class Fighter {
     if (!this.grounded) this.vy = Math.min(this.vy, 0.5);
     if (U.phase === 'grow' && this.t >= L.slashFrom) { U.phase = 'slash'; sfx('swing', 1, 0.5); sfx('dodge', 0.8, 0.5); }
     if (U.phase === 'slash') {
-      const [bx, by, bw, bh] = L.box, x1 = this.facing > 0 ? this.x + bx : this.x - bx - bw;
+      // the hitbox is the giant blade itself: sample points along it, sweeping from where it was last
+      // tick to where it is now, so a fast swing can't pass over anyone between frames
+      const a = this.bladeGeom(L, U, this.t - 1), b = this.bladeGeom(L, U, this.t), pts = [];
+      for (let s = 0; s <= 6; s++) {
+        const k = s / 6, ang = a.ang + (b.ang - a.ang) * k, hx = a.hx + (b.hx - a.hx) * k, hy = a.hy + (b.hy - a.hy) * k;
+        const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang);
+        for (let d = 0; d <= b.len; d += 8) pts.push([hx + dx * d, hy + dy * d]);
+      }
+      const pad = b.half + 2;
       for (const o of m.fighters) {
         if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o)) continue;
         const hb = o.hurtbox();
-        if (hb.x2 > x1 && hb.x1 < x1 + bw && hb.y2 > this.y + by && hb.y1 < this.y + by + bh) U.victims.push(o);
+        if (pts.some(([x, y]) => x > hb.x1 - pad && x < hb.x2 + pad && y > hb.y1 - pad && y < hb.y2 + pad)) U.victims.push(o);
       }
       if (U.victims.length && this.t >= L.slashFrom + 3) {        // caught someone: into the cutscene
         U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this;
@@ -984,23 +995,27 @@ export class Fighter {
     this.setState('air');
   }
 
+  // Where the giant Limit blade is at tick t: hilt (hx, hy), angle, length and half-width. Used both to
+  // draw it and as its hitbox, so the two always match.
+  bladeGeom(L, U, t) {
+    const RAISED = { x: -27, y: -41, ang: -1.774 }, GUARD = { x: 37, y: -26, ang: 0.59 };
+    const ease = (k) => 1 - (1 - k) * (1 - k);
+    let pose = RAISED, grow = ease(Math.max(0, Math.min(1, t / L.growUntil)));
+    if (U.phase === 'slash') {
+      const k = Math.max(0, Math.min(1, (t - L.slashFrom) / (L.slashTo - L.slashFrom)));
+      pose = { x: RAISED.x + (GUARD.x - RAISED.x) * k, y: RAISED.y + (GUARD.y - RAISED.y) * k, ang: RAISED.ang + (GUARD.ang - RAISED.ang) * k };
+    } else if (U.phase === 'whiff') {
+      pose = GUARD; grow = 1 - ease(Math.min(1, (t - L.slashTo) / (L.whiffEnd - L.slashTo)));   // shrinks back to normal
+    }
+    return { len: 30 + 160 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
+  }
   drawBladeLimit(g, L, U) {
     const C = L.colors;
     if (U.phase !== 'cutscene') {
       // Her own sword grows: the blade starts exactly on the sprite's sword (same hilt, angle and length)
       // and stretches into a giant blade of light. Raised pose (attack1 frame 1): hilt (-27,-41), pointing
       // up and slightly back. Guard pose (sword at the shoulder): hilt (37,-26), pointing down and forward.
-      const RAISED = { x: -27, y: -41, ang: -1.774 }, GUARD = { x: 37, y: -26, ang: 0.59 };
-      const ease = (k) => 1 - (1 - k) * (1 - k);
-      let pose = RAISED, grow = ease(Math.min(1, this.t / L.growUntil));
-      if (U.phase === 'slash') {
-        const k = Math.min(1, (this.t - L.slashFrom) / (L.slashTo - L.slashFrom));
-        pose = { x: RAISED.x + (GUARD.x - RAISED.x) * k, y: RAISED.y + (GUARD.y - RAISED.y) * k, ang: RAISED.ang + (GUARD.ang - RAISED.ang) * k };
-      } else if (U.phase === 'whiff') {
-        pose = GUARD; grow = 1 - ease(Math.min(1, (this.t - L.slashTo) / (L.whiffEnd - L.slashTo)));   // shrinks back to normal
-      }
-      const len = 30 + 160 * grow, half = 1.5 + 6 * grow, glow = grow;
-      const ang = pose.ang, hx = this.x + this.facing * pose.x, hy = this.y + pose.y;
+      const { len, half, glow, ang, hx, hy } = this.bladeGeom(L, U, this.t);
       const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), nx = -dy, ny = dx;
       const blade = (w, col, a) => {
         g.fillStyle(col, a);
@@ -1016,7 +1031,7 @@ export class Fighter {
       blade(Math.max(0.6, half * 0.45), C.core, 0.6 + 0.4 * glow);
       g.fillStyle(C.outline, 1); g.fillRect(hx - nx * (half + 4) - 1, hy - ny * (half + 4) - 1, 3, 3); g.fillRect(hx + nx * (half + 4) - 1, hy + ny * (half + 4) - 1, 3, 3);
       g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);       // hilt in her hands
-      if (U.phase === 'grow' && this.t % 3 === 0 && grow < 1) this.match.puff(hx + dx * len, hy + dy * len, 0x9ad8f0, 1);   // sparks at the growing tip
+      if (U.phase === 'grow' && this.t % 3 === 0 && glow < 1) this.match.puff(hx + dx * len, hy + dy * len, 0x9ad8f0, 1);   // sparks at the growing tip
       if (U.phase === 'slash') {                                                                 // swing trail
         for (let k = 1; k < 7; k++) {
           const a2 = ang - k * 0.16;
@@ -1224,7 +1239,8 @@ export class Fighter {
     if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge
       const C = d.moves.neutralB.charge, k = this.swingCharge / C.max, full = k >= 1;
       const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
-      g.fillStyle(full ? 0xffe08a : this.fxColor, 0.25 + 0.25 * k); g.fillCircle(tx, ty, 3 + 6 * k + pulse);
+      const [spark, hot] = this.chargeColors();
+      g.fillStyle(full ? hot : spark, 0.25 + 0.25 * k); g.fillCircle(tx, ty, 3 + 6 * k + pulse);
       g.fillStyle(0xffffff, 0.9); g.fillCircle(tx, ty, 1.5 + 1.5 * k);
     }
 

@@ -76,9 +76,13 @@ def chunks(stage):
     n = [0, 0, 4, 10][stage]
     return [(rng.randint(-14, 12), rng.choice([-6, 2, 5, 13, 15, 17]), rng.randint(2, 3 if stage == 2 else 4), rng.randint(1, 3)) for _ in range(n)]
 
-def damage(frame, stage, frame_index=0):
+# frames where her scarf is hidden (so anchor() finds nothing): where it would be, read off the sprite.
+# attack2 frame 0 is the Grand Slam wind-up pose, shown the whole time the swing is charging.
+ANCHOR_FALLBACK = {('attack2', 0): (69, 51)}
+
+def damage(frame, stage, frame_index=0, fallback=None):
     out = frame.copy(); px = out.load(); src = frame.load()
-    a = anchor(frame)
+    a = anchor(frame) or fallback
     if not a: return out
     ax, ay = a
     if stage == 3:                                                  # grime: everything a little darker and dirtier
@@ -160,6 +164,6 @@ for stage in (1, 2, 3):
         sheet = Image.open(os.path.join(DIR, name + '_sheet.png')).convert('RGBA')
         out = Image.new('RGBA', sheet.size, (0, 0, 0, 0))
         for i in range(sheet.width // FW):
-            out.alpha_composite(damage(sheet.crop((i * FW, 0, (i + 1) * FW, FH)), stage, i), (i * FW, 0))
+            out.alpha_composite(damage(sheet.crop((i * FW, 0, (i + 1) * FW, FH)), stage, i, ANCHOR_FALLBACK.get((name, i))), (i * FW, 0))
         out.save(os.path.join(od, name + '_sheet.png'))
     print('stage', stage, 'done')

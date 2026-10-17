@@ -16,7 +16,11 @@ She keeps her sword held back over her shoulder and reaches out with her other, 
   8  sword thrown - her sword is gone from her shoulder, open hand thrust forward (side special:
                     she commands the spinning sword)
   9  sword thrown - the same, hand slightly lower (alternates with 8 while she waits)
-The arm is drawn in her own armour colours relative to her red scarf, so it sits on her shoulder.
+She grabs with her FREE hand: her sword hand stays where it is, gripping the hilt by her face, and the
+other arm (the one hanging down behind her) is erased and redrawn reaching out from her far shoulder.
+It's drawn behind her body, so it comes out from behind her chest the way a far arm would; only the
+gauntlet is drawn over her when her hand is in front of her body. Positions are relative to her red
+scarf, so the arm stays on her shoulder in every pose.
 """
 import colorsys, math, os
 from PIL import Image
@@ -51,12 +55,24 @@ def unarmed(frame):
             if (blade and y < ay + 2) or behind: px[x, y] = (0, 0, 0, 0)
     return out
 
+def free_arm_erased(frame):
+    """Erase the free arm hanging down behind her (the grey rod below and behind her scarf), so the
+    reaching arm replaces it instead of being a third arm."""
+    out = frame.copy(); px = out.load()
+    ax, ay = anchor(frame)
+    ARM = ((156, 156, 156), (102, 102, 102), (81, 81, 81), (133, 133, 133))
+    for y in range(ay + 3, FH):
+        for x in range(0, ax - 4):
+            if px[x, y][3] and px[x, y][:3] in ARM: px[x, y] = (0, 0, 0, 0)
+    return out
+
 def shifted(frame, dx, dy=0):
     out = Image.new('RGBA', (FW, FH), (0, 0, 0, 0)); out.alpha_composite(frame, (dx, dy)); return out
 
-def arm(img, sx, sy, hx, hy, hand, bend=3):
+def arm(img, sx, sy, hx, hy, hand, bend=3, hand_only=False):
     """An armoured arm from the shoulder (sx, sy) through a bent elbow to the hand (hx, hy).
-    hand: 'open' or 'fist'. bend: how far the elbow drops below the straight line (pixels)."""
+    hand: 'open' or 'fist'. bend: how far the elbow drops below the straight line (pixels).
+    hand_only: draw just the gauntlet (to lay over her body when the hand is in front of it)."""
     px = img.load()
     L = max(1, math.hypot(hx - sx, hy - sy))
     ex, ey = (sx + hx) / 2 - (hy - sy) / L * bend * (1 if hx >= sx else -1), (sy + hy) / 2 + abs(hx - sx) / L * bend
@@ -65,6 +81,7 @@ def arm(img, sx, sy, hx, hy, hand, bend=3):
         n = int(math.hypot(bx - ax, by - ay) * 2) + 1
         pts += [(ax + (bx - ax) * i / n, ay + (by - ay) * i / n) for i in range(n + 1)]
     put = lambda x, y, c: (0 <= x < FW and 0 <= y < FH) and px.__setitem__((x, y), c)
+    if hand_only: pts = []
     for x, y in pts:                                       # outline
         for dx in range(-2, 3):
             for dy in range(-2, 3):
@@ -76,10 +93,10 @@ def arm(img, sx, sy, hx, hy, hand, bend=3):
                 if abs(dx) + abs(dy) <= (1 if k < 0.5 else 2): put(round(x) + dx, round(y) + dy, PLATE_DARK if dy == 1 else PLATE)   # thinner upper arm, plated forearm
         put(round(x), round(y) - 1, PLATE_LIT)
     put(round(ex), round(ey), OUT); put(round(ex), round(ey) + 1, PLATE_DARK)   # elbow joint
-    # shoulder pauldron: a rounded plate over the joint
-    for dx in range(-3, 4):
-        for dy in range(-3, 2):
-            if dx * dx + dy * dy <= 9: put(sx + dx, sy + dy, OUT if dx * dx + dy * dy > 5 else (PLATE_LIT if dy < 0 else PLATE))
+    if not hand_only:                                      # shoulder pauldron: a rounded plate over the joint
+        for dx in range(-3, 4):
+            for dy in range(-3, 2):
+                if dx * dx + dy * dy <= 9: put(sx + dx, sy + dy, OUT if dx * dx + dy * dy > 5 else (PLATE_LIT if dy < 0 else PLATE))
     # gauntlet
     ux, uy = (hx - sx) / L, (hy - sy) / L
     hx, hy = round(hx), round(hy)
@@ -112,9 +129,13 @@ POSES = [(idle, -1, (7, 9), 'fist', 3),
          (unarmed(idle), 3, (23, 5), 'open', 1)]
 sheet = Image.new('RGBA', (FW * len(POSES), FH), (0, 0, 0, 0))
 for i, (base, dx, (ox, oy), hand, bend) in enumerate(POSES):
-    f = shifted(base, dx)
+    f = free_arm_erased(shifted(base, dx))
     ax, ay = anchor(f)
-    arm(f, ax + 3, ay + 4, ax + ox, ay + oy, hand, bend)
-    sheet.alpha_composite(f, (i * FW, 0))
+    sx, sy = ax - 1, ay + 4                                 # her far shoulder, just behind the scarf
+    frame = Image.new('RGBA', (FW, FH), (0, 0, 0, 0))
+    arm(frame, sx, sy, ax + ox, ay + oy, hand, bend)       # the arm, behind her
+    frame.alpha_composite(f)                               # her body over it
+    arm(frame, sx, sy, ax + ox, ay + oy, hand, bend, hand_only=True)   # the gauntlet always shows
+    sheet.alpha_composite(frame, (i * FW, 0))
 sheet.save(os.path.join(DIR, 'grab_sheet.png'))
 print('saved grab_sheet.png', sheet.size)

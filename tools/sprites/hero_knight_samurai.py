@@ -77,9 +77,13 @@ def blade_pixels(src):
     xs = [x for x, y in best] or [0]; ys = [y for x, y in best] or [0]
     return best if max(max(xs) - min(xs), max(ys) - min(ys)) >= 8 else []
 
-def samurai(frame):
+# frames where her scarf is hidden (so anchor() finds nothing): where it would be, read off the sprite.
+# attack2 frame 0 is the Grand Slam wind-up pose, shown the whole time the swing is charging.
+ANCHOR_FALLBACK = {('attack2', 0): (69, 51)}
+
+def samurai(frame, fallback=None):
     out = frame.copy(); px = out.load(); src = frame.load()
-    a = anchor(frame)
+    a = anchor(frame) or fallback
     if not a:                                                       # white hit-flash frame etc.
         return out
     ax, ay = a
@@ -150,6 +154,6 @@ for name in STRIPS:
     sheet = Image.open(os.path.join(DIR, name + '_sheet.png')).convert('RGBA')
     out = Image.new('RGBA', sheet.size, (0, 0, 0, 0))
     for i in range(sheet.width // FW):
-        out.alpha_composite(samurai(sheet.crop((i * FW, 0, (i + 1) * FW, FH))), (i * FW, 0))
+        out.alpha_composite(samurai(sheet.crop((i * FW, 0, (i + 1) * FW, FH)), ANCHOR_FALLBACK.get((name, i))), (i * FW, 0))
     out.save(os.path.join(od, name + '_sheet.png'))
 print('samurai strips saved to', od)
