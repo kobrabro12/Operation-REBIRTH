@@ -1,6 +1,6 @@
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
-import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT, VIEW_W } from '../config.js';
+import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT, VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { Controller } from '../input/controllers.js';
 import { skinSheets, skinInfo, paletteFor } from './skins.js';
@@ -1000,6 +1000,7 @@ export class Fighter {
     const taunt = this.style === 'samurai' ? 150 : this.style === 'onebit' ? 70 : 0;   // a pause for a cold word before the last cut
     const bit = this.style === 'onebit';
     if (bit && U.ct === 1) this.cutLine(U, 'TARGET LOCKED.', 1);
+    if (bit) this.stepHackWindows(U, L);
     if (bit && U.cut > 0 && U.ct % L.cutEvery === 1 && U.ct < L.cuts * L.cutEvery + 4) this.cutLine(U, '> CUT ' + String(U.cut).padStart(2, '0') + '/' + L.cuts, 0);
     const appear = L.cuts * L.cutEvery + 4;
     if (U.ct === appear) U.execute = U.victims.some((t) => t.percent > 100);   // past 100%: she charges one killing slice instead
@@ -1041,6 +1042,43 @@ export class Fighter {
     }
     if (U.ct >= finalAt + (U.execute ? 40 : 24)) return this.endBladeLimit();
   }
+  // 1-BIT Lacy: while she dashes around the target, hacker pop-up windows open all over the screen;
+  // when the cuts end they glitch shut one by one. Drawn on the HUD camera, in screen pixels.
+  stepHackWindows(U, L) {
+    const m = this.match, cutsEnd = L.cuts * L.cutEvery + 4;
+    if (!U.hack) U.hack = { wins: [], n: 0 };
+    const H = U.hack, R = Math.random;
+    if (U.ct < cutsEnd && U.ct % 7 === 3 && H.wins.length < 16) {           // a new window pops open
+      const hex = () => Array.from({ length: 4 }, () => Math.floor(R() * 65536).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+      const pct = Math.min(99, Math.round(U.cut / L.cuts * 100));
+      const T = [
+        ['ERROR', 'ACCESS DENIED\n0x0000DEAD'], ['cut.exe', 'SLICING TARGET...\n[' + '#'.repeat(Math.round(pct / 10)) + '-'.repeat(10 - Math.round(pct / 10)) + '] ' + pct + '%'],
+        ['C:\\>', '> sudo slice\n> rm -rf hp/'], ['WARNING', 'TARGET.SYS IS NOT\nRESPONDING'], ['memdump', hex() + '\n' + hex()],
+        ['trace.log', '> tracing...\n> LOCK ' + Math.floor(R() * 900 + 100) + '.' + Math.floor(R() * 255)], ['FATAL', 'DEFENSE.DLL\nNOT FOUND'], ['upload', 'PAYLOAD 1/1\n' + '|'.repeat(4 + Math.floor(R() * 8))],
+      ];
+      const [title, body] = T[Math.floor(R() * T.length)];
+      const w = 96 + Math.floor(R() * 40), h = 40, x = 8 + Math.floor(R() * (VIEW_W - w - 16)), y = 40 + Math.floor(R() * (VIEW_H - h - 120));
+      const z = 50 + (H.n++) * 0.01;                                         // each window stacks over the last, its text with it
+      const g = m.add.graphics().setDepth(z);
+      const text = m.add.text(x + 4, y + 13, body, { fontFamily: FONT, fontSize: '6px', color: '#f4f4f0', lineSpacing: 3 }).setDepth(z + 0.005).setVisible(false);
+      const tt = m.add.text(x + 3, y + 1, title, { fontFamily: FONT, fontSize: '6px', color: '#0e0e10' }).setDepth(z + 0.005).setVisible(false);
+      m.addUI(g, text, tt);
+      H.wins.push({ x, y, w, h, g, text, tt, t: 0 });
+      sfx('menu', 0.25, 1.4 + R() * 0.8); if (R() < 0.4) sfx('glitch', 0.2, 1.5);
+    }
+    if (U.ct >= cutsEnd && H.wins.length && U.ct % 3 === 0) {             // the cuts are done: windows close, newest first
+      const w = H.wins.pop(); w.g.destroy(); w.text.destroy(); w.tt.destroy(); sfx('glitch', 0.18, 2);
+    }
+    for (const w of H.wins) {
+      const g = w.g; g.clear(); w.t++;
+      const k = Math.min(1, w.t / 4), ww = Math.round(w.w * k), hh = Math.round(w.h * k), x = w.x + (w.w - ww) / 2, y = w.y + (w.h - hh) / 2;   // pops open
+      const jx = (this.anim + w.x) % 37 === 0 ? 3 : 0;                    // glitch twitch
+      g.fillStyle(0xf4f4f0, 1); g.fillRect(x - 1 + jx, y - 1, ww + 2, hh + 2);
+      g.fillStyle(0x0e0e10, 1); g.fillRect(x + jx, y + 9, ww, hh - 9);
+      for (let i = 0; i < 3; i++) { g.fillStyle(0x0e0e10, 1); g.fillRect(x + ww - 8 - i * 7 + jx, y + 2, 5, 5); }   // title-bar buttons
+      w.text.setVisible(k >= 1).setX(w.x + 4 + jx); w.tt.setVisible(k >= 1).setX(w.x + 3 + jx);
+    }
+  }
   // a line of text in the cutscene's top letterbox, typed out `rate` ticks per letter (0: all at once)
   cutLine(U, text, rate) {
     if (!U.line) {
@@ -1057,10 +1095,47 @@ export class Fighter {
     const U = this.ult, m = this.match;
     if (U && U.phase === 'cutscene') { this.x = U.origin.x; this.y = U.origin.y; m.frozen = 0; m.cutscene = null; }
     if (U && U.line) U.line.destroy();
+    if (U && U.hack) for (const w of U.hack.wins) { w.g.destroy(); w.text.destroy(); w.tt.destroy(); }
     this.ult = null; this.invincible = 30; this.grounded = false;
     this.setState('air');
   }
 
+  // 1-BIT Lacy's Thousand Cuts: her sword stays its own size but bursts into black-and-white pixel fire;
+  // the slash throws a sweeping wave of that fire out to the full reach of the move (the hitbox).
+  drawPixelFire(g, hx, hy, ang, len, power) {
+    const W = 0xf4f4f0, B = 0x0e0e10, dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), t = this.anim;
+    for (let d = 2; d <= len; d += 3) {
+      const bx = hx + dx * d, by = hy + dy * d;
+      const h = Math.round((4 + 10 * power) * (0.45 + 0.55 * Math.abs(Math.sin(d * 0.9 + t * 0.55))) * (0.6 + 0.4 * d / len));
+      for (let k = 0; k < h; k += 2) {                       // a column of flame blocks licking upward, thinning at the top
+        const w = k > h * 0.6 ? 2 : 3, x = Math.round(bx + Math.sin(t * 0.4 + d + k) * (k / 4)) - 1, y = Math.round(by) - k - 2;
+        g.fillStyle(B, 1); g.fillRect(x - 1, y - 1, w + 2, 3);
+        g.fillStyle((k + (t >> 1)) % 6 < 4 ? W : B, 1); g.fillRect(x, y, w, 2);
+      }
+    }
+    for (let i = 0; i < 3 + power * 4; i++) {               // sparks flying off
+      const ph = (t * 2 + i * 13) % 24, d = (i * 7) % len;
+      if (ph < 16) { g.fillStyle(i % 2 ? W : B, 1); g.fillRect(Math.round(hx + dx * d + ((i % 3) - 1) * ph * 0.5), Math.round(hy + dy * d - 6 - ph * 1.2), 2, 2); }
+    }
+  }
+  drawBurningSwing(g, L, U) {
+    const geo = this.bladeGeom(L, U, this.t), power = U.phase === 'grow' ? Math.min(1, this.t / L.growUntil) : U.phase === 'whiff' ? Math.max(0, 1 - (this.t - L.slashTo) / (L.whiffEnd - L.slashTo)) : 1;
+    if (U.phase === 'grow' && this.t === 2) { sfx('flame', 0.8, 0.8); sfx('glitch', 0.5, 0.7); }   // it catches fire
+    if (U.phase === 'grow' && this.t % 10 === 0) sfx('flame', 0.3, 1 + power * 0.4);
+    this.drawPixelFire(g, geo.hx, geo.hy, geo.ang, 30, power);
+    if (U.phase === 'slash') {                               // the fire wave: blocks along the sweep, out to the move's full reach
+      const k = Math.min(1, (this.t - L.slashFrom) / (L.slashTo - L.slashFrom));
+      for (let s = 0; s < 5; s++) {
+        const a = geo.ang - s * 0.22 * k, dx = Math.cos(a) * this.facing, dy = Math.sin(a);
+        for (let d = 24; d <= geo.len; d += 6) {
+          if ((d + s + this.anim) % 3 === 0) continue;
+          const sz = Math.max(2, 6 - s);
+          g.fillStyle(0x0e0e10, 1); g.fillRect(Math.round(geo.hx + dx * d) - sz / 2 - 1, Math.round(geo.hy + dy * d) - sz / 2 - 1, sz + 2, sz + 2);
+          g.fillStyle(s < 2 || (d >> 3) % 2 ? 0xf4f4f0 : 0x0e0e10, 1); g.fillRect(Math.round(geo.hx + dx * d) - sz / 2, Math.round(geo.hy + dy * d) - sz / 2, sz, sz);
+        }
+      }
+    }
+  }
   // Where the giant Limit blade is at tick t: hilt (hx, hy), angle, length and half-width. Used both to
   // draw it and as its hitbox, so the two always match.
   bladeGeom(L, U, t) {
@@ -1077,6 +1152,7 @@ export class Fighter {
   }
   drawBladeLimit(g, L, U) {
     const C = L.colors;
+    if (U.phase !== 'cutscene' && this.style === 'onebit') return this.drawBurningSwing(g, L, U);
     if (U.phase !== 'cutscene') {
       // Her own sword grows: the blade starts exactly on the sprite's sword (same hilt, angle and length)
       // and stretches into a giant blade of light. Raised pose (attack1 frame 1): hilt (-27,-41), pointing
@@ -1134,7 +1210,7 @@ export class Fighter {
         g.fillStyle(this.pal.mid, 0.12 + 0.18 * k); g.fillCircle(hx, hy, 20 + 60 * ease);               // aura swelling around her
         blade(half + 8 + Math.sin(this.anim * 0.6) * 2, this.pal.mid, 0.3 + 0.2 * k);
       }
-      if (this.style === 'onebit') { blade(half + 2.5, 0xf4f4f0, 1); blade(half + 1, 0x0e0e10, 1); blade(half - 0.5, (this.anim >> 2) % 3 ? 0xf4f4f0 : 0x0e0e10, 1); }   // flickering between white and black
+      if (this.style === 'onebit') { this.drawPixelFire(g, hx, hy, ang, 30, 0.6 + 0.8 * k); g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4); return; }   // her own sword, blazing hotter
       else { blade(half + 1.5, C.outline, 1); blade(half, C.light, 1); blade(Math.max(0.6, half * 0.5), C.core, 1); }
       for (let i = 0; i < 10; i++) {                                                                 // light streaming into the blade
         const a = i * 0.63 + this.anim * 0.21, d = (1 - ((this.anim * 3 + i * 17) % 40) / 40) * (50 + 40 * k);
