@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voice Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  /* Voice Studio: record the announcer lines for Operation REBIRTH in your own voice.
+     Open it from the dev server (npm run dev, then http://localhost:5173/voice-studio.html).
+     Each take is saved to recordings/voice/<line>.webm in the project folder. */
+  :root { --bg: #0b0a14; --panel: #15122a; --line: #2a2450; --gold: #f3c358; --text: #e8e4f4; --dim: #8a87a3; --rec: #ff4a5a; --ok: #6fe39a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; padding: 24px 16px 48px; }
+  h1 { font: 18px 'Press Start 2P', monospace; color: var(--gold); margin: 0 0 8px; }
+  .intro { color: var(--dim); max-width: 720px; margin: 0 0 20px; }
+  .meter { height: 10px; background: var(--panel); border: 1px solid var(--line); max-width: 720px; margin: 0 0 18px; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width 60ms linear; }
+  .group { font: 10px 'Press Start 2P', monospace; color: var(--dim); margin: 22px 0 8px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; max-width: 720px; background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; margin-bottom: 8px; }
+  .say { flex: 1 1 220px; }
+  .say b { font: 11px 'Press Start 2P', monospace; color: var(--gold); display: block; margin-bottom: 4px; }
+  .say span { color: var(--dim); font-size: 13px; }
+  button { font: 9px 'Press Start 2P', monospace; padding: 10px 12px; border: 2px solid var(--line); background: #1e1a38; color: var(--text); cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  button:disabled { opacity: .35; cursor: default; border-color: var(--line); }
+  button.rec { background: #3a1018; border-color: var(--rec); }
+  button.rec.on { background: var(--rec); color: #fff; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .6; } }
+  .status { font-size: 12px; min-width: 80px; color: var(--dim); }
+  .status.saved { color: var(--ok); }
+  .status.err { color: var(--rec); }
+  .done { max-width: 720px; margin-top: 24px; padding: 14px; border: 2px dashed var(--line); color: var(--dim); }
+</style>
+</head>
+<body>
+<h1>VOICE STUDIO</h1>
+<p class="intro">Click <b>RECORD</b>, say the line like you're announcing a big match, then click <b>STOP</b>. Listen back with <b>PLAY</b> and record again until you like it — each new take replaces the last one. Every take saves itself into the project's <code>recordings/voice</code> folder. You don't have to do all of them: anything you skip keeps the computer voice.</p>
+<div class="meter" title="Microphone level"><i id="level"></i></div>
+<div id="lines"></div>
+<p class="done">When you've recorded the lines you want, tell Claude "my voice lines are recorded" and they'll be cleaned up and put into the game.</p>
+<script>
+const LINES = [
+  ['FIGHTERS', [['soul-summoner', 'Soul Summoner!'], ['mr-wake', 'Mister Wake!'], ['hero-knight', 'Lacy!'], ['random', 'Random!', 'used for both fighters and stages']]],
+  ['STAGES', [['sky-sanctum', 'Sky Sanctum!'], ['verdant-spires', 'Verdant Spires!'], ['gravemoon-bridge', 'Gravemoon Bridge!'], ['neon-arcade', 'Neon Arcade!'], ['elderwood-hollow', 'Elderwood Hollow!']]],
+  ['OTHER', [['unlock', 'New costume, unlocked!', 'results screen, when a costume unlocks']]],
+];
+const takes = {};
+let stream = null, recorder = null, recordingId = null, chunks = [];
+const mime = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4'].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : 'webm';
+
+const root = document.getElementById('lines');
+for (const [group, items] of LINES) {
+  const h = document.createElement('div'); h.className = 'group'; h.textContent = group; root.appendChild(h);
+  for (const [id, text, note] of items) {
+    const row = document.createElement('div'); row.className = 'row'; row.dataset.id = id;
+    row.innerHTML = `<div class="say"><b></b><span></span></div>
+      <button class="rec">RECORD</button><button class="play" disabled>PLAY</button><span class="status">not recorded</span>`;
+    row.querySelector('b').textContent = '"' + text + '"';
+    row.querySelector('.say span').textContent = id + (note ? ' — ' + note : '');
+    row.querySelector('.rec').onclick = () => toggle(id, row);
+    row.querySelector('.play').onclick = () => { if (takes[id]) new Audio(URL.createObjectURL(takes[id])).play(); };
+    root.appendChild(row);
+  }
+}
+
+async function mic() {
+  if (stream) return stream;
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  const ctx = new AudioContext(), an = ctx.createAnalyser(); an.fftSize = 512;
+  ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Uint8Array(an.fftSize), bar = document.getElementById('level');
+  (function tick() { an.getByteTimeDomainData(buf); let p = 0; for (const v of buf) p = Math.max(p, Math.abs(v - 128)); bar.style.width = Math.min(100, p / 1.28) + '%'; requestAnimationFrame(tick); })();
+  return stream;
+}
+
+async function toggle(id, row) {
+  const btn = row.querySelector('.rec'), status = row.querySelector('.status');
+  if (recordingId === id) { recorder.stop(); return; }
+  if (recordingId) return;                                   // one line at a time
+  try { await mic(); } catch (e) { status.textContent = 'microphone blocked'; status.className = 'status err'; return; }
+  chunks = []; recordingId = id;
+  recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    recordingId = null; btn.classList.remove('on'); btn.textContent = 'RECORD AGAIN';
+    document.querySelectorAll('button.rec').forEach((b) => (b.disabled = false));
+    const blob = new Blob(chunks, { type: recorder.mimeType || mime });
+    takes[id] = blob; row.querySelector('.play').disabled = false;
+    status.textContent = 'saving...'; status.className = 'status';
+    try {
+      const r = await fetch('/__voice/' + id + '.' + ext, { method: 'POST', body: blob });
+      if (!r.ok) throw new Error(r.status);
+      status.textContent = 'saved'; status.className = 'status saved';
+    } catch (e) {                                            // not on the dev server: download the take instead
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = id + '.' + ext; a.click();
+      status.textContent = 'downloaded'; status.className = 'status saved';
+    }
+  };
+  recorder.start();
+  btn.classList.add('on'); btn.textContent = 'STOP';
+  document.querySelectorAll('button.rec').forEach((b) => (b.disabled = b !== btn));
+}
+</script>
+</body>
+</html>
