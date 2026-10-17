@@ -113,6 +113,7 @@ class Rig:
     def render(self, pose, skip=(), only=None, tint=None, alpha=255, fi=0):
         cw, ch = self.canvas
         out = np.zeros((ch, cw), np.uint32)
+        skip = set(skip) | set(pose.get('_hide', ()))      # a pose can hide props (e.g. a spray can only out for one move)
         for p in self.order:
             if p.name in skip or (only and p.name not in only): continue
             Minv = np.linalg.inv(self.matrix(p.name, pose))
@@ -134,7 +135,10 @@ class Rig:
 
 def lerp_pose(a, b, k):
     out = {}
-    for key in (set(a) | set(b)) - {'_prev'}:
+    for key in (set(a) | set(b)):
+        if key.startswith('_'):                            # flags (hidden parts...) switch over at the halfway point
+            if key != '_prev': out[key] = (b if k >= 0.5 else a).get(key, ())
+            continue
         va, vb = list(a.get(key, ())), list(b.get(key, ()))
         n = max(len(va), len(vb), 3 if key != 'root' else 5)
         dflt = [0, 0, 0, 1, 1]

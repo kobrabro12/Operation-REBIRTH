@@ -493,3 +493,89 @@ export class VoidOrb {
     drawRose(g, x, y, 14 * (1 - k * 0.5), k * 2, P, 1);
   }
 }
+
+// NU's CROWD CALL: a wall of sound rolling forward from the mic - three bright arcs that widen as they go.
+export class SoundWave {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * (owner.def.handOffset.x + 4);
+    this.y = owner.y + owner.def.handOffset.y + 6;
+    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('summon', 0.5, 1.6); sfx('bighit', 0.25, 1.8);
+  }
+  get h() { return this.spec.h0 + (this.spec.h1 - this.spec.h0) * Math.min(1, this.t / 30); }
+  hitbox() {
+    const h = this.h;
+    return { x1: this.x - 10, x2: this.x + 10, y1: this.y - h / 2, y2: this.y + h / 2, h: this.owner.rage > 0 ? this.spec.rageHit : this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this };
+  }
+  step() {
+    this.t++;
+    this.x += this.dir * this.spec.speed * (this.t < 10 ? 1.3 : 1);
+    const P = this.match.stage.platforms[0];
+    if (this.x > P.x1 && this.x < P.x2 && this.y > P.y + 2 && this.y < P.bottom) this.kill();
+    if (--this.life <= 0) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, this.owner.pal.light, 6); this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, P = this.owner.pal, fade = Math.min(1, this.life / 10), h = this.h;
+    g.clear();
+    for (let i = 0; i < 3; i++) {                                     // three arcs, the leading one brightest
+      const ax = this.x - this.dir * i * 7, r = h / 2 - i * 3;
+      const cols = [P.core, P.light, P.mid];
+      for (let a = -0.9; a <= 0.9; a += 0.12) {
+        const px = ax + this.dir * Math.cos(a) * 6 - this.dir * 6, py = this.y + Math.sin(a) * r;
+        g.fillStyle(cols[i], fade * (1 - i * 0.25)); g.fillRect(Math.round(px) - 1, Math.round(py) - 1, i ? 2 : 3, i ? 2 : 3);
+      }
+    }
+    if (this.t % 3 === 0) this.match.particles.push({ shape: 'note', x: this.x, y: this.y + (Math.random() - 0.5) * h * 0.6, vx: -this.dir * 0.4, vy: -0.6, life: 26, color: P.light, grav: 0 });
+  }
+}
+
+// NU's GRAFFITI TAG: a dripping spray-painted tag on the floor. While NU stands on his own tag he's in
+// RAGE MODE (his hits deal 20% more). One tag at a time; it fades after a while.
+export class GraffitiTag {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
+    this.x = owner.x + owner.facing * spec.ahead;
+    let best = null;
+    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
+    if (!best) { this.alive = false; return; }
+    this.y = best.y;
+    this.x1 = Math.max(best.x1, this.x - spec.width / 2); this.x2 = Math.min(best.x2, this.x + spec.width / 2);
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    this.seed = Math.floor(Math.random() * 1000);
+  }
+  step() {
+    if (!this.alive) return;
+    this.t++;
+    const o = this.owner;
+    if (o.alive && o.grounded && o.x >= this.x1 - 4 && o.x <= this.x2 + 4 && Math.abs(o.y - this.y) < 4) {
+      if (!(o.rage > 0)) { this.match.popText(o, 'RAGE MODE!', '#ff4a3a'); sfx('bighit', 0.4, 0.7); }
+      o.rage = 30;                                                    // lingers half a second after stepping off
+    }
+    if (this.t >= this.life) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; if (this.g) this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, P = this.owner.pal, paint = Math.min(1, this.t / 14), fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
+    const cx = (this.x1 + this.x2) / 2, y = this.y - 1, w = (this.x2 - this.x1) * paint;
+    g.clear();
+    // the tag: a jagged zig-zag scrawl with drips, outlined dark, glowing a little while he stands on it
+    const glow = this.owner.rage > 0 ? 0.35 + 0.15 * Math.sin(this.t * 0.4) : 0;
+    if (glow) { g.fillStyle(0xff4a3a, glow * fade); g.fillRect(cx - w / 2 - 2, y - 7, w + 4, 9); }
+    let rnd = this.seed;
+    const r = () => { rnd = (rnd * 9301 + 49297) % 233280; return rnd / 233280; };
+    for (let x = cx - w / 2; x < cx + w / 2; x += 3) {
+      const yy = y - 3 - Math.round(Math.abs(Math.sin((x - cx) * 0.22)) * 3);
+      g.fillStyle(P.outline, fade); g.fillRect(x - 1, yy - 1, 5, 4);
+      g.fillStyle(r() < 0.25 ? P.core : P.light, fade); g.fillRect(x, yy, 3, 2);
+      if (r() < 0.18) { g.fillStyle(P.light, fade); g.fillRect(x + 1, yy + 2, 1, 2 + Math.floor(r() * 3)); }   // drips
+    }
+    // a crown scrawled over the middle
+    if (paint >= 1) { g.fillStyle(P.core, fade); for (const [dx, dy] of [[-4, -8], [0, -10], [4, -8]]) g.fillRect(cx + dx, y + dy, 2, 3); g.fillRect(cx - 4, y - 6, 10, 2); }
+  }
+}

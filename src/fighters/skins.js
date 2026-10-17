@@ -28,6 +28,11 @@ const RADIANT_RAMP = [0x5a3a10, 0x8a5e1c, 0xb8862b, 0xdcae4a, 0xf3cf74, 0xffe7a8
 const PUMPKIN_RAMP = [0x2a0e04, 0x5a2006, 0x8e3608, 0xc4520c, 0xe8701a, 0xffa040];
 const KING_CAPE_RAMP = [0x050307, 0x0d0910, 0x17101a, 0x241826, 0x342234];
 
+const NUG = {
+  acid: { h: [65, 105], s: [0.35, 1], v: [0.3, 1], center: 84 },
+  hair: { h: [38, 62], s: [0.06, 0.5], v: [0.6, 1], center: 48 },
+  cloth: { h: [230, 300], s: [0.05, 0.35], v: [0.1, 0.4], center: 258 },
+};
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -127,6 +132,24 @@ export const SKINS = {
       vfx: { hit: { shape: 'feather', colors: [0xffffff, 0xfff3c0, 0xffe08a], n: 10, ring: 0xfff3c0, ring2: 0xffffff, pillar: 0xfff3c0, flash: true },
              aura: { wings: [0xffffff, 0xfff3c0, 0xf3cf74], halo: 0xfff3c0, motes: { colors: [0xffffff, 0xfff3c0], rate: 4, feathers: true } },
              trail: 0xfff3c0 } },
+  ],
+  // NU (test fighter): a hit of his always throws out music notes in his colours
+  'nu': [
+    { name: 'ACID', swatch: 0x9be32a, vfx: { hit: { shape: 'note', colors: [0x9be32a, 0xe8ffb0, 0xffffff], n: 6 } } },
+    { name: 'BLOODLINE', swatch: 0xe0302a, fx: 0xff5a4a, groups: NUG, rules: { acid: { to: 358, sat: 1.1 }, hair: { hue: 0, sat: 0.2, val: 0.32 }, cloth: { val: 0.85 } },
+      pal: { outline: 0x1a0406, deep: 0x7a0a10, mid: 0xc81e28, light: 0xff5a4a, core: 0xffd0c8, shade: 0x2a0a0c, void: 0x0a0204 },
+      vfx: { hit: { shape: 'note', colors: [0xff5a4a, 0xffd0c8, 0xffffff], n: 6 } } },
+    { name: 'FROSTBITE', swatch: 0x5ad8f0, fx: 0x9ae8ff, groups: NUG, rules: { acid: { to: 192 }, hair: { hue: 200, sat: 0.15, val: 1.05 }, cloth: { to: 222, sat: 1.8, val: 1.1 } },
+      pal: { outline: 0x0a1a2a, deep: 0x1a6a9a, mid: 0x3ab0e0, light: 0x9ae8ff, core: 0xf0fcff, shade: 0x0e2a3a, void: 0x040c12 },
+      vfx: { hit: { shape: 'note', colors: [0x9ae8ff, 0xf0fcff, 0x3ab0e0], n: 6 } } },
+    { name: 'TOXIC', swatch: 0xa04ae0, fx: 0xc88aff, groups: NUG, rules: { acid: { to: 280, sat: 1.0 }, hair: { to: 100, sat: 1.6, val: 0.9 }, cloth: { to: 280, sat: 1.4 } },
+      pal: { outline: 0x14081e, deep: 0x4a1a7a, mid: 0x7a3ad0, light: 0xc88aff, core: 0xf0e0ff, shade: 0x1e0a2e, void: 0x08040e },
+      vfx: { hit: { shape: 'note', colors: [0xc88aff, 0x9be32a, 0xffffff], n: 6 } } },
+    { name: 'PLATINUM', swatch: 0xd8dce4, fx: 0xf3c358, groups: NUG, rules: { acid: { to: 44, sat: 0.9, val: 1.1 }, hair: { hue: 46, sat: 0.6 }, cloth: { sat: 0.15, val: 2.6 } },
+      pal: { outline: 0x2a1c06, deep: 0x8a6a1c, mid: 0xd9a32e, light: 0xf3c358, core: 0xfff4c8, shade: 0x3a2a0a, void: 0x120c02 },
+      vfx: { hit: { shape: 'note', colors: [0xf3c358, 0xfff4c8, 0xffffff], n: 7, glint: true } } },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },

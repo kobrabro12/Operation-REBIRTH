@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -303,7 +303,7 @@ export class MatchScene extends Phaser.Scene {
 
   applyHit(t, hb, srcX) {
     const h = hb.h, owner = hb.owner;
-    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.cursedMult : 1)));
+    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1)));
     let kbPct;
     if (this.mode === 'stamina') { t.hp -= dmg; kbPct = 40 + 50 * (1 - Math.max(0, t.hp) / t.maxHp); }
     else { t.percent = Math.min(999, t.percent + dmg); kbPct = t.percent; }
@@ -417,6 +417,11 @@ export class MatchScene extends Phaser.Scene {
   spawnOrb(owner, spec) { const p = new VoidOrb(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSword(owner, spec) { const p = new ThrownSword(this, owner, spec); this.projectiles.push(p); return p; }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnWave(owner, spec) { const p = new SoundWave(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnTag(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof GraffitiTag) p.kill();   // one tag per NU
+    const p = new GraffitiTag(this, owner, spec); if (p.alive) this.pools.push(p); return p;
+  }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 
   startLimit(f) {
@@ -479,6 +484,7 @@ export class MatchScene extends Phaser.Scene {
       case 'bubble': for (let i = 0; i < n; i++) add({ shape: 'bubble', x: x + (R() - 0.5) * 18, y: y + (R() - 0.5) * 12, vx: (R() - 0.5) * 0.8, vy: -0.4 - R() * 1, life: 36 + R() * 20, color: col(i), grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6 }); break;
       case 'whirl': add({ shape: 'whirl', x, y, vx: 0, vy: 0, life: 30, maxLife: 30, color: col(0), color2: col(1), grav: 0 }); break;
       case 'cross': for (let i = 0; i < n; i++) add({ shape: 'cross', x: x + (R() - 0.5) * 26, y: y + (R() - 0.5) * 22, vx: 0, vy: -0.3, life: 22 + R() * 12, color: col(i), grav: 0, r: 2 + Math.floor(R() * 2) }); break;
+      case 'note': for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 1 + R() * 2.2; add({ shape: 'note', x: x + (R() - 0.5) * 10, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + R() * 18, color: col(i), grav: -0.01, drag: 0.95, sway: R() * 6 }); } break;
       case 'bat': for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.2; add({ shape: 'bat', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 36 + R() * 20, color: col(i % 2), grav: -0.02, drag: 0.97 }); } break;
       case 'star': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.6 + R() * 3; add({ shape: 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.8, life: 26 + R() * 16, color: col(i), grav: 0.05, drag: 0.94 }); } break;
       case 'pixel2': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 18 + R() * 14, color: col(i), drag: 0.9, grav: 0 }); } break;
@@ -537,6 +543,7 @@ export class MatchScene extends Phaser.Scene {
         g.fillStyle(0xffb02a, a); g.fillRect(X - 1, Y - 1, 1, 1); g.fillRect(X + 1, Y - 1, 1, 1);
         break;
       }
+      case 'note': g.fillStyle(p.color, a); g.fillRect(X, Y - 5, 1, 6); g.fillRect(X - 2, Y, 3, 2); g.fillRect(X + 1, Y - 5, 2, 1); g.fillRect(X + 2, Y - 4, 1, 1); break;   // a music note
       case 'star': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 3, 2, 7); g.fillRect(X - 3, Y - 1, 7, 2); g.fillStyle(0xffffff, a); g.fillRect(X - 1, Y - 1, 2, 2); break;   // a four-point star
       case 'pixel2': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.35); g.fillRect(X - 3, Y - 3, 7, 7); break;   // a neon pixel with a soft glow                        // ink splash
       case 'smoke': { const k = 1 - p.life / p.maxLife; g.fillStyle(p.color, 0.55 * (1 - k)); g.fillCircle(X, Y, p.r + k * 6); break; }

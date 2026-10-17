@@ -172,6 +172,11 @@ export class CpuController extends Controller {
         if (me.vy > 0 && me.jumpsLeft > 0 && U.phase === 'flood') { this.tap('jump'); return true; }
         this.x = Math.sign(me.x - o.x) || 1; return true;
       }
+      if (lim.type === 'mosh') {                         // jump the mic-drop shockwave as it comes
+        const until = o.t - lim.dropAt;
+        if (until > -10 && until < 30 && me.grounded && Math.abs(me.y - o.y) < 6) { this.tap('jump'); return true; }
+        return false;
+      }
       if (lim.type === 'blade') {                       // the giant sword hangs raised, then falls: roll away or dodge as it drops
         if (adx > (lim.reach || 170) + 40) return false;
         const fall = lim.slashFrom - o.t;

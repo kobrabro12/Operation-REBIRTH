@@ -103,6 +103,7 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1); }   // NU's RAGE MODE hits 20% harder
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1); }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
   // a direction pressed within the last few frames before attack = a smash attack
@@ -149,6 +150,7 @@ export class Fighter {
     if (this.invincible > 0) this.invincible--;
     if (this.curse > 0) this.curse--;
     if (this.swift > 0) this.swift--;
+    if (this.rage > 0) this.rage--;
     if (this.star > 0) this.star--;
     if (this.summonCooldown > 0) this.summonCooldown--;
     if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
@@ -232,7 +234,7 @@ export class Fighter {
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (M.sideB.dive && this.usedDive) return false; this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -341,6 +343,15 @@ export class Fighter {
   }
   st_attack(c) {
     const m = this.move;
+    if (m.multi && m.hits && m.hits.some((h) => h.from === this.t)) this.attackId = nextAttackId++;   // each beat of a multi-hit hits again
+    if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
+    if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
+    if (m.dive && this.t >= m.dive.from && this.t <= m.dive.to) {     // NU's STAGE DIVE: flat out through the air
+      const D = m.dive, k = (this.t - D.from) / (D.to - D.from);
+      this.vx = this.facing * D.vx * (1 - 0.45 * k);
+      if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
+      this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
+    }
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
@@ -685,6 +696,7 @@ export class Fighter {
     const L = this.def.limit;
     if (L.type === 'blade') return this.bladeLimit(L);
     if (L.type === 'undertow') return this.undertowLimit(L);
+    if (L.type === 'mosh') return this.moshLimit(L);
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
@@ -777,7 +789,7 @@ export class Fighter {
     this.ledge = L; this.setState('ledge');
     this.x = h.x; this.y = h.y; this.vx = this.vy = this.lx = this.ly = 0;
     this.facing = -L.side; this.fastFalling = false;
-    this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;          // a fresh recovery
+    this.jumpsLeft = 1; this.usedUpB = false; this.usedDive = false; this.airdodged = false;          // a fresh recovery
     if (this.ledgeGrabs === 0) this.invincible = Math.max(this.invincible, 36); // safe on the first grab only
     this.ledgeGrabs++;
     this.stopChargeSound();
@@ -847,7 +859,7 @@ export class Fighter {
       if (this.state === 'hitstun' && this.ly > 4) { this.ly = -this.ly * 0.6; this.y = landed.y; this.match.puff(this.x, this.y, 0xd99350, 6); return; }
       this.y = landed.y; this.vy = 0; this.ly = 0;
       this.grounded = true; this.platform = landed;
-      this.jumpsLeft = this.swift > 0 ? 2 : 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false; this.ledgeGrabs = 0;
+      this.jumpsLeft = this.swift > 0 ? 2 : 1; this.airdodged = false; this.usedUpB = false; this.usedDive = false; this.fastFalling = false; this.ledgeGrabs = 0;
       this.onLand();
     } else if (landed && this.grounded) {
       this.y = landed.y; this.platform = landed;
@@ -884,11 +896,100 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.possessed = 0; this.possessImmune = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
     this.sprite.setVisible(true); this.tag.setVisible(true);
+  }
+
+  // ------------------------------------------------------------------ Mosh Pit Limit (NU)
+  // Raises the mic... and drops it. A shockwave races along the floor both ways: anyone standing on it
+  // is thrown up and a pyro column erupts under them (jump the wave to dodge it). Pyro keeps going off
+  // across the stage while the crowd goes wild below.
+  moshLimit(L) {
+    const m = this.match;
+    if (this.t === 1) this.ult = { waves: 0, hit: [], pyro: [], plat: this.platform };
+    const U = this.ult;
+    this.vx = 0; this.lx = 0;
+    if (!this.grounded) this.vy = Math.max(this.vy, 4);                 // drops to the floor for the mic drop
+    if (this.t === L.dropAt) {
+      U.waves = 1; U.wy = this.y; U.wx = this.x; U.plat = this.platform;
+      sfx('bighit', 1, 0.5); sfx('ko', 0.5, 0.7); m.shake(14, 10);
+      for (let i = 0; i < 20; i++) m.particles.push({ x: this.x, y: this.y - 2, vx: (Math.random() - 0.5) * 8, vy: -Math.random() * 4, life: 30, color: i % 2 ? this.pal.light : 0xffffff, size: 3 });
+    }
+    if (U.waves) {
+      const dist = (this.t - L.dropAt) * L.waveSpeed;
+      if (dist < L.waveReach) for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || U.hit.includes(o) || o.isIntangible() || o.state === 'respawn') continue;
+        if (o.grounded && Math.abs(o.y - U.wy) < 4 && Math.abs(o.x - U.wx) <= dist) {
+          U.hit.push(o);
+          m.applyHit(o, { h: L.wave, owner: this, facing: Math.sign(o.x - U.wx) || this.facing, id: 'moshw' + this.slot + ':' + o.slot + ':' + this.age, pillar: true }, U.wx);
+          U.pyro.push({ x: o.x, y: U.wy, at: this.t + L.pyroDelay, victim: o, big: true });
+        }
+      }
+      // pyro going off across the stage
+      if (this.t < L.dropAt + L.pyroFor && (this.t - L.dropAt) % L.pyroEvery === 0 && U.plat) {
+        const P = U.plat, x = P.x1 + 20 + Math.random() * (P.x2 - P.x1 - 40);
+        U.pyro.push({ x, y: P.y, at: this.t + 14 });
+      }
+    }
+    for (const p of U.pyro) {                                           // each column: a warning glow on the floor, then fire
+      if (this.t === p.at) {
+        sfx(p.big ? 'bighit' : 'hit', p.big ? 0.9 : 0.5, p.big ? 0.6 : 0.8); m.shake(p.big ? 10 : 4, 6);
+        const box = { x1: p.x - 14, x2: p.x + 14, y1: p.y - 110, y2: p.y + 2 };
+        for (const o of m.fighters) {
+          if (o === this || !o.alive || o.team === this.team || o.isIntangible()) continue;
+          if (p.big ? o === p.victim : (o.x > box.x1 && o.x < box.x2 && o.y > box.y1 && o.y < box.y2 + 4)) {
+            m.applyHit(o, { h: p.big ? L.blast : L.pyro, owner: this, facing: Math.sign(o.x - this.x) || this.facing, id: 'moshp' + this.slot + ':' + o.slot + ':' + p.at + ':' + Math.round(p.x), pillar: true }, p.x);
+          }
+        }
+      }
+    }
+    if (this.t >= L.frames) { this.invincible = 30; this.ult = null; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+  drawMosh(g, L, U) {
+    const m = this.match, P = this.pal, t = this.t;
+    // the crowd below the stage, arms in the air, jumping to the beat
+    const v = m.worldCam.worldView, base = v.bottom + 6, k = Math.min(1, t / 30) * Math.min(1, (L.frames - t) / 20);
+    for (let i = 0; i < 46; i++) {
+      const x = v.x + (i / 45) * v.width, hop = Math.abs(Math.sin(t * 0.25 + i * 1.7)) * 6, y = base - 18 * k - hop;
+      g.fillStyle(0x0b0a14, 0.92); g.fillCircle(x, y, 7); g.fillRect(x - 8, y + 4, 16, 20);
+      if (i % 2) { g.fillRect(x - 9, y - 16 + hop * 0.5, 3, 14); g.fillRect(x + 6, y - 14 - hop * 0.3, 3, 12); }
+      if (i % 7 === 3 && t % 10 < 5) { g.fillStyle(P.light, 0.9); g.fillRect(x + 5, y - 22, 3, 4); }   // a lighter held up
+    }
+    if (U.waves) {                                                      // the shockwave: two bright fronts racing along the floor
+      const dist = Math.min(L.waveReach, (t - L.dropAt) * L.waveSpeed), fade = Math.max(0, 1 - (t - L.dropAt) / 40);
+      for (const s of [-1, 1]) {
+        const x = U.wx + s * dist;
+        g.fillStyle(P.core, fade); g.fillRect(x - 3, U.wy - 14, 6, 14);
+        g.fillStyle(P.light, fade * 0.8); g.fillRect(Math.min(x, U.wx), U.wy - 3, Math.abs(x - U.wx), 3);
+        g.fillStyle(P.mid, fade * 0.6); g.fillRect(x - s * 14, U.wy - 8, 10, 8);
+      }
+    }
+    for (const p of U.pyro) {
+      const d = t - p.at;
+      if (d < 0) {                                                       // warning: a glowing spot on the floor
+        g.fillStyle(0xff4a3a, 0.4 + 0.3 * ((t >> 1) % 2)); g.fillRect(p.x - 12, p.y - 2, 24, 3);
+      } else if (d < 24) {                                               // the column of fire
+        const hgt = (p.big ? 140 : 100) * Math.min(1, d / 4), w = (p.big ? 26 : 18) * (1 - d / 30), fade = 1 - d / 24;
+        g.fillStyle(0xff4a3a, 0.9 * fade); g.fillRect(p.x - w / 2, p.y - hgt, w, hgt);
+        g.fillStyle(0xffa030, fade); g.fillRect(p.x - w / 3, p.y - hgt * 0.9, w * 2 / 3, hgt * 0.9);
+        g.fillStyle(P.core, fade); g.fillRect(p.x - w / 6, p.y - hgt * 0.75, w / 3, hgt * 0.75);
+        if (d % 2 === 0) m.particles.push({ x: p.x + (Math.random() - 0.5) * w, y: p.y - Math.random() * hgt, vx: (Math.random() - 0.5) * 1.5, vy: -2, life: 16, color: Math.random() < 0.5 ? 0xffa030 : 0xff4a3a, size: 2, grav: 0 });
+      }
+    }
+  }
+  // CROWD SURF: a sea of hands under him, holding him up as he rides upward
+  drawCrowdSurf(g) {
+    const u = this.def.moves.upb, k = Math.min(1, (this.t - u.riseAt + 2) / 4) * Math.min(1, (u.frames - this.t) / 8);
+    if (k <= 0) return;
+    for (let i = -3; i <= 3; i++) {
+      const x = this.x + i * 7, sway = Math.sin(this.anim * 0.4 + i) * 2, top = this.y - 4 + Math.abs(i) * 2 + sway;
+      g.fillStyle(0x0b0a14, 0.9 * k); g.fillRect(x - 2, top, 4, 22);
+      g.fillStyle(i % 2 ? 0xf0c09a : 0xd8986e, k); g.fillRect(x - 2, top - 3, 4, 4);   // open hands
+      g.fillRect(x - 3 + (i % 2), top - 5, 1, 2); g.fillRect(x + 2 - (i % 2), top - 5, 1, 2);
+    }
   }
 
   // ------------------------------------------------------------------ Undertow Limit (Mr Wake)
@@ -1497,7 +1598,7 @@ export class Fighter {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; if (d.limit.type !== 'undertow') spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (d.limit.type !== 'undertow' && d.limit.type !== 'mosh') spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -1620,6 +1721,9 @@ export class Fighter {
     // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
     if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
+    if (s === 'limit' && d.limit.type === 'mosh' && this.ult) this.drawMosh(g, d.limit, this.ult);
+    if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
+    if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
       const gx = this.x + this.facing * 44, gy = this.y - 19, tw = this.t - d.moves.counter.start;   // glint on the lowered blade
