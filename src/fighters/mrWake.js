@@ -91,7 +91,18 @@ export const MR_WAKE = {
     fair: convert(RAW.fair, { landLag: 9 }),
     bair: convert(RAW.bair, { landLag: 8 }),
     dair: convert(RAW.dair, { landLag: 14 }),
-    neutralB: convert(RAW.neutralB),                  // Wake Bolt
+    // Neutral special: Void Orb - a slow, swelling orb of void energy. Press special again to detonate
+    // it anywhere: it implodes (pulling nearby opponents in, 2 x 2%) then explodes (9%). Touching an
+    // opponent sets it off too, and it bursts by itself at the end of its flight (~1.7 s).
+    neutralB: {
+      frames: 28, spawnAt: 11,
+      orb: {
+        speed: 3.4, life: 100, r0: 6, r1: 13,
+        touch: { dmg: 3, angle: 40, base: 0.6, growth: 0, stun: 14 },
+        implode: 18, pullR: 64, pullEvery: 8, pull: { dmg: 2, angle: 90, base: 0.3, growth: 0, stun: 16 },
+        blastR: 46, blast: { dmg: 9, angle: 70, base: 4.2, growth: 6.2, radial: true },
+      },
+    },
     sideB: convert(RAW.sideB),                        // Drifting Soul: slow, curves toward a foe
     // Shadow Pool: his blob body seeps out into a wide puddle. The splash hits for 4%; the puddle then
     // stays on the ground for 4 s, and any opponent who steps in is slowed for 2 s after leaving it.
@@ -100,17 +111,16 @@ export const MR_WAKE = {
     upb: { frames: upB.frames, riseAt: RAW.upB.startup, riseV: -12, pushX: 2.4, drift: 2.0, hits: upB.hits },
   },
 
-  // Limit (placeholder until his real one is designed): Void Beam, a purple energy beam from the gem.
-  // Same timing and 50% total as Soul Summoner's Soulfire Beam.
+  // Limit: THE UNDERTOW. He melts into a puddle that floods across the floor. Anyone standing on the main
+  // platform inside the flood is dragged under into a black abyss: two giant glowing eyes open in the
+  // dark, huge jaws of the deep chomp them five times (6% each), then spit them out flying (15%) - 45%
+  // in all. Jumping clear of the flood avoids it; if nobody is caught the pool drains and he re-forms.
   limit: {
-    name: 'VOID BEAM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 20, colors: BEAM_PURPLE,
-    hits: [
-      { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 60, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 70, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 80, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 92, dmg: 10, angle: 32, base: 5.5, growth: 6.5 },
-    ],
+    name: 'THE UNDERTOW', type: 'undertow', reach: 300,
+    melt: 22, flood: 40, spread: 330, recede: 24,
+    eyesFor: 34, chomps: 5, chompEvery: 20, spitAfter: 26,
+    chomp: { dmg: 6, angle: 90, base: 0, growth: 0, stun: 14 },
+    final: { dmg: 15, angle: 84, base: 7.6, growth: 7.6 },
+    colors: BEAM_PURPLE,
   },
 };

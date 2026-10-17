@@ -9,7 +9,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb } from '../fighters/entities.js';
 import { stageById } from '../stage/stages.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
@@ -206,7 +206,7 @@ export class MatchScene extends Phaser.Scene {
   resolveHits(hazard) {
     const hbs = [];
     for (const f of this.fighters) if (f.alive && f.hitstop === 0) hbs.push(...f.activeHitboxes());
-    for (const p of this.projectiles) if (p.alive) hbs.push(p.hitbox());
+    for (const p of this.projectiles) if (p.alive) { const h = p.hitbox(); if (h) hbs.push(h); }
     for (const s of this.souls) { const h = s.hitbox(); if (h) hbs.push(h); }
     for (const lh of this.limitHits) if (lh.t < 2) hbs.push(lh.hb);
     if (hazard) for (const hz of [].concat(hazard)) hbs.push({ ...hz, h: hz, owner: null, facing: 1 });   // a stage can return one hazard or a list
@@ -272,7 +272,7 @@ export class MatchScene extends Phaser.Scene {
 
     const kb = (h.base + h.growth * kbPct / 100) / t.def.weight;
     let dir = hb.facing || 1;
-    if (!owner) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel
+    if (!owner || h.radial) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel; explosions push outward
     const rad = h.angle * Math.PI / 180;
     t.stopChargeSound();
     if (t.grabbed) { t.grabbed.grabbedBy = null; t.grabbed.setState('air'); t.grabbed = null; }
@@ -369,6 +369,7 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.pools) if (p.owner === owner) p.kill();          // one puddle per Mr Wake
     const p = new ShadowPool(this, owner, spec); if (p.alive) this.pools.push(p); return p;
   }
+  spawnOrb(owner, spec) { const p = new VoidOrb(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSword(owner, spec) { const p = new ThrownSword(this, owner, spec); this.projectiles.push(p); return p; }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
@@ -494,7 +495,7 @@ export class MatchScene extends Phaser.Scene {
     for (const f of this.fighters) {
       if (f.state !== 'limit' || !f.alive) continue;
       const L = f.def.limit;
-      if (L.type === 'blade') continue;               // drawn by the fighter itself
+      if (L.type) continue;                           // Limits with their own type (blade, undertow) are drawn by the fighter
       if (f.t < L.beamStart - 6 || f.t > L.beamEnd + 6) continue;
       const b = this.beamBox(f);
       if (f.t < L.beamStart) {                       // charging glow in the hand

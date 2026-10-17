@@ -87,7 +87,7 @@ export class Training {
   // ---- actions
   reset() {
     const m = this.match;
-    for (const p of m.projectiles) p.kill();
+    for (const p of m.projectiles) (p.remove ? p.remove() : p.kill());   // clear thrown swords and orbs outright
     for (const s of m.souls) s.kill(false);
     for (const p of m.pools) p.kill();
     m.fighters.forEach((f, i) => {
@@ -133,7 +133,7 @@ export class Training {
     const owner = hb.owner;
     let name = 'HAZARD';
     if (owner) {
-      if (hb.projectile) name = owner.def.moves.fireball ? 'FIREBALL' : 'ENERGY BOLT';
+      if (hb.projectile) name = owner.def.moves.fireball ? 'FIREBALL' : hb.projectile.kind || 'ENERGY BOLT';
       else if (hb.soul) name = 'SOUL';
       else if (hb.pillar) name = 'LIMIT: ' + owner.def.limit.name;
       else if (owner.state === 'upb') name = 'UP SPECIAL';
@@ -167,7 +167,7 @@ export class Training {
       g.lineStyle(1, f.isIntangible() ? 0x5ee07a : 0xffd34f, 1); g.strokeRect(h.x1, h.y1, h.x2 - h.x1, h.y2 - h.y1);
       for (const hb of f.activeHitboxes()) { g.fillStyle(0xff3030, 0.45); g.fillRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); g.lineStyle(1, 0xff3030, 1); g.strokeRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); }
     }
-    for (const p of m.projectiles) { if (!p.alive) continue; const hb = p.hitbox(); g.lineStyle(1, 0xff9a30, 1); g.strokeRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); }
+    for (const p of m.projectiles) { if (!p.alive) continue; const hb = p.hitbox(); if (!hb) continue; g.lineStyle(1, 0xff9a30, 1); g.strokeRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); }
     for (const s of m.souls) { const hb = s.hitbox(); if (hb) { g.lineStyle(1, 0xff9a30, 1); g.strokeRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); } }
     for (const lh of m.limitHits) { const hb = lh.hb; g.fillStyle(0xff3030, 0.3); g.fillRect(hb.x1, hb.y1, hb.x2 - hb.x1, hb.y2 - hb.y1); }
   }

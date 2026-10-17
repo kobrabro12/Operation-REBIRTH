@@ -35,6 +35,11 @@ export class CpuController extends Controller {
     const dx = tgt.x - me.x, dy = tgt.y - me.y, adx = Math.abs(dx);
     const L = this.lv;
 
+    // Void Orb out: set it off when an opponent drifts close to it
+    const orb = me.voidOrb;
+    if (orb && orb.alive && orb.phase === 'fly' && this.match.fighters.some((f) => f.alive && f.team !== me.team && Math.hypot(f.x - orb.x, f.y - 26 - orb.y) < 48) && Math.random() < 0.5 + L.accuracy * 0.5) {
+      this.tap('special'); return;
+    }
     // react to an incoming attack by shielding (after a human-like delay)
     if (tgt.state === 'attack' && tgt.attackId !== this.seenAttack && adx < 70 && Math.abs(dy) < 60 && me.grounded) {
       this.seenAttack = tgt.attackId;
@@ -77,7 +82,7 @@ export class CpuController extends Controller {
       } else if (M.sideB && !(M.sideB.hits || []).some((h) => h.possess) && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
         this.x = Math.sign(dx); this.tap('special');               // Drifting Soul
       } else if (!(M.neutralB && M.neutralB.charge)) {
-        this.tap('special');                                       // Wake Bolt
+        this.tap('special');                                       // Wake: Void Orb
       }
       return;
     }

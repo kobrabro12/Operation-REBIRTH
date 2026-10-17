@@ -244,7 +244,7 @@ export class ThrownSword {
     this.x = owner.x + owner.facing * 18; this.y = owner.y - 34;
     this.vx = this.dir * spec.speed; this.vy = 0;
     this.phase = 'out'; this.t = 0; this.pt = 0; this.ang = 0; this.alive = true;
-    this.id = nextId++; this.persist = true;
+    this.id = nextId++; this.persist = true; this.kind = 'BLADE TOSS';
     this.g = match.add.graphics();
     match.addWorld(this.g);
     sfx('swing', 0.8, 0.7);
@@ -310,5 +310,84 @@ export class ThrownSword {
     g.lineStyle(1, 0xffffff, 1); g.lineBetween(x, y, tipX - c, tipY - s);
     g.lineStyle(3, this.owner.dragonSpin ? 0xf3c358 : 0x6a7880, 1); g.lineBetween(x - c * 3 - s * 5, y - s * 3 + c * 5, x - c * 3 + s * 5, y - s * 3 - c * 5);   // crossguard
     g.lineStyle(2, 0x2a2430, 1); g.lineBetween(x - c * 4, y - s * 4, butX, butY);                                                                         // grip
+  }
+}
+
+// Mr Wake's neutral special, Void Orb: a slow orb of void energy swells as it drifts forward. Press
+// special again to detonate it wherever it is (touching an opponent sets it off too, and it bursts on its
+// own at the end of its flight). The detonation first IMPLODES - sucking nearby opponents into the middle
+// with two small hits - then EXPLODES, launching them.
+export class VoidOrb {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * (owner.def.handOffset.x + 6); this.y = owner.y + owner.def.handOffset.y;
+    this.vx = this.dir * spec.speed; this.phase = 'fly'; this.t = 0; this.pt = 0; this.alive = true;
+    this.id = nextId++; this.persist = true; this.r = spec.r0; this.kind = 'VOID ORB';
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('summon', 0.45, 1.6);
+  }
+  hitbox() {
+    const S = this.spec, base = { owner: this.owner, facing: this.dir, projectile: this, persist: true };
+    if (this.phase === 'fly') return { ...base, x1: this.x - this.r, x2: this.x + this.r, y1: this.y - this.r, y2: this.y + this.r, h: S.touch, id: this.id + 'touch' };
+    if (this.phase === 'implode' && this.pt % S.pullEvery === 1 && this.pt < S.pullEvery * 2) return { ...base, x1: this.x - S.pullR, x2: this.x + S.pullR, y1: this.y - S.pullR, y2: this.y + S.pullR, h: S.pull, id: this.id + 'pull' + this.pt };
+    if (this.phase === 'explode' && this.pt <= 3) return { ...base, x1: this.x - S.blastR, x2: this.x + S.blastR, y1: this.y - S.blastR, y2: this.y + S.blastR, h: S.blast, id: this.id + 'blast', facing: 0 };
+    return null;
+  }
+  detonate() { if (this.phase === 'fly') { this.phase = 'implode'; this.pt = 0; this.vx = 0; sfx('curse', 0.8, 0.5); } }
+  kill() { if (this.phase === 'fly') this.detonate(); else if (!this.owner.alive) this.remove(); }   // touching someone sets it off
+  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.voidOrb === this) this.owner.voidOrb = null; }
+  step() {
+    const S = this.spec; this.t++; this.pt++;
+    if (!this.owner.alive && this.phase === 'fly') { this.remove(); return; }
+    if (this.phase === 'fly') {
+      this.vx *= 0.985; this.x += this.vx; this.y += Math.sin(this.t * 0.15) * 0.4;
+      this.r = S.r0 + (S.r1 - S.r0) * Math.min(1, this.t / S.life);
+      if (this.t >= S.life) this.detonate();
+      if (this.t % 3 === 0) this.match.puff(this.x - this.dir * this.r, this.y, this.owner.fxColor, 1);
+    } else if (this.phase === 'implode') {
+      for (const f of this.match.fighters) {                      // suck opponents toward the middle
+        if (!f.alive || f.team === this.owner.team || f.isIntangible() || f.state === 'grabbed') continue;
+        const dx = this.x - f.x, dy = this.y - (f.y - f.body.h / 2), d = Math.hypot(dx, dy);
+        if (d > S.pullR * 1.4) continue;
+        f.x += dx * 0.14; if (!f.grounded) f.y += dy * 0.14;
+        f.lx *= 0.5; f.ly *= 0.5;
+      }
+      if (this.pt >= S.implode) { this.phase = 'explode'; this.pt = 0; sfx('bighit', 0.9, 0.7); this.match.shake(7, 6);
+        this.match.puff(this.x, this.y, 0xffffff, 10); this.match.puff(this.x, this.y, this.owner.fxColor, 14); }
+    } else if (this.pt >= 16) this.remove();
+  }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), S = this.spec, col = this.owner.fxColor, t = this.t;
+    g.clear();
+    if (this.phase === 'fly') {
+      const r = this.r;
+      g.fillStyle(col, 0.18); g.fillCircle(x, y, r + 5 + (t % 6 < 3 ? 1 : 0));
+      g.fillStyle(0x1a0a2e, 1); g.fillCircle(x, y, r);
+      g.fillStyle(0x560c83, 1); g.fillCircle(x, y, r * 0.8);
+      g.fillStyle(0x0b0518, 1); g.fillCircle(x, y, r * 0.45);                       // dark core
+      for (let k = 0; k < 4; k++) {                                                  // swirling streaks on the surface
+        const a = t * 0.18 + k * Math.PI / 2;
+        g.lineStyle(2, k % 2 ? col : 0xdab8fe, 0.9); g.beginPath(); g.arc(x, y, r * 0.7, a, a + 0.9); g.strokePath();
+      }
+      for (let k = 0; k < 5; k++) { const a = -t * 0.12 + k * 1.26; g.fillStyle(0xdab8fe, 1); g.fillRect(Math.round(x + Math.cos(a) * (r + 4)) - 1, Math.round(y + Math.sin(a) * (r + 4)) - 1, 2, 2); }
+      g.fillStyle(0xffffff, 0.9); g.fillRect(x - Math.round(r * 0.4), y - Math.round(r * 0.5), 2, 2);
+    } else if (this.phase === 'implode') {
+      const k = this.pt / S.implode, R = S.pullR * (1 - k * 0.7);
+      g.fillStyle(0x0b0518, 0.25 + 0.3 * k); g.fillCircle(x, y, R);
+      g.lineStyle(2, col, 0.9); g.strokeCircle(x, y, R);
+      for (let i = 0; i < 16; i++) {                                                // streaks rushing inward
+        const a = i * 0.39 + this.pt * 0.25, d = R * (1 - ((this.pt * 3 + i * 7) % 20) / 20);
+        g.lineStyle(1, i % 2 ? 0xdab8fe : col, 0.9); g.lineBetween(x + Math.cos(a) * d, y + Math.sin(a) * d, x + Math.cos(a) * (d + 6), y + Math.sin(a) * (d + 6));
+      }
+      g.fillStyle(0x0b0518, 1); g.fillCircle(x, y, 5 + 6 * k);
+      g.fillStyle(0xffffff, k); g.fillCircle(x, y, 2 + 2 * k);
+    } else {
+      const k = this.pt / 16;
+      g.fillStyle(0xffffff, 0.7 * (1 - k)); g.fillCircle(x, y, S.blastR * (0.4 + k * 0.5));
+      g.lineStyle(4, col, 1 - k); g.strokeCircle(x, y, S.blastR * (0.5 + k * 0.8));
+      g.lineStyle(2, 0xdab8fe, 1 - k); g.strokeCircle(x, y, S.blastR * (0.3 + k * 1.1));
+    }
   }
 }

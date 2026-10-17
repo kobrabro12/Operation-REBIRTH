@@ -85,6 +85,11 @@ export class Fighter {
     for (const b of Object.keys(this.buffer)) {
       if (c.pressed(b)) this.buffer[b] = BUFFER; else if (this.buffer[b] > 0) this.buffer[b]--;
     }
+    // Void Orb: neutral special while an orb is out detonates it (from almost any state)
+    if (this.voidOrb && this.buffer.special && Math.abs(c.x) < 0.5 && !c.up && !c.down && !['hitstun', 'grabbed', 'dying', 'limit'].includes(this.state)) {
+      this.buffer.special = 0;
+      if (this.voidOrb.alive && this.voidOrb.phase === 'fly') this.voidOrb.detonate();
+    }
     if (this.swordOut && this.state !== 'swordthrow') {   // Blade Toss: no attacks until the sword is back
       if (this.buffer.special) { this.buffer.special = 0; this.swordOut.recall(); }   // special calls it back early
       this.buffer.attack = this.buffer.grab = this.buffer.limit = 0;
@@ -239,6 +244,7 @@ export class Fighter {
   st_attack(c) {
     const m = this.move;
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
+    if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
     if (this.t >= m.frames) {
       this.setState(this.grounded ? 'idle' : 'air'); return;
@@ -541,6 +547,7 @@ export class Fighter {
   st_limit() {
     const L = this.def.limit;
     if (L.type === 'blade') return this.bladeLimit(L);
+    if (L.type === 'undertow') return this.undertowLimit(L);
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {
@@ -745,6 +752,130 @@ export class Fighter {
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
     this.sprite.setVisible(true); this.tag.setVisible(true);
+  }
+
+  // ------------------------------------------------------------------ Undertow Limit (Mr Wake)
+  // melt into a puddle -> it floods the floor -> anyone standing in it is dragged under -> the abyss
+  // cutscene (eyes open, jaws chomp, spit them out) / nobody caught: the pool drains and he re-forms
+  undertowLimit(L) {
+    const m = this.match, P = m.stage.platforms[0];
+    if (this.t === 1) { this.ult = { phase: 'melt', victims: [], origin: { x: this.x, y: this.y }, w: 0 }; sfx('curse', 0.9, 0.5); }
+    const U = this.ult;
+    this.vx = 0; this.lx = 0;
+    if (U.phase === 'melt') {
+      if (!this.grounded) this.vy = Math.max(this.vy, 6);              // drips straight down to the floor
+      if (this.t >= L.melt && this.grounded) { U.phase = 'flood'; U.ft = 0; U.cx = this.x; U.y = this.y; sfx('summon', 0.9, 0.5); }
+      if (this.t >= L.melt && this.y > P.y + 60) return this.endUndertow();   // melted over the void: nothing to flood
+      return;
+    }
+    if (U.phase === 'flood') {
+      U.ft++;
+      U.w = Math.min(L.spread, (U.ft / L.flood) * L.spread);
+      const x1 = U.cx - U.w, x2 = U.cx + U.w;
+      for (const o of m.fighters) {                                       // standing in the flood: dragged under
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o) || o.isIntangible()) continue;
+        if (o.grounded && Math.abs(o.y - U.y) < 3 && o.x > x1 && o.x < x2) {
+          U.victims.push(o); o.vx = o.vy = o.lx = o.ly = 0; o.stopChargeSound(); o.setState('hitstun'); o.hitstun = 999;
+          m.puff(o.x, o.y - 4, 0x2a1040, 8); sfx('curse', 0.6, 0.7);
+        }
+      }
+      if (U.ft % 6 === 0) m.puff(x1 + Math.random() * (x2 - x1), U.y - 3, Math.random() < 0.5 ? 0x6d26bd : this.fxColor, 1);
+      if (U.ft >= L.flood) {
+        if (U.victims.length) {                                           // caught someone: into the abyss
+          U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this; U.chomp = 0;
+          this.fx.setDepth(4); for (const v of U.victims) v.sprite.setDepth(4.5);
+          sfx('limit', 0.8, 0.6); m.shake(8, 10);
+        } else { U.phase = 'recede'; U.rt = 0; }
+      }
+      return;
+    }
+    if (U.phase === 'recede') { U.rt++; U.w = L.spread * (1 - U.rt / L.recede); if (U.rt >= L.recede) this.endUndertow(); return; }
+    if (U.phase === 'cutscene') return this.undertowCutscene(L, U);
+  }
+  undertowCutscene(L, U) {
+    const m = this.match;
+    U.ct++;
+    U.victims = U.victims.filter((v) => v.alive && v.state !== 'dying');
+    if (!U.victims.length) return this.endUndertow();
+    for (const v of U.victims) { v.hitstun = 999; v.lx = v.ly = 0; }
+    if (U.ct === 8) sfx('summon', 1, 0.4);                                   // the eyes open
+    const start = L.eyesFor;
+    if (U.ct >= start && U.chomp < L.chomps && (U.ct - start) % L.chompEvery === L.chompEvery - 6) {   // the jaws snap shut
+      U.chomp++;
+      for (const t of U.victims) m.applyHit(t, { h: L.chomp, owner: this, facing: this.facing, id: 'chomp' + this.slot + ':' + U.chomp, pillar: true }, t.x);
+      for (const t of U.victims) { t.lx = t.ly = 0; t.hitstun = 999; }
+      sfx('bighit', 0.7, 0.6 + U.chomp * 0.05); m.shake(6, 4);
+    }
+    const spitAt = start + L.chomps * L.chompEvery + L.spitAfter;
+    if (U.ct === spitAt) {                                                    // spat out of the deep
+      for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'spit' + this.slot, pillar: true }, t.x); m.puff(t.x, t.y - 20, 0x6d26bd, 18); m.puff(t.x, t.y - 20, 0xffffff, 8); }
+      sfx('ko', 0.7, 0.8); m.shake(14, 12);
+      return this.endUndertow();
+    }
+  }
+  endUndertow() {
+    const U = this.ult, m = this.match;
+    if (U && U.phase === 'cutscene') { m.frozen = 0; m.cutscene = null; for (const v of U.victims) v.sprite.setDepth(0); }
+    this.fx.setDepth(0);
+    if (U) { this.x = U.origin.x; if (U.y !== undefined) this.y = U.y; }
+    this.ult = null; this.invincible = 30;
+    this.reform = 16;                                                         // rises back out of the puddle
+    this.setState(this.grounded ? 'idle' : 'air');
+    m.puff(this.x, this.y - 10, 0x6d26bd, 12);
+  }
+  // the deep's two giant glowing eyes, opening and blinking, slit pupils on the victim
+  drawAbyssEyes(g, c, jawEdge, ct) {
+    const open = Math.min(1, Math.max(0, (ct - 6) / 20)), blink = ct > 40 && ct % 70 > 66 ? 0.1 : 1;
+    for (const ex of [-62, 62]) {
+      const x = c.x + ex, y = jawEdge - 44, rx = 34, ry = 16 * open * blink;
+      if (ry < 1) continue;
+      g.fillStyle(this.fxColor, 0.25); g.fillEllipse(x, y, rx * 2 + 16, ry * 2 + 12);
+      g.fillStyle(0xd8ff6a, 1); g.fillEllipse(x, y, rx * 2, ry * 2);
+      g.fillStyle(0xf8ffd0, 1); g.fillEllipse(x - 6, y - ry * 0.3, rx, ry * 0.8);
+      g.fillStyle(0x05020c, 1); g.fillEllipse(x + Phaser.Math.Clamp((c.x - x) * 0.1, -8, 8), y, 7, ry * 1.8);
+    }
+  }
+  drawUndertow(g, L, U) {
+    const t = this.anim, col = this.fxColor;
+    if (U.phase === 'flood' || U.phase === 'recede' || U.phase === 'cutscene') {   // the puddle across the floor
+      const w = U.phase === 'cutscene' ? L.spread : U.w, y = U.y;
+      for (let x = -w; x < w; x += 4) {
+        const edge = 1 - Math.abs(x) / Math.max(1, w), h = 2 + Math.round(4 * Math.min(1, edge * 4)) + Math.round(Math.sin(x * 0.2 + t * 0.15) * 1.2);
+        g.fillStyle(0x0c0521, 0.95); g.fillRect(U.cx + x, y - h, 4, h + 2);
+        if ((x / 4 + (t >> 3)) % 7 === 0) { g.fillStyle(col, 0.8); g.fillRect(U.cx + x, y - h, 3, 1); }
+      }
+      for (let k = 0; k < 6; k++) {                                        // bubbles
+        const bx = U.cx + Math.sin(k * 71.3) * w * 0.9, by = y - 3 - ((t + k * 13) % 24) * 0.5;
+        g.fillStyle(0x9b5de5, 1 - ((t + k * 13) % 24) / 24); g.fillRect(Math.round(bx), Math.round(by), 2, 2);
+      }
+    }
+    if (U.phase !== 'cutscene') return;
+    // ---- the abyss, centred on the first victim
+    const v = U.victims[0]; if (!v) return;
+    const c = v.center(), ct = U.ct, W = 440, H = 280;
+    g.fillStyle(0x020108, 1); g.fillRect(c.x - W / 2, c.y - H / 2, W, H);
+    for (let i = 0; i < 6; i++) { g.fillStyle(0x1a0a2e, 0.25 - i * 0.03); g.fillEllipse(c.x, c.y + 20, 420 - i * 60, 220 - i * 30); }
+    for (let k = 0; k < 18; k++) {                                         // drifting motes in the dark
+      const mx = c.x + Math.sin(k * 12.9) * 200, my = c.y + 120 - ((ct * (0.4 + (k % 3) * 0.2) + k * 30) % 260);
+      g.fillStyle(k % 3 ? 0x6d26bd : col, 0.6); g.fillRect(Math.round(mx), Math.round(my), 2, 2);
+    }
+    // jaws: open wide, then snap shut on every chomp
+    if (ct < L.eyesFor - 10) return this.drawAbyssEyes(g, c, c.y - 80, ct);   // eyes first, in the dark
+    const local = ct - L.eyesFor, ph = ((local % L.chompEvery) + L.chompEvery) % L.chompEvery;
+    let gap = U.chomp >= L.chomps ? 90 : ph < L.chompEvery - 6 ? 90 - Math.max(0, ph - 6) * 6 : 6;
+    gap = Math.max(6, gap);
+    if (local < 0) gap = 90 + (-local) * 6;
+    for (const side of [-1, 1]) {
+      const edge = c.y + side * gap / 2;                                     // where the teeth meet
+      g.fillStyle(0x12061f, 1); g.fillRect(c.x - 190, side < 0 ? edge - 120 : edge, 380, 120);   // the jaw itself
+      g.fillStyle(0x2a1040, 1); g.fillRect(c.x - 190, side < 0 ? edge - 8 : edge, 380, 8);         // gums
+      for (let tx = c.x - 184; tx < c.x + 184; tx += 20) {                   // teeth
+        const big = Math.abs(tx - c.x) < 60 ? 1.4 : 1;
+        g.fillStyle(0xe8e0f0, 1); g.fillTriangle(tx, edge, tx + 16, edge, tx + 8, edge - side * 18 * big);      // fangs point at the victim
+        g.fillStyle(0xa898c0, 1); g.fillTriangle(tx + 8, edge, tx + 16, edge, tx + 8, edge - side * 18 * big);
+      }
+    }
+    this.drawAbyssEyes(g, c, c.y - gap / 2, ct);                            // set into the upper jaw: they ride up and down with each chomp
   }
 
   // ------------------------------------------------------------------ blade Limit (Lacy: Thousand Cuts)
@@ -997,7 +1128,7 @@ export class Fighter {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (d.limit.type !== 'undertow') spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -1019,6 +1150,11 @@ export class Fighter {
     else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
     if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (s === 'limit' && d.limit.type === 'undertow' && this.ult) {          // The Undertow: melted into the puddle
+      const U = this.ult;
+      if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(0x2a1040).setTintMode(Phaser.TintModes.FILL); }
+      else spr.setAlpha(0);
+    } else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
     if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge
       const C = d.moves.neutralB.charge, k = this.swingCharge / C.max, full = k >= 1;
@@ -1096,6 +1232,7 @@ export class Fighter {
     }
     // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
     if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
+    if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
       const gx = this.x + this.facing * 44, gy = this.y - 19, tw = this.t - d.moves.counter.start;   // glint on the lowered blade
