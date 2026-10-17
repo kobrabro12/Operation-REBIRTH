@@ -19,7 +19,7 @@ export class CpuController extends Controller {
     const me = this.fighter;
     if (!me || !me.alive || this.match.frozen) return;
     if (me.state === 'respawn') { if (Math.random() < 0.03) this.x = Math.random() < 0.5 ? -1 : 1; return; }
-    if (me.state === 'charge') { this.cur.special = true; return; }
+    if (me.state === 'charge' || me.state === 'swingcharge') { this.cur.special = true; return; }
     this.holdSpecial = false;
     if (me.possessed > 0) { if (Math.random() < this.lv.mash) this.tap(['attack', 'jump', 'special', 'shield'][Math.floor(Math.random() * 4)]); return; }
 
@@ -61,6 +61,13 @@ export class CpuController extends Controller {
     if (M.downB && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
+    // Lacy's Grand Slam: a charged home-run swing up close
+    if (M.neutralB && M.neutralB.charge && adx < 64 && Math.abs(dy) < 40 && me.grounded && Math.random() < 0.06 * L.aggression) {
+      if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
+      this.tap('special'); this.holdSpecial = true;
+      me.cpuChargeTarget = 8 + Math.floor(Math.random() * 40);
+      return;
+    }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
       if (M.fireball) {
@@ -69,7 +76,7 @@ export class CpuController extends Controller {
         me.cpuChargeTarget = 10 + Math.floor(Math.random() * (adx > 260 ? 74 : 30));
       } else if (M.sideB && !(M.sideB.hits || []).some((h) => h.possess) && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
         this.x = Math.sign(dx); this.tap('special');               // Drifting Soul
-      } else {
+      } else if (!(M.neutralB && M.neutralB.charge)) {
         this.tap('special');                                       // Wake Bolt
       }
       return;

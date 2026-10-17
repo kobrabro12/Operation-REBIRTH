@@ -175,7 +175,7 @@ export class Fighter {
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { this.startAttack('sideB'); return true; } }
-      if (M.fireball) this.startCharge(); else if (M.neutralB) this.startAttack('neutralB');
+      if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
     if (this.buffer.grab && ground) { this.buffer.grab = 0; this.startAttack('grab'); return true; }
@@ -297,6 +297,24 @@ export class Fighter {
   }
   st_grabbed() {
     if (!this.grabbedBy || this.t > 60) { this.grabbedBy = null; this.setState('idle'); }
+  }
+
+  // ---- neutral special (Lacy): Grand Slam - hold to wind up a home-run swing, release to swing
+  startSwingCharge() { this.setState('swingcharge'); this.swingCharge = 0; sfx('swing', 0.4, 0.6); }
+  st_swingcharge(c) {
+    const nb = this.def.moves.neutralB, C = nb.charge;
+    this.swingCharge = Math.min(C.max, this.swingCharge + 1);
+    if (!this.grounded) this.vy = Math.min(this.vy, 1.5);            // hangs in the air a little while winding up
+    if (this.swingCharge === C.max && this.t === C.max) { sfx('limitready', 0.6, 1.2); this.match.puff(this.x - this.facing * 20, this.y - 50, 0xffffff, 10); }
+    if (this.t % 5 === 0) this.match.puff(this.x - this.facing * (14 + Math.random() * 16), this.y - 40 - Math.random() * 24, this.swingCharge >= C.max ? 0xffe08a : this.fxColor, 1);
+    const release = (!c.held('special') && this.t > 2) || this.t >= C.hold || (this.isCpu && this.t >= (this.cpuChargeTarget || 30));
+    if (!release) return;
+    const k = this.swingCharge / C.max;
+    this.move = { ...nb, hits: nb.hits.map((h) => ({ ...h, base: h.base + (h.maxBase - h.base) * k, growth: h.growth + (h.maxGrowth - h.growth) * k, full: k >= 1 })) };
+    this.moveName = 'neutralB'; this.attackId = nextAttackId++; this.hitList = new Set();
+    this.setState('attack');
+    sfx('swing', 0.9, 0.7);
+    if (this.grounded) this.vx = this.facing * 1.6;                   // steps into the swing
   }
 
   // ---- side special (Lacy): Blade Toss - throw the sword, it spins in front of her, then flies back
@@ -911,6 +929,10 @@ export class Fighter {
         const spinning = this.spinGround ? st < u.ground.spin - 6 : (st >= 0 && st < 22);
         if (!spinning) return st < 0 ? { sheet: S.attack1, frame: 1 } : { sheet: S.attack2, frame: 6 };
         return { sheet: S.attack2, frame: 1, flip: Math.floor(st / 3) % 2 === 1 };   // sword held out, turning
+      }
+      case 'swingcharge': {                          // sword drawn back for the swing; trembles once fully charged
+        const full = this.swingCharge >= this.def.moves.neutralB.charge.max;
+        return { sheet: S.attack2, frame: 0, rot: full && this.anim % 4 < 2 ? 0.03 * this.facing : 0 };
       }
       case 'swordthrow': {                           // wind up with the sword, then hand out while it spins
         if (this.t < this.def.moves.sideB.sword.throwAt) return { sheet: S.attack2, frame: this.t < 4 ? 0 : 1 };

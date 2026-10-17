@@ -306,6 +306,11 @@ export class MatchScene extends Phaser.Scene {
     this.puff(c.x, c.y, 0xf3c358, 4);
     if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir);
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
+    if (h.homerun && h.full) {                      // a fully charged Grand Slam: crack of the bat
+      this.popText(t, 'HOME RUN!', '#ffe08a'); this.shake(14, 8); sfx('ko', 0.6, 1.6);
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; this.particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5, life: 18, color: i % 2 ? 0xffe08a : 0xffffff, size: 3, drag: 0.9, grav: 0 }); }
+      this.particles.push({ shape: 'ring', x: c.x, y: c.y, vx: 0, vy: 0, life: 14, maxLife: 14, color: 0xffe08a, grav: 0, r: 6, dr: 4 });
+    }
 
     if (this.mode === 'stamina' && t.hp <= 0 && t.state !== 'dying') {
       t.hp = 0;
