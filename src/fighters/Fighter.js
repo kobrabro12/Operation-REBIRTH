@@ -85,6 +85,10 @@ export class Fighter {
     for (const b of Object.keys(this.buffer)) {
       if (c.pressed(b)) this.buffer[b] = BUFFER; else if (this.buffer[b] > 0) this.buffer[b]--;
     }
+    if (this.swordOut && this.state !== 'swordthrow') {   // Blade Toss: no attacks until the sword is back
+      if (this.buffer.special) { this.buffer.special = 0; this.swordOut.recall(); }   // special calls it back early
+      this.buffer.attack = this.buffer.grab = this.buffer.limit = 0;
+    }
     this.age++;
     if (c.tappedSide()) this.tapX = this.age;
     if (c.y < -0.5 && c.py >= -0.5) this.tapUp = this.age;
@@ -303,14 +307,9 @@ export class Fighter {
   st_swordthrow(c) {
     const S = this.def.moves.sideB.sword;
     if (this.t === S.throwAt) this.swordOut = this.match.spawnSword(this, S);
-    if (!this.grounded) this.vy = Math.min(this.vy, 2.2);          // floats down slowly while the sword is out
-    if (this.t > S.throwAt && !this.swordOut) { this.setState(this.grounded ? 'idle' : 'air'); return; }
-    if (this.t > 420) { if (this.swordOut) this.swordOut.remove(); this.swordOut = null; this.setState(this.grounded ? 'idle' : 'air'); }
+    if (this.t >= S.throwAt + 6) this.setState(this.grounded ? 'idle' : 'air');   // free to move while it spins
   }
-  catchSword() {
-    this.swordOut = null;
-    if (this.state === 'swordthrow') { this.setState('attack'); this.move = { frames: 8 }; this.moveName = 'catch'; }
-  }
+  catchSword() { this.swordOut = null; }
 
   // ---- neutral special: chargeable fireball
   startCharge() {
@@ -869,7 +868,11 @@ export class Fighter {
 
   // Which strip and frame to show, for fighters with their own animations (def.ownAnims).
   animFrame(s) {
-    const S = this.sheets, N = this.def.frameCounts;
+    let S = this.sheets;
+    const N = this.def.frameCounts;
+    if (this.swordOut && s !== 'swordthrow' && S.idle_u) {   // sword out spinning: the empty-handed strips
+      S = { ...S, idle: S.idle_u, run: S.run_u, jump: S.jump_u, fall: S.fall_u, hit: S.hit_u };
+    }
     const loop = (k, rate) => ({ sheet: S[k], frame: Math.floor(this.anim / rate) % N[k] });
     const once = (k, t, total) => ({ sheet: S[k], frame: Math.max(0, Math.min(N[k] - 1, Math.floor((t / total) * N[k]))) });
     // taking damage: the Take Hit strip plays through (16 ticks) even if the hitstun is shorter
@@ -890,7 +893,6 @@ export class Fighter {
       case 'dying': return once('death', this.t, 66);
       case 'attack': {
         const m = this.move || {}, G = S.grab;
-        if (this.moveName === 'catch') return { sheet: S.idle, frame: 0 };   // sword back in hand
         if (this.moveName === 'grab' && G) {        // reach out, grab at full stretch, pull the empty hand back on a miss
           const t = this.t;
           return { sheet: G, frame: t < 3 ? 0 : t < 5 ? 1 : t < 12 ? 2 : t < 18 ? 1 : 0 };
@@ -912,7 +914,7 @@ export class Fighter {
       }
       case 'swordthrow': {                           // wind up with the sword, then hand out while it spins
         if (this.t < this.def.moves.sideB.sword.throwAt) return { sheet: S.attack2, frame: this.t < 4 ? 0 : 1 };
-        return { sheet: S.grab, frame: 8 + ((this.anim >> 4) % 2) };
+        return { sheet: S.grab, frame: 8 };                     // follow-through: hand out, sword gone
       }
       case 'holding': return S.grab ? { sheet: S.grab, frame: this.t < 4 ? 3 : 4 } : { sheet: S.attack2, frame: 0 };   // grip, then hold them at arm's length
       case 'counter': return { sheet: S.guard || S.attack2, frame: 0 };      // crouched guard, sword angled down toward the opponent

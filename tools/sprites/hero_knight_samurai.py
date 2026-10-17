@@ -22,7 +22,7 @@ import colorsys, math, os
 from PIL import Image
 
 DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'assets', 'fighters', 'hero-knight')
-STRIPS = ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab']
+STRIPS = ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']
 FW, FH = 150, 90
 
 RED = [(46, 6, 12), (82, 12, 20), (124, 20, 28), (166, 30, 34), (202, 48, 44), (234, 86, 70)]   # red lacquer, dark -> light

@@ -13,14 +13,16 @@ export const HERO_KNIGHT = {
   id: 'hero-knight',
   name: 'LACY',
   // every strip is 150x90 per frame, feet at (66, 86) inside the frame
-  sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard', grab: 'hk_grab' },
+  sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard', grab: 'hk_grab',
+    // the same movement strips without her sword, while it's out spinning (tools/sprites/hero_knight_unarmed.py)
+    idle_u: 'hk_idle_u', run_u: 'hk_run_u', jump_u: 'hk_jump_u', fall_u: 'hk_fall_u', hit_u: 'hk_hit_u' },
   // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
-  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab']
+  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
-  costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab'].map((k) => [k, 'hk_sam_' + k])) },
-  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 10 },
+  costumeSheets: { samurai: Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u'].map((k) => [k, 'hk_sam_' + k])) },
+  frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 10, idle_u: 11, run_u: 8, jump_u: 3, fall_u: 3, hit_u: 4 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,
   handOffset: { x: 20, y: -30 },
@@ -56,9 +58,9 @@ export const HERO_KNIGHT = {
     grab: { ...DEFAULT_GRAB.grab, anim: 'grab' },
     // Side special: Blade Toss. She hurls her sword forward; it slows to a stop and spins in place for
     // about 1.5 s (hold the button to keep it spinning up to 2.5 s), hitting every 12 frames and holding
-    // opponents in the whirl, then it flies back to her hand, striking anything in the way. She stands
-    // with her hand out (or floats down slowly in the air) until she catches it. A shield or a counter
-    // knocks the sword straight back to her.
+    // opponents in the whirl, then it flies back to her hand, striking anything in the way. While it's
+    // out she can run, jump, shield and dodge but can't attack, grab or use her Limit; pressing special
+    // again calls the sword back early. A shield or a counter knocks the sword straight back to her.
     sideB: {
       sword: {
         throwAt: 8, speed: 8.5, decel: 0.42, spinTime: 90, holdExtra: 60, spinEvery: 12, spinR: 22, returnSpeed: 5,
