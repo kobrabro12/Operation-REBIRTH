@@ -10,6 +10,7 @@ import { readPad } from '../input/controllers.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { announce } from '../audio/announcer.js';
 import { skinsFor, skinInfo, resolveSkins } from '../fighters/skins.js';
 
 const COLS = 6, TILE_W = 72, TILE_H = 50, GAP = 4;
@@ -183,7 +184,7 @@ export class SelectScene extends Phaser.Scene {
         const tile = this.tileAt(p.x, p.y), card = this.cardAt(p.x, p.y);
         const sw = card && card.swatches.find((w) => p.x >= w.x - 1 && p.x < w.x + w.w + 1 && p.y >= w.y - 1 && p.y < w.y + w.h + 1);
         if (sw) { card.p.skin = sw.i; sfx('menu', 0.6, 1.1); }
-        else if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); }
+        else if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); announce(this, tile.f.id); }
         else if (tile) sfx('curse', 0.4, 1.4);
         else if (card && card.p.kind === 'cpu') { s.cpuLevels[card.p.slot] = (s.cpuLevels[card.p.slot] + 1) % 3; sfx('menu', 0.6, 1.2); }
       }
