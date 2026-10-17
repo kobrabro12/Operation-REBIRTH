@@ -305,11 +305,18 @@ export class Fighter {
     const nb = this.def.moves.neutralB, C = nb.charge;
     this.swingCharge = Math.min(C.max, this.swingCharge + 1);
     if (!this.grounded) this.vy = Math.min(this.vy, 1.5);            // hangs in the air a little while winding up
-    if (this.swingCharge === C.max && this.t === C.max) { sfx('limitready', 0.6, 1.2); this.match.puff(this.x - this.facing * 20, this.y - 50, 0xffffff, 10); }
-    if (this.t % 5 === 0) this.match.puff(this.x - this.facing * (14 + Math.random() * 16), this.y - 40 - Math.random() * 24, this.swingCharge >= C.max ? 0xffe08a : this.fxColor, 1);
+    // sparks spraying off the tip of the blade: more, faster and gold as the charge builds
+    const k = this.swingCharge / C.max, full = k >= 1, R = Math.random;
+    const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1];
+    if (this.swingCharge === C.max && this.t === C.max) { sfx('limitready', 0.6, 1.2); this.match.puff(tx, ty, 0xffffff, 12); this.match.shake(3, 6); }
+    const n = full ? 3 : (R() < 0.4 + k ? 1 + (R() < k ? 1 : 0) : 0);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (R() - 0.5) * 2.2 - this.facing * 0.5, sp = 1 + R() * (1.5 + 3 * k);
+      this.match.particles.push({ x: tx, y: ty, vx: Math.cos(a) * sp - this.facing * 0.6, vy: Math.sin(a) * sp, life: 10 + R() * (8 + 12 * k), color: full ? (R() < 0.5 ? 0xffe08a : 0xffffff) : (R() < 0.3 ? 0xffffff : this.fxColor), size: R() < 0.25 + 0.4 * k ? 2 : 1, grav: 0.14 });
+    }
+    if (this.t % (full ? 6 : 14) === 0) sfx('soulhit', 0.12 + 0.2 * k, 1.8 + k);   // crackle
     const release = (!c.held('special') && this.t > 2) || this.t >= C.hold || (this.isCpu && this.t >= (this.cpuChargeTarget || 30));
     if (!release) return;
-    const k = this.swingCharge / C.max;
     this.move = { ...nb, hits: nb.hits.map((h) => ({ ...h, base: h.base + (h.maxBase - h.base) * k, growth: h.growth + (h.maxGrowth - h.growth) * k, full: k >= 1 })) };
     this.moveName = 'neutralB'; this.attackId = nextAttackId++; this.hitList = new Set();
     this.setState('attack');
@@ -1013,6 +1020,12 @@ export class Fighter {
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
     if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
+    if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge
+      const C = d.moves.neutralB.charge, k = this.swingCharge / C.max, full = k >= 1;
+      const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
+      g.fillStyle(full ? 0xffe08a : this.fxColor, 0.25 + 0.25 * k); g.fillCircle(tx, ty, 3 + 6 * k + pulse);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(tx, ty, 1.5 + 1.5 * k);
+    }
 
     // name tag
     this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));

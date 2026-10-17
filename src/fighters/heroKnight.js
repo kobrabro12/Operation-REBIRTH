@@ -41,11 +41,13 @@ export const HERO_KNIGHT = {
     // Jab (Attack2): the sword is drawn back, then a big rising cut in front. 7 frames x 4 ticks.
     jab: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 18, box: [10, -76, 66, 74], dmg: 5, angle: 40, base: 2.6, growth: 2.4 }] },
     // Neutral special: Grand Slam - a chargeable home-run swing. Hold the button to wind the sword back
-    // (up to 1 s; it flashes when fully charged), release to swing (Attack2's big rising cut). Always 20%;
-    // the knockback grows with the charge, and a full charge launches like a home-run bat.
+    // while sparks spray from the blade's tip (a full charge takes 3 s; the sparks turn gold and it
+    // flashes), release whenever you like to swing (Attack2's big rising cut) - so it can be used again
+    // and again with quick partial charges. Always 20%; the knockback grows with the charge, and a full
+    // charge launches like a home-run bat.
     neutralB: {
       frames: 34, anim: 'attack2',
-      charge: { max: 60, hold: 90 },                  // full charge at 60 frames; it swings by itself at 90
+      charge: { max: 180, hold: 240, tip: [-49, -50] },   // full at 3 s; swings by itself after 4 s; blade tip in the wind-up pose
       hits: [{ from: 12, to: 16, box: [4, -66, 68, 66], dmg: 20, angle: 36, base: 4.0, growth: 5.5, maxBase: 9.5, maxGrowth: 12.0, homerun: true }],
     },
 

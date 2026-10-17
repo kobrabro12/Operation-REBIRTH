@@ -65,7 +65,7 @@ export class CpuController extends Controller {
     if (M.neutralB && M.neutralB.charge && adx < 64 && Math.abs(dy) < 40 && me.grounded && Math.random() < 0.06 * L.aggression) {
       if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
       this.tap('special'); this.holdSpecial = true;
-      me.cpuChargeTarget = 8 + Math.floor(Math.random() * 40);
+      me.cpuChargeTarget = 8 + Math.floor(Math.random() * (Math.random() < 0.2 ? 170 : 50));   // usually quick, sometimes a big wind-up
       return;
     }
     // ranged zoning
