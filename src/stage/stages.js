@@ -33,7 +33,7 @@ export const STAGES = [
   },
   {
     id: 'elderwood-hollow', name: 'ELDERWOOD HOLLOW', available: true, make: (scene) => new ForestStage(scene),
-    blurb: ['A mossy root at the foot of a glowing world', 'tree, deep in a mythical forest at night.'],
+    blurb: ['A mossy root at a glowing world tree, deep in', 'a mythical forest. Day slowly turns to night.'],
     hazard: 'BRAMBLE SNARE: THORNS BURST FROM THE MOSS;\nSPIRIT STAG: A GLOWING STAG CHARGES ACROSS.',
     preview: drawForestPreview,
   },

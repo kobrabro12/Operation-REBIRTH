@@ -2,7 +2,10 @@
 // of an ancient world tree whose trunk glows with spiral runes. Two of its branches are ledges, and a huge
 // glowing mushroom cap is the high platform. Fireflies and spirit wisps drift through shafts of moonlight,
 // leaves fall, and mist rolls through the roots below. All art is drawn in code.
-// Music: 'bgm_forest' (public/assets/audio/music/forest.ogg / .mp3 - silent until those files exist).
+// Each match starts in broad daylight; after ~30 s the sun slowly sinks through a golden sunset, the sky
+// darkens, stars come out and the moon rises - full night by ~100 s. The night life (fireflies, wisps,
+// glowing mushrooms and runes) fades in with the dark.
+// Music: 'bgm_forest' (public/assets/audio/music/forest.ogg / .mp3).
 //
 // Stage hazards, one at a time every 10-14 s, each announced with a CAUTION banner first:
 //   BRAMBLE SNARE - the moss writhes in two or three spots, then thorny brambles burst up out of it,
@@ -23,6 +26,15 @@ export const FPAL = {
   cap: 0x6a3aa8, capLight: 0xa070e0, capDark: 0x40206a, spot: 0xe6d0ff, stem: 0xd8d0b8, stemShade: 0xa89c84,
   shroomA: 0x5ff0d0, shroomB: 0xf0a0ff, firefly: 0xf6ffa0, wisp: 0xbffcff,
   mist: 0x9cc8c0, outline: 0x08100e, thorn: 0x6a2a3a, thornLight: 0xa04a5a, vine: 0x2c6a30,
+};
+
+// sky bands at three times of day: day -> sunset -> night (top to bottom)
+const SKY_DAY = [0x4f9ee0, 0x5aa8e4, 0x68b2e6, 0x78bce6, 0x8ac6e2, 0x9ccede, 0xaed4d4, 0xbcdac8];
+const SKY_DUSK = [0x2a2a5a, 0x46356e, 0x6e4078, 0xa04c74, 0xd0606a, 0xec8a5c, 0xf4b060, 0xf0c878];
+const DAY_START = 1800, DAY_LEN = 4200;          // frames: daylight for 30 s, then 70 s to full night
+const lerpC = (a, b, k) => {
+  const r = ((a >> 16) & 255) + ((((b >> 16) & 255) - ((a >> 16) & 255)) * k), g = ((a >> 8) & 255) + ((((b >> 8) & 255) - ((a >> 8) & 255)) * k), bl = (a & 255) + (((b & 255) - (a & 255)) * k);
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl);
 };
 
 export class ForestStage {
@@ -72,17 +84,9 @@ export class ForestStage {
   draw(worldLayer, bgLayer) {
     const s = this.scene, P = FPAL;
     // night sky in hard bands, misty green near the forest floor
-    const sky = s.add.graphics().setScrollFactor(0);
-    P.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 46, 1440, 47); });
-    sky.fillStyle(P.sky[P.sky.length - 1], 1); sky.fillRect(-400, -60 + P.sky.length * 46, 1440, 400);
-    for (let i = 0; i < 60; i++) { sky.fillStyle(P.star, i % 3 ? 0.45 : 0.9); sky.fillRect((i * 271) % 660, (i * 89) % 150, 1, 1); }
-    bgLayer.push(sky);
-    // the moon, low and huge behind the trees
-    const moon = s.add.graphics().setScrollFactor(0.05);
-    const mx = 470, my = 70, R = 38;
-    for (const [rr, a] of [[R + 30, 0.06], [R + 18, 0.1], [R + 8, 0.16]]) { moon.fillStyle(P.glow, a); moon.fillCircle(mx, my, rr); }
-    for (let y = -R; y <= R; y += 2) { const hw = Math.round(Math.sqrt(R * R - y * y)); moon.fillStyle(P.moon, 1); moon.fillRect(mx - hw, my + y, hw * 2, 2); moon.fillStyle(P.moonShade, 1); moon.fillRect(mx + Math.round(hw * 0.4), my + y, hw - Math.round(hw * 0.4), 2); }
-    bgLayer.push(moon);
+    // the sky, sun, moon and stars change with the time of day: redrawn in step()
+    this.skyG = s.add.graphics().setScrollFactor(0); this.celG = s.add.graphics().setScrollFactor(0.05);
+    bgLayer.push(this.skyG, this.celG);
     // far forest: rows of tall tree silhouettes
     const far = s.add.graphics().setScrollFactor(0.15);
     for (let i = 0; i < 16; i++) this.farTree(far, -60 + i * 52 + ((i * 17) % 20), 330, 150 + (i * 37) % 90, 10 + (i % 3) * 3, P.treeFar, P.treeFarLit);
@@ -99,6 +103,7 @@ export class ForestStage {
     }
     bgLayer.push(mid);
     this.backFxG = s.add.graphics().setScrollFactor(0.35); bgLayer.push(this.backFxG);   // drifting far wisps
+    this.dayG = s.add.graphics().setScrollFactor(0); bgLayer.push(this.dayG);          // daylight washing over the far forest
 
     // ---- the world tree behind the stage (parallax close to the world)
     const tree = s.add.graphics().setScrollFactor(0.7);
@@ -189,26 +194,58 @@ export class ForestStage {
   }
 
   // ---------------------------------------------------------------- per frame
+  // 0 = full day, 1 = full night
+  get night() { return Math.max(0, Math.min(1, (this.t - DAY_START) / DAY_LEN)); }
+  drawSky() {
+    const P = FPAL, n = this.night, sg = this.skyG, cg = this.celG;
+    sg.clear(); cg.clear();
+    const band = (i) => n < 0.5 ? lerpC(SKY_DAY[i], SKY_DUSK[i], n * 2) : lerpC(SKY_DUSK[i], P.sky[i], (n - 0.5) * 2);
+    for (let i = 0; i < 8; i++) { sg.fillStyle(band(i), 1); sg.fillRect(-400, -60 + i * 46, 1440, 47); }
+    sg.fillStyle(band(7), 1); sg.fillRect(-400, -60 + 8 * 46, 1440, 400);
+    const stars = Math.max(0, (n - 0.55) / 0.45);
+    if (stars > 0) for (let i = 0; i < 60; i++) { sg.fillStyle(P.star, (i % 3 ? 0.45 : 0.9) * stars); sg.fillRect((i * 271) % 660, (i * 89) % 150, 1, 1); }
+    // the sun: crosses from high on the left and sinks below the trees on the right, reddening as it goes
+    const sk = Math.min(1, n / 0.6);
+    if (sk < 1) {
+      const sx = 120 + sk * 420, sy = 40 + sk * sk * 300, sc = lerpC(0xfff6c8, 0xff8a3a, sk), R = 22;
+      for (const [rr, a] of [[R + 28, 0.07], [R + 16, 0.12], [R + 7, 0.2]]) { cg.fillStyle(sc, a); cg.fillCircle(sx, sy, rr); }
+      cg.fillStyle(sc, 1); cg.fillCircle(sx, sy, R);
+      cg.fillStyle(lerpC(0xffffff, 0xffc070, sk), 1); cg.fillCircle(sx - 5, sy - 5, R * 0.45);
+    }
+    // the moon: rises from behind the trees on the left and climbs to its place, high on the right
+    const mk = Math.max(0, (n - 0.4) / 0.6);
+    if (mk > 0) {
+      const e = 1 - (1 - mk) * (1 - mk), mx = 150 + e * 320, my = 330 - e * 260, R = 38;
+      for (const [rr, a] of [[R + 30, 0.06], [R + 18, 0.1], [R + 8, 0.16]]) { cg.fillStyle(P.glow, a * mk); cg.fillCircle(mx, my, rr); }
+      for (let y = -R; y <= R; y += 2) { const hw = Math.round(Math.sqrt(R * R - y * y)); cg.fillStyle(P.moon, 1); cg.fillRect(mx - hw, my + y, hw * 2, 2); cg.fillStyle(P.moonShade, 1); cg.fillRect(mx + Math.round(hw * 0.4), my + y, hw - Math.round(hw * 0.4), 2); }
+    }
+    // daylight over the far forest: warm and bright at noon, golden at sunset, gone at night
+    const dg = this.dayG; dg.clear();
+    const light = 1 - n;
+    if (light > 0) { dg.fillStyle(n < 0.5 ? lerpC(0xd8f0b0, 0xffb070, n * 2) : 0xffb070, 0.32 * light); dg.fillRect(-400, -60, 1440, 600); }
+  }
+
   step(match) {
     this.t++;
-    const t = this.t, P = FPAL;
+    const t = this.t, P = FPAL, night = this.night, glowUp = 0.25 + 0.75 * night;
+    if (t % 2 === 1 || t < 3) this.drawSky();
     // moonlight shafts, slowly breathing
     const sh = this.shaftG; sh.clear();
     for (const [x, w, ph] of [[160, 40, 0], [330, 60, 2], [520, 34, 4]]) {
-      const a = 0.05 + 0.03 * Math.sin(t * 0.02 + ph);
-      for (let k = 0; k < 12; k++) { sh.fillStyle(P.glow, a); sh.fillRect(x + k * 6, -20 + k * 32, w, 34); }
+      const a = (0.05 + 0.03 * Math.sin(t * 0.02 + ph)) * (1.6 - 0.6 * night), col = night < 0.5 ? lerpC(0xfff0b0, 0xffb070, night * 2) : lerpC(0xffb070, P.glow, (night - 0.5) * 2);
+      for (let k = 0; k < 12; k++) { sh.fillStyle(col, a); sh.fillRect(x + k * 6, -20 + k * 32, w, 34); }
     }
     // far wisps drifting among the trunks
     const bf = this.backFxG; bf.clear();
     for (let i = 0; i < 6; i++) {
       const x = ((i * 137 + t * 0.15) % 760) - 60, y = 120 + Math.sin(t * 0.02 + i) * 30 + i * 18;
-      bf.fillStyle(P.wisp, 0.12); bf.fillCircle(x, y, 5); bf.fillStyle(P.wisp, 0.5); bf.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+      bf.fillStyle(P.wisp, 0.12 * night); bf.fillCircle(x, y, 5); bf.fillStyle(P.wisp, 0.5 * night); bf.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
     }
     // runes on the world tree pulsing in a slow wave, round the hollow
     const rg = this.runeG; rg.clear();
     for (let i = 0; i < 14; i++) {
       const a = i * 0.45 - 1.6, rr = 44 + (i % 2) * 6, x = 320 + Math.cos(a) * rr, y = 150 + Math.sin(a) * rr * 1.3;
-      const on = 0.35 + 0.65 * Math.max(0, Math.sin(t * 0.05 - i * 0.5));
+      const on = (0.35 + 0.65 * Math.max(0, Math.sin(t * 0.05 - i * 0.5))) * glowUp;
       rg.fillStyle(P.rune, on); rg.fillRect(Math.round(x) - 2, Math.round(y) - 1, 4, 2); rg.fillRect(Math.round(x) - 1, Math.round(y) - 3, 2, 6);
       rg.fillStyle(P.glow, on * 0.25); rg.fillCircle(x, y, 6);
     }
@@ -216,15 +253,15 @@ export class ForestStage {
     const f = this.fxG; f.clear();
     const pulse = 0.5 + 0.5 * Math.sin(t * 0.06);
     for (const [x, y, c] of [[-274, -6, P.shroomA], [-142, -6, P.shroomB], [48, -6, P.shroomA], [198, -6, P.shroomB], [270, -6, P.shroomA], [-171, -96, P.shroomB], [171, -96, P.shroomA]]) {
-      f.fillStyle(c, 0.08 + 0.06 * pulse); f.fillCircle(x, y, 14);
+      f.fillStyle(c, (0.08 + 0.06 * pulse) * glowUp); f.fillCircle(x, y, 14);
     }
-    f.fillStyle(P.capLight, 0.06 + 0.05 * pulse); f.fillCircle(0, this.platforms[3].y - 8, 60);   // the great cap's glow
+    f.fillStyle(P.capLight, (0.06 + 0.05 * pulse) * glowUp); f.fillCircle(0, this.platforms[3].y - 8, 60);   // the great cap's glow
     for (const fl of this.flies) {                      // fireflies: drifting, blinking
       const x = fl.x + Math.sin(t * 0.01 * fl.sp + fl.ph) * 30, y = fl.y + Math.cos(t * 0.013 * fl.sp + fl.ph) * 14;
-      const on = Math.sin(t * 0.08 * fl.sp + fl.ph * 3);
+      const on = Math.sin(t * 0.08 * fl.sp + fl.ph * 3) * night;
       if (on > 0) { f.fillStyle(P.firefly, on * 0.3); f.fillCircle(x, y, 3); f.fillStyle(P.firefly, on); f.fillRect(Math.round(x), Math.round(y), 1, 1); }
     }
-    for (const w of this.wisps) {                       // spirit wisps: soft orbs trailing light
+    for (const w of (night > 0.3 ? this.wisps : [])) { // spirit wisps (they come out at dusk): soft orbs trailing light
       const x = w.x + Math.sin(t * 0.008 + w.ph) * 50, y = w.y + Math.sin(t * 0.017 + w.ph) * 16;
       for (let k = 4; k >= 1; k--) { f.fillStyle(P.wisp, 0.08 * (5 - k)); f.fillCircle(x - Math.cos(t * 0.008 + w.ph) * k * 4, y - Math.cos(t * 0.017 + w.ph) * k * 1.5, 3 + k); }
       f.fillStyle(0xffffff, 0.9); f.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
@@ -238,7 +275,7 @@ export class ForestStage {
       const y = 40 + k * 18, x = ((k * 190 + t * (0.2 + (k % 3) * 0.1)) % 900) - 450;
       f.fillStyle(P.mist, 0.06 + k * 0.012); f.fillRect(Math.round(x), y, 260, 10); f.fillRect(Math.round(x) + 40, y - 4, 160, 4);
     }
-    f.fillStyle(0x0c1a1e, 0.55); f.fillRect(-700, 150, 1400, 400);          // the forest floor lost in deep mist
+    f.fillStyle(lerpC(0x2a4a40, 0x0c1a1e, night), 0.55); f.fillRect(-700, 150, 1400, 400);   // the forest floor lost in deep mist
     this.hzG.clear();
     return this.cycle.run(match, []);
   }
@@ -335,7 +372,9 @@ export function drawForestPreview(g, x, y, w, h) {
   const P = FPAL, u = w / 100, v = h / 100;
   const bh = Math.ceil(h / P.sky.length);
   P.sky.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(x, y + i * bh, w, Math.min(bh, h - i * bh)); });
-  g.fillStyle(P.glow, 0.15); g.fillCircle(x + 74 * u, y + 20 * v, 14 * v); g.fillStyle(P.moon, 1); g.fillCircle(x + 74 * u, y + 20 * v, 9 * v);
+  for (let i = 0; i < 8; i++) { g.fillStyle(SKY_DAY[i], 1); g.fillRect(x, y + i * bh, w * 0.45, Math.min(bh, h - i * bh)); g.fillStyle(SKY_DUSK[i], 1); g.fillRect(x + w * 0.45, y + i * bh, w * 0.12, Math.min(bh, h - i * bh)); }   // day fading to night
+  g.fillStyle(0xfff6c8, 1); g.fillCircle(x + 18 * u, y + 16 * v, 7 * v);
+  g.fillStyle(P.glow, 0.15); g.fillCircle(x + 80 * u, y + 20 * v, 14 * v); g.fillStyle(P.moon, 1); g.fillCircle(x + 80 * u, y + 20 * v, 9 * v);
   for (let i = 0; i < 9; i++) { g.fillStyle(P.treeFar, 1); g.fillRect(x + (i * 11 + 2) * u, y + (30 + (i * 7) % 14) * v, 3 * u, 60 * v); }
   g.fillStyle(P.bark, 1); g.fillRect(x + 40 * u, y + 10 * v, 20 * u, 70 * v);                          // the world tree
   g.fillStyle(P.barkLight, 1); g.fillRect(x + 41 * u, y + 10 * v, 4 * u, 70 * v);
