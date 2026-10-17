@@ -39,12 +39,14 @@ export class Fighter {
     this.skin = opts.skin || 0;
     this.sheets = skinSheets(s, def, this.skin);   // this fighter's colour variation
     this.worn = !!(skinInfo(def.id, this.skin).worn && def.wornSheets); this.wornStage = 0;
+    this.dragonSpin = skinInfo(def.id, this.skin).sheetSet === 'samurai';   // SAMURAI costume: a dragon for Cyclone Slash
+    this.fxBack = s.add.graphics();                 // effects drawn behind the fighter (e.g. the far side of the Samurai dragon)
     this.sprite = s.add.sprite(0, 0, this.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
     this.sprite.setTint(PLAYER_TINTS[slot]);
     this.fx = s.add.graphics();
     this.tag = s.add.text(0, 0, this.label, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 1);
     this.tag.setColor('#' + this.color.toString(16).padStart(6, '0'));
-    match.addWorld(this.sprite, this.fx, this.tag);
+    match.addWorld(this.fxBack, this.sprite, this.fx, this.tag);
   }
 
   // ------------------------------------------------------------------ helpers
@@ -689,7 +691,7 @@ export class Fighter {
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
-    this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear();
+    this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear();
     this.respawnTimer = 70;
   }
 
@@ -900,7 +902,7 @@ export class Fighter {
   // ------------------------------------------------------------------ drawing
   render(frameCount) {
     const spr = this.sprite, g = this.fx, d = this.def;
-    g.clear();
+    g.clear(); this.fxBack.clear();
     if (!this.alive) return;
     this.anim++;
     spr.setPosition(Math.round(this.x), Math.round(this.y));
@@ -1048,9 +1050,9 @@ export class Fighter {
         const k = this.spinCharge / u.ground.chargeMax, tx = this.x - this.facing * 3, ty = this.y - 68;
         for (let i = 0; i < 6; i++) {
           const a = this.anim * 0.3 + i * 1.05, r = 18 * (1 - ((this.anim + i * 5) % 20) / 20);
-          g.fillStyle(i % 2 ? 0xb8fff4 : 0x4ae0e0, 0.9); g.fillRect(Math.round(tx + Math.cos(a) * r) - 1, Math.round(ty + Math.sin(a) * r) - 1, 2, 2);
+          g.fillStyle(this.dragonSpin ? (i % 2 ? 0xf3c358 : 0xe0402a) : (i % 2 ? 0xb8fff4 : 0x4ae0e0), 0.9); g.fillRect(Math.round(tx + Math.cos(a) * r) - 1, Math.round(ty + Math.sin(a) * r) - 1, 2, 2);
         }
-        g.fillStyle(0xb8fff4, 0.25 + 0.5 * k); g.fillCircle(tx, ty, 2 + 4 * k);
+        g.fillStyle(this.dragonSpin ? 0xf3c358 : 0xb8fff4, 0.25 + 0.5 * k); g.fillCircle(tx, ty, 2 + 4 * k);
         if (k >= 1 && this.anim % 8 < 4) { g.fillStyle(0xffffff, 1); g.fillRect(tx - 1, ty - 1, 3, 3); }
       } else {
         const st = this.spinGround ? this.t - this.spinStart : this.t - u.riseAt;
@@ -1059,6 +1061,10 @@ export class Fighter {
           const fade = st < len ? 1 : 1 - (st - len) / 6;
           const big = this.spinGround ? 1 + 0.3 * (this.spinCharge / u.ground.chargeMax) : 1;
           const rx = 38 * big, ry = (this.spinGround ? 13 : 20) * big, head = st * 0.95 * this.facing;
+          if (this.dragonSpin) {                                       // SAMURAI costume: a dragon coils around her instead
+            this.drawSpinDragon(g, cx, cy, rx, ry, head, fade, big);
+            if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, Math.random() < 0.5 ? 0xf3c358 : 0xe0402a, 1);
+          } else {
           const cols = [0xffffff, 0xe0fffa, 0xb8fff4, 0x7af0e8, 0x4ae0e0, 0x22b8c8, 0x1a8aa0];
           // a faint full ring, then a thick glowing crescent sweeping around it
           for (let k = 0; k < 40; k++) {
@@ -1075,6 +1081,7 @@ export class Fighter {
             }
           }
           if (!this.spinGround && st % 3 === 0) this.match.puff(cx + (Math.random() - 0.5) * 30, this.y + 4, 0x7af0e8, 1);   // light streaming below as she rises
+          }
         }
       }
     }
@@ -1099,5 +1106,77 @@ export class Fighter {
     // off-screen arrow is handled by the HUD
   }
 
-  destroy() { this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.tag.destroy(); }
+  // SAMURAI costume's Cyclone Slash: a red-and-gold Eastern dragon chasing its tail around her.
+  // The head leads at angle `head` on the ellipse (rx, ry) and the long body trails behind, rippling.
+  drawSpinDragon(front, cx, cy, rx, ry, head, fade, big) {
+    const back = this.fxBack, layer = (a) => (Math.sin(a) < 0 ? back : front);   // the upper half of the loop is behind her
+    ry = Math.max(ry, 18 * big);
+    const f = this.facing, N = 64, pts = [];
+    for (let k = 0; k < N; k++) {
+      const a = head - k * 0.1 * f;
+      const wob = Math.sin(k * 0.55 - this.anim * 0.45) * 3 * big;
+      pts.push({ x: cx + Math.cos(a) * (rx + wob * 0.6), y: cy + Math.sin(a) * ry + wob, a });
+    }
+    const thick = (k) => Math.max(1.3, (k < 6 ? 4 + k * 0.35 : 6 - (k - 6) * 0.08) * big);
+    const OUT = 0x2a0406, RED = 0xc81e28, LIT = 0xf05a3c, GOLD = 0xf3c358, DGOLD = 0xb07818;
+    // tail flame tuft
+    const t = pts[N - 1], tp = pts[N - 3];
+    let g = layer(t.a);
+    for (let i = 0; i < 3; i++) {
+      const ang = Math.atan2(t.y - tp.y, t.x - tp.x) + (i - 1) * 0.6 + Math.sin(this.anim * 0.5 + i) * 0.2;
+      g.fillStyle(i === 1 ? GOLD : 0xe0702a, 0.95 * fade);
+      g.fillTriangle(t.x, t.y - 2, t.x, t.y + 2, t.x + Math.cos(ang) * 10 * big, t.y + Math.sin(ang) * 10 * big);
+    }
+    // body: dark outline, red scales, gold belly, back to front so the neck sits on top
+    for (let pass = 0; pass < 3; pass++) {
+      for (let k = N - 1; k >= 1; k--) {
+        const p = pts[k], r = thick(k); g = layer(p.a);
+        if (pass === 0) { g.fillStyle(OUT, 0.95 * fade); g.fillCircle(p.x, p.y, r + 1); }
+        else if (pass === 1) { g.fillStyle((k >> 1) % 2 ? RED : LIT, fade); g.fillCircle(p.x, p.y, r); }
+        else {
+          g.fillStyle(GOLD, 0.95 * fade); g.fillCircle(p.x, p.y + r * 0.45, r * 0.45);       // belly plates
+          if (k % 5 === 0 && k < N - 6) {                                                   // dorsal spines pointing away from her
+            const ox = Math.cos(p.a), oy = Math.sin(p.a) * (ry / rx);
+            const n = Math.hypot(ox, oy) || 1;
+            g.fillStyle(k % 10 ? GOLD : DGOLD, fade);
+            g.fillTriangle(p.x - 2, p.y - r * 0.6, p.x + 2, p.y - r * 0.6, p.x + (ox / n) * (r + 5), p.y - r - 3 + (oy / n) * 3);
+          }
+        }
+      }
+    }
+    // head, facing the way it travels
+    const h = pts[0], n1 = pts[3];
+    g = layer(h.a);
+    const dx = h.x - n1.x, dy = h.y - n1.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl, vx = -uy, vy = ux;
+    const at = (fwd, side) => [h.x + ux * fwd * big + vx * side * big, h.y + uy * fwd * big + vy * side * big];
+    const up = vy < 0 ? 1 : -1;                                         // "up" side of the head on screen
+    const tri = (A, B, C, col) => { g.fillStyle(col, fade); g.fillTriangle(A[0], A[1], B[0], B[1], C[0], C[1]); };
+    // horns sweeping back
+    tri(at(-2, 3 * up), at(0, 4 * up), at(-12, 10 * up), GOLD);
+    tri(at(-4, 2 * up), at(-2, 3 * up), at(-13, 6 * up), DGOLD);
+    // skull and snout
+    g.fillStyle(OUT, fade); g.fillCircle(h.x, h.y, 6.5 * big); { const s = at(6, 0); g.fillCircle(s[0], s[1], 4.5 * big); }
+    g.fillStyle(RED, fade); g.fillCircle(h.x, h.y, 5.5 * big); { const s = at(6, 0); g.fillCircle(s[0], s[1], 3.6 * big); }
+    // open jaw with fangs
+    const jaw = this.anim % 12 < 6 ? 3.5 : 2;
+    tri(at(1, -1 * up), at(11, -jaw * up), at(3, -4 * up), LIT);
+    tri(at(8, -0.5 * up), at(9, -2.5 * up), at(10, -0.5 * up), 0xffffff);
+    // mane tufts behind the head
+    tri(at(-3, -4 * up), at(-5, 0), at(-12, -6 * up), GOLD);
+    // eye
+    { const e = at(2, 2 * up); g.fillStyle(0xfff2a0, fade); g.fillRect(Math.round(e[0]) - 1, Math.round(e[1]) - 1, 3, 2); g.fillStyle(OUT, fade); g.fillRect(Math.round(e[0]) + (ux > 0 ? 1 : -1), Math.round(e[1]) - 1, 1, 2); }
+    // long whiskers streaming back
+    g.lineStyle(1, GOLD, 0.9 * fade);
+    for (const side of [1, -1]) {
+      let [px, py] = at(9, side * up * 1.5);
+      for (let i = 1; i <= 7; i++) {
+        const [qx, qy] = at(9 - i * 3.2, side * up * (1.5 + i * 0.9) + Math.sin(this.anim * 0.4 + i * 0.9) * 1.5);
+        g.lineBetween(px, py, qx, qy); px = qx; py = qy;
+      }
+    }
+    // pearl of light it chases
+    { const pr = at(20, 0); g.fillStyle(0xfff6d0, 0.6 * fade); g.fillCircle(pr[0], pr[1], 3.5 * big); g.fillStyle(0xffffff, fade); g.fillCircle(pr[0], pr[1], 1.5 * big); }
+  }
+
+  destroy() { this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); }
 }
