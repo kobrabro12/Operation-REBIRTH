@@ -2,7 +2,7 @@
 //   FIGHT        -> battle setup (rules, CPUs), then stage and fighter select
 //   OPTIONS      -> sound, display and touch controls
 //   OTHER        -> training, how to play, credits
-//   COMING SOON  -> locked for now
+//   TRINKETS     -> extras and experiments (Character Files, for now)
 // Move with WASD / arrows / stick, confirm with J / Enter / A, back to the title with K / Esc / B;
 // or hover and click a sector with the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -16,7 +16,7 @@ const SECTORS = [
   { id: 'fight', name: 'FIGHT', sub: 'BATTLE FRIENDS OR CPUS', color: 0xc8283c, dark: 0x3a0a14, lit: 0xff6a72, scene: 'Setup' },
   { id: 'options', name: 'OPTIONS', sub: 'SOUND, DISPLAY & CONTROLS', color: 0x2f6fd0, dark: 0x0e1e3e, lit: 0x78a0ff, scene: 'Options' },
   { id: 'other', name: 'OTHER', sub: 'TRAINING, HOW TO PLAY, CREDITS', color: 0x2fa070, dark: 0x0c2a1e, lit: 0x6fe3a8, scene: 'Other' },
-  { id: 'soon', name: 'COMING SOON', sub: 'SOMETHING BIG IS ON THE WAY', color: 0x4a4560, dark: 0x16132a, lit: 0x8a87a3, locked: true },
+  { id: 'trinkets', name: 'TRINKETS', sub: 'CHARACTER FILES & EXTRAS', color: 0x8a3fd0, dark: 0x22103a, lit: 0xc77dff, scene: 'Trinkets' },
 ];
 const PAD = 16, TOP = 56, GAP = 10;
 const W = (VIEW_W - PAD * 2 - GAP) / 2, H = (VIEW_H - TOP - 30 - GAP) / 2;
@@ -126,6 +126,10 @@ export class MenuScene extends Phaser.Scene {
       for (let y = -4; y <= 4; y++) { px(-7, y, 6, 1, 0xf0ead8); px(1, y, 6, 1, 0xf0ead8); }
       px(-1, -5, 2, 11, col); for (let y = -3; y <= 3; y += 2) { px(-6, y, 4, 1, 0x8a87a3); px(2, y, 4, 1, 0x8a87a3); }
       px(-7, 5, 14, 1, col);
+    } else if (id === 'trinkets') {                    // a treasure chest, a gem glinting on the lid
+      px(-6, -1, 13, 7, 0x8a5a2c); px(-6, -4, 13, 3, 0xb47a3c); px(-6, -1, 13, 1, O);
+      px(-6, -4, 1, 10, 0xf3c358); px(6, -4, 1, 10, 0xf3c358); px(-1, -2, 3, 3, 0xf3c358); px(0, -1, 1, 1, O);
+      px(-1, -7, 3, 3, col); px(0, -8, 1, 1, 0xffffff);
     } else {                                           // a padlock
       for (let y = -6; y <= -2; y++) { px(-3, y); px(3, y); } px(-2, -7, 5, 1);
       px(-5, -2, 11, 8); px(-1, 0, 3, 2, O); px(0, 2, 1, 2, O);

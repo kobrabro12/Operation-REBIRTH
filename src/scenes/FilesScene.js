@@ -1,0 +1,106 @@
+// Character Files (TRINKETS > CHARACTER FILES): a dossier on each fighter - file number, alias, class,
+// weapon, origin, signature moves and Limit - their story, and a costume browser with each costume's
+// own story. Milestone costumes stay sealed (silhouette, no story) until they're unlocked.
+// W/S switches fighter, A/D switches costume, K / Esc / B goes back.
+// Mouse: click a fighter tab, or the < > arrows under the costume.
+import { VIEW_W, VIEW_H, FONT } from '../config.js';
+import { playMusic } from '../audio/music.js';
+import { MenuInput } from './menuInput.js';
+import { sfx } from '../audio/sfx.js';
+import { makeButton } from '../ui/button.js';
+import { addFullscreenButton } from '../ui/fullscreen.js';
+import { ROSTER, showFighter } from '../fighters/roster.js';
+import { skinsFor, skinUnlocked, skinTier } from '../fighters/skins.js';
+import { MILESTONE_KOS, getKOs } from '../progress.js';
+import { FILES, SKIN_LORE } from '../data/lore.js';
+
+const GOLD = '#f3c358', DIM = '#8a87a3', LINE = 0xc77dff, PANEL = 0x1c1230;
+const TAB_W = 150, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
+
+export class FilesScene extends Phaser.Scene {
+  constructor() { super('Files'); }
+
+  create() {
+    this.t = 0; this.menu = new MenuInput(this);
+    this.fighters = ROSTER.filter((f) => f.available);
+    this.fi = 0; this.si = 0;
+    playMusic(this, 'bgm_title');
+    const g = this.add.graphics();
+    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
+    for (let y = 0; y < VIEW_H; y += 4) { g.fillStyle(0x110d20, 1); g.fillRect(0, y, VIEW_W, 1); }
+    g.fillStyle(PANEL, 1); g.fillRect(L.x, L.y, L.w, L.h); g.fillRect(R.x, R.y, R.w, R.h);
+    g.fillStyle(LINE, 1); g.fillRect(L.x, L.y, L.w, 2); g.fillRect(R.x, R.y, R.w, 2);
+    this.add.text(VIEW_W / 2, 18, 'CHARACTER FILES', { fontFamily: FONT, fontSize: '12px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
+    this.tabG = this.add.graphics();
+    this.tabs = this.fighters.map((f, i) => this.add.text(L.x + TAB_W / 2 + i * (TAB_W + 6), TAB_Y + 7, f.name, { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setOrigin(0.5));
+    // left: the fighter in the chosen costume, on a little plinth
+    this.stageG = this.add.graphics();
+    this.sprite = this.add.sprite(L.x + L.w / 2, L.y + 190, this.fighters[0].def.sheets.idle, 0);
+    this.skinName = this.add.text(L.x + L.w / 2, L.y + 214, '', { fontFamily: FONT, fontSize: '8px', color: GOLD }).setOrigin(0.5);
+    this.skinNote = this.add.text(L.x + L.w / 2, L.y + 232, '', { fontFamily: FONT, fontSize: '5px', color: DIM, align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0);
+    this.arrows = [-1, 1].map((d) => makeButton(this, L.x + L.w / 2 + d * 82, L.y + 214, d < 0 ? '<' : '>', () => this.stepSkin(d), { originX: 0.5, originY: 0.5, size: '8px' }));
+    // right: the file
+    const tx = R.x + 14;
+    this.head = this.add.text(tx, R.y + 12, '', { fontFamily: FONT, fontSize: '9px', color: GOLD });
+    this.fields = ['ALIAS', 'CLASS', 'WEAPON', 'ORIGIN', 'MOVES', 'LIMIT'].map((k, i) => [
+      this.add.text(tx, R.y + 34 + i * 12, k, { fontFamily: FONT, fontSize: '5px', color: DIM }),
+      this.add.text(tx + 52, R.y + 34 + i * 12, '', { fontFamily: FONT, fontSize: '5px', color: '#ffffff' }),
+    ]);
+    this.add.text(tx, R.y + 112, 'LORE', { fontFamily: FONT, fontSize: '6px', color: '#c77dff' });
+    this.lore = this.add.text(tx, R.y + 124, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
+    this.skinHead = this.add.text(tx, R.y + 208, '', { fontFamily: FONT, fontSize: '6px', color: '#c77dff' });
+    this.skinLore = this.add.text(tx, R.y + 220, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
+    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S OR CLICK A TAB: FIGHTER    A/D OR < >: COSTUME    K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5, 1);
+    makeButton(this, 8, 6, '< BACK', () => this.back());
+    addFullscreenButton(this, VIEW_W - 8, 6);
+    this.input.on('pointerdown', (p, over) => {
+      if (over.length) return;
+      if (p.y >= TAB_Y && p.y < TAB_Y + 16) { const i = Math.floor((p.x - L.x) / (TAB_W + 6)); if (i >= 0 && i < this.fighters.length && i !== this.fi) this.pick(i); }
+    });
+    this.refresh();
+  }
+
+  back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  pick(i) { this.fi = i; this.si = 0; sfx('menu', 0.6); this.refresh(); }
+  stepSkin(d) { const n = skinsFor(this.fighters[this.fi].id).length; this.si = (this.si + d + n) % n; sfx('menu', 0.5, 1.2); this.refresh(); }
+
+  refresh() {
+    const f = this.fighters[this.fi], F = FILES[f.id] || {}, skins = skinsFor(f.id), skin = skins[this.si];
+    this.head.setText('FILE ' + (F.no || '???') + '  -  ' + f.name);
+    const vals = [F.alias, F.cls, F.weapon, F.origin, F.moves, F.limit];
+    this.fields.forEach(([, v], i) => v.setText(vals[i] || '???'));
+    this.lore.setText(F.lore || 'NO FILE YET.');
+    const open = skinUnlocked(f.id, this.si), tier = skinTier(f.id, this.si);
+    const story = skin.lore || (SKIN_LORE[f.id] || {})[skin.name];
+    this.skinName.setText(open ? skin.name : '? ? ?');
+    this.skinNote.setText((this.si + 1) + ' / ' + skins.length + (tier ? '\nMILESTONE ' + tier : '') + (open ? '' : '\nREACH ' + MILESTONE_KOS[tier] + ' KOS (' + getKOs(f.id) + ' SO FAR)'));
+    this.skinHead.setText('COSTUME FILE: ' + (open ? skin.name : 'SEALED'));
+    this.skinLore.setText(!open ? 'THIS FILE IS SEALED. WIN MORE FIGHTS AS ' + f.name + ' TO OPEN IT.' : story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
+    this.locked = !open;
+  }
+
+  update() {
+    this.t++;
+    const m = this.menu.poll(), n = this.fighters.length;
+    if (m.up) this.pick((this.fi - 1 + n) % n);
+    if (m.down) this.pick((this.fi + 1) % n);
+    if (m.left) this.stepSkin(-1);
+    if (m.right) this.stepSkin(1);
+    if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
+    // tabs
+    const tg = this.tabG; tg.clear();
+    this.tabs.forEach((tx, i) => {
+      const x = L.x + i * (TAB_W + 6), on = i === this.fi;
+      tg.fillStyle(on ? LINE : 0x2a1f44, 1); tg.fillRect(x, TAB_Y, TAB_W, 15);
+      tx.setColor(on ? '#0b0a14' : '#c9c4dc');
+    });
+    // the fighter on a plinth, breathing; sealed costumes are a dark silhouette
+    const f = this.fighters[this.fi], def = f.def, sg = this.stageG; sg.clear();
+    const cx = L.x + L.w / 2, by = L.y + 190;
+    sg.fillStyle(0xc77dff, 0.08 + 0.04 * Math.sin(this.t * 0.05)); sg.fillCircle(cx, by - 40, 60);
+    sg.fillStyle(0x2a1f44, 1); sg.fillRect(cx - 50, by, 100, 6); sg.fillStyle(0x3a2a5a, 1); sg.fillRect(cx - 44, by + 6, 88, 4);
+    showFighter(this.sprite, def, Math.floor(this.t / 6), this.si);
+    this.sprite.setPosition(cx, by).setScale(def.ownAnims ? 1.4 : 2);
+    if (this.locked) this.sprite.setTint(0x0b0a14).setTintMode(Phaser.TintModes.FILL); else this.sprite.clearTint();
+  }
+}
