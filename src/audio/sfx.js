@@ -73,8 +73,12 @@ export function initSfx(scene) {
   build('go', 0.5, (t) => { ph += (t < 0.25 ? 523 : 1046) / SR; return sq(ph, 0.5) * 0.6 * (1 - t / 0.5); });
 }
 
+// the title screen's demo match plays silently
+let muted = false;
+export function setSfxMuted(m) { muted = !!m; }
+
 export function sfx(name, volume = 1, rate = 1) {
-  if (!ctx || !cache[name] || settings.sfxVolume <= 0) return;
+  if (!ctx || !cache[name] || settings.sfxVolume <= 0 || muted) return;
   if (ctx.state === 'suspended') ctx.resume();
   const src = ctx.createBufferSource();
   src.buffer = cache[name];

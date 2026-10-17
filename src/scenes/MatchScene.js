@@ -1,6 +1,21 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { addKO } from '../progress.js';
+
+// Title-screen demo: a random all-CPU match (random stage, 2-4 random fighters in random costumes).
+function demoSettings() {
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const n = 2 + Math.floor(Math.random() * 3);
+  const fighters = ROSTER.filter((f) => f.available);
+  const picks = Array.from({ length: n }, () => pick(fighters).id);
+  return {
+    mode: 'stock', stocks: 2, hp: 150, minutes: 3, items: true, hazards: true, crt: false,
+    stage: pick(STAGES.filter((st) => st.available)).id, picks,
+    skins: picks.map((id) => Math.floor(Math.random() * skinsFor(id).length)),
+    cpuCount: n, difficulty: 2, cpuLevels: picks.map(() => 1 + Math.floor(Math.random() * 2)), p1Pad: null, extraPads: [],
+  };
+}
+
 import { playMusic, stopMusic } from '../audio/music.js';
 import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
@@ -10,7 +25,10 @@ import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
 import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb } from '../fighters/entities.js';
-import { stageById } from '../stage/stages.js';
+import { stageById, STAGES } from '../stage/stages.js';
+import { ROSTER } from '../fighters/roster.js';
+import { skinsFor } from '../fighters/skins.js';
+import { setSfxMuted } from '../audio/sfx.js';
 import { ItemSpawner } from '../items/items.js';
 import { Hud } from '../ui/hud.js';
 import { sfx } from '../audio/sfx.js';
@@ -22,8 +40,11 @@ import { TouchPad, TouchController, touchEnabled } from '../input/touch.js';
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
 
-  create() {
-    this.mode = settings.mode;
+  create(data) {
+    // demo: the title screen's background match (no players, no HUD, no sound of its own)
+    this.demo = !!(data && data.demo); this.demoTime = 0;
+    const S = this.demo ? demoSettings() : settings;
+    this.mode = S.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
     this.cutscene = null;
     this.frame = 0; this.acc = 0; this.frozen = 0; this.paused = false; this.over = 0;
@@ -36,13 +57,14 @@ export class MatchScene extends Phaser.Scene {
     this.uiCam = this.cameras.add(0, 0, VIEW_W, VIEW_H);
     this.worldCam.setZoom(1); this.worldCam.centerOn(0, -80);
 
-    this.stage = stageById(settings.stage).make(this);
-    this.stage.hazardsOn = settings.hazards;
+    this.stage = stageById(S.stage).make(this);
+    this.stage.hazardsOn = S.hazards;
     const bg = [], world = [];
     this.stage.draw(world, bg);
     this.addBg(...bg); this.addWorld(...world);
     // stage music (stages without a track of their own play silence for now)
-    if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
+    if (this.demo) setSfxMuted(true);
+    else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest
@@ -50,25 +72,25 @@ export class MatchScene extends Phaser.Scene {
     const humans = [];
     const kb = new KeyboardController(this);
     // player 1: keyboard, plus their controller and on-screen touch controls when present
-    this.touchPad = touchEnabled() ? new TouchPad(this, () => this.fighters[0]) : null;
+    this.touchPad = touchEnabled() && !this.demo ? new TouchPad(this, () => this.fighters[0]) : null;
     const p1Parts = [kb];
-    if (settings.p1Pad !== null) p1Parts.push(new GamepadController(settings.p1Pad));
+    if (S.p1Pad !== null) p1Parts.push(new GamepadController(S.p1Pad));
     if (this.touchPad) p1Parts.push(new TouchController(this.touchPad));
-    humans.push({ ctrl: new MergedController(p1Parts), label: 'P1' });
-    for (const pad of settings.extraPads) humans.push({ ctrl: new GamepadController(pad), label: 'P' + (humans.length + 1) });
-    const slots = Math.min(4, humans.length + settings.cpuCount);
+    if (!this.demo) humans.push({ ctrl: new MergedController(p1Parts), label: 'P1' });
+    for (const pad of S.extraPads) humans.push({ ctrl: new GamepadController(pad), label: 'P' + (humans.length + 1) });
+    const slots = Math.min(4, humans.length + S.cpuCount);
     this.isTraining = this.mode === 'training';
-    const stocks = this.mode === 'stock' ? settings.stocks : this.mode === 'stamina' ? 1 : 0;
+    const stocks = this.mode === 'stock' ? S.stocks : this.mode === 'stamina' ? 1 : 0;
     const defs = [];
-    for (let i = 0; i < slots; i++) defs.push(fighterById(settings.picks[i]).def);   // 'random' is decided here
-    const skins = resolveSkins(defs.map((d) => d.id), settings.skins);
+    for (let i = 0; i < slots; i++) defs.push(fighterById(S.picks[i]).def);   // 'random' is decided here
+    const skins = resolveSkins(defs.map((d) => d.id), S.skins);
     for (let i = 0; i < slots; i++) {
       const human = humans[i];
-      const level = settings.cpuLevels[i] ?? settings.difficulty;
+      const level = S.cpuLevels[i] ?? S.difficulty;
       const ctrl = human ? human.ctrl : this.isTraining ? new DummyController(this, level) : new CpuController(this, level);
       const label = human ? human.label : (this.isTraining ? 'DUMMY' : 'CPU') + (i + 1);
       const def = defs[i];
-      const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: settings.hp, skin: skins[i] });
+      const f = new Fighter(this, def, i, ctrl, { cpu: !human, label, stocks, hp: S.hp, skin: skins[i] });
       if (!human) ctrl.fighter = f;
       const sp = this.stage.spawns[i];
       f.placeAt(sp.x, sp.y - 1); f.facing = sp.x < 0 ? 1 : -1;
@@ -76,10 +98,10 @@ export class MatchScene extends Phaser.Scene {
     }
     this.kbCtrl = kb;
 
-    this.items = settings.items ? new ItemSpawner(this) : null;
+    this.items = S.items ? new ItemSpawner(this) : null;
     this.hud = new Hud(this);
     this.training = this.isTraining ? new Training(this) : null;
-    this.timeLeft = settings.minutes * 3600;
+    this.timeLeft = S.minutes * 3600;
 
     // overlays (UI camera)
     this.overlay = this.add.graphics().setDepth(5); this.addUI(this.overlay);
@@ -87,9 +109,9 @@ export class MatchScene extends Phaser.Scene {
     this.smallText = this.add.text(VIEW_W / 2, VIEW_H / 2 + 10, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 4, align: 'center', lineSpacing: 6 }).setOrigin(0.5);
     this.modeText = this.add.text(8, 8, MODE_NAMES[this.mode], { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 });
     this.bigText.setDepth(20); this.smallText.setDepth(20); this.addUI(this.bigText, this.smallText, this.modeText);
-    if (settings.crt) this.makeCrt();
+    if (S.crt) this.makeCrt();
 
-    this.countdown = this.isTraining ? 0 : 200;   // "3, 2, 1, GO!" (training starts right away)
+    this.countdown = this.isTraining || this.demo ? 0 : 200;   // "3, 2, 1, GO!" (training starts right away)
     this.escKey = this.input.keyboard.addKey('ESC');
     // mouse: a pause button in the corner, and Resume / Quit buttons on the pause screen
     this.input.mouse.disableContextMenu();
@@ -100,6 +122,10 @@ export class MatchScene extends Phaser.Scene {
     this.fullBtn = addFullscreenButton(this, VIEW_W - 80, 6, { depth: 25 });
     this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn, this.fullBtn);
     this.qKey = this.input.keyboard.addKey('Q');
+    if (this.demo) {                                  // just the fight: no HUD, name tags or anything to click
+      this.uiCam.setVisible(false); this.input.enabled = false;
+      for (const f of this.fighters) f.tag.setAlpha(0);
+    }
     this.events.once('shutdown', () => this.cleanup());
   }
 
@@ -107,7 +133,7 @@ export class MatchScene extends Phaser.Scene {
   addBg(...objs) { for (const o of objs) { this.worldCam.ignore(o); this.uiCam.ignore(o); this.bgList.push(o); } }
   addWorld(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.uiCam.ignore(o); } }
   addUI(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.worldCam.ignore(o); } }
-  sfxVol() { return settings.sfxVolume; }
+  sfxVol() { return this.demo ? 0 : settings.sfxVolume; }
 
   makeCrt() {
     const g = this.add.graphics();
@@ -120,7 +146,10 @@ export class MatchScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ main loop
   update(time, delta) {
-    if (this.handlePause()) return;
+    if (this.demo) {                                  // title demo: a new random match every 25 s, or when one ends
+      this.demoTime += delta;
+      if (this.demoTime > 25000 || this.over === 1) { this.scene.restart({ demo: true }); return; }
+    } else if (this.handlePause()) return;
     if (this.training) this.training.input();
     this.acc += Math.min(delta, 100) * (this.training ? this.training.speed : 1);
     let steps = 0;
@@ -199,7 +228,7 @@ export class MatchScene extends Phaser.Scene {
       if (this.timeLeft === 600) sfx('warn', 0.6);
       if (this.timeLeft <= 0) this.endMatch('TIME!');
     }
-    if (this.over > 0 && --this.over === 0) this.toResults();
+    if (this.over > 0 && --this.over === 0) { if (this.demo) { this.over = 1; return; } this.toResults(); }
   }
 
   // ------------------------------------------------------------------ combat
@@ -597,6 +626,7 @@ export class MatchScene extends Phaser.Scene {
 
   cleanup() {
     for (const f of this.fighters || []) f.stopChargeSound();
+    if (this.demo) { setSfxMuted(false); return; }    // the title screen keeps its music playing
     this.sound.stopAll(); stopMusic();
   }
 }
