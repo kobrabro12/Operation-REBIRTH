@@ -27,6 +27,7 @@ export const HERO_KNIGHT = {
   portrait: [46, 34, 40, 36],
   fxColor: 0xc9c9c9,
   body: { w: 22, h: 48 },
+  headTop: 46,
   tagY: 60,
   weight: 1.0,
   walkSpeed: 3.3, runAccel: 0.6, groundFriction: 0.55,

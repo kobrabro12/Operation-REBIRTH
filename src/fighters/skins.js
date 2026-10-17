@@ -16,10 +16,16 @@ const MW = {
   magic: { h: [255, 285], s: [0.25, 1], v: [0.4, 1], center: 268 },
   cloth: { h: [255, 300], s: [0.15, 0.6], v: [0.15, 0.4], center: 268 },
   wood: { h: [15, 40], s: [0.4, 1], center: 27 },
+  staff: { s: [0, 0.12], v: [0.12, 0.4], center: 0 },     // the grey staff (and his boots)
 };
 
 // dark -> light polished gold
 const GOLD_RAMP = [0x2a1804, 0x4a2c08, 0x6e440e, 0x965f16, 0xbb7f1f, 0xd9a32e, 0xedc04c, 0xf8d878, 0xfff0b8];
+
+// ---- milestone costume ramps
+const ABYSS_RAMP = [0x02060c, 0x041222, 0x072238, 0x0c3452, 0x13496c, 0x1c6288];
+const RADIANT_RAMP = [0x5a3a10, 0x8a5e1c, 0xb8862b, 0xdcae4a, 0xf3cf74, 0xffe7a8, 0xfff6dc, 0xffffff];
+const KING_CAPE_RAMP = [0x050307, 0x0d0910, 0x17101a, 0x241826, 0x342234];
 
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
@@ -41,6 +47,29 @@ export const SKINS = {
     // pure black and white like an old monochrome handheld, with a white outline so he reads on any
     // stage; he raises his own 1-bit ghosts instead of flaming skulls (tools/sprites/onebit_minion.py)
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit' },
+    // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
+    // a lich, and finally takes the throne of every soul he has ever raised.
+    { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
+      lore: 'A lowly gravekeeper hears the dead whisper his name.',
+      groups: SS, rules: { cape: { to: 70, sat: 0.55, val: 0.72 }, flame: { to: 100, sat: 0.75 }, gold: { sat: 0.45, val: 0.75 }, eyes: { to: 95 }, armor: { val: 0.9 } },
+      vfx: { hit: { shape: 'dust', colors: [0x9bbf6a, 0x6f7d4a, 0xc9c4a0], n: 8 }, minion: { flame: { to: 100, sat: 0.75 }, eyes: { to: 95 } } } },
+    { name: 'WRAITHBINDER', milestone: 2, swatch: 0x1f8f8a, fx: 0x5ff0d6,
+      lore: 'He learns to bind them. Two loyal wraiths never leave his side.',
+      groups: SS, rules: { cape: { to: 182, sat: 0.8, val: 0.55 }, flame: { to: 170, sat: 1.1 }, gold: { sat: 0.1, val: 1.1 }, eyes: { to: 172 }, armor: { to: 195, satAdd: 0.1, val: 0.75 } },
+      vfx: { hit: { shape: 'wisp', colors: [0x5ff0d6, 0xb8fff4, 0x1f8f8a], n: 6, ring: 0x5ff0d6 },
+             aura: { orbit: { n: 2, colors: [0x5ff0d6, 0xb8fff4], r: 22 } }, minion: { flame: { to: 170, sat: 1.1 }, eyes: { to: 172 } } } },
+    { name: 'LICH', milestone: 3, swatch: 0x7a3fd0, fx: 0xc77dff,
+      lore: 'His flesh falls away. A crown of violet fire burns above his skull.',
+      groups: SS, rules: { cape: { to: 272, sat: 1.25, val: 0.7 }, flame: { to: 278, sat: 1.1 }, gold: { to: 45, sat: 0.3, val: 1.2 }, eyes: { to: 118, sat: 1.2 }, armor: { to: 42, satAdd: 0.08, val: 1.3 } },
+      vfx: { hit: { shape: 'skull', colors: [0xe8dcff, 0xc77dff], n: 3, ring: 0xc77dff, sparks: [0xc77dff, 0x7a3fd0] },
+             aura: { crown: { n: 3, colors: [0xc77dff, 0xe8b8ff, 0xffffff] }, motes: { colors: [0xc77dff, 0x7a3fd0], rate: 6 } }, minion: { flame: { to: 278, sat: 1.1 }, eyes: { to: 118 } } } },
+    { name: 'THE HOLLOW KING', milestone: 4, swatch: 0xf3c358, fx: 0xffe08a,
+      lore: 'Every soul he ever raised kneels. The Hollow King takes his throne.',
+      groups: SS, rules: { cape: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, armor: { sat: 0, val: 0.38 }, gold: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 }, flame: { to: 46, sat: 0.55, val: 1.25 }, eyes: { to: 48, sat: 0.4, val: 1.2 } },
+      outline: 0x8a6a20,
+      vfx: { hit: { shape: 'shard', colors: [0xffe08a, 0xfff6dc, 0xf3c358], n: 12, ring: 0xffe08a, ring2: 0xffffff, flash: true },
+             aura: { crown: { n: 5, colors: [0xffe08a, 0xfff6dc, 0xffffff], big: true }, orbit: { n: 4, colors: [0xffe08a, 0xfff6dc], r: 26 }, motes: { colors: [0xffe08a, 0xf3c358, 0xffffff], rate: 3 } },
+             trail: 0xf3c358, minion: { flame: { to: 46, sat: 0.55, val: 1.25 }, eyes: { to: 48, sat: 0.4 } } } },
   ],
   'hero-knight': [
     { name: 'KNIGHT', swatch: 0x667980 },
@@ -55,6 +84,28 @@ export const SKINS = {
     // red lacquered samurai armour, black kabuto with a gold crest, and a katana (pre-drawn strips, see heroKnight.costumeSheets)
     { name: 'SAMURAI', swatch: 0xb81e28, fx: 0xe85a4a, sheetSet: 'samurai' },
     { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
+    // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
+    // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
+    { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,
+      lore: 'Hand-me-down bronze and a borrowed sword. She swears the oath anyway.',
+      groups: HK, rules: { steel: { hue: 30, satAdd: 0.38, val: 0.95 }, suit: { to: 24, sat: 1.3, val: 0.9 }, sash: { to: 215, sat: 0.9 } },
+      vfx: { hit: { shape: 'spark', colors: [0xe0a060, 0xffd8a0, 0xa86a32], n: 9 } } },
+    { name: 'KNIGHT-CAPTAIN', milestone: 2, swatch: 0x2f5fc0, fx: 0x8fc0ff,
+      lore: 'Knighted on the field. Polished steel, royal blue, and a blade that sings.',
+      groups: HK, rules: { steel: { hue: 212, satAdd: 0.1, val: 1.15 }, suit: { to: 224, sat: 2.4, val: 1.05 }, sash: { to: 46, sat: 1.1, val: 1.5 } },
+      vfx: { hit: { shape: 'spark', colors: [0x8fc0ff, 0xffffff, 0x2f5fc0], n: 10, ring: 0x8fc0ff, glint: true } } },
+    { name: 'PALADIN', milestone: 3, swatch: 0xf0e6c8, fx: 0xffe08a,
+      lore: 'Blessed in white and gold. Light gathers wherever her sword falls.',
+      groups: HK, rules: { steel: { hue: 44, satAdd: 0.06, val: 1.45 }, suit: { to: 42, sat: 2.2, val: 1.25 }, sash: { to: 350, sat: 1.1, val: 1.1 }, white: { hue: 45, satAdd: 0.14 } },
+      vfx: { hit: { shape: 'cross', colors: [0xffe08a, 0xffffff], n: 6, ring: 0xffe08a, glint: true },
+             aura: { halo: 0xffe08a, motes: { colors: [0xffe08a, 0xffffff], rate: 7 } } } },
+    { name: 'SERAPH', milestone: 4, swatch: 0xfff3c0, fx: 0xfff3c0,
+      lore: 'The oath is fulfilled. She rises on wings of light, a seraph of the blade.',
+      groups: HK, rules: { steel: { ramp: RADIANT_RAMP, lo: 0.25, hi: 0.8 }, suit: { ramp: RADIANT_RAMP.slice(0, 6), lo: 0.2, hi: 0.6 }, sash: { to: 192, sat: 0.9, val: 1.6 }, white: { hue: 48, satAdd: 0.1 } },
+      outline: 0xb8862b,
+      vfx: { hit: { shape: 'feather', colors: [0xffffff, 0xfff3c0, 0xffe08a], n: 10, ring: 0xfff3c0, ring2: 0xffffff, pillar: 0xfff3c0, flash: true },
+             aura: { wings: [0xffffff, 0xfff3c0, 0xf3cf74], halo: 0xfff3c0, motes: { colors: [0xffffff, 0xfff3c0], rate: 4, feathers: true } },
+             trail: 0xfff3c0 } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
@@ -65,8 +116,33 @@ export const SKINS = {
     // overgrown with roses, and his staff is a giant tulip (pre-drawn sheet, see mrWake.costumeSheets)
     { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses' },
     { name: 'NOBLE', swatch: 0x24357a, fx: 0xf3c358, groups: MW, rules: { robe: { to: 228 }, magic: { to: 45 }, cloth: { to: 220 } } },
+    // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
+    // ocean itself crowns him.
+    { name: 'RIPTIDE', milestone: 1, swatch: 0x2a8ad0, fx: 0x7ad0ff,
+      lore: 'The tide turns. His cloak is soaked through with sea water.',
+      groups: MW, rules: { robe: { to: 192, sat: 1.0, val: 1.4 }, magic: { to: 186 }, cloth: { to: 200, val: 1.25 } },
+      vfx: { hit: { shape: 'drop', colors: [0x7ad0ff, 0xc8f0ff, 0x2a8ad0], n: 10 } } },
+    { name: 'DEEPWATER', milestone: 2, swatch: 0x14306a, fx: 0x5ff0f0,
+      lore: 'Pulled under. Bubbles stream from him as the gem learns to glow in the dark.',
+      groups: MW, rules: { robe: { to: 224, sat: 1.0, val: 0.72 }, magic: { to: 182, val: 1.25 }, cloth: { to: 226, val: 0.8 } },
+      vfx: { hit: { shape: 'bubble', colors: [0x5ff0f0, 0xc8f0ff], n: 8, ring: 0x5ff0f0, drops: true },
+             aura: { bubbles: { colors: [0x5ff0f0, 0xc8f0ff], rate: 10 } } } },
+    { name: "ANGLER'S PACT", milestone: 3, swatch: 0x0d3a36, fx: 0xd8ff6a,
+      lore: 'In the black trench he strikes a pact. His staff becomes a lure; his skin, a lantern.',
+      groups: MW, rules: { robe: { to: 172, sat: 0.9, val: 0.45 }, magic: { to: 72, sat: 1.1, val: 1.3 }, cloth: { to: 180, val: 0.6 }, wood: { to: 160, sat: 0.35, val: 0.8 }, staff: { hue: 150, satAdd: 0.22, val: 1.1 } },
+      vfx: { hit: { shape: 'whirl', colors: [0xd8ff6a, 0x5ff0d0], n: 1, bubbles: true, ring: 0x5ff0d0 },
+             aura: { bubbles: { colors: [0x5ff0d0, 0xd8ff6a], rate: 8 }, spots: { colors: [0x5ff0d0, 0xd8ff6a], n: 7 } } } },
+    { name: 'TIDEFATHER', milestone: 4, swatch: 0x0a2a48, fx: 0x5ff0e6,
+      lore: 'The abyss answers. Crowned in coral, the ocean itself moves when he does.',
+      groups: MW, rules: { robe: { ramp: ABYSS_RAMP, lo: 0.08, hi: 0.5 }, magic: { to: 176, sat: 0.9, val: 1.35 }, cloth: { to: 214, val: 0.55 }, wood: { to: 44, sat: 1.1, val: 1.35 }, staff: { ramp: GOLD_RAMP.slice(1, 7), lo: 0.12, hi: 0.36 } },
+      outline: 0x1f8f9a,
+      vfx: { hit: { shape: 'drop', colors: [0x5ff0e6, 0xffffff, 0x1c6288], n: 14, ring: 0x5ff0e6, ring2: 0xffffff, whirl: true, bubbles: true, flash: true },
+             aura: { ribbons: { colors: [0x5ff0e6, 0xb8fff4] }, coral: [0xff8a7a, 0xf3c358], bubbles: { colors: [0x5ff0e6, 0xffffff], rate: 5 } },
+             trail: 0x5ff0e6 } },
   ],
 };
+
+import { getKOs, MILESTONE_KOS } from '../progress.js';
 
 export function skinsFor(id) { return SKINS[id] || [{ name: 'DEFAULT', swatch: 0xffffff }]; }
 export function skinInfo(id, i) { const s = skinsFor(id); return s[((i || 0) % s.length + s.length) % s.length]; }
@@ -116,7 +192,17 @@ function recolorFn(skin) {
 export function skinTexture(scene, key, id, i) {
   const skin = skinInfo(id, i);
   if (!skin.rules || !key) return key;
-  const nk = key + '@' + skin.name;
+  return recolorTexture(scene, key, key + '@' + skin.name, skin);
+}
+
+// The minion a milestone costume raises: Soul Summoner's soul sheet with its flame recoloured.
+export function minionTexture(scene, id, i) {
+  const skin = skinInfo(id, i), m = skin.vfx && skin.vfx.minion;
+  if (!m || !scene.textures.exists('soul_minion')) return null;
+  return recolorTexture(scene, 'soul_minion', 'soul_minion@' + skin.name, { groups: SS, rules: m });
+}
+
+function recolorTexture(scene, key, nk, skin) {
   const tm = scene.textures;
   if (tm.exists(nk)) return nk;
   const src = tm.get(key), img = src.getSourceImage(), f0 = src.get(0);
@@ -159,14 +245,27 @@ export function skinSheets(scene, def, i) {
   return out;
 }
 
-// Give every player a skin; two players on the same fighter never share one.
+// Milestone costumes are locked until the fighter has enough KOs (see progress.js).
+export function skinTier(id, i) { return skinInfo(id, i).milestone || 0; }
+export function skinUnlocked(id, i) { return getKOs(id) >= MILESTONE_KOS[skinTier(id, i)]; }
+// next unlocked skin index from i in direction dir (+1 / -1), i itself if it's unlocked and dir is 0
+export function stepSkin(id, i, dir) {
+  const n = skinsFor(id).length;
+  let s = ((i % n) + n) % n;
+  if (!dir && skinUnlocked(id, s)) return s;
+  for (let k = 0; k < n; k++) { s = (((s + (dir || 1)) % n) + n) % n; if (skinUnlocked(id, s)) return s; }
+  return 0;
+}
+
+// Give every player a skin; two players on the same fighter never share one (and nobody gets a locked one).
 export function resolveSkins(picks, wanted) {
   const used = {}, out = [];
   picks.forEach((id, slot) => {
     const n = skinsFor(id).length;
     let s = ((wanted[slot] || 0) % n + n) % n;
     used[id] = used[id] || new Set();
-    for (let k = 0; k < n && used[id].has(s); k++) s = (s + 1) % n;
+    if (!skinUnlocked(id, s)) s = stepSkin(id, s, 1);
+    for (let k = 0; k < n && (used[id].has(s) || !skinUnlocked(id, s)); k++) s = (s + 1) % n;
     used[id].add(s); out.push(s);
   });
   return out;

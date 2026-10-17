@@ -72,6 +72,7 @@ export const MR_WAKE = {
   tagY: 68,
   fxColor: 0x9b5de5,
   body: { w: 24, h: 56 },
+  headTop: 56,
   weight: 0.95,                    // tall, light caster: launches a bit earlier
   walkSpeed: 2.8, runAccel: 0.5, groundFriction: 0.5,
   airSpeed: 2.6, airAccel: 0.22, airFriction: 0.04,

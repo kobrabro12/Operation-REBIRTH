@@ -1,6 +1,6 @@
 // Things fighters create: fireballs and summoned souls.
 import { sfx } from '../audio/sfx.js';
-import { skinInfo } from './skins.js';
+import { skinInfo, minionTexture } from './skins.js';
 
 let nextId = 100000;
 
@@ -165,7 +165,7 @@ export class Soul {
     this.x = owner.x + owner.facing * 30; this.y = owner.y; this.rise = 24;
     this.vx = 0; this.vy = 0; this.hp = 18; this.life = 900; this.cool = 30;
     this.alive = true; this.t = 0; this.id = nextId++; this.attackId = nextId++; this.flash = 0;
-    const minionKey = skinInfo(owner.def.id, owner.skin).minion;   // some costumes raise their own kind of soul
+    const minionKey = skinInfo(owner.def.id, owner.skin).minion || minionTexture(match, owner.def.id, owner.skin);   // some costumes raise their own kind of soul
     this.sprite = match.add.sprite(this.x, this.y, minionKey && match.textures.exists(minionKey) ? minionKey : 'soul_minion', 0).setScale(SOUL_SCALE).setOrigin(SOUL_ORIGIN.x, SOUL_ORIGIN.y);
     this.sprite.setTint(owner.slot === 0 ? 0xffffff : 0xddeeff);
     match.addWorld(this.sprite);

@@ -18,6 +18,7 @@ LINES = {
     'mr-wake': 'Mister Wake!',
     'hero-knight': 'Lacy!',
     'random': 'Random!',
+    'unlock': 'New costume, unlocked!',
 }
 FILTER = ','.join([
     'asetrate=24000*0.891', 'aresample=24000', 'atempo=1.06',          # two semitones deeper, a touch slower

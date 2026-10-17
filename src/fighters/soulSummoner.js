@@ -13,6 +13,7 @@ export const SOUL_SUMMONER = {
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid
   fxColor: 0x78a0c6,
   body: { w: 24, h: 50 },
+  headTop: 44,                     // top of the head above the feet (milestone crowns and halos sit here)
   weight: 1.0,
   walkSpeed: 3.0, runAccel: 0.55, groundFriction: 0.5,
   airSpeed: 2.7, airAccel: 0.24, airFriction: 0.04,

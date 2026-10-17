@@ -1,5 +1,6 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
+import { addKO } from '../progress.js';
 import { playMusic, stopMusic } from '../audio/music.js';
 import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
@@ -26,7 +27,7 @@ export class MatchScene extends Phaser.Scene {
     this.bgList = []; this.worldList = []; this.uiList = [];
     this.cutscene = null;
     this.frame = 0; this.acc = 0; this.frozen = 0; this.paused = false; this.over = 0;
-    this.hits = new Set(); this.particles = []; this.limitHits = []; this.pools = []; this.projectiles = []; this.souls = []; this.pops = [];
+    this.unlocks = []; this.hits = new Set(); this.particles = []; this.limitHits = []; this.pools = []; this.projectiles = []; this.souls = []; this.pops = [];
     this.shakeAmt = 0; this.shakeTime = 0;
 
     // three cameras: background (no zoom), world (zooms to fit the fighters), UI (fixed)
@@ -302,6 +303,7 @@ export class MatchScene extends Phaser.Scene {
     const c = t.center();
     this.puff(c.x, c.y, 0xffffff, 6 + Math.floor(kb));
     this.puff(c.x, c.y, 0xf3c358, 4);
+    if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir);
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
 
     if (this.mode === 'stamina' && t.hp <= 0 && t.state !== 'dying') {
@@ -321,7 +323,13 @@ export class MatchScene extends Phaser.Scene {
       const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 6;
       this.particles.push({ x: bx, y: by, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + Math.random() * 30, color: [f.color, 0xffffff, 0xf3c358][i % 3], size: 3 });
     }
-    if (f.lastHitBy && f.lastHitBy !== f) f.lastHitBy.kos++;
+    if (f.lastHitBy && f.lastHitBy !== f) {
+      const k = f.lastHitBy; k.kos++;
+      if (!k.isCpu && !this.isTraining) {           // milestone progress: human KOs in real matches
+        const tier = addKO(k.def.id);
+        if (tier) { this.unlocks.push({ slot: k.slot, fighter: k.def.id, tier }); this.popText(k, 'NEW COSTUME UNLOCKED!', '#f3c358'); sfx('limitready', 1); }
+      }
+    }
     f.falls++;
     if (this.mode !== 'time' && !this.isTraining) {
       f.stocks--;
@@ -346,7 +354,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.mode === 'time') order = [...this.fighters].sort((a, b) => (b.kos - b.falls) - (a.kos - a.falls) || a.percent - b.percent);
     else order = [...this.fighters].sort((a, b) => (b.eliminated ? 0 : 1) - (a.eliminated ? 0 : 1) || b.stocks - a.stocks || (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
     const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, skin: f.skin, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
-    this.scene.start('Results', { results, mode: this.mode });
+    this.scene.start('Results', { results, mode: this.mode, unlocks: this.unlocks });
   }
 
   // ------------------------------------------------------------------ spawns used by fighters
@@ -388,6 +396,61 @@ export class MatchScene extends Phaser.Scene {
       this.particles.push({ x, y, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.8) * 2.5, life: 14 + Math.random() * 14, color, size: 2 + (Math.random() < 0.3 ? 1 : 0) });
     }
   }
+  // Milestone costumes: each has its own hit effect (skins.js vfx.hit), bigger at higher milestones.
+  skinHitFx(owner, x, y, kb, dir) {
+    const v = owner.vfx && owner.vfx.hit;
+    if (!v) return;
+    const P = this.particles, cols = v.colors, col = (i) => cols[i % cols.length], R = Math.random;
+    const n = v.n + Math.floor(kb / 2);
+    const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
+    switch (v.shape) {
+      case 'dust': for (let i = 0; i < n; i++) add({ x, y, vx: (R() - 0.5) * 2.4, vy: -R() * 1.6, life: 20 + R() * 16, color: col(i), size: 2 + (i % 3 === 0), grav: 0.02, drag: 0.94 }); break;
+      case 'wisp': for (let i = 0; i < n; i++) add({ shape: 'wisp', x: x + (R() - 0.5) * 16, y, vx: (R() - 0.5) * 1.2, vy: -0.6 - R() * 1.4, life: 34 + R() * 20, color: col(i), grav: -0.01, sway: R() * 6 }); break;
+      case 'skull': for (let i = 0; i < n; i++) add({ shape: 'skull', x: x + (R() - 0.5) * 20, y: y - 4, vx: (R() - 0.5) * 1.5, vy: -1 - R(), life: 36, color: col(i), grav: -0.02, drag: 0.96 }); break;
+      case 'shard': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 2 + R() * 4; add({ shape: 'shard', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 22 + R() * 14, color: col(i), drag: 0.92, grav: 0.02, ang: a }); } break;
+      case 'drop': for (let i = 0; i < n; i++) add({ shape: 'drop', x, y, vx: dir * (0.5 + R() * 3) + (R() - 0.5) * 1.5, vy: -1.5 - R() * 3, life: 30 + R() * 14, color: col(i), grav: 0.2 }); break;
+      case 'bubble': for (let i = 0; i < n; i++) add({ shape: 'bubble', x: x + (R() - 0.5) * 18, y: y + (R() - 0.5) * 12, vx: (R() - 0.5) * 0.8, vy: -0.4 - R() * 1, life: 36 + R() * 20, color: col(i), grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6 }); break;
+      case 'whirl': add({ shape: 'whirl', x, y, vx: 0, vy: 0, life: 30, maxLife: 30, color: col(0), color2: col(1), grav: 0 }); break;
+      case 'cross': for (let i = 0; i < n; i++) add({ shape: 'cross', x: x + (R() - 0.5) * 26, y: y + (R() - 0.5) * 22, vx: 0, vy: -0.3, life: 22 + R() * 12, color: col(i), grav: 0, r: 2 + Math.floor(R() * 2) }); break;
+      case 'feather': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'feather', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 50 + R() * 30, color: col(i), grav: 0.03, drag: 0.93, sway: R() * 6 }); } break;
+      default: for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 14 + R() * 12, color: col(i), drag: 0.9, size: 2 + (i % 4 === 0) }); }
+    }
+    if (v.sparks) for (let i = 0; i < 6; i++) { const a = R() * Math.PI * 2; add({ x, y, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3, life: 16, color: v.sparks[i % v.sparks.length], drag: 0.88 }); }
+    if (v.drops) for (let i = 0; i < 6; i++) add({ shape: 'drop', x, y, vx: dir * (0.5 + R() * 2.5), vy: -1.5 - R() * 2.5, life: 28, color: cols[0], grav: 0.2 });
+    if (v.bubbles) for (let i = 0; i < 6; i++) add({ shape: 'bubble', x: x + (R() - 0.5) * 20, y: y + (R() - 0.5) * 14, vx: 0, vy: -0.5 - R(), life: 40, color: cols[i % cols.length], grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6 });
+    if (v.whirl) add({ shape: 'whirl', x, y, vx: 0, vy: 0, life: 30, maxLife: 30, color: cols[0], color2: cols[1], grav: 0 });
+    if (v.glint) add({ shape: 'glint', x, y, vx: 0, vy: 0, life: 8, maxLife: 8, color: 0xffffff, grav: 0, dir });
+    if (v.ring) add({ shape: 'ring', x, y, vx: 0, vy: 0, life: 14, maxLife: 14, color: v.ring, grav: 0, r: 4, dr: 2 + kb * 0.15 });
+    if (v.ring2) add({ shape: 'ring', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, color: v.ring2, grav: 0, r: 2, dr: 3.4 + kb * 0.2 });
+    if (v.pillar) add({ shape: 'pillar', x, y, vx: 0, vy: 0, life: 18, maxLife: 18, color: v.pillar, grav: 0 });
+    if (v.flash) add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 5, maxLife: 5, color: 0xffffff, grav: 0, r: 10 + kb });
+  }
+  // the extra particle shapes used by milestone costumes (plain particles are squares)
+  drawParticle(g, p) {
+    const a = Math.min(1, p.life / 10), X = Math.round(p.x), Y = Math.round(p.y);
+    switch (p.shape) {
+      case 'wisp': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.5); g.fillRect(X, Y + 2, 1, 3); g.fillStyle(0xffffff, a); g.fillRect(X, Y, 1, 1); break;
+      case 'skull':
+        g.fillStyle(p.color, a); g.fillRect(X - 2, Y - 2, 5, 3); g.fillRect(X - 1, Y + 1, 3, 2);
+        g.fillStyle(0x120e1c, a); g.fillRect(X - 1, Y - 1, 1, 1); g.fillRect(X + 1, Y - 1, 1, 1); g.fillRect(X, Y + 2, 1, 1); break;
+      case 'shard': { const c = Math.cos(p.ang) * 3, s2 = Math.sin(p.ang) * 3; g.lineStyle(2, p.color, a); g.lineBetween(X - c, Y - s2, X + c, Y + s2); break; }
+      case 'drop': g.fillStyle(p.color, a); g.fillRect(X, Y - 1, 1, 1); g.fillRect(X - 1, Y, 3, 2); break;
+      case 'bubble': g.lineStyle(1, p.color, a * 0.9); g.strokeCircle(X, Y, p.r); g.fillStyle(0xffffff, a); g.fillRect(X - Math.max(1, p.r - 1), Y - Math.max(1, p.r - 1), 1, 1); break;
+      case 'cross': g.fillStyle(p.color, a); g.fillRect(X - p.r, Y, p.r * 2 + 1, 1); g.fillRect(X, Y - p.r - 1, 1, p.r * 2 + 3); g.fillStyle(0xffffff, a); g.fillRect(X, Y, 1, 1); break;
+      case 'feather': g.fillStyle(p.color, a); g.fillRect(X, Y - 2, 1, 5); g.fillRect(X + 1, Y - 1, 1, 3); g.fillStyle(0xffffff, a * 0.8); g.fillRect(X - 1, Y, 1, 2); break;
+      case 'ring': { const k = 1 - p.life / p.maxLife; g.lineStyle(2, p.color, (1 - k) * 0.9); g.strokeCircle(X, Y, p.r + p.dr * k * p.maxLife); break; }
+      case 'whirl': {
+        const k = 1 - p.life / p.maxLife;
+        for (let i = 0; i < 26; i++) { const t = i / 26, ang = t * Math.PI * 4 + k * 8, rr = 3 + t * 20 * (0.6 + k * 0.6);
+          g.fillStyle(i % 2 ? p.color : p.color2, (1 - k) * (1 - t * 0.5)); g.fillRect(Math.round(X + Math.cos(ang) * rr), Math.round(Y + Math.sin(ang) * rr * 0.6), 2, 2); }
+        break;
+      }
+      case 'glint': { const k = p.life / p.maxLife; g.fillStyle(p.color, k); g.fillRect(X - 16, Y - 1, 32, 2); g.fillRect(X - 1, Y - 8, 2, 16); g.fillStyle(p.color, k * 0.5); g.fillRect(X - 24 * k, Y, 48 * k, 1); break; }
+      case 'pillar': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.35 * k); g.fillRect(X - 10, Y - 140, 20, 160); g.fillStyle(0xffffff, 0.7 * k); g.fillRect(X - 3, Y - 140, 6, 160); break; }
+      case 'flash': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.8 * k); g.fillCircle(X, Y, p.r * (1.5 - k * 0.5)); break; }
+      default: g.fillStyle(p.color, a); g.fillRect(X, Y, p.size, p.size);
+    }
+  }
   popText(f, text, color) {
     const t = this.add.text(f.x, f.y - 70, text, { fontFamily: FONT, fontSize: '8px', color, stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
     this.addWorld(t);
@@ -396,7 +459,10 @@ export class MatchScene extends Phaser.Scene {
   shake(amount, frames) { this.shakeAmt = Math.max(this.shakeAmt, amount); this.shakeTime = Math.max(this.shakeTime, frames); }
 
   stepEffects() {
-    for (const p of this.particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life--; }
+    for (const p of this.particles) {
+      p.x += p.vx + (p.sway ? Math.sin((p.life + p.sway) * 0.2) * 0.3 : 0); p.y += p.vy; p.vy += p.grav ?? 0.08; p.life--;
+      if (p.drag) { p.vx *= p.drag; p.vy *= p.drag; }
+    }
     this.particles = this.particles.filter((p) => p.life > 0);
     if (this.particles.length > 600) this.particles.splice(0, this.particles.length - 600);
     for (const lh of this.limitHits) lh.t++;
@@ -472,7 +538,7 @@ export class MatchScene extends Phaser.Scene {
       // bright burst at the hand
       g.fillStyle(C.core, fade); g.fillRect(b.hx - 10, b.hy - 14, 20, 28);
     }
-    for (const p of this.particles) { g.fillStyle(p.color, Math.min(1, p.life / 10)); g.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size); }
+    for (const p of this.particles) this.drawParticle(g, p);
     if (this.training) this.training.draw(g);
 
     // Limit banner and darkening

@@ -41,12 +41,15 @@ export class Fighter {
     this.worn = !!(skinInfo(def.id, this.skin).worn && def.wornSheets); this.wornStage = 0;
     this.dragonSpin = skinInfo(def.id, this.skin).sheetSet === 'samurai';   // SAMURAI costume: a dragon for Cyclone Slash
     this.fxBack = s.add.graphics();                 // effects drawn behind the fighter (e.g. the far side of the Samurai dragon)
+    this.vfx = skinInfo(def.id, this.skin).vfx || null;   // milestone costume effects (skins.js)
+    this.ghosts = this.vfx && this.vfx.trail ? [0, 1, 2].map(() => s.add.sprite(0, 0, this.sheets.idle, 0).setVisible(false)) : [];
+    this.trailHist = [];
     this.sprite = s.add.sprite(0, 0, this.sheets.idle, 0).setOrigin(def.originX ?? 0.5, def.originY);
     this.sprite.setTint(PLAYER_TINTS[slot]);
     this.fx = s.add.graphics();
     this.tag = s.add.text(0, 0, this.label, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 1);
     this.tag.setColor('#' + this.color.toString(16).padStart(6, '0'));
-    match.addWorld(this.fxBack, this.sprite, this.fx, this.tag);
+    match.addWorld(...this.ghosts, this.fxBack, this.sprite, this.fx, this.tag);
   }
 
   // ------------------------------------------------------------------ helpers
@@ -691,7 +694,7 @@ export class Fighter {
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
-    this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear();
+    this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear(); for (const gh of this.ghosts) gh.setVisible(false);
     this.respawnTimer = 70;
   }
 
@@ -952,6 +955,7 @@ export class Fighter {
     else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
     if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
 
     // name tag
     this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));
@@ -1178,5 +1182,120 @@ export class Fighter {
     { const pr = at(20, 0); g.fillStyle(0xfff6d0, 0.6 * fade); g.fillCircle(pr[0], pr[1], 3.5 * big); g.fillStyle(0xffffff, fade); g.fillCircle(pr[0], pr[1], 1.5 * big); }
   }
 
-  destroy() { this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); }
+  // ------------------------------------------------------------------ milestone costume effects
+  // Ambient effects around a fighter wearing a milestone costume (skins.js vfx.aura). Higher milestones
+  // stack more of them: orbiting wisps, a crown of flames, a halo, wings, bubbles, glowing spots...
+  drawSkinAura(g) {
+    const a = this.vfx.aura;
+    if (!a || this.state === 'respawn' && this.anim % 4 < 2) return;
+    const d = this.def, back = this.fxBack, t = this.anim, f = this.facing, R = Math.random, P = this.match.particles;
+    const cx = this.x, top = this.y - (d.headTop || d.body.h + 4), mid = this.y - d.body.h * 0.55;
+    if (a.wings) {                                   // feathered wings of light behind her back, slowly beating
+      const sx = cx - f * 4, sy = this.y - d.body.h * 0.78, flap = Math.sin(t * 0.08);
+      for (const far of [1, 0]) {                     // far wing first (dimmer, a little higher), then the near one
+        const ox = far ? f * 3 : 0, oy = far ? -3 : 0, lift = flap * (far ? 0.12 : 0.18);
+        const arm = [];                               // the wing's leading edge, sweeping up and back
+        for (let k = 0; k <= 8; k++) {
+          const u = k / 8, rise = 30 * (1 + lift);
+          arm.push([sx + ox - f * (u * 26 + u * u * 6), sy + oy - u * rise + u * u * rise * 0.45]);
+        }
+        for (let k = 8; k >= 1; k--) {                // feathers hanging off the arm: long primaries at the tip
+          const [px, py] = arm[k], u = k / 8, len = 12 + u * 18, bk = -f * (0.15 + u * 0.4);
+          const ex = px + bk * len, ey = py + len * 0.92 - flap * 2 * u;
+          this.fxBack.fillStyle(a.wings[far ? 2 : (k > 5 ? 0 : 1)], far ? 0.55 : 0.9);
+          this.fxBack.fillTriangle(px - 3, py, px + 3, py, ex, ey);
+          this.fxBack.fillStyle(0xffffff, far ? 0.3 : 0.75); this.fxBack.lineStyle(1, 0xffffff, far ? 0.25 : 0.6);
+          this.fxBack.lineBetween(px, py, (px + ex) / 2, (py + ey) / 2);
+        }
+        for (let k = 0; k < 8; k++) {                 // the arm itself: soft coverts along the top
+          const [ax, ay] = arm[k], [bx, by] = arm[k + 1];
+          this.fxBack.lineStyle(4 - (k >> 2), a.wings[far ? 2 : 0], far ? 0.6 : 1); this.fxBack.lineBetween(ax, ay, bx, by);
+        }
+      }
+      back.fillStyle(0xffffff, 0.22); back.fillCircle(sx, sy, 6 + Math.sin(t * 0.2));
+    }
+    if (a.halo !== undefined) {                      // a thin ring of light floating over the head
+      const hy = top - 6 + Math.round(Math.sin(t * 0.07));
+      back.lineStyle(2, a.halo, 0.9); back.strokeEllipse(cx, hy, 16, 5);
+      g.lineStyle(1, 0xffffff, 0.7); g.strokeEllipse(cx, hy, 12, 3);
+    }
+    if (a.crown) {                                   // a crown of floating flames above the head
+      const n = a.crown.n, sp = a.crown.big ? 6 : 5, base = top - 4 + Math.round(Math.sin(t * 0.06));
+      g.fillStyle(a.crown.colors[0], 0.22); g.fillEllipse(cx, base - 5, n * sp + 12, 14);
+      for (let k = 0; k < n; k++) {
+        const off = k - (n - 1) / 2, x = Math.round(cx + off * sp), lift = Math.round((n / 2 - Math.abs(off)) * 2);
+        const h = 7 + ((t >> 2) + k * 3) % 3 + (a.crown.big ? 3 : 0), y = base - lift;
+        for (let r = 0; r < h; r++) {                // a tapering, flickering tongue of flame
+          const u = r / h, w = Math.max(1, Math.round(5 * Math.pow(1 - u, 0.7))), sx = x + Math.round(Math.sin(t * 0.25 + k * 1.3 + r * 0.6) * u * 1.4) - (w >> 1);
+          g.fillStyle(a.crown.colors[0], 0.95); g.fillRect(sx, y - r, w, 1);
+          if (w >= 3) { g.fillStyle(a.crown.colors[1], 1); g.fillRect(sx + 1, y - r, w - 2, 1); }
+          if (r < h * 0.35 && w >= 3) { g.fillStyle(a.crown.colors[2], 1); g.fillRect(sx + (w >> 1), y - r, 1, 1); }
+        }
+      }
+    }
+    if (a.coral) {                                   // a crown of coral branches on the hat
+      const base = top + 1;
+      g.fillStyle(a.coral[1], 1); g.fillRect(Math.round(cx) - 7, base, 15, 2);       // gold band
+      for (const [dx, h, br] of [[-5, 7, -1], [0, 10, 1], [5, 7, 1], [-2, 5, 1], [3, 5, -1]]) {
+        const x = Math.round(cx + dx);
+        g.fillStyle(a.coral[0], 1); g.fillRect(x, base - h, 2, h);
+        g.fillRect(x + br * 2, base - h + 2, 2, 1); g.fillRect(x + br * 3, base - h, 1, 3);
+        g.fillStyle(a.coral[1], 1); g.fillRect(x, base - h - 1, 2, 1); g.fillRect(x + br * 3, base - h - 1, 1, 1);
+      }
+    }
+    if (a.orbit) {                                   // wisps circling the body, passing behind it
+      const o = a.orbit;
+      for (let k = 0; k < o.n; k++) {
+        const ang = t * 0.06 + k * Math.PI * 2 / o.n, x = cx + Math.cos(ang) * o.r, y = mid + Math.sin(ang) * o.r * 0.35 + Math.sin(t * 0.1 + k) * 3;
+        const gg = Math.sin(ang) < 0 ? back : g, c = o.colors[k % o.colors.length];
+        for (let j = 1; j <= 4; j++) { const pa = ang - j * 0.12; gg.fillStyle(c, 0.5 - j * 0.1); gg.fillRect(Math.round(cx + Math.cos(pa) * o.r) - 1, Math.round(mid + Math.sin(pa) * o.r * 0.35 + Math.sin(t * 0.1 + k) * 3) - 1, 2, 2); }
+        gg.fillStyle(c, 0.3); gg.fillCircle(x, y, 5);
+        gg.fillStyle(c, 1); gg.fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
+        gg.fillStyle(0xffffff, 1); gg.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+      }
+    }
+    if (a.ribbons) {                                 // two ribbons of water coiling around him
+      for (let k = 0; k < 2; k++) {
+        for (let j = 0; j < 22; j++) {
+          const ang = t * 0.05 + k * Math.PI + j * 0.16, x = cx + Math.cos(ang) * 24, y = this.y - 8 - j * 2.2 + Math.sin(ang) * 6;
+          const gg = Math.sin(ang) < 0 ? back : g;
+          gg.fillStyle(a.ribbons.colors[(j >> 2) % 2], 0.85 - j * 0.03); gg.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 2);
+        }
+      }
+    }
+    if (a.spots) {                                   // bioluminescent spots blinking on and off around him
+      for (let k = 0; k < a.spots.n; k++) {
+        const h = Math.sin(k * 91.7) * 0.5 + 0.5, h2 = Math.sin(k * 37.3) * 0.5 + 0.5;
+        const x = cx + (h - 0.5) * d.body.w * 1.6, y = this.y - 6 - h2 * d.body.h * 0.9, on = Math.sin(t * 0.08 + k * 1.7);
+        if (on < 0) continue;
+        g.fillStyle(a.spots.colors[k % a.spots.colors.length], 0.4 * on); g.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5);
+        g.fillStyle(0xffffff, on); g.fillRect(Math.round(x), Math.round(y), 1, 1);
+      }
+    }
+    if (!this.match.frozen) {                        // particles that drift off the body
+      if (a.motes && t % a.motes.rate === 0) {
+        const c = a.motes.colors[(t / a.motes.rate) % a.motes.colors.length | 0];
+        if (a.motes.feathers && t % (a.motes.rate * 3) === 0) P.push({ shape: 'feather', x: cx - f * 6 + (R() - 0.5) * 30, y: this.y - d.body.h, vx: (R() - 0.5) * 0.5, vy: 0.2, life: 70, color: c, grav: 0.004, sway: R() * 6 });
+        else P.push({ x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h, vx: 0, vy: -0.3 - R() * 0.4, life: 30 + R() * 20, color: c, size: 1 + (R() < 0.4), grav: -0.004 });
+      }
+      if (a.bubbles && t % a.bubbles.rate === 0) P.push({ shape: 'bubble', x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h * 0.8, vx: 0, vy: -0.4 - R() * 0.4, life: 40 + R() * 20, color: a.bubbles.colors[(t / a.bubbles.rate) % a.bubbles.colors.length | 0], grav: -0.01, r: 1 + Math.floor(R() * 2), sway: R() * 6 });
+    }
+  }
+
+  // Afterimages (the 100-KO costumes): faded copies of the last few frames trail behind when moving fast.
+  drawTrail(spr) {
+    if (!this.ghosts.length) return;
+    const h = this.trailHist;
+    h.push({ x: spr.x, y: spr.y, key: spr.texture.key, frame: spr.frame.name, flip: spr.flipX, rot: spr.rotation, sx: spr.scaleX, sy: spr.scaleY, ox: spr.originX, oy: spr.originY });
+    if (h.length > 12) h.shift();
+    const fast = Math.hypot(this.vx + this.lx, this.vy + this.ly) > 2.6 || ['attack', 'upb', 'airdodge', 'roll', 'limit', 'counterstrike'].includes(this.state);
+    this.ghosts.forEach((gh, i) => {
+      const e = h[h.length - 1 - (i + 1) * 3];
+      if (!fast || !e) { gh.setVisible(false); return; }
+      gh.setVisible(true).setTexture(e.key, e.frame).setPosition(e.x, e.y).setFlipX(e.flip).setRotation(e.rot).setScale(e.sx, e.sy).setOrigin(e.ox, e.oy)
+        .setTint(this.vfx.trail).setTintMode(Phaser.TintModes.FILL).setAlpha(0.42 - i * 0.12);
+    });
+  }
+
+  destroy() { this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }
