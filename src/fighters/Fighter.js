@@ -940,7 +940,16 @@ export class Fighter {
       m.shake(2, 2);
     }
     const taunt = this.style === 'samurai' ? 150 : 0;                    // Samurai: a cold word before the last cut
-    const appear = L.cuts * L.cutEvery + 4, finalAt = appear + 10 + taunt;
+    const appear = L.cuts * L.cutEvery + 4;
+    if (U.ct === appear) U.execute = U.victims.some((t) => t.percent > 100);   // past 100%: she charges one killing slice instead
+    const charge = U.execute ? L.executeCharge : 0, chargeFrom = appear + 10 + taunt, finalAt = chargeFrom + charge;
+    U.charge = U.execute && U.ct >= chargeFrom && U.ct < finalAt ? (U.ct - chargeFrom) / charge : 0;
+    if (U.execute && U.ct >= chargeFrom && U.ct < finalAt) {           // charging: the blade grows, light pours into it
+      const k = U.charge;
+      if (U.ct === chargeFrom) { sfx('limit', 0.9, 0.7); sfx('shing', 0.7, 0.6); }
+      if ((U.ct - chargeFrom) % 6 === 0) sfx('djump', 0.25 + k * 0.3, 0.4 + k * 1.2);   // a rising whine
+      this.match.shake(1 + k * 3, 2);
+    }
     if (U.ct === appear) {                                             // reappear for the last cut
       this.x = c.x - this.facing * 40; this.y = v.y; this.facing = Math.sign(c.x - this.x) || 1;
       sfx('limitready', 0.8, 0.8);
@@ -953,11 +962,19 @@ export class Fighter {
     }
     if (U.ct === finalAt) {
       if (U.line) { U.line.destroy(); U.line = null; }
-      U.slashes.push({ x1: c.x - this.facing * 60, y1: c.y + 20, x2: c.x + this.facing * 70, y2: c.y - 30, life: 18, big: true });
-      for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'cutfinal' + this.slot, pillar: true }, this.x); }
-      sfx('bighit', 1, 0.6); m.shake(14, 12);
+      U.charge = 0;
+      if (U.execute) {                                                 // the killing slice: one huge cut across the whole screen
+        U.slashes.push({ x1: c.x - this.facing * 260, y1: c.y + 70, x2: c.x + this.facing * 300, y2: c.y - 90, life: 30, big: true, huge: true });
+        for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.execute, owner: this, facing: this.facing, id: 'cutfinal' + this.slot, pillar: true }, this.x); }
+        sfx('bighit', 1, 0.45); sfx('ko', 0.9, 0.8); m.shake(22, 20);
+        for (let i = 0; i < 30; i++) m.puff(c.x + (Math.random() - 0.5) * 60, c.y + (Math.random() - 0.5) * 50, i % 3 ? 0xffffff : this.pal.light, 1);
+      } else {
+        U.slashes.push({ x1: c.x - this.facing * 60, y1: c.y + 20, x2: c.x + this.facing * 70, y2: c.y - 30, life: 18, big: true });
+        for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'cutfinal' + this.slot, pillar: true }, this.x); }
+        sfx('bighit', 1, 0.6); m.shake(14, 12);
+      }
     }
-    if (U.ct >= finalAt + 24) return this.endBladeLimit();
+    if (U.ct >= finalAt + (U.execute ? 40 : 24)) return this.endBladeLimit();
   }
   endBladeLimit() {
     const U = this.ult, m = this.match;
@@ -1010,8 +1027,28 @@ export class Fighter {
       return;
     }
     // cutscene: every cut leaves a streak of light through the target
+    if (U.charge > 0) {                                     // charging the killing slice: the sword raised high, growing and blazing
+      const k = U.charge, ease = 1 - (1 - k) * (1 - k);
+      const len = 40 + 150 * ease, half = 2 + 7 * ease, ang = -1.774 + Math.sin(this.anim * 0.9) * 0.02 * k;
+      const hx = this.x + this.facing * -27, hy = this.y - 41;
+      const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), nx = -dy, ny = dx;
+      const blade = (w, col, a) => {
+        g.fillStyle(col, a);
+        g.fillPoints([{ x: hx + nx * w, y: hy + ny * w }, { x: hx + dx * len * 0.88 + nx * w, y: hy + dy * len * 0.88 + ny * w }, { x: hx + dx * len, y: hy + dy * len },
+          { x: hx + dx * len * 0.88 - nx * w, y: hy + dy * len * 0.88 - ny * w }, { x: hx - nx * w, y: hy - ny * w }], true);
+      };
+      g.fillStyle(this.pal.mid, 0.12 + 0.18 * k); g.fillCircle(hx, hy, 20 + 60 * ease);                 // aura swelling around her
+      blade(half + 8 + Math.sin(this.anim * 0.6) * 2, this.pal.mid, 0.3 + 0.2 * k);
+      blade(half + 1.5, C.outline, 1); blade(half, C.light, 1); blade(Math.max(0.6, half * 0.5), C.core, 1);
+      for (let i = 0; i < 10; i++) {                                                                 // light streaming into the blade
+        const a = i * 0.63 + this.anim * 0.21, d = (1 - ((this.anim * 3 + i * 17) % 40) / 40) * (50 + 40 * k);
+        const tx = hx + dx * len * (0.3 + (i % 5) * 0.15), ty = hy + dy * len * (0.3 + (i % 5) * 0.15);
+        g.fillStyle(i % 2 ? 0xffffff : C.light, 1); g.fillRect(Math.round(tx + Math.cos(a) * d), Math.round(ty + Math.sin(a) * d), 2, 2);
+      }
+      g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
+    }
     for (const sl of U.slashes) {
-      const k = sl.life / (sl.big ? 18 : 10), w = sl.big ? 10 : 5;
+      const k = sl.life / (sl.huge ? 30 : sl.big ? 18 : 10), w = sl.huge ? 18 : sl.big ? 10 : 5;
       g.lineStyle(w + 6, this.pal.mid, 0.35 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
       g.lineStyle(w, 0xffffff, 0.95 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
     }
@@ -1135,7 +1172,8 @@ export class Fighter {
     if (s !== 'run') this.runPhase = 0;
     if (s === 'run' && this.sheets.run && !d.ownAnims) {   // run: straight into the stride (frames 3-7) the moment he moves, faster at speed
       this.runPhase = (this.runPhase || 0) + 0.11 + Math.abs(this.vx) * 0.035;
-      sheet = this.sheets.run; frame = 3 + Math.floor(this.runPhase) % 5;
+      const [from, count] = d.runCycle || [3, 5];
+      sheet = this.sheets.run; frame = from + Math.floor(this.runPhase) % count;
     }
     else if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
       this.walkPhase = ((this.walkPhase || 0) + Math.max(0.08, Math.abs(this.vx) * 0.055)) % 8;

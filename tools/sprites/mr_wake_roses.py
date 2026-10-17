@@ -1,6 +1,7 @@
 """Mr Wake's ROSEBUD costume: his cloak and hat overgrown with leafy vines and red roses, and his
 staff turned into a giant tulip.
 Run:  python3 tools/sprites/mr_wake_roses.py tools/sprites/mr_wake_idle.svg public/assets/fighters/mr-wake/roses/idle_sheet.png
+      (also writes roses/run_sheet.png, his run, with mr_wake_run.py)
 
 Built from the same 64x64 SVG as his normal sprite and animated by mr_wake.py, so it breathes and
 sways exactly like the original:
@@ -116,4 +117,8 @@ for (x, y) in sorted(px):
 RECOLOR = {**CLOAK, '6D26BD': T_M, '9B5DE5': T_L, 'DAB8FE': 'FFF0A0', '560C83': T_D}
 os.makedirs(os.path.dirname(sys.argv[2]), exist_ok=True)
 mw.build(px, sys.argv[2], RECOLOR)
+# his run (same strides as mr_wake_run.py), saved next to the idle as run_sheet.png
+spec = importlib.util.spec_from_file_location('mr_wake_run', os.path.join(os.path.dirname(__file__), 'mr_wake_run.py'))
+mr = importlib.util.module_from_spec(spec); sys.argv, argv = [sys.argv[0]], sys.argv; spec.loader.exec_module(mr); sys.argv = argv
+mr.build_run(px, os.path.join(os.path.dirname(sys.argv[2]), 'run_sheet.png'), RECOLOR)
 print(len(spots) + len(small) + 2, 'roses')

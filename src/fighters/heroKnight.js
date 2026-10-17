@@ -115,6 +115,8 @@ export const HERO_KNIGHT = {
     box: [0, -130, 200, 150],                      // the giant slash, in front of her
     cuts: 25, cutEvery: 5, cut: { dmg: 2, angle: 90, base: 0, growth: 0, stun: 12 },
     final: { dmg: 10, angle: 40, base: 7.5, growth: 7.0 },
+    // if anyone she's cutting is past 100% when she reappears, she charges one killing slice instead
+    executeCharge: 75, execute: { dmg: 15, angle: 38, base: 40, growth: 12 },
     colors: BEAM_STEEL,
   },
 };
