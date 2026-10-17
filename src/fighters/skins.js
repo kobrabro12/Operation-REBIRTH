@@ -93,6 +93,11 @@ export const SKINS = {
     // and just inside her white outline, so the black-and-white body still reads
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // AKATSUKI ("dawn"): a wandering hero out of a Japanese adventure story - crimson tunic, leather belt,
+    // wrapped cloth boots and a crystal-bladed sword. She shouts her moves like an anime hero, her hits burst
+    // into crystal shards with sound-effect lettering, and her Limit is a named secret art (style 'hero')
+    { name: 'AKATSUKI', swatch: 0xb0202c, fx: 0x6fd6f0, sheetSet: 'akatsuki', style: 'hero',
+      pal: { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff, shade: 0x0a2a3a, void: 0x04121a } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,

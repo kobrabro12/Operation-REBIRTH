@@ -24,7 +24,24 @@ const QUIPS = {
     grab: [0.8, 'GOT YOU.'], throw: [0.7, 'DELETE.', 'DRAG > TRASH'],
     limit: [1, 'RUN THOUSAND_CUTS'], ko: [1, 'CTRL+ALT+DEL.', 'USER LOGGED OFF.'],
   },
+  // AKATSUKI: an anime hero, shouting her moves
+  'hero-knight:hero': {
+    jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
+    attack: [0.3, 'SEIYA!', 'TAAH!', 'THERE!'],
+    smash: [0.7, 'TAKE THIS!', 'HAAAAH!'],
+    slamFull: [1, 'CRYSTAL... BREAKER!!'], slam: [0.6, 'RAAAH!'],
+    throwSword: [1, 'FLY, MY BLADE!'], catchSword: [0.7, 'WELCOME BACK.'],
+    counter: [1, 'TOO SLOW!'], upb: [0.6, 'NOT YET!'],
+    grab: [0.7, 'GOTCHA!'], throw: [0.7, 'AWAY WITH YOU!', 'HUP!'],
+    limit: [1, 'THIS IS MY RESOLVE!'], ko: [1, "I WON'T LOSE!", 'FOR EVERYONE!', 'I PROMISED!'],
+  },
 };
+// how each costume's lines look: a terminal box (typed out) or a hero's shout (pops in, bounces)
+const SPEECH = {
+  onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
+  hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
+};
+const CRYSTAL_BLADE = { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff };
 
 export class Fighter {
   constructor(match, def, slot, controller, opts) {
@@ -260,21 +277,31 @@ export class Fighter {
   }
   say(text, life = 80) {
     if (this.match.demo) return;
+    this.speechKind = SPEECH[this.style] || SPEECH.onebit;
     if (!this.speech) {
-      this.speech = this.match.add.text(0, 0, '', { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } }).setOrigin(0.5, 1).setDepth(8);
+      this.speech = this.match.add.text(0, 0, '', this.speechKind.style).setOrigin(0.5, 1).setDepth(8);
       this.match.addWorld(this.speech);
     }
     this.speechFull = text; this.speechT = 0; this.speechLife = life; this.speech.setVisible(true);
-    sfx('menu', 0.15, 1.8);
+    if (this.speechKind.typed) sfx('menu', 0.15, 1.8);
   }
   updateSpeech() {
     if (!this.speech || !this.speech.visible) return;
     this.speechT++;
-    const n = Math.min(this.speechFull.length, this.speechT);                // typed out fast, like a terminal
-    const cursor = n < this.speechFull.length || (this.speechT >> 3) % 2 ? '_' : ' ';
-    this.speech.setText(this.speechFull.slice(0, n) + cursor);
-    if (n < this.speechFull.length && this.speechT % 2 === 0) sfx('menu', 0.06, 2.2);
-    this.speech.setPosition(Math.round(this.x), Math.round(this.y - (this.def.tagY || 60) - 12));
+    let lift = 0;
+    if (this.speechKind.typed) {
+      const n = Math.min(this.speechFull.length, this.speechT);              // typed out fast, like a terminal
+      const cursor = n < this.speechFull.length || (this.speechT >> 3) % 2 ? '_' : ' ';
+      this.speech.setText(this.speechFull.slice(0, n) + cursor);
+      if (n < this.speechFull.length && this.speechT % 2 === 0) sfx('menu', 0.06, 2.2);
+    } else {                                                                    // a shout: pops in big and bounces
+      this.speech.setText(this.speechFull);
+      const k = Math.min(1, this.speechT / 6);
+      this.speech.setScale(1.6 - 0.6 * k);
+      lift = Math.round(Math.abs(Math.sin(this.speechT * 0.5)) * 3 * (1 - k)) + (this.speechT > this.speechLife - 10 ? this.speechT - (this.speechLife - 10) : 0);
+      this.speech.setAlpha(this.speechT > this.speechLife - 10 ? (this.speechLife - this.speechT) / 10 : 1);
+    }
+    this.speech.setPosition(Math.round(this.x), Math.round(this.y - (this.def.tagY || 60) - 12 - lift));
     if (this.speechT > this.speechLife || !this.alive) this.speech.setVisible(false);
   }
 
@@ -290,6 +317,7 @@ export class Fighter {
     if (this.style === 'samurai') { sfx('whoosh', vol + 0.1, rate * (0.9 + Math.random() * 0.25)); if (Math.random() < 0.35) sfx('shing', 0.25, 1 + Math.random() * 0.2); return; }
     sfx(this.def.swingSfx || 'swing', vol, rate * (0.92 + Math.random() * 0.16));
     if (this.style === 'onebit' && Math.random() < 0.4) sfx('glitch', 0.25, 1.2);
+    if (this.style === 'hero' && Math.random() < 0.3) sfx('shing', 0.2, 1.5 + Math.random() * 0.3);   // the crystal blade rings
   }
   st_attack(c) {
     const m = this.move;
@@ -997,7 +1025,10 @@ export class Fighter {
       sfx('swing', 0.7, 1.3 + (U.cut % 4) * 0.1);
       m.shake(2, 2);
     }
-    const taunt = this.style === 'samurai' ? 150 : this.style === 'onebit' ? 70 : 0;   // a pause for a cold word before the last cut
+    const taunt = this.style === 'samurai' ? 150 : this.style === 'onebit' ? 70 : this.style === 'hero' ? 60 : 0;
+    const hero = this.style === 'hero';
+    if (hero && U.ct === 1) { this.cutLine(U, 'SECRET ART: THOUSAND CRYSTAL CUTS!', 1); sfx('limitready', 0.6, 1.2); }
+    if (hero) this.stepSpeedLines(U, L);   // a pause for a cold word before the last cut
     const bit = this.style === 'onebit';
     if (bit && U.ct === 1) this.cutLine(U, 'TARGET LOCKED.', 1);
     if (bit) this.stepHackWindows(U, L);
@@ -1018,6 +1049,7 @@ export class Fighter {
       sfx('limitready', 0.8, 0.8);
       if (this.style === 'samurai') { sfx('shing', 0.7, 0.8); this.cutLine(U, 'YOU ARE WEAK.', 4); }
       if (bit) this.cutLine(U, U.execute ? 'ERROR: TARGET > 100%. EXECUTING...' : 'PROCESS COMPLETE.', 1);
+      if (hero) { this.cutLine(U, U.execute ? 'THIS ENDS NOW!!' : "IT'S OVER!", 2); sfx('shing', 0.8, 0.7); }
     }
     if (U.line) {                                                      // typed out letter by letter, then held
       const full = U.lineFull, rate = U.lineRate, n = rate ? Math.min(full.length, Math.floor((U.ct - U.lineAt) / rate) + 1) : full.length;
@@ -1027,6 +1059,12 @@ export class Fighter {
     }
     if (U.ct === finalAt) {
       if (U.line && !bit) { U.line.destroy(); U.line = null; }
+      if (hero) {                                                      // the art's name in big brush letters, and crystal bursting everywhere
+        const k = this.match.add.text(VIEW_W / 2, VIEW_H / 2 - 40, '千 刃', { fontFamily: 'serif', fontSize: '48px', fontStyle: 'bold', color: '#ffffff', stroke: '#2a8fb0', strokeThickness: 8 }).setOrigin(0.5).setDepth(60);
+        this.match.addUI(k); this.match.pops.push({ t: k, life: 60, ui: true });
+        for (let i = 0; i < 30; i++) { const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 6; this.match.particles.push({ shape: 'shard', x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + Math.random() * 20, color: [0xbff6ff, 0xffffff, 0x6fd6f0][i % 3], size: 3, rot: a }); }
+        sfx('taiko', 1); sfx('shing', 1, 0.6);
+      }
       if (bit) { this.cutLine(U, U.execute ? 'TERMINATED.' : 'END OF LINE.', 1); sfx('glitch', 0.9, 0.6); }
       U.charge = 0;
       if (U.execute) {                                                 // the killing slice: one huge cut across the whole screen
@@ -1041,6 +1079,20 @@ export class Fighter {
       }
     }
     if (U.ct >= finalAt + (U.execute ? 40 : 24)) return this.endBladeLimit();
+  }
+  // AKATSUKI: anime speed lines rushing in from the screen edges while she cuts, flashing on each cut
+  stepSpeedLines(U, L) {
+    const m = this.match;
+    if (!U.speed) { U.speed = m.add.graphics().setDepth(54); m.addUI(U.speed); }
+    const g = U.speed, cx = VIEW_W / 2, cy = VIEW_H / 2, R = Math.random, cutting = U.ct < L.cuts * L.cutEvery + 4;
+    g.clear();
+    const n = cutting ? 34 : 18;
+    for (let i = 0; i < n; i++) {
+      const a = R() * Math.PI * 2, r0 = 150 + R() * 70, r1 = 420, w = 1 + R() * 2.5;
+      g.lineStyle(w, i % 5 ? 0xffffff : 0xbff6ff, 0.25 + R() * 0.35);
+      g.lineBetween(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.7, cx + Math.cos(a) * r1, cy + Math.sin(a) * r1 * 0.7);
+    }
+    if (cutting && U.ct % L.cutEvery === 0) { g.fillStyle(0xffffff, 0.12); g.fillRect(0, 0, VIEW_W, VIEW_H); }   // a flash on every cut
   }
   // 1-BIT Lacy: while she dashes around the target, hacker pop-up windows open all over the screen;
   // when the cuts end they glitch shut one by one. Drawn on the HUD camera, in screen pixels.
@@ -1082,9 +1134,10 @@ export class Fighter {
   // a line of text in the cutscene's top letterbox, typed out `rate` ticks per letter (0: all at once)
   cutLine(U, text, rate) {
     if (!U.line) {
-      const bit = this.style === 'onebit';
+      const bit = this.style === 'onebit', hero = this.style === 'hero';
       U.line = this.match.add.text(VIEW_W / 2, 17, '', bit
         ? { fontFamily: FONT, fontSize: '12px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 6, y: 3 } }
+        : hero ? { fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 5 }
         : { fontFamily: FONT, fontSize: '16px', color: '#ffffff', stroke: '#c8102e', strokeThickness: 4 }).setOrigin(0.5).setDepth(60);
       this.match.addUI(U.line);
     }
@@ -1096,6 +1149,7 @@ export class Fighter {
     if (U && U.phase === 'cutscene') { this.x = U.origin.x; this.y = U.origin.y; m.frozen = 0; m.cutscene = null; }
     if (U && U.line) U.line.destroy();
     if (U && U.hack) for (const w of U.hack.wins) { w.g.destroy(); w.text.destroy(); w.tt.destroy(); }
+    if (U && U.speed) U.speed.destroy();
     this.ult = null; this.invincible = 30; this.grounded = false;
     this.setState('air');
   }
@@ -1151,7 +1205,7 @@ export class Fighter {
     return { len: 30 + 160 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
   }
   drawBladeLimit(g, L, U) {
-    const C = L.colors;
+    const C = this.style === 'hero' ? CRYSTAL_BLADE : L.colors;
     if (U.phase !== 'cutscene' && this.style === 'onebit') return this.drawBurningSwing(g, L, U);
     if (U.phase !== 'cutscene') {
       // Her own sword grows: the blade starts exactly on the sprite's sword (same hilt, angle and length)

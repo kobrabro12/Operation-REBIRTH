@@ -7,8 +7,10 @@ const STYLE_HIT = {
   onebit: { shape: 'pixel', colors: [0xf4f4f0, 0x0e0e10], n: 9, ring: 0xf4f4f0, sound: 'glitch' },
   rose: { shape: 'rosepetal', colors: [0xd6336c, 0xff7aa8, 0x9a1240, 0x3c8c38], n: 9, sound: 'petal' },
   samurai: { shape: 'sakura', colors: [0xffb7c5, 0xffffff, 0xff8fab], n: 7, ink: true, kanji: true },
+  hero: { shape: 'shard', colors: [0xbff6ff, 0x6fd6f0, 0xffffff], n: 9, ring: 0xbff6ff, sound: 'shing', words: true },
 };
 const KANJI = ['斬', '撃', '閃', '刃'];
+const SFX_WORDS = ['ドン!', 'バシッ!', 'ズバッ!', 'ガキン!'];          // AKATSUKI: manga sound-effect lettering
 
 // Title-screen demo: a random all-CPU match (random stage, 2-4 random fighters in random costumes).
 function demoSettings() {
@@ -423,6 +425,7 @@ export class MatchScene extends Phaser.Scene {
     if (f.style === 'samurai') { sfx('taiko', 1); sfx('shing', 0.7, 0.9); }
     if (f.style === 'onebit') sfx('glitch', 0.8, 0.8);
     if (f.style === 'rose') sfx('petal', 0.8, 0.7);
+    if (f.style === 'hero') { sfx('taiko', 0.9); sfx('shing', 0.8, 1.2); }
     this.shake(6, 30);
     this.limitBanner = { t: 0, name: f.def.limit.name, color: f.color };
     let best = null, bd = 1e9;
@@ -455,6 +458,10 @@ export class MatchScene extends Phaser.Scene {
     const v = (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];
     if (!v) return;
     if (v.sound) sfx(v.sound, 0.35, 0.9 + Math.random() * 0.3);
+    if (v.words && (dmg >= 7 || kb > 6)) {                // Akatsuki: manga sound-effect lettering on solid hits
+      const w = this.add.text(x + (Math.random() - 0.5) * 24, y - 28, SFX_WORDS[Math.floor(Math.random() * SFX_WORDS.length)], { fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 5 }).setOrigin(0.5).setDepth(6).setRotation((Math.random() - 0.5) * 0.4);
+      this.addWorld(w); this.pops.push({ t: w, life: 40 });
+    }
     if (v.kanji && (dmg >= 10 || kb > 7)) {            // Samurai: a brush-stroke kanji on the big hits
       const k = this.add.text(x + (Math.random() - 0.5) * 20, y - 30, KANJI[Math.floor(Math.random() * KANJI.length)], { fontFamily: 'serif', fontSize: '22px', fontStyle: 'bold', color: '#c8102e', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5).setDepth(6);
       this.addWorld(k); this.pops.push({ t: k, life: 50 });
