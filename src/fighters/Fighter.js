@@ -1,6 +1,6 @@
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
-import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT } from '../config.js';
+import { PHYS, BLAST, LIMIT_MAX, PLAYER_COLORS, PLAYER_TINTS, FONT, VIEW_W } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { Controller } from '../input/controllers.js';
 import { skinSheets, skinInfo, paletteFor } from './skins.js';
@@ -939,12 +939,20 @@ export class Fighter {
       sfx('swing', 0.7, 1.3 + (U.cut % 4) * 0.1);
       m.shake(2, 2);
     }
-    const finalAt = L.cuts * L.cutEvery + 14;
-    if (U.ct === finalAt - 10) {                                       // reappear for the last cut
+    const taunt = this.style === 'samurai' ? 150 : 0;                    // Samurai: a cold word before the last cut
+    const appear = L.cuts * L.cutEvery + 4, finalAt = appear + 10 + taunt;
+    if (U.ct === appear) {                                             // reappear for the last cut
       this.x = c.x - this.facing * 40; this.y = v.y; this.facing = Math.sign(c.x - this.x) || 1;
       sfx('limitready', 0.8, 0.8);
+      if (taunt) { sfx('shing', 0.7, 0.8); U.line = this.match.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '16px', color: '#ffffff', stroke: '#c8102e', strokeThickness: 4 }).setOrigin(0.5).setDepth(60); this.match.addUI(U.line); }
+    }
+    if (U.line) {                                                      // typed out letter by letter, then held
+      const full = 'YOU ARE WEAK.', n = Math.min(full.length, Math.floor((U.ct - appear) / 4));
+      if (U.line.text.length < n) { U.line.setText(full.slice(0, n)); if (full[n - 1] !== ' ') sfx('menu', 0.25, 0.7); }
+      if (U.ct === appear + 4 * full.length + 20) sfx('taiko', 0.9);
     }
     if (U.ct === finalAt) {
+      if (U.line) { U.line.destroy(); U.line = null; }
       U.slashes.push({ x1: c.x - this.facing * 60, y1: c.y + 20, x2: c.x + this.facing * 70, y2: c.y - 30, life: 18, big: true });
       for (const t of U.victims) { t.hitstun = 0; m.applyHit(t, { h: L.final, owner: this, facing: this.facing, id: 'cutfinal' + this.slot, pillar: true }, this.x); }
       sfx('bighit', 1, 0.6); m.shake(14, 12);
@@ -954,6 +962,7 @@ export class Fighter {
   endBladeLimit() {
     const U = this.ult, m = this.match;
     if (U && U.phase === 'cutscene') { this.x = U.origin.x; this.y = U.origin.y; m.frozen = 0; m.cutscene = null; }
+    if (U && U.line) U.line.destroy();
     this.ult = null; this.invincible = 30; this.grounded = false;
     this.setState('air');
   }
