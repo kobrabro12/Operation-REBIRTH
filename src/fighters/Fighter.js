@@ -1296,6 +1296,10 @@ export class Fighter {
     }
     else if (s === 'run') { frame = Math.floor(this.anim / 3) % 32; spr.setRotation(0.1 * this.facing); spr.y -= (Math.floor(this.anim / 5) % 2); }
     else if (s === 'jumpsquat' || s === 'land') spr.setScale(1.08, 0.9);
+    else if ((s === 'air' || s === 'helpless' || s === 'airdodge') && this.sheets.jump) {   // rising: legs tucked, flame pushed low; falling: legs hanging, flame streaming up
+      sheet = this.vy < 0 ? this.sheets.jump : this.sheets.fall; frame = Math.floor(this.anim / 5) % 4;
+      spr.setRotation(Phaser.Math.Clamp(this.vx * 0.03, -0.15, 0.15));
+    }
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { frame = 4; spr.setRotation(Phaser.Math.Clamp(this.vx * 0.04, -0.2, 0.2)); }
     else if (s === 'hitstun' || s === 'dizzy') { frame = 10; spr.setRotation(Math.sin(this.t * 0.5) * 0.35 * this.facing); }
     else if (s === 'charge') { sheet = alt; frame = 1 + (Math.floor(this.t / 8) % 2); }

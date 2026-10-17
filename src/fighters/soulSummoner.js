@@ -9,7 +9,7 @@ export const SOUL_SUMMONER = {
   name: 'SOUL SUMMONER',
   // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py). The stride (frames 3-7) loops from
   // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
-  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run' },
+  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall' },
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid

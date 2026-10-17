@@ -89,7 +89,9 @@ export const SKINS = {
     // 1-BIT: the same monochrome-handheld look as Soul Summoner's 1-BIT - pure black and white with a white
     // outline. A blade that runs like a program: her specials and Limit glitch in pixels, and she talks
     // in terminal lines (Fighter.quip / cutLine)
-    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, style: 'onebit',
+    // edges: black lines drawn wherever two different parts of her meet (armour, cloth, hair, sword...)
+    // and just inside her white outline, so the black-and-white body still reads
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
@@ -210,6 +212,32 @@ export function minionTexture(scene, id, i) {
   return recolorTexture(scene, 'soul_minion', 'soul_minion@' + skin.name, { groups: SS, rules: m });
 }
 
+// Pixels on a boundary between two clearly different colours of the ORIGINAL art (the lighter side of
+// the boundary, so lines stay 1 px), and with rim: true every pixel touching transparency. Used by the
+// monochrome costumes, where recolouring alone would merge neighbouring parts into one white blob.
+function findEdges(p, W, H, fw, fh, opt) {
+  const n = W * H, lum = new Float32Array(n), hue = new Float32Array(n), sat = new Float32Array(n), op = new Uint8Array(n), out = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    op[i] = p[i * 4 + 3] > 200 ? 1 : 0;
+    if (!op[i]) continue;
+    const [h, s, v] = rgb2hsv(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]); lum[i] = v; hue[i] = h; sat[i] = s;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (!op[i]) continue;
+    const fx = x % fw, fy = y % fh;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = fx + dx, ny = fy + dy;
+      if (nx < 0 || ny < 0 || nx >= fw || ny >= fh) continue;
+      const j = i + dy * W + dx;
+      if (!op[j]) { if (opt.rim) out[i] = 1; continue; }
+      const dh = Math.min(Math.abs(hue[i] - hue[j]), 360 - Math.abs(hue[i] - hue[j]));
+      const different = Math.abs(lum[i] - lum[j]) > opt.diff || (sat[i] > 0.25 && sat[j] > 0.25 && dh > 40) || Math.abs(sat[i] - sat[j]) > 0.3;
+      if (different && lum[i] >= lum[j]) out[i] = 1;
+    }
+  }
+  return out;
+}
+
 function recolorTexture(scene, key, nk, skin) {
   const tm = scene.textures;
   if (tm.exists(nk)) return nk;
@@ -219,11 +247,13 @@ function recolorTexture(scene, key, nk, skin) {
   const ctx = cv.getContext('2d');
   ctx.drawImage(img, 0, 0);
   const data = ctx.getImageData(0, 0, cv.width, cv.height), p = data.data, fn = recolorFn(skin);
+  const edge = skin.edges ? findEdges(p, cv.width, cv.height, f0.width, f0.height, skin.edges) : null;
   for (let n = 0; n < p.length; n += 4) {
     if (!p[n + 3]) continue;
     const [r, g, b] = fn(p[n], p[n + 1], p[n + 2]);
     p[n] = r; p[n + 1] = g; p[n + 2] = b;
   }
+  if (edge) { const c = skin.edges.color; for (let n = 0; n < edge.length; n++) if (edge[n]) { p[n * 4] = (c >> 16) & 255; p[n * 4 + 1] = (c >> 8) & 255; p[n * 4 + 2] = c & 255; } }
   if (skin.outline !== undefined) {                      // 1 px outline around the silhouette, inside each frame
     const W = cv.width, H = cv.height, fw = f0.width, fh = f0.height, o = skin.outline;
     const a = new Uint8Array(W * H);
