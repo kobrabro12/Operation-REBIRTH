@@ -246,6 +246,7 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.projectiles) if (p.alive) { const h = p.hitbox(); if (h) hbs.push(h); }
     for (const s of this.souls) { const h = s.hitbox(); if (h) hbs.push(h); }
     for (const lh of this.limitHits) if (lh.t < 2) hbs.push(lh.hb);
+    if (this.stage.strikeTargets) this.stage.strikeTargets(this, hbs.filter((h) => h.owner && !h.grab));   // things on the stage that attacks can hit (Gravemoon's lantern)
     if (hazard) for (const hz of [].concat(hazard)) hbs.push({ ...hz, h: hz, owner: null, facing: 1 });   // a stage can return one hazard or a list
 
     const overlap = (a, b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
@@ -372,7 +373,7 @@ export class MatchScene extends Phaser.Scene {
       this.particles.push({ x: bx, y: by, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + Math.random() * 30, color: [f.color, 0xffffff, 0xf3c358][i % 3], size: 3 });
     }
     if (f.lastHitBy && f.lastHitBy !== f) {
-      const k = f.lastHitBy; k.kos++;
+      const k = f.lastHitBy; k.kos++; if (k.quip) k.quip('ko');
       if (!k.isCpu && !this.isTraining) {           // milestone progress: human KOs in real matches
         const tier = addKO(k.def.id);
         if (tier) { this.unlocks.push({ slot: k.slot, fighter: k.def.id, tier }); this.popText(k, 'NEW COSTUME UNLOCKED!', '#f3c358'); sfx('limitready', 1); }

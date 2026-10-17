@@ -11,6 +11,21 @@ const BUFFER = 7;   // frames an early button press is remembered
 // climbing up from a ledge with an attack: a low sweep in front
 const LEDGE_ATTACK = { box: [-8, -30, 50, 26], dmg: 7, angle: 30, base: 3.0, growth: 3.4 };
 
+// Lines a costume says during its moves: shown in a little typed speech box over the fighter.
+// key: '<fighter id>:<costume style>'; each event is [chance, ...lines] (one picked at random).
+const QUIPS = {
+  'hero-knight:onebit': {
+    jab: [0.35, '> slice()', 'CUT.', '0x01'],
+    attack: [0.25, 'HIT.', '> attack()', '01001000', 'BREAK;'],
+    smash: [0.6, 'FORCE QUIT!', 'sudo slash'],
+    slamFull: [1, 'BUFFER OVERFLOW!'], slam: [0.5, 'SWING.EXE'],
+    throwSword: [1, 'THROW(BLADE);'], catchSword: [0.8, 'RETURN 0;'],
+    counter: [1, 'INTERRUPT.'], upb: [0.5, 'JMP UP'],
+    grab: [0.8, 'GOT YOU.'], throw: [0.7, 'DELETE.', 'DRAG > TRASH'],
+    limit: [1, 'RUN THOUSAND_CUTS'], ko: [1, 'CTRL+ALT+DEL.', 'USER LOGGED OFF.'],
+  },
+};
+
 export class Fighter {
   constructor(match, def, slot, controller, opts) {
     this.match = match; this.scene = match; this.def = def; this.slot = slot;
@@ -237,7 +252,34 @@ export class Fighter {
   }
 
   // ---- attacks
+  // ---- costume dialogue (QUIPS): a short typed line in a box over her head
+  quip(event) {
+    const q = QUIPS[this.def.id + ':' + this.style], e = q && q[event];
+    if (!e || Math.random() > e[0]) return;
+    this.say(e[1 + Math.floor(Math.random() * (e.length - 1))]);
+  }
+  say(text, life = 80) {
+    if (this.match.demo) return;
+    if (!this.speech) {
+      this.speech = this.match.add.text(0, 0, '', { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } }).setOrigin(0.5, 1).setDepth(8);
+      this.match.addWorld(this.speech);
+    }
+    this.speechFull = text; this.speechT = 0; this.speechLife = life; this.speech.setVisible(true);
+    sfx('menu', 0.15, 1.8);
+  }
+  updateSpeech() {
+    if (!this.speech || !this.speech.visible) return;
+    this.speechT++;
+    const n = Math.min(this.speechFull.length, this.speechT);                // typed out fast, like a terminal
+    const cursor = n < this.speechFull.length || (this.speechT >> 3) % 2 ? '_' : ' ';
+    this.speech.setText(this.speechFull.slice(0, n) + cursor);
+    if (n < this.speechFull.length && this.speechT % 2 === 0) sfx('menu', 0.06, 2.2);
+    this.speech.setPosition(Math.round(this.x), Math.round(this.y - (this.def.tagY || 60) - 12));
+    if (this.speechT > this.speechLife || !this.alive) this.speech.setVisible(false);
+  }
+
   startAttack(name) {
+    this.quip(name === 'jab' ? 'jab' : /smash/.test(name) ? 'smash' : name === 'grab' ? null : 'attack');
     this.move = this.def.moves[name]; this.moveName = name; this.attackId = nextAttackId++;
     this.setState('attack'); this.hitList = new Set();
     if (this.move.lunge && this.grounded) this.vx = this.facing * this.move.lunge;
@@ -289,7 +331,7 @@ export class Fighter {
   onGrab(target) {
     this.grabbed = target; target.grabbedBy = this;
     target.setState('grabbed'); target.vx = target.vy = target.lx = target.ly = 0;
-    this.setState('holding'); sfx('shield', 0.6, 0.7);
+    this.setState('holding'); sfx('shield', 0.6, 0.7); this.quip('grab');
   }
   st_holding(c) {
     const t = this.grabbed;
@@ -307,6 +349,7 @@ export class Fighter {
       t.grabbedBy = null; this.grabbed = null;
       this.match.applyHit(t, { h: th, owner: this, facing: this.facing, id: nextAttackId++ }, this.x);
       this.setState('attack'); this.move = { frames: 18 }; this.moveName = 'throw'; this.throwDir = dir; this.attackId = nextAttackId++;
+      this.quip('throw');
     }
   }
   st_grabbed() {
@@ -315,7 +358,10 @@ export class Fighter {
 
   // ---- neutral special (Lacy): Grand Slam - hold to wind up a home-run swing, release to swing
   // Grand Slam spark colours: her own steel-and-gold, or the costume's palette
-  chargeColors() { return this.pal === this.def.pal ? [this.fxColor, 0xffe08a] : [this.pal.light, this.pal.core]; }
+  chargeColors() {
+    if (this.style === 'onebit') return [0xf4f4f0, 0xffffff];
+    return this.pal === this.def.pal ? [this.fxColor, 0xffe08a] : [this.pal.light, this.pal.core];
+  }
   startSwingCharge() { this.setState('swingcharge'); this.swingCharge = 0; sfx('swing', 0.4, 0.6); }
   st_swingcharge(c) {
     const nb = this.def.moves.neutralB, C = nb.charge;
@@ -337,13 +383,13 @@ export class Fighter {
     this.move = { ...nb, hits: nb.hits.map((h) => ({ ...h, base: h.base + (h.maxBase - h.base) * k, growth: h.growth + (h.maxGrowth - h.growth) * k, full: k >= 1 })) };
     this.moveName = 'neutralB'; this.attackId = nextAttackId++; this.hitList = new Set();
     this.setState('attack');
-    this.swingSound(0.7, 0.9);
+    this.swingSound(0.7, 0.9); this.quip(k >= 1 ? 'slamFull' : 'slam');
     if (this.grounded) this.vx = this.facing * 1.6;                   // steps into the swing
   }
 
   // ---- side special (Lacy): Blade Toss - throw the sword, it spins in front of her, then flies back
   startSwordThrow() {
-    this.setState('swordthrow'); this.lx = 0;
+    this.setState('swordthrow'); this.lx = 0; this.quip('throwSword');
     if (this.grounded) this.vx *= 0.3;
   }
   st_swordthrow(c) {
@@ -351,7 +397,7 @@ export class Fighter {
     if (this.t === S.throwAt) this.swordOut = this.match.spawnSword(this, S);
     if (this.t >= S.throwAt + 6) this.setState(this.grounded ? 'idle' : 'air');   // free to move while it spins
   }
-  catchSword() { this.swordOut = null; }
+  catchSword() { this.swordOut = null; this.quip('catchSword'); }
 
   // ---- neutral special: chargeable fireball
   startCharge() {
@@ -410,6 +456,7 @@ export class Fighter {
   }
   // called by the match when a hit lands during the guard window
   counterHit(hb) {
+    this.quip('counter');
     const C = this.def.moves.counter, src = hb.owner;
     const inDmg = (hb.h && hb.h.dmg) || 6;
     const tx = hb.projectile ? hb.projectile.x : src ? src.x : (hb.x1 + hb.x2) / 2;
@@ -436,7 +483,7 @@ export class Fighter {
 
   // ---- up special (Soul Summoner: Soulfire Jet, Mr Wake: burst)
   startUpB(c) {
-    this.usedUpB = true; this.setState('upb'); this.attackId = nextAttackId++; this.hitList = new Set();
+    this.usedUpB = true; this.setState('upb'); this.attackId = nextAttackId++; this.hitList = new Set(); this.quip('upb');
     if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
     this.vx = 0; this.vy = 0; this.lx = this.ly = 0;
     this.spinGround = this.grounded; this.spinCharge = 0; this.spinStart = -1; this.spinHit = null;   // Cyclone Slash bookkeeping
@@ -556,7 +603,7 @@ export class Fighter {
 
   // ---- Limit
   startLimit() {
-    this.limit = 0; this.limitReadyShown = false;
+    this.limit = 0; this.limitReadyShown = false; this.quip('limit');
     this.setState('limit'); this.vx = this.vy = 0; this.lx = this.ly = 0;
     this.match.startLimit(this);
   }
@@ -950,11 +997,15 @@ export class Fighter {
       sfx('swing', 0.7, 1.3 + (U.cut % 4) * 0.1);
       m.shake(2, 2);
     }
-    const taunt = this.style === 'samurai' ? 150 : 0;                    // Samurai: a cold word before the last cut
+    const taunt = this.style === 'samurai' ? 150 : this.style === 'onebit' ? 70 : 0;   // a pause for a cold word before the last cut
+    const bit = this.style === 'onebit';
+    if (bit && U.ct === 1) this.cutLine(U, 'TARGET LOCKED.', 1);
+    if (bit && U.cut > 0 && U.ct % L.cutEvery === 1 && U.ct < L.cuts * L.cutEvery + 4) this.cutLine(U, '> CUT ' + String(U.cut).padStart(2, '0') + '/' + L.cuts, 0);
     const appear = L.cuts * L.cutEvery + 4;
     if (U.ct === appear) U.execute = U.victims.some((t) => t.percent > 100);   // past 100%: she charges one killing slice instead
     const charge = U.execute ? L.executeCharge : 0, chargeFrom = appear + 10 + taunt, finalAt = chargeFrom + charge;
     U.charge = U.execute && U.ct >= chargeFrom && U.ct < finalAt ? (U.ct - chargeFrom) / charge : 0;
+    U.appearAt = appear; U.finalAt = finalAt;                          // for her poses (animFrame)
     if (U.execute && U.ct >= chargeFrom && U.ct < finalAt) {           // charging: the blade grows, light pours into it
       const k = U.charge;
       if (U.ct === chargeFrom) { sfx('limit', 0.9, 0.7); sfx('shing', 0.7, 0.6); }
@@ -964,15 +1015,18 @@ export class Fighter {
     if (U.ct === appear) {                                             // reappear for the last cut
       this.x = c.x - this.facing * 40; this.y = v.y; this.facing = Math.sign(c.x - this.x) || 1;
       sfx('limitready', 0.8, 0.8);
-      if (taunt) { sfx('shing', 0.7, 0.8); U.line = this.match.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '16px', color: '#ffffff', stroke: '#c8102e', strokeThickness: 4 }).setOrigin(0.5).setDepth(60); this.match.addUI(U.line); }
+      if (this.style === 'samurai') { sfx('shing', 0.7, 0.8); this.cutLine(U, 'YOU ARE WEAK.', 4); }
+      if (bit) this.cutLine(U, U.execute ? 'ERROR: TARGET > 100%. EXECUTING...' : 'PROCESS COMPLETE.', 1);
     }
     if (U.line) {                                                      // typed out letter by letter, then held
-      const full = 'YOU ARE WEAK.', n = Math.min(full.length, Math.floor((U.ct - appear) / 4));
-      if (U.line.text.length < n) { U.line.setText(full.slice(0, n)); if (full[n - 1] !== ' ') sfx('menu', 0.25, 0.7); }
-      if (U.ct === appear + 4 * full.length + 20) sfx('taiko', 0.9);
+      const full = U.lineFull, rate = U.lineRate, n = rate ? Math.min(full.length, Math.floor((U.ct - U.lineAt) / rate) + 1) : full.length;
+      const cursor = bit ? ((U.ct >> 3) % 2 ? '_' : ' ') : '';
+      if (U.line.text.replace(/[_ ]$/, '').length < n || bit) { U.line.setText(full.slice(0, n) + cursor); if (U.lineShown < n && full[n - 1] !== ' ') sfx('menu', bit ? 0.12 : 0.25, bit ? 2 : 0.7); U.lineShown = n; }
+      if (this.style === 'samurai' && U.ct === appear + 4 * full.length + 20) sfx('taiko', 0.9);
     }
     if (U.ct === finalAt) {
-      if (U.line) { U.line.destroy(); U.line = null; }
+      if (U.line && !bit) { U.line.destroy(); U.line = null; }
+      if (bit) { this.cutLine(U, U.execute ? 'TERMINATED.' : 'END OF LINE.', 1); sfx('glitch', 0.9, 0.6); }
       U.charge = 0;
       if (U.execute) {                                                 // the killing slice: one huge cut across the whole screen
         U.slashes.push({ x1: c.x - this.facing * 260, y1: c.y + 70, x2: c.x + this.facing * 300, y2: c.y - 90, life: 30, big: true, huge: true });
@@ -986,6 +1040,18 @@ export class Fighter {
       }
     }
     if (U.ct >= finalAt + (U.execute ? 40 : 24)) return this.endBladeLimit();
+  }
+  // a line of text in the cutscene's top letterbox, typed out `rate` ticks per letter (0: all at once)
+  cutLine(U, text, rate) {
+    if (!U.line) {
+      const bit = this.style === 'onebit';
+      U.line = this.match.add.text(VIEW_W / 2, 17, '', bit
+        ? { fontFamily: FONT, fontSize: '12px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 6, y: 3 } }
+        : { fontFamily: FONT, fontSize: '16px', color: '#ffffff', stroke: '#c8102e', strokeThickness: 4 }).setOrigin(0.5).setDepth(60);
+      this.match.addUI(U.line);
+    }
+    U.lineFull = text; U.lineRate = rate; U.lineAt = U.ct; U.lineShown = 0;
+    if (!rate) U.line.setText(text);
   }
   endBladeLimit() {
     const U = this.ult, m = this.match;
@@ -1025,10 +1091,19 @@ export class Fighter {
           { x: hx + dx * len * 0.88 - nx * w, y: hy + dy * len * 0.88 - ny * w }, { x: hx - nx * w, y: hy - ny * w },
         ], true);
       };
+      if (this.style === 'onebit') {                                                            // 1-BIT: a hard white blade, black edge, torn by glitches
+        blade(half + 2.5, 0xf4f4f0, 1); blade(half + 1, 0x0e0e10, 1); blade(half - 0.5, 0xf4f4f0, 1);
+        for (let k = 0; k < 4; k++) {                                                            // glitch slices jumping off the blade
+          if (((this.anim >> 1) + k * 3) % 5) continue;
+          const d0 = len * (0.2 + k * 0.18), ox = ((this.anim * 7 + k * 13) % 9) - 4;
+          g.fillStyle(k % 2 ? 0xf4f4f0 : 0x0e0e10, 1); g.fillRect(Math.round(hx + dx * d0 + ox * 2), Math.round(hy + dy * d0) - 1, 10 + k * 3, 3);
+        }
+      } else {
       if (glow > 0.05) blade(half + 6, this.pal.mid, (0.2 + 0.1 * Math.sin(this.anim * 0.5)) * glow);   // light around it
       blade(half + 1.5, C.outline, 1);
       blade(half, glow > 0.5 ? C.light : C.mid, 1);                                              // steel brightening into light
       blade(Math.max(0.6, half * 0.45), C.core, 0.6 + 0.4 * glow);
+      }
       g.fillStyle(C.outline, 1); g.fillRect(hx - nx * (half + 4) - 1, hy - ny * (half + 4) - 1, 3, 3); g.fillRect(hx + nx * (half + 4) - 1, hy + ny * (half + 4) - 1, 3, 3);
       g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);       // hilt in her hands
       if (U.phase === 'grow' && this.t % 3 === 0 && glow < 1) this.match.puff(hx + dx * len, hy + dy * len, 0x9ad8f0, 1);   // sparks at the growing tip
@@ -1052,15 +1127,34 @@ export class Fighter {
         g.fillPoints([{ x: hx + nx * w, y: hy + ny * w }, { x: hx + dx * len * 0.88 + nx * w, y: hy + dy * len * 0.88 + ny * w }, { x: hx + dx * len, y: hy + dy * len },
           { x: hx + dx * len * 0.88 - nx * w, y: hy + dy * len * 0.88 - ny * w }, { x: hx - nx * w, y: hy - ny * w }], true);
       };
-      g.fillStyle(this.pal.mid, 0.12 + 0.18 * k); g.fillCircle(hx, hy, 20 + 60 * ease);                 // aura swelling around her
-      blade(half + 8 + Math.sin(this.anim * 0.6) * 2, this.pal.mid, 0.3 + 0.2 * k);
-      blade(half + 1.5, C.outline, 1); blade(half, C.light, 1); blade(Math.max(0.6, half * 0.5), C.core, 1);
+      if (this.style === 'onebit') {                                                                  // 1-BIT: a ring of pixel blocks closing in
+        const R = (20 + 60 * ease) * (1 - ((this.anim % 20) / 20) * 0.3);
+        for (let i = 0; i < 16; i++) { const a = i * 0.3927 + this.anim * 0.05; g.fillStyle(i % 2 ? 0xf4f4f0 : 0x0e0e10, 1); g.fillRect(Math.round(hx + Math.cos(a) * R) - 2, Math.round(hy + Math.sin(a) * R) - 2, 4, 4); }
+      } else {
+        g.fillStyle(this.pal.mid, 0.12 + 0.18 * k); g.fillCircle(hx, hy, 20 + 60 * ease);               // aura swelling around her
+        blade(half + 8 + Math.sin(this.anim * 0.6) * 2, this.pal.mid, 0.3 + 0.2 * k);
+      }
+      if (this.style === 'onebit') { blade(half + 2.5, 0xf4f4f0, 1); blade(half + 1, 0x0e0e10, 1); blade(half - 0.5, (this.anim >> 2) % 3 ? 0xf4f4f0 : 0x0e0e10, 1); }   // flickering between white and black
+      else { blade(half + 1.5, C.outline, 1); blade(half, C.light, 1); blade(Math.max(0.6, half * 0.5), C.core, 1); }
       for (let i = 0; i < 10; i++) {                                                                 // light streaming into the blade
         const a = i * 0.63 + this.anim * 0.21, d = (1 - ((this.anim * 3 + i * 17) % 40) / 40) * (50 + 40 * k);
         const tx = hx + dx * len * (0.3 + (i % 5) * 0.15), ty = hy + dy * len * (0.3 + (i % 5) * 0.15);
         g.fillStyle(i % 2 ? 0xffffff : C.light, 1); g.fillRect(Math.round(tx + Math.cos(a) * d), Math.round(ty + Math.sin(a) * d), 2, 2);
       }
       g.fillStyle(0x929ca0, 1); g.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
+    }
+    if (this.style === 'onebit') {                          // 1-BIT cuts: stair-stepped pixel lines, black under white, with a dithered tail
+      for (const sl of U.slashes) {
+        const k = sl.life / (sl.huge ? 30 : sl.big ? 18 : 10), w = sl.huge ? 8 : sl.big ? 5 : 3;
+        const n = Math.ceil(Math.hypot(sl.x2 - sl.x1, sl.y2 - sl.y1) / w);
+        for (let i = 0; i <= n; i++) {
+          const x = Math.round((sl.x1 + (sl.x2 - sl.x1) * i / n) / w) * w, y = Math.round((sl.y1 + (sl.y2 - sl.y1) * i / n) / w) * w;
+          g.fillStyle(0x0e0e10, 1); g.fillRect(x - 1, y - 1, w + 2, w + 2);
+          if (k > 0.35 || (i + sl.life) % 2) { g.fillStyle(0xf4f4f0, 1); g.fillRect(x, y, w, w); }
+        }
+      }
+      if (U.from) for (let yy = -44; yy < -4; yy += 2) if ((yy >> 1) % 2) { g.fillStyle(0xf4f4f0, 0.8); g.fillRect(U.from.x - 6, U.from.y + yy, 12, 1); }   // scanline afterimage
+      return;
     }
     for (const sl of U.slashes) {
       const k = sl.life / (sl.huge ? 30 : sl.big ? 18 : 10), w = sl.huge ? 18 : sl.big ? 10 : 5;
@@ -1159,6 +1253,11 @@ export class Fighter {
         if (!U || U.phase === 'grow') return { sheet: S.attack1, frame: 1 };                       // giant sword held high
         if (U.phase === 'slash') return (this.t - L.slashFrom) < (L.slashTo - L.slashFrom) * 0.3 ? { sheet: S.attack1, frame: 1 } : { sheet: S.guard, frame: 0 };   // raised -> swung down
         if (U.phase === 'whiff') return { sheet: S.guard, frame: 0 };
+        if (U.appearAt !== undefined && U.ct >= U.appearAt) {                                      // the last cut
+          if (U.ct < U.finalAt) return U.charge > 0 ? { sheet: S.attack1, frame: 1 } : { sheet: S.attack2, frame: 0 };   // sword drawn back (or raised high to charge)
+          const st = U.ct - U.finalAt;                                                             // the rising cut, then the sword lifted high
+          return st < 9 ? { sheet: S.attack2, frame: 2 + Math.floor(st / 3) } : { sheet: S.attack1, frame: 1 };
+        }
         return { sheet: S.attack2, frame: U.ct % L.cutEvery < 2 ? 4 : 5 };                        // mid-dash between cuts
       }
       case 'ledge': return { sheet: S.fall, frame: 0 };
@@ -1246,6 +1345,7 @@ export class Fighter {
 
     // name tag
     this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));
+    this.updateSpeech();
 
     // possessed by Soul Hex: wisps circling the head and a bar that shrinks as you wiggle free
     if (this.possessed > 0) {
@@ -1587,5 +1687,5 @@ export class Fighter {
     });
   }
 
-  destroy() { this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
+  destroy() { if (this.speech) this.speech.destroy(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }

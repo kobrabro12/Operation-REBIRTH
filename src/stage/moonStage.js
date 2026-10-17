@@ -8,6 +8,10 @@
 //                   then it fires a red eye-beam along the deck at ankle height. Jump!
 //   BAT SWARM     - a swarm of bats streams across the moonlit sky in a wave, through the ledges
 //                   and the air above the bridge. Stay low.
+// The lantern: every attack that hits it sets it swinging on its chain and cracks the glass a little
+// more. On the 10th hit the chain snaps: it falls (hurting anyone under it), shatters on the deck and
+// fire spreads across the whole bridge for 10 s, burning anyone standing in it. A new lantern is
+// lowered from the crossbeam a while later.
 import { sfx } from '../audio/sfx.js';
 import { HazardCycle } from './hazardCycle.js';
 
@@ -38,6 +42,7 @@ export class MoonStage {
     this.t = 0;
     this.music = 'bgm_gravemoon';
     this.cycle = new HazardCycle(this, ['gaze', 'bats'], { color: '#ff6a6a', stroke: '#0a0818' });
+    this.lamp = { state: 'hung', hits: 0, ang: 0, vel: 0, seen: new Set(), t: 0, drop: 0 };
   }
 
   // ---------------------------------------------------------------- helpers
@@ -221,15 +226,15 @@ export class MoonStage {
     g.fillStyle(S.outline, 1); g.fillRect(C.x1 - 2, C.y - 2, C.x2 - C.x1 + 4, 9);
     g.fillStyle(S.iron, 1); g.fillRect(C.x1, C.y, C.x2 - C.x1, 6);
     g.fillStyle(S.ironLit, 1); g.fillRect(C.x1, C.y, C.x2 - C.x1, 1);
-    // chain down to the lantern
-    for (let y = C.y + 7; y < C.y + 40; y += 4) { g.fillStyle(S.ironLit, 1); g.fillRect(-1, y, 3, 2); g.fillStyle(S.ironDark, 1); g.fillRect(0, y + 2, 1, 2); }
     worldLayer.push(g);
 
     // animated: lantern glow and mist drifting through the gargoyles
-    this.lanternG = s.add.graphics();
+    this.lanternG = s.add.graphics();                                // the lantern + chain, drawn around the chain's anchor and rotated as it swings
+    this.lanternG.setPosition(0, this.platforms[3].y + 7);
+    this.fireG = s.add.graphics();                                   // the falling lantern and the fire on the deck
     this.fogG = s.add.graphics();
     this.hzG = s.add.graphics();                                   // gargoyle head, eye-beam, bats
-    worldLayer.push(this.fogG, this.lanternG, this.hzG);
+    worldLayer.push(this.fogG, this.lanternG, this.fireG, this.hzG);
     this.cycle.makeBanner(s);
   }
 
@@ -249,18 +254,8 @@ export class MoonStage {
       const x = 580 + ((k * 37) % 40) + Math.sin((t + k * 20) * 0.05) * 6, y = 104 - life * 0.9;
       e.fillStyle(k % 3 ? S.lava : S.lavaHot, 1 - life / 90); e.fillRect(Math.round(x), Math.round(y), 2, 2);
     }
-    // lantern: hanging under the crossbeam, swaying gently, flame flickering
-    const C = this.platforms[3];
-    const sway = Math.round(Math.sin(t * 0.03) * 2), lx = sway, ly = C.y + 40;
-    const flick = (Math.sin(t * 0.7) + Math.sin(t * 1.9 + 1)) * 0.25;
-    const l = this.lanternG; l.clear();
-    l.fillStyle(S.glass, 0.08 + 0.04 * flick); l.fillCircle(lx, ly + 12, 34);
-    l.fillStyle(S.glass, 0.12 + 0.05 * flick); l.fillCircle(lx, ly + 12, 20);
-    l.fillStyle(S.outline, 1); l.fillRect(lx - 9, ly - 2, 18, 30);
-    l.fillStyle(S.lanternFrame, 1); l.fillRect(lx - 8, ly - 1, 16, 4); l.fillRect(lx - 8, ly + 23, 16, 4); l.fillRect(lx - 4, ly - 5, 8, 4);
-    l.fillStyle(S.glass, 1); l.fillRect(lx - 6, ly + 3, 12, 20);
-    l.fillStyle(S.glassHot, 1); l.fillRect(lx - 2, ly + 8 + Math.round(flick * 3), 4, 10 - Math.round(flick * 3));
-    l.fillStyle(S.lanternFrame, 1); l.fillRect(lx - 1, ly + 3, 2, 20); l.fillRect(lx - 6, ly + 12, 12, 1);
+    const lampOut = [];
+    this.stepLantern(match, lampOut);
     // mist rolling through the pillars below the deck
     const f = this.fogG; f.clear();
     for (let k = 0; k < 9; k++) {
@@ -273,7 +268,105 @@ export class MoonStage {
     }
     f.fillStyle(0x2a2c58, 0.5); f.fillRect(-700, 230, 1400, 400);          // the chasm fades into deep mist
     this.hzG.clear();
-    return this.cycle.run(match, []);
+    return this.cycle.run(match, lampOut);
+  }
+
+  // ---------------------------------------------------------------- the lantern
+  // the lantern's body in its own coordinates: (0, 0) is the chain's anchor under the crossbeam,
+  // the lantern hangs 33 px below it
+  drawLamp(l, flick, hits, chain = true) {
+    const S = MPAL, ly = 33;
+    if (chain) for (let y = 0; y < ly; y += 4) { l.fillStyle(S.ironLit, 1); l.fillRect(-1, y, 3, 2); l.fillStyle(S.ironDark, 1); l.fillRect(0, y + 2, 1, 2); }
+    l.fillStyle(S.glass, 0.08 + 0.04 * flick); l.fillCircle(0, ly + 12, 34);
+    l.fillStyle(S.glass, 0.12 + 0.05 * flick); l.fillCircle(0, ly + 12, 20);
+    l.fillStyle(S.outline, 1); l.fillRect(-9, ly - 2, 18, 30);
+    l.fillStyle(S.lanternFrame, 1); l.fillRect(-8, ly - 1, 16, 4); l.fillRect(-8, ly + 23, 16, 4); l.fillRect(-4, ly - 5, 8, 4);
+    l.fillStyle(S.glass, 1); l.fillRect(-6, ly + 3, 12, 20);
+    l.fillStyle(S.glassHot, 1); l.fillRect(-2, ly + 8 + Math.round(flick * 3), 4, 10 - Math.round(flick * 3));
+    // cracks spreading over the glass, one more with every hit
+    const CR = [[-5, 5, 1, 4], [3, 6, -1, 5], [-4, 14, 2, 3], [4, 16, -2, 4], [-5, 19, 3, 2], [2, 4, 2, 3], [-3, 9, -1, 4], [5, 11, -2, 3], [0, 18, 2, 3]];
+    for (let i = 0; i < Math.min(hits, CR.length); i++) {
+      const [x, y, dx, n] = CR[i];
+      for (let k = 0; k < n; k++) { l.fillStyle(0xfff0d0, 1); l.fillRect(x + Math.round(dx * k / 2), ly + y + k, 1, 1); }
+    }
+    l.fillStyle(S.lanternFrame, 1); l.fillRect(-1, ly + 3, 2, 20); l.fillRect(-6, ly + 12, 12, 1);
+  }
+  // where the lantern's body is right now (world space), for hits
+  lampBox() {
+    const L = this.lamp, ax = this.lanternG.x, ay = this.lanternG.y;
+    const cx = ax + Math.sin(L.ang) * 45, cy = ay + Math.cos(L.ang) * 45;
+    return { x1: cx - 10, x2: cx + 10, y1: cy - 16, y2: cy + 16, cx, cy };
+  }
+  // MatchScene calls this with every attack hitbox each tick
+  strikeTargets(match, hbs) {
+    const L = this.lamp;
+    if (L.state !== 'hung' || !this.hazardsOn) return;
+    const b = this.lampBox();
+    for (const hb of hbs) {
+      if (L.seen.has(hb.id) || !(hb.x1 < b.x2 && hb.x2 > b.x1 && hb.y1 < b.y2 && hb.y2 > b.y1)) continue;
+      L.seen.add(hb.id); L.hits++;
+      const dir = hb.facing || Math.sign(b.cx - (hb.owner ? hb.owner.x : 0)) || 1;
+      L.vel += dir * (0.07 + Math.random() * 0.03);                  // knocked swinging
+      sfx('clang', 0.5, 1.3 + L.hits * 0.04); match.puff(b.cx, b.cy, MPAL.glassHot, 4);
+      if (L.hits >= 10) {                                           // the chain snaps
+        L.state = 'fall'; L.x = b.cx; L.y = b.cy - 12; L.vx = Math.sin(L.ang) * 1.5 + L.vel * 20; L.vy = -1; L.rot = -L.ang; L.t = 0; L.id = (L.id || 0) + 1;
+        sfx('shield', 0.9, 0.5); match.shake(4, 8);
+      }
+    }
+    if (L.seen.size > 400) L.seen.clear();
+  }
+  stepLantern(match, out) {
+    const L = this.lamp, S = MPAL, t = this.t, l = this.lanternG, f = this.fireG;
+    const flick = (Math.sin(t * 0.7) + Math.sin(t * 1.9 + 1)) * 0.25;
+    l.clear(); f.clear();
+    if (L.state === 'hung' || L.state === 'lower') {
+      // a pendulum: knocked by hits, settling back to a gentle idle sway
+      L.vel += -Math.sin(L.ang) * 0.018 + Math.sin(t * 0.03) * 0.0004; L.vel *= 0.988; L.ang += L.vel;
+      l.setRotation(-L.ang);
+      if (L.state === 'lower') {                                      // a new lantern let down on its chain
+        L.drop = Math.min(1, L.drop + 0.012);
+        l.setScale(1, 1); l.y = this.platforms[3].y + 7 - (1 - L.drop) * 40;
+        if (L.drop >= 1) { L.state = 'hung'; l.y = this.platforms[3].y + 7; }
+      }
+      this.drawLamp(l, flick, L.hits);
+      return;
+    }
+    l.setRotation(0);
+    // the snapped chain end, still hanging from the crossbeam
+    for (let y = 0; y < 14; y += 4) { l.fillStyle(S.ironLit, 1); l.fillRect(-1, y, 3, 2); }
+    if (L.state === 'fall') {                                        // falling, tumbling, hurting anyone underneath
+      L.t++; L.vy += 0.4; L.x += L.vx; L.y += L.vy; L.rot += L.vx * 0.04;
+      f.save(); f.translateCanvas(L.x, L.y); f.rotateCanvas(L.rot); this.drawLamp(f, flick, 9, false); f.restore();
+      out.push({ x1: L.x - 10, x2: L.x + 10, y1: L.y + 20, y2: L.y + 62, dmg: 8, angle: 70, base: 3.6, growth: 3.8, id: 'lampfall' + L.id, hazard: true });
+      if (L.y + 60 >= 0 || L.t > 120) {                            // shatters on the deck
+        L.state = 'fire'; L.t = 0; L.x = Math.max(-290, Math.min(290, L.x)); L.l = L.x; L.r = L.x;
+        sfx('bighit', 1, 0.5); sfx('glitch', 0.5, 0.4); sfx('flame', 1, 0.6); match.shake(10, 12);
+        for (let i = 0; i < 24; i++) match.puff(L.x, -6, i % 3 ? S.lava : S.glassHot, 1);
+        match.popText({ x: L.x, y: 20 }, 'THE BRIDGE IS BURNING!', '#ff8a3a');
+      }
+      return;
+    }
+    if (L.state === 'fire') {                                        // fire across the bridge for 10 s
+      L.t++;
+      const P = this.platforms[0], spread = 7;
+      L.l = Math.max(P.x1, L.l - spread); L.r = Math.min(P.x2, L.r + spread);
+      const fade = L.t > 540 ? (600 - L.t) / 60 : 1;
+      f.fillStyle(S.lava, 0.12 * fade); f.fillRect(L.l, -40, L.r - L.l, 40);           // heat glow over the deck
+      for (let x = L.l; x < L.r; x += 6) {
+        const h = (8 + 7 * Math.abs(Math.sin(x * 0.37 + t * 0.31)) + 4 * Math.abs(Math.sin(x * 0.11 - t * 0.17))) * fade;
+        f.fillStyle(S.lavaDark, 0.9 * fade); f.fillRect(x, -Math.round(h * 0.4), 6, Math.round(h * 0.4));
+        f.fillStyle(S.lava, fade); f.fillRect(x + 1, -Math.round(h * 0.75), 4, Math.round(h * 0.75) - 1);
+        f.fillStyle(S.lavaHot, fade); f.fillRect(x + 2, -Math.round(h * 0.5), 2, Math.round(h * 0.5) - 2);
+        if ((x + t) % 23 === 0) match.puff(x + 3, -h, (x % 2) ? S.lava : S.lavaHot, 1);       // embers
+      }
+      if (t % 14 === 0) sfx('flame', 0.25 * fade, 0.5 + Math.random() * 0.3);
+      if (fade > 0.3) out.push({ x1: L.l, x2: L.r, y1: -18, y2: 2, dmg: 3, angle: 85, base: 3.2, growth: 1.0, id: 'lampfire' + L.id + ':' + Math.floor(L.t / 40), hazard: true });
+      if (L.t >= 600) { L.state = 'gone'; L.t = 0; }
+      return;
+    }
+    if (L.state === 'gone' && ++L.t >= 900) {                        // a fresh lantern is lowered 15 s later
+      Object.assign(L, { state: 'lower', hits: 0, ang: 0, vel: 0, drop: 0, t: 0 }); L.seen.clear();
+    }
   }
 
   // ---------------------------------------------------------------- hazards

@@ -86,6 +86,11 @@ export const SKINS = {
     { name: 'SAMURAI', swatch: 0xb81e28, fx: 0xe85a4a, sheetSet: 'samurai', style: 'samurai',
       pal: { outline: 0x1a0406, deep: 0xa01820, mid: 0xe0402a, light: 0xffb7c5, core: 0xffffff, shade: 0x2a0a0c, void: 0x0a0204 } },
     { name: 'SOLID GOLD', swatch: 0xf3c358, fx: 0xffe08a, groups: { all: { center: 0 } }, rules: { all: { ramp: GOLD_RAMP, lo: 0.12, hi: 0.92 } } },
+    // 1-BIT: the same monochrome-handheld look as Soul Summoner's 1-BIT - pure black and white with a white
+    // outline. A blade that runs like a program: her specials and Limit glitch in pixels, and she talks
+    // in terminal lines (Fighter.quip / cutLine)
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,

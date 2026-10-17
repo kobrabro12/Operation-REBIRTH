@@ -21,7 +21,7 @@ export const STAGES = [
   {
     id: 'gravemoon-bridge', name: 'GRAVEMOON BRIDGE', available: true, make: (scene) => new MoonStage(scene),
     blurb: ['A stone bridge over a misty chasm, held up', 'by horned gargoyles under a giant moon.'],
-    hazard: 'GARGOYLE GAZE: AN ANKLE-HIGH EYE-BEAM;\nBAT SWARM: BATS STREAM ACROSS THE SKY.',
+    hazard: 'GARGOYLE GAZE AND BAT SWARMS.\nBREAK THE LANTERN: THE BRIDGE BURNS!',
     preview: drawMoonPreview,
   },
   {

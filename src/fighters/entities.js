@@ -338,6 +338,7 @@ export class ThrownSword {
     if (!this.alive) return;
     const g = this.g, x = this.x, y = this.y, L = 18, c = Math.cos(this.ang), s = Math.sin(this.ang), col = this.owner.fxColor;
     g.clear();
+    if (this.owner.style === 'onebit') return this.renderOneBit(g, x, y, L, c, s);
     if (this.phase === 'spin') {                    // the blur of the spinning blade and a ring of light
       g.fillStyle(col, 0.16); g.fillCircle(x, y, this.spec.spinR);
       g.lineStyle(2, 0xffffff, 0.5); g.strokeCircle(x, y, this.spec.spinR - 2);
@@ -356,6 +357,26 @@ export class ThrownSword {
     g.lineStyle(1, 0xffffff, 1); g.lineBetween(x, y, tipX - c, tipY - s);
     g.lineStyle(3, this.owner.dragonSpin ? 0xf3c358 : 0x6a7880, 1); g.lineBetween(x - c * 3 - s * 5, y - s * 3 + c * 5, x - c * 3 + s * 5, y - s * 3 - c * 5);   // crossguard
     g.lineStyle(2, 0x2a2430, 1); g.lineBetween(x - c * 4, y - s * 4, butX, butY);                                                                         // grip
+  }
+  // 1-BIT Lacy: a white pixel blade with a black edge; spinning, it leaves a ring of black and white
+  // blocks and stuttering afterimages, like a frame dropping on an old LCD
+  renderOneBit(g, x, y, L, c, s) {
+    const W = 0xf4f4f0, B = 0x0e0e10, t = this.match.frame || 0;
+    if (this.phase === 'spin') {
+      const R = this.spec.spinR - 2;
+      for (let k = 0; k < 12; k++) { const a = k * 0.5236 + t * 0.12; g.fillStyle(k % 2 ? W : B, 1); g.fillRect(Math.round(x + Math.cos(a) * R) - 2, Math.round(y + Math.sin(a) * R) - 2, 4, 4); }
+      for (let k = 1; k <= 3; k++) {                // stepped afterimages of the blade
+        const a = this.ang - k * 0.45, cc = Math.cos(a), ss = Math.sin(a);
+        for (let d = -L * 0.5; d <= L; d += 3) if ((k + Math.round(d / 3)) % 2) { g.fillStyle(W, 1); g.fillRect(Math.round(x + cc * d) - 1, Math.round(y + ss * d) - 1, 2, 2); }
+      }
+    } else for (let k = 1; k <= 3; k++) { g.fillStyle(k % 2 ? W : B, 1); g.fillRect(Math.round(x - this.vx * k * 1.4) - 2, Math.round(y - this.vy * k * 1.4) - 2, 4, 4); }
+    const jit = t % 11 === 0 ? 2 : 0;               // a glitch twitch now and then
+    for (let d = -L * 0.55; d <= L; d += 1.5) {
+      const px = Math.round(x + c * d) + jit, py = Math.round(y + s * d);
+      g.fillStyle(B, 1); g.fillRect(px - 2, py - 2, 4, 4);
+    }
+    for (let d = -2; d <= L - 1; d += 1.5) { g.fillStyle(W, 1); g.fillRect(Math.round(x + c * d) - 1 + jit, Math.round(y + s * d) - 1, 2, 2); }
+    g.fillStyle(W, 1); g.fillRect(Math.round(x - c * 3 - s * 5) - 1 + jit, Math.round(y - s * 3 + c * 5) - 1, 2, 2); g.fillRect(Math.round(x - c * 3 + s * 5) - 1 + jit, Math.round(y - s * 3 - c * 5) - 1, 2, 2);   // crossguard tips
   }
 }
 
