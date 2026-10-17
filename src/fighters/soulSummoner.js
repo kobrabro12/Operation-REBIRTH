@@ -3,13 +3,17 @@
 // angle: launch direction in degrees, 0 = forward, 90 = straight up, >90 = backwards, <0 = down.
 // Knockback = base + growth * (target % after the hit) / 100, in pixels per frame.
 import { BEAM_BLUE, PAL_BLUE } from './common.js';
+import { SS_MOVES } from './ssMoves.js';
 
 export const SOUL_SUMMONER = {
   id: 'soul-summoner',
   name: 'SOUL SUMMONER',
   // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py). The stride (frames 3-7) loops from
   // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
-  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall' },
+  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall', moves: 'ss_moves' },
+  // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/soul_summoner_moves.py).
+  // Bigger 96x96 frames so swings can reach outside the body; his feet stand at (48, 91) in them.
+  moveAnims: SS_MOVES, movesOrigin: [48 / 96, 91 / 96],
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid

@@ -8,6 +8,7 @@
 //   - baseKB x 0.55 and kbScale x 7 give knockback on the same scale as Soul Summoner's moves
 //   - startup / active / endlag become the hit window (from..to) and the move's total length
 import { DEFAULT_GRAB, BEAM_PURPLE, PAL_PURPLE } from './common.js';
+import { MW_MOVES } from './mwMoves.js';
 
 const SCALE = 1.25, CENTER_ABOVE_FEET = 29;
 const base = (b) => +(b * 0.55).toFixed(2);
@@ -60,10 +61,13 @@ const upB = convert(RAW.upB);
 export const MR_WAKE = {
   id: 'mr-wake',
   name: 'MR WAKE',
-  sheets: { idle: 'wake_idle', run: 'wake_run' },   // run: tools/sprites/mr_wake_run.py
+  sheets: { idle: 'wake_idle', run: 'wake_run', moves: 'wake_moves' },   // run: tools/sprites/mr_wake_run.py
+  // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/mr_wake_moves.py).
+  // 176x120 frames so the long staff fits at full swing; his feet stand at (92, 110) in them.
+  moveAnims: MW_MOVES, movesOrigin: [92 / 176, 110 / 120],
   runCycle: [0, 8],                // run frames used: all 8, from the first
   // ROSEBUD costume: covered in roses, with a giant tulip for a staff (tools/sprites/mr_wake_roses.py)
-  costumeSheets: { roses: { idle: 'wake_roses_idle', run: 'wake_roses_run' } },
+  costumeSheets: { roses: { idle: 'wake_roses_idle', run: 'wake_roses_run', moves: 'wake_roses_moves' } },
   facesLeft: false,                // he looks right in the sprite (his face and hat brim point right;
                                    // the gem end of the staff trails behind him on the left)
   originX: 36 / 64,                // body centre column

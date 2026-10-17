@@ -5,6 +5,7 @@
 // Only the jab and neutral special are designed so far. Every other move is a PLACEHOLDER that reuses
 // those two sword animations until his real moves are designed.
 import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
+import { HK_MOVES } from './hkMoves.js';
 
 // Limit beam colours: steel and white
 const BEAM_STEEL = { outline: 0x14181c, deep: 0x4c5a5f, mid: 0x929ca0, light: 0xc9c9c9, core: 0xffffff };
@@ -15,15 +16,18 @@ export const HERO_KNIGHT = {
   // every strip is 150x90 per frame, feet at (66, 86) inside the frame
   sheets: { idle: 'hk_idle', run: 'hk_run', attack1: 'hk_attack1', attack2: 'hk_attack2', jump: 'hk_jump', fall: 'hk_fall', hit: 'hk_hit', death: 'hk_death', guard: 'hk_guard', grab: 'hk_grab',
     // the same movement strips without her sword, while it's out spinning (tools/sprites/hero_knight_unarmed.py)
-    idle_u: 'hk_idle_u', run_u: 'hk_run_u', jump_u: 'hk_jump_u', fall_u: 'hk_fall_u', hit_u: 'hk_hit_u' },
+    idle_u: 'hk_idle_u', run_u: 'hk_run_u', jump_u: 'hk_jump_u', fall_u: 'hk_fall_u', hit_u: 'hk_hit_u',
+    // her own tilts and aerials (tools/sprites/hero_knight_moves.py): bigger 180x140 frames, feet at (81, 111)
+    moves: 'hk_moves' },
+  moveAnims: HK_MOVES, movesOrigin: [81 / 180, 111 / 140],
   // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
-  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']
+  wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves']
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
   // AKATSUKI costume: crimson tunic, leather belt, cloth boots and a crystal sword (tools/sprites/hero_knight_akatsuki.py)
   costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_']].map(([set, pre]) => [set,
-    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u'].map((k) => [k, pre + k]))])),
+    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves'].map((k) => [k, pre + k]))])),
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 10, idle_u: 11, run_u: 8, jump_u: 3, fall_u: 3, hit_u: 4 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,
@@ -55,7 +59,7 @@ export const HERO_KNIGHT = {
       hits: [{ from: 12, to: 16, box: [4, -66, 68, 66], dmg: 20, angle: 36, base: 4.0, growth: 5.5, maxBase: 9.5, maxGrowth: 12.0, homerun: true }],
     },
 
-    // ---- PLACEHOLDERS until his real moves are designed (reuse the two sword animations)
+    // ---- tilts and aerials: drawn in her moves sheet (HK_MOVES); `anim` is the old strip, kept as a fallback
     ftilt: { frames: 28, anim: 'attack2', hits: [{ from: 12, to: 16, box: [10, -50, 60, 40], dmg: 8, angle: 35, base: 3.0, growth: 5.6 }] },
     utilt: { frames: 30, anim: 'attack1', hits: [{ from: 12, to: 18, box: [-24, -76, 50, 40], dmg: 7, angle: 85, base: 3.0, growth: 5.4 }] },
     dtilt: { frames: 24, anim: 'attack2', hits: [{ from: 10, to: 14, box: [8, -22, 56, 22], dmg: 6, angle: 22, base: 2.6, growth: 3.6 }] },

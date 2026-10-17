@@ -452,7 +452,7 @@ export class Fighter {
     this.stopChargeSound();
     if (this.scene.cache.audio.exists('fireball_throw')) this.scene.sound.play('fireball_throw', { volume: (0.45 + 0.4 * k) * this.match.sfxVol() });
     this.match.spawnFireball(this, k);
-    this.setState('attack'); this.move = { frames: 16 }; this.moveName = 'throw'; this.attackId = nextAttackId++;
+    this.setState('attack'); this.move = { frames: 16 }; this.moveName = 'fireball'; this.attackId = nextAttackId++;
   }
 
   // ---- down special: summon a soul
@@ -1355,6 +1355,8 @@ export class Fighter {
           const d = this.throwDir;
           return { sheet: G, frame: d === 'up' ? 6 : d === 'down' ? 7 : 5, flip: d === 'back' };
         }
+        const MA = this.def.moveAnims && this.def.moveAnims[this.moveName];
+        if (MA && S.moves) return { sheet: S.moves, frame: MA[0] + Math.min(MA[1] - 1, Math.floor(this.t / MA[2])) };   // her own move animation
         return { ...once(m.anim || 'attack2', this.t, m.frames || 28), flip: !!m.flip };
       }
       case 'upb': {
@@ -1398,6 +1400,14 @@ export class Fighter {
       case 'land': case 'jumpsquat': return { sheet: S.idle, frame: 0 };
       default: return loop('idle', 6);
     }
+  }
+
+  // Which of def.moveAnims plays in this state (null: none, fall back to the idle-based poses).
+  moveAnimKey(s) {
+    const A = this.def.moveAnims;
+    const k = s === 'attack' ? (this.moveName === 'throw' ? 'throw_' + this.throwDir : this.moveName)
+      : s === 'dizzy' ? 'hitstun' : s;
+    return A[k] ? k : null;
   }
 
   // ------------------------------------------------------------------ drawing
@@ -1449,6 +1459,12 @@ export class Fighter {
     else if (s === 'holding') { sheet = alt; frame = 1; }
     else if (s === 'grabbed') { frame = 10; spr.setRotation(-0.2 * this.facing); }
     if (this.hurtAnim > 0) this.hurtAnim--;
+    const ma = !d.ownAnims && d.moveAnims && this.sheets.moves && this.moveAnimKey(s);
+    if (ma) {                                  // a drawn animation for this move: it carries its own lean and squash
+      const [from, n, step, loop] = d.moveAnims[ma], i = Math.floor(this.t / step);
+      sheet = this.sheets.moves; frame = from + (loop ? i % n : Math.min(n - 1, i));
+      spr.setRotation(0); spr.setScale(1, 1);
+    }
     if (d.ownAnims) {                          // fighters drawn from their own animation strips
       const a = this.animFrame(s);
       sheet = a.sheet; frame = a.frame;
@@ -1457,6 +1473,10 @@ export class Fighter {
       if (a.flip) spr.setFlipX(!spr.flipX);
     }
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
+    if (d.movesOrigin) {                       // the move frames are bigger, so their feet sit at a different spot
+      const mo = sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY];
+      if (spr.originX !== mo[0] || spr.originY !== mo[1]) spr.setOrigin(mo[0], mo[1]);
+    }
 
     // hit flash and invincibility blink
     if (this.silhouette > 0) { this.silhouette--; spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
