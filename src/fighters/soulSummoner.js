@@ -7,7 +7,9 @@ import { BEAM_BLUE } from './common.js';
 export const SOUL_SUMMONER = {
   id: 'soul-summoner',
   name: 'SOUL SUMMONER',
-  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', walk: 'ss_walk' },
+  // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py) - frames 0-2 ease into the stride,
+  // 3-7 loop. It replaced the older walk cycle (walk_sheet.png, still in the repo).
+  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run' },
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid

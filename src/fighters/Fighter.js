@@ -1110,7 +1110,12 @@ export class Fighter {
     const alt = this.sheets.juggle || this.sheets.idle;   // pose sheet (fighters without one reuse their idle frames)
     let sheet = this.sheets.idle, frame = Math.floor(this.anim / 6) % 32;
     const s = this.state;
-    if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
+    if (s !== 'run') this.runPhase = 0;
+    if (s === 'run' && this.sheets.run && !d.ownAnims) {   // run: ease in through frames 0-2 once, then loop the stride 3-7, faster at speed
+      this.runPhase = (this.runPhase || 0) + 0.09 + Math.abs(this.vx) * 0.035;
+      sheet = this.sheets.run; frame = this.runPhase < 3 ? Math.floor(this.runPhase) : 3 + Math.floor(this.runPhase - 3) % 5;
+    }
+    else if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
       this.walkPhase = ((this.walkPhase || 0) + Math.max(0.08, Math.abs(this.vx) * 0.055)) % 8;
       sheet = this.sheets.walk; frame = Math.floor(this.walkPhase);
       spr.setRotation(Phaser.Math.Clamp(this.vx * 0.012, -0.05, 0.05));
