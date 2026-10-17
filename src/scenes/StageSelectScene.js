@@ -8,6 +8,7 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { announce } from '../audio/announcer.js';
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
 const COLS = 2, TILE_W = 118, TILE_H = 58, GAP = 6;
@@ -101,7 +102,7 @@ export class StageSelectScene extends Phaser.Scene {
     const back = m.back || m.pads.some((p) => p.button === 'b');
     this.clicked = false;
     if (confirm) {
-      if (tile.st.available) { settings.stage = tile.st.id; sfx('select', 0.8); this.scene.start('Select'); return; }
+      if (tile.st.available) { settings.stage = tile.st.id; sfx('select', 0.8); announce(this, tile.st.id); this.scene.start('Select'); return; }
       sfx('curse', 0.4, 1.4);
     }
     if (back) { sfx('menu', 0.6); this.scene.start('Setup'); return; }

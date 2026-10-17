@@ -2,7 +2,8 @@
 Run:  python3 tools/audio/announcer.py <kokoro-v1.0.onnx> <voices-v1.0.bin>
 Needs:  pip install kokoro-onnx soundfile   and ffmpeg.  The model files (Apache-2.0) come from
 https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0
-Writes public/assets/audio/voice/<fighter id>.ogg and .mp3
+Writes public/assets/audio/voice/<fighter or stage id>.ogg and .mp3  (add ids after the model files to
+make only those lines). These are placeholders: tools/audio/my_voice.py swaps in your own recordings.
 
 The voice is a blend of Kokoro's 'am_fenrir' and 'am_michael' voices, read a little slowly, then
 made into an arena announcer with ffmpeg: pitched down two semitones for weight, bass lifted,
@@ -19,7 +20,14 @@ LINES = {
     'hero-knight': 'Lacy!',
     'random': 'Random!',
     'unlock': 'New costume, unlocked!',
+    # stages, called out when one is picked on the stage select screen
+    'sky-sanctum': 'Sky Sanctum!',
+    'verdant-spires': 'Verdant Spires!',
+    'gravemoon-bridge': 'Gravemoon Bridge!',
+    'neon-arcade': 'Neon Arcade!',
+    'elderwood-hollow': 'Elderwood Hollow!',
 }
+ONLY = sys.argv[3:]                       # optional: just these ids
 FILTER = ','.join([
     'asetrate=24000*0.891', 'aresample=24000', 'atempo=1.06',          # two semitones deeper, a touch slower
     'highpass=f=70', 'equalizer=f=140:t=q:w=1:g=5', 'equalizer=f=3000:t=q:w=1.2:g=3',
@@ -32,6 +40,7 @@ k = Kokoro(sys.argv[1], sys.argv[2])
 voice = k.get_voice_style('am_fenrir') * 0.6 + k.get_voice_style('am_michael') * 0.4
 os.makedirs(OUT, exist_ok=True)
 for fid, text in LINES.items():
+    if ONLY and fid not in ONLY: continue
     audio, sr = k.create(text, voice=voice, speed=0.82, lang='en-us')
     with tempfile.NamedTemporaryFile(suffix='.wav') as tmp:
         sf.write(tmp.name, audio, sr)

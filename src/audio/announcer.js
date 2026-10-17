@@ -1,5 +1,6 @@
-// The announcer: a deep, proud voice that calls out a fighter's name when a player picks them on the
-// select screen (lines made by tools/audio/announcer.py). Follows the SOUND EFFECTS volume. A new
+// The announcer: calls out a fighter's name when a player picks them on the select screen, and the stage's
+// name when one is picked (computer voice from tools/audio/announcer.py; tools/audio/my_voice.py swaps
+// in your own recordings). Follows the SOUND EFFECTS volume. A new
 // call cuts off the previous one so quick picks don't talk over each other.
 import { settings } from '../settings.js';
 
