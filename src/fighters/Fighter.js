@@ -51,7 +51,7 @@ const SPEECH = {
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
 };
 // swoosh shape for moves that don't name one (Fighter.drawSwoosh)
-const SWOOSH_BY_MOVE = { jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
+const SWOOSH_BY_MOVE = { dashAttack: 'low', jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
 const CRYSTAL_BLADE = { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff };
 
 export class Fighter {
@@ -248,7 +248,11 @@ export class Fighter {
         const sm = (at) => this.smashed(at) || c.smash;        // the CPU asks for a smash outright
         if (c.up) this.startAttack(M.usmash && sm(this.tapUp) ? 'usmash' : 'utilt');
         else if (c.down) this.startAttack(M.dsmash && sm(this.tapDown) ? 'dsmash' : 'dtilt');
-        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack(M.fsmash && sm(this.tapX) ? 'fsmash' : 'ftilt'); }
+        else if (Math.abs(c.x) > 0.5) {
+          this.facing = Math.sign(c.x);
+          const dash = M.dashAttack && this.state === 'run' && Math.abs(this.vx) > this.def.walkSpeed * 0.7;   // attack at a full run: a dash attack
+          this.startAttack(M.fsmash && sm(this.tapX) ? 'fsmash' : dash ? 'dashAttack' : 'ftilt');
+        }
         else this.startAttack('jab');
       } else {
         if (c.up) this.attackOr('uair', 'nair');
@@ -331,7 +335,7 @@ export class Fighter {
   startAttack(name) {
     this.quip(name === 'jab' ? 'jab' : /smash/.test(name) ? 'smash' : name === 'grab' ? null : 'attack');
     this.move = this.def.moves[name]; this.moveName = name; this.attackId = nextAttackId++;
-    this.setState('attack'); this.hitList = new Set();
+    this.setState('attack'); this.hitList = new Set(); this.rapidLoops = 0;
     if (this.move.lunge && this.grounded) this.vx = this.facing * this.move.lunge;
     this.swingSound(name === 'jab' ? 1.3 : 1);
   }
@@ -344,7 +348,19 @@ export class Fighter {
   }
   st_attack(c) {
     const m = this.move;
+    if (m.rapid && this.t === m.rapid.at && this.rapidLoops < m.rapid.max && c.held('attack')) {   // hold attack to keep a rapid jab going
+      this.rapidLoops++; this.t = m.rapid.to; this.swingSound(1.3 + 0.08 * this.rapidLoops, 0.3);
+    }
     if (m.multi && m.hits && m.hits.some((h) => h.from === this.t)) this.attackId = nextAttackId++;   // each beat of a multi-hit hits again
+    if (m.slide && this.grounded && this.t >= m.slide.from && this.t <= m.slide.to) {     // a dash attack carries its run along the floor
+      const k = (this.t - m.slide.from) / Math.max(1, m.slide.to - m.slide.from);
+      this.vx = this.facing * m.slide.vx * (1 - 0.7 * k);
+      if (this.t % 3 === 0) this.match.puff(this.x - this.facing * 10, this.y - 2, m.slide.dust ?? 0xd8d4e8, 2);
+    }
+    if (m.stream && this.t >= m.stream.from && this.t <= m.stream.to && (this.t - m.stream.from) % m.stream.every === 0) {   // AERO's bubble stream
+      const R = Math.random;
+      for (let i = 0; i < 3; i++) this.match.particles.push({ shape: 'bubble', x: this.x + this.facing * 6 + (R() - 0.5) * 20, y: this.y - 64 - R() * 10, vx: (R() - 0.5) * 1.2, vy: -2.2 - R() * 1.6, life: 26 + R() * 12, color: [0x9ff0ff, 0xffffff, 0x3fc8ea][i], grav: -0.02, r: 1 + Math.floor(R() * 3), sway: R() * 6, size: 2 });
+    }
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
     if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);

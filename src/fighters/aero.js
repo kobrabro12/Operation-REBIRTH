@@ -30,9 +30,14 @@ export const AERO = {
     ...DEFAULT_GRAB,
     // ---- ground attacks
     jab: { frames: 20, fx: 'bubble', hits: [{ from: 4, to: 6, box: [8, -44, 32, 22], dmg: 4, angle: 40, base: 2.4, growth: 1.8 }] },                 // BUBBLE POP
-    ftilt: { frames: 28, fx: 'aurora', hits: [{ from: 9, to: 13, box: [6, -58, 50, 46], dmg: 9, angle: 38, base: 3.0, growth: 6.0 }] },             // AURORA SWOOSH
+    ftilt: { frames: 28, fx: 'aurora', hits: [{ from: 10, to: 14, box: [6, -58, 50, 46], dmg: 9, angle: 38, base: 3.0, growth: 6.0 }] },             // AURORA SWOOSH
     utilt: { frames: 24, fx: 'up', hits: [{ from: 7, to: 13, box: [-22, -94, 44, 44], dmg: 7, angle: 88, base: 3.2, growth: 5.4 }] },               // FOUNTAIN
     dtilt: { frames: 22, fx: 'low', hits: [{ from: 6, to: 9, box: [6, -16, 42, 16], dmg: 6, angle: 24, base: 2.4, growth: 3.6 }] },                 // GRASS SWEEP
+    // SLIP N' SLIDE (attack at a full run): belly-flops onto a sheet of water and slides along it, popping them up
+    dashAttack: { frames: 36, fx: 'low', slide: { from: 4, to: 24, vx: 7.6, dust: 0x9ff0ff }, hits: [
+      { from: 4, to: 8, box: [0, -26, 46, 26], dmg: 8, angle: 70, base: 3.0, growth: 4.6 },
+      { from: 9, to: 22, box: [4, -22, 40, 22], dmg: 4, angle: 75, base: 2.6, growth: 2.4 },
+    ] },
     // ---- smash attacks
     fsmash: { frames: 46, lunge: 1.4, fx: 'flare', hits: [{ from: 18, to: 21, box: [8, -52, 52, 36], dmg: 15, angle: 36, base: 4.2, growth: 7.4 }] },   // LENS FLARE
     usmash: { frames: 44, fx: 'up', hits: [{ from: 14, to: 20, box: [-30, -104, 60, 80], dmg: 14, angle: 88, base: 4.2, growth: 7.4 }] },          // GEYSER
@@ -41,7 +46,14 @@ export const AERO = {
     nair: { frames: 26, landLag: 6, fx: 'spin', hits: [{ from: 4, to: 14, box: [-28, -58, 56, 54], dmg: 8, angle: 45, base: 2.8, growth: 4.2 }] },   // BUBBLE SPIN
     fair: { frames: 26, landLag: 8, fx: 'arc', hits: [{ from: 8, to: 12, box: [6, -50, 44, 40], dmg: 10, angle: 40, base: 3.0, growth: 6.0 }] },     // a raindrop chop
     bair: { frames: 24, landLag: 9, fx: 'back', hits: [{ from: 7, to: 9, box: [-42, -42, 36, 26], dmg: 11, angle: 145, base: 3.2, growth: 6.2 }] },
-    uair: { frames: 24, landLag: 6, fx: 'up', hits: [{ from: 6, to: 11, box: [-24, -94, 48, 42], dmg: 8, angle: 86, base: 3.0, growth: 5.6 }] },
+    // BUBBLE STREAM: blows a column of bubbles straight up - four little pops that carry them, then a big one
+    uair: { frames: 30, landLag: 7, multi: true, stream: { from: 6, to: 22, every: 3 }, hits: [
+      { from: 7, to: 8, box: [-22, -100, 44, 48], dmg: 1, angle: 90, base: 1.4, growth: 0, stun: 8 },
+      { from: 10, to: 11, box: [-22, -104, 44, 50], dmg: 1, angle: 90, base: 1.4, growth: 0, stun: 8 },
+      { from: 13, to: 14, box: [-22, -108, 44, 52], dmg: 1, angle: 90, base: 1.4, growth: 0, stun: 8 },
+      { from: 16, to: 17, box: [-22, -112, 44, 54], dmg: 1, angle: 90, base: 1.4, growth: 0, stun: 8 },
+      { from: 20, to: 22, box: [-26, -118, 52, 58], dmg: 6, angle: 86, base: 3.2, growth: 5.4 },
+    ] },
     dair: { frames: 34, landLag: 13, fx: 'down', hits: [{ from: 10, to: 14, box: [-14, -12, 28, 24], dmg: 11, angle: -80, base: 3.0, growth: 4.2 }] },  // RAINDROP: a spike
     // ---- specials
     // BUBBLE TRAP (neutral): blows a big bubble that drifts forward; whoever it touches is sealed inside
