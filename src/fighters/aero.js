@@ -26,6 +26,11 @@ export const AERO = {
   airSpeed: 3.0, airAccel: 0.28, airFriction: 0.03,
   jumpV: -9.6, shortHopV: -6.4, doubleJumpV: -9.2,
 
+  // TAUNT (1): FISHBOWL BOOGIE - a bubbly side-to-side dance, a twirl (the goldfish does a flip) and a big V
+  taunt: { name: 'FISHBOWL BOOGIE', frames: 90, lines: ['STAY HYDRATED!', 'SO FRESH.', 'BLUB BLUB!'],
+    sounds: [[6, 'item', 0.3, 1.6], [26, 'item', 0.3, 1.8], [49, 'djump', 0.5, 1.4], [62, 'item', 0.5, 2.2]],
+    fx: [{ kind: 'bubble', from: 6, to: 84, every: 6, x: 0, y: -46, n: 2 }] },
+
   moves: {
     ...DEFAULT_GRAB,
     // ---- ground attacks
@@ -59,18 +64,27 @@ export const AERO = {
     // BUBBLE TRAP (neutral): blows a big bubble that drifts forward; whoever it touches is sealed inside
     // and floats up helplessly for a moment before it pops
     neutralB: { frames: 30, spawnAt: 12, bubble: { speed: 2.6, life: 110, r: 11, hit: { dmg: 4, angle: 90, base: 0.6, growth: 0, stun: 48, bubble: 48 } } },
-    // GLASS WINDOW (side): a pane of glossy glass in front of him for 3 s - projectiles bounce back off it
-    sideB: { frames: 32, spawnAt: 10, pane: { ahead: 26, h: 56, life: 180 },
-      hits: [{ from: 10, to: 13, box: [12, -54, 20, 54], dmg: 5, angle: 40, base: 3.0, growth: 2.4 }] },
+    // GOLDFISH FLING (side): flicks his head and the goldfish leaps out of the bowl, arcing forward on a
+    // ribbon of water, then swims back home - it hits going out, and again on the way back (tugging them
+    // toward AERO). One fish at a time: no side special until it's home.
+    sideB: { frames: 30, spawnAt: 9, fish: {
+      speed: 8.0, decel: 0.22, lift: 0.7, grav: 0.06, outTime: 32, returnSpeed: 4,
+      out: { dmg: 7, angle: 40, base: 3.0, growth: 3.8 },
+      back: { dmg: 4, angle: 25, base: 2.6, growth: 0.6, stun: 18 },
+    } },
     // BUBBLE RIDE (up): floats upward inside a bubble, steering freely, until it pops around him
     upb: { frames: 40, riseAt: 6, riseV: -9.6, drift: 3.2, bubble: true, popAt: 30, hits: [
       { from: 8, to: 9, box: [-24, -48, 48, 52], dmg: 2, angle: 85, base: 1.6, growth: 0, stun: 8 },
       { from: 16, to: 17, box: [-24, -48, 48, 52], dmg: 2, angle: 85, base: 1.6, growth: 0, stun: 8 },
       { from: 30, to: 32, box: [-30, -54, 60, 62], dmg: 6, angle: 75, base: 3.6, growth: 4.8 },
     ] },
-    // LEAF SPRING (down): plants a glossy sprout. AERO bounces sky-high off it (and gets his up special
-    // back); anyone else who steps on it is launched up. One at a time; it lasts 10 s.
-    downB: { frames: 32, spawnAt: 12, spring: { ahead: 22, life: 600, bounce: -13, hit: { dmg: 5, angle: 88, base: 6.4, growth: 1.0 } } },
+    // RAIN CLOUD (down): tosses a glossy little cloud up ahead of him that drifts along raining for 5 s -
+    // anyone in the rain is drenched (slowed, 1% every half second). Down special again while it's out:
+    // DOWNPOUR - it empties all at once, spiking anyone in the air beneath it and popping up anyone on the ground.
+    downB: { frames: 28, spawnAt: 10, cloud: {
+      ahead: 34, height: 104, drift: 0.25, life: 300, w: 52, slow: 20, chipEvery: 30, pourFor: 16,
+      pour: { dmg: 10, angle: -80, base: 3.4, growth: 4.2 },
+    } },
   },
 
   // Limit: SCREENSAVER. He spreads his arms and the whole screen goes glossy - aqua light, ribbons,

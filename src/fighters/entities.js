@@ -615,86 +615,145 @@ export function popBubble(m, x, y, r, P) {
   sfx('item', 0.35, 2.2);
 }
 
-// AERO's GLASS WINDOW: a pane of glossy glass standing in front of him for a few seconds. Projectiles that
-// hit it bounce straight back, faster, and now belong to AERO.
-export class GlassPane {
+// AERO's GOLDFISH FLING (side special): the goldfish leaps out of his bowl and arcs forward on a ribbon of
+// water, hitting whoever it meets, then swims back through the air to the bowl - hitting again on the way
+// home and tugging them toward AERO. Shielded or countered, it just turns round and swims home early.
+export class GoldfishFling {
   constructor(match, owner, spec) {
-    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
-    this.facing = owner.facing; this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y; this.h = spec.h;
+    this.match = match; this.owner = owner; this.spec = spec; this.dir = owner.facing;
+    this.x = owner.x + this.dir * 10; this.y = owner.y - 44;              // straight out of the bowl
+    this.vx = this.dir * spec.speed; this.vy = -spec.lift;
+    this.phase = 'out'; this.t = 0; this.pt = 0; this.alive = true; this.id = nextId++; this.persist = true; this.kind = 'GOLDFISH';
+    this.trail = [];
     this.g = match.add.graphics(); match.addWorld(this.g);
-    sfx('shield', 0.6, 1.8);
+    owner.fishOut = this;
+    sfx('item', 0.6, 1.3); this.splash(4);
   }
-  box() { return { x1: this.x - 6, x2: this.x + 6, y1: this.y - this.h, y2: this.y }; }
+  hitbox() {
+    const r = 10, h = this.phase === 'out' ? this.spec.out : this.spec.back;
+    return { x1: this.x - r, x2: this.x + r, y1: this.y - r, y2: this.y + r, h, owner: this.owner, id: this.id + this.phase, facing: Math.sign(this.vx) || this.dir, projectile: this, persist: true };
+  }
   step() {
-    this.t++;
-    const b = this.box();
-    for (const p of this.match.projectiles) {
-      if (!p.alive || p.owner.team === this.owner.team || p.reflectedBy === this || p.kind === 'BLADE TOSS') continue;
-      const h = p.hitbox && p.hitbox(); if (!h) continue;
-      if (h.x1 < b.x2 && h.x2 > b.x1 && h.y1 < b.y2 && h.y2 > b.y1) {
-        p.reflectedBy = this; p.owner = this.owner; p.id = (p.id || 0) + 'r' + this.t;
-        if (p.vx !== undefined) p.vx = -p.vx * 1.2;
-        if (p.dir !== undefined) p.dir = -p.dir;
-        if (p.life !== undefined) p.life = Math.max(p.life, 40);
-        this.flash = 8; sfx('shield', 0.9, 2.4); this.match.puff(this.x, (h.y1 + h.y2) / 2, 0xffffff, 8);
-      }
+    const S = this.spec, o = this.owner;
+    this.t++; this.pt++;
+    if (!o.alive) { this.remove(); return; }
+    if (this.phase === 'out') {
+      this.vx -= this.dir * S.decel; this.vy += S.grav;
+      if (Math.sign(this.vx) !== this.dir || this.pt >= S.outTime) this.turn();
+    } else {                                                                // swims home to the bowl, faster and faster
+      const tx = o.x + o.facing * 2, ty = o.y - 50, dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy) || 1;
+      const sp = Math.min(S.returnSpeed + this.pt * 0.14, 11);
+      this.vx += (dx / d * sp - this.vx) * 0.3; this.vy += (dy / d * sp - this.vy) * 0.3;
+      if (d < 12 || this.pt > 160) { this.home(); return; }
     }
-    if (this.flash > 0) this.flash--;
-    if (this.t >= this.life) this.kill();
+    this.x += this.vx; this.y += this.vy;
+    this.trail.push([this.x, this.y]); if (this.trail.length > 9) this.trail.shift();
+    if (this.t % 4 === 0) this.splash(1);
   }
-  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y - this.h / 2, this.owner.pal.light, 10); this.g.destroy(); }
+  splash(n) {
+    const R = Math.random;
+    for (let i = 0; i < n; i++) this.match.particles.push({ x: this.x, y: this.y, vx: (R() - 0.5) * 1.6, vy: -R() * 1.4, life: 16 + R() * 10, color: i % 2 ? 0xffffff : this.owner.pal.light, size: 2, grav: 0.12 });
+  }
+  turn() { if (this.phase === 'out') { this.phase = 'back'; this.pt = 0; sfx('djump', 0.4, 1.7); } }
+  kill() { if (!this.alive) return; if (this.phase === 'out') { this.turn(); return; } this.remove(); }   // blocked: swims home
+  home() { this.splash(6); sfx('item', 0.5, 2.2); this.remove(); }
+  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.fishOut === this) this.owner.fishOut = null; }
   render() {
     if (!this.alive) return;
-    const g = this.g, P = this.owner.pal, b = this.box(), grow = Math.min(1, this.t / 6), fade = this.life - this.t < 20 ? (this.life - this.t) / 20 : 1;
-    const top = b.y2 - this.h * grow;
+    const g = this.g, P = this.owner.pal, fx = Math.sign(this.vx) || this.dir, x = Math.round(this.x), y = Math.round(this.y);
     g.clear();
-    g.fillStyle(this.flash ? 0xffffff : P.light, (this.flash ? 0.6 : 0.28) * fade); g.fillRect(b.x1, top, b.x2 - b.x1, b.y2 - top);
-    g.lineStyle(1, P.core, 0.9 * fade); g.strokeRect(b.x1, top, b.x2 - b.x1, b.y2 - top);
-    g.fillStyle(0xffffff, 0.8 * fade);                                  // two diagonal glass glints sliding across
-    const s = (this.t * 2) % (this.h + 30);
-    for (const off of [0, 12]) { const yy = b.y2 - s + off; if (yy > top && yy < b.y2) g.fillRect(b.x1 + 1, yy, b.x2 - b.x1 - 2, 2); }
-    g.fillStyle(P.mid, 0.9 * fade); g.fillRect(b.x1 - 1, top - 3, b.x2 - b.x1 + 2, 3);   // a glossy title bar
+    this.trail.forEach(([tx, ty], i) => { const k = (i + 1) / this.trail.length; g.fillStyle(P.light, 0.12 + 0.25 * k); g.fillCircle(tx, ty, 2 + 4 * k); });   // the ribbon of water
+    const wig = Math.sin(this.t * 0.8) * 2;
+    g.fillStyle(0x5a1e08, 1); g.fillEllipse(x, y, 16, 10);                               // outline
+    g.fillStyle(0xff8a2a, 1); g.fillEllipse(x, y, 14, 8);                                // body
+    g.fillStyle(0xffc070, 1); g.fillEllipse(x + fx * 1, y - 2, 9, 3);                    // glossy back
+    g.fillStyle(0xff8a2a, 1); g.fillTriangle(x - fx * 6, y, x - fx * 13, y - 5 + wig, x - fx * 13, y + 5 + wig);   // tail
+    g.fillStyle(0xc0501a, 1); g.fillTriangle(x - fx * 1, y - 3, x - fx * 5, y - 7, x + fx * 2, y - 4);           // dorsal fin
+    g.fillStyle(0xffffff, 1); g.fillRect(x + fx * 4 - 1, y - 2, 2, 2);                   // eye
+    g.fillStyle(0x0b0a14, 1); g.fillRect(x + fx * 4 + (fx > 0 ? 0 : -1), y - 2, 1, 1);
+    g.fillStyle(0xffffff, 0.9); g.fillRect(x - 2, y - 3, 3, 1);                          // shine
   }
 }
 
-// AERO's LEAF SPRING: a glossy sprout that springs up from the ground. AERO bounces high off it; anyone
-// else who steps on it gets launched up. One at a time.
-export class LeafSpring {
+// AERO's RAIN CLOUD (down special): a glossy little cloud that drifts ahead of him and rains for 5 s.
+// Anyone standing in the rain is drenched - slowed, and chipped 1% every half second. Down special again
+// while it's out: DOWNPOUR - the cloud empties all at once in a heavy column that spikes anyone in the air
+// under it (and pops up anyone on the ground). One cloud at a time.
+export class RainCloud {
   constructor(match, owner, spec) {
-    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.cool = new Map();
-    this.x = owner.x + owner.facing * spec.ahead;
-    let best = null;
-    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
-    if (!best) { this.alive = false; return; }
-    this.y = best.y; this.boing = 0;
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.id = nextId++;
+    this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y - spec.height; this.y0 = this.y;
+    this.vx = owner.facing * spec.drift; this.drops = []; this.burst = 0; this.soak = new Map(); this.poured = new Set();
     this.g = match.add.graphics(); match.addWorld(this.g);
+    owner.cloud = this;
+    sfx('item', 0.4, 0.8); match.puff(this.x, this.y, 0xffffff, 8);
+  }
+  floorAt(x) {
+    let best = null;
+    for (const p of this.match.stage.platforms) if (p.solid !== false && x >= p.x1 && x <= p.x2 && p.y > this.y + 4 && (best === null || p.y < best)) best = p.y;   // rain falls through the thin pass-through ledges
+    return best === null ? this.y + 420 : best;
+  }
+  under(f) {                                                     // standing (or falling) in the rain column?
+    const half = this.spec.w / 2 + f.body.w / 2;
+    return f.alive && f.team !== this.owner.team && f.state !== 'respawn' && Math.abs(f.x - this.x) < half && f.y > this.y + 6 && f.y - f.body.h < this.floorAt(f.x);
   }
   step() {
+    const S = this.spec, R = Math.random;
     this.t++;
-    if (this.boing > 0) this.boing--;
-    if (this.t > 10) for (const f of this.match.fighters) {
-      if (!f.alive || f.state === 'respawn' || (this.cool.get(f) || 0) > this.t) continue;
-      if (Math.abs(f.x - this.x) < 13 && f.y >= this.y - 8 && f.y <= this.y + 2 && (f.grounded || f.vy >= 0)) {
-        this.cool.set(f, this.t + 30); this.boing = 12;
-        sfx('djump', 0.8, 1.6);
-        if (f.team === this.owner.team) { f.vy = this.spec.bounce; f.grounded = false; f.platform = null; f.jumpsLeft = Math.max(f.jumpsLeft, 1); f.usedUpB = false; if (['idle', 'run', 'land', 'air'].includes(f.state)) f.setState('air'); }
-        else this.match.applyHit(f, { h: this.spec.hit, owner: this.owner, facing: 1, id: 'spring' + this.t + ':' + f.slot }, this.x);
+    if (!this.owner.alive) { this.kill(); return; }
+    if (this.burst) {
+      this.burst++;
+      if (this.burst <= S.pourFor) {
+        for (let i = 0; i < 4; i++) { const x = this.x + (R() - 0.5) * S.w; this.drops.push({ x, y: this.y + 6, vy: 9 + R() * 3, floor: this.floorAt(x) }); }
+        for (const f of this.match.fighters) {
+          if (!this.under(f) || this.poured.has(f) || f.isIntangible()) continue;
+          this.poured.add(f);
+          if (f.state === 'shield') { this.match.shieldHit(f, { h: S.pour, owner: this.owner, x1: this.x, x2: this.x, projectile: this }); continue; }
+          this.match.applyHit(f, { h: S.pour, owner: this.owner, facing: Math.sign(f.x - this.x) || 1, id: 'pour' + this.id + ':' + f.slot }, this.x);
+        }
       }
+      if (this.burst > S.pourFor + 14) this.kill();
+    } else {
+      this.x += this.vx; this.vx *= 0.996; this.y = this.y0 + Math.sin(this.t * 0.05) * 2;
+      if (this.t % 2 === 0) { const x = this.x + (R() - 0.5) * S.w; this.drops.push({ x, y: this.y + 6, vy: 4 + R() * 1.5, floor: this.floorAt(x) }); }
+      for (const f of this.match.fighters) {
+        if (!this.under(f)) continue;
+        f.slow = Math.max(f.slow, S.slow);                        // drenched: slowed while in the rain (and a moment after)
+        if (!this.soak.has(f)) this.soak.set(f, this.t - S.chipEvery + 12);   // the first chip comes quickly
+        if (this.t - this.soak.get(f) >= S.chipEvery) {                       // chip damage, no flinch
+          this.soak.set(f, this.t);
+          if (this.match.mode === 'stamina') f.hp -= 1; else f.percent = Math.min(999, f.percent + 1);
+          f.stats.damageTaken += 1; this.owner.stats.damageDealt += 1; f.lastHitBy = this.owner; f.lastHitTimer = 600;
+          for (let i = 0; i < 4; i++) this.match.particles.push({ x: f.x + (R() - 0.5) * 16, y: f.y - f.body.h, vx: (R() - 0.5) * 1.6, vy: -R() * 1.6, life: 14, color: this.owner.pal.light, size: 2, grav: 0.14 });
+        }
+      }
+      if (this.t >= this.life) this.kill();
     }
-    if (this.t >= this.life) this.kill();
+    for (const d of this.drops) { d.y += d.vy; if (d.y >= d.floor) { d.dead = true; if (R() < 0.3) this.match.particles.push({ x: d.x, y: d.floor - 1, vx: (R() - 0.5) * 1.2, vy: -0.6 - R(), life: 8, color: 0xffffff, size: 1, grav: 0.12 }); } }
+    this.drops = this.drops.filter((d) => !d.dead);
   }
-  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y - 6, 0x8be04a, 8); if (this.g) this.g.destroy(); }
+  pour() { if (this.burst || !this.alive) return; this.burst = 1; sfx('geyser', 0.7, 1.4); this.match.shake(3, 6); }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xffffff, 8); this.g.destroy(); if (this.owner.cloud === this) this.owner.cloud = null; }
   render() {
     if (!this.alive) return;
-    const g = this.g, grow = Math.min(1, this.t / 10), sq = this.boing > 6 ? 0.6 : this.boing > 0 ? 1.25 : 1;
-    const fade = this.life - this.t < 30 ? (this.life - this.t) / 30 : 1, x = this.x, y = this.y, h = 12 * grow * sq;
+    const g = this.g, P = this.owner.pal, S = this.spec, x = this.x, y = this.y;
+    const fade = this.burst ? Math.max(0, 1 - (this.burst - S.pourFor) / 14) : Math.min(1, this.t / 8, (this.life - this.t) / 20);
+    const shrink = this.burst ? Math.max(0.4, 1 - this.burst / (S.pourFor + 14) * 0.6) : 1;
     g.clear();
-    g.fillStyle(0x4a9a1e, fade); g.fillRect(x - 1, y - h, 3, h);                       // stem
-    for (const s of [-1, 1]) {                                                         // two glossy leaves
-      g.fillStyle(0x8be04a, fade); g.fillEllipse(x + s * 6, y - h * 0.5, 10 * grow, 5 * grow);
-      g.fillStyle(0xd6ff9a, fade); g.fillRect(x + s * 6 - 2, y - h * 0.5 - 2, 3, 1);
+    if (this.burst && this.burst <= S.pourFor + 4) {                                    // the downpour column
+      const fl = this.floorAt(x);
+      const a = this.burst <= S.pourFor ? 1 : (S.pourFor + 4 - this.burst) / 4;
+      g.fillStyle(P.mid, 0.35 * a); g.fillRect(x - S.w / 2, y, S.w, fl - y);
+      g.fillStyle(P.light, 0.45 * a); g.fillRect(x - S.w / 2 + 6, y, S.w - 12, fl - y);
+      g.fillStyle(0xffffff, 0.6 * a); g.fillRect(x - S.w / 2 + 4, y, 3, fl - y); g.fillRect(x + S.w / 2 - 9, y, 2, fl - y);
+      g.fillStyle(0xffffff, 0.8 * a); g.fillEllipse(x, fl - 2, S.w + 16, 8);                        // the splash where it hits the floor
     }
-    g.fillStyle(0xffffff, fade); g.fillCircle(x, y - h - 3, 4 * grow);                 // a white flower pad on top
-    g.fillStyle(0xffe14a, fade); g.fillCircle(x, y - h - 3, 1.6 * grow);
+    g.fillStyle(P.light, 0.85 * fade);                                                   // rain streaks
+    for (const d of this.drops) g.fillRect(Math.round(d.x), Math.round(d.y), 1, this.burst ? 7 : 4);
+    const w = S.w * shrink, puffs = [[-0.36, 0, 0.26], [-0.12, -0.12, 0.32], [0.16, -0.08, 0.3], [0.38, 0.02, 0.22], [0, 0.06, 0.3]];
+    g.fillStyle(P.deep, 0.9 * fade); for (const [px, py, r] of puffs) g.fillCircle(x + px * w, y + py * w + 2, r * w + 1);       // outline-ish underside
+    g.fillStyle(0xe8f8ff, fade); for (const [px, py, r] of puffs) g.fillCircle(x + px * w, y + py * w, r * w);
+    g.fillStyle(P.light, 0.7 * fade); g.fillRect(x - w * 0.45, y + w * 0.12, w * 0.9, 3);                                        // aqua belly
+    g.fillStyle(0xffffff, fade); g.fillRect(x - w * 0.2, y - w * 0.3, w * 0.18, 2); g.fillRect(x - w * 0.2, y - w * 0.3, 2, 4);  // glossy shine
   }
 }

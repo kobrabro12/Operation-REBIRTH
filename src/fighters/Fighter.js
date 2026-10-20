@@ -49,6 +49,7 @@ const QUIPS = {
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
+  taunt: { typed: false, style: { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 } },   // every fighter's taunt line
 };
 // swoosh shape for moves that don't name one (Fighter.drawSwoosh)
 const SWOOSH_BY_MOVE = { dashAttack: 'low', jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
@@ -72,7 +73,7 @@ export class Fighter {
     this.invincible = 0; this.hitstop = 0; this.hitstun = 0; this.shieldHp = 60; this.shieldStun = 0;
     this.charge = 0; this.chargeSound = null; this.summonCooldown = 0; this.souls = [];
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
-    this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0 };
+    this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0, taunt: 0 };
     this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
     this.ledge = null; this.ledgeCooldown = 0; this.ledgeGrabs = 0;
     this.possessed = 0; this.possessMax = 1; this.possessImmune = 0; this.possessDir = 1; this.forced = new Controller();
@@ -204,6 +205,26 @@ export class Fighter {
   // ------------------------------------------------------------------ states
   st_idle(c) { this.groundActions(c); }
   st_run(c) { this.groundActions(c); }
+  // TAUNT (the 1 key): a little dance or a show of power. It can't be cancelled - taunting is a risk.
+  st_taunt(c) {
+    const T = this.def.taunt;
+    if (!this.grounded) { this.setState('air'); return; }
+    if (this.t === 1 && T.lines) this.say(T.lines[Math.floor(Math.random() * T.lines.length)], 70, 'taunt');
+    for (const [at, name, vol, rate] of T.sounds || []) if (this.t === at) sfx(name, vol, rate);
+    for (const f of T.fx || []) if (this.t >= f.from && this.t <= f.to && (this.t - f.from) % f.every === 0) this.tauntFx(f);
+    if (this.t >= T.frames) this.setState('idle');
+  }
+  tauntFx(f) {
+    const R = Math.random, P = this.match.particles, cols = f.colors || [this.fxColor, 0xffffff];
+    const x = this.x + this.facing * (f.x || 0), y = this.y + (f.y || -40);
+    for (let i = 0; i < (f.n || 2); i++) {
+      const color = cols[i % cols.length];
+      if (f.kind === 'wisp') P.push({ shape: 'wisp', x: x + (R() - 0.5) * 16, y, vx: (R() - 0.5) * 1.2, vy: -0.8 - R() * 1.4, life: 30 + R() * 20, color, grav: -0.01, sway: R() * 6, size: 2 });
+      else if (f.kind === 'note') { const a = -Math.PI / 2 + (R() - 0.5) * 2.2, sp = 1 + R() * 1.6; P.push({ shape: 'note', x: x + (R() - 0.5) * 12, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 34 + R() * 14, color, grav: -0.01, drag: 0.95, sway: R() * 6, size: 2 }); }
+      else if (f.kind === 'bubble') P.push({ shape: 'bubble', x: x + (R() - 0.5) * 30, y: y + (R() - 0.5) * 20, vx: (R() - 0.5) * 0.8, vy: -0.5 - R(), life: 36 + R() * 20, color, grav: -0.015, r: 1 + Math.floor(R() * 3), sway: R() * 6, size: 2 });
+      else if (f.kind === 'star') { const a = R() * Math.PI * 2, sp = 0.6 + R() * 1.8; P.push({ shape: 'star', x: x + (R() - 0.5) * 8, y: y + (R() - 0.5) * 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 22 + R() * 14, color, grav: 0.02, drag: 0.94, size: 2 }); }
+    }
+  }
   st_land(c) {
     if (this.t >= (this.landLag || 3)) { this.setState('idle'); this.groundActions(c); }
   }
@@ -217,6 +238,7 @@ export class Fighter {
 
   groundActions(c) {
     if (this.tryCommon(c, true)) return;
+    if (this.buffer.taunt && this.def.taunt && !this.swordOut) { this.buffer.taunt = 0; this.setState('taunt'); return; }
     if (this.buffer.jump) { this.buffer.jump = 0; this.setState('jumpsquat'); return; }
     if (c.held('shield')) { this.setState('shield'); sfx('shield', 0.4); return; }
     // drop through a cloud ledge
@@ -235,7 +257,7 @@ export class Fighter {
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (M.sideB.dive && this.usedDive) return false; this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if ((M.sideB.dive && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -302,13 +324,13 @@ export class Fighter {
     if (!e || Math.random() > e[0]) return;
     this.say(e[1 + Math.floor(Math.random() * (e.length - 1))]);
   }
-  say(text, life = 80) {
+  say(text, life = 80, kind = null) {
     if (this.match.demo) return;
-    this.speechKind = SPEECH[this.style] || SPEECH.onebit;
+    this.speechKind = SPEECH[kind] || SPEECH[this.style] || SPEECH.onebit;
     if (!this.speech) {
       this.speech = this.match.add.text(0, 0, '', this.speechKind.style).setOrigin(0.5, 1).setDepth(8);
       this.match.addWorld(this.speech);
-    }
+    } else this.speech.setStyle(this.speechKind.style);
     this.speechFull = text; this.speechT = 0; this.speechLife = life; this.speech.setVisible(true);
     if (this.speechKind.typed) sfx('menu', 0.15, 1.8);
   }
@@ -364,8 +386,10 @@ export class Fighter {
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
     if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
-    if (m.pane && this.t === m.spawnAt) this.match.spawnPane(this, m.pane);
-    if (m.spring && this.t === m.spawnAt) this.match.spawnSpring(this, m.spring);
+    if (m.fish && this.t === m.spawnAt && !this.fishOut) this.match.spawnFish(this, m.fish);
+    if (m.cloud && this.t === m.spawnAt) {                     // a second down special while the cloud is out: DOWNPOUR
+      if (this.cloud && this.cloud.alive) this.cloud.pour(); else this.match.spawnCloud(this, m.cloud);
+    }
     if (m.dive && this.t >= m.dive.from && this.t <= m.dive.to) {     // NU's STAGE DIVE: flat out through the air
       const D = m.dive, k = (this.t - D.from) / (D.to - D.from);
       this.vx = this.facing * D.vx * (1 - 0.45 * k);
@@ -879,7 +903,7 @@ export class Fighter {
     }
     if (this.grounded && this.platform && (this.x < this.platform.x1 || this.x > this.platform.x2)) {
       this.grounded = false; this.platform = null;          // walked off an edge
-      if (['idle', 'run', 'land'].includes(this.state)) this.setState('air');
+      if (['idle', 'run', 'land', 'taunt'].includes(this.state)) this.setState('air');
     }
     if (landed && !this.grounded) {
       // a strong hit into the floor bounces instead of landing
@@ -1648,6 +1672,11 @@ export class Fighter {
           return st < 9 ? { sheet: S.attack2, frame: 2 + Math.floor(st / 3) } : { sheet: S.attack1, frame: 1 };
         }
         return { sheet: S.attack2, frame: U.ct % L.cutEvery < 2 ? 4 : 5 };                        // mid-dash between cuts
+      }
+      case 'taunt': {
+        const MA = this.def.moveAnims && this.def.moveAnims.taunt;
+        if (MA && S.moves) return { sheet: S.moves, frame: MA[0] + Math.min(MA[1] - 1, Math.floor(this.t / MA[2])) };
+        return loop('idle', 6);
       }
       case 'ledge': return { sheet: S.fall, frame: 0 };
       case 'ledgeclimb': return once('jump', this.t, 18);

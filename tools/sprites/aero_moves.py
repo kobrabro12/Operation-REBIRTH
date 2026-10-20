@@ -94,24 +94,36 @@ move('neutralB', 30, [
     k(22, P(torso=(10, 2, 0), head=(-4, 1, 0), fupper=(-86, 0, 0), ffore=(66, 0, 0), bupper=(-66, 0, 0), bfore=(46, 0, 0), root=(0, 2, 0), **STANCE), 'inout'),
     k(30, REST, 'back'),
 ], smear=())
-# GLASS WINDOW: swipes a pane of glossy glass into being in front of him
-move('sideB', 32, [
+# GOLDFISH FLING: tips his head back, then flicks it forward - the goldfish leaps out of the bowl
+# (the fish is hidden from the bowl once it's thrown)
+NOFISH = ('can', 'fish')
+move('sideB', 30, [
     k(0, REST),
-    k(6, P(fupper=(-150, 0, 0), ffore=(-40, 0, 0), torso=(-10, -1, 0), head=(6, 0, 0), bupper=(30, 0, 0), root=(0, -2, 0, 0.98, 1.02)), 'out'),
-    k(10, P(fupper=(-70, 0, 0), ffore=(64, 0, 0), torso=(14, 3, 0), head=(-8, 1, 0), bupper=(-20, 0, 0), root=(0, 3, 0, 1.05, 0.95), **STANCE), 'snap'),
-    k(20, P(fupper=(-74, 0, 0), ffore=(64, 0, 0), torso=(10, 2, 0), head=(-4, 1, 0), root=(0, 2, 0), **STANCE), 'inout'),
-    k(32, REST, 'back'),
+    k(6, P(torso=(-14, -2, 0), head=(-22, 0, -1), fupper=(-10, 0, 0), ffore=(-40, 0, 0), bupper=(30, 0, 0), root=(0, -3, 0, 0.97, 1.04), **legs(10, -4, -6, 4)), 'out'),
+    k(9, P(_hide=NOFISH, torso=(22, 4, 1), head=(28, 2, 2), fupper=(30, 0, 0), ffore=(-20, 0, 0), bupper=(40, 0, 0), root=(0, 5, 0, 1.07, 0.93), **STANCE), 'snap'),
+    k(16, P(_hide=NOFISH, torso=(18, 3, 1), head=(20, 2, 1), fupper=(20, 0, 0), bupper=(30, 0, 0), root=(0, 4, 0), **STANCE), 'out'),
+    k(30, P(_hide=NOFISH), 'back'),
 ], smear=())
-# BUBBLE RIDE: curled up inside a big bubble, bobbing upward
-BALL = P(**legs(-50, 100, -70, 100, -10, -10), torso=(16, 0, 2), head=(10, 0, 2), fupper=(-30, 0, 0), ffore=(-110, 0, 0), bupper=(-20, 0, 0), bfore=(-100, 0, 0))
-move('upb', 40, [k(0, P(**DEEP)), k(6, BALL, 'snap')] + [k(6 + 6 * i, mix(BALL, root=((-6, 6)[i % 2], 0, -2, 1.03 - 0.05 * (i % 2), 0.97 + 0.05 * (i % 2)))) for i in range(1, 5)]
-     + [k(32, P(**N.FALL, root=(0, 0, 0, 1.08, 0.94)), 'snap'), k(40, P(**N.FALL), 'back')], smear=())
-# LEAF SPRING: kneels and plants a seed in the ground
-PLANT = P(torso=(34, 3, 5), head=(12, 1, 2), bupper=(-10, 2, 3), fupper=(-30, 3, 4), ffore=(40, 0, 0), root=(0, 0, 0, 1.12, 0.82), **legs(54, -74, -22, 38, 18, -18))
-move('downB', 32, [k(0, REST), k(8, mix(PLANT, fupper=(-90, 3, 4), torso=(26, 3, 4)), 'out'), k(12, PLANT, 'snap'), k(20, mix(PLANT, torso=(30, 3, 5)), 'inout'), k(32, REST, 'back')], smear=())
+# RAIN CLOUD: cups his hands low, then tosses a cloud up ahead of him (again: DOWNPOUR, the same toss)
+TOSS = P(torso=(-8, 1, -1), head=(-20, 0, 0), fupper=(-80, 0, -1), ffore=(90, 0, 0), bupper=(-60, 0, -1), bfore=(40, 0, 0), root=(0, 2, -3, 0.92, 1.1), **legs(10, -4, -8, 6))
+move('downB', 28, [k(0, REST), k(7, P(**DEEP, torso=(18, 1, 2), head=(8, 0, 1), fupper=(30, 0, 0), ffore=(-60, 0, 0), bupper=(30, 0, 0)), 'out'),
+                   k(10, TOSS, 'snap'), k(18, mix(TOSS, root=(0, 2, -2, 0.95, 1.06)), 'out'), k(28, REST, 'back')], smear=())
 # SCREENSAVER (Limit): spreads his arms wide... and the whole world goes glossy
 SPREAD = P(fupper=(-120, 0, -2), ffore=(10, 0, 0), bupper=(-120, 0, -2), bfore=(10, 0, 0), head=(-14, 0, 0), torso=(-6, 0, -1), root=(0, 0, -3, 0.95, 1.08))
 move('limit', 120, [k(0, REST), k(20, SPREAD), k(40, mix(SPREAD, fupper=(-150, 0, -2), bupper=(-150, 0, -2))), k(46, UP2, 'snap'), k(100, mix(UP2, head=(-18, 0, 0)), 'linear'), k(120, REST, 'back')], step=4, smear=())
+
+# taunt: FISHBOWL BOOGIE - a bubbly side-to-side dance, a twirl (the goldfish does a flip) and a big V
+SWAY_L = P(root=(-7, -1, 0, 1.02, 0.98), torso=(-8, 0, 0), head=(-6, 0, 0), fupper=(-80, 0, -1), ffore=(90, 0, 0), bupper=(-60, 0, 0), bfore=(-50, 0, 0), **legs(14, -10, -16, 22, 0, -6))
+SWAY_R = P(root=(7, 1, 0, 1.02, 0.98), torso=(8, 0, 0), head=(8, 0, 0), fupper=(-10, 0, 0), ffore=(30, 0, 0), bupper=(-20, 0, 0), bfore=(-70, 0, 0), **legs(-4, 8, 4, 10, -6, 0))
+VEE = P(fupper=(-105, 0, -2), ffore=(45, 0, 0), bupper=(-100, 0, -2), bfore=(40, 0, 0), head=(-18, 0, 0), torso=(-6, 0, -1), root=(0, 0, -3, 0.92, 1.1), **legs(6, 0, -6, 0))
+move('taunt', 90, [k(0, REST)]
+     + [k(6 + 10 * b, SWAY_L if b % 2 == 0 else SWAY_R, 'back') for b in range(4)]
+     + [k(44, P(**DEEP, torso=(10, 0, 1), fupper=(20, 0, 0), bupper=(20, 0, 0)), 'out'),
+        k(49, P(root=(0, 0, -4, 0.05, 1.12), fupper=(-90, 0, 0), bupper=(-90, 0, 0), fish=(180, 0, -2)), 'in'),
+        k(54, P(root=(0, 0, -4, -1, 1.1), fupper=(-110, 0, 0), bupper=(-110, 0, 0), fish=(360, 0, -3)), 'linear'),
+        k(58, P(root=(0, 0, -2, 0.05, 1.06), fish=(540, 0, -1)), 'linear'),
+        k(62, VEE, 'out'), k(80, mix(VEE, head=(-22, 0, 0), root=(0, 0, -3, 0.94, 1.08)), 'inout'), k(90, REST, 'back')],
+     smear=())
 
 def idle_keys():
     keys = []

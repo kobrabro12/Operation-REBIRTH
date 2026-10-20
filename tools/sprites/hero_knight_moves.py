@@ -271,6 +271,36 @@ move('dair', 32, [
     K(32, 'fall', 1, (0, 0, 0), 'inout'),
 ], center=MID, fx=dair_fx)
 
+# --- taunt: BLADE SALUTE - spins twice on the spot, then raises her sword straight up in salute and
+# a star glints off the tip
+def glint(img, cx, cy, r, col=(255, 255, 255)):
+    cx, cy = cx + OX, cy + OY
+    for d in range(-r, r + 1):
+        for x, y in ((cx + d, cy), (cx, cy + d)):
+            if 0 <= x < CW and 0 <= y < CH: img[y, x, :3] = col; img[y, x, 3] = 255
+    for d in range(-(r // 2), r // 2 + 1):
+        for x, y in ((cx + d, cy + d), (cx + d, cy - d)):
+            if 0 <= x < CW and 0 <= y < CH and img[y, x, 3] == 0: img[y, x, :3] = C_ARC; img[y, x, 3] = 200
+C_ARC = (208, 216, 240)
+def taunt_fx(img, t, C):
+    if 26 <= t <= 52:
+        r = [2, 4, 6, 4, 3][((t - 26) // 2) % 5]
+        glint(img, 36, 16 - 2, r, C.rim)
+move('taunt', 66, [
+    K(0, 'idle', 0),
+    K(4, 'idle', 0, (0, 0, 0, 0.12, 1), 'in'),
+    K(5, 'idle', 0, (0, 0, 0, 0.12, 1), 'linear', flip=True),
+    K(9, 'idle', 0, (0, 0, 0, 1, 1), 'out', flip=True),
+    K(12, 'idle', 0, (0, 0, 0, 0.12, 1), 'in', flip=True),
+    K(13, 'idle', 0, (0, 0, 0, 0.12, 1), 'linear'),
+    K(17, 'idle', 0, (0, 0, 0, 1.06, 0.92), 'out'),
+    K(22, 'attack1', 0, (0, 0, 0, 0.96, 1.08), 'back'),
+    K(28, 'attack1', 0, (0, 0, 0, 1, 1), 'inout'),
+    K(52, 'attack1', 0, (0, 0, -1, 1, 1.02), 'inout'),
+    K(56, 'guard', 0, (0, 0, 0, 1.04, 0.96), 'inout'),
+    K(66, 'idle', 0, (0, 0, 0), 'back'),
+], fx=taunt_fx)
+
 def lerp(a, b, k): return tuple(x + (y - x) * k for x, y in zip(a, b))
 
 def render_move(C, name):

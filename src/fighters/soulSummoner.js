@@ -27,6 +27,11 @@ export const SOUL_SUMMONER = {
   airSpeed: 2.7, airAccel: 0.24, airFriction: 0.04,
   jumpV: -9.0, shortHopV: -6.2, doubleJumpV: -8.6,
 
+  // TAUNT (1): SOUL FLARE - thrusts his flame overhead, it swells and roars, then he beckons them in
+  taunt: { name: 'SOUL FLARE', frames: 80, lines: ['COME, THEN.', 'YOUR SOUL IS MINE.', 'BURN BRIGHTLY.'],
+    sounds: [[12, 'flame', 0.6, 1], [16, 'summon', 0.35, 1.4], [42, 'flame', 0.5, 1.2]],
+    fx: [{ kind: 'wisp', from: 14, to: 46, every: 3, x: 6, y: -78, n: 2 }] },
+
   moves: {
     // ---- ground attacks (J + direction)
     jab: { frames: 18, lunge: 1.2, fx: 'jab', hits: [{ from: 4, to: 6, box: [6, -38, 30, 18], dmg: 3, angle: 35, base: 2.2, growth: 1.2 }] },

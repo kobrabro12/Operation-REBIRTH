@@ -30,4 +30,5 @@ export const SS_MOVES = {
    "shield": [354, 12, 2, 1],
    "grabbed": [366, 8, 2, 1],
    "ledge": [374, 12, 2, 1],
+   "taunt": [386, 40, 2],
 };

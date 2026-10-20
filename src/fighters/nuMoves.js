@@ -30,4 +30,5 @@ export const NU_MOVES = {
    "shield": [708, 12, 2, 1],
    "grabbed": [720, 8, 2, 1],
    "ledge": [728, 12, 2, 1],
+   "taunt": [740, 84, 1],
 };

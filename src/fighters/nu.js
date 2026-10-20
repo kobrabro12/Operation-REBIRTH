@@ -27,6 +27,11 @@ export const NU = {
   airSpeed: 2.8, airAccel: 0.25, airFriction: 0.04,
   jumpV: -9.4, shortHopV: -6.4, doubleJumpV: -8.8,
 
+  // TAUNT (1): HEADBANG - mic thrust to the sky, four big headbangs to the beat, then the mic pointed at you
+  taunt: { name: 'HEADBANG', frames: 84, lines: ['MAKE SOME NOISE!', 'CAN YOU HEAR ME?!', 'ONE MORE TIME!'],
+    sounds: [[13, 'taiko', 0.5, 1.2], [23, 'taiko', 0.5, 1.2], [33, 'taiko', 0.5, 1.2], [43, 'taiko', 0.6, 1.0], [58, 'whoosh', 0.4, 1]],
+    fx: [{ kind: 'note', from: 13, to: 43, every: 10, x: 4, y: -66, n: 2 }] },
+
   moves: {
     ...DEFAULT_GRAB,
     // ---- ground attacks

@@ -65,18 +65,18 @@ export class Training {
     this.labels();
 
     const K = Phaser.Input.Keyboard.KeyCodes;
-    this.keys = s.input.keyboard.addKeys({ one: K.ONE, two: K.TWO, three: K.THREE, four: K.FOUR, five: K.FIVE, six: K.SIX }, false);
+    this.keys = s.input.keyboard.addKeys({ two: K.TWO, three: K.THREE, four: K.FOUR, five: K.FIVE, six: K.SIX, seven: K.SEVEN }, false);   // 1 is the taunt
     this.selectHeld = {};
   }
 
   labels() {
     const txt = [
-      '1  RESET POSITIONS',
-      '2  FILL LIMIT GAUGE',
-      '3  DUMMY: ' + DUMMY_NAMES[this.dummy],
-      '4  HITBOXES: ' + (this.showHitboxes ? 'ON' : 'OFF'),
-      '5  DUMMY DAMAGE: ' + DUMMY_DAMAGE[this.dmgIdx] + '%',
-      '6  SPEED: ' + (SPEEDS[this.speedIdx] === 1 ? 'NORMAL' : SPEEDS[this.speedIdx] === 0.5 ? 'HALF' : 'QUARTER'),
+      '2  RESET POSITIONS',
+      '3  FILL LIMIT GAUGE',
+      '4  DUMMY: ' + DUMMY_NAMES[this.dummy],
+      '5  HITBOXES: ' + (this.showHitboxes ? 'ON' : 'OFF'),
+      '6  DUMMY DAMAGE: ' + DUMMY_DAMAGE[this.dmgIdx] + '%',
+      '7  SPEED: ' + (SPEEDS[this.speedIdx] === 1 ? 'NORMAL' : SPEEDS[this.speedIdx] === 0.5 ? 'HALF' : 'QUARTER'),
     ];
     this.btns.forEach((b, i) => b.setText(txt[i]));
   }
@@ -113,12 +113,12 @@ export class Training {
   // ---- per frame (real time, so hotkeys work in slow motion too)
   input() {
     const JD = Phaser.Input.Keyboard.JustDown, k = this.keys;
-    if (JD(k.one)) this.reset();
-    if (JD(k.two)) this.fillLimit();
-    if (JD(k.three)) this.cycleDummy();
-    if (JD(k.four)) this.toggleHitboxes();
-    if (JD(k.five)) this.cycleDamage();
-    if (JD(k.six)) this.cycleSpeed();
+    if (JD(k.two)) this.reset();
+    if (JD(k.three)) this.fillLimit();
+    if (JD(k.four)) this.cycleDummy();
+    if (JD(k.five)) this.toggleHitboxes();
+    if (JD(k.six)) this.cycleDamage();
+    if (JD(k.seven)) this.cycleSpeed();
     // Select / Back on any player's controller resets
     for (const i of [settings.p1Pad, ...settings.extraPads]) {
       if (i === null) continue;

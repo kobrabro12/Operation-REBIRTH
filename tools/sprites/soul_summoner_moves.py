@@ -289,6 +289,23 @@ move('ledge', 24, [
     k(24, P(arm=(-100, -2, -2), torso=(-4, 0, 0), head=(-8, 0, 0), bleg=(10, 0, 0), fleg=(-6, 0, 0), cape=(6, 0, 0), root=(0, 0, 0, 0.98, 1.04))),
 ], smear=(), loop=True)
 
+# ---- taunt: SOUL FLARE - gathers the flame low, thrusts it overhead where it swells huge and roars,
+# then lowers his palm and beckons them in
+RAISED = P(arm=(-96, -2, -3), torso=(-8, 0, -1), head=(-16, 0, 0), cape=(24, 0, 0), root=(0, 0, -3, 0.94, 1.1))
+move('taunt', 80, [
+    k(0, REST),
+    k(10, P(arm=(50, 2, 3), torso=(16, 2, 2), head=(6, 0, 1), cape=(-14, 0, 0), root=(0, 0, 0, 1.1, 0.86), bleg=(16, 0, 0), fleg=(-18, 2, 0), flame=(0, 0, 0, 0.8, 0.8)), 'out'),
+    k(16, {**RAISED, 'flame': (0, 0, 0, 1.7, 1.9)}, 'back'),
+    k(26, {**RAISED, 'flame': (0, 0, 0, 2.1, 2.3), 'head': (-20, 0, 0)}, 'inout'),
+    k(34, {**RAISED, 'flame': (0, 0, 0, 1.8, 2.0)}, 'inout'),
+    k(42, {**RAISED, 'flame': (0, 0, 0, 2.2, 2.4), 'head': (-20, 0, 0)}, 'inout'),
+    k(50, P(arm=(-8, 6, 1), torso=(10, 2, 1), head=(-4, 0, 0), cape=(-16, 0, 0), root=(0, 2, 0, 1.03, 0.97), bleg=(10, 0, 0), fleg=(-10, 2, 0)), 'back'),
+    k(56, P(arm=(-34, 6, 0), torso=(8, 2, 1), head=(-6, 0, 0), cape=(-12, 0, 0), root=(0, 2, 0), bleg=(10, 0, 0), fleg=(-10, 2, 0)), 'inout'),
+    k(62, P(arm=(-6, 6, 1), torso=(10, 2, 1), head=(-4, 0, 0), cape=(-14, 0, 0), root=(0, 2, 0), bleg=(10, 0, 0), fleg=(-10, 2, 0)), 'inout'),
+    k(68, P(arm=(-34, 6, 0), torso=(8, 2, 1), head=(-8, 0, 0), cape=(-12, 0, 0), root=(0, 2, 0), bleg=(10, 0, 0), fleg=(-10, 2, 0)), 'inout'),
+    k(80, REST, 'back'),
+], smear=())
+
 
 def build():
     out, index = {}, {}

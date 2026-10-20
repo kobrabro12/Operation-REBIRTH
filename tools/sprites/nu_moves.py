@@ -274,6 +274,19 @@ move('grabbed', 16, [k(0, HELD), k(8, mix(HELD, head=(-8, 0, 0), bthigh=(-30, 0,
 HANG = P(fupper=(-175, 0, -2), ffore=(0, 0, 0), bupper=(-175, 0, -2), head=(-10, 0, 0), root=(0, 0, 0, 0.98, 1.04), **legs(12, 14, -8, 20))
 move('ledge', 24, [k(0, HANG), k(12, mix(HANG, bthigh=(22, 0, 0), fthigh=(-14, 0, 0))), k(24, HANG)], smear=(), loop=True, step=2)
 
+# ---- taunt: HEADBANG - throws a fist in the air and bangs his head to four beats, hair flying,
+# then points the mic straight at them
+HORNS = dict(bupper=(-60, 0, 0), bfore=(-30, 0, 0))
+MIC_UP = dict(fupper=(-80, 0, -1), ffore=(90, 0, 0), mic=(0, 0, 0))          # the mic thrust up to the sky
+def bang(down):
+    return P(**HORNS, **MIC_UP, torso=(16, 2, 1) if down else (-6, -1, -1), head=(34, 2, 2) if down else (-22, 0, -1),
+             root=(0, 0, 0, 1.05, 0.94) if down else (0, 0, -1, 0.98, 1.03), **(legs(18, -24, -20, 26, 6, -8) if down else legs(8, -6, -8, 8)))
+POINT = P(torso=(14, 3, 0), head=(-10, 1, 0), fupper=(-40, 0, 0), ffore=(80, 0, 0), mic=(30, 0, 0), bupper=(30, 0, 0), bfore=(-40, 0, 0), root=(0, 3, 0, 1.04, 0.96), **STANCE)
+move('taunt', 84, [k(0, REST), k(8, bang(False), 'back')]
+     + [kk for b in range(4) for kk in (k(13 + 10 * b, bang(True), 'in'), k(18 + 10 * b, bang(False), 'out'))]
+     + [k(54, mix(POINT, ffore=(-30, 0, 0), torso=(-4, 0, 0)), 'out'), k(58, POINT, 'snap'), k(74, mix(POINT, head=(-14, 1, 0)), 'inout'), k(84, REST, 'back')],
+     smear=())
+
 
 def strip(frames, path):
     sheet = Image.new('RGBA', (64 * len(frames), 64), (0, 0, 0, 0))

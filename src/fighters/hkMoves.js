@@ -13,4 +13,5 @@ export const HK_MOVES = {
    "bair": [136, 13, 2],
    "uair": [149, 13, 2],
    "dair": [162, 16, 2],
+   "taunt": [178, 33, 2],
 };

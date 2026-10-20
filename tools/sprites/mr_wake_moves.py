@@ -285,6 +285,22 @@ move('grabbed', 16, [k(0, HELD), k(8, P(root=(-5, 0, -3), torso=(-4, 0, 0), head
 HANG = P(arm=(-80, -2, -4), staff=(G(275), 0, 0), torso=(-4, 0, 0), head=(-8, 0, 0), bfoot=(10, 0, 0), ffoot=(-6, 0, 0), cloak=(6, 0, 0), root=(0, 0, 0, 0.98, 1.04))
 move('ledge', 24, [k(0, HANG), k(12, P(arm=(-78, -2, -4), staff=(G(273), 0, 0), torso=(-2, 0, 0), head=(-6, 0, 0), bfoot=(16, 0, 0), ffoot=(-2, 0, 0), cloak=(10, 0, 0), root=(0, 0, 0, 0.98, 1.04))), k(24, HANG)], smear=(), loop=True)
 
+# ---- taunt: GEM TWIRL - spins the staff twice overhead like a baton, catches it, plants it at his side
+# and tips his head with a little bow
+UPH = dict(arm=(-70, -2, -4), torso=(-4, 0, -1), head=(-8, 0, 0), cloak=(10, 0, 0), root=(0, 0, -2, 0.97, 1.04))
+PLANT = P(arm=(30, 2, 3), staff=(G(270), 0, 0), torso=(4, 0, 1), head=(4, 0, 0), cloak=(-6, 0, 0), bfoot=(6, 0, 0), ffoot=(-6, 1, 0))
+move('taunt', 82, [
+    k(0, REST),
+    k(8, P(staff=(G(270), 0, -2), **UPH), 'out'),
+    k(20, P(staff=(G(270 + 360), 0, -2), **{**UPH, 'head': (-12, 0, 0)}), 'linear'),
+    k(32, P(staff=(G(270 + 720), 0, -2), **UPH), 'linear'),
+    k(36, P(staff=(G(270 + 760), 0, -2), **UPH), 'out'),
+    k(44, PLANT, 'back'),
+    k(52, {**PLANT, 'head': (24, 2, 2), 'torso': (18, 2, 2), 'cloak': (-14, 0, 0), 'root': (0, 0, 0, 1.03, 0.96)}, 'inout'),   # the bow
+    k(66, {**PLANT, 'head': (26, 2, 2), 'torso': (20, 2, 2), 'cloak': (-16, 0, 0), 'root': (0, 0, 0, 1.03, 0.96)}, 'inout'),
+    k(82, REST, 'back'),
+])
+
 
 def build(src_rel, out_rel, staff_cols=STAFF_COLS, width=2.3):
     sheet = np.array(Image.open(os.path.join(DIR, src_rel)).convert('RGBA'))

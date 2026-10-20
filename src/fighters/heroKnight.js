@@ -44,6 +44,11 @@ export const HERO_KNIGHT = {
   airSpeed: 2.8, airAccel: 0.25, airFriction: 0.04,
   jumpV: -9.2, shortHopV: -6.3, doubleJumpV: -8.8,
 
+  // TAUNT (1): BLADE SALUTE - two quick spins, then the sword raised straight up and a glint off the tip
+  taunt: { name: 'BLADE SALUTE', frames: 66, lines: ['EN GARDE!', 'FOR HONOR.', 'READY WHEN YOU ARE.'],
+    sounds: [[2, 'whoosh', 0.4, 1.3], [9, 'whoosh', 0.4, 1.5], [26, 'shing', 0.5, 1.2]],
+    fx: [{ kind: 'star', from: 26, to: 50, every: 6, x: -30, y: -72, n: 1, colors: [0xffffff] }] },
+
   moves: {
     // ---- designed
     // Jab (Attack2): the sword is drawn back, then a big rising cut in front. 7 frames x 4 ticks.

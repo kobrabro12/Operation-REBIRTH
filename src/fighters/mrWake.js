@@ -90,6 +90,11 @@ export const MR_WAKE = {
   airSpeed: 2.75, airAccel: 0.23, airFriction: 0.04,
   jumpV: -9.0, shortHopV: -6.0, doubleJumpV: -8.4,
 
+  // TAUNT (1): GEM TWIRL - twirls the staff overhead like a baton, plants it, and takes a little bow
+  taunt: { name: 'GEM TWIRL', frames: 82, lines: ['A SPLENDID EVENING.', 'SHALL WE DANCE?', 'TA-DA.'],
+    sounds: [[8, 'staff', 0.4, 1.4], [20, 'staff', 0.4, 1.5], [32, 'staff', 0.4, 1.6], [44, 'clang', 0.3, 1.4], [52, 'petal', 0.4, 1.2]],
+    fx: [{ kind: 'star', from: 8, to: 36, every: 4, x: 4, y: -82, n: 2 }] },
+
   moves: {
     ...DEFAULT_GRAB,
     // grab: he hooks them with the crook of his staff - a longer reach than a hand, a touch slower

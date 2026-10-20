@@ -28,4 +28,5 @@ export const MW_MOVES = {
    "shield": [335, 12, 2, 1],
    "grabbed": [347, 8, 2, 1],
    "ledge": [355, 12, 2, 1],
+   "taunt": [367, 41, 2],
 };

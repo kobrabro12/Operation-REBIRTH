@@ -34,7 +34,9 @@ export class CpuController extends Controller {
     if (this.shieldFor > 0) { this.shieldFor--; this.cur.shield = true; return; }
 
     const tgt = this.pickTarget(me);
-    if (!tgt) return;
+    const canTaunt = me.grounded && me.state === 'idle' && me.def.taunt;
+    if (!tgt) { if (canTaunt && Math.random() < 0.02) this.tap('taunt'); return; }   // nobody left to fight: show off
+    if (canTaunt && tgt.state === 'respawn' && Math.abs(tgt.x - me.x) > 120 && Math.random() < 0.006) { this.tap('taunt'); return; }
     const dx = tgt.x - me.x, dy = tgt.y - me.y, adx = Math.abs(dx);
     const L = this.lv;
 
@@ -75,7 +77,7 @@ export class CpuController extends Controller {
       this.x = Math.sign(dx); this.tap('special'); return;
     }
     // Mr Wake: drop a Shadow Pool when someone is close
-    if (M.downB && !M.downB.spring && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
+    if (M.downB && !M.downB.cloud && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
     // Lacy's Grand Slam: a charged home-run swing up close
@@ -85,15 +87,23 @@ export class CpuController extends Controller {
       me.cpuChargeTarget = 8 + Math.floor(Math.random() * (Math.random() < 0.2 ? 170 : 50));   // usually quick, sometimes a big wind-up
       return;
     }
-    // AERO: put up a Glass Window when an enemy projectile is flying at him
-    if (M.sideB && M.sideB.pane && me.grounded && this.match.projectiles.some((p) => p.alive && p.owner.team !== me.team && Math.abs(p.x - me.x) < 110 && Math.abs(p.y - (me.y - 30)) < 50 && Math.sign(me.x - p.x) === Math.sign(p.vx || p.dir || 0)) && Math.random() < 0.3 + L.accuracy * 0.4) {
-      this.x = Math.sign(dx); this.tap('special'); return;
+    // AERO's Rain Cloud: set one up when they're nearby, then call the Downpour when they're under it
+    if (M.downB && M.downB.cloud) {
+      const cl = me.cloud;
+      if (cl && cl.alive && !cl.burst && cl.under(tgt) && !tgt.grounded && Math.random() < 0.4 + L.accuracy * 0.5) { this.y = 1; this.tap('special'); return; }
+      if (cl && cl.alive && !cl.burst && cl.under(tgt) && tgt.grounded && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
+      if (!cl && adx > 40 && adx < 150 && Math.abs(dy) < 60 && Math.random() < 0.08 * L.aggression) {
+        if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
+        this.y = 1; this.tap('special'); return;
+      }
     }
-    // AERO: plant a Leaf Spring now and then when there's room
-    if (M.downB && M.downB.spring && adx > 120 && me.grounded && Math.random() < 0.05 * L.aggression) { this.y = 1; this.tap('special'); return; }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
-      if (M.sideB && M.sideB.pane) { if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; } this.tap('special'); return; }   // AERO: Bubble Trap
+      if (M.sideB && M.sideB.fish) {                                   // AERO: Goldfish Fling, or a Bubble Trap
+        if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
+        if (!me.fishOut && adx < 240 && Math.random() < 0.55) this.x = Math.sign(dx);
+        this.tap('special'); return;
+      }
       if (M.fireball) {
         if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }   // turn first: side+special is the Soul Hex
         this.tap('special'); this.holdSpecial = true;
