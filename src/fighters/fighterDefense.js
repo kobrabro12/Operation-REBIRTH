@@ -43,7 +43,7 @@ export class FighterDefense {
     if (this.state === 'airdodge') return this.t >= 3 && this.t <= 20;
     if (this.state === 'limit' || this.state === 'dying') return true;
     if (this.state === 'counterstrike') return this.t <= 12;
-    if (this.noclipping() || this.doorWalking()) return true;   // THE WANDERER: out of reality / in a doorway
+    if (this.noclipping() || this.doorWalking()) return true;   // WHAT ONCE WAS: out of reality / in a doorway
     if (this.state === 'ledgeclimb') return this.t <= 12;
     if (this.state === 'ledgeroll') return this.t <= 22;
     if (this.state === 'ledgeattack') return this.t <= 10;

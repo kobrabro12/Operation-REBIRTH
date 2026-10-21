@@ -148,7 +148,7 @@ export class FighterSpecials {
     this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
     if (u.bubble && this.t > u.riseAt && this.t < u.popAt) this.vy = u.floatV || -3.4;                   // AERO's bubble: a steady float upward
     if (u.bubble && this.t === u.popAt) { popBubble(this.match, this.x, this.y - 22, 26, this.pal); this.vy = -4; }
-    if (u.elevator && this.t > u.riseAt && this.t < u.stopAt) this.vy = u.liftV;          // THE WANDERER's elevator: a steady climb
+    if (u.elevator && this.t > u.riseAt && this.t < u.stopAt) this.vy = u.liftV;          // WHAT ONCE WAS's elevator: a steady climb
     if (u.elevator && this.t === u.stopAt) { sfx('ding', 0.6); this.vy = -1.5; }
     if (this.t % 2 === 0 && !u.elevator) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
     if (this.t >= u.frames) this.setState('helpless');

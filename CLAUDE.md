@@ -28,7 +28,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Fighter **data** | `src/fighters/soulSummoner.js`, `mrWake.js`, `heroKnight.js` | Stats, hitboxes, specials, limit. Balance changes go here. |
 | Move anim frame tables | `ssMoves.js`, `mwMoves.js`, `hkMoves.js` | **Generated** by `tools/sprites/*_moves.py` — don't hand-edit. |
 | Fighter **core** | `src/fighters/Fighter.js` (~450 lines) | Constructor, `step()`, ground/air states, `tryCommon()` (which input starts which move), attacks, `activeHitboxes()`, `physics()`, collision, KO/respawn. Mixes in the files below. |
-| Fighter topics | `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun), `fighterGrab.js`, `fighterLedge.js`, `fighterLimit.js` (start + beam), `limitUndertow.js` (Mr Wake), `limitBlade.js` (Lacy), `limitMosh.js` (NU), `limitAero.js` (AERO: Screensaver + Full Aero), `fighterWanderer.js` (THE WANDERER: Noclip, Wrong Door, Elevator, torch beam, LEVEL 0), `fighterTaunt.js` (taunts, 1 key), `fighterRender.js` (sprites/anim), `fighterCostumeFx.js` (auras, dragon, trails), `fighterSpeech.js` (costume quips) | Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not). |
+| Fighter topics | `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun), `fighterGrab.js`, `fighterLedge.js`, `fighterLimit.js` (start + beam), `limitUndertow.js` (Mr Wake), `limitBlade.js` (Lacy), `limitMosh.js` (NU), `limitAero.js` (AERO: Screensaver + Full Aero), `fighterWhatOnceWas.js` (WHAT ONCE WAS: SIGNAL meter + CHANNEL menu, Channel Surf, Wrong Door, elevator, screen beams, LEVEL 0 + the Bacteria), `fighterTaunt.js` (taunts, 1 key), `fighterRender.js` (sprites/anim), `fighterCostumeFx.js` (auras, dragon, trails), `fighterSpeech.js` (costume quips) | Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not). |
 | Projectiles/souls/minions | `src/fighters/entities.js` | |
 | Roster / select grid | `src/fighters/roster.js` | Add fighter = import def + entry in `ROSTER`. |
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
@@ -51,8 +51,10 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 - **Test fighters** (`TEST_ROSTER` in `roster.js`, played from Trinkets > TEST FIGHTERS, never on the select grid):
   **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py`) and **AERO** (`aero`, keys `aero_*`, `aero_draw.py` +
   `aero_moves.py`; his FULL AERO form is `aero_king_*`, `aero_king_draw.py`, def `AERO_FULL`). 64×64 base frames, 112×104 moves.
-  **THE WANDERER** (`wanderer`, keys `wn_*`, art `tools/sprites/wanderer_draw.py` + `wanderer_moves.py`, same rig as NU): a Backrooms
-  explorer. Almond Water puddle (heals him), Noclip side-B, Elevator up-B, Wrong Door down-B (press again to walk out of it), LEVEL 0 limit.
+  **WHAT ONCE WAS** (`what-once-was`, keys `wow_*`, art `tools/sprites/what_once_was_draw.py` + `what_once_was_moves.py`, same rig as NU):
+  a deformed Backrooms entity with a CRT TV head (screen layers `scr_*` picked per pose). MISSING Poster, Channel Surf side-B, Out of
+  Order elevator up-B, Wrong Door down-B, LEVEL 0 limit (the Bacteria chase). Unique mechanic: `def.signal` meter -> taunt key opens a
+  CHANNEL menu (WARNING +25% dmg / MISSING teleport + mark / DEAD AIR heal + no flinch). `missingMark`, `warnMode`, `armor` on Fighter.
 - Every fighter has a taunt (`def.taunt`, 1 key / stick click); training hotkeys are 2–7.
 
 ## How to add things

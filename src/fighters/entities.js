@@ -844,105 +844,60 @@ export class FlyingCD {
   }
 }
 
-// ---------------------------------------------------------------- THE WANDERER (test fighter)
-// ALMOND WATER: a bottle lobbed in an arc. It hits whoever it touches (and breaks); landing on a floor, it
-// smashes into a puddle (AlmondPuddle).
-export class AlmondWater {
+// ---------------------------------------------------------------- WHAT ONCE WAS (test fighter)
+// MISSING POSTER: a paper poster flung from its claw. It flutters forward, rising and dipping; whoever it
+// hits is MARKED - posted MISSING - for a moment (they take more damage, see Fighter.dmgTakenMult).
+export function drawPoster(g, x, y, tilt = 0, a = 1, s = 1) {
+  x = Math.round(x); y = Math.round(y);
+  const w = 10 * s, h = 13 * s, sk = Math.round(tilt * 2);
+  g.fillStyle(0x16120a, a); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
+  g.fillStyle(0xe8e2cc, a); g.fillRect(x - w / 2, y - h / 2, w, h);
+  g.fillStyle(0xc8281e, a); g.fillRect(x - w / 2 + 1, y - h / 2 + 1, w - 2, 2 * s);             // MISSING
+  g.fillStyle(0x3a342a, a); g.fillRect(x - 2 * s + sk, y - h / 2 + 4 * s, 4 * s, 3 * s);         // a face
+  g.fillRect(x - 3 * s + sk, y - h / 2 + 7 * s, 6 * s, 2 * s);
+  g.fillStyle(0x8a8478, a); g.fillRect(x - w / 2 + 1, y + h / 2 - 3 * s, w - 2, 1); g.fillRect(x - w / 2 + 1, y + h / 2 - 2, w - 4, 1);   // text lines
+}
+export class MissingPoster {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.alive = true; this.id = nextId++;
     this.dir = owner.facing;
-    this.x = owner.x + owner.facing * 8; this.y = owner.y - 48;
-    this.vx = this.dir * spec.vx + owner.vx * 0.3; this.vy = spec.vy;
+    this.x = owner.x + owner.facing * 30; this.y = owner.y - 34; this.y0 = this.y;
+    this.vx = this.dir * spec.speed; this.life = spec.life;
     this.g = match.add.graphics(); match.addWorld(this.g);
-    sfx('swing', 0.4, 1.5);
+    sfx('swing', 0.4, 1.7); sfx('petal', 0.5, 0.6);
   }
-  hitbox() { return { x1: this.x - 5, x2: this.x + 5, y1: this.y - 6, y2: this.y + 6, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
+  hitbox() { return { x1: this.x - 7, x2: this.x + 7, y1: this.y - 9, y2: this.y + 9, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
   step() {
     this.t++;
-    const py = this.y;
-    this.vy = Math.min(9, this.vy + this.spec.grav);
-    this.x += this.vx; this.y += this.vy;
-    for (const p of this.match.stage.platforms) {
-      if (this.x < p.x1 || this.x > p.x2) continue;
-      if (py <= p.y && this.y >= p.y) { this.y = p.y; this.smash(p); return; }     // landed on a floor: a puddle
-      if (p.solid && this.y > p.y && this.y < p.bottom) { this.kill(); return; }    // hit the side of the island
-    }
-    if (this.y > 420 || Math.abs(this.x) > 700) this.remove();
+    this.vx *= 0.985;
+    this.x += this.vx; this.y = this.y0 + Math.sin(this.t * 0.18) * this.spec.flutter - this.t * 0.05;
+    if (this.t % 4 === 0) this.match.particles.push({ x: this.x - this.dir * 6, y: this.y + 4, vx: -this.dir * 0.3, vy: 0.2, life: 12, color: 0xe8e2cc, size: 1, grav: 0 });
+    if (--this.life <= 0) this.remove(true);
   }
-  smash(p) {
-    sfx('glass', 0.6, 1);
-    this.splash(10);
-    this.match.spawnPuddle(this.owner, this.spec.puddle, this.x, p);
-    this.remove();
+  // it hit someone: they're posted MISSING
+  kill() {
+    if (!this.alive) return;
+    let best = null, bd = 1e9;
+    for (const f of this.match.fighters) { if (!f.alive || f.team === this.owner.team) continue; const d = Math.hypot(f.x - this.x, f.y - 26 - this.y); if (d < bd) { bd = d; best = f; } }
+    if (best && bd < 40 && best.state === 'hitstun') best.markMissing(this.spec.mark);
+    sfx('petal', 0.6, 1.2); this.remove(false);
   }
-  splash(n) {
-    const R = Math.random;
-    for (let i = 0; i < n; i++) this.match.particles.push({ shape: 'drop', x: this.x, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -1 - R() * 3, life: 24 + R() * 10, color: i % 3 ? 0xe8f4ec : 0xffffff, grav: 0.2, size: 2 });
-    for (let i = 0; i < 4; i++) this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 3, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 16, color: 0xffffff, ang: R() * 6, grav: 0.2, drag: 0.95 });
+  remove(fade) {
+    if (!this.alive) return; this.alive = false; this.g.destroy();
+    if (fade) this.match.puff(this.x, this.y, 0xe8e2cc, 4);
+    if (this.owner.posterOut === this) this.owner.posterOut = null;
   }
-  kill() { if (!this.alive) return; sfx('glass', 0.5, 1.2); this.splash(8); this.remove(); }   // broke on someone (or was blocked)
-  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.bottleOut === this) this.owner.bottleOut = null; }
   render() {
     if (!this.alive) return;
-    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), side = (this.t >> 2) % 2;   // tumbling end over end
-    g.clear();
-    const [w, h] = side ? [9, 5] : [5, 9];
-    g.fillStyle(0x16120a, 1); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
-    g.fillStyle(0xf4f4ee, 1); g.fillRect(x - w / 2, y - h / 2, w, h);
-    g.fillStyle(0xc8a878, 1); if (side) g.fillRect(x - 1, y - h / 2, 2, h); else g.fillRect(x - w / 2, y - 1, w, 2);   // label
-    g.fillStyle(0x3a7ad0, 1); if (side) g.fillRect(x + this.dir * (w / 2 - 1) - 1, y - 1, 2, 2); else g.fillRect(x - 1, y - h / 2, 2, 2);   // cap
-  }
-}
-
-// ALMOND WATER's puddle: opponents who step in are slowed (they slip about), and the Wanderer heals while
-// he stands in it - 1% every `healEvery` frames, up to `healMax`% from one puddle.
-export class AlmondPuddle {
-  constructor(match, owner, spec, x, plat) {
-    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.healed = 0;
-    this.y = plat.y; this.x1 = Math.max(plat.x1, x - spec.width / 2); this.x2 = Math.min(plat.x2, x + spec.width / 2);
-    this.g = match.add.graphics(); match.addWorld(this.g);
-  }
-  on(f) { return f.alive && f.grounded && f.x >= this.x1 && f.x <= this.x2 && Math.abs(f.y - this.y) < 4; }
-  step() {
-    if (!this.alive) return;
-    this.t++;
-    const S = this.spec, m = this.match;
-    for (const f of m.fighters) {
-      if (!this.on(f)) continue;
-      if (f === this.owner) {
-        const hurt = m.mode === 'stamina' ? f.hp < f.maxHp : f.percent > 0;
-        if (hurt && this.healed < S.healMax && this.t % S.healEvery === 0) {
-          this.healed++;
-          if (m.mode === 'stamina') f.hp = Math.min(f.maxHp, f.hp + 1); else f.percent = Math.max(0, f.percent - 1);
-          m.particles.push({ shape: 'cross', x: f.x + (Math.random() - 0.5) * 16, y: f.y - 20 - Math.random() * 20, vx: 0, vy: -0.5, life: 24, color: 0xb8f0c8, grav: 0, r: 2 });
-          if (this.healed === 1) sfx('item', 0.3, 1.6);
-        }
-      } else if (f.team !== this.owner.team) {
-        if (f.slow <= 0) m.puff(f.x, f.y - 3, 0xe8f4ec, 3);
-        f.slow = Math.max(f.slow, S.slip);
-      }
-    }
-    if (this.t >= this.life) this.kill();
-  }
-  kill() { if (!this.alive) return; this.alive = false; this.g.destroy(); }
-  render() {
-    if (!this.alive) return;
-    const g = this.g, grow = Math.min(1, this.t / 8), fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
-    const cx = (this.x1 + this.x2) / 2, half = ((this.x2 - this.x1) / 2) * grow, y = this.y;
-    g.clear();
-    g.fillStyle(0xcfe6dc, 0.55 * fade); g.fillRect(cx - half, y - 2, half * 2, 3);
-    g.fillStyle(0xcfe6dc, 0.45 * fade); g.fillRect(cx - half + 6, y - 3, half * 2 - 12, 1);
-    g.fillStyle(0xffffff, 0.8 * fade);                                       // ripples catching the light
-    for (let k = 0; k < 3; k++) { const rx = cx - half + ((k * 41 + this.t) % Math.max(1, half * 2)); g.fillRect(Math.round(rx), y - 2, 4, 1); }
-    const own = this.on(this.owner) && this.healed < this.spec.healMax;
-    if (own && this.t % 20 < 10) { g.fillStyle(0xb8f0c8, 0.3 * fade); g.fillRect(cx - half - 2, y - 5, half * 2 + 4, 6); }
+    const g = this.g; g.clear();
+    drawPoster(g, this.x, this.y, Math.sin(this.t * 0.3), Math.min(1, this.life / 10));
   }
 }
 
 // WRONG DOOR: a plain office door in a scrap of yellow wallpaper, standing on the floor. Using the down
-// special again steps the Wanderer out of it. Attacks chip its HP (like AERO's computers).
+// special again steps WHAT ONCE WAS out of it. Attacks chip its HP (like AERO's computers).
 // Sized for a fighter: the opening is a bit taller and wider than a fighter's body (50 px tall), so
-// the Wanderer (or anyone) visibly fits through it.
+// it (or anyone) visibly fits through it.
 export const DOOR = { w: 30, h: 64 };          // the doorway opening
 export function drawDoor(g, x, y, open = 0, a = 1, flash = false) {
   x = Math.round(x); y = Math.round(y);

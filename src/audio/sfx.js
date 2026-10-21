@@ -98,7 +98,7 @@ export function initSfx(scene) {
   ph = 0; build('bats', 0.5, (t) => { ph += (2400 + 900 * Math.sin(t * 90)) / SR; return sq(ph, 0.125) * 0.35 * (Math.floor(t * 28) % 2) * (1 - t / 0.5); });   // squeaking wings
   ph = 0;
   build('go', 0.5, (t) => { ph += (t < 0.25 ? 523 : 1046) / SR; return sq(ph, 0.5) * 0.6 * (1 - t / 0.5); });
-  // THE WANDERER (test fighter): the Backrooms' fluorescent hum, an elevator's ding, a bottle smashing
+  // WHAT ONCE WAS (test fighter): the Backrooms' fluorescent hum, an elevator's ding, glass breaking
   ph = 0; n1 = noiseStep(2);
   build('buzz', 0.7, (t) => { ph += 120 / SR; return (sq(ph, 0.5) * 0.35 + n1() * 0.12) * Math.min(1, t * 20) * (1 - t / 0.7) * (Math.floor(t * 90) % 7 ? 1 : 0.25); });
   ph = 0; ph2 = 0;

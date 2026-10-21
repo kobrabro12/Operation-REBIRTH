@@ -19,7 +19,7 @@ import { FighterRender } from './fighterRender.js';
 import { LimitAero } from './limitAero.js';
 import { LimitMosh } from './limitMosh.js';
 import { FighterTaunt } from './fighterTaunt.js';
-import { FighterWanderer } from './fighterWanderer.js';
+import { FighterWhatOnceWas } from './fighterWhatOnceWas.js';
 import { popBubble } from './entities.js';
 
 const BUFFER = 7;   // frames an early button press is remembered
@@ -80,11 +80,11 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel]; }   // NU's RAGE MODE hits 20% harder
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * (this.warnMode > 0 ? this.def.signal.warning.dmg : 1); }   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS's WARNING channel 25%
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel]; }
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
-  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel]; }
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1); }   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
@@ -133,6 +133,7 @@ export class Fighter {
     if (this.curse > 0) this.curse--;
     if (this.swift > 0) this.swift--;
     if (this.rage > 0) this.rage--;
+    if (this.warnMode > 0) this.warnMode--; if (this.armor > 0) this.armor--; if (this.missingMark > 0) this.missingMark--;   // WHAT ONCE WAS's channels
     if (this.pcBuff > 0) this.pcBuff--;
     if (this.fullAero > 0 && --this.fullAero === 0) this.exitFullAero();
     if (this.aeroLevel && this.age % (this.fullAero > 0 ? 5 : 9) === 0 && !this.match.demo) {   // powered-up sparkle
@@ -218,6 +219,7 @@ export class Fighter {
   // Attacks, specials, grab and Limit, shared by ground and air.
   tryCommon(c, ground) {
     if (this.buffer.limit && this.limit >= LIMIT_MAX) { this.buffer.limit = 0; this.startLimit(); return true; }
+    if (this.buffer.taunt && this.signalFull()) { this.buffer.taunt = 0; this.startChannel(); return true; }   // WHAT ONCE WAS: a full SIGNAL meter opens its CHANNEL menu
     if (this.buffer.special) {
       const M = this.def.moves;
       this.buffer.special = 0;
@@ -329,7 +331,7 @@ export class Fighter {
       if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
       this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
     }
-    if (m.noclip || m.almond || m.door || m.splash) this.wandererAttackStep(m);   // THE WANDERER (fighterWanderer.js)
+    if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
@@ -484,7 +486,7 @@ export class Fighter {
 
   ko() {
     if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
-    this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
+    this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null; this.hideMenuLabels();
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
     this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear(); for (const gh of this.ghosts) gh.setVisible(false);
@@ -492,7 +494,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.warnMode = 0; this.armor = 0; this.missingMark = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
@@ -514,7 +516,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero, FighterWanderer]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero, FighterWhatOnceWas]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);
