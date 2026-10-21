@@ -1,6 +1,7 @@
 # Operation REBIRTH — notes for Claude
 
 Read this first. It replaces exploring the repo. Only open the files a task actually touches.
+Game rules and numbers: `DESIGN.md`. Recipes: `.claude/skills/` (add-fighter, add-stage, add-item).
 
 ## What it is
 2D pixel-art platform fighter (Smash-style) for the browser. Up to 4 fighters, CPUs fill empty slots.
@@ -9,7 +10,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 
 ## Stack
 - **Phaser 4.2.1** loaded from CDN in `index.html` (global `Phaser`, not imported). Vite 6 for dev/build.
-- Plain ES modules, no TypeScript, no framework, no tests yet.
+- Plain ES modules, no TypeScript, no framework.
 - `npm run dev` → http://localhost:5173. `npm run build` → `dist/`.
 - Every push to `main` auto-deploys to GitHub Pages (`.github/workflows/deploy-pages.yml`). Treat `main` as live.
 
@@ -26,7 +27,8 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 |---|---|---|
 | Fighter **data** | `src/fighters/soulSummoner.js`, `mrWake.js`, `heroKnight.js` | Stats, hitboxes, specials, limit. Balance changes go here. |
 | Move anim frame tables | `ssMoves.js`, `mwMoves.js`, `hkMoves.js` | **Generated** by `tools/sprites/*_moves.py` — don't hand-edit. |
-| Fighter **engine** | `src/fighters/Fighter.js` (~1850 lines) | State machine, `st_<state>()` methods (attack, air, shield, roll, ledge, hitstun, charge, upb, limit…), `physics()`, `activeHitboxes()`. grep for the state you need; don't read it whole. |
+| Fighter **core** | `src/fighters/Fighter.js` (~450 lines) | Constructor, `step()`, ground/air states, `tryCommon()` (which input starts which move), attacks, `activeHitboxes()`, `physics()`, collision, KO/respawn. Mixes in the files below. |
+| Fighter topics | `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun), `fighterGrab.js`, `fighterLedge.js`, `fighterLimit.js` (start + beam), `limitUndertow.js` (Mr Wake), `limitBlade.js` (Lacy), `fighterRender.js` (sprites/anim), `fighterCostumeFx.js` (auras, dragon, trails), `fighterSpeech.js` (costume quips) | Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not). |
 | Projectiles/souls/minions | `src/fighters/entities.js` | |
 | Roster / select grid | `src/fighters/roster.js` | Add fighter = import def + entry in `ROSTER`. |
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
@@ -50,9 +52,17 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 ## How to add things
 **A move / rebalance:** edit the `moves` object in the fighter's def. Hit format:
 `{ from, to, box: [x, y, w, h], dmg, angle, base, growth, stun? }` — box relative to feet, facing right.
-**A fighter:** def file (copy soulSummoner.js shape) → sprite sheets in `public/assets/fighters/<id>/` → load in BootScene → add to ROSTER → icon + voice line. Any new special behaviour needs a `st_` state in Fighter.js.
-**A stage:** `<name>Stage.js` with `platforms`, `step()`, `draw()`, HazardCycle kinds → entry in `STAGES` with preview fn → music in `src/audio/music.js` → announcer voice.
+**A fighter / stage / item:** follow the skill in `.claude/skills/` (full wire-up checklist).
 **Art/sound:** generator scripts in `tools/` (Python) write into `public/assets/`; rerun the script rather than editing PNGs.
+
+## Testing: `npm run sim`
+Headless all-CPU matches, ~0.3 s per minute of game time (`tools/sim/sim.mjs`). Needs Chrome or Edge installed.
+- `npm run sim -- --smoke` → every stage, fighter and costume. Run after any gameplay change. Exit code 1 on errors.
+- `npm run sim -- --fighters soul-summoner,mr-wake --stage sky-sanctum --matches 10` → balance comparisons
+- **Refactor check**: same seed = identical match. Save `npm run sim -- --smoke --json` before the change and
+  compare it after (ignore `simMs`). Any difference means behaviour changed.
+- Keep game logic on `Math.random()` (the sim seeds it) and frame counts, never `Date.now()` or real time.
+- The sim can't judge looks or feel: ask Mason to playtest anything visual.
 
 ## Working conventions
 - Keep fighter files data-only; behaviour goes in Fighter.js / entities.js.
