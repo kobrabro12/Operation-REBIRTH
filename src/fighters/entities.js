@@ -843,3 +843,168 @@ export class FlyingCD {
     g.fillStyle(0x0d3550, 1); g.fillRect(x - 1, y - 1, 2, 2);
   }
 }
+
+// ---------------------------------------------------------------- THE WANDERER (test fighter)
+// ALMOND WATER: a bottle lobbed in an arc. It hits whoever it touches (and breaks); landing on a floor, it
+// smashes into a puddle (AlmondPuddle).
+export class AlmondWater {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.alive = true; this.id = nextId++;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * 8; this.y = owner.y - 48;
+    this.vx = this.dir * spec.vx + owner.vx * 0.3; this.vy = spec.vy;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('swing', 0.4, 1.5);
+  }
+  hitbox() { return { x1: this.x - 5, x2: this.x + 5, y1: this.y - 6, y2: this.y + 6, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
+  step() {
+    this.t++;
+    const py = this.y;
+    this.vy = Math.min(9, this.vy + this.spec.grav);
+    this.x += this.vx; this.y += this.vy;
+    for (const p of this.match.stage.platforms) {
+      if (this.x < p.x1 || this.x > p.x2) continue;
+      if (py <= p.y && this.y >= p.y) { this.y = p.y; this.smash(p); return; }     // landed on a floor: a puddle
+      if (p.solid && this.y > p.y && this.y < p.bottom) { this.kill(); return; }    // hit the side of the island
+    }
+    if (this.y > 420 || Math.abs(this.x) > 700) this.remove();
+  }
+  smash(p) {
+    sfx('glass', 0.6, 1);
+    this.splash(10);
+    this.match.spawnPuddle(this.owner, this.spec.puddle, this.x, p);
+    this.remove();
+  }
+  splash(n) {
+    const R = Math.random;
+    for (let i = 0; i < n; i++) this.match.particles.push({ shape: 'drop', x: this.x, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -1 - R() * 3, life: 24 + R() * 10, color: i % 3 ? 0xe8f4ec : 0xffffff, grav: 0.2, size: 2 });
+    for (let i = 0; i < 4; i++) this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 3, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 16, color: 0xffffff, ang: R() * 6, grav: 0.2, drag: 0.95 });
+  }
+  kill() { if (!this.alive) return; sfx('glass', 0.5, 1.2); this.splash(8); this.remove(); }   // broke on someone (or was blocked)
+  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.bottleOut === this) this.owner.bottleOut = null; }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), side = (this.t >> 2) % 2;   // tumbling end over end
+    g.clear();
+    const [w, h] = side ? [9, 5] : [5, 9];
+    g.fillStyle(0x16120a, 1); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
+    g.fillStyle(0xf4f4ee, 1); g.fillRect(x - w / 2, y - h / 2, w, h);
+    g.fillStyle(0xc8a878, 1); if (side) g.fillRect(x - 1, y - h / 2, 2, h); else g.fillRect(x - w / 2, y - 1, w, 2);   // label
+    g.fillStyle(0x3a7ad0, 1); if (side) g.fillRect(x + this.dir * (w / 2 - 1) - 1, y - 1, 2, 2); else g.fillRect(x - 1, y - h / 2, 2, 2);   // cap
+  }
+}
+
+// ALMOND WATER's puddle: opponents who step in are slowed (they slip about), and the Wanderer heals while
+// he stands in it - 1% every `healEvery` frames, up to `healMax`% from one puddle.
+export class AlmondPuddle {
+  constructor(match, owner, spec, x, plat) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.healed = 0;
+    this.y = plat.y; this.x1 = Math.max(plat.x1, x - spec.width / 2); this.x2 = Math.min(plat.x2, x + spec.width / 2);
+    this.g = match.add.graphics(); match.addWorld(this.g);
+  }
+  on(f) { return f.alive && f.grounded && f.x >= this.x1 && f.x <= this.x2 && Math.abs(f.y - this.y) < 4; }
+  step() {
+    if (!this.alive) return;
+    this.t++;
+    const S = this.spec, m = this.match;
+    for (const f of m.fighters) {
+      if (!this.on(f)) continue;
+      if (f === this.owner) {
+        const hurt = m.mode === 'stamina' ? f.hp < f.maxHp : f.percent > 0;
+        if (hurt && this.healed < S.healMax && this.t % S.healEvery === 0) {
+          this.healed++;
+          if (m.mode === 'stamina') f.hp = Math.min(f.maxHp, f.hp + 1); else f.percent = Math.max(0, f.percent - 1);
+          m.particles.push({ shape: 'cross', x: f.x + (Math.random() - 0.5) * 16, y: f.y - 20 - Math.random() * 20, vx: 0, vy: -0.5, life: 24, color: 0xb8f0c8, grav: 0, r: 2 });
+          if (this.healed === 1) sfx('item', 0.3, 1.6);
+        }
+      } else if (f.team !== this.owner.team) {
+        if (f.slow <= 0) m.puff(f.x, f.y - 3, 0xe8f4ec, 3);
+        f.slow = Math.max(f.slow, S.slip);
+      }
+    }
+    if (this.t >= this.life) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, grow = Math.min(1, this.t / 8), fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
+    const cx = (this.x1 + this.x2) / 2, half = ((this.x2 - this.x1) / 2) * grow, y = this.y;
+    g.clear();
+    g.fillStyle(0xcfe6dc, 0.55 * fade); g.fillRect(cx - half, y - 2, half * 2, 3);
+    g.fillStyle(0xcfe6dc, 0.45 * fade); g.fillRect(cx - half + 6, y - 3, half * 2 - 12, 1);
+    g.fillStyle(0xffffff, 0.8 * fade);                                       // ripples catching the light
+    for (let k = 0; k < 3; k++) { const rx = cx - half + ((k * 41 + this.t) % Math.max(1, half * 2)); g.fillRect(Math.round(rx), y - 2, 4, 1); }
+    const own = this.on(this.owner) && this.healed < this.spec.healMax;
+    if (own && this.t % 20 < 10) { g.fillStyle(0xb8f0c8, 0.3 * fade); g.fillRect(cx - half - 2, y - 5, half * 2 + 4, 6); }
+  }
+}
+
+// WRONG DOOR: a plain office door in a scrap of yellow wallpaper, standing on the floor. Using the down
+// special again steps the Wanderer out of it. Attacks chip its HP (like AERO's computers).
+export function drawDoor(g, x, y, open = 0, a = 1, flash = false) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle(0x16120a, a); g.fillRect(x - 15, y - 41, 30, 41);
+  g.fillStyle(0xcbb662, a); g.fillRect(x - 14, y - 40, 28, 40);             // the wallpaper patch
+  g.fillStyle(0xb09a48, a * 0.7); for (let sx = x - 13; sx < x + 14; sx += 4) g.fillRect(sx, y - 40, 1, 40);
+  g.fillStyle(0x3a2e14, a); g.fillRect(x - 11, y - 36, 22, 36);             // frame
+  g.fillStyle(0x050403, a); g.fillRect(x - 9, y - 34, 18, 34);              // the dark beyond
+  const w = Math.max(0, Math.round(18 * (1 - open)));
+  if (w > 0) {
+    g.fillStyle(flash ? 0xffffff : 0xe2d6a0, a); g.fillRect(x - 9, y - 34, w, 34);   // the door, swinging open on its left hinge
+    g.fillStyle(0xbfb07a, a); g.fillRect(x - 9 + w - 1, y - 34, 1, 34);
+    if (w > 8) { g.fillStyle(0xbfb07a, a); g.fillRect(x - 7, y - 31, w - 4, 10); g.fillRect(x - 7, y - 18, w - 4, 14); g.fillStyle(0xe2d6a0, a); g.fillRect(x - 6, y - 30, w - 6, 8); g.fillRect(x - 6, y - 17, w - 6, 12); }
+    if (w > 14) { g.fillStyle(0x8a7a4a, a); g.fillRect(x + 5, y - 18, 2, 2); }   // knob
+  }
+}
+export class WrongDoor {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.id = nextId++;
+    this.hp = spec.hp; this.hitIds = new Set(); this.flash = 0; this.shake = 0;
+    const floor = (x) => { let best = null; for (const p of match.stage.platforms) if (x >= p.x1 + 12 && x <= p.x2 - 12 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p; return best; };
+    let x = owner.x - owner.facing * spec.behind, p = floor(x);
+    if (!p) { x = owner.x; p = floor(x); }                                  // no floor behind him: right where he stands
+    if (!p) { this.alive = false; return; }                                 // nothing below at all
+    this.x = x; this.y = p.y; this.platform = p;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('land', 0.6, 0.6); sfx('shield', 0.35, 0.5);
+    match.puff(this.x, this.y - 4, 0xcbb662, 6);
+  }
+  box() { return { x1: this.x - 11, x2: this.x + 11, y1: this.y - 36, y2: this.y }; }
+  step() {
+    this.t++;
+    if (this.flash > 0) this.flash--; if (this.shake > 0) this.shake--;
+    if (!this.owner.alive || this.t >= this.life) { this.match.puff(this.x, this.y - 18, 0xcbb662, 8); this.kill(); }
+  }
+  strike(hbs) {
+    if (!this.alive) return;
+    const b = this.box();
+    for (const hb of hbs) {
+      if (!hb.owner || hb.owner.team === this.owner.team || hb.grab || this.hitIds.has(hb.id)) continue;
+      if (!(hb.x1 < b.x2 && hb.x2 > b.x1 && hb.y1 < b.y2 && hb.y2 > b.y1)) continue;
+      this.hitIds.add(hb.id);
+      this.hp -= hb.h.dmg || 5; this.flash = 6; this.shake = 8;
+      sfx('land', 0.6, 0.8);
+      if (hb.projectile && !hb.persist) hb.projectile.kill();
+      if (this.hp <= 0) { this.destroy(); return; }
+    }
+  }
+  destroy() {
+    const R = Math.random;
+    for (let i = 0; i < 14; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, life: 26 + R() * 14, color: [0xe2d6a0, 0xcbb662, 0x3a2e14][i % 3], drag: 0.94, grav: 0.14, ang: a }); }
+    sfx('bighit', 0.5, 1.3);
+    this.match.popText({ x: this.x, y: this.y + 40 }, 'DOOR BROKEN!', '#e2d6a0');
+    this.kill();
+  }
+  use() { this.kill(); }                                                    // he came out of it: it's gone
+  kill() { if (!this.alive) return; this.alive = false; if (this.g) this.g.destroy(); if (this.owner.doorOut === this) this.owner.doorOut = null; }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, fade = Math.min(1, this.t / 6) * (this.life - this.t < 60 && (this.t >> 2) % 2 ? 0.5 : 1);
+    g.clear();
+    drawDoor(g, this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0), this.y, 0, fade, this.flash > 0);
+    if (this.hp < this.spec.hp) {
+      g.fillStyle(0x0b0a14, 0.8); g.fillRect(this.x - 12, this.y - 46, 24, 3);
+      g.fillStyle(this.hp > this.spec.hp * 0.4 ? 0xe2d6a0 : 0xff5a5a, 1); g.fillRect(this.x - 11, this.y - 45, 22 * Math.max(0, this.hp) / this.spec.hp, 1);
+    }
+  }
+}

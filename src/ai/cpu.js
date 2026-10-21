@@ -93,6 +93,9 @@ export class CpuController extends Controller {
     // AERO: set computers down (two powers up FULL AERO); in FULL AERO, keep a CD storm going
     if (M.downB && M.downB.pc && me.grounded && this.match.pcsOf(me).length < 2 && adx > 80 && Math.random() < 0.1 * L.aggression) { this.y = 1; this.tap('special'); return; }
     if (M.downB && M.downB.cdcloud && !me.cdCloud && adx < 280 && Math.random() < 0.3) { this.y = 1; this.tap('special'); return; }
+    // THE WANDERER: put a door down away from the action; step back out of it when things get hot
+    if (M.downB && M.downB.door && !me.wrongDoor() && me.grounded && adx > 100 && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
+    if (M.downB && M.downB.door && me.wrongDoor() && adx < 50 && me.percent > 70 && Math.abs(me.wrongDoor().x - tgt.x) > 120 && Math.random() < 0.15) { this.y = 1; this.tap('special'); return; }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
       if (M.sideB && M.sideB.fish) {                                   // AERO: Goldfish Fling, or a Bubble Trap
@@ -189,6 +192,12 @@ export class CpuController extends Controller {
         if (o.t > lim.releaseAt - 6 && o.t < lim.releaseAt + 50) { if (me.grounded || (me.vy > 0 && me.jumpsLeft > 0)) this.tap('jump'); this.x = Math.sign(me.x - o.x) || 1; return true; }
         return false;
       }
+      if (lim.type === 'level0') {                       // get out of reach before the lights go out
+        if (o.t > lim.grabAt || adx > lim.reach + 30) return false;
+        this.x = Math.sign(me.x - o.x) || 1;
+        if (me.grounded && o.t > lim.grabAt - 20 && Math.random() < 0.3) this.tap('jump');
+        return true;
+      }
       if (lim.type === 'mosh') {                         // jump the mic-drop shockwave as it comes
         const until = o.t - lim.dropAt;
         if (until > -10 && until < 30 && me.grounded && Math.abs(me.y - o.y) < 6) { this.tap('jump'); return true; }
@@ -226,6 +235,9 @@ export class CpuController extends Controller {
     this.x = toward;
     const below = me.y > P.y - 10;
     if (me.state === 'helpless' || me.state === 'hitstun') return;
+    const M = me.def.moves;
+    if (M.downB && M.downB.door && me.wrongDoor() && me.state === 'air' && (below || Math.abs(me.x) > P.x2 + 60)) { this.x = 0; this.y = 1; this.tap('special'); return; }   // THE WANDERER: back out of his door
+    if (M.sideB && M.sideB.noclip && !me.usedDive && me.state === 'air' && Math.abs(me.y - P.y) < 60 && Math.min(Math.abs(me.x - P.x1), Math.abs(me.x - P.x2)) > 70) { this.tap('special'); return; }   // ... or noclip back to the stage
     if (below || me.vy > 1) {
       if (me.jumpsLeft > 0 && me.vy > -1) { this.tap('jump'); return; }
       if (!me.usedUpB && me.y > -20 && me.vy > 0) { this.y = -1; this.tap('special'); }

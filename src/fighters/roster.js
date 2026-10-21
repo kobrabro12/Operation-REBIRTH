@@ -5,6 +5,7 @@ import { MR_WAKE } from './mrWake.js';
 import { HERO_KNIGHT } from './heroKnight.js';
 import { NU } from './nu.js';
 import { AERO } from './aero.js';
+import { WANDERER } from './wanderer.js';
 import { skinTexture, skinInfo } from './skins.js';
 
 export const ROSTER = [
@@ -26,6 +27,11 @@ export const TEST_ROSTER = [
       + 'JAB  BUBBLE POP      FTILT  AURORA SWOOSH\nFSMASH  LENS FLARE    USMASH  GEYSER\nDSMASH  RIPPLE        DAIR  RAINDROP\n\n'
       + 'K      BUBBLE TRAP - SEALS THEM IN A BUBBLE\nSIDE K GOLDFISH FLING - OUT AND BACK\nUP K   BUBBLE RIDE - FLOAT UP AND POP\n'
       + 'DOWN K DESKTOP - STAY NEAR IT: POWERED UP\n\nLIMIT  SCREENSAVER - OR WITH 2 PCS OUT:\n       FULL AERO! (15 S, EVERYTHING UPGRADED)\n1      TAUNT: FISHBOWL BOOGIE' },
+  { id: 'wanderer', name: 'THE WANDERER', def: WANDERER, tag: 'PROTOTYPE 03',
+    notes: 'LOST IN THE BACKROOMS WITH A TORCH.\n\n'
+      + 'JAB  FLASHLIGHT BONK  FTILT  WET FLOOR SIGN\nFSMASH  WET FLOOR     USMASH  POWER SURGE\nDSMASH  PUDDLE STOMP  DAIR  FALL THROUGH\n\n'
+      + 'K      ALMOND WATER - A PUDDLE THAT HEALS HIM\nSIDE K NOCLIP - VANISH, REAPPEAR AHEAD\nUP K   ELEVATOR - A STEADY RIDE UP\n'
+      + 'DOWN K WRONG DOOR - AGAIN TO WALK OUT\n\nLIMIT  LEVEL 0 - INTO THE BACKROOMS\n1      TAUNT: LOST' },
 ];
 
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"

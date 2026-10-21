@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GoldfishFling, AeroPC, CdCloud } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GoldfishFling, AeroPC, CdCloud, AlmondWater, AlmondPuddle, WrongDoor } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -442,6 +442,17 @@ export class MatchScene extends Phaser.Scene {
     const p = new CdCloud(this, owner, spec); this.pools.push(p); return p;
   }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
+  // THE WANDERER: an almond-water bottle (one in the air at a time), its puddle (one each) and his door (one each)
+  spawnAlmond(owner, spec) { const p = new AlmondWater(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnPuddle(owner, spec, x, plat) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof AlmondPuddle) p.kill();
+    const p = new AlmondPuddle(this, owner, spec, x, plat); this.pools.push(p); return p;
+  }
+  spawnDoor(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof WrongDoor) p.kill();
+    const p = new WrongDoor(this, owner, spec); if (!p.alive) return null;
+    this.pools.push(p); return p;
+  }
 
   startLimit(f) {
     this.frozen = 34;

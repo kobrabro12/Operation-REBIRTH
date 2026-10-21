@@ -33,6 +33,12 @@ const NUG = {
   hair: { h: [38, 62], s: [0.06, 0.5], v: [0.6, 1], center: 48 },
   cloth: { h: [230, 300], s: [0.05, 0.35], v: [0.1, 0.4], center: 258 },
 };
+// THE WANDERER (test fighter): the hazmat suit (and the WET FLOOR sign), the glowing mask lenses, the backpack
+const WNG = {
+  suit: { h: [36, 58], s: [0.45, 1], v: [0.4, 1], center: 46 },
+  lens: { h: [135, 175], s: [0.2, 1], center: 152 },
+  pack: { h: [56, 76], s: [0.25, 0.65], v: [0.15, 0.65], center: 64 },
+};
 const AEG = {
   aqua: { h: [180, 215], s: [0.3, 1], v: [0.3, 1], center: 196 },
   lime: { h: [75, 110], s: [0.3, 1], center: 92 },
@@ -154,6 +160,21 @@ export const SKINS = {
       pal: { outline: 0x2a1c06, deep: 0x8a6a1c, mid: 0xd9a32e, light: 0xf3c358, core: 0xfff4c8, shade: 0x3a2a0a, void: 0x120c02 },
       vfx: { hit: { shape: 'note', colors: [0xf3c358, 0xfff4c8, 0xffffff], n: 7, glint: true } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+  ],
+  // THE WANDERER (test fighter): flickering fluorescent pixels on every hit
+  'wanderer': [
+    { name: 'HAZMAT', swatch: 0xdcb52c, vfx: { hit: { shape: 'pixel2', colors: [0xfff6b0, 0xd8c860, 0xffffff], n: 6 } } },
+    { name: 'RUST', swatch: 0xd86a2a, fx: 0xffb070, groups: WNG, rules: { suit: { to: 22, sat: 1.0, val: 0.95 }, pack: { to: 32, sat: 0.6, val: 0.9 } },
+      pal: { outline: 0x1a0e06, deep: 0x8a3a0a, mid: 0xd86a2a, light: 0xffb070, core: 0xfff0e0, shade: 0x3a1a0a, void: 0x100604 },
+      vfx: { hit: { shape: 'dust', colors: [0xd86a2a, 0x8a5a3a, 0xffb070], n: 7 } } },
+    { name: 'POOLROOMS', swatch: 0xe8f6f8, fx: 0xb8f0ff, groups: WNG, rules: { suit: { sat: 0.08, val: 1.25 }, lens: { to: 192 }, pack: { to: 190, sat: 1.3, val: 1.2 } },
+      pal: { outline: 0x0a1a24, deep: 0x1a7a9a, mid: 0x4ac0e0, light: 0xb8f0ff, core: 0xffffff, shade: 0x0e3a48, void: 0x041014 },
+      vfx: { hit: { shape: 'drop', colors: [0xb8f0ff, 0xffffff, 0x4ac0e0], n: 8 } } },
+    { name: 'LIGHTS OUT', swatch: 0x34322e, fx: 0xff4a3a, groups: WNG, rules: { suit: { sat: 0.2, val: 0.36 }, lens: { to: 2, sat: 1.4 }, pack: { sat: 0.3, val: 0.6 } },
+      pal: { outline: 0x140406, deep: 0x5a0a10, mid: 0xb01a22, light: 0xff4a3a, core: 0xffc8c0, shade: 0x200608, void: 0x060102 },
+      vfx: { hit: { shape: 'pixel2', colors: [0xff4a3a, 0x5a0a10, 0xffc8c0], n: 7 } } },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.15, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],
   // AERO (test fighter): glossy bubbles on every hit

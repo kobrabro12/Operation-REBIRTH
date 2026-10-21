@@ -19,6 +19,7 @@ import { FighterRender } from './fighterRender.js';
 import { LimitAero } from './limitAero.js';
 import { LimitMosh } from './limitMosh.js';
 import { FighterTaunt } from './fighterTaunt.js';
+import { FighterWanderer } from './fighterWanderer.js';
 import { popBubble } from './entities.js';
 
 const BUFFER = 7;   // frames an early button press is remembered
@@ -220,9 +221,9 @@ export class Fighter {
     if (this.buffer.special) {
       const M = this.def.moves;
       this.buffer.special = 0;
-      if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
+      if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if ((M.sideB.dive && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -328,6 +329,7 @@ export class Fighter {
       if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
       this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
     }
+    if (m.noclip || m.almond || m.door || m.splash) this.wandererAttackStep(m);   // THE WANDERER (fighterWanderer.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
@@ -512,7 +514,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero, FighterWanderer]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);
