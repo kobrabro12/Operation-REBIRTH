@@ -97,19 +97,23 @@ export const WANDERER = {
     ] },
     // WRONG DOOR (down): sets a door down behind him. Press it again (anywhere, even in the air) to step
     // into a doorway and out of that door. One door at a time; it lasts 15 seconds and opponents can break it.
-    downB: { frames: 30, spawnAt: 12, door: { behind: 20, hp: 18, life: 900 },
+    downB: { frames: 30, spawnAt: 12, door: { behind: 34, hp: 18, life: 900 },
       walk: { frames: 28, swapAt: 12, safeFrom: 2, safeTo: 18 } },
   },
 
-  // Limit: LEVEL 0. He holds up his torch... the lights start to buzz... and he clicks it off. Everyone close
-  // enough falls through the floor of reality into the Backrooms: an endless yellow hallway where the
-  // ceiling lights go out one by one, each with a hit, until the dark spits them back out with a big launch.
-  // Nobody close enough: the lights just flicker and come back. 5 x 4 + 14 = 34% to a victim.
+  // Limit: LEVEL 0. He holds up his torch... the lights buzz louder... and he clicks it off. Everyone close
+  // enough noclips out of reality into the Backrooms - and THE BACTERIA is right behind them. They run down
+  // the endless yellow hallway as it closes in, the lights dying behind it; it catches them, mauls them three
+  // times in the dark (10% each) and hurls them back out of the walls (20%). 50% in all.
+  // Nobody close enough: the lights just flicker and come back.
   limit: {
     name: 'LEVEL 0', type: 'level0', reach: 300, reachY: 120, frames: 160, grabAt: 48,
-    lights: 5, lightEvery: 22, darkFor: 30,
-    flicker: { dmg: 4, angle: 90, base: 2.0, growth: 0, stun: 30 },
-    final: { dmg: 14, angle: 50, base: 6.2, growth: 6.4 },
+    // the chase: starts this many frames into the cutscene, lasts `frames`, the thing starts `gap0` px behind,
+    // the hallway streams past at `speed` px a frame
+    chase: { from: 14, frames: 130, gap0: 210, speed: 6 },
+    mauls: 3, maulEvery: 14,
+    maul: { dmg: 10, angle: 90, base: 2.0, growth: 0, stun: 30 },
+    final: { dmg: 20, angle: 45, base: 6.4, growth: 6.6 },
     colors: PAL_FLUO,
   },
 };

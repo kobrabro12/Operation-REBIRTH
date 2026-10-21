@@ -37,7 +37,7 @@ export class FighterWanderer {
   wrongDoor() { return this.doorOut && this.doorOut.alive ? this.doorOut : null; }
   startDoorWalk() {
     this.setState('doorwalk'); this.lx = this.ly = 0; this.vx *= 0.3;
-    this.walkFrom = { x: this.x + this.facing * 10, y: this.y }; this.walkTo = null;
+    this.walkFrom = { x: this.x + this.facing * 4, y: this.y }; this.walkTo = null;
     sfx('dodge', 0.5, 0.6);
   }
   doorWalking() { if (this.state !== 'doorwalk') return false; const W = this.def.moves.downB.walk; return this.t >= W.safeFrom && this.t <= W.safeTo; }
@@ -116,8 +116,8 @@ export class FighterWanderer {
 
   // ------------------------------------------------------------------ LEVEL 0 (Limit)
   // He holds the torch up while the lights buzz louder and louder... then clicks it off. Everyone close
-  // enough noclips out of reality into the Backrooms: an endless hallway where the ceiling lights die
-  // one by one (a hit each), then the dark throws them back out. Nobody in reach: the lights just flicker.
+  // enough noclips out of reality into the Backrooms, where THE BACTERIA chases them down (level0Cutscene).
+  // Nobody in reach: the lights just flicker.
   level0Limit(L) {
     const m = this.match;
     if (this.t === 1) { this.ult = { phase: 'buzz', victims: [], origin: { x: this.x, y: this.y } }; sfx('buzz', 0.6, 1); }
@@ -145,26 +145,48 @@ export class FighterWanderer {
     if (U.phase === 'fizzle') { if (this.t >= L.grabAt + 30) this.endLevel0(); return; }
     if (U.phase === 'cutscene') return this.level0Cutscene(L, U);
   }
+  // In the Backrooms: a side-on hallway with the victims running for their lives and THE BACTERIA - a tall,
+  // twitching black thing - gaining on them from behind while the lights die. It catches them: three
+  // mauls in the dark, then it throws them back out of the walls. Damage: L.mauls x maul + final (50%).
   level0Cutscene(L, U) {
     const m = this.match;
     U.ct++;
     U.victims = U.victims.filter((v) => v.alive && v.state !== 'dying');
     if (!U.victims.length) return this.endLevel0();
-    for (const v of U.victims) { v.hitstun = 999; v.lx = v.ly = 0; }
-    const start = 30, darkAt = start + L.lights * L.lightEvery;
-    if (U.ct > start && U.ct <= darkAt && (U.ct - start) % L.lightEvery === 0) {   // a light dies: a hit each
-      const n = (U.ct - start) / L.lightEvery;
-      for (const t of U.victims) m.applyHit(t, { h: L.flicker, owner: this, facing: this.facing, id: 'lvl0' + this.slot + ':' + n, pillar: true }, t.x);
-      for (const t of U.victims) { t.lx = t.ly = 0; t.hitstun = 999; }
-      sfx('glitch', 0.6, 0.5 + n * 0.08); sfx('hit', 0.5, 0.6); m.shake(4, 4);
+    const C = L.chase, catchAt = C.from + C.frames, ct = U.ct;
+    if (ct === 1) {                                                    // line them up in the hallway, all running away from it
+      const a = U.victims[0];
+      U.anchor = { x: a.x, y: a.y }; U.home = U.victims.map((v) => ({ x: v.x, y: v.y }));
+      U.victims.forEach((v, i) => { v.x = a.x - i * 52; v.y = a.y; });
     }
-    if (U.ct > darkAt && U.ct % 8 === 0) sfx('buzz', 0.6, 0.5);          // in the dark, only the hum
-    if (U.ct === darkAt + L.darkFor) {                                 // thrown back out of the walls
-      for (const t of U.victims) {
-        t.hitstun = 0;
+    for (const v of U.victims) {
+      v.hitstun = 999; v.lx = v.ly = 0;
+      if (ct < catchAt) { v.facing = 1; if (v.state !== 'run') v.state = 'run'; v.vx = 4; v.grounded = true; }   // running (only the animation: the hallway scrolls instead)
+      else if (v.state !== 'hitstun') { v.setState('hitstun'); v.vx = 0; v.hurtAnim = 16; }
+    }
+    // the chase: how far behind it is, closing in faster and faster
+    const k = Math.min(1, Math.max(0, (ct - C.from) / C.frames));
+    U.gap = C.gap0 * (1 - k * k);
+    if (ct > C.from && ct < catchAt) {
+      if (ct % 9 === 0) sfx('land', 0.35, 0.9);                         // their footsteps
+      const every = Math.max(5, Math.round(14 - 9 * k));
+      if (ct % every === 0) { sfx('hit', 0.25 + 0.4 * k, 0.45); m.shake(1 + 3 * k, 3); }   // its footsteps, louder and faster
+      if (ct % 12 === 0) sfx('buzz', 0.3 + 0.4 * k, 1.1 - 0.4 * k);
+      if (ct % 30 === 0) sfx('glitch', 0.3 + 0.3 * k, 0.5);
+    }
+    if (ct === C.from) { sfx('glitch', 0.8, 0.4); m.popText({ x: U.anchor.x, y: U.anchor.y - 50 }, 'RUN!', '#ff4a3a'); }
+    if (ct === catchAt) { sfx('bighit', 1, 0.4); sfx('ko', 0.6, 0.5); m.shake(12, 8); }   // it lunges: lights out
+    for (let i = 0; i < L.mauls; i++) {
+      if (ct !== catchAt + 8 + i * L.maulEvery) continue;
+      for (const t of U.victims) { m.applyHit(t, { h: L.maul, owner: this, facing: 1, id: 'lvl0m' + this.slot + ':' + i, pillar: true }, t.x); t.lx = t.ly = 0; t.hitstun = 999; }
+      sfx('bighit', 0.7, 0.7 + i * 0.1); sfx('glitch', 0.6, 0.8 + i * 0.2); m.shake(8, 5);
+    }
+    if (ct === catchAt + 8 + L.mauls * L.maulEvery + 10) {             // thrown back out of the walls
+      U.victims.forEach((t, i) => {
+        const h = U.home[U.victims.indexOf(t)] || U.anchor; t.x = h.x; t.y = h.y; t.hitstun = 0;
         m.applyHit(t, { h: L.final, owner: this, facing: Math.sign(t.x - U.origin.x) || this.facing, id: 'lvl0out' + this.slot, pillar: true }, t.x);
-        m.puff(t.x, t.y - 20, this.pal.light, 16); m.puff(t.x, t.y - 20, 0xffffff, 8);
-      }
+        m.puff(t.x, t.y - 20, this.pal.light, 16); m.puff(t.x, t.y - 20, 0x0b0a0a, 12);
+      });
       sfx('ko', 0.7, 0.8); sfx('glitch', 0.9, 1.2); m.shake(14, 12);
       return this.endLevel0();
     }
@@ -172,7 +194,7 @@ export class FighterWanderer {
   endLevel0() {
     const U = this.ult, m = this.match;
     if (U && U.phase === 'cutscene') { m.frozen = 0; m.cutscene = null; for (const v of U.victims) v.sprite.setDepth(0); }
-    this.fx.setDepth(0);
+    this.fx.setDepth(0); if (this.lvlTop) this.lvlTop.clear();
     this.ult = null; this.invincible = 30;
     this.setState(this.grounded ? 'idle' : 'air');
   }
@@ -190,35 +212,77 @@ export class FighterWanderer {
       if (U.phase === 'fizzle' && this.t < L.grabAt + 6) { g.fillStyle(0x000000, 0.6); g.fillRect(v.x, v.y, v.width, v.height); }   // a blink of darkness, then nothing
       return;
     }
-    if (U.phase !== 'cutscene') return;
-    // ---- the Backrooms: an endless one-point-perspective hallway filling the view
-    const ct = U.ct, start = 30, x0 = v.x - 4, y0 = v.y - 4, W = v.width + 8, H = v.height + 8;
-    const cx = x0 + W / 2, cy = y0 + H * 0.46, fw = W * 0.12, fh = H * 0.14;   // the far end
-    const fx1 = cx - fw / 2, fx2 = cx + fw / 2, fy1 = cy - fh / 2, fy2 = cy + fh / 2;
-    const fadeIn = Math.min(1, ct / 12);
-    g.fillStyle(HALL.wall, fadeIn); g.fillRect(x0, y0, W, H);
-    g.fillStyle(HALL.ceil, fadeIn); g.fillTriangle(x0, y0, x0 + W, y0, fx2, fy1); g.fillTriangle(x0, y0, fx2, fy1, fx1, fy1);
-    g.fillStyle(HALL.carpet, fadeIn); g.fillTriangle(x0, y0 + H, x0 + W, y0 + H, fx2, fy2); g.fillTriangle(x0, y0 + H, fx2, fy2, fx1, fy2);
-    g.fillStyle(HALL.far, fadeIn); g.fillRect(fx1, fy1, fw, fh);
-    // wallpaper stripes and carpet seams, converging on the far end
-    for (let i = 1; i < 14; i++) {
-      const k = i / 14, lx = x0 + (fx1 - x0) * k, rx = x0 + W - (x0 + W - fx2) * k;
-      const ty = y0 + (fy1 - y0) * k, by = y0 + H - (y0 + H - fy2) * k;
-      g.fillStyle(HALL.stripe, 0.5 * fadeIn); g.fillRect(lx, ty, 1, by - ty); g.fillRect(rx, ty, 1, by - ty);
-      g.fillStyle(HALL.carpetDark, 0.5 * fadeIn); g.fillRect(lx, by, rx - lx, 1);
-      g.fillStyle(HALL.tile, 0.6 * fadeIn); g.fillRect(lx, ty, rx - lx, 1);
+    if (U.phase !== 'cutscene' || !U.anchor) return;
+    // ---- the Backrooms, side on: the hallway streams past as they run (drawn behind the victims)
+    const ct = U.ct, C = L.chase, catchAt = C.from + C.frames, n = U.victims.length;
+    const x0 = v.x - 4, y0 = v.y - 4, W = v.width + 8, H = v.height + 8, X1 = x0 + W, Y1 = y0 + H;
+    const fy = U.anchor.y, ceil = fy - 104, scroll = ct < catchAt ? ct * C.speed : catchAt * C.speed;
+    const fade = Math.min(1, ct / 10), k = Math.min(1, Math.max(0, (ct - C.from) / C.frames));
+    const wrap = (x, span) => ((x % span) + span) % span;
+    g.fillStyle(HALL.wall, fade); g.fillRect(x0, y0, W, H);
+    g.fillStyle(HALL.stripe, 0.55 * fade);                                       // wallpaper stripes
+    for (let x = x0 - wrap(scroll, 9); x < X1; x += 9) g.fillRect(Math.round(x), ceil, 2, fy - ceil);
+    g.fillStyle(HALL.stripe, 0.35 * fade);                                        // damp stains on the wallpaper
+    for (let x = x0 - wrap(scroll * 1, 170); x < X1; x += 170) g.fillEllipse(Math.round(x + 60), fy - 22, 46, 18);
+    g.fillStyle(HALL.ceil, fade); g.fillRect(x0, y0, W, ceil - y0);               // drop ceiling
+    g.fillStyle(HALL.tile, fade); for (let x = x0 - wrap(scroll, 36); x < X1; x += 36) g.fillRect(Math.round(x), y0, 1, ceil - y0);
+    g.fillStyle(HALL.tile, fade); g.fillRect(x0, ceil - 1, W, 2);
+    const bx = U.anchor.x - (n - 1) * 52 - 16 - U.gap;                          // the thing's front edge
+    for (let x = x0 - wrap(scroll, 96); x < X1 + 96; x += 96) {                 // the fluorescent panels: dead behind it, flickering ahead
+      const px = Math.round(x + 30), dead = ct >= catchAt || px < bx + 10, flick = !dead && ((ct * 7 + px) % (41 - Math.round(28 * k))) < 2 + 4 * k;
+      g.fillStyle(dead || flick ? HALL.dead : HALL.lit, fade); g.fillRect(px, ceil - 4, 34, 4);
+      if (!dead && !flick) { g.fillStyle(HALL.lit, 0.14 * fade); g.fillTriangle(px - 18, fy, px + 52, fy, px + 17, ceil); }
     }
-    // the ceiling lights, near to far; they die from the far end toward you
-    const out = Math.max(0, Math.min(L.lights, Math.floor((ct - start) / L.lightEvery)));
-    for (let i = 0; i < L.lights; i++) {
-      const k = 0.15 + (i / L.lights) * 0.8, ly = y0 + (fy1 - y0) * k + 3, lw = (W - (W - fw) * k) * 0.22, lh = Math.max(2, 10 * (1 - k));
-      const dead = i >= L.lights - out, flick = !dead && (ct * 7 + i * 13) % 37 < 2;
-      g.fillStyle(dead || flick ? HALL.dead : HALL.lit, fadeIn); g.fillRect(cx - lw / 2, ly, lw, lh);
-      if (!dead && !flick) { g.fillStyle(HALL.lit, 0.18 * fadeIn); g.fillRect(cx - lw, ly + lh, lw * 2, lh * 3); }
+    g.fillStyle(0xa08c40, fade); g.fillRect(x0, fy - 4, W, 4);                   // skirting board
+    g.fillStyle(HALL.carpet, fade); g.fillRect(x0, fy, W, Y1 - fy);                // damp carpet
+    g.fillStyle(HALL.carpetDark, fade); for (let x = x0 - wrap(scroll, 23); x < X1; x += 23) g.fillRect(Math.round(x), fy + 3, 12, 1);
+    for (let x = x0 - wrap(scroll, 140); x < X1; x += 140) g.fillEllipse(Math.round(x + 40), fy + 12, 50, 7);
+    // the dark it drags along behind it
+    for (let i = 0; i < 12; i++) { g.fillStyle(0x000000, 0.09 * fade); g.fillRect(x0, y0, Math.max(0, bx - x0 + 40 - i * 12), H); }
+    if (ct > C.from) this.drawBacteria(g, bx, fy, ct, k, ct >= catchAt);
+    // over everything (the victims too): the catch - lights out, and the mauling in the dark
+    if (!this.lvlTop) { this.lvlTop = this.scene.add.graphics().setDepth(5); this.match.addWorld(this.lvlTop); }
+    const T = this.lvlTop; T.clear();
+    if (ct >= catchAt) {
+      const st = ct - catchAt;
+      T.fillStyle(0x000000, Math.min(1, st / 3)); T.fillRect(x0, y0, W, H);
+      for (let i = 0; i < L.mauls; i++) {
+        const d = st - (8 + i * L.maulEvery);
+        if (d < 0 || d > 7) continue;
+        const a = 1 - d / 8, cx = U.anchor.x - (i - 1) * 14, cy = fy - 30;
+        T.fillStyle(0xffffff, 0.35 * a); T.fillRect(x0, y0, W, H);
+        T.lineStyle(5, 0xfff6b0, a);                                             // three claw marks across the dark
+        for (let j = -1; j <= 1; j++) T.lineBetween(cx - 40 + j * 12, cy - 40 - j * 4, cx + 30 + j * 12, cy + 34 - j * 4);
+        T.fillStyle(0xffffff, a); T.fillRect(cx - 2 + i * 6, cy - 50, 2, 2); T.fillRect(cx + 6 + i * 6, cy - 50, 2, 2);   // its pinprick eyes
+      }
     }
-    // darkness creeping in as the lights die, then near-black
-    const dark = ct > start + L.lights * L.lightEvery ? 0.92 : (out / L.lights) * 0.7;
-    if (dark > 0) { g.fillStyle(0x000000, dark); g.fillRect(x0, y0, W, H); }
-    if (ct > start + L.lights * L.lightEvery && (ct >> 3) % 3 === 0) { g.fillStyle(HALL.lit, 0.08); g.fillRect(x0, y0, W, H); }   // one last stutter of light
+  }
+  // THE BACTERIA: a tall, thin, jittering black figure with arms far too long, reaching for whoever is closest
+  drawBacteria(g, x, fy, ct, k, lunge) {
+    const R = (n) => (((ct * 73 + n * 151) % 97) / 97 - 0.5);                     // deterministic twitch
+    const jx = R(1) * 3, jy = R(2) * 2, ph = ct * (0.35 + 0.35 * k), H = 108;
+    const hipX = x - 22 + jx, hipY = fy - 54 + jy, shX = hipX + 16 + 8 * k, shY = fy - H + 16 + jy;
+    const draw = (ox, col, alpha) => {
+      g.lineStyle(5, col, alpha);
+      for (const s of [1, -1]) {                                                 // legs: long, bent wrong, striding
+        const sw = Math.sin(ph + (s > 0 ? 0 : Math.PI)) * 16;
+        const kx = hipX + ox + sw * 0.5 + 8, ky = hipY + 26, fx2 = hipX + ox + sw, fy2 = fy;
+        g.lineBetween(hipX + ox, hipY, kx, ky); g.lineBetween(kx, ky, fx2, fy2);
+      }
+      g.lineStyle(10, col, alpha); g.lineBetween(hipX + ox, hipY, shX + ox, shY); g.lineStyle(7, col, alpha); g.lineBetween(hipX + ox - 2, hipY + 4, hipX + ox + 2, hipY - 6);  // spine, hunched forward
+      const reach = lunge ? 1 : 0.55 + 0.45 * k;
+      for (const s of [1, -1]) {                                                 // arms: reaching out ahead, fingers splayed
+        const sw = Math.sin(ph * 0.5 + s) * 6;
+        const ex = shX + ox + 24 * reach, ey = shY + 12 + sw, hx = shX + ox + 56 * reach + s * 3, hy = shY + 4 + sw + s * 7;
+        g.lineStyle(4, col, alpha); g.lineBetween(shX + ox, shY + 2, ex, ey); g.lineBetween(ex, ey, hx, hy);
+        g.lineStyle(2, col, alpha); for (let f = -1; f <= 1; f++) g.lineBetween(hx, hy, hx + 11, hy + f * 5 + s * 2);
+      }
+      g.fillStyle(col, alpha); g.fillEllipse(shX + ox + 8 + R(3) * 4, shY - 11 + R(4) * 3, 15, 22);   // small head, twitching
+    };
+    if ((ct >> 2) % 5 === 0) draw(R(5) * 10, 0x3a2a10, 0.35);                     // a glitchy afterimage
+    draw(0, 0x050403, 1);
+    g.fillStyle(0xffffff, 0.9); g.fillRect(Math.round(shX + 10), Math.round(shY - 14), 2, 1); g.fillRect(Math.round(shX + 15), Math.round(shY - 14), 2, 1);
+    g.fillStyle(0x050403, 0.8);                                                  // spores of static coming off it
+    for (let i = 0; i < 8; i++) g.fillRect(Math.round(hipX - 10 + R(10 + i) * 50), Math.round(fy - 80 + R(20 + i) * 90), 2, 2);
   }
 }

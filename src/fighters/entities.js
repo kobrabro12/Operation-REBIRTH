@@ -941,27 +941,39 @@ export class AlmondPuddle {
 
 // WRONG DOOR: a plain office door in a scrap of yellow wallpaper, standing on the floor. Using the down
 // special again steps the Wanderer out of it. Attacks chip its HP (like AERO's computers).
+// Sized for a fighter: the opening is a bit taller and wider than a fighter's body (50 px tall), so
+// the Wanderer (or anyone) visibly fits through it.
+export const DOOR = { w: 30, h: 64 };          // the doorway opening
 export function drawDoor(g, x, y, open = 0, a = 1, flash = false) {
   x = Math.round(x); y = Math.round(y);
-  g.fillStyle(0x16120a, a); g.fillRect(x - 15, y - 41, 30, 41);
-  g.fillStyle(0xcbb662, a); g.fillRect(x - 14, y - 40, 28, 40);             // the wallpaper patch
-  g.fillStyle(0xb09a48, a * 0.7); for (let sx = x - 13; sx < x + 14; sx += 4) g.fillRect(sx, y - 40, 1, 40);
-  g.fillStyle(0x3a2e14, a); g.fillRect(x - 11, y - 36, 22, 36);             // frame
-  g.fillStyle(0x050403, a); g.fillRect(x - 9, y - 34, 18, 34);              // the dark beyond
-  const w = Math.max(0, Math.round(18 * (1 - open)));
-  if (w > 0) {
-    g.fillStyle(flash ? 0xffffff : 0xe2d6a0, a); g.fillRect(x - 9, y - 34, w, 34);   // the door, swinging open on its left hinge
-    g.fillStyle(0xbfb07a, a); g.fillRect(x - 9 + w - 1, y - 34, 1, 34);
-    if (w > 8) { g.fillStyle(0xbfb07a, a); g.fillRect(x - 7, y - 31, w - 4, 10); g.fillRect(x - 7, y - 18, w - 4, 14); g.fillStyle(0xe2d6a0, a); g.fillRect(x - 6, y - 30, w - 6, 8); g.fillRect(x - 6, y - 17, w - 6, 12); }
-    if (w > 14) { g.fillStyle(0x8a7a4a, a); g.fillRect(x + 5, y - 18, 2, 2); }   // knob
+  const W = DOOR.w, H = DOOR.h, hw = W / 2, fr = 3, pw = hw + fr + 6, ph = H + fr + 8;
+  g.fillStyle(0x16120a, a); g.fillRect(x - pw - 1, y - ph - 1, pw * 2 + 2, ph + 1);
+  g.fillStyle(0xcbb662, a); g.fillRect(x - pw, y - ph, pw * 2, ph);          // the wallpaper patch
+  g.fillStyle(0xb09a48, a * 0.7); for (let sx = x - pw + 2; sx < x + pw; sx += 5) g.fillRect(sx, y - ph, 1, ph);
+  g.fillStyle(0xa08c40, a); g.fillRect(x - pw, y - 4, pw * 2, 4);            // skirting board
+  g.fillStyle(0x3a2e14, a); g.fillRect(x - hw - fr, y - H - fr, W + fr * 2, H + fr);   // frame
+  g.fillStyle(0x5a4a24, a); g.fillRect(x - hw - fr, y - H - fr, W + fr * 2, 1);
+  g.fillStyle(0x050403, a); g.fillRect(x - hw, y - H, W, H);                 // the dark beyond
+  g.fillStyle(0x1a1608, a); g.fillRect(x - hw, y - 3, W, 3);                 // a sliver of floor through the gap
+  const w = Math.max(0, Math.round(W * (1 - open)));
+  if (w > 0) {                                                                // the door, swinging open on its left hinge
+    const L = x - hw, top = y - H;
+    g.fillStyle(flash ? 0xffffff : 0xe2d6a0, a); g.fillRect(L, top, w, H);
+    g.fillStyle(0xbfb07a, a); g.fillRect(L + w - 1, top, 1, H);
+    if (w > 12) {                                                             // two recessed panels
+      g.fillStyle(0xbfb07a, a); g.fillRect(L + 4, top + 5, w - 8, 22); g.fillRect(L + 4, top + 32, w - 8, 26);
+      g.fillStyle(0xe2d6a0, a); g.fillRect(L + 5, top + 6, w - 10, 20); g.fillRect(L + 5, top + 33, w - 10, 24);
+    }
+    if (w > W - 6) { g.fillStyle(0x8a7a4a, a); g.fillRect(L + w - 6, y - 32, 3, 3); g.fillStyle(0xf0e6b8, a); g.fillRect(L + w - 6, y - 32, 1, 1); }   // knob, at hand height
+    g.fillStyle(0x3a2e14, a * 0.6); g.fillRect(L + 1, top + 8, 1, 3); g.fillRect(L + 1, y - 14, 1, 3);   // hinges
   }
 }
 export class WrongDoor {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.id = nextId++;
     this.hp = spec.hp; this.hitIds = new Set(); this.flash = 0; this.shake = 0;
-    const floor = (x) => { let best = null; for (const p of match.stage.platforms) if (x >= p.x1 + 12 && x <= p.x2 - 12 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p; return best; };
-    let x = owner.x - owner.facing * spec.behind, p = floor(x);
+    const floor = (x) => { let best = null; for (const p of match.stage.platforms) if (x >= p.x1 + 26 && x <= p.x2 - 26 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p; return best; };
+    let x = owner.x - owner.facing * spec.behind, p = floor(x);   // (26 px margin keeps the whole door on the floor)
     if (!p) { x = owner.x; p = floor(x); }                                  // no floor behind him: right where he stands
     if (!p) { this.alive = false; return; }                                 // nothing below at all
     this.x = x; this.y = p.y; this.platform = p;
@@ -969,11 +981,11 @@ export class WrongDoor {
     sfx('land', 0.6, 0.6); sfx('shield', 0.35, 0.5);
     match.puff(this.x, this.y - 4, 0xcbb662, 6);
   }
-  box() { return { x1: this.x - 11, x2: this.x + 11, y1: this.y - 36, y2: this.y }; }
+  box() { return { x1: this.x - DOOR.w / 2 - 3, x2: this.x + DOOR.w / 2 + 3, y1: this.y - DOOR.h - 3, y2: this.y }; }
   step() {
     this.t++;
     if (this.flash > 0) this.flash--; if (this.shake > 0) this.shake--;
-    if (!this.owner.alive || this.t >= this.life) { this.match.puff(this.x, this.y - 18, 0xcbb662, 8); this.kill(); }
+    if (!this.owner.alive || this.t >= this.life) { this.match.puff(this.x, this.y - 32, 0xcbb662, 10); this.kill(); }
   }
   strike(hbs) {
     if (!this.alive) return;
@@ -990,7 +1002,7 @@ export class WrongDoor {
   }
   destroy() {
     const R = Math.random;
-    for (let i = 0; i < 14; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, life: 26 + R() * 14, color: [0xe2d6a0, 0xcbb662, 0x3a2e14][i % 3], drag: 0.94, grav: 0.14, ang: a }); }
+    for (let i = 0; i < 14; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 32, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, life: 26 + R() * 14, color: [0xe2d6a0, 0xcbb662, 0x3a2e14][i % 3], drag: 0.94, grav: 0.14, ang: a }); }
     sfx('bighit', 0.5, 1.3);
     this.match.popText({ x: this.x, y: this.y + 40 }, 'DOOR BROKEN!', '#e2d6a0');
     this.kill();
@@ -1003,8 +1015,9 @@ export class WrongDoor {
     g.clear();
     drawDoor(g, this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0), this.y, 0, fade, this.flash > 0);
     if (this.hp < this.spec.hp) {
-      g.fillStyle(0x0b0a14, 0.8); g.fillRect(this.x - 12, this.y - 46, 24, 3);
-      g.fillStyle(this.hp > this.spec.hp * 0.4 ? 0xe2d6a0 : 0xff5a5a, 1); g.fillRect(this.x - 11, this.y - 45, 22 * Math.max(0, this.hp) / this.spec.hp, 1);
+      const by = this.y - DOOR.h - 22;
+      g.fillStyle(0x0b0a14, 0.8); g.fillRect(this.x - 14, by, 28, 3);
+      g.fillStyle(this.hp > this.spec.hp * 0.4 ? 0xe2d6a0 : 0xff5a5a, 1); g.fillRect(this.x - 13, by + 1, 26 * Math.max(0, this.hp) / this.spec.hp, 1);
     }
   }
 }
