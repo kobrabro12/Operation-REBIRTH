@@ -8,7 +8,7 @@ export const FILES = {
   },
   'mr-wake': {
     no: '002', alias: 'THE GENTLEMAN OF THE DEEP', cls: 'ABYSSAL WIZARD', weapon: 'STAFF OF THE VOID GEM',
-    origin: 'THE BLACK WATER UNDER GRAVEMOON BRIDGE', moves: 'WAKE BOLT - VOID ORB - DRIFTING SOUL - SHADOW POOL', limit: 'THE UNDERTOW',
+    origin: 'THE BLACK WATER UNDER GRAVEMOON BRIDGE', moves: 'VOID ORB - DRIFTING SOUL - SHADOW POOL - GEM ROCKET', limit: 'THE UNDERTOW',
     lore: 'No one knows what Mr Wake really is. Under the hat and cloak there is only a living shadow that pours itself into a wizard\'s shape and wears a cracked white mask for a face. Fishermen say he rose from the water under Gravemoon Bridge the night a purple star fell into it. He is unfailingly polite, bows before every fight, and drags the unlucky down into a dark that has eyes.',
   },
   'hero-knight': {

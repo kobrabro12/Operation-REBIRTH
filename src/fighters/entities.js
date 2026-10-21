@@ -91,7 +91,7 @@ export class Fireball {
   }
 }
 
-// An energy bolt fired from a staff gem (Mr Wake's Wake Bolt and Drifting Soul).
+// An energy bolt fired from a staff gem (Mr Wake's Drifting Soul).
 // `spec` comes from the move data: speed, life, w, h, homing, hit { dmg, angle, base, growth }.
 export class EnergyBolt {
   constructor(match, owner, spec) {

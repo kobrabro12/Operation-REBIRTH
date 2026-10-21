@@ -151,8 +151,25 @@ an announcer voice for each fighter and stage, and a title screen with a live al
 
 ---
 
+## Design pillars (decided)
+- **Every fighter plays completely differently.** No clones, no shared kits: each has their own mechanics
+  (summons, possession, detonated orbs, a thrown sword, counters...). A new fighter should introduce at
+  least one mechanic nobody else has.
+- **Technical depth.** Characters reward practice: charge timing, setups (orb detonation, sword recall,
+  souls), resource management (Limit, shield). Easy to start, with a lot to master.
+- **Unique play styles.** Archetypes stay distinct (summoner, zoner, swordfighter...) and the roster keeps
+  covering new ones rather than doubling up.
+
+## Balance targets (decided)
+- A typical **3-stock match lasts about 3 minutes** (4 players, CPUs on Hard).
+- Fighters are usually **KO'd at around 120%**: a strong finisher (smash, back air, throw) at the ledge should
+  kill around there, so the median damage at a KO should land near 120%.
+- Measure with `npm run sim` (match length, plus damage taken divided by falls) before and after changes.
+
+## Notes
+- Lacy is "she".
+- Mr Wake's "Wake Bolt" was cut.
+
 ## Open design questions (decide)
-- The game's **twist**: what makes it different from other platform fighters? Write it here once settled.
 - Lacy's tilt and aerial numbers (currently placeholders).
 - Fighters 4+ and stages 6–7: planned names and concepts.
-- Target balance: what should a typical 3-stock match length and kill % be?

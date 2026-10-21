@@ -1,9 +1,9 @@
 // Lacy: fighter #3 (code id 'hero-knight'). A grey-armoured swordsman with a white scarf (sprites: the Hero Knight asset
 // pack, CC0). Animated from the pack's own strips instead of the shared pose frames:
 //   idle = Idle, run = Run, neutral special = Attack1, jab = Attack2, jump = Jump, fall = Fall,
-//   any hit taken = Take Hit, and Death plays only when his stamina runs out in a Stamina battle.
+//   any hit taken = Take Hit, and Death plays only when her stamina runs out in a Stamina battle.
 // Only the jab and neutral special are designed so far. Every other move is a PLACEHOLDER that reuses
-// those two sword animations until his real moves are designed.
+// those two sword animations until her real moves are designed.
 import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
 import { HK_MOVES } from './hkMoves.js';
 
