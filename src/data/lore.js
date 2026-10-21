@@ -21,15 +21,38 @@ export const FILES = {
 // lore for costumes that aren't milestones, by fighter id and costume name
 export const SKIN_LORE = {
   'soul-summoner': {
+    SOULFIRE: 'The blue flame he was buried with. It has never once gone out - not in rain, not in the grave, not in his hand.',
+    EMBER: 'A summer spent guarding the forges below the Sanctum. The cape came back scorched red and the flame never cooled down.',
+    FROST: 'He walked the glacier roads for a winter, raising the frozen dead. The cold got into his armour and stayed.',
+    PLAGUE: 'In the marsh towns they hung green lanterns to keep the dead away. He took one home with him.',
+    SHADOW: 'What the soulfire looks like with the light turned off. Some say this is the one who answers when he summons.',
+    ROYAL: 'The parade armour of the Sanctum guard, worn once a year when the gates are opened. Gold flame, blue cape, no smiling.',
     '1-BIT': 'A glitch in the record. An old cartridge kept a copy of him in black and white - and one day the copy woke up, still burning.',
+    "JACK-O'-LANTERN": 'Every autumn the village carves faces into pumpkins to keep the dead away. One year a dead knight carved his own and joined the parade.',
   },
   'mr-wake': {
+    CRIMSON: 'The robe he was given when he swore himself to the deep. It has never once been dry.',
+    TIDE: 'Dyed in the shallows at low tide, where the water turns green-blue and the gem hums back.',
+    GILDED: 'A gift from a sunken kingdom that wanted him on its side. He took the gold and kept his own counsel.',
+    GHOST: 'Bleached pale by a hundred years at the bottom of the sea. Sailors swear they see this one on foggy nights.',
+    VENOM: 'He drank from the wrong tide pool. The poison didn\'t take - but it changed the colour of everything he touched.',
     ROSEBUD: 'One spring he slept too long in the castle garden. He woke wrapped in roses, his staff bloomed into a giant tulip, and he decided he rather liked it.',
+    NOBLE: 'Court robes for when the drowned lords call a council. He only goes for the free gold.',
+    '1-BIT': 'The deep is older than colour. Down at the very bottom, where no light reaches, he is only black and white - and he speaks in a language of ones and zeros.',
+    NEON: 'He followed a humming light into the Neon Arcade and stayed for a thousand credits. The gem never quite stopped glowing pink.',
   },
   'hero-knight': {
+    KNIGHT: 'Standard-issue steel and a sword that was her mother\'s. Nothing fancy. It has never needed to be.',
+    CRIMSON: 'The colours of the border guard, worn for the year she held the pass alone.',
+    GILDED: 'Ceremonial gold for the tournament at the capital. She won it, and then wore it into a real fight anyway.',
+    VERDANT: 'The ranger\'s green, for the year she spent hunting in the Elderwood. The forest still remembers her.',
+    SHADOW: 'Night-patrol armour, blackened so it wouldn\'t catch the moon. She was very good at night patrol.',
+    AZURE: 'The blue of the lake knights, who taught her to fight with the sun at her back.',
     'BATTLE-WORN': 'Every dent is a promise kept. The armour cracks a little more with every fall - and she gets back up every time.',
     SAMURAI: 'Far to the east she trained under a swordmaster who said only three words to students who lost. She learned to say them too: you are weak.',
+    'SOLID GOLD': 'A statue was cast of her in the capital square. One night the statue climbed down to see what the fuss was about.',
     '1-BIT': 'An old training simulator recorded every duel she ever fought. One night the recording started fighting back.',
     AKATSUKI: '"Dawn." The name a village gave the wandering swordswoman in crimson who arrived at sunrise and left their bandits in crystal shards.',
+    STARLIGHT: 'She stood night watch on the Sanctum walls so often that the stars started to stick to her armour.',
   },
 };

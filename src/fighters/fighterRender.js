@@ -2,6 +2,10 @@
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { PLAYER_TINTS } from '../config.js';
 import { sfx } from '../audio/sfx.js';
+import { drawBubble } from './entities.js';
+
+// swoosh shape for moves that don't name one (Fighter.drawSwoosh)
+const SWOOSH_BY_MOVE = { dashAttack: 'low', jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
 
 export class FighterRender {
 
@@ -92,6 +96,11 @@ export class FighterRender {
         }
         return { sheet: S.attack2, frame: U.ct % L.cutEvery < 2 ? 4 : 5 };                        // mid-dash between cuts
       }
+      case 'taunt': {
+        const MA = this.def.moveAnims && this.def.moveAnims.taunt;
+        if (MA && S.moves) return { sheet: S.moves, frame: MA[0] + Math.min(MA[1] - 1, Math.floor(this.t / MA[2])) };
+        return loop('idle', 6);
+      }
       case 'ledge': return { sheet: S.fall, frame: 0 };
       case 'ledgeclimb': return once('jump', this.t, 18);
       case 'ledgeattack': return this.t < 14 ? once('jump', this.t, 14) : once('attack2', this.t - 14, 16);
@@ -151,7 +160,7 @@ export class FighterRender {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; if (d.limit.type !== 'undertow') spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'mosh', 'screensaver'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -182,7 +191,12 @@ export class FighterRender {
     if (this.silhouette > 0) { this.silhouette--; spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
     else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : PLAYER_TINTS[this.slot]).setTintMode(Phaser.TintModes.MULTIPLY); }
-    if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.star > 0 && !this.silhouette && !this.flash) {         // Star Candy: cycling through every colour, sparkling
+      const c = Phaser.Display.Color.HSVToRGB(((this.anim * 8) % 360) / 360, 0.55, 1);
+      spr.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b)).setTintMode(Phaser.TintModes.MULTIPLY);
+      if (this.anim % 4 === 0) this.match.particles.push({ shape: 'star', x: this.x + (Math.random() - 0.5) * 28, y: this.y - Math.random() * this.body.h, vx: 0, vy: -0.4, life: 18, color: [0xf3c358, 0xffffff, 0x9ab8ff, 0xff7aa8][(this.anim >> 2) % 4], grav: 0 });
+    } else if (this.isIntangible() && s !== 'limit' && s !== 'counterstrike' && (this.anim >> 2) % 2) spr.setAlpha(0.45);
+    if (this.swift > 0 && Math.abs(this.vx) > 1.5 && this.anim % 3 === 0) this.match.particles.push({ x: this.x - Math.sign(this.vx) * 10, y: this.y - 6 - Math.random() * 30, vx: -this.vx * 0.3, vy: 0, life: 12, color: 0x5ee07a, size: 2, grav: 0 });
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) {          // The Undertow: melted into the puddle
       const U = this.ult;
       if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(this.pal.shade).setTintMode(Phaser.TintModes.FILL); }
@@ -269,6 +283,13 @@ export class FighterRender {
     // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
     if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
+    if (s === 'limit' && d.limit.type === 'mosh' && this.ult) this.drawMosh(g, d.limit, this.ult);
+    if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
+    if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);
+    if (this.bubbled > 0) drawBubble(g, this.x, this.y - this.body.h / 2, 26 + Math.sin(this.anim * 0.4), { light: 0x9ff0ff, core: 0xffffff, mid: 0x3fc8ea });
+    if (s === 'limit' && this.altLimit && this.ult) this.drawFullAeroLimit(g, (this.baseDef || d).altLimit, this.ult);
+    else if (s === 'limit' && d.limit.type === 'screensaver' && this.ult) this.drawScreensaver(g, d.limit, this.ult);
+    if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
       const gx = this.x + this.facing * 44, gy = this.y - 19, tw = this.t - d.moves.counter.start;   // glint on the lowered blade
@@ -332,13 +353,13 @@ export class FighterRender {
         }
       }
     }
-    // attack swipe effects (placeholder until attack animations are drawn)
+    // attack swooshes: a pixel crescent (or ring, sweep, streak) that follows the swing through its
+    // active frames and fades out just after, in the costume's ability colours
     for (const hb of this.activeHitboxes()) {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
-      const tint = hb.src && hb.src.fxTint ? (this.pal === d.pal ? hb.src.fxTint : (fx === 'hex' ? this.pal.mid : this.pal.shade)) : this.fxColor;
-      g.fillStyle(tint, (hb.src && hb.src.fxTint) ? 0.85 : 0.55);
+      if (fx === 'grab') continue;
       if (fx === 'hex') {     // Soul Hex: a swirling purple curse with a dark eye
         const cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, rx = (hb.x2 - hb.x1) / 2, ry = (hb.y2 - hb.y1) / 2;
         for (let k = 0; k < 10; k++) { const a = this.t * 0.4 + k * 0.63, r = 0.35 + 0.65 * (k / 10);
@@ -346,11 +367,94 @@ export class FighterRender {
         g.fillStyle(0x0b0a14, 1); g.fillEllipse(cx, cy, 12, 8); g.fillStyle(0xf3c358, 1); g.fillRect(cx - 1, cy - 1, 3, 3);
         continue;
       }
-      if (fx === 'spin' || fx === undefined) g.fillCircle((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) / 2);
-      else g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, hb.x2 - hb.x1, hb.y2 - hb.y1);
-      g.fillStyle(0xf0f2f3, 0.8);
-      g.fillEllipse((hb.x1 + hb.x2) / 2, (hb.y1 + hb.y2) / 2, (hb.x2 - hb.x1) * 0.5, Math.max(3, (hb.y2 - hb.y1) * 0.3));
+      const h = hb.h, span = Math.max(1, (h.to ?? this.t) - (h.from ?? this.t) + 1);
+      const k = h.from !== undefined ? Math.min(1, (this.t - h.from + 1) / span) : 1;
+      this.swooshFx = { fx: fx || (this.state === 'upb' ? 'spin' : this.state === 'attack' && SWOOSH_BY_MOVE[this.moveName]) || 'spin', hb: { ...hb }, k, life: 7, x: this.x, y: this.y, facing: this.facing };
+    }
+    if (this.swooshFx) {
+      const S = this.swooshFx;
+      if (!this.activeHitboxes().length) { S.life--; S.k = 1; }
+      if (S.life <= 0 || !this.alive) this.swooshFx = null;
+      else this.drawSwoosh(g, S, (this.x - S.x), (this.y - S.y));
     }
     // off-screen arrow is handled by the HUD
+  }
+  // One swoosh. S.k = how far through the swing (0..1), S.life fades it out after the hit window.
+  // Shapes: arc (overhead to forward), up (front over the head to the back), back (behind), down (a
+  // stab under), low (a sweep along the floor), low2 (both sides), spin (a full ring), jab / thrust (streaks)
+  drawSwoosh(g, S, ox, oy) {
+    const P = this.pal, f = S.facing, hb = S.hb, fade = Math.min(1, S.life / 7);
+    const x1 = hb.x1 + ox, x2 = hb.x2 + ox, y1 = hb.y1 + oy, y2 = hb.y2 + oy;
+    const bx = S.x + ox, by = S.y + oy, bodyH = this.body.h;
+    const cols = [P.deep, P.mid, P.light, P.core];
+    // a crescent: arc from a0 to a1 (radians, facing right), the lead at a0 + (a1 - a0) * k
+    const crescent = (cx, cy, r, a0, a1, w) => {
+      const lead = a0 + (a1 - a0) * S.k, len = Math.abs(lead - a0), dir = Math.sign(a1 - a0) || 1;
+      if (len < 0.05) return;
+      const steps = Math.max(6, Math.round(r * len / 2));
+      for (let i = 0; i <= steps; i++) {
+        const q = i / steps, a = lead - dir * len * q;                // q = 0 at the leading edge
+        const thick = Math.max(1, w * (1 - q) ** 0.8);
+        for (let j = 0; j < thick; j += 2) {
+          const rr = r - j, px = cx + Math.cos(a) * rr * f, py = cy + Math.sin(a) * rr;
+          const c = cols[Math.min(3, Math.floor((1 - q) * 3 + (j < 2 ? 1 : 0)))];
+          g.fillStyle(c, fade * (0.95 - q * 0.6)); g.fillRect(Math.round(px) - 1, Math.round(py) - 1, 2, 2);
+        }
+      }
+    };
+    const cy = by - bodyH * 0.55;
+    const reachX = Math.max(Math.abs(x1 - bx), Math.abs(x2 - bx)), reachUp = by - y1, reachDown = y2 - cy;
+    switch (S.fx) {
+      case 'arc': case 'slash': case 'staff': case 'flame': crescent(bx, cy, Math.max(20, Math.hypot(reachX * 0.85, (y2 - y1) * 0.4)), -1.35, 0.75, 9); break;
+      case 'up': crescent(bx, cy + 6, Math.max(20, Math.min(reachUp - bodyH * 0.35, 48)), 0.2, -3.35, 9); break;
+      case 'back': crescent(bx, cy, Math.max(20, reachX * 0.9), -1.8, -4.2, 9); break;
+      case 'down': crescent(bx, cy, Math.max(18, reachDown), 0.2, 2.9, 8); break;
+      case 'low': case 'low2': {
+        const front = f > 0 ? x2 : x1, back = S.fx === 'low2' ? (f > 0 ? x1 : x2) : bx;
+        for (const [from, to] of S.fx === 'low2' ? [[bx, front], [bx, back]] : [[back, front]]) {
+          const len = (to - from) * S.k;
+          for (let i = 0; i < 3; i++) {
+            const yy = by - 3 - i * 4, l = len * (1 - i * 0.22);
+            g.fillStyle(cols[3 - i], fade * (0.9 - i * 0.2)); g.fillRect(Math.min(from, from + l), yy, Math.abs(l), 2);
+          }
+        }
+        break;
+      }
+      case 'jab': case 'thrust': {
+        const front = f > 0 ? x2 : x1, len = (front - bx) * (0.4 + 0.6 * S.k), yy = (y1 + y2) / 2;
+        for (const [dy, w, c] of [[0, 1, 3], [-4, 0.7, 2], [4, 0.6, 2], [-8, 0.4, 1], [8, 0.35, 1]]) {
+          g.fillStyle(cols[c], fade * 0.9); g.fillRect(Math.min(bx + len * (1 - w), bx + len), yy + dy, Math.abs(len * w), dy ? 1 : 2);
+        }
+        g.fillStyle(cols[3], fade); g.fillRect(bx + len - 2, yy - 3, 4, 6);
+        break;
+      }
+      case 'flare': {                                                // lens flare: a blinding core, rays, ghost rings
+        const front = f > 0 ? x2 : x1, yy = (y1 + y2) / 2, k = S.k * fade;
+        g.fillStyle(0xffffff, k); g.fillCircle(front - f * 10, yy, 6 + 10 * S.k);
+        g.fillStyle(0xffffff, 0.8 * k); g.fillRect(front - f * 10 - 40 * S.k, yy - 1, 80 * S.k, 2); g.fillRect(front - f * 10 - 1, yy - 26 * S.k, 2, 52 * S.k);
+        for (let j = 1; j <= 3; j++) { g.lineStyle(2, cols[1 + (j % 3)], 0.6 * k); g.strokeCircle(front - f * (10 + j * 16), yy + j * 8, 3 + j * 2); }
+        break;
+      }
+      case 'aurora': {                                               // a glossy ribbon of light, green over aqua
+        const r = Math.max(22, reachX * 0.85), a0 = -1.4, a1 = 0.8, lead = a0 + (a1 - a0) * S.k;
+        for (let a = a0; a <= lead; a += 0.05) {
+          const q = (lead - a) / (a1 - a0), px = bx + Math.cos(a) * r * f, py = cy + Math.sin(a) * r;
+          g.fillStyle(0x8be04a, fade * (0.8 - q)); g.fillRect(Math.round(px) - 2, Math.round(py) - 3, 4, 3);
+          g.fillStyle(cols[2], fade * (0.9 - q)); g.fillRect(Math.round(px) - 2, Math.round(py), 4, 3);
+          g.fillStyle(0xffffff, fade * (1 - q)); g.fillRect(Math.round(px) - 2, Math.round(py) - 1, 4, 1);
+        }
+        break;
+      }
+      case 'bubble': {                                               // a bubble popping in front of the palm
+        const front = f > 0 ? x2 : x1, yy = (y1 + y2) / 2, r = 6 + 8 * S.k;
+        g.lineStyle(2, 0xffffff, fade * (1 - S.k * 0.5)); g.strokeCircle(front - f * 12, yy, r);
+        g.fillStyle(cols[2], 0.3 * fade); g.fillCircle(front - f * 12, yy, r);
+        break;
+      }
+      default: {                                                     // spin: a ring the swing goes round
+        const cx = (x1 + x2) / 2, ccy = (y1 + y2) / 2, r = Math.max(14, (x2 - x1) / 2);
+        crescent(cx, ccy, r, -1.6, -1.6 + Math.PI * 2 * 0.9, 7);
+      }
+    }
   }
 }

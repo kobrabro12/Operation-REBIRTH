@@ -60,10 +60,10 @@ page.on('pageerror', (e) => consoleErrors.push(String(e)));
 await page.goto(url);
 await page.waitForFunction(() => window.game && window.game.scene.isActive('Title'), null, { timeout: 60000 });
 const info = await page.evaluate(async () => {
-  const { ROSTER } = await import('/src/fighters/roster.js');
+  const { ROSTER, TEST_ROSTER } = await import('/src/fighters/roster.js');
   const { STAGES } = await import('/src/stage/stages.js');
   const { skinsFor } = await import('/src/fighters/skins.js');
-  const fighters = ROSTER.filter((f) => f.available).map((f) => f.id);
+  const fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER].map((f) => f.id);   // test fighters too (Trinkets > TEST FIGHTERS)
   return { fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
 });
 

@@ -27,12 +27,24 @@ export const SOUL_SUMMONER = {
   airSpeed: 2.7, airAccel: 0.24, airFriction: 0.04,
   jumpV: -9.0, shortHopV: -6.2, doubleJumpV: -8.6,
 
+  // TAUNT (1): SOUL FLARE - thrusts his flame overhead, it swells and roars, then he beckons them in
+  taunt: { name: 'SOUL FLARE', frames: 80, lines: ['COME, THEN.', 'YOUR SOUL IS MINE.', 'BURN BRIGHTLY.'],
+    sounds: [[12, 'flame', 0.6, 1], [16, 'summon', 0.35, 1.4], [42, 'flame', 0.5, 1.2]],
+    fx: [{ kind: 'wisp', from: 14, to: 46, every: 3, x: 6, y: -78, n: 2 }] },
+
   moves: {
     // ---- ground attacks (J + direction)
-    jab: { frames: 16, lunge: 1.2, fx: 'jab', hits: [{ from: 3, to: 5, box: [6, -38, 30, 18], dmg: 3, angle: 35, base: 2.2, growth: 1.2 }] },
+    jab: { frames: 18, lunge: 1.2, fx: 'jab', hits: [{ from: 4, to: 6, box: [6, -38, 30, 18], dmg: 3, angle: 35, base: 2.2, growth: 1.2 }] },
     ftilt: { frames: 28, lunge: 3.2, fx: 'arc', hits: [{ from: 7, to: 10, box: [4, -44, 46, 30], dmg: 10, angle: 38, base: 3.0, growth: 6.4 }] },
     utilt: { frames: 26, fx: 'up', hits: [{ from: 5, to: 10, box: [-22, -78, 44, 36], dmg: 8, angle: 88, base: 3.2, growth: 6.0 }] },
     dtilt: { frames: 20, fx: 'low', hits: [{ from: 4, to: 7, box: [4, -14, 44, 14], dmg: 6, angle: 22, base: 2.6, growth: 3.6 }] },
+    // ---- smash attacks (tap a direction and attack together): slower, and they KO
+    // Soul Flare: the flame drawn back to the chest, then shoved forward as a roaring burst
+    fsmash: { frames: 48, lunge: 1.6, fx: 'thrust', hits: [{ from: 17, to: 19, box: [8, -50, 48, 36], dmg: 15, angle: 38, base: 4.0, growth: 7.0 }] },
+    // Pyre: the flame thrust overhead into a pillar of soul-fire
+    usmash: { frames: 42, fx: 'up', hits: [{ from: 13, to: 19, box: [-22, -104, 44, 66], dmg: 15, angle: 88, base: 4.2, growth: 7.6 }] },
+    // Grave Sweep: crouches and sweeps the flame in a ring along the floor - hits both sides
+    dsmash: { frames: 42, fx: 'low2', hits: [{ from: 11, to: 16, box: [-50, -18, 100, 20], dmg: 12, angle: 28, base: 3.6, growth: 6.6 }] },
     // ---- aerials (J in the air)
     nair: { frames: 26, landLag: 6, fx: 'spin', hits: [{ from: 4, to: 13, box: [-26, -52, 52, 48], dmg: 7, angle: 45, base: 2.8, growth: 4.0 }] },
     fair: { frames: 28, landLag: 9, fx: 'arc', hits: [{ from: 7, to: 10, box: [4, -48, 40, 34], dmg: 11, angle: 40, base: 3.0, growth: 6.2 }] },
@@ -49,10 +61,10 @@ export const SOUL_SUMMONER = {
     },
     // ---- specials (K)
     // Neutral special: fireball. Hold K to charge (full at 84 frames = when the charge sound's chime rings).
-    fireball: { chargeMax: 84, minDmg: 4, maxDmg: 16, speed: 4.6, life: 90 },
+    fireball: { chargeMax: 84, minDmg: 4, maxDmg: 14, speed: 4.6, life: 90 },
     // Side special: Soul Hex - a short-range curse. A cursed opponent loses control and walks toward the
     // nearest edge of the stage for up to 2.5 s. They break free sooner by mashing buttons (wiggling).
-    sideB: { frames: 34, fx: 'hex', fxTint: 0x6d26bd, hits: [{ from: 9, to: 13, box: [8, -46, 44, 38], dmg: 3, angle: 20, base: 0.8, growth: 0, stun: 10, possess: 150 }] },
+    sideB: { frames: 34, fx: 'hex', fxTint: 0x6d26bd, hits: [{ from: 9, to: 13, box: [8, -46, 44, 38], dmg: 3, angle: 20, base: 0.8, growth: 0, stun: 10, possess: 120 }] },
     // Down special: raise a soul from the grave (max 2 at once).
     summon: { frames: 40, spawnAt: 20, maxSouls: 2, cooldown: 60 },
     // Up special: Soulfire Jet - he blasts blue flames out below his feet and rides them upward.
@@ -74,14 +86,15 @@ export const SOUL_SUMMONER = {
   // Limit (O, unlocked after taking 100%): Soulfire Beam - a beam of blue fire from his hand, straight ahead.
   // Five quick hits hold opponents in the beam, then a final blast launches them: 8+8+8+8+8+10 = 50%.
   limit: {
-    name: 'SOULFIRE BEAM', frames: 112, beamStart: 36, beamEnd: 98, beamLength: 720, beamHalf: 20, colors: BEAM_BLUE,
+    // the beam fires a beat after the Limit freeze ends, so a sharp opponent can still jump it
+    name: 'SOULFIRE BEAM', frames: 118, beamStart: 42, beamEnd: 104, beamLength: 720, beamHalf: 20, colors: BEAM_BLUE,
     hits: [
-      { at: 40, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 50, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 60, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 70, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 80, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
-      { at: 92, dmg: 10, angle: 32, base: 5.5, growth: 6.5 },
+      { at: 46, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 56, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 66, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 76, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 86, dmg: 8, angle: 6, base: 1.4, growth: 0, stun: 14 },
+      { at: 98, dmg: 10, angle: 32, base: 4.6, growth: 5.6 },
     ],
   },
 };

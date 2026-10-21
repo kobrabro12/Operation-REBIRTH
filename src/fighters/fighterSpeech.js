@@ -16,6 +16,14 @@ const QUIPS = {
     grab: [0.8, 'GOT YOU.'], throw: [0.7, 'DELETE.', 'DRAG > TRASH'],
     limit: [1, 'RUN THOUSAND_CUTS'], ko: [1, 'CTRL+ALT+DEL.', 'USER LOGGED OFF.'],
   },
+  // Mr Wake in 1-BIT: a wizard who turned out to be a very old program
+  'mr-wake:onebit': {
+    jab: [0.3, '> bonk()', 'NULL.'],
+    attack: [0.22, 'CAST.', '> spell()', '0xDEAD', 'EXEC;'],
+    smash: [0.6, 'KERNEL PANIC!', 'rm -rf you'],
+    grab: [0.7, 'LOCKED.'], throw: [0.7, 'EJECT.', 'PIPE > /DEV/NULL'],
+    upb: [0.5, 'GOTO 10'], limit: [1, 'SINK();'], ko: [1, 'SEGFAULT.', 'PROCESS ENDED.'],
+  },
   // AKATSUKI: an anime hero, shouting her moves
   'hero-knight:hero': {
     jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
@@ -32,6 +40,7 @@ const QUIPS = {
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
+  taunt: { typed: false, style: { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 } },   // every fighter's taunt line
 };
 
 export class FighterSpeech {
@@ -43,13 +52,13 @@ export class FighterSpeech {
     if (!e || Math.random() > e[0]) return;
     this.say(e[1 + Math.floor(Math.random() * (e.length - 1))]);
   }
-  say(text, life = 80) {
+  say(text, life = 80, kind = null) {
     if (this.match.demo) return;
-    this.speechKind = SPEECH[this.style] || SPEECH.onebit;
+    this.speechKind = SPEECH[kind] || SPEECH[this.style] || SPEECH.onebit;
     if (!this.speech) {
       this.speech = this.match.add.text(0, 0, '', this.speechKind.style).setOrigin(0.5, 1).setDepth(8);
       this.match.addWorld(this.speech);
-    }
+    } else this.speech.setStyle(this.speechKind.style);
     this.speechFull = text; this.speechT = 0; this.speechLife = life; this.speech.setVisible(true);
     if (this.speechKind.typed) sfx('menu', 0.15, 1.8);
   }

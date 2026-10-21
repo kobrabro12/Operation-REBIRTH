@@ -37,7 +37,7 @@ export class FighterDefense {
     if (this.t >= 28) this.setState('air');
   }
   isIntangible() {
-    if (this.invincible > 0 || this.state === 'respawn') return true;
+    if (this.invincible > 0 || this.star > 0 || this.state === 'respawn') return true;
     if (this.state === 'roll') return this.t >= 4 && this.t <= 16;
     if (this.state === 'spotdodge') return this.t >= 3 && this.t <= 16;
     if (this.state === 'airdodge') return this.t >= 3 && this.t <= 20;

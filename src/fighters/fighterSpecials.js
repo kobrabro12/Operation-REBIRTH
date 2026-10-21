@@ -2,6 +2,7 @@
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
 import { newAttackId } from './attackIds.js';
+import { popBubble } from './entities.js';
 
 export class FighterSpecials {
 
@@ -145,6 +146,8 @@ export class FighterSpecials {
     if (this.t < u.riseAt) { this.vy = 0; return; }
     if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('djump', 0.7, 0.7); }
     this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
+    if (u.bubble && this.t > u.riseAt && this.t < u.popAt) this.vy = u.floatV || -3.4;                   // AERO's bubble: a steady float upward
+    if (u.bubble && this.t === u.popAt) { popBubble(this.match, this.x, this.y - 22, 26, this.pal); this.vy = -4; }
     if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
     if (this.t >= u.frames) this.setState('helpless');
   }

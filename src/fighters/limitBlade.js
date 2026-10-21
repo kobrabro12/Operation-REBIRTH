@@ -26,7 +26,7 @@ export class LimitBlade {
       }
       const pad = b.half + 2;
       for (const o of m.fighters) {
-        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o)) continue;
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.state === 'dying' || U.victims.includes(o) || o.isIntangible()) continue;
         const hb = o.hurtbox();
         if (pts.some(([x, y]) => x > hb.x1 - pad && x < hb.x2 + pad && y > hb.y1 - pad && y < hb.y2 + pad)) U.victims.push(o);
       }
@@ -240,7 +240,7 @@ export class LimitBlade {
     } else if (U.phase === 'whiff') {
       pose = GUARD; grow = 1 - ease(Math.min(1, (t - L.slashTo) / (L.whiffEnd - L.slashTo)));   // shrinks back to normal
     }
-    return { len: 30 + 160 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
+    return { len: 30 + 145 * grow, half: 1.5 + 6 * grow, glow: grow, ang: pose.ang, hx: this.x + this.facing * pose.x, hy: this.y + pose.y };
   }
   drawBladeLimit(g, L, U) {
     const C = this.style === 'hero' ? CRYSTAL_BLADE : L.colors;

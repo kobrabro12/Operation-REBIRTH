@@ -34,7 +34,7 @@ export class TitleScene extends Phaser.Scene {
     this.letters.forEach((l, i) => { l.x = Math.round(x + widths[i] / 2); x += widths[i] - 6; });
 
     this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
-    this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT   (TOUCH CONTROLS ON PHONES)', { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
+    this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT   1 TAUNT   (TOUCH ON PHONES)', { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
     this.menu = new MenuInput(this);
     this.clicked = false;
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });

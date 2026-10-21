@@ -25,8 +25,19 @@ const GOLD_RAMP = [0x2a1804, 0x4a2c08, 0x6e440e, 0x965f16, 0xbb7f1f, 0xd9a32e, 0
 // ---- milestone costume ramps
 const ABYSS_RAMP = [0x02060c, 0x041222, 0x072238, 0x0c3452, 0x13496c, 0x1c6288];
 const RADIANT_RAMP = [0x5a3a10, 0x8a5e1c, 0xb8862b, 0xdcae4a, 0xf3cf74, 0xffe7a8, 0xfff6dc, 0xffffff];
+const PUMPKIN_RAMP = [0x2a0e04, 0x5a2006, 0x8e3608, 0xc4520c, 0xe8701a, 0xffa040];
 const KING_CAPE_RAMP = [0x050307, 0x0d0910, 0x17101a, 0x241826, 0x342234];
 
+const NUG = {
+  acid: { h: [65, 105], s: [0.35, 1], v: [0.3, 1], center: 84 },
+  hair: { h: [38, 62], s: [0.06, 0.5], v: [0.6, 1], center: 48 },
+  cloth: { h: [230, 300], s: [0.05, 0.35], v: [0.1, 0.4], center: 258 },
+};
+const AEG = {
+  aqua: { h: [180, 215], s: [0.3, 1], v: [0.3, 1], center: 196 },
+  lime: { h: [75, 110], s: [0.3, 1], center: 92 },
+  fish: { h: [10, 40], s: [0.5, 1], v: [0.5, 1], center: 24 },
+};
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -48,6 +59,9 @@ export const SKINS = {
     // stage; he raises his own 1-bit ghosts instead of flaming skulls (tools/sprites/onebit_minion.py)
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.5 } }, outline: 0xf4f4f0, minion: 'soul_minion_1bit', style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // a carved-pumpkin knight: orange cape, a candle-yellow flame, eyes like cut-out holes; his hits scatter bats
+    { name: "JACK-O'-LANTERN", swatch: 0xf07a1a, fx: 0xffb02a, groups: SS, rules: { cape: { ramp: PUMPKIN_RAMP, lo: 0.08, hi: 0.55 }, flame: { to: 44, sat: 1.1, val: 1.2 }, gold: { to: 28, sat: 1.15, val: 1.05 }, eyes: { to: 50, val: 1.2 }, armor: { sat: 0.4, val: 0.55 } },
+      vfx: { hit: { shape: 'bat', colors: [0x16101c, 0x2a1a30, 0xffb02a], n: 6, sparks: [0xffb02a, 0xf07a1a] }, minion: { flame: { to: 40, sat: 1.1 }, eyes: { to: 48 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
@@ -98,6 +112,9 @@ export const SKINS = {
     // into crystal shards with sound-effect lettering, and her Limit is a named secret art (style 'hero')
     { name: 'AKATSUKI', swatch: 0xb0202c, fx: 0x6fd6f0, sheetSet: 'akatsuki', style: 'hero',
       pal: { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff, shade: 0x0a2a3a, void: 0x04121a } },
+    // STARLIGHT: a night-sky knight - midnight-blue suit, gold sash, silver-white steel; her hits throw stars
+    { name: 'STARLIGHT', swatch: 0x22306a, fx: 0xffe08a, groups: HK, rules: { suit: { to: 228, sat: 2.0, val: 0.62 }, sash: { to: 44, sat: 1.1, val: 1.5 }, white: { hue: 50, satAdd: 0.12 }, steel: { hue: 220, satAdd: 0.1, val: 1.2 } },
+      vfx: { hit: { shape: 'star', colors: [0xffe08a, 0xffffff, 0x9ab8ff], n: 7, glint: true } } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,
@@ -121,6 +138,42 @@ export const SKINS = {
              aura: { wings: [0xffffff, 0xfff3c0, 0xf3cf74], halo: 0xfff3c0, motes: { colors: [0xffffff, 0xfff3c0], rate: 4, feathers: true } },
              trail: 0xfff3c0 } },
   ],
+  // NU (test fighter): a hit of his always throws out music notes in his colours
+  'nu': [
+    { name: 'ACID', swatch: 0x9be32a, vfx: { hit: { shape: 'note', colors: [0x9be32a, 0xe8ffb0, 0xffffff], n: 6 } } },
+    { name: 'BLOODLINE', swatch: 0xe0302a, fx: 0xff5a4a, groups: NUG, rules: { acid: { to: 358, sat: 1.1 }, hair: { hue: 0, sat: 0.2, val: 0.32 }, cloth: { val: 0.85 } },
+      pal: { outline: 0x1a0406, deep: 0x7a0a10, mid: 0xc81e28, light: 0xff5a4a, core: 0xffd0c8, shade: 0x2a0a0c, void: 0x0a0204 },
+      vfx: { hit: { shape: 'note', colors: [0xff5a4a, 0xffd0c8, 0xffffff], n: 6 } } },
+    { name: 'FROSTBITE', swatch: 0x5ad8f0, fx: 0x9ae8ff, groups: NUG, rules: { acid: { to: 192 }, hair: { hue: 200, sat: 0.15, val: 1.05 }, cloth: { to: 222, sat: 1.8, val: 1.1 } },
+      pal: { outline: 0x0a1a2a, deep: 0x1a6a9a, mid: 0x3ab0e0, light: 0x9ae8ff, core: 0xf0fcff, shade: 0x0e2a3a, void: 0x040c12 },
+      vfx: { hit: { shape: 'note', colors: [0x9ae8ff, 0xf0fcff, 0x3ab0e0], n: 6 } } },
+    { name: 'TOXIC', swatch: 0xa04ae0, fx: 0xc88aff, groups: NUG, rules: { acid: { to: 280, sat: 1.0 }, hair: { to: 100, sat: 1.6, val: 0.9 }, cloth: { to: 280, sat: 1.4 } },
+      pal: { outline: 0x14081e, deep: 0x4a1a7a, mid: 0x7a3ad0, light: 0xc88aff, core: 0xf0e0ff, shade: 0x1e0a2e, void: 0x08040e },
+      vfx: { hit: { shape: 'note', colors: [0xc88aff, 0x9be32a, 0xffffff], n: 6 } } },
+    { name: 'PLATINUM', swatch: 0xd8dce4, fx: 0xf3c358, groups: NUG, rules: { acid: { to: 44, sat: 0.9, val: 1.1 }, hair: { hue: 46, sat: 0.6 }, cloth: { sat: 0.15, val: 2.6 } },
+      pal: { outline: 0x2a1c06, deep: 0x8a6a1c, mid: 0xd9a32e, light: 0xf3c358, core: 0xfff4c8, shade: 0x3a2a0a, void: 0x120c02 },
+      vfx: { hit: { shape: 'note', colors: [0xf3c358, 0xfff4c8, 0xffffff], n: 7, glint: true } } },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+  ],
+  // AERO (test fighter): glossy bubbles on every hit
+  'aero': [
+    { name: 'AERO', swatch: 0x3fc8ea, vfx: { hit: { shape: 'bubble', colors: [0x9ff0ff, 0xffffff], n: 7, ring: 0x9ff0ff, glint: true } } },
+    { name: 'MEADOW', swatch: 0x8be04a, fx: 0xd6ff9a, groups: AEG, rules: { aqua: { to: 112, sat: 0.9 }, lime: { to: 52, sat: 1.1 } },
+      pal: { outline: 0x1e3a0a, deep: 0x3a8a1a, mid: 0x6fd03a, light: 0xc8ff8a, core: 0xffffff, shade: 0x1e4a0a, void: 0x081404 },
+      vfx: { hit: { shape: 'feather', colors: [0xc8ff8a, 0xffffff, 0x6fd03a], n: 6, glint: true } } },
+    { name: 'BLOSSOM', swatch: 0xff9ad0, fx: 0xffc8e8, groups: AEG, rules: { aqua: { to: 330, sat: 0.7, val: 1.05 }, lime: { to: 300, sat: 0.6 }, fish: { to: 0, sat: 0.2, val: 1.2 } },
+      pal: { outline: 0x4a0e30, deep: 0xc0408a, mid: 0xff7ac0, light: 0xffc8e8, core: 0xffffff, shade: 0x5a1a40, void: 0x180610 },
+      vfx: { hit: { shape: 'sakura', colors: [0xffc8e8, 0xffffff, 0xff7ac0], n: 7 } } },
+    { name: 'NIGHT GLASS', swatch: 0x1a2a6a, fx: 0x7ad6ff, groups: AEG, rules: { aqua: { to: 225, sat: 1.1, val: 0.55 }, lime: { to: 190 } },
+      pal: { outline: 0x050a1e, deep: 0x1a2a6a, mid: 0x3a6ad0, light: 0x7ad6ff, core: 0xffffff, shade: 0x0a1030, void: 0x02040e },
+      vfx: { hit: { shape: 'star', colors: [0x7ad6ff, 0xffffff, 0xffe08a], n: 6, glint: true } } },
+    { name: 'KOI', swatch: 0xffffff, fx: 0xff6a4a, groups: AEG, rules: { aqua: { to: 12, sat: 0.9 }, lime: { to: 44, sat: 1.0 }, fish: { sat: 0.15, val: 1.3 } },
+      pal: { outline: 0x3a0a04, deep: 0xc03a1a, mid: 0xff6a4a, light: 0xffc0a8, core: 0xffffff, shade: 0x4a1a0a, void: 0x140402 },
+      vfx: { hit: { shape: 'bubble', colors: [0xffc0a8, 0xffffff], n: 7, ring: 0xff6a4a } } },
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.6 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+  ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
     { name: 'TIDE', swatch: 0x1b8a8a, fx: 0x3ad0b0, groups: MW, rules: { robe: { to: 182 }, magic: { to: 160 } } },
@@ -131,6 +184,13 @@ export const SKINS = {
     { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses', style: 'rose',
       pal: { outline: 0x3a0412, deep: 0x9a1240, mid: 0xd6336c, light: 0xff7aa8, core: 0xffc8da, shade: 0x1d3d1e, void: 0x0a1a0c } },
     { name: 'NOBLE', swatch: 0x24357a, fx: 0xf3c358, groups: MW, rules: { robe: { to: 228 }, magic: { to: 45 }, cloth: { to: 220 } } },
+    // 1-BIT: the third of the monochrome-handheld set - black and white, a white outline, black lines where
+    // his parts meet; his orb, pool and Undertow glitch in pixels and he talks like a terminal
+    { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.05, hi: 0.27 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
+      pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // NEON: straight out of the Neon Arcade - hot pink robe, electric cyan gem, hits that burst into neon pixels
+    { name: 'NEON', swatch: 0xff4fd8, fx: 0x4ff0ff, groups: MW, rules: { robe: { to: 318, sat: 1.25, val: 1.6 }, magic: { to: 186, sat: 1.1, val: 1.25 }, cloth: { to: 262, sat: 1.4, val: 1.2 }, wood: { to: 300, sat: 0.9 } },
+      vfx: { hit: { shape: 'pixel2', colors: [0xff4fd8, 0x4ff0ff, 0xffffff, 0xb46bff], n: 9, ring: 0x4ff0ff } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.
     { name: 'RIPTIDE', milestone: 1, swatch: 0x2a8ad0, fx: 0x7ad0ff,

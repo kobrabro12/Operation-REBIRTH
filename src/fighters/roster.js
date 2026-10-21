@@ -3,12 +3,29 @@
 import { SOUL_SUMMONER } from './soulSummoner.js';
 import { MR_WAKE } from './mrWake.js';
 import { HERO_KNIGHT } from './heroKnight.js';
+import { NU } from './nu.js';
+import { AERO } from './aero.js';
 import { skinTexture, skinInfo } from './skins.js';
 
 export const ROSTER = [
   { id: 'soul-summoner', name: 'SOUL SUMMONER', def: SOUL_SUMMONER, available: true },
   { id: 'mr-wake', name: 'MR WAKE', def: MR_WAKE, available: true },
   { id: 'hero-knight', name: 'LACY', def: HERO_KNIGHT, available: true },
+];
+
+// TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a
+// CPU before they join the real roster. They never appear on the fighter select screen or as RANDOM.
+export const TEST_ROSTER = [
+  { id: 'nu', name: 'NU', def: NU, tag: 'PROTOTYPE 01',
+    notes: 'A NU-METAL FRONTMAN WHO TURNS EVERY FIGHT INTO A SHOW.\n\n'
+      + 'JAB  RAP BARRAGE      FTILT  MIC SWING\nFSMASH  KICK           USMASH  BREAKDOWN\nDSMASH  GROUND POUND   DAIR  STAGE DIVE\n\n'
+      + 'K      CROWD CALL - A WALL OF SOUND\nSIDE K STAGE DIVE - A LONG FLYING DIVE\nUP K   CROWD SURF - THE CROWD LIFTS HIM\n'
+      + 'DOWN K GRAFFITI TAG - STAND ON IT FOR\n       RAGE MODE (+20% DAMAGE)\n\nLIMIT  MOSH PIT - JUMP THE SHOCKWAVE!\n1      TAUNT: HEADBANG' },
+  { id: 'aero', name: 'AERO', def: AERO, tag: 'PROTOTYPE 02',
+    notes: 'GLOSSY GLASS, AQUA SKIES, BUBBLES AND\nA GOLDFISH IN A FISHBOWL. LIGHT AND FLOATY.\n\n'
+      + 'JAB  BUBBLE POP      FTILT  AURORA SWOOSH\nFSMASH  LENS FLARE    USMASH  GEYSER\nDSMASH  RIPPLE        DAIR  RAINDROP\n\n'
+      + 'K      BUBBLE TRAP - SEALS THEM IN A BUBBLE\nSIDE K GOLDFISH FLING - OUT AND BACK\nUP K   BUBBLE RIDE - FLOAT UP AND POP\n'
+      + 'DOWN K DESKTOP - STAY NEAR IT: POWERED UP\n\nLIMIT  SCREENSAVER - OR WITH 2 PCS OUT:\n       FULL AERO! (15 S, EVERYTHING UPGRADED)\n1      TAUNT: FISHBOWL BOOGIE' },
 ];
 
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"
@@ -28,5 +45,5 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
 export function fighterById(id) {
   const avail = ROSTER.filter((f) => f.available);
   if (id === 'random' || !id) return avail[Math.floor(Math.random() * avail.length)];
-  return ROSTER.find((f) => f.id === id && f.available) || avail[0];
+  return ROSTER.find((f) => f.id === id && f.available) || TEST_ROSTER.find((f) => f.id === id) || avail[0];
 }

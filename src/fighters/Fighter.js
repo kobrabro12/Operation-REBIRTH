@@ -16,11 +16,18 @@ import { LimitBlade } from './limitBlade.js';
 import { FighterCostumeFx } from './fighterCostumeFx.js';
 import { FighterLedge } from './fighterLedge.js';
 import { FighterRender } from './fighterRender.js';
+import { LimitAero } from './limitAero.js';
+import { LimitMosh } from './limitMosh.js';
+import { FighterTaunt } from './fighterTaunt.js';
+import { popBubble } from './entities.js';
 
 const BUFFER = 7;   // frames an early button press is remembered
 
 // climbing up from a ledge with an attack: a low sweep in front
 const LEDGE_ATTACK = { box: [-8, -30, 50, 26], dmg: 7, angle: 30, base: 3.0, growth: 3.4 };
+
+// AERO's power-ups, by level (Fighter.aeroLevel): none / near a computer / FULL AERO
+const AERO_BOOST = { dmg: [1, 1.1, 1.3], speed: [1, 1.1, 1.3], jump: [1, 1.06, 1.16], taken: [1, 0.94, 0.8], kb: [1, 0.92, 0.75] };
 
 export class Fighter {
   constructor(match, def, slot, controller, opts) {
@@ -40,7 +47,7 @@ export class Fighter {
     this.invincible = 0; this.hitstop = 0; this.hitstun = 0; this.shieldHp = 60; this.shieldStun = 0;
     this.charge = 0; this.chargeSound = null; this.summonCooldown = 0; this.souls = [];
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
-    this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0 };
+    this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0, taunt: 0 };
     this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
     this.ledge = null; this.ledgeCooldown = 0; this.ledgeGrabs = 0;
     this.possessed = 0; this.possessMax = 1; this.possessImmune = 0; this.possessDir = 1; this.forced = new Controller();
@@ -72,7 +79,13 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1); }
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel]; }   // NU's RAGE MODE hits 20% harder
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel]; }
+  get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
+  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel]; }
+  // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
+  get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
   // a direction pressed within the last few frames before attack = a smash attack
   smashed(at) { return this.age - at <= 6; }
@@ -117,6 +130,15 @@ export class Fighter {
     if (this.slow > 0) this.slow--;
     if (this.invincible > 0) this.invincible--;
     if (this.curse > 0) this.curse--;
+    if (this.swift > 0) this.swift--;
+    if (this.rage > 0) this.rage--;
+    if (this.pcBuff > 0) this.pcBuff--;
+    if (this.fullAero > 0 && --this.fullAero === 0) this.exitFullAero();
+    if (this.aeroLevel && this.age % (this.fullAero > 0 ? 5 : 9) === 0 && !this.match.demo) {   // powered-up sparkle
+      const R = Math.random, gold = this.fullAero > 0;
+      this.match.particles.push({ shape: 'star', x: this.x + (R() - 0.5) * 28, y: this.y - 10 - R() * 44, vx: (R() - 0.5) * 0.4, vy: -0.6 - R() * 0.6, life: 20 + R() * 10, color: gold && R() < 0.6 ? 0xf3c358 : 0x9ff0ff, grav: -0.01, drag: 0.96, size: 2 });
+    }
+    if (this.star > 0) this.star--;
     if (this.summonCooldown > 0) this.summonCooldown--;
     if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
     if (this.state !== 'shield' && this.shieldHp < 60) this.shieldHp = Math.min(60, this.shieldHp + 0.12);
@@ -132,7 +154,7 @@ export class Fighter {
   // the fighter toward the nearest edge of the stage until the curse wears off or is mashed away.
   possess(frames) {
     if (this.possessImmune > 0 || this.possessed > 0) return false;
-    this.possessed = frames; this.possessMax = frames;
+    this.possessed = frames; this.possessMax = frames; this.walkedOff = false;
     this.possessDir = this.x >= 0 ? 1 : -1;           // nearest edge
     for (const b of Object.keys(this.buffer)) this.buffer[b] = 0;
     this.stopChargeSound();
@@ -149,6 +171,13 @@ export class Fighter {
     this.possessed -= 1 + wiggles * 10;
     if (wiggles) this.wiggleFx = 6;
     if (this.possessed <= 0) { this.endPossession(wiggles > 0); return real; }
+    const P0 = this.match.stage.platforms[0];
+    if (!this.grounded && this.state !== 'hitstun' && this.walkedOff && (this.x < P0.x1 || this.x > P0.x2)) {   // stumbled off the edge: the fall snaps them out of it
+      this.walkedOff = false; this.endPossession(false);
+      this.match.popText(this, 'SNAPPED OUT OF IT!', '#f3c358'); this.match.puff(this.x, this.y - 30, 0xb07ad0, 10);
+      return real;
+    }
+    if (this.grounded) this.walkedOff = true;
     const f = this.forced;
     f.beginFrame();
     for (const b in f.cur) f.cur[b] = false;
@@ -174,6 +203,7 @@ export class Fighter {
 
   groundActions(c) {
     if (this.tryCommon(c, true)) return;
+    if (this.buffer.taunt && this.def.taunt && !this.swordOut) { this.buffer.taunt = 0; this.setState('taunt'); return; }
     if (this.buffer.jump) { this.buffer.jump = 0; this.setState('jumpsquat'); return; }
     if (c.held('shield')) { this.setState('shield'); sfx('shield', 0.4); return; }
     // drop through a cloud ledge
@@ -192,7 +222,7 @@ export class Fighter {
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if ((M.sideB.dive && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -202,9 +232,14 @@ export class Fighter {
       const M = this.def.moves;
       if (ground) {
         // tap a direction and attack together for a smash attack (if the fighter has one)
-        if (c.up) this.startAttack(M.usmash && this.smashed(this.tapUp) ? 'usmash' : 'utilt');
-        else if (c.down) this.startAttack(M.dsmash && this.smashed(this.tapDown) ? 'dsmash' : 'dtilt');
-        else if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); this.startAttack(M.fsmash && this.smashed(this.tapX) ? 'fsmash' : 'ftilt'); }
+        const sm = (at) => this.smashed(at) || c.smash;        // the CPU asks for a smash outright
+        if (c.up) this.startAttack(M.usmash && sm(this.tapUp) ? 'usmash' : 'utilt');
+        else if (c.down) this.startAttack(M.dsmash && sm(this.tapDown) ? 'dsmash' : 'dtilt');
+        else if (Math.abs(c.x) > 0.5) {
+          this.facing = Math.sign(c.x);
+          const dash = M.dashAttack && this.state === 'run' && Math.abs(this.vx) > this.def.walkSpeed * 0.7;   // attack at a full run: a dash attack
+          this.startAttack(M.fsmash && sm(this.tapX) ? 'fsmash' : dash ? 'dashAttack' : 'ftilt');
+        }
         else this.startAttack('jab');
       } else {
         if (c.up) this.attackOr('uair', 'nair');
@@ -223,7 +258,7 @@ export class Fighter {
     if (this.buffer.special && c.up && !this.usedUpB) { this.buffer.special = 0; this.startUpB(c); return; }
     if (this.t >= 4) {
       const full = c.held('jump');
-      this.vy = full ? this.def.jumpV : this.def.shortHopV;
+      this.vy = (full ? this.def.jumpV : this.def.shortHopV) * this.jumpMult;
       if (Math.abs(c.x) > 0.3) this.vx = c.x * this.def.airSpeed;
       this.grounded = false; this.platform = null;
       this.setState('air'); sfx('jump', 0.5);
@@ -234,7 +269,7 @@ export class Fighter {
     if (this.tryCommon(c, false)) return;
     if (this.buffer.jump && this.jumpsLeft > 0) {
       this.buffer.jump = 0; this.jumpsLeft--; this.fastFalling = false;
-      this.vy = this.def.doubleJumpV; this.vx = c.x * this.def.airSpeed;
+      this.vy = this.def.doubleJumpV * this.jumpMult; this.vx = c.x * this.def.airSpeed;
       if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
       sfx('djump', 0.5); this.match.puff(this.x, this.y, 0xf0f2f3, 6);
     }
@@ -250,7 +285,7 @@ export class Fighter {
   startAttack(name) {
     this.quip(name === 'jab' ? 'jab' : /smash/.test(name) ? 'smash' : name === 'grab' ? null : 'attack');
     this.move = this.def.moves[name]; this.moveName = name; this.attackId = newAttackId();
-    this.setState('attack'); this.hitList = new Set();
+    this.setState('attack'); this.hitList = new Set(); this.rapidLoops = 0;
     if (this.move.lunge && this.grounded) this.vx = this.facing * this.move.lunge;
     this.swingSound(name === 'jab' ? 1.3 : 1);
   }
@@ -263,6 +298,36 @@ export class Fighter {
   }
   st_attack(c) {
     const m = this.move;
+    if (m.rapid && this.t === m.rapid.at && this.rapidLoops < m.rapid.max && c.held('attack')) {   // hold attack to keep a rapid jab going
+      this.rapidLoops++; this.t = m.rapid.to; this.swingSound(1.3 + 0.08 * this.rapidLoops, 0.3);
+    }
+    if (m.multi && m.hits && m.hits.some((h) => h.from === this.t)) this.attackId = newAttackId();   // each beat of a multi-hit hits again
+    if (m.slide && this.grounded && this.t >= m.slide.from && this.t <= m.slide.to) {     // a dash attack carries its run along the floor
+      const k = (this.t - m.slide.from) / Math.max(1, m.slide.to - m.slide.from);
+      this.vx = this.facing * m.slide.vx * (1 - 0.7 * k);
+      if (this.t % 3 === 0) this.match.puff(this.x - this.facing * 10, this.y - 2, m.slide.dust ?? 0xd8d4e8, 2);
+    }
+    if (m.stream && this.t >= m.stream.from && this.t <= m.stream.to && (this.t - m.stream.from) % m.stream.every === 0) {   // AERO's bubble stream
+      const R = Math.random;
+      for (let i = 0; i < 3; i++) this.match.particles.push({ shape: 'bubble', x: this.x + this.facing * 6 + (R() - 0.5) * 20, y: this.y - 64 - R() * 10, vx: (R() - 0.5) * 1.2, vy: -2.2 - R() * 1.6, life: 26 + R() * 12, color: [0x9ff0ff, 0xffffff, 0x3fc8ea][i], grav: -0.02, r: 1 + Math.floor(R() * 3), sway: R() * 6, size: 2 });
+    }
+    if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
+    if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
+    if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
+    if (m.fish && this.t === m.spawnAt && !this.fishOut) {
+      if (m.fish.twin) {                                         // FULL AERO: two fish, one arcing high and one skimming low
+        this.match.spawnFish(this, { ...m.fish, liftOverride: m.fish.lift + 1.8 });
+        this.match.spawnFish(this, { ...m.fish, liftOverride: m.fish.lift - 0.9 });
+      } else this.match.spawnFish(this, m.fish);
+    }
+    if (m.pc && this.t === m.spawnAt) this.match.spawnPC(this, m.pc);
+    if (m.cdcloud && this.t === m.spawnAt) this.match.spawnCdCloud(this, m.cdcloud);
+    if (m.dive && this.t >= m.dive.from && this.t <= m.dive.to) {     // NU's STAGE DIVE: flat out through the air
+      const D = m.dive, k = (this.t - D.from) / (D.to - D.from);
+      this.vx = this.facing * D.vx * (1 - 0.45 * k);
+      if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
+      this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
+    }
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
@@ -304,6 +369,10 @@ export class Fighter {
     if (s === 'grabbed') return;
     if (s === 'respawn') return;
     if (s.startsWith('ledge')) return;                    // hanging / climbing: the state places the fighter
+    if (this.bubbled > 0) {                               // sealed in AERO's bubble: drifting upward until it pops
+      if (--this.bubbled === 0 || s !== 'hitstun') { this.bubbled = 0; popBubble(this.match, this.x, this.y - this.body.h / 2, 22, { light: 0x9ff0ff }); }
+      else { this.vx *= 0.9; this.lx *= 0.85; this.ly = 0; this.vy = -0.55; this.grounded = false; this.platform = null; this.x += this.vx + this.lx; this.y += this.vy; this.checkBlast(); return; }
+    }
     if (s === 'limit' && this.ult && this.ult.phase === 'cutscene') return;   // teleporting in the Limit cutscene
     if (this.dropTimer > 0) this.dropTimer--;
 
@@ -376,14 +445,14 @@ export class Fighter {
     }
     if (this.grounded && this.platform && (this.x < this.platform.x1 || this.x > this.platform.x2)) {
       this.grounded = false; this.platform = null;          // walked off an edge
-      if (['idle', 'run', 'land'].includes(this.state)) this.setState('air');
+      if (['idle', 'run', 'land', 'taunt'].includes(this.state)) this.setState('air');
     }
     if (landed && !this.grounded) {
       // a strong hit into the floor bounces instead of landing
       if (this.state === 'hitstun' && this.ly > 4) { this.ly = -this.ly * 0.6; this.y = landed.y; this.match.puff(this.x, this.y, 0xd99350, 6); return; }
       this.y = landed.y; this.vy = 0; this.ly = 0;
       this.grounded = true; this.platform = landed;
-      this.jumpsLeft = 1; this.airdodged = false; this.usedUpB = false; this.fastFalling = false; this.ledgeGrabs = 0;
+      this.jumpsLeft = this.swift > 0 ? 2 : 1; this.airdodged = false; this.usedUpB = false; this.usedDive = false; this.fastFalling = false; this.ledgeGrabs = 0;
       this.onLand();
     } else if (landed && this.grounded) {
       this.y = landed.y; this.platform = landed;
@@ -412,6 +481,7 @@ export class Fighter {
   }
 
   ko() {
+    if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
@@ -420,7 +490,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.possessed = 0; this.possessImmune = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
@@ -442,7 +512,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

@@ -36,7 +36,7 @@ export class FighterLedge {
     this.ledge = L; this.setState('ledge');
     this.x = h.x; this.y = h.y; this.vx = this.vy = this.lx = this.ly = 0;
     this.facing = -L.side; this.fastFalling = false;
-    this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;          // a fresh recovery
+    this.jumpsLeft = 1; this.usedUpB = false; this.usedDive = false; this.airdodged = false;          // a fresh recovery
     if (this.ledgeGrabs === 0) this.invincible = Math.max(this.invincible, 36); // safe on the first grab only
     this.ledgeGrabs++;
     this.stopChargeSound();

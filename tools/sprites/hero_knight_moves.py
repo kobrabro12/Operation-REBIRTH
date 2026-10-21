@@ -75,9 +75,11 @@ def paint(img, m, col, a):
     img[empty, :3] = col; img[empty, 3] = int(255 * a)
     img[over, :3] = (img[over, :3] * (1 - a) + np.array(col) * a).astype(np.uint8)
 
-def crescent(img, c, r, lead, sweep, width, col, rim, alpha=1.0):
+def crescent(img, c, r, lead, sweep, width, col, rim, alpha=1.0, start=None):
     """A slash crescent: the arc from (lead - sweep) to lead degrees around c (0 = forward, 90 = down),
     thick at the leading edge and thinning to a point at the tail. A negative sweep runs the other way."""
+    if start is not None:                                 # the trail never reaches back past where the swing began
+        sweep = math.copysign(max(8, min(abs(sweep), abs(lead - start))), sweep)
     cx, cy = c[0] + OX, c[1] + OY
     ys, xs = np.mgrid[0:CH, 0:CW]
     d = np.hypot(xs + 0.5 - cx, ys + 0.5 - cy)
@@ -127,7 +129,7 @@ move('ftilt', 28, [
 def utilt_fx(img, t, C):
     if 11 <= t <= 19:
         k = (t - 11) / 7
-        crescent(img, (66, 46), 34, -10 - 200 * EASE['out'](min(1, k)), -130, 9, C.arc, C.rim, alpha=1 if t < 18 else 0.5)
+        crescent(img, (66, 46), 34, -10 - 200 * EASE['out'](min(1, k)), -130, 9, C.arc, C.rim, alpha=1 if t < 18 else 0.5, start=-10)
 move('utilt', 30, [
     K(0, 'idle', 0),
     K(5, 'attack2', 6, (0, 0, 0, 1.08, 0.88), 'out'),
@@ -141,7 +143,7 @@ move('utilt', 30, [
 def dtilt_fx(img, t, C):
     if 9 <= t <= 15:
         k = (t - 9) / 4
-        crescent(img, (78, 40), 46, 115 - 95 * EASE['snap'](min(1, k)), -70, 7, C.arc, C.rim, alpha=1 if t < 14 else 0.5)
+        crescent(img, (78, 40), 46, 115 - 95 * EASE['snap'](min(1, k)), -70, 7, C.arc, C.rim, alpha=1 if t < 14 else 0.5, start=115)
 move('dtilt', 24, [
     K(0, 'idle', 0),
     K(4, 'guard', 0, (0, -3, 1, 1.04, 0.92), 'out'),
@@ -151,11 +153,59 @@ move('dtilt', 24, [
     K(24, 'idle', 0, (0, 0, 0), 'inout'),
 ], fx=dtilt_fx)
 
+# --- forward smash: Heaven Splitter - sword raised high, then a lunging overhead cleave
+def fsmash_fx(img, t, C):
+    if 17 <= t <= 25:
+        k = (t - 17) / 5
+        crescent(img, (88, 42), 48, -60 + 135 * EASE['snap'](min(1, k)), 135, 12, C.arc, C.rim, alpha=1 if t < 23 else 0.5, start=-60)
+move('fsmash', 48, [
+    K(0, 'idle', 0),
+    K(8, 'attack1', 0, (-8, -3, 0, 0.98, 1.03), 'out'),
+    K(17, 'attack1', 0, (-11, -4, 0, 0.96, 1.05)),
+    K(18, 'attack2', 6, (6, 10, 0, 1.07, 0.94), 'snap'),
+    K(27, 'attack2', 6, (4, 10, 0, 1.03, 0.97), 'linear'),
+    K(48, 'idle', 0, (0, 0, 0), 'inout'),
+], fx=fsmash_fx)
+
+# --- up smash: Rising Moon - a deep crouch, then a leap of a cut with a full crescent overhead
+def usmash_fx(img, t, C):
+    if 13 <= t <= 22:
+        k = (t - 13) / 6
+        crescent(img, (66, 44), 46, 15 - 205 * EASE['snap'](min(1, k)), -170, 11, C.arc, C.rim, alpha=1 if t < 21 else 0.5, start=15)
+move('usmash', 44, [
+    K(0, 'idle', 0),
+    K(8, 'guard', 0, (0, -2, 2, 1.08, 0.86), 'out'),
+    K(13, 'guard', 0, (0, -2, 2, 1.1, 0.84)),
+    K(14, 'attack1', 0, (0, 0, -10, 0.9, 1.14), 'snap'),
+    K(21, 'attack1', 2, (-4, 0, -7, 0.95, 1.06), 'out'),
+    K(30, 'attack1', 6, (-2, 0, -2), 'inout'),
+    K(44, 'idle', 0, (0, 0, 0), 'inout'),
+], fx=usmash_fx)
+
+# --- down smash: Twin Sweep - a low cut in front, then she whips round and cuts low behind
+def dsmash_fx(img, t, C):
+    if 11 <= t <= 16:
+        k = (t - 11) / 4
+        crescent(img, (78, 40), 46, 115 - 95 * EASE['snap'](min(1, k)), -70, 8, C.arc, C.rim, alpha=1 if t < 15 else 0.5, start=115)
+    if 18 <= t <= 23:
+        k = (t - 18) / 4
+        crescent(img, (54, 40), 46, 65 + 95 * EASE['snap'](min(1, k)), 70, 8, C.arc, C.rim, alpha=1 if t < 22 else 0.5, start=65)
+move('dsmash', 42, [
+    K(0, 'idle', 0),
+    K(8, 'guard', 0, (0, -2, 1, 1.05, 0.9), 'out'),
+    K(12, 'attack2', 6, (0, 4, 0, 1.06, 0.94), 'snap'),
+    K(16, 'attack2', 6, (0, 4, 0)),
+    K(19, 'attack2', 6, (0, -4, 0, 1.06, 0.94), 'snap', flip=True),
+    K(27, 'attack2', 6, (0, -4, 0), 'linear', flip=True),
+    K(36, 'idle', 0, (0, 0, 0), 'inout', flip=True),
+    K(42, 'idle', 0, (0, 0, 0)),
+], fx=dsmash_fx)
+
 # --- neutral air: one full spin, sword out, in a ring of light
 def nair_fx(img, t, C):
     if 9 <= t <= 19:
         k = (t - 9) / 9
-        crescent(img, MID, 36, 30 + 380 * EASE['inout'](min(1, k)), 240, 8, C.arc, C.rim, alpha=1 if t < 18 else 0.5)
+        crescent(img, MID, 36, 30 + 380 * EASE['inout'](min(1, k)), 240, 8, C.arc, C.rim, alpha=1 if t < 18 else 0.5, start=30)
 move('nair', 28, [
     K(0, 'jump', 1, (0, 0, 0)),
     K(6, 'attack2', 6, (-30, 0, -2, 0.96, 0.96), 'out'),
@@ -168,7 +218,7 @@ move('nair', 28, [
 def fair_fx(img, t, C):
     if 10 <= t <= 17:
         k = (t - 10) / 5
-        crescent(img, (74, 56), 36, -60 + 140 * EASE['snap'](min(1, k)), 120, 9, C.arc, C.rim, alpha=1 if t < 16 else 0.5)
+        crescent(img, (74, 56), 36, -60 + 140 * EASE['snap'](min(1, k)), 120, 9, C.arc, C.rim, alpha=1 if t < 16 else 0.5, start=-60)
 move('fair', 28, [
     K(0, 'jump', 1, (0, 0, 0)),
     K(7, 'attack1', 0, (-14, -2, 0, 0.98, 1.03), 'out'),
@@ -182,7 +232,7 @@ move('fair', 28, [
 def bair_fx(img, t, C):
     if 9 <= t <= 15:
         k = (t - 9) / 5
-        crescent(img, (60, 60), 34, 235 - 90 * EASE['snap'](min(1, k)), -85, 9, C.arc, C.rim, alpha=1 if t < 14 else 0.5)
+        crescent(img, (60, 60), 34, 235 - 90 * EASE['snap'](min(1, k)), -85, 9, C.arc, C.rim, alpha=1 if t < 14 else 0.5, start=235)
         if t <= 13: streak(img, (16, 70), 200, 16, C.arc, C.rim, alpha=1 - (t - 9) / 5)
 move('bair', 26, [
     K(0, 'jump', 1, (0, 0, 0)),
@@ -198,7 +248,7 @@ move('bair', 26, [
 def uair_fx(img, t, C):
     if 9 <= t <= 17:
         k = (t - 9) / 7
-        crescent(img, MID, 38, -10 - 180 * EASE['out'](min(1, k)), -150, 9, C.arc, C.rim, alpha=1 if t < 16 else 0.5)
+        crescent(img, MID, 38, -10 - 180 * EASE['out'](min(1, k)), -150, 9, C.arc, C.rim, alpha=1 if t < 16 else 0.5, start=-10)
 move('uair', 26, [
     K(0, 'jump', 1, (0, 0, 0)),
     K(5, 'attack2', 6, (10, 0, 2, 1.04, 0.95), 'out'),
@@ -220,6 +270,36 @@ move('dair', 32, [
     K(24, 'guard', 0, (56, -4, 3), 'linear'),
     K(32, 'fall', 1, (0, 0, 0), 'inout'),
 ], center=MID, fx=dair_fx)
+
+# --- taunt: BLADE SALUTE - spins twice on the spot, then raises her sword straight up in salute and
+# a star glints off the tip
+def glint(img, cx, cy, r, col=(255, 255, 255)):
+    cx, cy = cx + OX, cy + OY
+    for d in range(-r, r + 1):
+        for x, y in ((cx + d, cy), (cx, cy + d)):
+            if 0 <= x < CW and 0 <= y < CH: img[y, x, :3] = col; img[y, x, 3] = 255
+    for d in range(-(r // 2), r // 2 + 1):
+        for x, y in ((cx + d, cy + d), (cx + d, cy - d)):
+            if 0 <= x < CW and 0 <= y < CH and img[y, x, 3] == 0: img[y, x, :3] = C_ARC; img[y, x, 3] = 200
+C_ARC = (208, 216, 240)
+def taunt_fx(img, t, C):
+    if 26 <= t <= 52:
+        r = [2, 4, 6, 4, 3][((t - 26) // 2) % 5]
+        glint(img, 36, 16 - 2, r, C.rim)
+move('taunt', 66, [
+    K(0, 'idle', 0),
+    K(4, 'idle', 0, (0, 0, 0, 0.12, 1), 'in'),
+    K(5, 'idle', 0, (0, 0, 0, 0.12, 1), 'linear', flip=True),
+    K(9, 'idle', 0, (0, 0, 0, 1, 1), 'out', flip=True),
+    K(12, 'idle', 0, (0, 0, 0, 0.12, 1), 'in', flip=True),
+    K(13, 'idle', 0, (0, 0, 0, 0.12, 1), 'linear'),
+    K(17, 'idle', 0, (0, 0, 0, 1.06, 0.92), 'out'),
+    K(22, 'attack1', 0, (0, 0, 0, 0.96, 1.08), 'back'),
+    K(28, 'attack1', 0, (0, 0, 0, 1, 1), 'inout'),
+    K(52, 'attack1', 0, (0, 0, -1, 1, 1.02), 'inout'),
+    K(56, 'guard', 0, (0, 0, 0, 1.04, 0.96), 'inout'),
+    K(66, 'idle', 0, (0, 0, 0), 'back'),
+], fx=taunt_fx)
 
 def lerp(a, b, k): return tuple(x + (y - x) * k for x, y in zip(a, b))
 

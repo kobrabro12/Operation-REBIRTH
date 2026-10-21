@@ -37,13 +37,14 @@ function convert(m, extra = {}) {
   return out;
 }
 
-// ---- the designer's numbers (from mr-wake-reference.js)
+// ---- the designer's numbers (from mr-wake-reference.js); endlag on jab, tilts and forward smash trimmed
+// a few frames in a balance pass (he was losing every trade to faster fighters)
 const RAW = {
-  jab:         { startup: 7,  active: 5, endlag: 15, damage: 5,  baseKB: 5, kbScale: 0.7,  angle: 40, hitbox: { x: 0, y: -60, w: 42, h: 70 } },
-  forwardTilt: { startup: 9,  active: 4, endlag: 15, damage: 9,  baseKB: 5, kbScale: 0.85, angle: 38, hitbox: { x: 18, y: -30, w: 22, h: 18 } },
-  downTilt:    { startup: 6,  active: 4, endlag: 12, damage: 6,  baseKB: 4, kbScale: 0.5,  angle: 20, hitbox: { x: 10, y: 22, w: 40, h: 14 } },
-  upTilt:      { startup: 7,  active: 6, endlag: 13, damage: 7,  baseKB: 5, kbScale: 0.7,  angle: 85, hitbox: { x: -20, y: -60, w: 50, h: 24 } },
-  forwardSmash:{ startup: 18, active: 5, endlag: 28, damage: 19, baseKB: 8, kbScale: 1.2,  angle: 36, hitbox: { x: 20, y: -36, w: 34, h: 34 } },
+  jab:         { startup: 7,  active: 5, endlag: 11, damage: 5,  baseKB: 5, kbScale: 0.7,  angle: 40, hitbox: { x: 0, y: -60, w: 42, h: 70 } },
+  forwardTilt: { startup: 9,  active: 4, endlag: 11, damage: 9,  baseKB: 5, kbScale: 0.85, angle: 38, hitbox: { x: 18, y: -30, w: 22, h: 18 } },
+  downTilt:    { startup: 6,  active: 4, endlag: 10, damage: 6,  baseKB: 4, kbScale: 0.5,  angle: 20, hitbox: { x: 10, y: 22, w: 40, h: 14 } },
+  upTilt:      { startup: 7,  active: 6, endlag: 10, damage: 7,  baseKB: 5, kbScale: 0.7,  angle: 85, hitbox: { x: -20, y: -60, w: 50, h: 24 } },
+  forwardSmash:{ startup: 18, active: 5, endlag: 24, damage: 19, baseKB: 8, kbScale: 1.2,  angle: 36, hitbox: { x: 20, y: -36, w: 34, h: 34 } },
   upSmash:     { startup: 15, active: 6, endlag: 24, damage: 17, baseKB: 8, kbScale: 1.15, angle: 88, hitbox: { x: -18, y: -82, w: 36, h: 50 } },
   downSmash:   { startup: 13, active: 6, endlag: 24, damage: 14, baseKB: 7, kbScale: 1.0,  angle: 25, hitbox: { x: -45, y: 20, w: 90, h: 16 } },
   nair:        { startup: 5,  active: 8, endlag: 10, damage: 7,  baseKB: 4, kbScale: 0.6,  angle: 45, hitbox: { x: -30, y: -30, w: 60, h: 60 } },
@@ -57,6 +58,10 @@ const RAW = {
 };
 
 const upB = convert(RAW.upB);
+// replace a converted move's hit box (x, y from the feet, facing right; w, h)
+function reach(m, box) { m.hits = m.hits.map((h) => ({ ...h, box })); return m; }
+// balance changes on top of the designer's numbers
+function tune(m, change) { m.hits = m.hits.map((h) => ({ ...h, ...change })); return m; }
 
 export const MR_WAKE = {
   id: 'mr-wake',
@@ -80,24 +85,36 @@ export const MR_WAKE = {
   pal: PAL_PURPLE,
   body: { w: 24, h: 56 },
   headTop: 56,
-  weight: 0.95,                    // tall, light caster: launches a bit earlier
-  walkSpeed: 2.8, runAccel: 0.5, groundFriction: 0.5,
-  airSpeed: 2.6, airAccel: 0.22, airFriction: 0.04,
+  weight: 1.05,                   // tall, but his heavy robes keep him grounded a little longer
+  walkSpeed: 3.0, runAccel: 0.5, groundFriction: 0.5,
+  airSpeed: 2.75, airAccel: 0.23, airFriction: 0.04,
   jumpV: -9.0, shortHopV: -6.0, doubleJumpV: -8.4,
+
+  // TAUNT (1): GEM TWIRL - twirls the staff overhead like a baton, plants it, and takes a little bow
+  taunt: { name: 'GEM TWIRL', frames: 82, lines: ['A SPLENDID EVENING.', 'SHALL WE DANCE?', 'TA-DA.'],
+    sounds: [[8, 'staff', 0.4, 1.4], [20, 'staff', 0.4, 1.5], [32, 'staff', 0.4, 1.6], [44, 'clang', 0.3, 1.4], [52, 'petal', 0.4, 1.2]],
+    fx: [{ kind: 'star', from: 8, to: 36, every: 4, x: 4, y: -82, n: 2 }] },
 
   moves: {
     ...DEFAULT_GRAB,
-    jab: convert(RAW.jab, { fx: 'arc' }),            // baseball-bat swing of the staff
-    ftilt: convert(RAW.forwardTilt, { lunge: 1.5 }),  // gem thrust: hits at the staff tip
-    dtilt: convert(RAW.downTilt, { fx: 'low' }),      // low staff sweep
-    utilt: convert(RAW.upTilt, { fx: 'spin' }),       // staff twirl overhead
-    fsmash: convert(RAW.forwardSmash, { lunge: 2 }),  // gem slam with an energy burst
-    usmash: convert(RAW.upSmash),                     // raises the gem, energy pillar above
-    dsmash: convert(RAW.downSmash, { fx: 'low' }),    // cloak spin, hits both sides
-    nair: convert(RAW.nair, { landLag: 6, fx: 'spin' }),
-    fair: convert(RAW.fair, { landLag: 9 }),
-    bair: convert(RAW.bair, { landLag: 8 }),
-    dair: convert(RAW.dair, { landLag: 14 }),
+    // grab: he hooks them with the crook of his staff - a longer reach than a hand, a touch slower
+    grab: { frames: 30, fx: 'grab', grab: true, hits: [{ from: 6, to: 8, box: [4, -46, 42, 32] }] },
+    // Hit boxes are refit to where the staff actually is in his animations (tools/sprites/mr_wake_moves.py):
+    // the designer's boxes were drawn for a much shorter staff, so his swings visibly passed through
+    // people without hitting. The gem end is the business end.
+    jab: reach(convert(RAW.jab, { fx: 'arc' }), [8, -66, 54, 46]),                  // baseball-bat swing of the staff
+    ftilt: tune(reach(convert(RAW.forwardTilt, { lunge: 1.5, fx: 'thrust' }), [24, -44, 52, 22]), { growth: 6.6 }),   // gem thrust: hits at the staff tip
+    dtilt: reach(convert(RAW.downTilt, { fx: 'low' }), [6, -16, 46, 16]),            // low staff sweep
+    utilt: reach(convert(RAW.upTilt, { fx: 'spin' }), [-28, -98, 56, 46]),           // staff twirl overhead
+    fsmash: reach(convert(RAW.forwardSmash, { lunge: 2, fx: 'arc' }), [18, -58, 56, 44]),   // gem slam with an energy burst
+    usmash: reach(convert(RAW.upSmash, { fx: 'up' }), [-18, -112, 36, 62]),          // raises the gem, energy pillar above
+    dsmash: reach(convert(RAW.downSmash, { fx: 'low2' }), [-56, -22, 112, 24]),     // cloak spin, hits both sides
+    nair: reach(convert(RAW.nair, { landLag: 6, fx: 'spin' }), [-36, -62, 72, 64]),
+    fair: tune(reach(convert(RAW.fair, { landLag: 9, fx: 'arc' }), [12, -48, 54, 44]), { growth: 6.8 }),
+    bair: reach(convert(RAW.bair, { landLag: 8, fx: 'back' }), [-40, -42, 32, 26]),
+    dair: reach(convert(RAW.dair, { landLag: 14, fx: 'down' }), [-12, -20, 32, 32]),
+    // up air: the gem driven straight up overhead (he had none, so up + attack in the air was his neutral air)
+    uair: { frames: 26, landLag: 7, fx: 'up', hits: [{ from: 6, to: 11, box: [-22, -108, 44, 54], dmg: 9, angle: 88, base: 3.0, growth: 6.0 }] },
     // Neutral special: Void Orb - a slow, swelling orb of void energy. Press special again to detonate
     // it anywhere: it implodes (pulling nearby opponents in, 2 x 2%) then explodes (9%). Touching an
     // opponent sets it off too, and it bursts by itself at the end of its flight (~1.7 s).
@@ -124,7 +141,8 @@ export const MR_WAKE = {
   // in all. Jumping clear of the flood avoids it; if nobody is caught the pool drains and he re-forms.
   limit: {
     name: 'THE UNDERTOW', type: 'undertow', reach: 300,
-    melt: 22, flood: 40, spread: 330, recede: 24,
+    melt: 40, flood: 40,   // melt lasts past the Limit freeze, so the flood can be seen coming and jumped
+    spread: 330, recede: 24,
     eyesFor: 34, chomps: 5, chompEvery: 20, spitAfter: 26,
     chomp: { dmg: 6, angle: 90, base: 0, growth: 0, stun: 14 },
     final: { dmg: 15, angle: 84, base: 7.6, growth: 7.6 },

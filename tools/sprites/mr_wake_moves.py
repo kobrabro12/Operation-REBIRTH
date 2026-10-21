@@ -104,45 +104,45 @@ def G(d): return d - 203        # staff angle that points the gem in screen dire
 CROUCH = dict(root=(0, 0, 0, 1.06, 0.88), bfoot=(14, -1, 0), ffoot=(-14, 2, 0))
 
 # --- jab: a baseball-bat swing - staff cocked back over the shoulder, then a big flat swing through the front
-move('jab', 27, [
+move('jab', 23, [
     k(0, REST),
     k(6, P(arm=(-30, -3, -2), staff=(G(250), 0, 0), torso=(-8, -1, 0), head=(4, 0, 0), cloak=(14, 0, 0), root=(0, -2, 0, 1.03, 0.97), bfoot=(6, 0, 0)), 'out'),
     k(9, P(arm=(10, 3, 1), staff=(G(330), 0, 0), torso=(10, 2, 0), head=(-6, 1, 0), cloak=(-22, 0, 0), root=(0, 3, 0, 1.03, 0.97), **STEP), 'snap'),
     k(13, P(arm=(20, 3, 1), staff=(G(358), 0, 0), torso=(12, 2, 0), head=(-6, 1, 0), cloak=(-18, 0, 0), root=(0, 3, 0), **STEP), 'out'),
-    k(27, REST, 'inout'),
+    k(23, REST, 'inout'),
 ])
 # --- ftilt: flips the staff and thrusts the gem straight out in front
-move('ftilt', 28, [
+move('ftilt', 24, [
     k(0, REST),
     k(7, P(arm=(-12, -4, 0), staff=(G(345), -6, 0), torso=(-6, -1, 0), head=(3, 0, 0), cloak=(10, 0, 0), root=(0, -2, 0)), 'out'),
     k(10, P(arm=(4, 6, 1), staff=(G(360), 6, 0), torso=(10, 3, 1), head=(-4, 1, 0), cloak=(-20, 0, 0), root=(0, 4, 0, 1.04, 0.96), **STEP), 'snap'),
     k(17, P(arm=(4, 5, 1), staff=(G(360), 5, 0), torso=(8, 3, 1), head=(-3, 1, 0), cloak=(-14, 0, 0), root=(0, 4, 0), **STEP), 'linear'),
-    k(28, REST, 'inout'),
+    k(24, REST, 'inout'),
 ])
 # --- dtilt: crouches and sweeps the butt of the staff low along the ground
-move('dtilt', 22, [
+move('dtilt', 20, [
     k(0, REST),
     k(5, P(arm=(-20, -2, 0), staff=(G(230), 0, 0), torso=(10, 0, 2), head=(-4, 0, 0), cloak=(-6, 0, 0), **CROUCH), 'out'),
     k(8, P(arm=(30, 4, 3), staff=(G(200), 2, 2), torso=(20, 2, 3), head=(-10, 0, 0), cloak=(-20, 0, 0), root=(0, 3, 0, 1.08, 0.84), bfoot=(18, -1, 0), ffoot=(-20, 3, 0)), 'snap'),
     k(14, P(arm=(28, 4, 3), staff=(G(198), 2, 2), torso=(18, 2, 3), head=(-8, 0, 0), cloak=(-14, 0, 0), root=(0, 3, 0, 1.08, 0.85), bfoot=(16, -1, 0), ffoot=(-18, 3, 0)), 'linear'),
-    k(22, REST, 'inout'),
+    k(20, REST, 'inout'),
 ])
 # --- utilt: twirls the staff overhead like a propeller
-move('utilt', 26, [
+move('utilt', 23, [
     k(0, REST),
     k(5, P(arm=(-70, -2, -4), staff=(0, 0, 0), torso=(-4, 0, -1), head=(-6, 0, 0), root=(0, 0, -1, 0.97, 1.04)), 'out'),
     k(14, P(arm=(-85, -2, -5), staff=(-360, 0, 0), torso=(-6, 0, -1), head=(-8, 0, 0), cloak=(14, 0, 0), root=(0, 0, -2, 0.96, 1.06)), 'linear'),
     k(18, P(arm=(-80, -2, -5), staff=(-400, 0, 0), torso=(-5, 0, -1), head=(-6, 0, 0), cloak=(10, 0, 0), root=(0, 0, -1)), 'out'),
-    k(26, P(staff=(-360, 0, 0)), 'inout'),
+    k(23, P(staff=(-360, 0, 0)), 'inout'),
 ])
 # --- fsmash: raises the gem high behind him (charging), then slams it down in front with everything
-move('fsmash', 51, [
+move('fsmash', 47, [
     k(0, REST),
     k(14, P(arm=(-90, -4, -4), staff=(G(240), 0, 0), torso=(-14, -2, 0), head=(6, 0, 0), cloak=(20, 0, 0), root=(0, -3, 0, 0.98, 1.04), bfoot=(8, 0, 0)), 'out'),
     k(17, P(arm=(-96, -4, -4), staff=(G(236), 0, 0), torso=(-16, -2, 0), head=(8, 0, 0), cloak=(22, 0, 0), root=(0, -3, 0, 0.97, 1.05), bfoot=(8, 0, 0)), 'linear'),
     k(20, P(arm=(20, 6, 3), staff=(G(350), 0, 0), torso=(20, 4, 2), head=(-8, 1, 0), cloak=(-26, 0, 0), root=(0, 5, 0, 1.08, 0.9), bfoot=(18, -1, 0), ffoot=(-18, 3, 0)), 'snap'),
     k(34, P(arm=(22, 6, 3), staff=(G(352), 0, 0), torso=(18, 4, 2), head=(-6, 1, 0), cloak=(-16, 0, 0), root=(0, 5, 0, 1.06, 0.92), bfoot=(16, -1, 0), ffoot=(-16, 3, 0)), 'linear'),
-    k(51, REST, 'inout'),
+    k(47, REST, 'inout'),
 ])
 # --- usmash: plants himself and thrusts the gem straight up overhead
 move('usmash', 45, [
@@ -188,6 +188,14 @@ move('bair', 25, [
     k(16, P(arm=(-18, -6, 0), staff=(G(358), -13, 2), torso=(-10, -2, 0), head=(-6, 0, 0), cloak=(-30, -3, 0), root=(-10, -3, 0), bfoot=(30, -3, -2), ffoot=(4, -2, -3)), 'linear'),
     k(25, AIR, 'inout'),
 ], smear=('staff', 'staffback', 'cloak'))
+# --- uair: drives the gem straight up overhead
+move('uair', 26, [
+    k(0, AIR),
+    k(4, P(arm=(14, 0, 2), staff=(G(200), 0, 2), torso=(6, 0, 1), head=(4, 0, 0), root=(0, 0, 2, 1.06, 0.92), **TUCK), 'out'),
+    k(7, P(arm=(-80, -2, -6), staff=(G(270), 0, -4), torso=(-6, 0, -2), head=(-12, 0, 0), cloak=(20, 0, 0), root=(0, 0, -3, 0.92, 1.1), bfoot=(8, 0, 0), ffoot=(-6, 0, 0)), 'snap'),
+    k(12, P(arm=(-82, -2, -6), staff=(G(272), 0, -4), torso=(-6, 0, -2), head=(-10, 0, 0), cloak=(14, 0, 0), root=(0, 0, -2, 0.95, 1.06), bfoot=(8, 0, 0), ffoot=(-6, 0, 0)), 'linear'),
+    k(26, AIR, 'inout'),
+])
 # --- dair: raises the staff then drives it straight down beneath him, legs splayed
 move('dair', 39, [
     k(0, AIR),
@@ -276,6 +284,22 @@ HELD = P(root=(-8, 0, -2), torso=(-8, 0, 0), head=(-12, 0, 0), arm=(50, 0, 2), s
 move('grabbed', 16, [k(0, HELD), k(8, P(root=(-5, 0, -3), torso=(-4, 0, 0), head=(-8, 0, 0), arm=(60, 0, 2), staff=(G(240), 0, 0), bfoot=(-18, 0, 0), ffoot=(-8, 0, 0), cloak=(24, 0, 0))), k(16, HELD)], smear=(), loop=True)
 HANG = P(arm=(-80, -2, -4), staff=(G(275), 0, 0), torso=(-4, 0, 0), head=(-8, 0, 0), bfoot=(10, 0, 0), ffoot=(-6, 0, 0), cloak=(6, 0, 0), root=(0, 0, 0, 0.98, 1.04))
 move('ledge', 24, [k(0, HANG), k(12, P(arm=(-78, -2, -4), staff=(G(273), 0, 0), torso=(-2, 0, 0), head=(-6, 0, 0), bfoot=(16, 0, 0), ffoot=(-2, 0, 0), cloak=(10, 0, 0), root=(0, 0, 0, 0.98, 1.04))), k(24, HANG)], smear=(), loop=True)
+
+# ---- taunt: GEM TWIRL - spins the staff twice overhead like a baton, catches it, plants it at his side
+# and tips his head with a little bow
+UPH = dict(arm=(-70, -2, -4), torso=(-4, 0, -1), head=(-8, 0, 0), cloak=(10, 0, 0), root=(0, 0, -2, 0.97, 1.04))
+PLANT = P(arm=(30, 2, 3), staff=(G(270), 0, 0), torso=(4, 0, 1), head=(4, 0, 0), cloak=(-6, 0, 0), bfoot=(6, 0, 0), ffoot=(-6, 1, 0))
+move('taunt', 82, [
+    k(0, REST),
+    k(8, P(staff=(G(270), 0, -2), **UPH), 'out'),
+    k(20, P(staff=(G(270 + 360), 0, -2), **{**UPH, 'head': (-12, 0, 0)}), 'linear'),
+    k(32, P(staff=(G(270 + 720), 0, -2), **UPH), 'linear'),
+    k(36, P(staff=(G(270 + 760), 0, -2), **UPH), 'out'),
+    k(44, PLANT, 'back'),
+    k(52, {**PLANT, 'head': (24, 2, 2), 'torso': (18, 2, 2), 'cloak': (-14, 0, 0), 'root': (0, 0, 0, 1.03, 0.96)}, 'inout'),   # the bow
+    k(66, {**PLANT, 'head': (26, 2, 2), 'torso': (20, 2, 2), 'cloak': (-16, 0, 0), 'root': (0, 0, 0, 1.03, 0.96)}, 'inout'),
+    k(82, REST, 'back'),
+])
 
 
 def build(src_rel, out_rel, staff_cols=STAFF_COLS, width=2.3):

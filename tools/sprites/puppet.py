@@ -64,9 +64,9 @@ class Part:
     by the frame counter passed to Rig.render.
     upright: 0..1 - how much the part cancels its parents' rotation (a flame keeps burning upward when
     the arm holding it swings around). drag: how much it trails behind its parent's swing."""
-    def __init__(self, name, mask, pivot, parent=None, z=0, variants=None, upright=0, drag=0):
+    def __init__(self, name, mask, pivot, parent=None, z=0, variants=None, upright=0, drag=0, sway=0):
         self.name, self.mask, self.pivot, self.parent, self.z, self.variants = name, mask, pivot, parent, z, variants
-        self.upright, self.drag = upright, drag
+        self.upright, self.drag, self.sway = upright, drag, sway
 
 class Rig:
     """base: RGBA numpy array (H, W, 4) of the drawing. parts: list of Part (masks over base).
@@ -93,10 +93,14 @@ class Rig:
         """Base -> canvas transform of a part for a pose {part: (angle, dx, dy)}, root: pose['root']."""
         p = self.parts[name]
         a, dx, dy, sx, sy = (list(pose.get(name, ())) + [0, 0, 0, 1, 1][len(pose.get(name, ())):])[:5]
+        if abs(sx) < 0.05: sx = 0.05 if sx >= 0 else -0.05      # a part turning round passes through zero width
+        if abs(sy) < 0.05: sy = 0.05
         if p.upright and p.parent: a -= p.upright * self.world_angle(p.parent, pose)
-        if p.drag and p.parent and '_prev' in pose:
-            d = self.world_angle(p.parent, pose['_prev']) - self.world_angle(p.parent, pose)
-            a += max(-50, min(50, p.drag * d))
+        if (p.drag or p.sway) and p.parent and '_prev' in pose:
+            d = self.world_angle(p.parent, pose['_prev']) - self.world_angle(p.parent, pose)   # trails behind the swing
+            pr, cr = list(pose['_prev'].get('root', ())) + [0, 0, 0], list(pose.get('root', ())) + [0, 0, 0]
+            v = (cr[1] - pr[1]) * 6 - (cr[2] - pr[2]) * 3                                       # streams back when the body lunges or jumps
+            a += max(-60, min(60, p.drag * d - p.sway * v))
         M = T(dx, dy) @ T(*p.pivot) @ R(a) @ S(sx, sy) @ T(-p.pivot[0], -p.pivot[1])
         if p.parent: return self.matrix(p.parent, pose) @ M
         ra, rdx, rdy, sx, sy = (list(pose.get('root', ())) + [0, 0, 0, 1, 1][len(pose.get('root', ())):])[:5]
@@ -113,6 +117,7 @@ class Rig:
     def render(self, pose, skip=(), only=None, tint=None, alpha=255, fi=0):
         cw, ch = self.canvas
         out = np.zeros((ch, cw), np.uint32)
+        skip = set(skip) | set(pose.get('_hide', ()))      # a pose can hide props (e.g. a spray can only out for one move)
         for p in self.order:
             if p.name in skip or (only and p.name not in only): continue
             Minv = np.linalg.inv(self.matrix(p.name, pose))
@@ -134,7 +139,10 @@ class Rig:
 
 def lerp_pose(a, b, k):
     out = {}
-    for key in (set(a) | set(b)) - {'_prev'}:
+    for key in (set(a) | set(b)):
+        if key.startswith('_'):                            # flags (hidden parts...) switch over at the halfway point
+            if key != '_prev': out[key] = (b if k >= 0.5 else a).get(key, ())
+            continue
         va, vb = list(a.get(key, ())), list(b.get(key, ()))
         n = max(len(va), len(vb), 3 if key != 'root' else 5)
         dflt = [0, 0, 0, 1, 1]
@@ -156,19 +164,22 @@ def seg_ease(keys, t):
         if t0 < t <= t1: return e or 'inout'
     return None
 
-def animate(rig, keys, ticks, step=2, smear=(), smear_tint=None, extra=None, flicker=3, center=None):
+def animate(rig, keys, ticks, step=2, smear=(), smear_tint=None, extra=None, flicker=3, center=None, life=None):
     """Frames for an animation `ticks` long, one per `step` ticks. smear: parts that leave faded
     afterimages when they move fast. extra(img, t, pose) may draw effects into each frame."""
     frames = []
     feet = rig.feet
     if center: rig.feet = center            # spin around the middle of the body instead of the feet
     for t in range(0, ticks, step):
-        pose = dict(pose_at(keys, t)); pose['_prev'] = pose_at(keys, max(0, t - 3))
+        pose = dict(pose_at(keys, t)); prev = dict(pose_at(keys, max(0, t - 3)))
+        if life: pose = life(pose, t); prev = life(prev, max(0, t - 3))      # secondary motion layered on top
+        pose['_prev'] = prev
         fi = t // flicker
         img = rig.render(pose, fi=fi)
         if smear and seg_ease(keys, t) in ('snap', 'out', 'linear'):   # only the strikes smear, not the wind-down
             for back, a in ((2, 120), (4, 60)):
                 pp = pose_at(keys, max(0, t - back))
+                if life: pp = life(dict(pp), max(0, t - back))
                 if any(np.abs(np.array(pp.get(n, (0, 0, 0))[:1]) - np.array(pose.get(n, (0, 0, 0))[:1])).max() > 12 for n in smear):
                     ghost = rig.render(pp, only=smear, tint=smear_tint, alpha=a, fi=fi)
                     m = (img[..., 3] == 0) & (ghost[..., 3] > 0)

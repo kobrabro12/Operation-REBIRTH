@@ -1,7 +1,7 @@
 // Every fighter is driven by a Controller. Keyboard, gamepad and CPU all fill in the same
 // button state each frame, so fighter code never knows who is pressing the buttons.
 
-const BUTTONS = ['jump', 'attack', 'special', 'shield', 'grab', 'limit', 'pause'];
+const BUTTONS = ['jump', 'attack', 'special', 'shield', 'grab', 'limit', 'taunt', 'pause'];
 
 export class Controller {
   constructor() {
@@ -27,19 +27,19 @@ export class Controller {
 }
 
 // Player 1's keyboard: WASD move (W also jumps), Space jump, J attack, K special,
-// L shield, I grab, O Limit, Esc pause.
+// L shield, I grab, O Limit, 1 taunt, Esc pause.
 export class KeyboardController extends Controller {
   constructor(scene) {
     super();
     const K = Phaser.Input.Keyboard.KeyCodes;
     this.keys = scene.input.keyboard.addKeys({
       w: K.W, a: K.A, s: K.S, d: K.D, space: K.SPACE,
-      j: K.J, k: K.K, l: K.L, i: K.I, o: K.O, esc: K.ESC, enter: K.ENTER,
+      j: K.J, k: K.K, l: K.L, i: K.I, o: K.O, one: K.ONE, esc: K.ESC, enter: K.ENTER,
     }, false);
     scene.input.keyboard.addCapture([K.SPACE]);
     // latch very short taps so a press shorter than one frame still counts
     this.latch = {};
-    const map = { [K.SPACE]: 'jump', [K.W]: 'jump', [K.J]: 'attack', [K.K]: 'special', [K.L]: 'shield', [K.I]: 'grab', [K.O]: 'limit', [K.ESC]: 'pause' };
+    const map = { [K.SPACE]: 'jump', [K.W]: 'jump', [K.J]: 'attack', [K.K]: 'special', [K.L]: 'shield', [K.I]: 'grab', [K.O]: 'limit', [K.ONE]: 'taunt', [K.ESC]: 'pause' };
     this.onKey = (e) => { const b = map[e.keyCode]; if (b) this.latch[b] = true; };
     scene.input.keyboard.on('keydown', this.onKey);
     scene.events.once('shutdown', () => scene.input.keyboard.off('keydown', this.onKey));
@@ -54,13 +54,15 @@ export class KeyboardController extends Controller {
     this.cur.shield = k.l.isDown;
     this.cur.grab = k.i.isDown;
     this.cur.limit = k.o.isDown;
+    this.cur.taunt = k.one.isDown;
     this.cur.pause = k.esc.isDown;
     for (const b in this.latch) { if (this.latch[b]) this.cur[b] = true; this.latch[b] = false; }
   }
 }
 
 // Reads a controller through the browser Gamepad API (Bluetooth or USB, standard mapping).
-// A attack, B special, X/Y jump, LB/RB grab, LT/RT shield, LB+RB together = Limit, Start pause.
+// A attack, B special, X/Y jump, LB/RB grab, LT/RT shield, LB+RB together = Limit, either stick click = taunt,
+// Start pause.
 export function readPad(index) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   return pads && pads[index] ? pads[index] : null;
@@ -86,6 +88,7 @@ export class GamepadController extends Controller {
     this.cur.jump = btn(2) || btn(3);
     this.cur.shield = btn(6) || btn(7);
     this.cur.pause = btn(9);
+    this.cur.taunt = btn(10) || btn(11);
     const lb = btn(4), rb = btn(5);
     this.cur.limit = lb && rb;
     // Grab fires a few frames after a single bumper press, unless the other bumper joins it.
