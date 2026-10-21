@@ -19,6 +19,9 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + k, 'assets/fighters/nu/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // NU (test fighter): tools/sprites/nu_moves.py
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_' + k, 'assets/fighters/aero/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // AERO (test fighter): tools/sprites/aero_moves.py
     this.load.spritesheet('aero_moves', 'assets/fighters/aero/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    // FULL AERO: his transformed look (tools/sprites/aero_king_draw.py, built by aero_moves.py)
+    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_' + k, 'assets/fighters/aero/king/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('aero_king_moves', 'assets/fighters/aero/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {

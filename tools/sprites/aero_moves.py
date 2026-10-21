@@ -104,6 +104,13 @@ move('sideB', 30, [
     k(16, P(_hide=NOFISH, torso=(18, 3, 1), head=(20, 2, 1), fupper=(20, 0, 0), bupper=(30, 0, 0), root=(0, 4, 0), **STANCE), 'out'),
     k(30, P(_hide=NOFISH), 'back'),
 ], smear=())
+# BUBBLE RIDE: curled up inside a big bubble, bobbing upward; it pops at tick 30
+BALL = P(**legs(-50, 100, -70, 100, -10, -10), torso=(16, 0, 2), head=(10, 0, 2), fupper=(-30, 0, 0), ffore=(-110, 0, 0), bupper=(-20, 0, 0), bfore=(-100, 0, 0))
+def bubble_ride(pop, total):
+    bob = [k(6 + 6 * i, mix(BALL, root=((-6, 6)[i % 2], 0, -2, 1.03 - 0.05 * (i % 2), 0.97 + 0.05 * (i % 2)))) for i in range(1, (pop - 6) // 6 + 1)]
+    return [k(0, P(**DEEP)), k(6, BALL, 'snap')] + bob + [k(pop + 2, P(**N.FALL, root=(0, 0, 0, 1.08, 0.94)), 'snap'), k(total, P(**N.FALL), 'back')]
+move('upb', 40, bubble_ride(30, 40), smear=())
+move('upb_king', 56, bubble_ride(46, 56), smear=())      # FULL AERO: a much longer ride
 # RAIN CLOUD: cups his hands low, then tosses a cloud up ahead of him (again: DOWNPOUR, the same toss)
 TOSS = P(torso=(-8, 1, -1), head=(-20, 0, 0), fupper=(-80, 0, -1), ffore=(90, 0, 0), bupper=(-60, 0, -1), bfore=(40, 0, 0), root=(0, 2, -3, 0.92, 1.1), **legs(10, -4, -8, 6))
 move('downB', 28, [k(0, REST), k(7, P(**DEEP, torso=(18, 1, 2), head=(8, 0, 1), fupper=(30, 0, 0), ffore=(-60, 0, 0), bupper=(30, 0, 0)), 'out'),
@@ -135,10 +142,27 @@ def idle_keys():
     return keys
 
 def build():
+    N.GHOST = (159, 240, 255)
     return N.build_all(SMALL, BIG, MOVES, DIR, JS, 'AERO_MOVES', 'aero_moves.py', life_fn=life, idle=idle_keys)
+
+# ---- FULL AERO: the transformed look (tools/sprites/aero_king_draw.py) - the same animations on his
+# winged, haloed, caped form, with the wings beating slowly and the halo bobbing. Same frame layout as
+# the normal sheet, so src/fighters/aeroMoves.js indexes both.
+import aero_king_draw
+KFOLLOW = dict(FOLLOW, wings=(0.35, 0.8), halo=(0.3, 0.2))
+KSMALL, KBIG = N.build_rig(aero_king_draw, KFOLLOW)
+def king_life(pose, t):
+    p = life(pose, t)
+    w = N.full(p.get('wings')); w[0] += 9 * math.sin(t * 0.15); p['wings'] = tuple(w)
+    h = N.full(p.get('halo')); h[2] += math.sin(t * 0.1) * 0.8; p['halo'] = tuple(h)
+    return p
+def build_king():
+    N.GHOST = (243, 195, 88)        # golden afterimages
+    return N.build_all(KSMALL, KBIG, MOVES, os.path.join(DIR, 'king'), os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=king_life, idle=idle_keys)
 
 if __name__ == '__main__':
     base, out = build()
+    kbase, kout = build_king()
     if '--preview' in sys.argv:
         d = sys.argv[sys.argv.index('--preview') + 1]; os.makedirs(d, exist_ok=True)
         for name, fr in {**base, **out}.items(): contact(fr, os.path.join(d, 'aero_' + name + '.png'))

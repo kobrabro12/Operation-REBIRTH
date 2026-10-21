@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GoldfishFling, RainCloud } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GoldfishFling, AeroPC, CdCloud } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -72,6 +72,10 @@ export class MatchScene extends Phaser.Scene {
     const bg = [], world = [];
     this.stage.draw(world, bg);
     this.addBg(...bg); this.addWorld(...world);
+    // FULL AERO (AERO's alternate Limit) repaints the stage: a glossy sky over the backdrop, glossy platforms
+    this.aeroBg = this.add.graphics().setScrollFactor(0).setDepth(50); this.addBg(this.aeroBg);
+    this.aeroWorld = this.add.graphics(); this.addWorld(this.aeroWorld);
+    this.aeroStage = { k: 0, on: false, t: 0 };
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
     else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
@@ -248,7 +252,8 @@ export class MatchScene extends Phaser.Scene {
     for (const p of this.projectiles) if (p.alive) { const h = p.hitbox(); if (h) hbs.push(h); }
     for (const s of this.souls) { const h = s.hitbox(); if (h) hbs.push(h); }
     for (const lh of this.limitHits) if (lh.t < 2) hbs.push(lh.hb);
-    if (this.stage.strikeTargets) this.stage.strikeTargets(this, hbs.filter((h) => h.owner && !h.grab));   // things on the stage that attacks can hit (Gravemoon's lantern)
+    if (this.stage.strikeTargets) this.stage.strikeTargets(this, hbs.filter((h) => h.owner && !h.grab));
+    for (const p of this.pools) if (p.alive && p.strike) p.strike(hbs);          // things fighters put down that can be smashed (AERO's computers)   // things on the stage that attacks can hit (Gravemoon's lantern)
     if (hazard) for (const hz of [].concat(hazard)) hbs.push({ ...hz, h: hz, owner: null, facing: 1 });   // a stage can return one hazard or a list
 
     const overlap = (a, b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
@@ -303,14 +308,14 @@ export class MatchScene extends Phaser.Scene {
 
   applyHit(t, hb, srcX) {
     const h = hb.h, owner = hb.owner;
-    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1)));
+    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult));
     let kbPct;
     if (this.mode === 'stamina') { t.hp -= dmg; kbPct = 40 + 50 * (1 - Math.max(0, t.hp) / t.maxHp); }
     else { t.percent = Math.min(999, t.percent + dmg); kbPct = t.percent; }
     if (t.state !== 'limit') t.limit = Math.min(LIMIT_MAX, t.limit + dmg);
     t.stats.damageTaken += dmg; if (owner) owner.stats.damageDealt += dmg;
 
-    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight;
+    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult;
     let dir = hb.facing || 1;
     if (!owner || h.radial) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel; explosions push outward
     const rad = h.angle * Math.PI / 180;
@@ -425,9 +430,15 @@ export class MatchScene extends Phaser.Scene {
   }
   spawnAeroBubble(owner, spec) { const p = new AeroBubble(this, owner, spec); this.projectiles.push(p); return p; }
   spawnFish(owner, spec) { const p = new GoldfishFling(this, owner, spec); this.projectiles.push(p); return p; }
-  spawnCloud(owner, spec) {
-    for (const p of this.pools) if (p.owner === owner && p instanceof RainCloud) p.kill();   // one cloud per AERO
-    const p = new RainCloud(this, owner, spec); this.pools.push(p); return p;
+  spawnPC(owner, spec) {
+    const mine = this.pools.filter((p) => p.alive && p.owner === owner && p instanceof AeroPC);
+    if (mine.length >= spec.max) mine[0].kill();                                        // at most two: the oldest goes
+    const p = new AeroPC(this, owner, spec); this.pools.push(p); return p;
+  }
+  pcsOf(owner) { return this.pools.filter((p) => p.alive && p.owner === owner && p instanceof AeroPC && p.landed); }
+  spawnCdCloud(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof CdCloud) p.kill();   // one cloud at a time
+    const p = new CdCloud(this, owner, spec); this.pools.push(p); return p;
   }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
 
@@ -439,7 +450,7 @@ export class MatchScene extends Phaser.Scene {
     if (f.style === 'rose') sfx('petal', 0.8, 0.7);
     if (f.style === 'hero') { sfx('taiko', 0.9); sfx('shing', 0.8, 1.2); }
     this.shake(6, 30);
-    this.limitBanner = { t: 0, name: f.def.limit.name, color: f.color };
+    this.limitBanner = { t: 0, name: f.limitName || f.def.limit.name, color: f.color };
     let best = null, bd = 1e9;
     for (const o of this.fighters) if (o.alive && o.team !== f.team && Math.abs(o.x - f.x) < bd) { bd = Math.abs(o.x - f.x); best = o; }
     if (best && best.x !== f.x) f.facing = Math.sign(best.x - f.x);
@@ -558,6 +569,88 @@ export class MatchScene extends Phaser.Scene {
       default: g.fillStyle(p.color, a); g.fillRect(X, Y, p.size, p.size);
     }
   }
+  // ---- FULL AERO: the stage turns into a Frutiger Aero version of itself while any AERO is transformed
+  setAeroStage(on) { this.aeroStage.on = on; }
+  bannerAero(text) {
+    const t = this.add.text(VIEW_W / 2, 34, text, { fontFamily: FONT, fontSize: '22px', color: '#e8fbff', stroke: '#1a7fb0', strokeThickness: 6, padding: { x: 4, y: 6 } }).setOrigin(0.5).setDepth(40);
+    const gr = t.context.createLinearGradient(0, 0, 0, t.height);                  // glossy: white on top, aqua below
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.48, '#e8fbff'); gr.addColorStop(0.52, '#9ff0ff'); gr.addColorStop(1, '#3fc8ea');
+    t.setFill(gr);
+    const plate = this.add.graphics().setDepth(39);                                // a glossy glass plate behind it
+    const pw = t.width + 24, ph = 40;
+    plate.fillStyle(0x0d3550, 0.55); plate.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 18);
+    plate.fillStyle(0x3fc8ea, 0.35); plate.fillRoundedRect(-pw / 2 + 2, -ph / 2 + 2, pw - 4, ph - 4, 16);
+    plate.fillStyle(0xffffff, 0.3); plate.fillRoundedRect(-pw / 2 + 6, -ph / 2 + 3, pw - 12, ph / 2 - 4, 12);
+    plate.setPosition(VIEW_W / 2, 34);
+    this.addUI(t, plate);
+    this.aeroBanner = { t, plate, life: 170 };
+  }
+  renderAeroStage() {
+    const A = this.aeroStage;
+    A.k = Math.max(0, Math.min(1, A.k + (A.on ? 0.03 : -0.03))); A.t++;
+    if (this.aeroBanner) {
+      const B = this.aeroBanner, life = --B.life, pop = Math.min(1, (170 - life) / 10);
+      const sc = 1.6 - 0.6 * pop, a = life < 20 ? life / 20 : 1;
+      B.t.setScale(sc).setAlpha(a); B.plate.setScale(sc).setAlpha(a); B.t.y = B.plate.y = 34 + Math.sin(life * 0.08) * 2;
+      if (life <= 0) { B.t.destroy(); B.plate.destroy(); this.aeroBanner = null; }
+    }
+    const g = this.aeroBg, w = this.aeroWorld; g.clear(); w.clear();
+    const k = A.k; if (k <= 0) return;
+    const t = A.t, W = VIEW_W, H = VIEW_H;
+    // sky: a smooth aqua gradient, bright toward the horizon
+    for (let i = 0; i < 36; i++) {
+      const f = i / 35, c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(0x1f8fe0), Phaser.Display.Color.ValueToColor(0xd8f8ff), 100, f * 100);
+      g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), k); g.fillRect(0, (i * H) / 36, W, H / 36 + 1);
+    }
+    // the sun with a lens flare running across the sky
+    g.fillStyle(0xffffff, 0.25 * k); g.fillCircle(W * 0.82, H * 0.14, 60); g.fillStyle(0xffffff, 0.45 * k); g.fillCircle(W * 0.82, H * 0.14, 34); g.fillStyle(0xffffff, 0.95 * k); g.fillCircle(W * 0.82, H * 0.14, 18);
+    for (const [f, r, c] of [[0.3, 10, 0x9ff0ff], [0.5, 18, 0xd6ff9a], [0.65, 6, 0xffffff], [0.85, 26, 0x9ff0ff]]) { g.fillStyle(c, 0.18 * k); g.fillCircle(W * 0.82 - f * W * 0.6, H * 0.14 + f * H * 0.5, r); }
+    // aurora ribbons
+    for (let r = 0; r < 2; r++) for (let i = 0; i <= 64; i++) {
+      const x = (i / 64) * W, y = H * (0.3 + r * 0.16) + Math.sin(i * 0.11 + t * 0.02 + r * 2.4) * 22;
+      g.fillStyle(r ? 0x8be04a : 0x9ff0ff, 0.22 * k); g.fillRect(x, y, W / 64 + 1, 10 - r * 3);
+      g.fillStyle(0xffffff, 0.35 * k); g.fillRect(x, y, W / 64 + 1, 1);
+    }
+    // glossy cumulus clouds drifting by
+    for (let i = 0; i < 5; i++) {
+      const cx = ((i * 157 + t * (0.15 + i * 0.04)) % (W + 160)) - 80, cy = 40 + (i * 53) % 120, s2 = 0.7 + (i % 3) * 0.25;
+      g.fillStyle(0xffffff, 0.85 * k);
+      for (const [px, py, rr] of [[-22, 4, 14], [0, -6, 20], [22, 2, 15], [8, 8, 14]]) g.fillCircle(cx + px * s2, cy + py * s2, rr * s2);
+      g.fillStyle(0x9ad8ee, 0.4 * k); g.fillRect(cx - 30 * s2, cy + 12 * s2, 60 * s2, 3);
+    }
+    // rolling green hills along the bottom, with a white gloss line
+    for (let x = 0; x <= W; x += 4) {
+      const y1 = H * 0.8 + Math.sin(x * 0.012 + 1) * 18, y2 = H * 0.88 + Math.sin(x * 0.018 + 3) * 12;
+      g.fillStyle(0x6fcf3a, k); g.fillRect(x, y1, 4, H - y1); g.fillStyle(0xd6ff9a, 0.8 * k); g.fillRect(x, y1, 4, 2);
+      g.fillStyle(0x4aa82a, k); g.fillRect(x, y2, 4, H - y2);
+    }
+    // bubbles rising everywhere
+    for (let i = 0; i < 22; i++) {
+      const bx = ((i * 97) % 100) / 100 * W + Math.sin(t * 0.03 + i) * 10, by = H - ((t * (0.4 + (i % 4) * 0.2) + i * 50) % (H + 30)), r = 3 + (i % 4) * 2;
+      g.lineStyle(1, 0xffffff, 0.7 * k); g.strokeCircle(bx, by, r); g.fillStyle(0xffffff, 0.8 * k); g.fillRect(bx - r * 0.5, by - r * 0.5, 2, 2);
+    }
+    // the platforms turn glossy: lime grass with a white gloss on solid ground, aqua glass on the ledges
+    for (const p of this.stage.platforms) {
+      const pw = p.x2 - p.x1;
+      if (p.solid !== false) {
+        w.fillStyle(0x8be04a, k); w.fillRect(p.x1, p.y, pw, 6);
+        w.fillStyle(0xd6ff9a, k); w.fillRect(p.x1, p.y, pw, 2);
+        w.fillStyle(0xffffff, 0.8 * k); w.fillRect(p.x1 + 6, p.y + 1, pw * 0.4, 1);
+        w.fillStyle(0x4a9a1e, k); w.fillRect(p.x1, p.y + 6, pw, 1);
+        w.fillStyle(0x9ff0ff, 0.3 * k); w.fillRect(p.x1, p.y + 7, pw, (p.bottom || 30) - 7);       // a glassy aqua sheen over the rock
+        w.fillStyle(0xffffff, 0.25 * k); w.fillRect(p.x1 + 4, p.y + 9, 3, (p.bottom || 30) - 14);
+      } else {
+        w.fillStyle(0x3fc8ea, 0.45 * k); w.fillRoundedRect(p.x1, p.y - 1, pw, 7, 3);
+        w.fillStyle(0xffffff, 0.8 * k); w.fillRect(p.x1 + 4, p.y, pw - 8, 1);
+        w.fillStyle(0x9ff0ff, 0.9 * k); w.fillRect(p.x1 + 2, p.y + 4, pw - 4, 1);
+      }
+    }
+    for (let i = 0; i < 3; i++) {                                                           // light sparkles on the world
+      const p = this.stage.platforms[0], sx = p.x1 + ((i * 131 + t * 1.3) % (p.x2 - p.x1));
+      w.fillStyle(0xffffff, 0.8 * k * Math.abs(Math.sin(t * 0.07 + i))); w.fillRect(sx, p.y - 1, 2, 2);
+    }
+  }
+
   popText(f, text, color) {
     const t = this.add.text(f.x, f.y - 70, text, { fontFamily: FONT, fontSize: '8px', color, stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
     this.addWorld(t);
@@ -582,6 +675,7 @@ export class MatchScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ drawing
   draw() {
+    this.renderAeroStage();
     for (const f of this.fighters) f.render(this.frame);
     for (const p of this.projectiles) p.render();
     for (const p of this.pools) p.render();

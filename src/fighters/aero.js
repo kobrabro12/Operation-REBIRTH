@@ -78,13 +78,10 @@ export const AERO = {
       { from: 16, to: 17, box: [-24, -48, 48, 52], dmg: 2, angle: 85, base: 1.6, growth: 0, stun: 8 },
       { from: 30, to: 32, box: [-30, -54, 60, 62], dmg: 6, angle: 75, base: 3.6, growth: 4.8 },
     ] },
-    // RAIN CLOUD (down): tosses a glossy little cloud up ahead of him that drifts along raining for 5 s -
-    // anyone in the rain is drenched (slowed, 1% every half second). Down special again while it's out:
-    // DOWNPOUR - it empties all at once, spiking anyone in the air beneath it and popping up anyone on the ground.
-    downB: { frames: 28, spawnAt: 10, cloud: {
-      ahead: 34, height: 104, drift: 0.25, life: 300, w: 52, slow: 20, chipEvery: 30, pourFor: 16,
-      pour: { dmg: 10, angle: -80, base: 3.4, growth: 4.2 },
-    } },
+    // DESKTOP (down): sets a glossy computer down on the floor ahead. While AERO stays near one he's POWERED
+    // UP: +10% damage, +10% speed, higher jumps, and he takes less damage and knockback. Opponents can smash
+    // it (24 HP). Two at most - a third replaces the oldest. With two out, his Limit becomes FULL AERO.
+    downB: { frames: 30, spawnAt: 12, pc: { ahead: 30, hp: 24, radius: 120, max: 2 } },
   },
 
   // Limit: SCREENSAVER. He spreads his arms and the whole screen goes glossy - aqua light, ribbons,
@@ -98,4 +95,35 @@ export const AERO = {
     pop: { dmg: 18, angle: 80, base: 5.2, growth: 5.8 },
     colors: PAL_AQUA,
   },
+  // FULL AERO: his Limit with two computers out. They pour their power into him, a blast hits everyone
+  // near him for 30%, GOING FULL AERO appears, the stage turns Frutiger Aero and he transforms for 15 s.
+  altLimit: {
+    name: 'FULL AERO', frames: 100, blastAt: 50, radius: 170, duration: 900,
+    blast: { dmg: 30, angle: 70, base: 6.0, growth: 5.4, radial: true },
+  },
 };
+
+// AERO in FULL AERO: winged, haloed, crowned (tools/sprites/aero_king_draw.py), every stat boosted
+// (Fighter.aeroLevel), and every special upgraded.
+export const AERO_FULL = {
+  ...AERO,
+  sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
+  moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king },
+  moves: {
+    ...AERO.moves,
+    // BUBBLE TRAP: blown out much faster, and the bubble holds them twice as long
+    neutralB: { frames: 18, spawnAt: 7, bubble: { speed: 3.8, life: 110, r: 12, hit: { dmg: 5, angle: 90, base: 0.6, growth: 0, stun: 96, bubble: 96 } } },
+    // GOLDFISH FLING: two fish at once
+    sideB: { ...AERO.moves.sideB, fish: { ...AERO.moves.sideB.fish, twin: true } },
+    // BUBBLE RIDE: floats up much faster, and for much longer
+    upb: { ...AERO.moves.upb, frames: 56, floatV: -5.4, drift: 4.2, popAt: 46, hits: [
+      ...AERO.moves.upb.hits.slice(0, 2),
+      { from: 46, to: 48, box: [-34, -58, 68, 68], dmg: 8, angle: 75, base: 4.0, growth: 5.0 },
+    ] },
+    // CD STORM: a golden-lined cloud above him sprays CDs at the nearest opponent - 5% each, fast
+    // (each opponent can take one CD every 12 frames, so it tops out around 25% a second)
+    downB: { frames: 24, spawnAt: 8, cdcloud: { ahead: 10, height: 112, life: 150, every: 4, window: 12, spread: 0.35,
+      cd: { speed: 7, dmg: 5, angle: 40, base: 2.8, growth: 1.4, stun: 12 } } },
+  },
+};
+AERO.fullAero = AERO_FULL;

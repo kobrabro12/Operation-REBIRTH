@@ -55,6 +55,9 @@ const SPEECH = {
 const SWOOSH_BY_MOVE = { dashAttack: 'low', jab: 'jab', ftilt: 'arc', utilt: 'up', dtilt: 'low', fsmash: 'arc', usmash: 'up', dsmash: 'low2', nair: 'spin', fair: 'arc', bair: 'back', uair: 'up', dair: 'down', neutralB: 'arc', sideB: 'arc', downB: 'low2' };
 const CRYSTAL_BLADE = { outline: 0x0a3a4a, deep: 0x2a8fb0, mid: 0x6fd6f0, light: 0xbff6ff, core: 0xffffff };
 
+// AERO's power-ups, by level (Fighter.aeroLevel): none / near a computer / FULL AERO
+const AERO_BOOST = { dmg: [1, 1.1, 1.3], speed: [1, 1.1, 1.3], jump: [1, 1.06, 1.16], taken: [1, 0.94, 0.8], kb: [1, 0.92, 0.75] };
+
 export class Fighter {
   constructor(match, def, slot, controller, opts) {
     this.match = match; this.scene = match; this.def = def; this.slot = slot;
@@ -105,8 +108,13 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1); }   // NU's RAGE MODE hits 20% harder
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1); }
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel]; }   // NU's RAGE MODE hits 20% harder
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel]; }
+  // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
+  get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel]; }
+  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
+  get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
   // a direction pressed within the last few frames before attack = a smash attack
   smashed(at) { return this.age - at <= 6; }
@@ -153,6 +161,12 @@ export class Fighter {
     if (this.curse > 0) this.curse--;
     if (this.swift > 0) this.swift--;
     if (this.rage > 0) this.rage--;
+    if (this.pcBuff > 0) this.pcBuff--;
+    if (this.fullAero > 0 && --this.fullAero === 0) this.exitFullAero();
+    if (this.aeroLevel && this.age % (this.fullAero > 0 ? 5 : 9) === 0 && !this.match.demo) {   // powered-up sparkle
+      const R = Math.random, gold = this.fullAero > 0;
+      this.match.particles.push({ shape: 'star', x: this.x + (R() - 0.5) * 28, y: this.y - 10 - R() * 44, vx: (R() - 0.5) * 0.4, vy: -0.6 - R() * 0.6, life: 20 + R() * 10, color: gold && R() < 0.6 ? 0xf3c358 : 0x9ff0ff, grav: -0.01, drag: 0.96, size: 2 });
+    }
     if (this.star > 0) this.star--;
     if (this.summonCooldown > 0) this.summonCooldown--;
     if (this.lastHitTimer > 0 && --this.lastHitTimer === 0) this.lastHitBy = null;
@@ -293,7 +307,7 @@ export class Fighter {
     if (this.buffer.special && c.up && !this.usedUpB) { this.buffer.special = 0; this.startUpB(c); return; }
     if (this.t >= 4) {
       const full = c.held('jump');
-      this.vy = full ? this.def.jumpV : this.def.shortHopV;
+      this.vy = (full ? this.def.jumpV : this.def.shortHopV) * this.jumpMult;
       if (Math.abs(c.x) > 0.3) this.vx = c.x * this.def.airSpeed;
       this.grounded = false; this.platform = null;
       this.setState('air'); sfx('jump', 0.5);
@@ -304,7 +318,7 @@ export class Fighter {
     if (this.tryCommon(c, false)) return;
     if (this.buffer.jump && this.jumpsLeft > 0) {
       this.buffer.jump = 0; this.jumpsLeft--; this.fastFalling = false;
-      this.vy = this.def.doubleJumpV; this.vx = c.x * this.def.airSpeed;
+      this.vy = this.def.doubleJumpV * this.jumpMult; this.vx = c.x * this.def.airSpeed;
       if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
       sfx('djump', 0.5); this.match.puff(this.x, this.y, 0xf0f2f3, 6);
     }
@@ -386,10 +400,14 @@ export class Fighter {
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
     if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
-    if (m.fish && this.t === m.spawnAt && !this.fishOut) this.match.spawnFish(this, m.fish);
-    if (m.cloud && this.t === m.spawnAt) {                     // a second down special while the cloud is out: DOWNPOUR
-      if (this.cloud && this.cloud.alive) this.cloud.pour(); else this.match.spawnCloud(this, m.cloud);
+    if (m.fish && this.t === m.spawnAt && !this.fishOut) {
+      if (m.fish.twin) {                                         // FULL AERO: two fish, one arcing high and one skimming low
+        this.match.spawnFish(this, { ...m.fish, liftOverride: m.fish.lift + 1.8 });
+        this.match.spawnFish(this, { ...m.fish, liftOverride: m.fish.lift - 0.9 });
+      } else this.match.spawnFish(this, m.fish);
     }
+    if (m.pc && this.t === m.spawnAt) this.match.spawnPC(this, m.pc);
+    if (m.cdcloud && this.t === m.spawnAt) this.match.spawnCdCloud(this, m.cdcloud);
     if (m.dive && this.t >= m.dive.from && this.t <= m.dive.to) {     // NU's STAGE DIVE: flat out through the air
       const D = m.dive, k = (this.t - D.from) / (D.to - D.from);
       this.vx = this.facing * D.vx * (1 - 0.45 * k);
@@ -625,7 +643,7 @@ export class Fighter {
     if (this.t < u.riseAt) { this.vy = 0; return; }
     if (this.t === u.riseAt) { this.vy = u.riseV; this.grounded = false; this.platform = null; sfx('djump', 0.7, 0.7); }
     this.vx = c.x * u.drift + (u.pushX || 0) * this.facing * Math.max(0, 1 - (this.t - u.riseAt) / 12);
-    if (u.bubble && this.t > u.riseAt && this.t < u.popAt) this.vy = -3.4;                   // AERO's bubble: a steady float upward
+    if (u.bubble && this.t > u.riseAt && this.t < u.popAt) this.vy = u.floatV || -3.4;                   // AERO's bubble: a steady float upward
     if (u.bubble && this.t === u.popAt) { popBubble(this.match, this.x, this.y - 22, 26, this.pal); this.vy = -4; }
     if (this.t % 2 === 0) this.match.puff(this.x, this.y - 10, this.fxColor, 2);
     if (this.t >= u.frames) this.setState('helpless');
@@ -735,10 +753,14 @@ export class Fighter {
   // ---- Limit
   startLimit() {
     this.limit = 0; this.limitReadyShown = false; this.quip('limit');
+    // AERO with two computers out: FULL AERO instead of his usual Limit
+    this.altLimit = !!(this.def.altLimit && !(this.fullAero > 0) && this.match.pcsOf(this).length >= 2);
+    this.limitName = this.altLimit ? this.def.altLimit.name : null;
     this.setState('limit'); this.vx = this.vy = 0; this.lx = this.ly = 0;
     this.match.startLimit(this);
   }
   st_limit() {
+    if (this.altLimit) return this.fullAeroLimit(this.def.altLimit || this.baseDef.altLimit);
     const L = this.def.limit;
     if (L.type === 'blade') return this.bladeLimit(L);
     if (L.type === 'undertow') return this.undertowLimit(L);
@@ -939,6 +961,7 @@ export class Fighter {
   }
 
   ko() {
+    if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
@@ -1047,6 +1070,70 @@ export class Fighter {
   // Spreads his arms and the whole screen goes glossy: a fan of giant bubbles drifts out. Anyone caught
   // is sealed in and floats up to the top of the sky - then every caught bubble pops at once in a lens
   // flare. The bubbles can be dodged.
+  // ---- FULL AERO (AERO's alternate Limit, with two computers out): the computers pour their power into
+  // him, then a blast of light (30%) hits everyone near him, the words GOING FULL AERO appear, the stage
+  // turns into a Frutiger Aero version of itself, and he transforms - winged, haloed, crowned - with every
+  // stat boosted and every special upgraded for the rest of the time (FULL_AERO in aero.js).
+  fullAeroLimit(A) {
+    const m = this.match;
+    if (this.t === 1) {
+      const pcs = m.pcsOf(this);
+      this.ult = { pcs: pcs.map((p) => ({ x: p.x, y: p.y - 18 })), flash: 0, ring: 0 };
+      for (const p of pcs) p.absorb();
+      sfx('summon', 0.8, 1.6); sfx('item', 0.6, 0.7);
+    }
+    const U = this.ult;
+    this.vx = 0; this.lx = 0;
+    if (!this.grounded) this.vy = Math.min(this.vy + 0.08, 0.6);
+    if (this.t < A.blastAt && this.t % 6 === 0) sfx('item', 0.3, 1 + this.t / A.blastAt);
+    if (this.t === A.blastAt) {
+      U.flash = 22; U.ring = 1;
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.isIntangible()) continue;
+        const c = o.center();
+        if (Math.hypot(c.x - this.x, c.y - (this.y - 30)) < A.radius)
+          m.applyHit(o, { h: A.blast, owner: this, facing: Math.sign(o.x - this.x) || this.facing, id: 'fullaero' + this.slot + ':' + o.slot + ':' + this.age, pillar: true }, this.x);
+      }
+      this.enterFullAero(A.duration);
+      m.bannerAero('GOING FULL AERO');
+      sfx('limitready', 1, 1.4); sfx('bighit', 0.9, 1); sfx('geyser', 0.6, 1.6); m.shake(14, 14);
+    }
+    if (U.flash > 0) U.flash--;
+    if (U.ring > 0) U.ring += 8;
+    if (this.t >= A.frames) { this.invincible = 30; this.ult = null; this.altLimit = false; this.limitName = null; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+  drawFullAeroLimit(g, A, U) {
+    const t = this.t, cx = this.x, cy = this.y - 30, P = this.pal;
+    if (t < A.blastAt) {
+      const k = t / A.blastAt;
+      for (const p of U.pcs) {                                           // the computers' power streaming into him
+        g.lineStyle(6, P.light, 0.25 + 0.3 * k); g.lineBetween(p.x, p.y, cx, cy);
+        g.lineStyle(2, 0xffffff, 0.9); g.lineBetween(p.x, p.y, cx, cy);
+        for (let i = 0; i < 3; i++) { const f = ((t * 0.05 + i / 3) % 1); g.fillStyle(0xffffff, 1); g.fillCircle(p.x + (cx - p.x) * f, p.y + (cy - p.y) * f, 2); }
+      }
+      g.fillStyle(P.light, 0.25 * k); g.fillCircle(cx, cy, 20 + 30 * k);
+      g.fillStyle(0xffffff, 0.35 * k); g.fillCircle(cx, cy, 10 + 18 * k);
+    }
+    if (U.ring > 0 && U.ring < A.radius + 40) {                          // the blast
+      const a = 1 - U.ring / (A.radius + 40);
+      g.lineStyle(8, P.light, 0.6 * a); g.strokeCircle(cx, cy, U.ring);
+      g.lineStyle(3, 0xffffff, a); g.strokeCircle(cx, cy, U.ring);
+      g.lineStyle(2, 0xf3c358, a); g.strokeCircle(cx, cy, U.ring * 0.7);
+    }
+    if (U.flash > 0) { const v = this.match.worldCam.worldView; g.fillStyle(0xffffff, U.flash / 22 * 0.85); g.fillRect(v.x, v.y, v.width, v.height); }
+  }
+  enterFullAero(frames) {
+    if (!(this.fullAero > 0)) { this.baseDef = this.def; this.baseSheets = this.sheets; }
+    this.def = this.baseDef.fullAero; this.sheets = { ...this.baseSheets, ...this.def.sheets };
+    this.fullAero = frames; this.match.setAeroStage(true);
+    this.match.puff(this.x, this.y - 30, 0xffffff, 20); this.match.puff(this.x, this.y - 30, 0xf3c358, 12);
+  }
+  exitFullAero() {
+    if (!this.baseDef) return;
+    this.fullAero = 0; this.def = this.baseDef; this.sheets = this.baseSheets; this.baseDef = null;
+    if (!this.match.fighters.some((f) => f !== this && f.fullAero > 0)) this.match.setAeroStage(false);
+    if (this.alive) { this.match.popText(this, 'AERO MODE OFF', '#9ff0ff'); this.match.puff(this.x, this.y - 30, 0x9ff0ff, 10); }
+  }
   screensaverLimit(L) {
     const m = this.match;
     if (this.t === 1) this.ult = { bubbles: [], caught: [] };
@@ -1864,7 +1951,8 @@ export class Fighter {
     if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
     if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);
     if (this.bubbled > 0) drawBubble(g, this.x, this.y - this.body.h / 2, 26 + Math.sin(this.anim * 0.4), { light: 0x9ff0ff, core: 0xffffff, mid: 0x3fc8ea });
-    if (s === 'limit' && d.limit.type === 'screensaver' && this.ult) this.drawScreensaver(g, d.limit, this.ult);
+    if (s === 'limit' && this.altLimit && this.ult) this.drawFullAeroLimit(g, (this.baseDef || d).altLimit, this.ult);
+    else if (s === 'limit' && d.limit.type === 'screensaver' && this.ult) this.drawScreensaver(g, d.limit, this.ult);
     if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {

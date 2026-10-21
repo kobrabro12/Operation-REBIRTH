@@ -622,11 +622,11 @@ export class GoldfishFling {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.dir = owner.facing;
     this.x = owner.x + this.dir * 10; this.y = owner.y - 44;              // straight out of the bowl
-    this.vx = this.dir * spec.speed; this.vy = -spec.lift;
+    this.vx = this.dir * spec.speed; this.vy = -(spec.liftOverride ?? spec.lift);
     this.phase = 'out'; this.t = 0; this.pt = 0; this.alive = true; this.id = nextId++; this.persist = true; this.kind = 'GOLDFISH';
     this.trail = [];
     this.g = match.add.graphics(); match.addWorld(this.g);
-    owner.fishOut = this;
+    owner.fishOut = (owner.fishOut || 0) + 1;                            // how many fish are out of the bowl
     sfx('item', 0.6, 1.3); this.splash(4);
   }
   hitbox() {
@@ -657,7 +657,7 @@ export class GoldfishFling {
   turn() { if (this.phase === 'out') { this.phase = 'back'; this.pt = 0; sfx('djump', 0.4, 1.7); } }
   kill() { if (!this.alive) return; if (this.phase === 'out') { this.turn(); return; } this.remove(); }   // blocked: swims home
   home() { this.splash(6); sfx('item', 0.5, 2.2); this.remove(); }
-  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.fishOut === this) this.owner.fishOut = null; }
+  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); this.owner.fishOut = Math.max(0, (this.owner.fishOut || 0) - 1); }
   render() {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fx = Math.sign(this.vx) || this.dir, x = Math.round(this.x), y = Math.round(this.y);
@@ -675,85 +675,171 @@ export class GoldfishFling {
   }
 }
 
-// AERO's RAIN CLOUD (down special): a glossy little cloud that drifts ahead of him and rains for 5 s.
-// Anyone standing in the rain is drenched - slowed, and chipped 1% every half second. Down special again
-// while it's out: DOWNPOUR - the cloud empties all at once in a heavy column that spikes anyone in the air
-// under it (and pops up anyone on the ground). One cloud at a time.
-export class RainCloud {
+// AERO's DESKTOP (down special): a glossy little computer set down on the floor ahead of him. While AERO
+// stays near one he is POWERED UP - stronger, faster, higher jumps, and he takes less knockback (Fighter
+// .aeroLevel). Opponents can smash it: it has 30 HP. At most two; a third replaces the oldest. Two out at
+// once when he uses his Limit turns it into FULL AERO (Fighter.fullAeroLimit).
+export class AeroPC {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.alive = true; this.id = nextId++;
+    this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y - 10; this.vy = 0; this.landed = false;
+    this.hp = spec.hp; this.hitIds = new Set(); this.flash = 0; this.shake = 0; this.facing = owner.facing;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('item', 0.5, 0.9); sfx('select', 0.4, 1.6);
+  }
+  box() { return { x1: this.x - 15, x2: this.x + 15, y1: this.y - 26, y2: this.y }; }
+  floorBelow() {
+    let best = null;
+    for (const p of this.match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= this.y - 1 && (best === null || p.y < best)) best = p.y;
+    return best;
+  }
+  inRange(f) { return f.alive && Math.hypot(f.x - this.x, (f.y - 24) - (this.y - 14)) < this.spec.radius; }
+  step() {
+    this.t++;
+    if (this.flash > 0) this.flash--; if (this.shake > 0) this.shake--;
+    if (!this.landed) {                                            // set down: drops to the floor below
+      this.vy = Math.min(this.vy + 0.5, 9); this.y += this.vy;
+      const fl = this.floorBelow();
+      if (fl !== null && this.y >= fl) { this.y = fl; this.landed = true; sfx('land', 0.5, 1.4); this.match.puff(this.x, this.y, 0xffffff, 5); }
+      if (this.y > 400) { this.destroy(); return; }                // dropped off the stage
+    }
+    const o = this.owner;
+    if (!o.alive) { this.kill(); return; }
+    if (this.landed && this.inRange(o)) o.pcBuff = 3;               // AERO is powered up while he's in range
+  }
+  // attacks that overlap it chip its HP (MatchScene.resolveHits)
+  strike(hbs) {
+    if (!this.alive) return;
+    const b = this.box();
+    for (const hb of hbs) {
+      if (!hb.owner || hb.owner.team === this.owner.team || hb.grab || this.hitIds.has(hb.id)) continue;
+      if (!(hb.x1 < b.x2 && hb.x2 > b.x1 && hb.y1 < b.y2 && hb.y2 > b.y1)) continue;
+      this.hitIds.add(hb.id);
+      this.hp -= hb.h.dmg || 5; this.flash = 6; this.shake = 8;
+      sfx('clang', 0.4, 1.6);
+      if (hb.projectile && !hb.persist) hb.projectile.kill();
+      if (this.hp <= 0) { this.destroy(); return; }
+    }
+  }
+  destroy() {
+    const R = Math.random;
+    for (let i = 0; i < 16; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; this.match.particles.push({ shape: 'shard', x: this.x, y: this.y - 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.5, life: 26 + R() * 14, color: [0xffffff, 0x9ff0ff, 0x3fc8ea][i % 3], drag: 0.94, grav: 0.12, ang: a, size: 2 }); }
+    sfx('glitch', 0.7, 0.9); sfx('bighit', 0.5, 1.5);
+    this.match.popText({ x: this.x, y: this.y + 40 }, 'PC DOWN!', '#9ff0ff');
+    this.kill();
+  }
+  absorb() { this.absorbed = true; this.kill(); }          // FULL AERO: its power flows into him
+  kill() { if (!this.alive) return; this.alive = false; if (!this.absorbed) this.match.puff(this.x, this.y - 12, 0xffffff, 6); this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, P = this.owner.pal, x = Math.round(this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0)), y = Math.round(this.y), t = this.t;
+    g.clear();
+    const o = this.owner, on = this.landed && this.inRange(o) && o.state !== 'respawn';
+    if (on) {                                                     // the power link: a glossy beam from the screen to AERO
+      const tx = o.x, ty = o.y - 30;
+      g.lineStyle(4, P.light, 0.25); g.lineBetween(x, y - 18, tx, ty);
+      g.lineStyle(1, 0xffffff, 0.8); g.lineBetween(x, y - 18, tx, ty);
+      const k = (t % 20) / 20; g.fillStyle(0xffffff, 1); g.fillCircle(x + (tx - x) * k, y - 18 + (ty - y + 18) * k, 2);
+    }
+    if (this.landed) { g.lineStyle(1, P.light, 0.18 + 0.08 * Math.sin(t * 0.1)); g.strokeCircle(x, y - 14, this.spec.radius); }   // its range
+    const W = this.flash ? 0xffffff : 0xf4fbff;
+    // tower
+    g.fillStyle(0x0d3550, 1); g.fillRect(x + 8, y - 22, 9, 22);
+    g.fillStyle(W, 1); g.fillRect(x + 9, y - 21, 7, 20);
+    g.fillStyle(0x9ad8ee, 1); g.fillRect(x + 15, y - 21, 1, 20);
+    g.fillStyle(0x3fc8ea, 1); g.fillRect(x + 10, y - 17, 5, 1); g.fillRect(x + 10, y - 15, 5, 1);
+    g.fillStyle(t % 30 < 15 ? 0x8be04a : 0x4a9a1e, 1); g.fillRect(x + 12, y - 5, 2, 2);          // power light
+    // monitor: rounded glossy white bezel, a wallpaper screen (sky over a green hill), a stand
+    g.fillStyle(0x0d3550, 1); g.fillRoundedRect(x - 17, y - 28, 26, 21, 4);
+    g.fillStyle(W, 1); g.fillRoundedRect(x - 16, y - 27, 24, 19, 3);
+    g.fillStyle(0x3fc8ea, 1); g.fillRect(x - 14, y - 25, 20, 14);
+    g.fillStyle(0x9ff0ff, 1); g.fillRect(x - 14, y - 25, 20, 5);
+    g.fillStyle(0x8be04a, 1); g.fillEllipse(x - 4, y - 11, 26, 9);
+    g.fillStyle(0xd6ff9a, 1); g.fillRect(x - 10, y - 15, 6, 1);
+    g.fillStyle(0x3fc8ea, 1); g.fillRect(x - 14, y - 10, 20, 1);
+    const sx = x - 14 + ((t * 0.3) % 20); g.fillStyle(0xffffff, 0.5); g.fillRect(Math.round(sx), y - 25, 2, 14);   // the screen's moving shine
+    g.fillStyle(0xffffff, 1); g.fillRect(x - 13, y - 24, 4, 1); g.fillRect(x - 13, y - 24, 1, 3);
+    g.fillStyle(0x0d3550, 1); g.fillRect(x - 6, y - 8, 4, 4); g.fillRect(x - 11, y - 4, 14, 3);
+    g.fillStyle(0xa8cfe0, 1); g.fillRect(x - 5, y - 8, 2, 4); g.fillRect(x - 10, y - 4, 12, 2);
+    // keyboard
+    g.fillStyle(0x0d3550, 1); g.fillRect(x - 16, y - 2, 14, 2);
+    g.fillStyle(0xe6f4fb, 1); g.fillRect(x - 15, y - 2, 12, 1);
+    if (this.hp < this.spec.hp) {                                       // health bar once it's been hit
+      g.fillStyle(0x0b0a14, 0.8); g.fillRect(x - 14, y - 34, 28, 3);
+      g.fillStyle(this.hp > this.spec.hp * 0.4 ? 0x8be04a : 0xff5a5a, 1); g.fillRect(x - 13, y - 33, 26 * Math.max(0, this.hp) / this.spec.hp, 1);
+    }
+  }
+}
+
+// FULL AERO's down special: a glossy cloud overhead that sprays CDs at the nearest opponent, fast - 5% each.
+export class CdCloud {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true; this.id = nextId++;
     this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y - spec.height; this.y0 = this.y;
-    this.vx = owner.facing * spec.drift; this.drops = []; this.burst = 0; this.soak = new Map(); this.poured = new Set();
     this.g = match.add.graphics(); match.addWorld(this.g);
-    owner.cloud = this;
-    sfx('item', 0.4, 0.8); match.puff(this.x, this.y, 0xffffff, 8);
+    owner.cdCloud = this;
+    sfx('item', 0.5, 0.8); match.puff(this.x, this.y, 0xffffff, 10);
   }
-  floorAt(x) {
-    let best = null;
-    for (const p of this.match.stage.platforms) if (p.solid !== false && x >= p.x1 && x <= p.x2 && p.y > this.y + 4 && (best === null || p.y < best)) best = p.y;   // rain falls through the thin pass-through ledges
-    return best === null ? this.y + 420 : best;
-  }
-  under(f) {                                                     // standing (or falling) in the rain column?
-    const half = this.spec.w / 2 + f.body.w / 2;
-    return f.alive && f.team !== this.owner.team && f.state !== 'respawn' && Math.abs(f.x - this.x) < half && f.y > this.y + 6 && f.y - f.body.h < this.floorAt(f.x);
+  target() {
+    let best = null, bd = 1e9;
+    for (const f of this.match.fighters) if (f.alive && f.team !== this.owner.team && f.state !== 'respawn') { const d = Math.hypot(f.x - this.x, f.y - this.y); if (d < bd) { bd = d; best = f; } }
+    return best;
   }
   step() {
-    const S = this.spec, R = Math.random;
+    const S = this.spec;
     this.t++;
-    if (!this.owner.alive) { this.kill(); return; }
-    if (this.burst) {
-      this.burst++;
-      if (this.burst <= S.pourFor) {
-        for (let i = 0; i < 4; i++) { const x = this.x + (R() - 0.5) * S.w; this.drops.push({ x, y: this.y + 6, vy: 9 + R() * 3, floor: this.floorAt(x) }); }
-        for (const f of this.match.fighters) {
-          if (!this.under(f) || this.poured.has(f) || f.isIntangible()) continue;
-          this.poured.add(f);
-          if (f.state === 'shield') { this.match.shieldHit(f, { h: S.pour, owner: this.owner, x1: this.x, x2: this.x, projectile: this }); continue; }
-          this.match.applyHit(f, { h: S.pour, owner: this.owner, facing: Math.sign(f.x - this.x) || 1, id: 'pour' + this.id + ':' + f.slot }, this.x);
-        }
+    const o = this.owner;
+    if (!o.alive) { this.kill(); return; }
+    this.x += ((o.x + o.facing * S.ahead) - this.x) * 0.04;                 // follows him around, loosely
+    this.y0 += ((o.y - S.height) - this.y0) * 0.04; this.y = this.y0 + Math.sin(this.t * 0.08) * 3;
+    if (this.t > 10 && this.t % S.every === 0) {
+      const tg = this.target();
+      if (tg) {
+        const ang = Math.atan2(tg.y - 26 - this.y, tg.x - this.x) + (Math.random() - 0.5) * S.spread;
+        // CDs fired in the same short window share one hit id, so each opponent takes at most one CD per window
+        this.match.projectiles.push(new FlyingCD(this.match, o, S.cd, this.x, this.y + 6, ang, 'cd' + this.id + ':' + Math.floor(this.t / S.window)));
+        sfx('swing', 0.25, 2 + Math.random() * 0.3);
       }
-      if (this.burst > S.pourFor + 14) this.kill();
-    } else {
-      this.x += this.vx; this.vx *= 0.996; this.y = this.y0 + Math.sin(this.t * 0.05) * 2;
-      if (this.t % 2 === 0) { const x = this.x + (R() - 0.5) * S.w; this.drops.push({ x, y: this.y + 6, vy: 4 + R() * 1.5, floor: this.floorAt(x) }); }
-      for (const f of this.match.fighters) {
-        if (!this.under(f)) continue;
-        f.slow = Math.max(f.slow, S.slow);                        // drenched: slowed while in the rain (and a moment after)
-        if (!this.soak.has(f)) this.soak.set(f, this.t - S.chipEvery + 12);   // the first chip comes quickly
-        if (this.t - this.soak.get(f) >= S.chipEvery) {                       // chip damage, no flinch
-          this.soak.set(f, this.t);
-          if (this.match.mode === 'stamina') f.hp -= 1; else f.percent = Math.min(999, f.percent + 1);
-          f.stats.damageTaken += 1; this.owner.stats.damageDealt += 1; f.lastHitBy = this.owner; f.lastHitTimer = 600;
-          for (let i = 0; i < 4; i++) this.match.particles.push({ x: f.x + (R() - 0.5) * 16, y: f.y - f.body.h, vx: (R() - 0.5) * 1.6, vy: -R() * 1.6, life: 14, color: this.owner.pal.light, size: 2, grav: 0.14 });
-        }
-      }
-      if (this.t >= this.life) this.kill();
     }
-    for (const d of this.drops) { d.y += d.vy; if (d.y >= d.floor) { d.dead = true; if (R() < 0.3) this.match.particles.push({ x: d.x, y: d.floor - 1, vx: (R() - 0.5) * 1.2, vy: -0.6 - R(), life: 8, color: 0xffffff, size: 1, grav: 0.12 }); } }
-    this.drops = this.drops.filter((d) => !d.dead);
+    if (this.t >= this.life) this.kill();
   }
-  pour() { if (this.burst || !this.alive) return; this.burst = 1; sfx('geyser', 0.7, 1.4); this.match.shake(3, 6); }
-  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xffffff, 8); this.g.destroy(); if (this.owner.cloud === this) this.owner.cloud = null; }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xffffff, 8); this.g.destroy(); if (this.owner.cdCloud === this) this.owner.cdCloud = null; }
   render() {
     if (!this.alive) return;
-    const g = this.g, P = this.owner.pal, S = this.spec, x = this.x, y = this.y;
-    const fade = this.burst ? Math.max(0, 1 - (this.burst - S.pourFor) / 14) : Math.min(1, this.t / 8, (this.life - this.t) / 20);
-    const shrink = this.burst ? Math.max(0.4, 1 - this.burst / (S.pourFor + 14) * 0.6) : 1;
+    const g = this.g, P = this.owner.pal, x = this.x, y = this.y, w = 56;
+    const fade = Math.min(1, this.t / 8, (this.life - this.t) / 16);
     g.clear();
-    if (this.burst && this.burst <= S.pourFor + 4) {                                    // the downpour column
-      const fl = this.floorAt(x);
-      const a = this.burst <= S.pourFor ? 1 : (S.pourFor + 4 - this.burst) / 4;
-      g.fillStyle(P.mid, 0.35 * a); g.fillRect(x - S.w / 2, y, S.w, fl - y);
-      g.fillStyle(P.light, 0.45 * a); g.fillRect(x - S.w / 2 + 6, y, S.w - 12, fl - y);
-      g.fillStyle(0xffffff, 0.6 * a); g.fillRect(x - S.w / 2 + 4, y, 3, fl - y); g.fillRect(x + S.w / 2 - 9, y, 2, fl - y);
-      g.fillStyle(0xffffff, 0.8 * a); g.fillEllipse(x, fl - 2, S.w + 16, 8);                        // the splash where it hits the floor
-    }
-    g.fillStyle(P.light, 0.85 * fade);                                                   // rain streaks
-    for (const d of this.drops) g.fillRect(Math.round(d.x), Math.round(d.y), 1, this.burst ? 7 : 4);
-    const w = S.w * shrink, puffs = [[-0.36, 0, 0.26], [-0.12, -0.12, 0.32], [0.16, -0.08, 0.3], [0.38, 0.02, 0.22], [0, 0.06, 0.3]];
-    g.fillStyle(P.deep, 0.9 * fade); for (const [px, py, r] of puffs) g.fillCircle(x + px * w, y + py * w + 2, r * w + 1);       // outline-ish underside
+    const puffs = [[-0.36, 0, 0.26], [-0.12, -0.12, 0.32], [0.16, -0.08, 0.3], [0.38, 0.02, 0.22], [0, 0.06, 0.3]];
+    g.fillStyle(P.deep, 0.9 * fade); for (const [px, py, r] of puffs) g.fillCircle(x + px * w, y + py * w + 2, r * w + 1);
     g.fillStyle(0xe8f8ff, fade); for (const [px, py, r] of puffs) g.fillCircle(x + px * w, y + py * w, r * w);
-    g.fillStyle(P.light, 0.7 * fade); g.fillRect(x - w * 0.45, y + w * 0.12, w * 0.9, 3);                                        // aqua belly
-    g.fillStyle(0xffffff, fade); g.fillRect(x - w * 0.2, y - w * 0.3, w * 0.18, 2); g.fillRect(x - w * 0.2, y - w * 0.3, 2, 4);  // glossy shine
+    g.fillStyle(0xf3c358, 0.8 * fade); g.fillRect(x - w * 0.45, y + w * 0.12, w * 0.9, 2);                 // a gold lining
+    g.fillStyle(0xffffff, fade); g.fillRect(x - w * 0.2, y - w * 0.3, w * 0.18, 2); g.fillRect(x - w * 0.2, y - w * 0.3, 2, 4);
+  }
+}
+
+// a spinning compact disc: rainbow sheen, silver face, a hole in the middle
+export class FlyingCD {
+  constructor(match, owner, hit, x, y, ang, group) {
+    this.match = match; this.owner = owner; this.hit = hit; this.x = x; this.y = y; this.group = group;
+    this.vx = Math.cos(ang) * hit.speed; this.vy = Math.sin(ang) * hit.speed; this.dir = Math.sign(this.vx) || 1;
+    this.t = 0; this.alive = true; this.id = nextId++; this.kind = 'CD';
+    this.g = match.add.graphics(); match.addWorld(this.g);
+  }
+  hitbox() { return { x1: this.x - 6, x2: this.x + 6, y1: this.y - 6, y2: this.y + 6, h: this.hit, owner: this.owner, id: this.group || this.id, facing: this.dir, projectile: this }; }
+  step() {
+    this.t++; this.x += this.vx; this.y += this.vy;
+    const P = this.match.stage.platforms[0];
+    if ((this.x > P.x1 && this.x < P.x2 && this.y > P.y + 2 && this.y < P.bottom) || this.t > 45) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xe6f4fb, 3); this.g.destroy(); }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), sq = Math.abs(Math.cos(this.t * 0.6));
+    g.clear();
+    g.fillStyle(0x0d3550, 1); g.fillEllipse(x, y, 13, 13 * Math.max(0.25, sq) + 1);
+    g.fillStyle(0xdfe8ee, 1); g.fillEllipse(x, y, 11, 11 * Math.max(0.2, sq));
+    const cols = [0xff9ad8, 0x9ff0ff, 0xd6ff9a, 0xfff2a8];
+    g.fillStyle(cols[Math.floor(this.t / 2) % 4], 0.8); g.fillEllipse(x - 2, y - 1, 5, 4 * Math.max(0.2, sq));   // rainbow sheen
+    g.fillStyle(0x0d3550, 1); g.fillRect(x - 1, y - 1, 2, 2);
   }
 }

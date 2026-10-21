@@ -63,6 +63,9 @@ export class CpuController extends Controller {
     if (this.wait > 0) { this.wait--; this.continuePlan(me, tgt, dx, dy); return; }
     this.wait = L.react + Math.floor(Math.random() * L.react);
 
+    // AERO: with two computers out, his Limit is FULL AERO - go for it, ideally with someone close enough for the blast
+    if (me.limit >= LIMIT_MAX && me.def.altLimit && !(me.fullAero > 0) && this.match.pcsOf(me).length >= 2) { if (adx < 150 || Math.random() < 0.05) this.tap('limit'); return; }
+    if (me.limit >= LIMIT_MAX && me.def.altLimit && me.def.moves.downB.pc && this.match.pcsOf(me).length < 2 && me.grounded && Math.random() < 0.5) { this.y = 1; this.tap('special'); return; }   // set up for it first
     // Limit when an opponent is level with the beam
     if (me.limit >= LIMIT_MAX && adx < (me.def.limit.reach || 360) && Math.abs(dy) < (me.def.limit.reach ? 70 : 40)) { this.tap('limit'); return; }
 
@@ -77,7 +80,7 @@ export class CpuController extends Controller {
       this.x = Math.sign(dx); this.tap('special'); return;
     }
     // Mr Wake: drop a Shadow Pool when someone is close
-    if (M.downB && !M.downB.cloud && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
+    if (M.downB && (M.downB.pool || M.downB.tag) && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
     // Lacy's Grand Slam: a charged home-run swing up close
@@ -87,16 +90,9 @@ export class CpuController extends Controller {
       me.cpuChargeTarget = 8 + Math.floor(Math.random() * (Math.random() < 0.2 ? 170 : 50));   // usually quick, sometimes a big wind-up
       return;
     }
-    // AERO's Rain Cloud: set one up when they're nearby, then call the Downpour when they're under it
-    if (M.downB && M.downB.cloud) {
-      const cl = me.cloud;
-      if (cl && cl.alive && !cl.burst && cl.under(tgt) && !tgt.grounded && Math.random() < 0.4 + L.accuracy * 0.5) { this.y = 1; this.tap('special'); return; }
-      if (cl && cl.alive && !cl.burst && cl.under(tgt) && tgt.grounded && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
-      if (!cl && adx > 40 && adx < 150 && Math.abs(dy) < 60 && Math.random() < 0.08 * L.aggression) {
-        if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
-        this.y = 1; this.tap('special'); return;
-      }
-    }
+    // AERO: set computers down (two powers up FULL AERO); in FULL AERO, keep a CD storm going
+    if (M.downB && M.downB.pc && me.grounded && this.match.pcsOf(me).length < 2 && adx > 80 && Math.random() < 0.1 * L.aggression) { this.y = 1; this.tap('special'); return; }
+    if (M.downB && M.downB.cdcloud && !me.cdCloud && adx < 280 && Math.random() < 0.3) { this.y = 1; this.tap('special'); return; }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
       if (M.sideB && M.sideB.fish) {                                   // AERO: Goldfish Fling, or a Bubble Trap
