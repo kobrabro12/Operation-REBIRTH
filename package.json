@@ -7,9 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sim": "node tools/sim/sim.mjs"
   },
   "devDependencies": {
-    "vite": "^6.0.0"
+    "phaser": "4.2.1",
+    "playwright-core": "^1.56.1",
+    "vite": "^6.4.4"
   }
 }

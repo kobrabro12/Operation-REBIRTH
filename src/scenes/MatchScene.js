@@ -52,8 +52,9 @@ export class MatchScene extends Phaser.Scene {
 
   create() {
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
+    // demoRequest.settings: a fixed all-CPU setup instead of a random one (used by tools/sim)
     this.demo = demoRequest.next; demoRequest.next = false; this.demoTime = 0;
-    const S = this.demo ? demoSettings() : settings;
+    const S = this.demo ? (demoRequest.settings || demoSettings()) : settings; demoRequest.settings = null;
     this.mode = S.mode;
     this.bgList = []; this.worldList = []; this.uiList = [];
     this.cutscene = null;

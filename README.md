@@ -8,6 +8,11 @@ A 2D pixel-art platform fighter for the browser, built with Phaser 4 and modern 
 2. In this folder run `npm install`, then `npm run dev`.
 3. Open the address Vite prints (usually http://localhost:5173), click the game, press Enter.
 
+## Test it
+
+`npm run sim -- --smoke` plays short all-CPU matches on every stage with every fighter and costume, headless
+and much faster than real time, and reports any errors. Needs Chrome or Edge installed. See `tools/sim/sim.mjs` for options.
+
 ## Controls
 
 | Action | Keyboard | Controller |
