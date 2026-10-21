@@ -164,7 +164,10 @@ an announcer voice for each fighter and stage, and a title screen with a live al
 - A typical **3-stock match lasts about 3 minutes** (4 players, CPUs on Hard).
 - Fighters are usually **KO'd at around 120%**: a strong finisher (smash, back air, throw) at the ledge should
   kill around there, so the median damage at a KO should land near 120%.
-- Measure with `npm run sim` (match length, plus damage taken divided by falls) before and after changes.
+- Measure with `npm run sim -- --matches 20 --stocks 3 --frames 72000`, which prints median KO % and match length.
+- **Where it stands (Oct 2026, all-CPU sim):** KO % median about 117 (on target: Soul Summoner 119, Lacy 118,
+  Mr Wake 112). Matches run about 90–115 s, Hard or Medium, 1v1 or 4 players: well short of 3 minutes. Damage piles up
+  about 1.7× too fast for the target. (CPU-only matches likely run faster than human ones.)
 
 ## Notes
 - Lacy is "she".

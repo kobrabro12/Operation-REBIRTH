@@ -94,6 +94,9 @@ async function runMatch(spec) {
     }
     const m = game.scene.getScene('Match');
     game.loop.sleep();                                  // from here the script drives the game, not the clock
+    const koAt = [];                                    // % each fighter had when KO'd (stock / timed modes)
+    const onKO = m.onKO;
+    m.onKO = function (f) { if (f.alive) koAt.push({ id: f.def.id, pct: Math.round(f.percent) }); return onKO.call(this, f); };
     let error = null, frame = 0;
     const start = performance.now();
     try {
@@ -106,6 +109,7 @@ async function runMatch(spec) {
     const ms = performance.now() - start;
     return {
       stage: m.stage.constructor.name, frames: frame, seconds: +(frame / 60).toFixed(1), simMs: Math.round(ms), ended: m.over === 1, error,
+      kos: koAt,
       fighters: m.fighters.map((f) => ({ id: f.def.id, kos: f.kos, falls: f.falls, stocks: f.stocks, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), out: f.eliminated, state: f.state })),
     };
   }, spec);
@@ -161,6 +165,14 @@ const failed = results.filter((r) => r.error);
 if (O.json) console.log(JSON.stringify({ results, consoleErrors }, null, 1));
 else {
   if (consoleErrors.length) console.log(`\nConsole errors (${consoleErrors.length}):\n  ` + [...new Set(consoleErrors)].slice(0, 10).join('\n  '));
+  // balance summary vs the DESIGN.md targets (3-minute matches, KOs around 120%)
+  const all = results.flatMap((r) => r.kos || []), med = (a) => { const b = [...a].sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : 0; };
+  const ended = results.filter((r) => r.ended);
+  if (all.length) {
+    console.log(`\nKO %: median ${med(all.map((k) => k.pct))} (target ~120), over ${all.length} KOs`);
+    for (const id of [...new Set(all.map((k) => k.id))]) { const v = all.filter((k) => k.id === id).map((k) => k.pct); console.log(`  ${id.padEnd(15)} KO'd at median ${med(v)}% (${v.length} KOs)`); }
+  }
+  if (ended.length) console.log(`Match length: median ${med(ended.map((r) => r.seconds))} s over ${ended.length} finished match(es) (target ~180 s for 3 stocks)`);
   console.log(`\n${results.length} match(es), ${failed.length} with errors.`);
 }
 await browser.close(); await server.close();
