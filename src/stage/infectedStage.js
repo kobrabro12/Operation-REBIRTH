@@ -13,6 +13,13 @@ import { sfx } from '../audio/sfx.js';
 import { HazardCycle } from './hazardCycle.js';
 import { FONT } from '../config.js';
 
+// THE RED ROOM's Japanese: "It's your fault for doing this", "She's still alive", "Welcome to the red room"
+const JP_FONT = '"Noto Sans JP", "Noto Sans CJK JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "MS Gothic", sans-serif';
+const JP = ['これをしたあなたのせいだ', '彼女はまだ生きている', '赤い部屋へようこそ'];
+const JP_FLASHES = 16;                                           // how many lines can be flashing on screen at once
+// a repeatable 0..1 number from a few integers (so the flashes don't touch the game's random numbers)
+const hash = (a, b, c = 0) => { let x = (a * 374761393 + b * 668265263 + c * 2147483647) | 0; x = Math.imul(x ^ (x >>> 13), 1274126177); return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
+
 export const VPAL = {
   desk: 0x108484, deskDark: 0x0a6a6a, deskLight: 0x2aa0a0,                  // the teal wallpaper
   win: 0xc0c0c0, winLight: 0xffffff, winShade: 0x808080, winDark: 0x2a2a2a,  // grey bevelled windows
@@ -109,6 +116,11 @@ export class InfectedStage {
     far.fillStyle(P.outline, 1); far.fillRect(352, 240, 10, 34); far.fillStyle(0xffffff, 1); far.fillRect(354, 240, 6, 32);
     bgLayer.push(g, far, ...this.iconLabels);
     this.bgFx = s.add.graphics().setScrollFactor(0); bgLayer.push(this.bgFx);   // the red room flood, a wandering cursor, flashes
+    // THE RED ROOM: "welcome to the red room" pasted over and over across the whole wall
+    const row = (JP[2] + '　').repeat(6);
+    this.jpWall = s.add.text(-40, -20, Array.from({ length: 18 }, (_, i) => (i % 2 ? '　　　' : '') + row).join('\n'), { fontFamily: JP_FONT, fontSize: '16px', color: '#1a0000', lineSpacing: 6 })
+      .setScrollFactor(0).setVisible(false);
+    bgLayer.push(this.jpWall);
 
     worldLayer.push(this.drawMonitor(s));
     this.platG = s.add.graphics(); this.hzG = s.add.graphics(); this.fxG = s.add.graphics();
@@ -123,6 +135,10 @@ export class InfectedStage {
     s.addUI(this.redText);
     this.yesNo = [[282, 'YES'], [358, 'NO']].map(([x, label]) => s.add.text(x, 186, label, { fontFamily: FONT, fontSize: '8px', color: '#000000' }).setOrigin(0.5).setScrollFactor(0).setDepth(-1).setVisible(false));
     s.addUI(...this.yesNo);
+    // and its phrases flashing all over the screen (under the HUD)
+    this.jpFlash = Array.from({ length: JP_FLASHES }, () => s.add.text(0, 0, '', { fontFamily: JP_FONT, fontSize: '20px', color: '#ff2a2a', stroke: '#000000', strokeThickness: 3 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(-1).setVisible(false));
+    s.addUI(...this.jpFlash);
     this.cycle.makeBanner(s);
   }
   drawIcon(g, x, y, kind) {
@@ -186,6 +202,7 @@ export class InfectedStage {
     this.t++;
     this.hzG.clear(); this.fxG.clear(); this.bgFx.clear(); this.overG.clear();
     this.idiotText.setVisible(false); this.mailText.setVisible(false); this.redText.setVisible(false); this.yesNo.forEach((b) => b.setVisible(false));
+    this.jpWall.setVisible(false); this.jpFlash.forEach((x) => x.setVisible(false));
     this.drawAmbience();
     const out = this.cycle.run(match, []);
     this.stepHearts();
@@ -205,13 +222,18 @@ export class InfectedStage {
   start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = 620; h.n = 0; h.spawned = 0; }
   // its song (Mason's sfx_idiot): starts when the pop-ups do, fades out as they close
   idiotSong(match, h) {
-    const sm = this.scene.sound, vol = 0.6 * match.sfxVol();
+    const sm = this.scene.sound, vol = Math.min(1, 1.0 * match.sfxVol() * 1.25);
     if (h.t === 70 && vol > 0 && this.scene.cache.audio.exists('sfx_idiot')) {
       this.song = sm.add('sfx_idiot', { volume: vol }); this.song.play();
       if (!this.songHook) { this.songHook = true; this.scene.events.once('shutdown', () => this.stopSong()); }   // leaving the match mid-song
     }
     if (this.song && h.t > h.end - 30) this.song.setVolume(vol * Math.max(0, (h.end - h.t) / 30));
     if (h.t >= h.end) this.stopSong();
+  }
+  // a recorded sound effect (BootScene loads it), at the player's effects volume
+  playClip(match, key, volume) {
+    const v = Math.min(1, volume * match.sfxVol() * 1.25);
+    if (v > 0 && this.scene.cache.audio.exists(key)) this.scene.sound.play(key, { volume: v });
   }
   stopSong() { if (this.song) { this.song.stop(); this.song.destroy(); this.song = null; } }
   openWindow(h, x, y) {
@@ -223,8 +245,8 @@ export class InfectedStage {
   step_idiot(match, h, out) {
     const W = 56, H = 44, inv = (h.t >> 3) % 2, closing = h.t > h.end - 30;
     this.idiotSong(match, h);
-    if (h.t === 70) { this.openWindow(h, -120, -180); this.openWindow(h, 120, -150); sfx('popup', 0.5); }
-    if (h.t > 70 && h.t < h.end - 80 && h.t % 70 === 0 && h.wins.length < 6) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('popup', 0.4, 1.1); }
+    if (h.t === 70) { this.openWindow(h, -120, -180); this.openWindow(h, 120, -150); sfx('popup', 1); }
+    if (h.t > 70 && h.t < h.end - 80 && h.t % 70 === 0 && h.wins.length < 6) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('popup', 0.9, 1.1); }
     for (const w of h.wins) {
       w.open = Math.min(1, w.open + 0.15);
       w.x += w.vx; w.y += w.vy;
@@ -255,7 +277,7 @@ export class InfectedStage {
       w.seen.add(hb.id);
       h.wins.splice(h.wins.indexOf(w), 1);
       match.puff(w.x, w.y, 0xffffff, 8); match.puff(w.x, w.y, 0x000000, 6);
-      sfx('popup', 0.6);
+      sfx('popup', 1);
       if (h.wins.length < 6) { this.openWindow(h, w.x - 20, w.y); this.openWindow(h, w.x + 20, w.y); }
     }
   }
@@ -272,12 +294,13 @@ export class InfectedStage {
     if (h.t < 70) {                                              // the new-mail alert, bouncing above the stage
       this.mailText.setText('1 NEW MESSAGE\nSUBJECT: ILOVEYOU').setPosition(0, -182 - Math.abs(Math.sin(h.t * 0.15)) * 4).setVisible((h.t >> 3) % 4 !== 0);
       drawEnvelope(g, 0, -208 - Math.abs(Math.sin(h.t * 0.15)) * 4);
-      if (h.t === 10 || h.t === 40) sfx('mail', 0.7);
+      if (h.t === 10) sfx('mail', 0.7);
     }
     if (h.t === h.wave2 - 30 && !h.sent) {                       // it found your address book
-      h.sent = true; sfx('mail', 0.8, 1.2);
+      h.sent = true; sfx('mail', 0.6, 1.2);
       for (const f of match.fighters) if (f.alive && f.state !== 'respawn') h.letters.push({ x: f.x, at: h.wave2 + h.letters.length % 3 * 6, follow: f });
     }
+    if (h.t === h.letters[0].at || h.t === h.wave2) this.playClip(match, 'sfx_mail_voice', 1);   // "You've got mail!" as they fall from the sky
     let live = false;
     for (const L of h.letters) {
       if (L.done) continue; live = true;
@@ -325,6 +348,20 @@ export class InfectedStage {
     h.cx = h.target ? h.target.x : 0; h.cy = h.target ? h.target.y - 26 : -26;
     h.lockAt = 280; h.slamAt = 316; h.end = 380;
   }
+  // the Japanese: the welcome pasted over the wall, scrolling up; the three phrases flashing everywhere, faster and
+  // more of them as the slam comes
+  redRoomText(h, t, red) {
+    this.jpWall.setVisible(true).setAlpha(0.75 * red).setY(-20 - ((this.t * 0.4) % 44));
+    const step = t > h.lockAt ? 3 : 6, slot = Math.floor(t / step), n = Math.round(JP_FLASHES * (t < 140 ? 0.3 : t < h.lockAt ? 0.6 : 1));
+    for (let i = 0; i < n; i++) {
+      const r = (k) => hash(h.id, slot, i * 7 + k);
+      if (r(0) < 0.3) continue;                                     // flicker
+      const big = r(1) < 0.2, col = ['#ff2a2a', '#ffffff', '#000000', '#ff8a8a'][Math.floor(r(2) * 4)];
+      this.jpFlash[i].setText(JP[Math.floor(r(3) * JP.length)]).setPosition(40 + r(4) * 560, 20 + r(5) * 300)
+        .setFontSize(big ? 34 : 12 + Math.floor(r(6) * 14)).setColor(col).setStroke(col === '#000000' ? '#ff2a2a' : '#000000', 3)
+        .setAngle((r(7) - 0.5) * 16).setAlpha(red * (0.6 + 0.4 * r(8))).setVisible(true);
+    }
+  }
   step_redroom(match, h, out) {
     const P = VPAL, g = this.hzG, o = this.overG, t = h.t;
     // the pop-up: open, closed, open, closed... and open again
@@ -344,6 +381,7 @@ export class InfectedStage {
       const b = this.bgFx; b.fillStyle(P.red, 0.85 * red); b.fillRect(0, 0, 640, 360);
       for (let i = 0; i < 6; i++) { b.fillStyle(P.redDark, 0.5 * red); b.fillRect(0, ((i * 67 + this.t * 0.6) % 380) - 20, 640, 10); }
       o.fillStyle(P.red, 0.18 * red); o.fillRect(0, 0, 640, 360);
+      this.redRoomText(h, t, red);
       if (t > 120 && t < h.lockAt && (t >> 4) % 2) { this.redText.setText('DO YOU LIKE THE RED ROOM?').setColor('#ff2a2a').setPosition(320, 40).setVisible(true); }
     }
     // the crosshair: follows its target, then locks

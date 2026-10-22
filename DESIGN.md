@@ -94,7 +94,7 @@ Arcade's hazards use their own timers in the same spirit. Hazards can be turned 
 | Neon Arcade | giant arcade control panel | pixel wave, spin dash, block drop, invader raid |
 | Elderwood Hollow | mossy root at a world tree; day turns to night | bramble snare; spirit stag charge |
 | The Backrooms | a floor adrift in the Backrooms; every minute everyone NOCLIPs to the next of 4 levels (new background + floating platforms) | one per level: lights out (a Smiler lunges in the dark); falling crates; steam vents; the surge (a wave across the floor) |
-| INFECTED.EXE | the taskbar of a giant old CRT, 3 window title bars above (the top one a red error dialog) | YOU ARE AN IDIOT (laughing pop-ups bounce around to its song, `sfx_idiot`; hitting one closes it and opens two); ILOVEYOU (love letters rain and burst into hearts, then a second wave drops on each fighter); THE RED ROOM (the screen goes red, a crosshair follows one fighter, locks, and a red window slams down for 15%) |
+| INFECTED.EXE | the taskbar of a giant old CRT, 3 window title bars above (the top one a red error dialog) | YOU ARE AN IDIOT (laughing pop-ups bounce around to its song, `sfx_idiot`; hitting one closes it and opens two); ILOVEYOU ("You've got mail!" - love letters rain and burst into hearts, then a second wave drops on each fighter); THE RED ROOM (the screen goes red under flashing Japanese - "welcome to the red room", "she's still alive", "it's your fault for doing this" - a crosshair follows one fighter, locks, and a red window slams down for 15%) |
 
 The stage grid has 8 slots (last = Random) and all 7 stages fill it: an 8th stage needs `STAGE_SLOTS` raised in `stages.js`.
 
