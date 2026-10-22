@@ -7,7 +7,8 @@
 //                     mails itself to everyone: a second wave falls right on top of each fighter.
 //   THE RED ROOM      "Do you like the red room?" won't stay closed. The screen goes red, a crosshair picks
 //                     someone and follows them... then locks on, and a red window slams down on that spot.
-// All art is drawn in code; music: 'bgm_infected' (tools/audio/infected_music.py).
+// All art is drawn in code. Music: 'bgm_infected' and YOU ARE AN IDIOT's song 'sfx_idiot' are Mason's tracks
+// (public/assets/audio/music/infected.*, sfx/idiot.*); the music is levelled well below the others to sit in the background.
 import { sfx } from '../audio/sfx.js';
 import { HazardCycle } from './hazardCycle.js';
 import { FONT } from '../config.js';
@@ -201,7 +202,18 @@ export class InfectedStage {
 
   // ---------------------------------------------------------------- hazards
   // YOU ARE AN IDIOT: laughing pop-ups bounce around the screen. Hit one to close it - two more open.
-  start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = 500; h.n = 0; h.spawned = 0; }
+  start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = 620; h.n = 0; h.spawned = 0; }
+  // its song (Mason's sfx_idiot): starts when the pop-ups do, fades out as they close
+  idiotSong(match, h) {
+    const sm = this.scene.sound, vol = 0.6 * match.sfxVol();
+    if (h.t === 70 && vol > 0 && this.scene.cache.audio.exists('sfx_idiot')) {
+      this.song = sm.add('sfx_idiot', { volume: vol }); this.song.play();
+      if (!this.songHook) { this.songHook = true; this.scene.events.once('shutdown', () => this.stopSong()); }   // leaving the match mid-song
+    }
+    if (this.song && h.t > h.end - 30) this.song.setVolume(vol * Math.max(0, (h.end - h.t) / 30));
+    if (h.t >= h.end) this.stopSong();
+  }
+  stopSong() { if (this.song) { this.song.stop(); this.song.destroy(); this.song = null; } }
   openWindow(h, x, y) {
     if (h.spawned >= 10) return;
     const a = Math.random() * Math.PI * 2, sp = 1.8 + Math.random() * 0.9;
@@ -210,9 +222,9 @@ export class InfectedStage {
   }
   step_idiot(match, h, out) {
     const W = 56, H = 44, inv = (h.t >> 3) % 2, closing = h.t > h.end - 30;
-    if (h.t === 70) { this.openWindow(h, -120, -180); this.openWindow(h, 120, -150); sfx('laugh', 0.8); }
-    if (h.t > 70 && h.t < h.end - 80 && h.t % 70 === 0 && h.wins.length < 6) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('laugh', 0.6, 1.1); }
-    if (h.t > 70 && h.t % 55 === 0 && h.wins.length) sfx('laugh', 0.35, 0.9 + Math.random() * 0.3);
+    this.idiotSong(match, h);
+    if (h.t === 70) { this.openWindow(h, -120, -180); this.openWindow(h, 120, -150); sfx('popup', 0.5); }
+    if (h.t > 70 && h.t < h.end - 80 && h.t % 70 === 0 && h.wins.length < 6) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('popup', 0.4, 1.1); }
     for (const w of h.wins) {
       w.open = Math.min(1, w.open + 0.15);
       w.x += w.vx; w.y += w.vy;
@@ -243,7 +255,7 @@ export class InfectedStage {
       w.seen.add(hb.id);
       h.wins.splice(h.wins.indexOf(w), 1);
       match.puff(w.x, w.y, 0xffffff, 8); match.puff(w.x, w.y, 0x000000, 6);
-      sfx('popup', 0.6); sfx('laugh', 0.5, 1.2);
+      sfx('popup', 0.6);
       if (h.wins.length < 6) { this.openWindow(h, w.x - 20, w.y); this.openWindow(h, w.x + 20, w.y); }
     }
   }
