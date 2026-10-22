@@ -66,13 +66,13 @@ function tune(m, change) { m.hits = m.hits.map((h) => ({ ...h, ...change })); re
 export const MR_WAKE = {
   id: 'mr-wake',
   name: 'MR WAKE',
-  sheets: { idle: 'wake_idle', run: 'wake_run', moves: 'wake_moves' },   // run: tools/sprites/mr_wake_run.py
+  sheets: { idle: 'wake_idle', run: 'wake_run', jump: 'wake_jump', fall: 'wake_fall', moves: 'wake_moves' },   // run: tools/sprites/mr_wake_run.py
   // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/mr_wake_moves.py).
   // 176x120 frames so the long staff fits at full swing; his feet stand at (92, 110) in them.
   moveAnims: MW_MOVES, movesOrigin: [92 / 176, 110 / 120],
   runCycle: [0, 8],                // run frames used: all 8, from the first
   // ROSEBUD costume: covered in roses, with a giant tulip for a staff (tools/sprites/mr_wake_roses.py)
-  costumeSheets: { roses: { idle: 'wake_roses_idle', run: 'wake_roses_run', moves: 'wake_roses_moves' } },
+  costumeSheets: { roses: { idle: 'wake_roses_idle', run: 'wake_roses_run', jump: 'wake_roses_jump', fall: 'wake_roses_fall', moves: 'wake_roses_moves' } },
   facesLeft: false,                // he looks right in the sprite (his face and hat brim point right;
                                    // the gem end of the staff trails behind him on the left)
   originX: 36 / 64,                // body centre column

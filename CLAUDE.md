@@ -45,7 +45,8 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Lore text | `src/data/lore.js` | |
 
 ## Fighters (current)
-- **Soul Summoner** (`soul-summoner`, keys `ss_*`): fireball (charge), Soul Hex side-B (possess), summon souls down-B, Soulfire Jet up-B, Soulfire Beam limit. 64×64 base frames, 96×96 moves.
+- **Soul Summoner** (`soul-summoner`, keys `ss_*`): fireball (charge), Soul Hex side-B (possess), summon souls down-B, Soulfire Jet up-B, Soulfire Beam limit. 64×64 base frames, 112×104 moves.
+- **Soul Summoner and Mr Wake animations** are built from Mason's idle drawings cut into real limbs (`tools/sprites/ss_rig.py`, `mw_rig.py`, shared helpers `biped.py`: hidden-pixel fills, joint caps, leg IK, poses by limb direction). Moves, jump and fall come from `soul_summoner_moves.py` / `mr_wake_moves.py`; their idle and run sheets are Mason's hand-made ones.
 - **Mr Wake** (`mr-wake`, keys `wake_*`): 176×120 move frames. Rosebud costume.
 - **Lacy / Hero Knight** (`hero-knight`, keys `hk_*`): 150×90 frames, 180×140 moves. Battle-Worn damage stages (worn1–3), Samurai + Akatsuki costumes. Unarmed `_u` sheets.
 - **Test fighters** (`TEST_ROSTER` in `roster.js`, played from Trinkets > TEST FIGHTERS, never on the select grid):

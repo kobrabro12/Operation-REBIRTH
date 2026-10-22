@@ -12,8 +12,8 @@ export const SOUL_SUMMONER = {
   // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
   sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall', moves: 'ss_moves' },
   // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/soul_summoner_moves.py).
-  // Bigger 96x96 frames so swings can reach outside the body; his feet stand at (48, 91) in them.
-  moveAnims: SS_MOVES, movesOrigin: [48 / 96, 91 / 96],
+  // Bigger 112x104 frames so swings and steps can reach outside the body; his feet stand at (56, 94) in them.
+  moveAnims: SS_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,          // feet sit on row 58 of the 64x64 frame
   handOffset: { x: 16, y: -39 },
   portrait: [12, 4, 40, 36],      // crop of the idle frame for the select grid

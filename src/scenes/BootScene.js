@@ -8,14 +8,15 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('wake_idle', 'assets/fighters/mr-wake/idle_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('wake_run', 'assets/fighters/mr-wake/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('wake_moves', 'assets/fighters/mr-wake/moves_sheet.png', { frameWidth: 176, frameHeight: 120 });   // tools/sprites/mr_wake_moves.py
+    for (const [k, dir] of [['wake', ''], ['wake_roses', 'roses/']]) for (const s of ['jump', 'fall']) this.load.spritesheet(k + '_' + s, 'assets/fighters/mr-wake/' + dir + s + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // tools/sprites/mr_wake_moves.py
     this.load.spritesheet('wake_roses_moves', 'assets/fighters/mr-wake/roses/moves_sheet.png', { frameWidth: 176, frameHeight: 120 });
     this.load.spritesheet('wake_roses_run', 'assets/fighters/mr-wake/roses/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('wake_roses_idle', 'assets/fighters/mr-wake/roses/idle_sheet.png', { frameWidth: 64, frameHeight: 64 });   // Rosebud costume
     this.load.spritesheet('soul_minion_1bit', 'assets/fighters/soul-summoner/onebit_minion_sheet.png', { frameWidth: 60, frameHeight: 68 });
     this.load.spritesheet('soul_minion', 'assets/fighters/soul-summoner/soul_minion_sheet.png', { frameWidth: 60, frameHeight: 68 });
-    this.load.spritesheet('ss_jump', 'assets/fighters/soul-summoner/jump_sheet.png', { frameWidth: 64, frameHeight: 64 });   // tools/sprites/soul_summoner_air.py
+    this.load.spritesheet('ss_jump', 'assets/fighters/soul-summoner/jump_sheet.png', { frameWidth: 64, frameHeight: 64 });   // tools/sprites/soul_summoner_moves.py
     this.load.spritesheet('ss_fall', 'assets/fighters/soul-summoner/fall_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('ss_moves', 'assets/fighters/soul-summoner/moves_sheet.png', { frameWidth: 96, frameHeight: 96 });   // tools/sprites/soul_summoner_moves.py
+    this.load.spritesheet('ss_moves', 'assets/fighters/soul-summoner/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });   // tools/sprites/soul_summoner_moves.py
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + k, 'assets/fighters/nu/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // NU (test fighter): tools/sprites/nu_moves.py
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_' + k, 'assets/fighters/aero/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // AERO (test fighter): tools/sprites/aero_moves.py
     this.load.spritesheet('aero_moves', 'assets/fighters/aero/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
