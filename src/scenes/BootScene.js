@@ -29,6 +29,12 @@ export class BootScene extends Phaser.Scene {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + s + '_' + k, 'assets/fighters/what-once-was/' + dir + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('wow_' + s + '_moves', 'assets/fighters/what-once-was/' + dir + '/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     }
+    for (const [s, dir] of [['suit', 'body-suit'], ['swat', 'body-swat'], ['doctor', 'body-doctor']]) {   // the bodies OUT OF BODY grows
+      for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + s + '_' + k, 'assets/fighters/what-once-was/' + dir + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('wow_' + s + '_moves', 'assets/fighters/what-once-was/' + dir + '/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    }
+    for (const [s, dir] of [['menu', ''], ['aero_menu', 'frutiger/'], ['hack_menu', 'root-access/'], ['ronin_menu', 'ronin/']]) this.load.spritesheet('wow_' + s, 'assets/fighters/what-once-was/' + dir + 'menu_idle_sheet.png', { frameWidth: 64, frameHeight: 64 });   // with the head, for menus
+    this.load.spritesheet('wow_heads', 'assets/fighters/what-once-was/heads.png', { frameWidth: 32, frameHeight: 32 });   // its TV heads: a row per costume, a column per screen picture
     this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {

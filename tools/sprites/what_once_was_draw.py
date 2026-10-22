@@ -21,6 +21,10 @@ Costumes with their own drawing - same parts and joints, so every animation fits
            green phosphor screen, an LED antenna, a glowing green cable
   ronin    RONIN: red lacquered armour with gold lacing over indigo hakama, a lacquered TV under a
            kabuto neck guard with a gold crescent crest, a braided red cord
+The BODIES its TV can land on after its up special (OUT OF BODY) - human bodies, same joints:
+  suit     a man in a black suit, white shirt and red tie
+  swat     a SWAT officer: navy tactical gear, a vest with pouches, knee pads, gloves and boots
+  doctor   a doctor: white lab coat over blue scrubs, a stethoscope, a pen in the pocket
 
 Every part is drawn on its own 64x64 layer (facing right, feet on row 58): flat colour, cel shade (lit
 from the upper left), dark outline. draw_parts() returns {name: RGBA array}.
@@ -63,6 +67,15 @@ STYLE_PALS = {
 }
 STYLE_STATIC = {'aero': (0xffffff, 0x9ff0ff, 0x3fc8ea, 0x1a8ab8), 'hack': (0xb8ffc8, 0x3ae060, 0x157a2e, 0x041808), 'ronin': (0xf4ecd8, 0xb0a490, 0x5a5248, 0x1a1614)}
 GOLD = (0xffe08a, 0xd9a32e, 0x8a5e10)
+HUMAN = ('suit', 'swat', 'doctor')                 # bodies (no wallpaper skin, no tear)
+STYLE_PALS.update({
+    'suit': {'skin': (0x3a3a44, 0x24242c, 0x101014), 'stripe': (0x3a3a44, 0x24242c, 0x101014), 'flesh': (0x2a2420, 0x16120e, 0x080604),
+             'limb': (0x44444e, 0x2c2c34, 0x14141a), 'far': (0x2a2a32, 0x1c1c22, 0x0c0c10)},
+    'swat': {'skin': (0x3a4458, 0x262e40, 0x121624), 'stripe': (0x3a4458, 0x262e40, 0x121624), 'flesh': (0x2e2e30, 0x1a1a1c, 0x0a0a0c),
+             'limb': (0x4a4e58, 0x30343c, 0x181a20), 'far': (0x2c3038, 0x1e2228, 0x0e1014)},
+    'doctor': {'skin': (0xffffff, 0xe8eef2, 0xa8b4bc), 'stripe': (0xffffff, 0xe8eef2, 0xa8b4bc), 'flesh': (0xf0f4f6, 0xc8d0d6, 0x7a848c),
+               'limb': (0x9ad8e8, 0x6ab8d0, 0x3a7a94), 'far': (0x6aa8bc, 0x4a8aa0, 0x2a5a6e)},
+})
 
 def set_style(style):
     """Switch every palette to a costume's look (draw_parts() then draws that costume)."""
@@ -166,12 +179,13 @@ def draw_parts():
     im = blank(); d = ImageDraw.Draw(im)
     d.polygon([(23, 24), (26, 19), (31, 18), (36, 20), (41, 23), (42, 29), (40, 36), (37, 42), (27, 42), (25, 35), (23, 29)], fill=hx(S[1]))   # hunched, a hump on its back
     a = finish(im, S)
-    wallpaper(a, 24, 43)
-    for (x, y) in [(28, 33), (29, 33), (29, 34), (30, 34), (30, 35), (31, 34)]: a[y, x] = hx(PAL['flesh'][2])   # the tear
-    put(a, [(28, 32), (31, 33), (32, 35), (27, 34), (28, 35)], PAL['flesh'][1])
-    put(a, [(27, 31), (32, 32)], S[0])                                      # peeled-back paper edges
-    for (x, y) in [(36, 26), (37, 26), (37, 27), (38, 38), (39, 38), (26, 26)]: put(a, [(x, y)], PAL['stripe'][2])   # stains
-    for (x, y) in [(25, 22), (24, 25), (24, 28), (24, 31), (25, 34), (26, 37)]: put(a, [(x, y), (x + 1, y)], PAL['stripe'][2])   # the spine, bumping under the paper
+    if STYLE not in HUMAN: wallpaper(a, 24, 43)
+    for (x, y) in ([] if STYLE in HUMAN else [(28, 33), (29, 33), (29, 34), (30, 34), (30, 35), (31, 34)]): a[y, x] = hx(PAL['flesh'][2])   # the tear
+    if STYLE not in HUMAN:
+        put(a, [(28, 32), (31, 33), (32, 35), (27, 34), (28, 35)], PAL['flesh'][1])
+        put(a, [(27, 31), (32, 32)], S[0])                                  # peeled-back paper edges
+        for (x, y) in [(36, 26), (37, 26), (37, 27), (38, 38), (39, 38), (26, 26)]: put(a, [(x, y)], PAL['stripe'][2])   # stains
+        for (x, y) in [(25, 22), (24, 25), (24, 28), (24, 31), (25, 34), (26, 37)]: put(a, [(x, y), (x + 1, y)], PAL['stripe'][2])   # the spine, bumping under the paper
     P['torso'] = a
     # ---------------- head: a CRT TV on a stretched neck, antennae on top
     im = blank(); d = ImageDraw.Draw(im)
@@ -251,6 +265,7 @@ def draw_parts():
     put(a, [(48, 51), (52, 52), (56, 48), (48, 50), (52, 51), (55, 48)], 0xe8e2cc)   # long pale claw tips
     P['ffist'] = a
     decorate(P)
+    if STYLE in HUMAN: decorate_human(P)
     return P
 
 def shine(a, pts, col=0xffffff):
@@ -328,6 +343,51 @@ def decorate(P):
             if np.all(ff[ys[i], xs[i]] == np.array(hx(0xe8e2cc))): ff[ys[i], xs[i]] = hx(GOLD[0])   # gilded claw tips
         cd = P['cord']; ys, xs = np.where(cd[..., 3] > 0)
         for i in range(0, len(xs), 4): shine(cd, [(int(xs[i]), int(ys[i]))], GOLD[1])  # braided with gold
+
+def decorate_human(P):
+    """The details that make each body someone: a suit and tie, SWAT gear, a doctor's coat."""
+    t = P['torso']
+    hand = 0xd8a882                                                                      # bare hands (the claws become fingers)
+    if STYLE == 'suit':
+        for y in range(20, 30):                                                          # the shirt: a white V under the lapels
+            for x in range(33 - (29 - y) // 3, 35 + (29 - y) // 3): shine(t, [(x, y)], 0xf4f4f0)
+        for y in range(21, 33): shine(t, [(34, y)], 0xc8281e)                            # the red tie
+        shine(t, [(34, 21), (33, 32), (35, 32)], 0x8a1a12)
+        for y in range(20, 30): shine(t, [(32 - (29 - y) // 3, y), (36 + (29 - y) // 3, y)], 0x44444e)   # lapels
+        for y in (34, 38): shine(t, [(35, y)], 0x101014)                                 # buttons
+        shine(t, [(27, 26), (28, 26), (29, 25)], 0xf4f4f0)                               # pocket square
+    elif STYLE == 'swat':
+        FONT = {'S': ['111', '100', '111', '001', '111'], 'W': ['101', '101', '101', '111', '101'], 'A': ['010', '101', '111', '101', '101'], 'T': ['111', '010', '010', '010', '010']}
+        for i, ch in enumerate('SWAT'):                                                  # SWAT across the vest
+            for r, row in enumerate(FONT[ch]):
+                for c, bit in enumerate(row):
+                    if bit == '1': shine(t, [(23 + i * 4 + c, 27 + r)], 0xffffff)
+        for x in range(26, 41): shine(t, [(x, 25), (x, 33)], 0x121624)                   # vest panel edges
+        for (x, y) in [(28, 35), (29, 35), (33, 35), (34, 35), (37, 35)]: shine(t, [(x, y)], 0x3a4458)   # pouches
+        for x in range(25, 42): shine(t, [(x, 38)], 0x0a0a0c)                            # duty belt
+        shine(t, [(39, 38), (40, 38)], 0x9a9a92)
+        for n in ('fthigh', 'bthigh'):                                                   # knee pads
+            a = P[n]; ys, xs = np.where(a[..., 3] > 0)
+            if len(xs):
+                y = int(ys.max()) - 2
+                for x in range(int(xs.min()) + 1, int(xs.max())): shine(a, [(x, y), (x, y - 1)], 0x1a1a1c)
+    elif STYLE == 'doctor':
+        for y in range(21, 41): shine(t, [(37, y)], 0xa8b4bc)                            # the coat's front edge
+        for y in range(21, 27): shine(t, [(38 + (y - 21) // 2, y)], 0xc8d0d6)            # lapel
+        for (x, y) in [(33, 20), (32, 22), (32, 25), (33, 28), (35, 30), (37, 29), (38, 27)]: shine(t, [(x, y)], 0x2a2a2a)   # stethoscope
+        shine(t, [(36, 31), (37, 31), (36, 32), (37, 32)], 0x9a9a92)
+        shine(t, [(40, 27), (40, 28), (40, 29)], 0x2a5ac8)                               # a pen in the pocket
+        for x in range(38, 42): shine(t, [(x, 30)], 0xa8b4bc)
+        for (x, y) in [(28, 24), (27, 25), (28, 25), (29, 25), (28, 26)]: shine(t, [(x, y)], 0xd02a2a)   # a red cross badge
+    for n in ('ffist', 'bfore'):                                                         # claws become fingers (in gloves for SWAT)
+        a = P[n]; ys, xs = np.where(a[..., 3] > 0)
+        for i in range(len(xs)):
+            c = a[ys[i], xs[i]]
+            if np.all(c == np.array(hx(0xe8e2cc))) or np.all(c == np.array(hx(PAL['flesh'][1]))) or np.all(c == np.array(hx(PAL['flesh'][0]))):
+                a[ys[i], xs[i]] = hx(0x1a1a1c if STYLE == 'swat' else hand)
+    for n in ('bshoe', 'fshoe'):                                                         # shoes / boots with a shine
+        a = P[n]; ys, xs = np.where((a[..., 3] > 0) & ~np.all(a == np.array(hx(OUT)), -1))
+        if len(xs): shine(a, [(int(xs.min()) + 2, int(ys.min()))], 0xffffff if STYLE != 'doctor' else 0x9ab0ba)
 
 # ---------------------------------------------------------------- the animated MODE screens (drawn by the game)
 MODE_W, MODE_H = 11, 9

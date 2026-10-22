@@ -1,11 +1,12 @@
 // Fighter methods: WHAT ONCE WAS (test fighter) - its SIGNAL meter and CHANNEL menu, CHANNEL SURF, MISSING
-// posters, the WRONG DOOR, the OUT OF ORDER elevator, its screen beams, and its Limit, LEVEL 0 (the Backrooms
+// posters, the WRONG DOOR, OUT OF BODY (its TV head and the bodies it grows), its screen beams, and its Limit, LEVEL 0 (the Backrooms
 // chase). Mixed into the Fighter class (Fighter.js) - `this` is the fighter. A few methods (markMissing,
 // drawMissingMark) are used on whoever it hits, so they work on any fighter.
 import { sfx } from '../audio/sfx.js';
 import { PHYS } from '../config.js';
 import { drawDoor, drawPoster } from './entities.js';
-import { WOW_SCREENS } from './wowScreens.js';
+import { WOW_SCREENS, WOW_HEAD } from './wowScreens.js';
+import { skinSheets, skinTexture, skinInfo } from './skins.js';
 import { newAttackId } from './attackIds.js';
 
 // LEVEL 0's hallway, in each costume's version of the Backrooms
@@ -18,7 +19,7 @@ const HALLS = {
   // RONIN: shoji walls, tatami floor, paper lanterns - and an ink-black oni
   wowRonin: { wall: 0xf0e4c8, stripe: 0x3a2a1a, ceil: 0x4a3426, tile: 0x2a1c12, carpet: 0xb8a468, carpetDark: 0x6a5a30, skirt: 0x3a2a1a, lit: 0xff8a5a, dead: 0x5a3a2a, thing: [0x0a0606, 0x1e1010, 0x5a1010], eyes: 0xff3a2a, mouth: 0x8a0a0a, teeth: 0xf0e8d8 },
 };
-// the costume's effect colours: beams, the elevator, static
+// the costume's effect colours: beams, static
 const FXS = {
   default: { beam: [0xfff6b0, 0xffffff, 0xffffff], beamRed: [0xa8140e, 0xff4a3a, 0xffd0c0], car: [0x2e2a22, 0x3e382c, 0x7a7468, 0x4a463c], cable: 0x16120a },
   wowAero: { beam: [0x3fc8ea, 0xc8f8ff, 0xffffff], beamRed: [0xc0408a, 0xff7ac0, 0xffe0f0], car: [0x9adcf0, 0xc8f0fa, 0xffffff, 0x3fb8d8], cable: 0x6fd03a },
@@ -56,22 +57,118 @@ export class FighterWhatOnceWas {
 
   // ---- the MODE screen: an animated picture (mode_screens.png) placed exactly over its TV's screen in
   // every frame (wowScreens.js says where), so SEE's eye can look about and SMILE's grin can glitch
-  drawModeScreen(spr) {
-    if (!this.scrImg) { this.scrImg = this.scene.add.image(0, 0, 'wow_modescr', 0).setOrigin(0.5); this.match.addWorld(this.scrImg); }
-    const img = this.scrImg, mode = this.wowMode, S = this.sheets, key = spr.texture.key;
+  // Its body sheets have no head: the TV is drawn here, wherever wowScreens.js says the head is in the sprite's
+  // current frame (any body wears any costume's TV), with its MODE face over the screen once it has one.
+  headXform(spr) {
+    const S = this.sheets, key = spr.texture.key;
     const kind = key === S.moves ? 'moves' : key === S.idle ? 'idle' : key === S.run ? 'run' : key === S.jump ? 'jump' : key === S.fall ? 'fall' : null;
-    const tr = kind && WOW_SCREENS[kind][+spr.frame.name];
-    if (!mode || !tr || !spr.visible || spr.alpha < 0.05 || this.flash > 0 || this.silhouette > 0) { img.setVisible(false); return; }
+    const tr = (kind && WOW_SCREENS[kind][+spr.frame.name]) || WOW_SCREENS.idle[0];
     const big = kind === 'moves', ox = big ? 56 : 32, oy = big ? 95 : 59, flip = spr.flipX ? -1 : 1;
     const dx = (tr[0] / 10 - ox) * flip * spr.scaleX, dy = (tr[1] / 10 - oy) * spr.scaleY, r = spr.rotation, c = Math.cos(r), sn = Math.sin(r);
+    return { x: spr.x + dx * c - dy * sn, y: spr.y + dx * sn + dy * c, rot: r + flip * tr[2] * Math.PI / 180, flip, sx: tr[3] / 100 * spr.scaleX, sy: tr[4] / 100 * spr.scaleY, scr: tr[5] || 0 };
+  }
+  drawHead(spr) {
+    if (!this.headImg) {
+      const set = skinInfo(this.def.id, this.skin).sheetSet;
+      this.headKey = set ? 'wow_heads' : skinTexture(this.scene, 'wow_heads', this.def.id, this.skin);   // plain costumes recolour the TV like the body
+      this.headImg = this.scene.add.image(0, 0, this.headKey, 0).setOrigin(WOW_HEAD.ox / WOW_HEAD.w, WOW_HEAD.oy / WOW_HEAD.h);
+      if (this.scrImg) this.scrImg.destroy();
+      this.scrImg = this.scene.add.image(0, 0, 'wow_modescr', 0).setOrigin(0.5);
+      this.match.addWorld(this.headImg, this.scrImg);
+    }
+    const head = this.headImg, img = this.scrImg, U = this.def.moves.upb, s = this.state;
+    let X = this.headXform(spr), alpha = spr.alpha;
+    if (this.headless) {                                             // OUT OF BODY: the TV on its own
+      const R = U.regrow, f = this.facing < 0 ? -1 : 1;
+      const loose = { x: this.x, y: this.y - 10, rot: this.grounded ? 0 : this.tvSpin, flip: f, sx: 1, sy: 1, scr: (this.anim >> 3) % 2 ? 1 : 2 };   // flashing WARNING / MISSING
+      if (s === 'regrow' && this.tvAt) {
+        const floor = { ...loose, x: this.tvAt.x, y: this.tvAt.y - 10, rot: 0, scr: 0 };
+        const k = Math.max(0, Math.min(1, (this.t - R.pickAt) / (R.placeAt - R.pickAt))), e = k * k * (3 - 2 * k);
+        X = k <= 0 ? floor : { ...X, x: floor.x + (X.x - floor.x) * e, y: floor.y + (X.y - floor.y) * e - Math.sin(k * Math.PI) * 8, rot: X.rot * e, scr: 0 };
+      } else { X = loose; alpha = this.isIntangible() && (this.anim >> 2) % 2 ? 0.45 : 1; spr.setAlpha(0); }
+    }
+    if (!spr.visible || !this.alive) { head.setVisible(false); img.setVisible(false); return; }
+    const row = this.def.screenRow[this.styleKey] || 0;
+    head.setFrame(row * WOW_HEAD.screens + X.scr).setPosition(X.x, X.y).setRotation(X.rot).setFlipX(X.flip < 0).setScale(X.sx, X.sy)
+      .setAlpha(alpha).setDepth(spr.depth).setTint(spr.tintTopLeft).setTintMode(spr.tintMode).setVisible(alpha > 0.02);
+    const mode = this.wowMode;
+    if (!mode || alpha < 0.05 || this.flash > 0 || this.silhouette > 0) { img.setVisible(false); return; }
     const a = this.anim, mi = { see: 0, incoming: 1, smile: 2 }[mode];
     const sub = mode === 'see' ? [0, 0, 1, 0, 2, 0, 0, 3][(a >> 4) % 8] : mode === 'incoming' ? (a >> 2) % 4 : ((a * 7) % 53 < 4 ? 1 + ((a >> 1) % 3) : 0);
-    img.setFrame((this.def.screenRow[this.styleKey] || 0) * 12 + mi * 4 + sub)
-      .setPosition(spr.x + dx * c - dy * sn, spr.y + dx * sn + dy * c)
-      .setRotation(r + flip * tr[2] * Math.PI / 180).setFlipX(flip < 0)
-      .setScale(tr[3] / 100 * spr.scaleX, tr[4] / 100 * spr.scaleY).setAlpha(spr.alpha).setDepth(spr.depth).setVisible(true);
+    img.setFrame(row * 12 + mi * 4 + sub).setPosition(X.x, X.y).setRotation(X.rot).setFlipX(X.flip < 0)
+      .setScale(X.sx, X.sy).setAlpha(alpha).setDepth(spr.depth).setVisible(true);
   }
-  hideModeScreen() { if (this.scrImg) this.scrImg.setVisible(false); }
+  hideModeScreen() { if (this.scrImg) this.scrImg.setVisible(false); if (this.headImg) this.headImg.setVisible(false); }
+
+  // ---- OUT OF BODY (up special): it heaves and its TV launches off its neck - the player flies as the TV,
+  // hitting anyone above. The body it left slumps and sinks into the floor. Wherever the TV lands, a new body
+  // grows up out of the floor (a random one of def.bodies, never the one it just had), picks the TV up and puts
+  // it on. It keeps that body until its next up special (or until it's KO'd).
+  tvUpB(c, u) {
+    if (this.t < u.launchAt) { this.vy = 0; this.vx *= 0.7; return; }
+    if (this.t === u.launchAt) this.launchTv(u);
+    this.vx = c.x * u.drift * this.speedMult;
+    this.tvSpin += 0.32 * this.facing;
+    if (this.t % 3 === 0) this.match.particles.push({ shape: 'pixel2', x: this.x + (Math.random() - 0.5) * 10, y: this.y - 2, vx: (Math.random() - 0.5) * 1.5, vy: 1 + Math.random(), life: 14, color: [this.pal.light, 0xffffff, this.pal.deep][this.t % 3], drag: 0.9, grav: 0 });
+    if (this.t >= u.frames) this.setState('helpless');
+  }
+  launchTv(u) {
+    this.dropBody();
+    this.headless = true; this.bodyOverride = u.tv; this.tvSpin = 0;
+    this.y -= u.neck; this.vy = u.launchV; this.grounded = false; this.platform = null;
+    sfx('djump', 0.7, 0.6); sfx('glitch', 0.45, 0.8);
+    this.match.puff(this.x, this.y + 6, this.fxColor, 8);
+  }
+  // the body it leaves behind plays body_drop on its own, then sinks away (or falls, if it was in the air)
+  dropBody() {
+    const d = this.def, A = d.moveAnims.body_drop;
+    const spr = this.scene.add.sprite(Math.round(this.x), Math.round(this.y), this.sheets.moves, A[0]).setOrigin(d.movesOrigin[0], d.movesOrigin[1])
+      .setFlipX(this.facing < 0).setTint(this.sprite.tintTopLeft).setDepth(this.sprite.depth - 0.1);
+    this.match.addWorld(spr);
+    (this.leftBodies ||= []).push({ spr, born: this.age, y: spr.y, air: !this.grounded });
+  }
+  stepBodies() {
+    if (!this.leftBodies || !this.leftBodies.length) return;
+    const A = this.def.moveAnims.body_drop, end = A[1] * A[2];
+    for (const b of this.leftBodies) {
+      const t = this.age - b.born;                                   // game frames since it was left (so it keeps time with the match)
+      b.spr.setFrame(A[0] + Math.min(A[1] - 1, Math.floor(t / A[2])));
+      if (b.air) { b.spr.y = b.y + Math.min(t * t * PHYS.gravity / 2, t * PHYS.maxFall); b.spr.setAlpha(Math.max(0, 1 - t / 60)); }
+      else if (t > end) {                                            // sinking into the carpet in a fizz of static
+        const k = (t - end) / 40; b.spr.setAlpha(Math.max(0, 1 - k)); b.spr.y = b.y + (t - end) * 0.35;
+        if (t % 3 === 0) this.match.particles.push({ shape: 'pixel2', x: b.spr.x + (Math.random() - 0.5) * 30, y: b.spr.y - Math.random() * 14, vx: 0, vy: -0.6, life: 16, color: Math.random() < 0.5 ? 0xf0f0f0 : 0x4a4a4a, grav: 0 });
+      }
+      if (b.spr.alpha <= 0.01) { b.spr.destroy(); b.dead = true; }
+    }
+    this.leftBodies = this.leftBodies.filter((b) => !b.dead);
+  }
+  clearBodies() { for (const b of this.leftBodies || []) b.spr.destroy(); this.leftBodies = []; }
+  // every frame (Fighter.step): a TV on the ground grows a body
+  bodyTick() {
+    const s = this.state;
+    if (this.regrowing && s !== 'regrow') this.finishRegrow();     // knocked out of it: the TV's on anyway
+    if (this.headless && this.grounded && !['regrow', 'hitstun', 'grabbed', 'seized', 'dying', 'respawn', 'limit', 'upb'].includes(s)) this.startRegrow();
+  }
+  startRegrow() {
+    const pool = this.def.bodies.filter((b) => b !== (this.bodyKind || 'self'));
+    this.setBody(pool[Math.floor(Math.random() * pool.length)]);
+    this.bodyOverride = null; this.regrowing = true; this.vx = 0;
+    this.tvAt = { x: this.x + this.facing * 16, y: this.y };
+    this.setState('regrow');
+    sfx('glitch', 0.4, 0.6); this.match.puff(this.x, this.y, this.fxColor, 6);
+  }
+  st_regrow() {
+    const R = this.def.moves.upb.regrow;
+    this.t += R.speed - 1;                                          // the 64-frame growth plays a little faster
+    if (this.headless && this.t >= R.placeAt) { this.headless = false; sfx('land', 0.5, 0.6); sfx('buzz', 0.3, 1.4); this.match.puff(this.x, this.y - 50, this.fxColor, 5); }
+    if (this.t >= R.frames) { this.regrowing = false; this.setState('idle'); }
+  }
+  finishRegrow() { this.headless = false; this.regrowing = false; this.bodyOverride = null; }
+  // which body it's wearing: 'self' (the costume's own) or one of def.bodySheets
+  setBody(kind) {
+    this.bodyKind = kind;
+    this.sheets = kind === 'self' ? skinSheets(this.scene, this.def, this.skin) : { ...this.def.bodySheets[kind] };
+  }
 
   // ---- the costume's own ambient effects (FRUTIGER / ROOT ACCESS / RONIN)
   drawStyleAura(g) {
@@ -118,22 +215,6 @@ export class FighterWhatOnceWas {
     if (this.t >= W.frames) this.setState(this.grounded ? 'idle' : 'air');
   }
 
-  // ---- ELEVATOR (up special): the car around him, the cable above it
-  drawElevator(g, bg) {
-    const u = this.def.moves.upb, t = this.t, k = Math.min(1, (t - u.riseAt + 4) / 4) * Math.min(1, (u.frames - t) / 6);
-    if (k <= 0) return;
-    const x = Math.round(this.x), y = Math.round(this.y) + 3, w = 40, h = 66, top = y - h;
-    const [cw, cs, cr, cp] = this.fxs().car;
-    bg.fillStyle(cw, 0.95 * k); bg.fillRect(x - w / 2, top, w, h);                              // the back wall, behind it
-    bg.fillStyle(cs, 0.95 * k); for (let i = 1; i < 4; i++) bg.fillRect(x - w / 2 + i * 10, top + 4, 1, h - 8);
-    bg.fillStyle(t >= u.stopAt ? 0xffd860 : 0xff8a3a, k); bg.fillRect(x - 4, top + 6, 8, 4);    // the floor indicator
-    g.fillStyle(0x16120a, k); g.fillRect(x - w / 2 - 2, top - 4, w + 4, 6); g.fillRect(x - w / 2 - 2, y - 2, w + 4, 5);   // roof and floor
-    g.fillStyle(cr, k); g.fillRect(x - w / 2 - 1, top - 3, w + 2, 3); g.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
-    g.fillStyle(cp, k); g.fillRect(x - w / 2 - 2, top, 3, h); g.fillRect(x + w / 2 - 1, top, 3, h);   // side posts
-    g.fillStyle(this.fxs().cable, 0.9 * k); g.fillRect(x - 1, top - 200, 2, 196);             // the cable, up into the dark
-    if (t >= u.stopAt && t < u.stopAt + 8) { g.fillStyle(0xfff6b0, 0.5 * (1 - (t - u.stopAt) / 8)); g.fillRect(x - w / 2, top, w, h); }   // ding!
-  }
-
   // ---- a beam out of its screen (def move.beam): white light (CRT BLAST) or a column of red static (ANTENNA SURGE)
   drawBeam(g, B) {
     const a = B.angle * Math.PI / 180, dx = Math.cos(a) * this.facing, dy = Math.sin(a);
@@ -154,8 +235,7 @@ export class FighterWhatOnceWas {
   drawWhatOnceWas(g, spr) {
     const s = this.state, m = this.move;
     if (s === 'attack' && m && m.beam && this.t >= m.beam.from && this.t <= m.beam.to) this.drawBeam(g, m.beam);
-    this.drawSignal(g, spr); this.drawCord(g); this.drawStyleAura(g); this.drawModeScreen(spr);
-    if (s === 'upb' && this.def.moves.upb.elevator && this.t >= this.def.moves.upb.riseAt - 4) this.drawElevator(g, this.fxBack);
+    this.drawSignal(g, spr); this.drawCord(g); this.drawStyleAura(g); this.stepBodies();
     if (this.noclipping()) {                                          // out of reality: only a glitchy smear where it is
       spr.setAlpha(0);
       for (let i = 0; i < 5; i++) {
@@ -177,6 +257,7 @@ export class FighterWhatOnceWas {
       }
     }
     if (s === 'limit' && this.ult && this.def.limit.type === 'level0') this.drawLevel0(g, this.def.limit, this.ult);
+    this.drawHead(spr);                                               // last: the head follows whatever the sprite ended up as
   }
 
   // ------------------------------------------------------------------ SIGNAL meter and the three MODES

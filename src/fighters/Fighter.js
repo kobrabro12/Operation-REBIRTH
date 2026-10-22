@@ -74,7 +74,7 @@ export class Fighter {
   }
 
   // ------------------------------------------------------------------ helpers
-  get body() { return this.def.body; }
+  get body() { return this.bodyOverride || this.def.body; }   // (WHAT ONCE WAS is only a small TV for a while)
   hurtbox() { const b = this.body; return { x1: this.x - b.w / 2, x2: this.x + b.w / 2, y1: this.y - b.h, y2: this.y }; }
   center() { return { x: this.x, y: this.y - this.body.h / 2 }; }
   setState(s) { this.state = s; this.t = 0; }
@@ -135,6 +135,7 @@ export class Fighter {
     if (this.rage > 0) this.rage--;
     if (this.missingMark > 0) this.missingMark--;   // posted MISSING by WHAT ONCE WAS
     if (this.wowMode) this.modeTick();              // WHAT ONCE WAS: SMILE mode heals
+    if (this.headless || this.regrowing) this.bodyTick();   // WHAT ONCE WAS: a TV on the ground grows a body
     if (this.pcBuff > 0) this.pcBuff--;
     if (this.fullAero > 0 && --this.fullAero === 0) this.exitFullAero();
     if (this.aeroLevel && this.age % (this.fullAero > 0 ? 5 : 9) === 0 && !this.match.demo) {   // powered-up sparkle
@@ -219,6 +220,7 @@ export class Fighter {
 
   // Attacks, specials, grab and Limit, shared by ground and air.
   tryCommon(c, ground) {
+    if (this.headless) return false;                  // WHAT ONCE WAS as a lone TV: it can only steer
     if (this.buffer.limit && this.limit >= LIMIT_MAX) { this.buffer.limit = 0; this.startLimit(); return true; }
     if (this.buffer.special) {
       const M = this.def.moves;
@@ -269,6 +271,7 @@ export class Fighter {
   }
 
   st_air(c) {
+    if (this.headless) return;
     if (this.tryCommon(c, false)) return;
     if (this.buffer.jump && this.jumpsLeft > 0) {
       this.buffer.jump = 0; this.jumpsLeft--; this.fastFalling = false;
@@ -492,6 +495,8 @@ export class Fighter {
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.wowMode || this.signal) { this.clearMode(); this.hideModeScreen(); }   // WHAT ONCE WAS loses its mode: the meter rebuilds from empty
     if (this.seized) this.releaseSeized();
+    if (this.headless || this.regrowing) this.finishRegrow();   // WHAT ONCE WAS comes back with its TV on
+    if (this.leftBodies) this.clearBodies();
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
     this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear(); for (const gh of this.ghosts) gh.setVisible(false);
@@ -517,7 +522,7 @@ export class Fighter {
   }
   st_dying() { if (this.t >= 80) this.match.onKO(this); }
 
-  destroy() { if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
+  destroy() { if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); if (this.headImg) this.headImg.destroy(); if (this.leftBodies) this.clearBodies(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).

@@ -28,7 +28,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Fighter **data** | `src/fighters/soulSummoner.js`, `mrWake.js`, `heroKnight.js` | Stats, hitboxes, specials, limit. Balance changes go here. |
 | Move anim frame tables | `ssMoves.js`, `mwMoves.js`, `hkMoves.js` | **Generated** by `tools/sprites/*_moves.py` — don't hand-edit. |
 | Fighter **core** | `src/fighters/Fighter.js` (~450 lines) | Constructor, `step()`, ground/air states, `tryCommon()` (which input starts which move), attacks, `activeHitboxes()`, `physics()`, collision, KO/respawn. Mixes in the files below. |
-| Fighter topics | `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun), `fighterGrab.js`, `fighterLedge.js`, `fighterLimit.js` (start + beam), `limitUndertow.js` (Mr Wake), `limitBlade.js` (Lacy), `limitMosh.js` (NU), `limitAero.js` (AERO: Screensaver + Full Aero), `fighterWhatOnceWas.js` (WHAT ONCE WAS: SIGNAL meter + 3 MODES and their grabs, Channel Surf, Wrong Door, elevator, screen beams, LEVEL 0 + the Bacteria), `fighterTaunt.js` (taunts, 1 key), `fighterRender.js` (sprites/anim), `fighterCostumeFx.js` (auras, dragon, trails), `fighterSpeech.js` (costume quips) | Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not). |
+| Fighter topics | `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun), `fighterGrab.js`, `fighterLedge.js`, `fighterLimit.js` (start + beam), `limitUndertow.js` (Mr Wake), `limitBlade.js` (Lacy), `limitMosh.js` (NU), `limitAero.js` (AERO: Screensaver + Full Aero), `fighterWhatOnceWas.js` (WHAT ONCE WAS: SIGNAL meter + 3 MODES and their grabs, Channel Surf, Wrong Door, OUT OF BODY + the TV head, screen beams, LEVEL 0 + the Bacteria), `fighterTaunt.js` (taunts, 1 key), `fighterRender.js` (sprites/anim), `fighterCostumeFx.js` (auras, dragon, trails), `fighterSpeech.js` (costume quips) | Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not). |
 | Projectiles/souls/minions | `src/fighters/entities.js` | |
 | Roster / select grid | `src/fighters/roster.js` | Add fighter = import def + entry in `ROSTER`. |
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
@@ -52,12 +52,16 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py`) and **AERO** (`aero`, keys `aero_*`, `aero_draw.py` +
   `aero_moves.py`; his FULL AERO form is `aero_king_*`, `aero_king_draw.py`, def `AERO_FULL`). 64×64 base frames, 112×104 moves.
   **WHAT ONCE WAS** (`what-once-was`, keys `wow_*`, art `tools/sprites/what_once_was_draw.py` + `what_once_was_moves.py`, same rig as NU):
-  a deformed Backrooms entity with a CRT TV head (screen layers `scr_*` picked per pose). MISSING Poster, Channel Surf side-B, Out of
-  Order elevator up-B, Wrong Door down-B, LEVEL 0 limit (the Bacteria chase). Unique mechanic: `def.signal` meter -> when full it
+  a deformed Backrooms entity with a CRT TV head (screen layers `scr_*` picked per pose). MISSING Poster, Channel Surf side-B, OUT OF
+  BODY up-B, Wrong Door down-B, LEVEL 0 limit (the Bacteria chase). Unique mechanic: `def.signal` meter -> when full it
   transforms into a random MODE (`def.modes`: SEE / INCOMING / SMILE) until KO'd; each mode has a passive and swaps side-B for a command
   grab (states `see_side/see_hold`, ...; the victim is in state `seized`). The mode's face is drawn live over the TV: `wowScreens.js`
   (generated) says where the screen is in every frame, `mode_screens.png` holds the animated faces. Costumes FRUTIGER / ROOT ACCESS /
   RONIN have their own drawn sheets (`costumeSheets`, style `wowAero` / `wowHack` / `wowRonin`) and effects (`vfx.wow`, HALLS/FXS).
+  **Its sheets are all drawn WITHOUT the head**: the game draws the TV (`heads.png`, a row per costume) at the spot `wowScreens.js`
+  gives for the current frame (`drawHead`). OUT OF BODY launches the TV (the player flies as it); where it lands a new body grows
+  (`def.bodies`: self / suit / swat / doctor, sheets in `body-*/`, `bodySheets`) and keeps it until the next up-B. Menus use
+  `menuSheets` (drawn with the head).
 - Every fighter has a taunt (`def.taunt`, 1 key / stick click); training hotkeys are 2–7.
 
 ## How to add things

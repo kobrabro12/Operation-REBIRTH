@@ -30,7 +30,7 @@ export const TEST_ROSTER = [
   { id: 'what-once-was', name: 'WHAT ONCE WAS', def: WHAT_ONCE_WAS, tag: 'PROTOTYPE 03',
     notes: 'LOST IN THE BACKROOMS SO LONG IT BECAME PART\nOF THEM. ITS HEAD IS AN OLD TV.\n\n'
       + 'JAB  SCREEN BASH     FTILT  LONG REACH\nFSMASH  CRT BLAST     USMASH  ANTENNA SURGE\nDSMASH  DEAD SIGNAL   DAIR  POWER CORD\n\n'
-      + 'K      MISSING POSTER  SIDE K CHANNEL SURF\nUP K   OUT OF ORDER    DOWN K WRONG DOOR\n\n'
+      + 'K      MISSING POSTER  SIDE K CHANNEL SURF\nUP K   OUT OF BODY     DOWN K WRONG DOOR\n\n'
       + 'FULL SIGNAL METER: IT TRANSFORMS AT RANDOM\nUNTIL KO - SEE (+20% DMG, NECK SNAP GRAB),\nINCOMING (+20% SPEED, TACKLE AND FURY),\nSMILE (HEALS, TELEPORT + CORD SHOCK)\n\n'
       + 'LIMIT  LEVEL 0 - THE BACTERIA HUNTS THEM' },
 ];
@@ -42,6 +42,7 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
   let key = skinTexture(sprite.scene, def.sheets.idle, def.id, skin);
   const set = skinInfo(def.id, skin).sheetSet;
   if (set && def.costumeSheets && def.costumeSheets[set]) key = def.costumeSheets[set].idle;
+  if (def.menuSheets) key = set ? def.menuSheets[set] : skinTexture(sprite.scene, def.menuSheets.default, def.id, skin);   // headless sheets: show the one with the head
   if (skinInfo(def.id, skin).worn && def.wornSheets) key = def.wornSheets[Math.floor(sprite.scene.time.now / 1200) % 4].idle;   // preview every damage stage
   frame %= (def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
   if (sprite.texture.key !== key) sprite.setTexture(key, frame); else sprite.setFrame(frame);

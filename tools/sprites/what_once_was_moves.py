@@ -6,10 +6,12 @@ What keeps it unsettling rather than stiff: it never quite stops twitching (a je
 lurch layered under every pose), its long arm drags and lags behind the body (drag), the power cord
 swings, and its strikes snap out far too fast then hang there.
 
-  idle / run / jump / fall strips (64x64) and moves_sheet.png (112x104, 24 to a row, feet at 56,95) for
-  each costume with its own drawing -> public/assets/fighters/what-once-was/ (and frutiger/, root-access/,
-  ronin/), frame index -> src/fighters/wowMoves.js, where its screen is in every frame ->
-  src/fighters/wowScreens.js, and the animated MODE screens -> what-once-was/mode_screens.png
+  idle / run / jump / fall strips (64x64) and moves_sheet.png (112x104, 24 to a row, feet at 56,95) - all
+  drawn WITHOUT the head - for each body: the costumes' own (what-once-was/, frutiger/, root-access/,
+  ronin/, each also with a menu_idle_sheet.png with the head on) and the bodies OUT OF BODY grows
+  (body-suit/, body-swat/, body-doctor/). The TV heads -> what-once-was/heads.png, where the head is in
+  every frame -> src/fighters/wowScreens.js, the animated MODE screens -> what-once-was/mode_screens.png,
+  frame index -> src/fighters/wowMoves.js
 
   python3 tools/sprites/what_once_was_moves.py [--preview DIR]
 """
@@ -180,9 +182,24 @@ DIVE = P('scr_static', torso=(70, 6, 4), head=(30, 0, 0), fupper=(-150, 0, 0), f
 OUT = P('scr_red', torso=(-10, -2, 0), head=(-20, 0, 0), fupper=(-60, 0, 0), ffore=(-20, 0, 0), bupper=(-60, 0, 0), root=(0, 0, -2, 0.92, 1.1), **legs(18, -10, -16, 14, 0, -6))
 move('sideB', 40, [k(0, REST), k(5, P(**DEEP, torso=(16, 0, 2), fupper=(40, 0, 0), bupper=(40, 0, 0), head=(10, 0, 0)), 'out'), k(8, DIVE, 'snap'),
                    k(20, mix(DIVE, torso=(76, 6, 4)), 'linear'), k(24, OUT, 'snap'), k(30, mix(OUT, root=(0, 0, 0, 1.04, 0.96)), 'out'), k(40, REST, 'back')], smear=())
-# OUT OF ORDER (up): stands bolt upright and still in the elevator car, screen staring up
-STAND = P('scr_eye', torso=(-4, 0, -1), head=(-30, 0, -1), fupper=(4, 0, 0), ffore=(-4, 0, 0), bupper=(-4, 0, 0), root=(0, 0, 0, 0.98, 1.03), **legs(4, 0, -4, 0))
-move('upb', 40, [k(0, P(**CROUCH, fupper=(20, 0, 0), bupper=(20, 0, 0))), k(8, STAND, 'snap'), k(30, mix(STAND, head=(-36, 0, -1)), 'linear'), k(40, FALL, 'inout')], smear=())
+# OUT OF BODY (up): it crouches, then heaves its whole body upward and the TV launches off its neck (the game
+# flies the TV from frame 10; this body stays behind and plays body_drop)
+HEAVE = P(torso=(-12, 0, -2), head=(-20, 0, -4), fupper=(-150, 0, -2), ffore=(-20, 0, 0), bupper=(-150, 0, -2), bfore=(-20, 0, 0), root=(0, 0, -4, 0.9, 1.14), **legs(8, 0, -8, 0))
+move('upb', 16, [k(0, REST), k(6, P(**DEEP, torso=(20, 0, 2), fupper=(40, 0, 0), bupper=(40, 0, 0), head=(16, 0, 1))), k(9, HEAVE, 'snap'), k(16, mix(HEAVE, root=(0, 0, -3, 0.94, 1.08)), 'linear')], smear=())
+# the body it left behind: arms still up, it staggers... its knees go... it slumps (the game sinks it into the floor)
+move('body_drop', 48, [k(0, HEAVE), k(8, P(torso=(-16, -2, 0), fupper=(-60, 0, 0), ffore=(30, 0, 0), bupper=(-40, 0, 0), root=(0, -2, 0), **legs(10, -6, -14, 10)), 'out'),
+                       k(18, P(torso=(10, 0, 4), fupper=(20, 0, 0), ffore=(10, 0, 0), bupper=(30, 0, 0), root=(0, 0, 8, 1.04, 0.9), **legs(70, -110, -40, 80, 20, -20)), 'in'),
+                       k(30, P(torso=(56, 2, 6), fupper=(40, 0, 0), ffore=(20, 0, 0), bupper=(50, 0, 0), bfore=(10, 0, 0), root=(0, 0, 10, 1.06, 0.86), **legs(80, -130, -60, 110, 30, -30)), 'in'),
+                       k(36, P(torso=(64, 2, 7), fupper=(50, 0, 0), ffore=(30, 0, 0), bupper=(60, 0, 0), bfore=(20, 0, 0), root=(0, 0, 12, 1.08, 0.84), **legs(84, -136, -64, 116, 30, -30)), 'out'),
+                       k(48, P(torso=(66, 2, 7), fupper=(54, 0, 0), ffore=(30, 0, 0), bupper=(62, 0, 0), bfore=(20, 0, 0), root=(0, 0, 12, 1.08, 0.84), **legs(84, -136, -64, 116, 30, -30)))], step=2, smear=())
+# a new body grows up out of the floor where the TV landed, bends down, picks the TV up and puts it on
+# (the game moves the TV: on the floor in front until frame 34, lifted to the neck by frame 46)
+GROWN = P(torso=(10, 0, 0), fupper=(10, 0, 0), ffore=(10, 0, 0), bupper=(10, 0, 0), root=(0, 0, 0, 1.0, 1.0), **legs(6, -4, -6, 6))
+STOOP = P(torso=(56, 4, 6), fupper=(50, 0, 0), ffore=(20, 0, 0), bupper=(40, 0, 0), bfore=(10, 0, 0), root=(0, 2, 4, 1.04, 0.92), **legs(40, -70, -30, 50, 10, -10))
+LIFT = P(torso=(-8, 0, -1), fupper=(-150, 0, -1), ffore=(-30, 0, 0), bupper=(-150, 0, -1), bfore=(-30, 0, 0), root=(0, 0, -2, 0.96, 1.06), **legs(6, 0, -6, 0))
+move('regrow', 64, [k(0, mix(P(**DEEP), torso=(60, 0, 6), fupper=(80, 0, 0), bupper=(80, 0, 0), root=(0, 0, 6, 0.3, 0.06))), k(14, mix(P(**DEEP), torso=(40, 0, 4), fupper=(60, 0, 0), bupper=(60, 0, 0), root=(0, 0, 2, 0.8, 0.6)), 'out'),
+                    k(24, GROWN, 'back'), k(32, STOOP, 'inout'), k(36, mix(STOOP, fupper=(40, 0, 0), bupper=(30, 0, 0)), 'inout'),
+                    k(44, LIFT, 'inout'), k(48, mix(LIFT, fupper=(-120, 0, -1), bupper=(-125, 0, -1)), 'out'), k(56, mix(REST, torso=(-4, 0, 0)), 'back'), k(64, REST)], smear=())
 # WRONG DOOR (down): sets a door frame down behind it
 PLACE = P(torso=(-30, -2, 2), head=(-10, 0, 0), bupper=(70, -2, 2), bfore=(-40, 0, 0), fupper=(30, 0, 0), ffore=(10, 0, 0), root=(0, -2, 2, 1.06, 0.92), **legs(10, -20, -20, 30, 0, -6))
 move('downB', 30, [k(0, REST), k(6, mix(PLACE, torso=(-20, -1, 1)), 'out'), k(12, PLACE, 'snap'), k(18, mix(PLACE, bupper=(50, -2, 2)), 'inout'), k(30, REST, 'back')], smear=())
@@ -234,11 +251,16 @@ move('taunt', 96, [k(0, REST), k(12, mix(TILT, scr='scr_missing'), 'out'), k(30,
                    k(58, mix(TILT, scr='scr_eye', head=(-20, 0, 0)), 'snap'), k(80, mix(TILT, scr='scr_eye', head=(-24, 0, 0)), 'linear'), k(96, REST, 'back')], smear=())
 
 
-STYLE_DIRS = {'default': '', 'aero': 'frutiger', 'hack': 'root-access', 'ronin': 'ronin'}
+# every body the TV can sit on, and where its sheets go. The costumes' own bodies, then the bodies OUT OF BODY
+# can grow. All are drawn WITHOUT the head: the game draws the TV head (heads.png) on top, wherever wowScreens.js
+# says it is, so any body can wear any costume's TV.
+STYLE_DIRS = {'default': '', 'aero': 'frutiger', 'hack': 'root-access', 'ronin': 'ronin', 'suit': 'body-suit', 'swat': 'body-swat', 'doctor': 'body-doctor'}
+HEAD_PARTS = ('head',) + tuple(D.SCREENS)
+HEAD_CROP = (20, 0, 52, 32)                       # the box round the TV (with its neck, crest or hood) in heads.png
 
 def screen_track(rig, keys, ticks, step, center, life_fn):
     """Where the screen is in every frame of one animation: [x, y] of its centre (in frame pixels, x10),
-    its angle (degrees) and scale (x100) - the same poses animate() draws."""
+    its angle (degrees), scale (x100), and which baked screen picture the pose shows (index into D.SCREENS)."""
     out = []
     feet = rig.feet
     if center: rig.feet = center
@@ -248,22 +270,50 @@ def screen_track(rig, keys, ticks, step, center, life_fn):
         M = rig.matrix('scr_static', pose)
         c = M @ np.array([36.5, 12.5, 1.0]); ux = M @ np.array([1.0, 0, 0]); uy = M @ np.array([0, 1.0, 0])
         ang = math.degrees(math.atan2(ux[1], ux[0]))
-        out.append([round(c[0] * 10), round(c[1] * 10), round(ang), round(math.hypot(ux[0], ux[1]) * 100), round(math.hypot(uy[0], uy[1]) * 100)])
+        shown = [i for i, n in enumerate(D.SCREENS) if n not in pose.get('_hide', ())]
+        out.append([round(c[0] * 10), round(c[1] * 10), round(ang), round(math.hypot(ux[0], ux[1]) * 100), round(math.hypot(uy[0], uy[1]) * 100), shown[0] if shown else 0])
     rig.feet = feet
     return out
+
+def without(rig, names):
+    """The same rig with some parts left out of the drawing (their joints still move the rest)."""
+    rig.order = [p for p in rig.order if p.name not in names]
+    return rig
 
 def build_style(style):
     D.set_style(style)
     small, big = N.build_rig(D, FOLLOW)
     d = os.path.join(DIR, STYLE_DIRS[style]) if STYLE_DIRS[style] else DIR
-    base, out = N.build_all(small, big, MOVES, d, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)))
-    Image.fromarray(base['idle'][0]).crop((22, 0, 50, 15)).resize((72, 38), Image.NEAREST).save(os.path.join(d, 'icon.png'))   # the TV head
-    return small, big, base, out
+    os.makedirs(d, exist_ok=True)
+    if style not in D.HUMAN:                      # the costume's whole look, head and all, for menus (select screens, results...)
+        menu = N.animate(small, idle_keys(), 192, step=6, life=life)
+        N.strip(menu, os.path.join(d, 'menu_idle_sheet.png'))
+    hide = HEAD_PARTS + (('cord',) if style in D.HUMAN else ())
+    base, out = N.build_all(without(small, hide), without(big, hide), MOVES, d, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)))
+    icon = os.path.join(d, 'icon.png')                # build_all cropped a headless icon: the costumes get the TV head back
+    if style in D.HUMAN: os.remove(icon)
+    else: Image.fromarray(menu[0]).crop((22, 0, 50, 15)).resize((72, 38), Image.NEAREST).save(icon)
+    return base, out
+
+def heads_row(style):
+    """The costume's TV head with each screen picture (D.SCREENS order), cropped to HEAD_CROP."""
+    D.set_style(style)
+    parts = D.draw_parts()
+    tiles = []
+    for scr in D.SCREENS:
+        img = np.zeros((64, 64, 4), np.uint8)
+        for n in ('head', scr):
+            a = parts[n]; m = a[..., 3] > 0; img[m] = a[m]
+        x1, y1, x2, y2 = HEAD_CROP
+        tiles.append(img[y1:y2, x1:x2])
+    return tiles
 
 def build():
-    for style in ('aero', 'hack', 'ronin', 'default'):
-        small, big, base, out = build_style(style)
-    # where the screen is in every frame (the same for every costume): read by the game to draw the MODE screens
+    for style in ('suit', 'swat', 'doctor', 'aero', 'hack', 'ronin', 'default'):
+        base, out = build_style(style)
+    D.set_style('default')
+    small, big = N.build_rig(D, FOLLOW)
+    # where the screen (and so the head) is in every frame - the same for every body: read by the game
     J = ((JUMP, JUMP2), (FALL, FALL2))
     track = {
         'idle': screen_track(small, idle_keys(), 192, 6, None, life), 'run': screen_track(small, run_keys(), 48, 6, None, life),
@@ -273,9 +323,18 @@ def build():
     }
     with open(SCR_JS, 'w') as f:
         f.write('// Generated by tools/sprites/what_once_was_moves.py - do not edit by hand.\n')
-        f.write('// WHAT ONCE WAS: where its TV screen is in every frame of each sheet - [x*10, y*10, angle in degrees,\n')
-        f.write('// x scale*100, y scale*100] in frame pixels - so the game can draw its animated MODE screens over it.\n')
+        f.write('// WHAT ONCE WAS: where its TV head is in every frame of each sheet - [screen centre x*10, y*10, angle in\n')
+        f.write('// degrees, x scale*100, y scale*100, which screen picture] in frame pixels. The game draws the head\n')
+        f.write('// (heads.png) and its MODE screens there; the body sheets are drawn without a head.\n')
         f.write('export const WOW_SCREENS = ' + json.dumps(track, separators=(',', ':')) + ';\n')
+        f.write('export const WOW_HEAD = ' + json.dumps({'w': HEAD_CROP[2] - HEAD_CROP[0], 'h': HEAD_CROP[3] - HEAD_CROP[1], 'ox': 36.5 - HEAD_CROP[0], 'oy': 12.5 - HEAD_CROP[1], 'screens': len(D.SCREENS)}) + ';\n')
+    # the TV heads, one row per costume, one column per screen picture
+    rows = [heads_row(st) for st in ('default', 'aero', 'hack', 'ronin')]
+    hw, hh = HEAD_CROP[2] - HEAD_CROP[0], HEAD_CROP[3] - HEAD_CROP[1]
+    sheet = Image.new('RGBA', (hw * len(D.SCREENS), hh * len(rows)), (0, 0, 0, 0))
+    for r, tiles in enumerate(rows):
+        for i, tl in enumerate(tiles): sheet.alpha_composite(Image.fromarray(tl, 'RGBA'), (i * hw, r * hh))
+    sheet.save(os.path.join(DIR, 'heads.png'))
     # the animated MODE screens, one row per costume: SEE x4, INCOMING x4, SMILE x4 (11x9 frames)
     rows = [D.mode_screens(st) for st in ('default', 'aero', 'hack', 'ronin')]
     sheet = Image.new('RGBA', (D.MODE_W * 12, D.MODE_H * len(rows)), (0, 0, 0, 0))

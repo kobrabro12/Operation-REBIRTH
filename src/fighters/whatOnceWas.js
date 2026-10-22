@@ -2,7 +2,7 @@
 // wallpaper with an old CRT television for a head. Still in the lab (Trinkets > TEST FIGHTERS). Data only -
 // stats, sprite sheets and every move's hitboxes. Boxes are [x, y, w, h] from its feet while facing right
 // (negative y = up). Art and animation: tools/sprites/what_once_was_draw.py and what_once_was_moves.py.
-// Its own behaviour (the SIGNAL meter and its three MODES, Channel Surf, the Wrong Door, the elevator, the
+// Its own behaviour (the SIGNAL meter and its three MODES, Channel Surf, the Wrong Door, its TV head, the
 // screen beams, LEVEL 0) is in fighterWhatOnceWas.js. Numbers are first-pass - tune after playtesting.
 import { DEFAULT_GRAB } from './common.js';
 import { WOW_MOVES } from './wowMoves.js';
@@ -18,6 +18,12 @@ export const WHAT_ONCE_WAS = {
   costumeSheets: Object.fromEntries(['aero', 'hack', 'ronin'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),
   // which row of mode_screens.png each costume's MODE screens are on
   screenRow: { default: 0, wowAero: 1, wowHack: 2, wowRonin: 3 },
+  // all its sheets are drawn WITHOUT the head (the game draws the TV - heads.png - where wowScreens.js says);
+  // menus show these instead, head and all
+  menuSheets: { default: 'wow_menu', aero: 'wow_aero_menu', hack: 'wow_hack_menu', ronin: 'wow_ronin_menu' },
+  // the bodies OUT OF BODY can grow ('self' = the costume's own)
+  bodies: ['self', 'suit', 'swat', 'doctor'],
+  bodySheets: Object.fromEntries(['suit', 'swat', 'doctor'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),
   runCycle: [0, 8],
   moveAnims: WOW_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,                 // feet on row 58 of the 64x64 frame
@@ -120,11 +126,15 @@ export const WHAT_ONCE_WAS = {
     // back in further ahead, hitting anyone where it lands. Once per jump.
     sideB: { frames: 40, landLag: 10, fx: 'spin', noclip: { from: 8, to: 22, vx: 8.2 },
       hits: [{ from: 23, to: 26, box: [-26, -58, 52, 58], dmg: 9, angle: 50, base: 3.2, growth: 5.0 }] },
-    // OUT OF ORDER (up): an old elevator car carries it straight up; its roof hits anyone above
-    upb: { frames: 40, riseAt: 8, riseV: -5.2, liftV: -5.2, stopAt: 30, drift: 1.6, elevator: true, hits: [
-      { from: 9, to: 16, box: [-22, -82, 44, 16], dmg: 5, angle: 85, base: 3.0, growth: 2.0, stun: 14 },
-      { from: 28, to: 31, box: [-26, -88, 52, 88], dmg: 5, angle: 80, base: 4.0, growth: 4.4 },
-    ] },
+    // OUT OF BODY (up): it heaves and the TV launches off its neck. You fly as the TV (steer left/right), and it
+    // hits anyone above on the way up. Where the TV lands a new body grows, picks it up and puts it on - a suited
+    // man, a SWAT officer, a doctor or its own body (never the one it just had). It keeps that body until the next
+    // up special. Growing back takes a moment: it can be hit while it does (that just puts the TV straight on).
+    upb: { tvhead: true, frames: 40, launchAt: 10, riseAt: 10, launchV: -11, drift: 2.2,
+      neck: 38,                     // how far above its feet the TV starts
+      tv: { w: 18, h: 18 },         // its hurtbox while it's only a TV
+      regrow: { frames: 64, pickAt: 34, placeAt: 46, speed: 1.4 },   // in growth-animation frames; speed 1.4 = about 46 game frames
+      hits: [{ from: 10, to: 28, box: [-13, -22, 26, 26], dmg: 8, angle: 85, base: 4.2, growth: 3.8 }] },
     // WRONG DOOR (down): sets a door down behind it. Press it again (anywhere, even in the air) to step into a
     // doorway and out of that door. One door at a time; it lasts 15 seconds and opponents can break it.
     downB: { frames: 30, spawnAt: 12, door: { behind: 34, hp: 18, life: 900 },

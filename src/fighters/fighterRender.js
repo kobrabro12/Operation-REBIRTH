@@ -289,7 +289,7 @@ export class FighterRender {
     if (this.bubbled > 0) drawBubble(g, this.x, this.y - this.body.h / 2, 26 + Math.sin(this.anim * 0.4), { light: 0x9ff0ff, core: 0xffffff, mid: 0x3fc8ea });
     if (s === 'limit' && this.altLimit && this.ult) this.drawFullAeroLimit(g, (this.baseDef || d).altLimit, this.ult);
     else if (s === 'limit' && d.limit.type === 'screensaver' && this.ult) this.drawScreensaver(g, d.limit, this.ult);
-    if (d.backrooms) this.drawWhatOnceWas(g, spr);                 // WHAT ONCE WAS: SIGNAL meter, CHANNEL menu, beams, elevator, doors, LEVEL 0
+    if (d.backrooms) this.drawWhatOnceWas(g, spr);                 // WHAT ONCE WAS: SIGNAL meter, its TV head, beams, doors, LEVEL 0
     if (this.missingMark > 0) this.drawMissingMark(g);             // posted MISSING by WHAT ONCE WAS
     if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters

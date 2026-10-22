@@ -12,7 +12,7 @@ export class FighterLedge {
   hangPos(L) { return { x: L.x + L.side * (this.body.w / 2 + 1), y: L.y + this.body.h - 14 }; }
   tryLedgeGrab(c) {
     const s = this.state;
-    if (this.grounded || this.ledgeCooldown > 0 || this.possessed > 0) return;
+    if (this.grounded || this.ledgeCooldown > 0 || this.possessed > 0 || this.headless) return;
     if (!['air', 'helpless', 'upb', 'airdodge'].includes(s)) return;
     if (s === 'upb' && this.t < (this.def.moves.upb.riseAt || 0) + 2) return;
     if (c.y > 0.5) return;                                      // holding down: don't grab
