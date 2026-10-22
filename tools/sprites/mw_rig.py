@@ -78,6 +78,7 @@ def layers_from(base, staff_cols=STAFF_COLS, width=2.3):
         for y in ys0:
             ny = y + sh
             if 0 <= ny < H and not shaft[ny, x]: st[ny, x] = base[y, x0]
+    biped.overlap(L, ['cape', 'torso', 'head', 'fupper', 'ffore', 'ffist', 'bskirt', 'fskirt', 'bshoe', 'fshoe'], base, 2)
     for name, j, r in (('ffore', 'felbow', 2.5), ('ffist', 'fwrist', 2), ('fupper', 'fshoulder', 3), ('head', 'neck', 2)):
         biped.cap(L, name, base, J[j], r)
     return L
@@ -97,7 +98,7 @@ def build_rig(src='idle_sheet.png', staff_cols=STAFF_COLS, width=2.3, canvas=(17
     for z, name in enumerate(ORDER):
         parent, pivot = PARENT[name]
         dr, sw = follow.get(name, (0, 0))
-        parts.append(Part(name, L[name][..., 3] > 0, pivot, parent, z=z, variants=[L[name]], drag=dr, sway=sw))
+        parts.append(Part(name, L[name][..., 3] > 0, pivot, parent, z=z, variants=[L[name]], drag=dr, sway=sw, upright=0.5 if name == 'cape' else 0))   # the cloak keeps hanging when he leans
     return Rig(base, parts, (64, 64), (0, 0), FEET), Rig(base, parts, canvas, offset, FEET), L, base
 
 BONES = {'fupper': ('torso', angle(J['fshoulder'], J['felbow'])), 'ffore': ('fupper', angle(J['felbow'], J['fwrist'])), 'ffist': ('ffore', angle(J['felbow'], J['fwrist'])),

@@ -73,6 +73,7 @@ def layers_from(sheet):
                        ('bshin', 'bknee', 2.5), ('fshin', 'fknee', 2.5), ('bshoe', 'bankle', 2), ('fshoe', 'fankle', 2),
                        ('bthigh', 'bhip', 3), ('fthigh', 'fhip', 3.5), ('head', 'neck', 2)):
         biped.cap(L, name, base, J[j], r)
+    biped.overlap(L, ['cape', 'torso', 'head', 'bupper', 'bfore', 'fupper', 'ffore', 'ffist', 'bthigh', 'bshin', 'bshoe', 'fthigh', 'fshin', 'fshoe'], base, 2)
     flames = []
     for f in frames:                                       # the flame's five flicker frames
         a = np.zeros_like(f)
@@ -91,7 +92,7 @@ def build_rig(path=SRC, canvas=(112, 104), offset=(24, 36), follow=None):
         parent, pivot = PARENT[name]
         dr, sw = follow.get(name, (0, 0))
         var = flames if name == 'flame' else [L[name]]
-        up = 0.75 if name == 'flame' else 0
+        up = 0.75 if name == 'flame' else 0.55 if name == 'cape' else 0      # the cape keeps hanging when he leans
         parts.append(Part(name, var[0][..., 3] > 0, pivot, parent, z=z, variants=var, upright=up, drag=dr, sway=sw))
     small = Rig(base, parts, (64, 64), (0, 0), FEET)
     big = Rig(base, parts, canvas, offset, FEET)

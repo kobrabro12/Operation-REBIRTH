@@ -175,3 +175,15 @@ def unwrap(keys):
             prev[name] = a; p[name] = (a,) + tuple(v[1:])
         out.append((t, p, ease))
     return out
+
+def overlap(layers, names, base, px=2):
+    """Every part also takes the drawing's pixels for `px` pixels past its own edge (inside the silhouette).
+    Copied straight from the drawing, so the rest pose looks exactly the same - but when two neighbouring
+    parts turn apart, each one still covers the seam instead of leaving a crack."""
+    from scipy import ndimage
+    solid = base[..., 3] > 0
+    for n in names:
+        a = layers[n]
+        m = a[..., 3] > 0
+        grow = ndimage.binary_dilation(m, iterations=px) & solid & ~m
+        a[grow] = base[grow]

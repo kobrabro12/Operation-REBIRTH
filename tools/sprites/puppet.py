@@ -164,7 +164,33 @@ def seg_ease(keys, t):
         if t0 < t <= t1: return e or 'inout'
     return None
 
-def animate(rig, keys, ticks, step=2, smear=(), smear_tint=None, extra=None, flicker=3, center=None, life=None):
+def fill_holes(img, max_px=6):
+    """Pinholes: little pockets of transparency fully enclosed by the sprite (where two moving parts don't
+    quite meet) are painted in from their neighbours, so no frame shows the background through the body."""
+    from scipy import ndimage
+    a = img[..., 3] > 0
+    H, W = a.shape
+    lab, n = ndimage.label(~a)
+    if n < 2: return img
+    border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) | {0}
+    sizes = np.bincount(lab.ravel())
+    for k in range(1, n + 1):
+        if k in border or sizes[k] > max_px: continue
+        todo = set(zip(*np.nonzero(lab == k)))
+        while todo:                                                           # fill from the edge inward
+            done = []
+            for (y, x) in todo:
+                cols = {}
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < H and 0 <= xx < W and img[yy, xx, 3] > 0:
+                        c = tuple(int(v) for v in img[yy, xx]); cols[c] = cols.get(c, 0) + 1
+                if cols: done.append(((y, x), max(cols, key=lambda c: (cols[c], -sum(c[:3])))))   # most common, darker on ties
+            if not done: break
+            for (y, x), c in done: img[y, x] = c; todo.discard((y, x))
+    return img
+
+def animate(rig, keys, ticks, step=2, smear=(), smear_tint=None, extra=None, flicker=3, center=None, life=None, holes=6):
     """Frames for an animation `ticks` long, one per `step` ticks. smear: parts that leave faded
     afterimages when they move fast. extra(img, t, pose) may draw effects into each frame."""
     frames = []
@@ -184,6 +210,7 @@ def animate(rig, keys, ticks, step=2, smear=(), smear_tint=None, extra=None, fli
                     ghost = rig.render(pp, only=smear, tint=smear_tint, alpha=a, fi=fi)
                     m = (img[..., 3] == 0) & (ghost[..., 3] > 0)
                     img[m] = ghost[m]
+        if holes: fill_holes(img, holes)
         if extra: extra(img, t, pose)
         frames.append(img)
     rig.feet = feet
