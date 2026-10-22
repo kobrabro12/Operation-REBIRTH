@@ -11,7 +11,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { announce } from '../audio/announcer.js';
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
-const COLS = 2, TILE_W = 118, TILE_H = 58, GAP = 6;
+const COLS = 2, TILE_W = 118, TILE_H = 50, GAP = 4;   // 5 rows of 2 fit between the title bar and the help line
 const GRID_X = 386, GRID_Y = 36;
 
 export class StageSelectScene extends Phaser.Scene {

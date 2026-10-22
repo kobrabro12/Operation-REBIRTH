@@ -409,8 +409,9 @@ export class Fighter {
       }
       const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding' || (this.seized && s.endsWith('_hold'));   // (WHAT ONCE WAS hangs in the air while it holds someone)
       if (!noGravity) {
-        const g = s === 'hitstun' ? PHYS.gravity * PHYS.hitstunGravity : PHYS.gravity;
-        const cap = this.fastFalling ? PHYS.fastFall : PHYS.maxFall;
+        const fl = s !== 'hitstun' && d.float;                // FULL AERO floats: slow, gentle falls
+        const g = s === 'hitstun' ? PHYS.gravity * PHYS.hitstunGravity : PHYS.gravity * (fl ? fl.gravity : 1);
+        const cap = this.fastFalling ? PHYS.fastFall : fl ? fl.maxFall : PHYS.maxFall;
         this.vy = this.fastFalling && s !== 'hitstun' && this.vy >= -1 ? cap : Math.min(cap, this.vy + g);
       }
     }

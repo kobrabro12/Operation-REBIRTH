@@ -34,7 +34,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
 | Sprite loading | `src/scenes/BootScene.js` | Every sheet key + frame size is registered here. |
 | Match loop, hits, KOs | `src/scenes/MatchScene.js` | |
-| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute; `infectedStage.js` (INFECTED.EXE: virus pop-ups, `strikeTargets` closes them) | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
+| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute; `infectedStage.js` (INFECTED.EXE: virus pop-ups, `strikeTargets` closes them); `aeroStage.js` (AERO MEADOW: Frutiger Aero + overgrown gadgets, CD SHOWER). Select grid: `STAGE_SLOTS` in stages.js | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
 | Items | `src/items/items.js` | Soul Heart, Limit Orb, Cursed Skull. Textures drawn from char maps. |
 | CPU AI | `src/ai/cpu.js` | Presses buttons on a `Controller` like a human. |
 | Input | `src/input/controllers.js`, `touch.js` | |
@@ -50,7 +50,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 - **Lacy / Hero Knight** (`hero-knight`, keys `hk_*`): 150×90 frames, 180×140 moves. Battle-Worn damage stages (worn1–3), Samurai + Akatsuki costumes. Unarmed `_u` sheets.
 - **Test fighters** (`TEST_ROSTER` in `roster.js`, played from Trinkets > TEST FIGHTERS, never on the select grid):
   **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py`) and **AERO** (`aero`, keys `aero_*`, `aero_draw.py` +
-  `aero_moves.py`; his FULL AERO form - permanent until KO'd, with a golden spear (part `spear`; `SPEAR` in aero.js grows his normals' reach and damage) - is `aero_king_*`, `aero_king_draw.py`, def `AERO_FULL`). 64×64 base frames, 112×104 moves.
+  `aero_moves.py`; his FULL AERO form - permanent until KO'd, floating (`def.float`), attacking with a golden spear (spear animations `k_*`) (part `spear`; `SPEAR` in aero.js grows his normals' reach and damage) - is `aero_king_*`, `aero_king_draw.py`, def `AERO_FULL`). 64×64 base frames, 112×104 moves.
   **WHAT ONCE WAS** (`what-once-was`, keys `wow_*`, art `tools/sprites/what_once_was_draw.py` + `what_once_was_moves.py`, same rig as NU):
   a deformed Backrooms entity with a CRT TV head (screen layers `scr_*` picked per pose). MISSING Poster, Channel Surf side-B, OUT OF
   BODY up-B, Wrong Door down-B, LEVEL 0 limit (the Bacteria chase). Unique mechanic: `def.signal` meter -> when full it

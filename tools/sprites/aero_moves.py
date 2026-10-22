@@ -38,6 +38,18 @@ def life(pose, t):
 
 MOVES = {}
 def move(name, ticks, keys, step=1, smear=('ffore', 'ffist'), loop=False, center=None):
+    if name.startswith('k_'):                     # spear moves: turn the forearm the short way between keys
+        prev = None
+        for i, (t, pose, ease) in enumerate(keys):
+            f = N.full(pose.get('ffore'))
+            if prev is not None: f[0] = prev + ((f[0] - prev + 180) % 360 - 180)
+            prev = f[0]; keys[i] = (t, dict(pose, ffore=tuple(f)), ease)
+        for i, (t, pose, ease) in enumerate(keys):   # and keep the spear's point inside the 112x104 frame (nudging him back)
+            M = _AIM.matrix('spear', pose); tx, ty, _ = M @ [44 + _UX * 27, 26 + _UY * 27, 1]
+            dx = min(0, 108 - tx) + max(0, 4 - tx); dy = max(0, 3 - ty) + min(0, 101 - ty)
+            if dx or dy:
+                r = N.full(pose.get('root')); r[1] += dx; r[2] += dy
+                keys[i] = (t, dict(pose, root=tuple(r)), ease)
     MOVES[name] = (ticks, keys, step, smear, loop, center)
 
 # borrowed straight from NU's library (the same joints), minus his mic and spray can
@@ -85,6 +97,77 @@ BLOW = P(**legs(-20, 50, -30, 50), torso=(-10, 0, -2), head=(-26, 0, -1), fupper
 move('uair', 30, [k(0, AIR), k(4, P(**TUCK, torso=(14, 0, 1), head=(16, 0, 1), fupper=(10, 0, 0), bupper=(10, 0, 0), root=(0, 0, 2, 1.05, 0.94)), 'out'), k(6, BLOW, 'snap')]
      + [k(6 + 3 * i, mix(BLOW, head=(-26 - 6 * (i % 2), 0, -1), root=(0, 0, -3, 0.94 + 0.03 * (i % 2), 1.08 - 0.03 * (i % 2))), 'inout') for i in range(1, 6)]
      + [k(30, AIR, 'back')], smear=())
+# ---- FULL AERO's GOLDEN SPEAR attacks (k_*: the game uses these instead of his normal attacks while he's
+# FULL AERO). The spear lies along his forearm (aero_king_draw.py), so each pose is aimed: aimed() turns the
+# forearm until the spear points at the angle given (0 = forward, -90 = straight up, 90 = down, 180 = back).
+import aero_king_draw as _K
+_AIM = N.build_rig(_K, FOLLOW)[1]
+_UX, _UY = 2 / math.hypot(2, 5), -5 / math.hypot(2, 5)
+def _spear_angle(pose):
+    M = _AIM.matrix('spear', pose)
+    a = M @ [44, 26, 1]; b = M @ [44 + _UX * 20, 26 + _UY * 20, 1]
+    return math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+def _wrap(d): return (d + 180) % 360 - 180
+def aimed(pose, deg):
+    p = dict(pose)
+    for _ in range(4):
+        f = N.full(p.get('ffore')); now = _spear_angle(p)
+        f2 = list(f); f2[0] += 1; p2 = dict(p, ffore=tuple(f2)); d = _wrap(_spear_angle(p2) - now) or 1
+        f[0] += _wrap(deg - now) / d; p['ffore'] = tuple(f)
+    f = N.full(p['ffore']); f[0] = _wrap(f[0]); p['ffore'] = tuple(f)        # (so neighbouring keys don't spin the long way round)
+    return p
+LUNGE = dict(torso=(22, 4, 0), head=(-12, 1, 0), bupper=(30, 0, 0), bfore=(-40, 0, 0), root=(0, 6, 0, 1.06, 0.94), **legs(26, -8, -30, 18, 0, -10))
+DRAW = dict(torso=(-14, -3, 0), head=(8, 0, 0), bupper=(-30, 0, 0), bfore=(-60, 0, 0), root=(0, -4, 0, 0.97, 1.04), **legs(10, -4, -8, 6))
+# jab: a quick spear jab - draws back, snaps it straight out
+move('k_jab', 20, [k(0, aimed(REST, -60)), k(3, aimed(P(**DRAW, fupper=(10, 0, 0)), -10), 'out'),
+                   k(5, aimed(P(**LUNGE, fupper=(-80, 0, 0)), 0), 'snap'), k(9, aimed(P(**LUNGE, fupper=(-76, 0, 0)), 2), 'out'), k(20, aimed(REST, -60), 'back')], smear=('spear', 'ffist'))
+# ftilt: a stepping thrust, the whole body behind it
+move('k_ftilt', 28, [k(0, aimed(REST, -60)), k(8, aimed(P(**DRAW, fupper=(30, -2, 0)), -5), 'out'),
+                     k(11, aimed(P(**LUNGE, fupper=(-82, 0, 0)), 0), 'snap'), k(16, aimed(P(**LUNGE, fupper=(-80, 0, 0)), 3), 'out'), k(28, aimed(REST, -60), 'back')], smear=('spear', 'ffist'))
+# dtilt: down on one knee, a low thrust along the floor
+LOW = dict(torso=(30, 4, 2), head=(-16, 1, 0), bupper=(20, 0, 0), root=(0, 8, 8, 1.1, 0.82), **legs(50, -70, -40, 60, 14, -14))
+move('k_dtilt', 22, [k(0, aimed(REST, -60)), k(4, aimed(P(**LOW, fupper=(20, 0, 0)), 20), 'out'), k(6, aimed(P(**LOW, fupper=(-50, 0, 0)), 14), 'snap'),
+                     k(10, aimed(P(**LOW, fupper=(-48, 0, 0)), 16), 'out'), k(22, aimed(REST, -60), 'back')], smear=('spear', 'ffist'))
+# dash attack: a charging lance, leaning right into it
+CHARGE = dict(torso=(40, 6, 2), head=(-24, 2, 0), bupper=(40, 0, 0), bfore=(-40, 0, 0), root=(0, 6, 2, 1.06, 0.92), **legs(40, -20, -40, 30, 0, -10))
+move('k_dashAttack', 36, [k(0, aimed(P(torso=(20, 2, 0), fupper=(20, 0, 0)), -20)), k(4, aimed(P(**CHARGE, fupper=(-70, 0, 0)), 4), 'snap'),
+                          k(22, aimed(P(**CHARGE, fupper=(-66, 0, 0)), 6), 'linear'), k(28, aimed(P(**DEEP, torso=(16, 2, 2), fupper=(-20, 0, 0)), -30), 'out'), k(36, aimed(REST, -60), 'back')], smear=())
+# fsmash: winds the spear all the way back over his shoulder... then a huge lunging thrust
+WIND = dict(torso=(-22, -4, 0), head=(12, 0, 0), bupper=(-60, 0, 0), bfore=(-40, 0, 0), root=(-6, -5, 0, 0.95, 1.06), **legs(14, -6, -4, 4))
+BIGLUNGE = dict(torso=(20, 5, 0), head=(-14, 1, 0), bupper=(50, 0, 0), bfore=(-30, 0, 0), root=(-4, 8, 0, 1.1, 0.9), **legs(34, -10, -40, 24, 0, -12))
+move('k_fsmash', 46, [k(0, aimed(REST, -60)), k(12, aimed(P(**WIND, fupper=(70, -2, 0)), -170), 'out'), k(16, aimed(P(**WIND, fupper=(76, -2, 0)), -172)),
+                      k(18, aimed(P(**BIGLUNGE, fupper=(-80, 0, 0)), 0), 'snap'), k(23, aimed(P(**BIGLUNGE, fupper=(-78, 0, 0)), 2), 'out'),
+                      k(32, aimed(P(**LUNGE, fupper=(-60, 0, 0)), -10), 'inout'), k(46, aimed(REST, -60), 'back')], smear=('spear', 'ffist'))
+# utilt: a thrust straight up overhead
+UPT = dict(torso=(-6, 0, -1), head=(-18, 0, 0), bupper=(-30, 0, 0), root=(0, 0, -4, 0.92, 1.12), **legs(4, 0, -4, 0))
+move('k_utilt', 24, [k(0, aimed(REST, -60)), k(5, aimed(P(**DEEP, torso=(14, 0, 1), fupper=(20, 0, 0)), -80), 'out'),
+                     k(7, aimed(P(**UPT, fupper=(-168, 0, -2)), -90), 'snap'), k(12, aimed(P(**UPT, fupper=(-166, 0, -2)), -92), 'out'), k(24, aimed(REST, -60), 'back')], smear=())
+# usmash: crouches deep, then springs up driving the spear into the sky
+move('k_usmash', 44, [k(0, aimed(REST, -60)), k(12, aimed(P(**DEEP, torso=(24, 0, 2), head=(16, 0, 1), fupper=(30, 0, 0)), -70), 'out'),
+                      k(15, aimed(P(**{**UPT, 'root': (0, 0, -10, 0.88, 1.16)}, fupper=(-170, 0, -3)), -90), 'snap'), k(20, aimed(P(**{**UPT, 'root': (0, 0, -8, 0.9, 1.14)}, fupper=(-170, 0, -3)), -90), 'out'),
+                      k(30, aimed(P(**UPT, fupper=(-150, 0, -1)), -80), 'inout'), k(44, aimed(REST, -60), 'back')], smear=())
+# dsmash: stabs low in front, then spins and stabs low behind
+move('k_dsmash', 44, [k(0, aimed(REST, -60)), k(12, aimed(P(**DEEP, torso=(10, 0, 2), fupper=(10, 0, 0)), -40), 'out'),
+                      k(15, aimed(P(**LOW, fupper=(-40, 0, 0)), 18), 'snap'), k(17, aimed(P(**{**LOW, 'torso': (-10, 0, 2)}, fupper=(60, 0, 0)), 165), 'snap'),
+                      k(22, aimed(P(**{**LOW, 'torso': (-12, 0, 2)}, fupper=(62, 0, 0)), 162), 'out'), k(44, aimed(REST, -60), 'back')], smear=())
+# nair: twirls the spear right round in front of him
+TW = dict(**TUCK, torso=(6, 0, 0), head=(-4, 0, 0), fupper=(-70, 0, 0))
+move('k_nair', 26, [k(0, aimed(AIR, -60))] + [k(3 + 2 * i, aimed(P(**TW), -60 + i * 60), 'linear') for i in range(1, 7)] + [k(26, aimed(AIR, -60), 'back')], smear=('spear',))
+# fair: an aerial thrust
+move('k_fair', 26, [k(0, aimed(AIR, -60)), k(6, aimed(P(**TUCK, torso=(-10, 0, 0), fupper=(20, 0, 0)), -20), 'out'),
+                    k(9, aimed(P(**TUCK, torso=(18, 2, 0), fupper=(-80, 0, 0)), 4), 'snap'), k(14, aimed(P(**TUCK, torso=(16, 2, 0), fupper=(-78, 0, 0)), 6), 'out'), k(26, aimed(AIR, -60), 'back')], smear=('spear', 'ffist'))
+# bair: stabs straight back behind him without looking
+move('k_bair', 24, [k(0, aimed(AIR, -60)), k(5, aimed(P(**TUCK, torso=(10, 0, 0), fupper=(10, 0, 0)), -120), 'out'),
+                    k(7, aimed(P(**TUCK, torso=(-14, 0, 0), head=(16, 0, 0), fupper=(80, 0, 0)), 178), 'snap'), k(11, aimed(P(**TUCK, torso=(-12, 0, 0), fupper=(78, 0, 0)), 176), 'out'), k(24, aimed(AIR, -60), 'back')], smear=('spear', 'ffist'))
+# uair: rapid stabs straight up
+move('k_uair', 30, [k(0, aimed(AIR, -60)), k(5, aimed(P(**TUCK, fupper=(-120, 0, 0)), -80), 'out')]
+     + [k(7 + 3 * i, aimed(P(**TUCK, torso=(-6, 0, -1), head=(-14, 0, 0), fupper=(-168 + 14 * (i % 2), 0, -2 + (i % 2))), -90), 'snap') for i in range(5)]
+     + [k(30, aimed(AIR, -60), 'back')], smear=())
+# dair: drives the spear straight down beneath him
+DOWNS = dict(**legs(-20, 40, -30, 40), torso=(6, 0, 0), head=(14, 0, 0), bupper=(-60, 0, 0))
+move('k_dair', 34, [k(0, aimed(AIR, -60)), k(8, aimed(P(**DOWNS, fupper=(-60, 0, -2)), -60), 'out'),
+                    k(11, aimed(P(**DOWNS, fupper=(30, 0, 2)), 90), 'snap'), k(16, aimed(P(**DOWNS, fupper=(32, 0, 2)), 90), 'out'), k(34, aimed(AIR, -60), 'back')], smear=())
+
 # ---- specials
 # BUBBLE TRAP: cups his hands to the bowl, then blows a big bubble forward
 move('neutralB', 30, [

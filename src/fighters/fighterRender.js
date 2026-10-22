@@ -182,6 +182,7 @@ export class FighterRender {
       if (a.flip) spr.setFlipX(!spr.flipX);
     }
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
+    if (d.float && d.float.hover && !['grabbed', 'seized', 'ledge', 'ledgeclimb', 'respawn'].includes(s)) spr.y -= Math.round(d.float.hover + 2 * Math.sin(this.anim * 0.07));   // floating off the ground
     if (d.movesOrigin) {                       // the move frames are bigger, so their feet sit at a different spot
       const mo = sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY];
       if (spr.originX !== mo[0] || spr.originY !== mo[1]) spr.setOrigin(mo[0], mo[1]);
@@ -445,6 +446,27 @@ export class FighterRender {
           g.fillStyle(cols[2], fade * (0.9 - q)); g.fillRect(Math.round(px) - 2, Math.round(py), 4, 3);
           g.fillStyle(0xffffff, fade * (1 - q)); g.fillRect(Math.round(px) - 2, Math.round(py) - 1, 4, 1);
         }
+        break;
+      }
+      case 'spear': case 'spearUp': case 'spearDown': case 'spearBack': {   // FULL AERO: a golden streak along the thrust, a glint at the point
+        const G = [0xb07a1e, 0xf3c358, 0xfff2a8, 0xffffff], yy = (y1 + y2) / 2, xx = (x1 + x2) / 2;
+        const sx = bx + f * 6, sy = cy;
+        const tx = S.fx === 'spear' ? (f > 0 ? x2 : x1) : S.fx === 'spearBack' ? (f > 0 ? x1 : x2) : xx;
+        const ty = S.fx === 'spearUp' ? y1 : S.fx === 'spearDown' ? y2 : yy;
+        const e = 0.35 + 0.65 * S.k, ex = sx + (tx - sx) * e, ey = sy + (ty - sy) * e, len = Math.hypot(ex - sx, ey - sy) || 1;
+        const nx = -(ey - sy) / len, ny = (ex - sx) / len;
+        for (const [o, w, c] of [[0, 1, 3], [2, 0.8, 2], [-2, 0.8, 2], [4, 0.5, 1], [-4, 0.5, 1]]) {
+          g.lineStyle(o ? 1 : 2, G[c], fade * (o ? 0.6 : 0.95));
+          g.lineBetween(ex - (ex - sx) * w + nx * o, ey - (ey - sy) * w + ny * o, ex + nx * o * 0.3, ey + ny * o * 0.3);
+        }
+        g.fillStyle(0xffffff, fade); g.fillRect(ex - 1, ey - 5, 2, 10); g.fillRect(ex - 5, ey - 1, 10, 2);   // the glint
+        g.fillStyle(G[1], fade * 0.5); g.fillCircle(ex, ey, 3 + 3 * S.k);
+        break;
+      }
+      case 'spearSpin': {                                            // a golden ring as the spear twirls round
+        const G = [0xb07a1e, 0xf3c358, 0xfff2a8, 0xffffff], ccx = (x1 + x2) / 2, ccy = (y1 + y2) / 2, r = Math.max(16, (x2 - x1) / 2);
+        const lead = -1.6 + Math.PI * 2 * 0.9 * S.k;
+        for (let a = -1.6; a <= lead; a += 0.08) { const q = (lead - a) / 5.6; g.fillStyle(G[Math.max(0, 3 - Math.floor(q * 4))], fade * (1 - q)); g.fillRect(ccx + Math.cos(a) * r * f - 1, ccy + Math.sin(a) * r * 0.7 - 1, 3, 3); }
         break;
       }
       case 'bubble': {                                               // a bubble popping in front of the palm

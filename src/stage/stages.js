@@ -7,6 +7,7 @@ import { ArcadeStage, drawArcadePreview } from './arcadeStage.js';
 import { ForestStage, drawForestPreview } from './forestStage.js';
 import { BackroomsStage, drawBackroomsPreview } from './backroomsStage.js';
 import { InfectedStage, drawInfectedPreview } from './infectedStage.js';
+import { AeroStage, drawAeroPreview } from './aeroStage.js';
 
 export const STAGES = [
   {
@@ -51,9 +52,15 @@ export const STAGES = [
     hazard: 'YOU ARE AN IDIOT, ILOVEYOU AND\nTHE RED ROOM TAKE TURNS WITH THE PC.',
     preview: drawInfectedPreview,
   },
+  {
+    id: 'aero-meadow', name: 'AERO MEADOW', available: true, make: (scene) => new AeroStage(scene),
+    blurb: ['A glossy Frutiger Aero dream where old gadgets', 'were left in the grass and nature took them back.'],
+    hazard: 'CD SHOWER: GLINTS IN THE SKY, THEN\nSPINNING CDS STREAK DOWN AT AN ANGLE.',
+    preview: drawAeroPreview,
+  },
 ];
 
-export const STAGE_SLOTS = 8;   // tiles on the select grid; the last one is Random
+export const STAGE_SLOTS = 10;  // tiles on the select grid (2 across, 5 down); the last one is Random
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

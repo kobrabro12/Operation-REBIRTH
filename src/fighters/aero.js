@@ -110,6 +110,7 @@ export const AERO = {
 const SPEAR = {
   reach: 22,                        // extra reach in pixels
   dmg: 1.25,                        // damage multiplier (tiny 1% multi-hits stay as they are)
+  fx: { f: 'spear', up: 'spearUp', down: 'spearDown', back: 'spearBack', both: 'spearSpin' },   // the golden swoosh each one draws
   dir: { jab: 'f', ftilt: 'f', dtilt: 'f', dashAttack: 'f', fsmash: 'f', fair: 'f', nair: 'both', dsmash: 'both', utilt: 'up', usmash: 'up', uair: 'up', bair: 'back', dair: 'down' },
 };
 function spearMove(m, dir) {
@@ -119,7 +120,7 @@ function spearMove(m, dir) {
     if (dir === 'f') w += r; else if (dir === 'back') { x -= r; w += r; } else if (dir === 'both') { x -= r; w += 2 * r; }
     else if (dir === 'up') { y -= r; hh += r; } else if (dir === 'down') hh += r;
     return { ...h, box: [x, y, w, hh], dmg: h.dmg > 1 ? Math.round(h.dmg * SPEAR.dmg) : h.dmg };
-  }) };
+  }), fx: SPEAR.fx[dir], bubble: undefined, stream: undefined, slide: m.slide && { ...m.slide, dust: 0xf3c358 } };
 }
 
 // AERO in FULL AERO: winged, haloed, crowned, with a golden spear (tools/sprites/aero_king_draw.py), every
@@ -128,7 +129,10 @@ export const AERO_FULL = {
   ...AERO,
   swingSfx: 'whoosh',
   sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
-  moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king },
+  // his spear attacks (k_* in aero_moves.py) in place of the normal ones
+  moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king, ...Object.fromEntries(Object.keys(SPEAR.dir).map((k) => [k, AERO_MOVES['k_' + k]])) },
+  // he floats: falls slowly and hovers a little off the ground
+  float: { gravity: 0.5, maxFall: 3.2, hover: 7 },
   moves: {
     ...AERO.moves,
     ...Object.fromEntries(Object.entries(SPEAR.dir).map(([k, d]) => [k, spearMove(AERO.moves[k], d)])),
