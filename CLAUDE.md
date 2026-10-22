@@ -34,7 +34,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
 | Sprite loading | `src/scenes/BootScene.js` | Every sheet key + frame size is registered here. |
 | Match loop, hits, KOs | `src/scenes/MatchScene.js` | |
-| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
+| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute; `infectedStage.js` (INFECTED.EXE: virus pop-ups, `strikeTargets` closes them) | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
 | Items | `src/items/items.js` | Soul Heart, Limit Orb, Cursed Skull. Textures drawn from char maps. |
 | CPU AI | `src/ai/cpu.js` | Presses buttons on a `Controller` like a human. |
 | Input | `src/input/controllers.js`, `touch.js` | |

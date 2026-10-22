@@ -6,6 +6,7 @@ import { MoonStage, drawMoonPreview } from './moonStage.js';
 import { ArcadeStage, drawArcadePreview } from './arcadeStage.js';
 import { ForestStage, drawForestPreview } from './forestStage.js';
 import { BackroomsStage, drawBackroomsPreview } from './backroomsStage.js';
+import { InfectedStage, drawInfectedPreview } from './infectedStage.js';
 
 export const STAGES = [
   {
@@ -43,6 +44,12 @@ export const STAGES = [
     blurb: ['A scrap of floor adrift in the back rooms of', 'reality. Every minute: NOCLIP to a new level.'],
     hazard: 'LIGHTS OUT, FALLING CRATES, STEAM VENTS,\nTHE SURGE - ONE FOR EACH OF ITS 4 LEVELS.',
     preview: drawBackroomsPreview,
+  },
+  {
+    id: 'infected', name: 'INFECTED.EXE', available: true, make: (scene) => new InfectedStage(scene),
+    blurb: ['The taskbar of a giant old PC that opened', 'every attachment it was ever sent.'],
+    hazard: 'YOU ARE AN IDIOT, ILOVEYOU AND\nTHE RED ROOM TAKE TURNS WITH THE PC.',
+    preview: drawInfectedPreview,
   },
 ];
 

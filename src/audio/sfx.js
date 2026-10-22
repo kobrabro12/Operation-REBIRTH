@@ -105,6 +105,13 @@ export function initSfx(scene) {
   build('ding', 0.8, (t) => { ph += 1318 / SR; ph2 += 1046 / SR; return (t < 0.3 ? sq(ph, 0.5) : sq(ph2, 0.5)) * 0.4 * Math.exp(-(t < 0.3 ? t : t - 0.3) * 6); });
   ph = 0; n1 = noiseStep(1);
   build('glass', 0.3, (t) => { ph += (3200 + 900 * Math.sin(t * 300)) / SR; return n1() * 0.6 * Math.exp(-t * 14) + sq(ph, 0.25) * 0.2 * Math.exp(-t * 18); });
+  // INFECTED.EXE: a tinny 'ha-ha-ha-ha', the pop-up error bonk, a new-mail chime
+  ph = 0;
+  build('laugh', 0.9, (t) => { const k = Math.floor(t * 9), u = (t * 9) % 1; ph += (900 - k * 40 + 260 * Math.exp(-u * 6)) / SR; return sq(ph, 0.3) * 0.5 * (u < 0.62 ? Math.min(1, u * 30) * (1 - u / 0.62) : 0) * (k < 7 ? 1 : 0); });
+  ph = 0; ph2 = 0;
+  build('popup', 0.35, (t) => { ph += 392 / SR; ph2 += 494 / SR; return (sq(ph, 0.5) + sq(ph2, 0.5)) * 0.3 * Math.exp(-t * 7); });
+  ph = 0;
+  build('mail', 0.6, (t) => { ph += (t < 0.14 ? 1568 : t < 0.28 ? 1175 : 1760) / SR; return sq(ph, 0.25) * 0.4 * Math.exp(-((t % 0.14) * 9)) * (t < 0.42 ? 1 : 0); });
 }
 
 // the title screen's demo match plays silently
