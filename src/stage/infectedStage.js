@@ -67,6 +67,15 @@ function drawEnvelope(g, x, y, P = VPAL) {
   drawHeart(g, x, y + 1, 3, P.heart);
 }
 
+// YOU ARE AN IDIOT's pop-ups
+const IDIOT = {
+  end: 920,          // frames the hazard lasts (pop-ups from frame 70, so about 14 seconds of them)
+  every: 26,         // a new pop-up opens this often (frames)
+  max: 12,           // most pop-ups on screen at once
+  total: 40,         // most pop-ups in one hazard (counting the two that open when you close one)
+  w: 68, h: 54,      // pop-up size in pixels
+};
+
 export class InfectedStage {
   constructor(scene) {
     this.scene = scene;
@@ -219,7 +228,7 @@ export class InfectedStage {
 
   // ---------------------------------------------------------------- hazards
   // YOU ARE AN IDIOT: laughing pop-ups bounce around the screen. Hit one to close it - two more open.
-  start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = 620; h.n = 0; h.spawned = 0; }
+  start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = IDIOT.end; h.n = 0; h.spawned = 0; }
   // its song (Mason's sfx_idiot): starts when the pop-ups do, fades out as they close
   idiotSong(match, h) {
     const sm = this.scene.sound, vol = Math.min(1, 1.0 * match.sfxVol() * 1.25);
@@ -237,16 +246,16 @@ export class InfectedStage {
   }
   stopSong() { if (this.song) { this.song.stop(); this.song.destroy(); this.song = null; } }
   openWindow(h, x, y) {
-    if (h.spawned >= 10) return;
+    if (h.spawned >= IDIOT.total) return;
     const a = Math.random() * Math.PI * 2, sp = 1.8 + Math.random() * 0.9;
     h.wins.push({ x, y, vx: Math.cos(a) * sp || 1.5, vy: Math.sin(a) * sp, n: ++h.n, open: 0, seen: new Set() });
     h.spawned++;
   }
   step_idiot(match, h, out) {
-    const W = 56, H = 44, inv = (h.t >> 3) % 2, closing = h.t > h.end - 30;
+    const W = IDIOT.w, H = IDIOT.h, inv = (h.t >> 3) % 2, closing = h.t > h.end - 30;
     this.idiotSong(match, h);
-    if (h.t === 70) { this.openWindow(h, -120, -180); this.openWindow(h, 120, -150); sfx('popup', 1); }
-    if (h.t > 70 && h.t < h.end - 80 && h.t % 70 === 0 && h.wins.length < 6) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('popup', 0.9, 1.1); }
+    if (h.t === 70) { for (const [x, y] of [[-160, -190], [160, -160], [-40, -120], [60, -210]]) this.openWindow(h, x, y); sfx('popup', 1); }
+    if (h.t > 70 && h.t < h.end - 80 && h.t % IDIOT.every === 0 && h.wins.length < IDIOT.max) { this.openWindow(h, (Math.random() - 0.5) * 400, -230); sfx('popup', 0.9, 1.1); }
     for (const w of h.wins) {
       w.open = Math.min(1, w.open + 0.15);
       w.x += w.vx; w.y += w.vy;
@@ -256,7 +265,7 @@ export class InfectedStage {
       if (ww < 6) continue;
       const g = this.hzG, x = Math.round(w.x - ww / 2), y = Math.round(w.y - hh / 2), fg = inv ? 0xffffff : 0x000000, bg = inv ? 0x000000 : 0xffffff;
       drawWindow(g, x, y, ww, hh, bg);
-      if (k > 0.8) for (let i = -1; i <= 1; i++) drawSmiley(g, w.x + i * 15, w.y + 6, 5, 0xffffff, fg === 0x000000 ? 0x000000 : 0x2a2a2a);
+      if (k > 0.8) for (let i = -1; i <= 1; i++) drawSmiley(g, w.x + i * 19, w.y + 7, 6, 0xffffff, fg === 0x000000 ? 0x000000 : 0x2a2a2a);
       if (k > 0.8) out.push({ x1: x, x2: x + ww, y1: y, y2: y + hh, dmg: 5, angle: 50, base: 3.4, growth: 2.6, dirX: Math.sign(w.vx) || 1, id: 'idiot' + h.id + ':' + w.n + ':' + Math.floor(h.t / 40), hazard: true });
     }
     if (h.wins.length && !closing) {                             // the caption across the sky, flashing with them
@@ -271,14 +280,14 @@ export class InfectedStage {
     if (!h || h.kind !== 'idiot' || !this.hazardsOn || h.t > h.end - 80) return;
     for (const w of [...h.wins]) {
       if (w.open < 1) continue;
-      const b = { x1: w.x - 28, x2: w.x + 28, y1: w.y - 22, y2: w.y + 22 };
+      const b = { x1: w.x - IDIOT.w / 2, x2: w.x + IDIOT.w / 2, y1: w.y - IDIOT.h / 2, y2: w.y + IDIOT.h / 2 };
       const hb = hbs.find((x) => x.x1 < b.x2 && x.x2 > b.x1 && x.y1 < b.y2 && x.y2 > b.y1 && !w.seen.has(x.id));
       if (!hb) continue;
       w.seen.add(hb.id);
       h.wins.splice(h.wins.indexOf(w), 1);
       match.puff(w.x, w.y, 0xffffff, 8); match.puff(w.x, w.y, 0x000000, 6);
       sfx('popup', 1);
-      if (h.wins.length < 6) { this.openWindow(h, w.x - 20, w.y); this.openWindow(h, w.x + 20, w.y); }
+      if (h.wins.length < IDIOT.max) { this.openWindow(h, w.x - 20, w.y); this.openWindow(h, w.x + 20, w.y); }
     }
   }
 
