@@ -1,6 +1,7 @@
 // Character Files (TRINKETS > CHARACTER FILES): a dossier on each fighter - file number, alias, class,
 // weapon, origin, signature moves and Limit - their story, and a costume browser with each costume's
-// own story. Milestone costumes stay sealed (silhouette, no story) until they're unlocked.
+// own story. Milestone costumes can be looked at and read here before they're unlocked (marked LOCKED,
+// with how many KOs it takes to wear one).
 // W/S switches fighter, A/D switches costume, K / Esc / B goes back.
 // Mouse: click a fighter tab, or the < > arrows under the costume.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -12,7 +13,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinUnlocked, skinTier } from '../fighters/skins.js';
 import { MILESTONE_KOS, getKOs } from '../progress.js';
-import { FILES, SKIN_LORE } from '../data/lore.js';
+import { FILES, SKIN_LORE, MILESTONE_LORE } from '../data/lore.js';
 
 const GOLD = '#f3c358', DIM = '#8a87a3', LINE = 0xc77dff, PANEL = 0x1c1230;
 const TAB_W = 150, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
@@ -71,11 +72,11 @@ export class FilesScene extends Phaser.Scene {
     this.fields.forEach(([, v], i) => v.setText(vals[i] || '???'));
     this.lore.setText(F.lore || 'NO FILE YET.');
     const open = skinUnlocked(f.id, this.si), tier = skinTier(f.id, this.si);
-    const story = skin.lore || (SKIN_LORE[f.id] || {})[skin.name];
-    this.skinName.setText(open ? skin.name : '? ? ?');
-    this.skinNote.setText((this.si + 1) + ' / ' + skins.length + (tier ? '\nMILESTONE ' + tier : '') + (open ? '' : '\nREACH ' + MILESTONE_KOS[tier] + ' KOS (' + getKOs(f.id) + ' SO FAR)'));
-    this.skinHead.setText('COSTUME FILE: ' + (open ? skin.name : 'SEALED'));
-    this.skinLore.setText(!open ? 'THIS FILE IS SEALED. WIN MORE FIGHTS AS ' + f.name + ' TO OPEN IT.' : story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
+    const story = (MILESTONE_LORE[f.id] || {})[skin.name] || skin.lore || (SKIN_LORE[f.id] || {})[skin.name];
+    this.skinName.setText(skin.name);
+    this.skinNote.setText((this.si + 1) + ' / ' + skins.length + (tier ? '\nMILESTONE ' + tier : '') + (open ? '' : '\nLOCKED: REACH ' + MILESTONE_KOS[tier] + ' KOS (' + getKOs(f.id) + ' SO FAR)'));
+    this.skinHead.setText('COSTUME FILE: ' + skin.name + (tier ? '  (MILESTONE ' + tier + (open ? ')' : ' - LOCKED)') : ''));
+    this.skinLore.setText(story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
     this.locked = !open;
   }
 
@@ -101,6 +102,11 @@ export class FilesScene extends Phaser.Scene {
     sg.fillStyle(0x2a1f44, 1); sg.fillRect(cx - 50, by, 100, 6); sg.fillStyle(0x3a2a5a, 1); sg.fillRect(cx - 44, by + 6, 88, 4);
     showFighter(this.sprite, def, Math.floor(this.t / 6), this.si);
     this.sprite.setPosition(cx, by).setScale(def.ownAnims ? 1.4 : 2);
-    if (this.locked) this.sprite.setTint(0x0b0a14).setTintMode(Phaser.TintModes.FILL); else this.sprite.clearTint();
+    this.sprite.clearTint().setAlpha(this.locked ? 0.75 + 0.1 * Math.sin(this.t * 0.08) : 1);   // a locked costume: shown, but a little ghostly
+    const lg = this.stageG;
+    if (this.locked) {                                               // a small padlock on the plinth
+      lg.fillStyle(0xf3c358, 1); lg.fillRect(cx + 36, by - 8, 10, 8); lg.lineStyle(2, 0xf3c358, 1); lg.strokeRect(cx + 38, by - 13, 6, 6);
+      lg.fillStyle(0x0b0a14, 1); lg.fillRect(cx + 40, by - 5, 2, 3);
+    }
   }
 }

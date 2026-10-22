@@ -56,3 +56,26 @@ export const SKIN_LORE = {
     STARLIGHT: 'She stood night watch on the Sanctum walls so often that the stars started to stick to her armour.',
   },
 };
+
+// the full backstory of each milestone costume, shown in CHARACTER FILES (even before it's unlocked).
+// The one-line `lore` in skins.js is what the unlock screen shows.
+export const MILESTONE_LORE = {
+  'soul-summoner': {
+    GRAVEKEEPER: 'Before the crown, before the fire, he dug graves below the Sky Sanctum for a copper a day. One night, with rain in the open pits, the dead whispered his name - and he was the only one in the kingdom who whispered back.',
+    WRAITHBINDER: 'He learned their names, and a name is a leash. Two wraiths came first: a drowned sailor and a soldier with no face. They never left his side again, and they never once disobeyed him.',
+    LICH: 'Binding the dead costs the living a little of themselves every time. He paid until there was nothing left to pay with. His flesh fell away, and a crown of violet fire lit itself above his bare skull.',
+    'THE HOLLOW KING': 'Every soul he ever raised came home at once. The dead of a thousand years knelt before him on a throne of grave dirt and blue flame. The Hollow King does not rule a kingdom. He rules everyone who has ever left one.',
+  },
+  'hero-knight': {
+    SQUIRE: 'Lacy was twelve when the knights rode out and never came back. She put on the bronze armour they left behind, three sizes too big, picked up a borrowed sword, and swore their oath alone in an empty chapel.',
+    'KNIGHT-CAPTAIN': 'No one was left to knight her, so the people she saved did it instead - on a muddy field, with her own sword, after she held a bridge for a whole night. The royal blue was a gift from the village weavers.',
+    PALADIN: 'An old shrine in the mountains had waited a hundred years for someone to keep the oath long enough. When she knelt there, the light came down and stayed. Now it gathers wherever her sword falls.',
+    SERAPH: 'The oath is fulfilled: every promise kept, every person protected. The order she carried alone rises with her on wings of light. She still swings like a slugger. Some things a seraph keeps.',
+  },
+  'mr-wake': {
+    RIPTIDE: 'The first time he lost a fight, he walked back into the sea to sulk. The tide turned under him and pulled - and for the first time in a hundred years, something down there pulled harder than he did. He came out soaked and smiling.',
+    DEEPWATER: 'He let the current take him deeper. Past the wrecks, past the light, down where the gem in his staff had to learn to glow on its own. Bubbles still stream from his cloak - the sea keeps trying to breathe through him.',
+    "ANGLER'S PACT": 'At the bottom of the black trench, something with a lantern for a face offered him a deal. He took it. His staff became a lure, his skin a lantern, and nobody - not even Mr Wake - remembers what he gave in return.',
+    TIDEFATHER: 'The abyss answered. It crowned him in coral and gave him the tides to wear like a cloak. When the Tidefather moves, the ocean moves with him, and every drowned thing beneath it remembers his name.',
+  },
+};

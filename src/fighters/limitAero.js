@@ -89,7 +89,7 @@ export class LimitAero {
   // ---- FULL AERO (AERO's alternate Limit, with two computers out): the computers pour their power into
   // him, then a blast of light (30%) hits everyone near him, the words GOING FULL AERO appear, the stage
   // turns into a Frutiger Aero version of itself, and he transforms - winged, haloed, crowned - with every
-  // stat boosted and every special upgraded for the rest of the time (FULL_AERO in aero.js).
+  // stat boosted, a golden spear on every normal attack and every special upgraded - until he's KO'd (AERO_FULL in aero.js).
   fullAeroLimit(A) {
     const m = this.match;
     if (this.t === 1) {

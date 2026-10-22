@@ -96,21 +96,42 @@ export const AERO = {
     colors: PAL_AQUA,
   },
   // FULL AERO: his Limit with two computers out. They pour their power into him, a blast hits everyone
-  // near him for 30%, GOING FULL AERO appears, the stage turns Frutiger Aero and he transforms for 15 s.
+  // near him for 30%, GOING FULL AERO appears, the stage turns Frutiger Aero and he transforms - for good,
+  // until he's KO'd.
   altLimit: {
-    name: 'FULL AERO', frames: 100, blastAt: 50, radius: 170, duration: 900,
+    name: 'FULL AERO', frames: 100, blastAt: 50, radius: 170,
+    duration: Infinity,             // frames he stays FULL AERO (Infinity = until he's KO'd)
     blast: { dmg: 30, angle: 70, base: 6.0, growth: 5.4, radial: true },
   },
 };
 
-// AERO in FULL AERO: winged, haloed, crowned (tools/sprites/aero_king_draw.py), every stat boosted
-// (Fighter.aeroLevel), and every special upgraded.
+// FULL AERO's GOLDEN SPEAR: his normal attacks are spear thrusts and sweeps now. Each one's hitbox grows the
+// way the attack points (forward, up, down, back or both ways) and hits harder.
+const SPEAR = {
+  reach: 22,                        // extra reach in pixels
+  dmg: 1.25,                        // damage multiplier (tiny 1% multi-hits stay as they are)
+  dir: { jab: 'f', ftilt: 'f', dtilt: 'f', dashAttack: 'f', fsmash: 'f', fair: 'f', nair: 'both', dsmash: 'both', utilt: 'up', usmash: 'up', uair: 'up', bair: 'back', dair: 'down' },
+};
+function spearMove(m, dir) {
+  const r = SPEAR.reach;
+  return { ...m, hits: m.hits.map((h) => {
+    let [x, y, w, hh] = h.box;
+    if (dir === 'f') w += r; else if (dir === 'back') { x -= r; w += r; } else if (dir === 'both') { x -= r; w += 2 * r; }
+    else if (dir === 'up') { y -= r; hh += r; } else if (dir === 'down') hh += r;
+    return { ...h, box: [x, y, w, hh], dmg: h.dmg > 1 ? Math.round(h.dmg * SPEAR.dmg) : h.dmg };
+  }) };
+}
+
+// AERO in FULL AERO: winged, haloed, crowned, with a golden spear (tools/sprites/aero_king_draw.py), every
+// stat boosted (Fighter.aeroLevel), every normal attack a spear attack and every special upgraded.
 export const AERO_FULL = {
   ...AERO,
+  swingSfx: 'whoosh',
   sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
   moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king },
   moves: {
     ...AERO.moves,
+    ...Object.fromEntries(Object.entries(SPEAR.dir).map(([k, d]) => [k, spearMove(AERO.moves[k], d)])),
     // BUBBLE TRAP: blown out much faster, and the bubble holds them twice as long
     neutralB: { frames: 18, spawnAt: 7, bubble: { speed: 3.8, life: 110, r: 12, hit: { dmg: 5, angle: 90, base: 0.6, growth: 0, stun: 96, bubble: 96 } } },
     // GOLDFISH FLING: two fish at once

@@ -5,7 +5,10 @@ regal: a golden halo floating over the bowl, the goldfish wearing a tiny crown, 
 wings with aqua tips behind him, a royal aqua cape with gold trim and a white collar in place of the leaf
 scarf, gold trim on the suit (belt, collar, boot soles) and golden gloves.
 
-Built on aero_draw.py's parts (same joints and rig), with two new parts: 'wings' and 'halo'.
+He also carries a GOLDEN SPEAR in his front hand, along the line of his forearm, so it points wherever he
+swings (part 'spear', hung on the glove).
+
+Built on aero_draw.py's parts (same joints and rig), with three new parts: 'wings', 'halo' and 'spear'.
 The cape keeps the scarf's part name, so it trails and streams the same way.
 """
 import numpy as np
@@ -79,10 +82,30 @@ def draw_parts():
     for (x, y, c) in [(33, 11, 1), (34, 10, 0), (35, 11, 1), (36, 10, 0), (37, 11, 1), (33, 12, 2), (34, 12, 1), (35, 12, 1), (36, 12, 1), (37, 12, 2)]:
         f[y, x] = hx(GOLD[c])
     P['fish'] = f
+    # ---- the golden spear: through his glove along the forearm (elbow 42,31 -> glove 44,26), the point well
+    # past his hand, the butt behind it. A leaf-shaped gold head with a white edge and an aqua tassel.
+    import math
+    gx, gy = 44, 26
+    ux, uy = 2 / math.hypot(2, 5), -5 / math.hypot(2, 5)                  # along the forearm, outward
+    tip = (gx + ux * 25.5, gy + uy * 25.5); butt = (gx - ux * 17, gy - uy * 17); neck = (gx + ux * 16, gy + uy * 16)
+    im = blank(); d = ImageDraw.Draw(im)
+    d.line([butt, neck], fill=hx(GOLD[0]), width=2)                        # the shaft
+    px, py = -uy, ux                                                       # sideways
+    d.polygon([neck, (neck[0] + ux * 3 + px * 4, neck[1] + uy * 3 + py * 4), tip, (neck[0] + ux * 3 - px * 4, neck[1] + uy * 3 - py * 4)], fill=hx(GOLD[0]))
+    a = finish(im, GOLD)
+    for i in range(3, 8):                                                  # a white gleam up the blade
+        x, y = int(round(neck[0] + ux * i + px)), int(round(neck[1] + uy * i + py))
+        if 0 <= x < 64 and 0 <= y < 64 and a[y, x, 3]: a[y, x] = hx(0xffffff)
+    for i in range(2):                                                     # the aqua tassel under the head
+        x, y = int(round(neck[0] - ux * (1 + i) - px * 2)), int(round(neck[1] - uy * (1 + i) - py * 2))
+        a[y, x] = hx(aero_draw.PAL['aqua'][0 if i else 1])
+    bx, by = int(round(butt[0])), int(round(butt[1]))
+    a[by, bx] = hx(GOLD[2])                                                # the butt cap
+    P['spear'] = a
     return P
 
-ORDER = ['wings', 'scarf', 'bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'halo', 'fish', 'fupper', 'ffore', 'ffist']
-RIG = dict(aero_draw.RIG, wings=((29, 25), 'torso'), halo=((33, 2), 'head'))
+ORDER = ['wings', 'scarf', 'bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'halo', 'fish', 'fupper', 'ffore', 'spear', 'ffist']
+RIG = dict(aero_draw.RIG, wings=((29, 25), 'torso'), halo=((33, 2), 'head'), spear=((44, 26), 'ffist'))
 
 def composite(P, hide=()):
     out = np.zeros((64, 64, 4), np.uint8)
