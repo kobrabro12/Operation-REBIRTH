@@ -5,9 +5,26 @@
 import { sfx } from '../audio/sfx.js';
 import { PHYS } from '../config.js';
 import { drawDoor, drawPoster } from './entities.js';
-import { FONT } from '../config.js';
+import { WOW_SCREENS } from './wowScreens.js';
+import { newAttackId } from './attackIds.js';
 
-const HALL = { wall: 0xd4c06a, stripe: 0xb8a24c, ceil: 0xe6dca8, tile: 0xc8bc88, carpet: 0x8f7d45, carpetDark: 0x6e5f32, far: 0x2a2410, lit: 0xfffbe0, dead: 0x5a5440 };
+// LEVEL 0's hallway, in each costume's version of the Backrooms
+const HALLS = {
+  default: { wall: 0xd4c06a, stripe: 0xb8a24c, ceil: 0xe6dca8, tile: 0xc8bc88, carpet: 0x8f7d45, carpetDark: 0x6e5f32, skirt: 0xa08c40, lit: 0xfffbe0, dead: 0x5a5440, thing: [0x070504, 0x1c130c, 0x3a2a1c], eyes: 0xffffff, mouth: 0x2a0806, teeth: 0xe8e0c8 },
+  // FRUTIGER: a glossy aqua-sky office hallway, white tiles, bubbles - and something dark teal in it
+  wowAero: { wall: 0x8adcf0, stripe: 0xc8f4ff, ceil: 0xf4fbff, tile: 0xb8e4f2, carpet: 0xe6f4fb, carpetDark: 0x9ac8dc, skirt: 0x3fc8ea, lit: 0xffffff, dead: 0x6a9aac, thing: [0x02141c, 0x0a2e3a, 0x1a6a80], eyes: 0x9ff0ff, mouth: 0x02343e, teeth: 0xffffff },
+  // ROOT ACCESS: a wireframe corridor on black, green phosphor
+  wowHack: { wall: 0x041008, stripe: 0x0e3a1a, ceil: 0x020804, tile: 0x1a6a2a, carpet: 0x020a04, carpetDark: 0x1a6a2a, skirt: 0x3ae060, lit: 0x9affb0, dead: 0x0e2a14, thing: [0x000000, 0x041a08, 0x0e4a1a], eyes: 0x3ae060, mouth: 0x000000, teeth: 0x9affb0 },
+  // RONIN: shoji walls, tatami floor, paper lanterns - and an ink-black oni
+  wowRonin: { wall: 0xf0e4c8, stripe: 0x3a2a1a, ceil: 0x4a3426, tile: 0x2a1c12, carpet: 0xb8a468, carpetDark: 0x6a5a30, skirt: 0x3a2a1a, lit: 0xff8a5a, dead: 0x5a3a2a, thing: [0x0a0606, 0x1e1010, 0x5a1010], eyes: 0xff3a2a, mouth: 0x8a0a0a, teeth: 0xf0e8d8 },
+};
+// the costume's effect colours: beams, the elevator, static
+const FXS = {
+  default: { beam: [0xfff6b0, 0xffffff, 0xffffff], beamRed: [0xa8140e, 0xff4a3a, 0xffd0c0], car: [0x2e2a22, 0x3e382c, 0x7a7468, 0x4a463c], cable: 0x16120a },
+  wowAero: { beam: [0x3fc8ea, 0xc8f8ff, 0xffffff], beamRed: [0xc0408a, 0xff7ac0, 0xffe0f0], car: [0x9adcf0, 0xc8f0fa, 0xffffff, 0x3fb8d8], cable: 0x6fd03a },
+  wowHack: { beam: [0x157a2e, 0x3ae060, 0xb8ffc8], beamRed: [0x7a0a0a, 0xff2a2a, 0xffb0a0], car: [0x020a04, 0x0e3a1a, 0x3ae060, 0x1a6a2a], cable: 0x3ae060 },
+  wowRonin: { beam: [0xd9a32e, 0xffe08a, 0xffffff], beamRed: [0x5a0a0a, 0xe02a1a, 0xffd060], car: [0x241c22, 0x3a2a1a, 0xd9a32e, 0xb82a22], cable: 0xb82a22 },
+};
 
 export class FighterWhatOnceWas {
 
@@ -33,6 +50,44 @@ export class FighterWhatOnceWas {
     }
     if (m.beam && this.t === m.beam.from) { sfx(m.beam.red ? 'laser' : 'glitch', 0.7, m.beam.red ? 0.7 : 0.6); this.match.shake(4, 6); }
   }
+  get styleKey() { return HALLS[this.style] ? this.style : 'default'; }
+  hall() { return HALLS[this.styleKey]; }
+  fxs() { return FXS[this.styleKey]; }
+
+  // ---- the MODE screen: an animated picture (mode_screens.png) placed exactly over its TV's screen in
+  // every frame (wowScreens.js says where), so SEE's eye can look about and SMILE's grin can glitch
+  drawModeScreen(spr) {
+    if (!this.scrImg) { this.scrImg = this.scene.add.image(0, 0, 'wow_modescr', 0).setOrigin(0.5); this.match.addWorld(this.scrImg); }
+    const img = this.scrImg, mode = this.wowMode, S = this.sheets, key = spr.texture.key;
+    const kind = key === S.moves ? 'moves' : key === S.idle ? 'idle' : key === S.run ? 'run' : key === S.jump ? 'jump' : key === S.fall ? 'fall' : null;
+    const tr = kind && WOW_SCREENS[kind][+spr.frame.name];
+    if (!mode || !tr || !spr.visible || spr.alpha < 0.05 || this.flash > 0 || this.silhouette > 0) { img.setVisible(false); return; }
+    const big = kind === 'moves', ox = big ? 56 : 32, oy = big ? 95 : 59, flip = spr.flipX ? -1 : 1;
+    const dx = (tr[0] / 10 - ox) * flip * spr.scaleX, dy = (tr[1] / 10 - oy) * spr.scaleY, r = spr.rotation, c = Math.cos(r), sn = Math.sin(r);
+    const a = this.anim, mi = { see: 0, incoming: 1, smile: 2 }[mode];
+    const sub = mode === 'see' ? [0, 0, 1, 0, 2, 0, 0, 3][(a >> 4) % 8] : mode === 'incoming' ? (a >> 2) % 4 : ((a * 7) % 53 < 4 ? 1 + ((a >> 1) % 3) : 0);
+    img.setFrame((this.def.screenRow[this.styleKey] || 0) * 12 + mi * 4 + sub)
+      .setPosition(spr.x + dx * c - dy * sn, spr.y + dx * sn + dy * c)
+      .setRotation(r + flip * tr[2] * Math.PI / 180).setFlipX(flip < 0)
+      .setScale(tr[3] / 100 * spr.scaleX, tr[4] / 100 * spr.scaleY).setAlpha(spr.alpha).setDepth(spr.depth).setVisible(true);
+  }
+  hideModeScreen() { if (this.scrImg) this.scrImg.setVisible(false); }
+
+  // ---- the costume's own ambient effects (FRUTIGER / ROOT ACCESS / RONIN)
+  drawStyleAura(g) {
+    const R = Math.random, P = this.match.particles, t = this.anim, k = this.styleKey;
+    if (k === 'wowAero') {                                           // glossy bubbles drifting up off it, a soft sky-blue glow
+      if (t % 9 === 0) P.push({ shape: 'bubble', x: this.x + (R() - 0.5) * 28, y: this.y - 10 - R() * 40, vx: (R() - 0.5) * 0.4, vy: -0.5 - R() * 0.6, life: 40 + R() * 20, color: R() < 0.5 ? 0x9ff0ff : 0xffffff, grav: -0.01, r: 1 + Math.floor(R() * 3), sway: R() * 6 });
+      if (t % 40 === 0) P.push({ shape: 'glint', x: this.x - 6, y: this.y - 56, vx: 0, vy: 0, life: 8, maxLife: 8, color: 0xffffff, grav: 0, dir: 1 });
+    } else if (k === 'wowHack') {                                    // green code raining off it; now and then it glitches sideways
+      if (t % 4 === 0) P.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 30, y: this.y - 64 + R() * 10, vx: 0, vy: 1.2 + R(), life: 22 + R() * 10, color: R() < 0.7 ? 0x3ae060 : 0xb8ffc8, grav: 0 });
+      if ((t * 13) % 97 < 3) { g.fillStyle(0x3ae060, 0.35); g.fillRect(this.x - 14 + (R() - 0.5) * 8, this.y - 40 + (R() - 0.5) * 30, 28, 2); }
+    } else if (k === 'wowRonin') {                                   // sakura petals in the air around it, a faint red battle aura
+      if (t % 11 === 0) P.push({ shape: 'sakura', x: this.x + (R() - 0.5) * 60, y: this.y - 70 - R() * 20, vx: -0.3 - R() * 0.4, vy: 0.4 + R() * 0.3, life: 60, color: R() < 0.6 ? 0xffb7c5 : 0xffffff, grav: 0, sway: R() * 6 });
+      g.fillStyle(0xb82a22, 0.05 + 0.03 * Math.sin(t * 0.1)); g.fillEllipse(this.x, this.y - 30, 44, 70);
+    }
+  }
+
   glitchBurst(n) {
     const R = Math.random;
     for (let i = 0; i < n; i++) this.match.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 24, y: this.y - R() * 50, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 3, life: 14 + R() * 10, color: [this.pal.light, 0xffffff, this.pal.deep][i % 3], drag: 0.88, grav: 0 });
@@ -68,13 +123,14 @@ export class FighterWhatOnceWas {
     const u = this.def.moves.upb, t = this.t, k = Math.min(1, (t - u.riseAt + 4) / 4) * Math.min(1, (u.frames - t) / 6);
     if (k <= 0) return;
     const x = Math.round(this.x), y = Math.round(this.y) + 3, w = 40, h = 66, top = y - h;
-    bg.fillStyle(0x2e2a22, 0.95 * k); bg.fillRect(x - w / 2, top, w, h);                        // the back wall, behind him
-    bg.fillStyle(0x3e382c, 0.95 * k); for (let i = 1; i < 4; i++) bg.fillRect(x - w / 2 + i * 10, top + 4, 1, h - 8);
+    const [cw, cs, cr, cp] = this.fxs().car;
+    bg.fillStyle(cw, 0.95 * k); bg.fillRect(x - w / 2, top, w, h);                              // the back wall, behind it
+    bg.fillStyle(cs, 0.95 * k); for (let i = 1; i < 4; i++) bg.fillRect(x - w / 2 + i * 10, top + 4, 1, h - 8);
     bg.fillStyle(t >= u.stopAt ? 0xffd860 : 0xff8a3a, k); bg.fillRect(x - 4, top + 6, 8, 4);    // the floor indicator
     g.fillStyle(0x16120a, k); g.fillRect(x - w / 2 - 2, top - 4, w + 4, 6); g.fillRect(x - w / 2 - 2, y - 2, w + 4, 5);   // roof and floor
-    g.fillStyle(0x7a7468, k); g.fillRect(x - w / 2 - 1, top - 3, w + 2, 3); g.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
-    g.fillStyle(0x4a463c, k); g.fillRect(x - w / 2 - 2, top, 3, h); g.fillRect(x + w / 2 - 1, top, 3, h);   // side posts
-    g.fillStyle(0x16120a, 0.9 * k); g.fillRect(x - 1, top - 200, 2, 196);                     // the cable, up into the dark
+    g.fillStyle(cr, k); g.fillRect(x - w / 2 - 1, top - 3, w + 2, 3); g.fillRect(x - w / 2 - 1, y - 1, w + 2, 3);
+    g.fillStyle(cp, k); g.fillRect(x - w / 2 - 2, top, 3, h); g.fillRect(x + w / 2 - 1, top, 3, h);   // side posts
+    g.fillStyle(this.fxs().cable, 0.9 * k); g.fillRect(x - 1, top - 200, 2, 196);             // the cable, up into the dark
     if (t >= u.stopAt && t < u.stopAt + 8) { g.fillStyle(0xfff6b0, 0.5 * (1 - (t - u.stopAt) / 8)); g.fillRect(x - w / 2, top, w, h); }   // ding!
   }
 
@@ -84,7 +140,7 @@ export class FighterWhatOnceWas {
     const ox = this.x + this.facing * B.ox, oy = this.y + B.oy, k = (this.t - B.from) / Math.max(1, B.to - B.from);
     const grow = Math.min(1, (this.t - B.from + 1) / 3), fade = Math.min(1, (B.to - this.t + 1) / 4) * (this.anim % 4 === 0 ? 0.7 : 1);
     const len = B.len * grow, px = -dy, py = dx, ex = ox + dx * len, ey = oy + dy * len, w = B.w * (1 - 0.3 * k);
-    const [c1, c2, c3] = B.red ? [0xa8140e, 0xff4a3a, 0xffd0c0] : [this.pal.light, this.pal.core, 0xffffff];
+    const [c1, c2, c3] = B.red ? this.fxs().beamRed : this.fxs().beam;
     g.fillStyle(c1, 0.35 * fade); g.fillTriangle(ox + px * 4, oy + py * 4, ex + px * w, ey + py * w, ex - px * w, ey - py * w); g.fillTriangle(ox + px * 4, oy + py * 4, ox - px * 4, oy - py * 4, ex - px * w, ey - py * w);
     g.fillStyle(c2, 0.6 * fade); g.fillTriangle(ox, oy, ex + px * w * 0.5, ey + py * w * 0.5, ex - px * w * 0.5, ey - py * w * 0.5);
     for (let i = 0; i < 10; i++) {                                    // scanlines of static streaming along it
@@ -98,7 +154,7 @@ export class FighterWhatOnceWas {
   drawWhatOnceWas(g, spr) {
     const s = this.state, m = this.move;
     if (s === 'attack' && m && m.beam && this.t >= m.beam.from && this.t <= m.beam.to) this.drawBeam(g, m.beam);
-    this.drawSignal(g, spr);
+    this.drawSignal(g, spr); this.drawCord(g); this.drawStyleAura(g); this.drawModeScreen(spr);
     if (s === 'upb' && this.def.moves.upb.elevator && this.t >= this.def.moves.upb.riseAt - 4) this.drawElevator(g, this.fxBack);
     if (this.noclipping()) {                                          // out of reality: only a glitchy smear where it is
       spr.setAlpha(0);
@@ -112,123 +168,267 @@ export class FighterWhatOnceWas {
       const W = this.def.moves.downB.walk, t = this.t;
       if (t < W.swapAt) {
         const open = Math.min(1, t / 4), fade = Math.max(0, 1 - Math.max(0, t - 4) / (W.swapAt - 4));
-        drawDoor(this.fxBack, this.walkFrom.x, this.walkFrom.y, open, 1);
+        drawDoor(this.fxBack, this.walkFrom.x, this.walkFrom.y, open, 1, false, this.style);
         spr.setAlpha(fade);
       } else if (this.walkTo) {
         const st = t - W.swapAt, close = Math.max(0, (st - 8) / 6);
-        drawDoor(this.fxBack, this.walkTo.x, this.walkTo.y, 1 - Math.min(1, close), Math.min(1, 1.6 - close));
+        drawDoor(this.fxBack, this.walkTo.x, this.walkTo.y, 1 - Math.min(1, close), Math.min(1, 1.6 - close), false, this.style);
         spr.setAlpha(Math.min(1, st / 6));
       }
     }
     if (s === 'limit' && this.ult && this.def.limit.type === 'level0') this.drawLevel0(g, this.def.limit, this.ult);
   }
 
-  // ------------------------------------------------------------------ SIGNAL meter and the CHANNEL menu
-  // The meter (def.signal) fills from damage dealt and taken (MatchScene.applyHit calls addSignal). Full, the
-  // taunt key opens the CHANNEL menu over its head (Fighter.tryCommon); a direction picks a channel.
+  // ------------------------------------------------------------------ SIGNAL meter and the three MODES
+  // The meter (def.signal) fills from damage dealt and taken (MatchScene.applyHit calls addSignal). When it's
+  // full, the screen glitches and it TRANSFORMS into one of three modes at random - SEE, INCOMING or SMILE.
+  // The mode lasts until it's KO'd; then the meter starts again from empty and the next mode is a new roll.
+  // Each mode has a passive and replaces its side special with a brutal command grab (def.modes).
   addSignal(n) {
-    const S = this.def.signal; if (!S || this.state === 'channel') return;
-    const was = this.signal || 0;
-    this.signal = Math.min(S.max, was + n);
-    if (was < S.max && this.signal >= S.max) { sfx('limitready', 0.6, 0.7); sfx('buzz', 0.5, 1.3); this.match.popText(this, 'SIGNAL FOUND - PRESS 1', '#fff6b0'); }
+    const S = this.def.signal; if (!S || this.wowMode) return;
+    this.signal = Math.min(S.max, (this.signal || 0) + n);
+    if (this.signal >= S.max) this.transform();
   }
-  signalFull() { const S = this.def.signal; return !!S && (this.signal || 0) >= S.max; }
-  startChannel() {
-    this.setState('channel'); this.channelPick = null; this.vx *= 0.3; this.lx = this.ly = 0;
-    if (!this.grounded) this.vy = Math.min(this.vy, 0);
-    sfx('glitch', 0.6, 0.6); sfx('menu', 0.7, 0.7);
+  transform() {
+    const names = Object.keys(this.def.modes), m = this.match;
+    this.wowMode = names[Math.floor(Math.random() * names.length)];
+    const M = this.def.modes[this.wowMode];
+    this.modeFlash = 30; this.glitchBurst(24);
+    sfx('glitch', 1, 0.6); sfx('limitready', 0.7, 0.6); sfx('buzz', 0.6, 0.8); m.shake(6, 10);
+    m.popText(this, M.name, M.textColor);
+    this.say(M.lines[Math.floor(Math.random() * M.lines.length)], 70, this.vfx && this.vfx.wow ? null : 'taunt');
   }
-  // the menu: hangs in the air a little, waits for a direction; shield (or waiting too long) closes it
-  st_channel(c) {
-    const S = this.def.signal;
-    this.vx *= 0.8;
-    if (!this.grounded) this.vy = Math.min(this.vy, 0.6);
-    if (this.t % 10 === 0) sfx('buzz', 0.25, 1.4);
-    if (this.t >= 6) {
-      const pick = c.up ? 'warning' : c.down ? 'deadAir' : Math.abs(c.x) > 0.5 ? 'missing' : null;
-      if (pick) return this.pickChannel(pick);
+  get modeDef() { return this.wowMode ? this.def.modes[this.wowMode] : null; }
+  // passives, read by Fighter.dmgMult / speedMult, and SMILE's healing (called from Fighter.step)
+  get modeDmg() { const M = this.modeDef; return M && M.dmg ? M.dmg : 1; }
+  get modeSpeed() { const M = this.modeDef; return M && M.speed ? M.speed : 1; }
+  modeTick() {
+    const M = this.modeDef; if (!M || !M.heal || !this.alive) return;
+    if (this.age % M.heal.every !== 0) return;
+    const m = this.match;
+    if (m.mode === 'stamina') { if (this.hp >= this.maxHp) return; this.hp = Math.min(this.maxHp, this.hp + M.heal.amount); }
+    else { if (this.percent <= 0) return; this.percent = Math.max(0, this.percent - M.heal.amount); }
+    m.particles.push({ shape: 'cross', x: this.x + (Math.random() - 0.5) * 18, y: this.y - 40 - Math.random() * 20, vx: 0, vy: -0.5, life: 22, color: this.skinFx('heal', 0x9affb0), grav: 0, r: 2 });
+  }
+  clearMode() { this.wowMode = null; this.signal = 0; }
+
+  // ---- the mode side specials: a reach (or lunge, or teleport) state, then a hold state once it catches
+  startModeSide() {
+    const st = this.def.modes[this.wowMode].side;
+    this.usedDive = true; this.seized = null; this.lx = this.ly = 0; this.attackId = newAttackId();
+    this.setState(st); this.quip('modeSide');
+  }
+  // whoever is in box [x, y, w, h] in front of it (a grab: shields don't stop it)
+  grabTarget(box) {
+    const [bx, by, bw, bh] = box, x1 = this.facing > 0 ? this.x + bx : this.x - bx - bw, x2 = x1 + bw, y1 = this.y + by, y2 = y1 + bh;
+    for (const o of this.match.fighters) {
+      if (o === this || !o.alive || o.team === this.team || o.isIntangible() || ['respawn', 'dying', 'grabbed', 'seized', 'limit'].includes(o.state)) continue;
+      const h = o.hurtbox();
+      if (h.x1 < x2 && h.x2 > x1 && h.y1 < y2 && h.y2 > y1) return o;
     }
-    if (this.t > S.menuFor || (this.t > 6 && this.buffer.shield)) { this.buffer.shield = 0; sfx('menu', 0.5, 0.5); this.setState(this.grounded ? 'idle' : 'air'); }
+    return null;
   }
-  pickChannel(ch) {
-    const S = this.def.signal, m = this.match;
-    this.signal = 0; this.channelFlash = 20; this.channelName = ch;
-    sfx('select', 0.8, 0.7); sfx('glitch', 0.8, 1);
-    if (ch === 'warning') {                                          // WARNING: red screen, hits harder
-      this.warnMode = S.warning.frames;
-      m.popText(this, 'CH 1: WARNING', '#ff4a3a'); m.shake(4, 6);
-    } else if (ch === 'missing') {                                   // MISSING: out of the static behind the nearest opponent
+  seize(o, holdState) {
+    if (o.grabbed) { o.grabbed.grabbedBy = null; o.grabbed.setState('air'); o.grabbed = null; }
+    o.stopChargeSound(); o.setState('seized'); o.seizedBy = this; o.vx = o.vy = o.lx = o.ly = 0; o.possessed = 0;
+    this.seized = o; this.setState(holdState); this.vx = 0; this.lx = this.ly = 0;
+    sfx('shield', 0.7, 0.5);
+  }
+  // a hit on the held victim that keeps holding them (no knockback); `last` lets it fly
+  holdHit(h, tag, last = false) {
+    const o = this.seized; if (!o || !o.alive) return;
+    this.match.applyHit(o, { h, owner: this, facing: this.facing, id: tag + this.slot + ':' + this.age, pillar: true }, o.x);
+    if (!last && o.alive && o.state !== 'dying') { o.setState('seized'); o.lx = o.ly = 0; o.vx = o.vy = 0; }
+    if (last) { o.seizedBy = null; this.seized = null; }
+  }
+  holdAt(x, y) { const o = this.seized; if (!o) return; o.x = x; o.y = y; o.grounded = false; o.platform = null; }
+  releaseSeized() { const o = this.seized; if (o) { o.seizedBy = null; if (o.state === 'seized') o.setState('air'); } this.seized = null; }
+  endModeSide() { this.releaseSeized(); this.setState(this.grounded ? 'idle' : 'air'); }
+  holdFloat() { if (!this.grounded) { this.vy = 0; this.fastFalling = false; } }   // hangs in place while it works on them
+  // the victim's side: held still until it's let go (or whoever held them got interrupted)
+  st_seized() {
+    const by = this.seizedBy;
+    if (!by || !by.alive || by.seized !== this || !['see_hold', 'inc_hold', 'smile_hold'].includes(by.state)) { this.seizedBy = null; this.setState('air'); }
+  }
+
+  // SEE: the long arm shoots out and grabs them by the neck... a crack... then down into the floor
+  st_see_side() {
+    const S = this.def.modes.see.grab;
+    this.vx *= 0.7; if (!this.grounded) this.vy = Math.min(this.vy, 1);
+    if (this.t === S.from) sfx('swing', 0.7, 0.6);
+    if (this.t >= S.from && this.t <= S.to) { const o = this.grabTarget(S.box); if (o) return this.seize(o, 'see_hold'); }
+    if (this.t >= S.frames) this.endModeSide();
+  }
+  st_see_hold() {
+    const S = this.def.modes.see.grab, o = this.seized, t = this.t, m = this.match;
+    if (!o || !o.alive || o.state === 'dying') return this.endModeSide();
+    this.holdFloat();
+    const lift = Math.min(1, t / 14);
+    if (t < S.slamAt) this.holdAt(this.x + this.facing * (44 - 6 * lift), this.y - 6 - 26 * lift);
+    if (t === S.snapAt) {                                           // the neck snap
+      this.holdHit(S.snap, 'seesnap');
+      sfx('clang', 0.9, 0.45); sfx('hit', 0.8, 0.5); m.shake(6, 6); o.snapFx = 18;
+      for (let i = 0; i < 8; i++) m.particles.push({ shape: 'shard', x: o.x, y: o.y - o.body.h + 6, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 14, color: 0xffffff, ang: Math.random() * 6, grav: 0.1 });
+      m.popText(o, 'CRACK', '#ffffff');
+    }
+    if (t === S.slamAt) {                                           // then slammed into the floor
+      const floor = this.floorUnder(this.x + this.facing * 30);
+      this.holdAt(this.x + this.facing * 30, floor ?? this.y);
+      if (floor !== null) { o.grounded = true; o.y = floor; }
+      this.holdHit(S.slam, 'seeslam', true);
+      sfx('bighit', 1, 0.5); m.shake(14, 10);
+      m.puff(o.x, o.y, 0x8a7a4a, 14); m.puff(o.x, o.y, 0xffffff, 6);
+    }
+    if (t >= S.holdFrames) this.endModeSide();
+  }
+  floorUnder(x) {
+    let best = null;
+    for (const p of this.match.stage.platforms) if (x >= p.x1 && x <= p.x2 && p.y >= this.y - 4 && (best === null || p.y < best)) best = p.y;
+    return best !== null && best - this.y < 140 ? best : null;
+  }
+
+  // INCOMING: it charges, tackles them to the floor, a fury of blows, then hauls them up and throws them away
+  st_inc_side() {
+    const S = this.def.modes.incoming.rush;
+    if (this.t === S.from) { sfx('djump', 0.7, 0.6); sfx('glitch', 0.5, 1.4); }
+    if (this.t >= S.from && this.t <= S.to) {
+      this.vx = this.facing * S.vx; this.lx = this.ly = 0;
+      if (!this.grounded) this.vy = 0;
+      if (this.t % 2 === 0) this.match.particles.push({ shape: 'pixel2', x: this.x - this.facing * 10, y: this.y - 20 - Math.random() * 30, vx: -this.facing, vy: 0, life: 10, color: this.skinFx('rush', 0xff4a3a), grav: 0, drag: 0.9 });
+      const o = this.grabTarget(S.box); if (o) return this.seize(o, 'inc_hold');
+    }
+    if (this.t > S.to) this.vx *= 0.8;
+    if (this.t >= S.frames) this.endModeSide();
+  }
+  st_inc_hold() {
+    const S = this.def.modes.incoming.rush, o = this.seized, t = this.t, m = this.match;
+    if (!o || !o.alive || o.state === 'dying') return this.endModeSide();
+    this.holdFloat(); this.vx = 0;
+    if (t === 1) {                                                   // tackled into the floor
+      this.holdHit(S.tackle, 'inctack'); sfx('bighit', 0.8, 0.7); m.shake(8, 6); m.puff(o.x, o.y, 0x8a7a4a, 10);
+    }
+    if (t < S.liftAt) this.holdAt(this.x + this.facing * 24, this.y);
+    if (t >= S.furyFrom && t <= S.furyTo && (t - S.furyFrom) % S.furyEvery === 0) {   // the fury
+      this.holdHit(S.fury, 'incfury'); sfx('hit', 0.6, 1 + Math.random() * 0.4); m.shake(3, 3);
+      m.skinHitFx(this, o.x, o.y - 14, 2, this.facing, 2);
+    }
+    if (t >= S.liftAt && t < S.throwAt) {                            // hauled up overhead
+      const k = Math.min(1, (t - S.liftAt) / 10);
+      this.holdAt(this.x + this.facing * (24 - 14 * k), this.y - 54 * k);
+    }
+    if (t === S.throwAt) { this.holdHit(S.throw, 'incthrow', true); sfx('swing', 1, 0.6); sfx('bighit', 0.7, 0.9); m.shake(10, 6); }
+    if (t >= S.holdFrames) this.endModeSide();
+  }
+
+  // SMILE: if someone is in range it flickers out and back in right behind them... laughs... lifts them on its
+  // power cord, shocks them, and they vanish - dropped somewhere random on the stage
+  st_smile_side() {
+    const S = this.def.modes.smile.tele, m = this.match;
+    this.vx *= 0.7; if (!this.grounded) this.vy = Math.min(this.vy, 0.8);
+    if (this.t === S.at) {
       let best = null, bd = 1e9;
-      for (const o of m.fighters) { if (o === this || !o.alive || o.team === this.team || o.state === 'respawn') continue; const d = Math.hypot(o.x - this.x, o.y - this.y); if (d < bd) { bd = d; best = o; } }
-      this.glitchBurst(16);
-      if (best) {
-        const P0 = m.stage.platforms[0], side = -(best.facing || 1);
-        this.x = Phaser.Math.Clamp(best.x + side * S.missing.behind, Math.min(best.x, P0.x1 + 10), Math.max(best.x, P0.x2 - 10));
-        this.y = best.y; this.vx = this.vy = 0; this.facing = Math.sign(best.x - this.x) || 1;
-        this.grounded = best.grounded; this.platform = best.grounded ? best.platform : null;
-        best.markMissing(S.missing.frames);
-        this.glitchBurst(16);
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.isIntangible() || ['respawn', 'dying', 'seized', 'limit'].includes(o.state)) continue;
+        const dx = Math.abs(o.x - this.x), dy = Math.abs(o.y - this.y);
+        if (dx <= S.range && dy <= S.rangeY && dx + dy < bd) { bd = dx + dy; best = o; }
       }
-      m.popText(this, 'CH 2: MISSING', '#e8e2cc');
-    } else {                                                         // DEAD AIR: patch itself up, nothing flinches it
-      if (m.mode === 'stamina') this.hp = Math.min(this.maxHp, this.hp + S.deadAir.heal); else this.percent = Math.max(0, this.percent - S.deadAir.heal);
-      this.armor = S.deadAir.armor;
-      m.popText(this, 'CH 3: DEAD AIR', '#9ad8f0'); sfx('item', 0.6, 0.8);
+      if (!best) { sfx('curse', 0.4, 1.4); this.glitchBurst(6); this.smileMiss = true; return; }
+      this.glitchBurst(16); sfx('glitch', 0.9, 0.7);
+      const side = -(best.facing || 1);
+      this.x = best.x + side * S.behind; this.y = best.y; this.vx = this.vy = 0; this.facing = -side;
+      this.grounded = best.grounded; this.platform = best.platform; this.fastFalling = false;
+      this.glitchBurst(16);
+      const o = this.grabTarget(S.box);
+      if (o) return this.seize(o, 'smile_hold');
     }
-    this.setState(this.grounded ? 'idle' : 'air');
+    if (this.t >= S.frames) { this.smileMiss = false; this.endModeSide(); }
   }
-  // posted MISSING (a poster hit, or CH 2): takes more damage until it runs out. Works on any fighter.
-  markMissing(frames) {
+  st_smile_hold() {
+    const S = this.def.modes.smile.tele, o = this.seized, t = this.t, m = this.match;
+    if (!o || !o.alive || o.state === 'dying') return this.endModeSide();
+    this.holdFloat(); this.vx = 0;
+    if (t === 1) { this.say(S.laugh[Math.floor(Math.random() * S.laugh.length)], 60, this.vfx && this.vfx.wow ? null : 'taunt'); }
+    if (t < S.laughFor && t % 8 === 1) sfx('glitch', 0.4, 1.6 + (t % 16 ? 0.2 : 0));   // the laugh: stuttering, distorted
+    const lift = Math.max(0, Math.min(1, (t - S.laughFor) / 14));
+    this.holdAt(this.x + this.facing * (18 + 10 * lift), this.y - 46 * lift);
+    if (t > S.laughFor && t <= S.laughFor + 14 && t % 4 === 0) sfx('swing', 0.3, 1.8);
+    if (t >= S.shockFrom && t <= S.shockTo && (t - S.shockFrom) % S.shockEvery === 0) {   // electric shocks down the cord
+      this.holdHit(S.shock, 'smileshock'); sfx('laser', 0.5, 1.6); m.shake(3, 4); o.shockFx = 8;
+    }
+    if (t === S.dropAt) {                                            // gone - and back somewhere random on the stage
+      const plats = m.stage.platforms, P = plats[Math.floor(Math.random() * plats.length)];
+      const nx = P.x1 + 20 + Math.random() * Math.max(0, P.x2 - P.x1 - 40), ny = P.y - 110;
+      this.glitchBurstAt(o.x, o.y - 26, 14);
+      o.x = nx; o.y = ny; o.grounded = false; o.platform = null;
+      this.holdHit(S.drop, 'smiledrop', true);
+      this.glitchBurstAt(nx, ny - 26, 18); sfx('glitch', 0.9, 0.5); sfx('ko', 0.3, 2);
+    }
+    if (t >= S.holdFrames) this.endModeSide();
+  }
+  glitchBurstAt(x, y, n) {
+    const R = Math.random;
+    for (let i = 0; i < n; i++) this.match.particles.push({ shape: 'pixel2', x: x + (R() - 0.5) * 24, y: y + (R() - 0.5) * 40, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 3, life: 14 + R() * 10, color: [this.pal.light, 0xffffff, 0x4a4a4a][i % 3], drag: 0.88, grav: 0 });
+  }
+  // the electric cord from its head to whoever it's holding (SMILE), and shock sparks
+  drawCord(g) {
+    const o = this.seized; if (!o || this.state !== 'smile_hold' || this.t < this.def.modes.smile.tele.laughFor) return;
+    const hx = this.x - this.facing * 8, hy = this.y - 58, tx = o.x, ty = o.y - o.body.h + 8, col = this.skinFx('cord', 0x1e1c18);
+    g.lineStyle(2, col, 1);
+    const mx = (hx + tx) / 2, my = Math.min(hy, ty) - 24;
+    let px = hx, py = hy;
+    for (let i = 1; i <= 10; i++) { const k = i / 10, x = (1 - k) * (1 - k) * hx + 2 * (1 - k) * k * mx + k * k * tx, y = (1 - k) * (1 - k) * hy + 2 * (1 - k) * k * my + k * k * ty; g.lineBetween(px, py, x, y); px = x; py = y; }
+    g.fillStyle(col, 1); g.fillCircle(tx, ty, 3);                           // wrapped round their neck
+    if (o.shockFx > 0) {
+      o.shockFx--;
+      const sc = this.skinFx('shock', 0x9ae8ff);
+      g.lineStyle(1, sc, 1);
+      for (let b = 0; b < 3; b++) { let x = hx, y = hy; for (let i = 0; i < 6; i++) { const nx = x + (tx - hx) / 6 + (Math.random() - 0.5) * 10, ny = y + (ty - hy) / 6 + (Math.random() - 0.5) * 10; g.lineBetween(x, y, nx, ny); x = nx; y = ny; } }
+      g.fillStyle(sc, 0.35); g.fillCircle(tx, ty - 10, 22);
+    }
+  }
+
+  // posted MISSING (a poster hit): takes more damage until it runs out. Works on any fighter.
+  markMissing(frames, style = null) {
     if (!this.alive) return;
+    this.missingStyle = style;
     if (!(this.missingMark > 0)) { this.match.popText(this, 'MISSING', '#c8281e'); sfx('petal', 0.6, 0.8); }
     this.missingMark = Math.max(this.missingMark || 0, frames);
   }
   drawMissingMark(g) {                                                // a little poster pinned over their head
     const k = Math.min(1, this.missingMark / 20), y = this.y - (this.def.tagY || 60) - 20 + Math.sin(this.anim * 0.15) * 1.5;
-    drawPoster(g, this.x, y, Math.sin(this.anim * 0.1) * 0.5, k);
+    drawPoster(g, this.x, y, Math.sin(this.anim * 0.1) * 0.5, k, 1, this.missingStyle);
   }
-  // the meter over its head, the menu when it's open, and the channel effects
+  // the meter under its name tag; once transformed, the mode's name in its colour, and the mode's aura
   drawSignal(g, spr) {
-    const S = this.def.signal, s = this.state;
-    if (this.warnMode > 0) {                                          // WARNING: red screen glow, static sparks
-      if (this.anim % 6 < 3) spr.setTint(0xff9a8a).setTintMode(Phaser.TintModes.MULTIPLY);
-      if (this.anim % 5 === 0) this.match.particles.push({ shape: 'pixel2', x: this.x + (Math.random() - 0.5) * 26, y: this.y - 50 - Math.random() * 14, vx: 0, vy: -0.6, life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffffff, grav: 0 });
+    const S = this.def.signal, s = this.state, M = this.modeDef;
+    if (this.modeFlash > 0) {                                         // the transformation: a flash of static over it
+      this.modeFlash--;
+      for (let i = 0; i < 6; i++) { g.fillStyle(i % 2 ? 0xffffff : 0x4a4a4a, 0.5 * this.modeFlash / 30); g.fillRect(this.x - 16 + ((this.anim * 7 + i * 11) % 8) - 4, this.y - 66 + i * 11, 32, 3); }
     }
-    if (this.armor > 0) {                                             // DEAD AIR: a flat blue test-card glow
-      g.lineStyle(1, 0x9ad8f0, 0.35 + 0.2 * Math.sin(this.anim * 0.3)); g.strokeRect(this.x - 15, this.y - 66, 30, 66);
-    }
-    if (s !== 'channel') this.hideMenuLabels();
+    if (M) this.drawModeAura(g, spr, M);
     if (!S || s === 'limit' || s === 'respawn') return;
-    // the meter: a thin bar under the name tag; full, it blinks
-    const v = this.signal || 0, full = v >= S.max, w = 30, x = Math.round(this.x - w / 2), y = Math.round(this.y - (this.def.tagY || 60) + 3);
+    const v = this.signal || 0, w = 30, x = Math.round(this.x - w / 2), y = Math.round(this.y - (this.def.tagY || 60) + 3);
     g.fillStyle(0x0b0a14, 0.85); g.fillRect(x - 1, y - 1, w + 2, 4);
-    g.fillStyle(full ? (this.anim % 20 < 10 ? 0xfff6b0 : 0xff4a3a) : 0xd8c860, 1); g.fillRect(x, y, Math.round(w * v / S.max), 2);
-    for (let i = 1; i < 5; i++) { g.fillStyle(0x0b0a14, 0.8); g.fillRect(x + i * w / 5, y, 1, 2); }
-    if (s !== 'channel') return;
-    // the CHANNEL menu: three little screens around its head - UP / SIDE / DOWN
-    const cx = this.x, cy = this.y - 52, open = Math.min(1, this.t / 6);
-    const items = [['warning', 0, -38, 'WARNING'], ['missing', 40 * this.facing, -6, 'MISSING'], ['deadAir', 0, 30, 'DEAD AIR']];
-    for (const [id, dx, dy, label] of items) {
-      const bx = cx + dx * open, by = cy + dy * open;
-      g.fillStyle(0x0b0a14, 0.92); g.fillRect(bx - 15, by - 11, 30, 22);
-      g.fillStyle(0x544e40, 1); g.fillRect(bx - 14, by - 10, 28, 20);
-      g.fillStyle(0x161a18, 1); g.fillRect(bx - 12, by - 8, 24, 13);
-      if (id === 'warning') { g.fillStyle(0xffd23a, 1); g.fillTriangle(bx, by - 7, bx - 6, by + 4, bx + 6, by + 4); g.fillStyle(0x14120c, 1); g.fillRect(bx, by - 3, 1, 4); }
-      else if (id === 'missing') drawPoster(g, bx, by - 1, 0, 1, 0.8);
-      else { const bars = [0xffffff, 0xffd23a, 0x3ad0e0, 0x3ad04a, 0xd03ab0, 0xd02a2a]; bars.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(bx - 12 + i * 4, by - 8, 4, 13); }); }   // a test card
-      if (this.anim % 8 < 2) { g.fillStyle(0xffffff, 0.2); g.fillRect(bx - 12, by - 8 + (this.anim % 13), 24, 1); }   // a rolling scanline
-    }
-    // arrows pointing at them
-    g.fillStyle(0xfff6b0, 0.6 + 0.4 * Math.sin(this.anim * 0.4));
-    g.fillTriangle(cx, cy - 22, cx - 3, cy - 18, cx + 3, cy - 18);
-    g.fillTriangle(cx, cy + 18, cx - 3, cy + 14, cx + 3, cy + 14);
-    g.fillTriangle(cx + this.facing * 22, cy - 6, cx + this.facing * 18, cy - 9, cx + this.facing * 18, cy - 3);
-    if (!this.menuLabels) {                                           // their names, small, under each screen (created once)
-      this.menuLabels = items.map(([, , , label]) => { const t = this.scene.add.text(0, 0, label, { fontFamily: FONT, fontSize: '5px', color: '#fff6b0', stroke: '#0b0a14', strokeThickness: 2 }).setOrigin(0.5, 0); this.match.addWorld(t); return t; });
-    }
-    items.forEach(([, dx, dy], i) => this.menuLabels[i].setPosition(cx + dx * open, cy + dy * open + 12).setVisible(true));
+    if (M) { g.fillStyle(M.color, this.anim % 30 < 20 ? 1 : 0.6); g.fillRect(x, y, w, 2); }
+    else { g.fillStyle(0xd8c860, 1); g.fillRect(x, y, Math.round(w * v / S.max), 2); for (let i = 1; i < 5; i++) { g.fillStyle(0x0b0a14, 0.8); g.fillRect(x + i * w / 5, y, 1, 2); } }
   }
-  hideMenuLabels() { if (this.menuLabels) for (const t of this.menuLabels) t.setVisible(false); }
+  drawModeAura(g, spr, M) {
+    const R = Math.random;
+    if (this.wowMode === 'incoming') {                                // speed streaks and a red glow
+      if (Math.abs(this.vx) > 1.5 && this.anim % 2 === 0) this.match.particles.push({ x: this.x - Math.sign(this.vx) * 10, y: this.y - 8 - R() * 44, vx: -this.vx * 0.3, vy: 0, life: 10, color: M.color, size: 2, grav: 0 });
+      g.fillStyle(M.color, 0.08 + 0.05 * Math.sin(this.anim * 0.3)); g.fillEllipse(this.x, this.y - 30, 46, 70);
+    } else if (this.wowMode === 'see') {                              // the room watches with it: faint eyes open and close nearby
+      for (let i = 0; i < 3; i++) {
+        const ph = (this.anim + i * 50) % 150; if (ph > 40) continue;
+        const ex = this.x + Math.sin(i * 2.1 + Math.floor((this.anim + i * 50) / 150)) * 46, ey = this.y - 40 + Math.cos(i * 1.3) * 26, open = Math.sin(ph / 40 * Math.PI);
+        g.fillStyle(0xf0ece0, 0.7 * open); g.fillEllipse(ex, ey, 9, 5 * open); g.fillStyle(0x0a0a0a, open); g.fillCircle(ex, ey, 1.6 * open);
+      }
+    } else if (this.wowMode === 'smile') {                            // static motes drifting off it
+      if (this.anim % 6 === 0) this.match.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 24, y: this.y - 20 - R() * 40, vx: 0, vy: -0.4, life: 24, color: R() < 0.5 ? M.color : 0xffffff, grav: 0 });
+    }
+  }
+  // a colour that a costume can override for its own effects (skins.js `vfx.wow`)
+  skinFx(key, dflt) { const w = this.vfx && this.vfx.wow; return w && w[key] !== undefined ? w[key] : dflt; }
 
   // ------------------------------------------------------------------ LEVEL 0 (Limit)
   // The screen shows one huge eye while the lights buzz louder and louder... then floods red. Everyone close
@@ -334,7 +534,7 @@ export class FighterWhatOnceWas {
     const x0 = v.x - 4, y0 = v.y - 4, W = v.width + 8, H = v.height + 8, X1 = x0 + W, Y1 = y0 + H;
     const fy = U.anchor.y, ceil = fy - 104, scroll = ct < catchAt ? ct * C.speed : catchAt * C.speed;
     const fade = Math.min(1, ct / 10), k = Math.min(1, Math.max(0, (ct - C.from) / C.frames));
-    const wrap = (x, span) => ((x % span) + span) % span;
+    const wrap = (x, span) => ((x % span) + span) % span, HALL = this.hall(), sk = this.styleKey;
     g.fillStyle(HALL.wall, fade); g.fillRect(x0, y0, W, H);
     g.fillStyle(HALL.stripe, 0.55 * fade);                                       // wallpaper stripes
     for (let x = x0 - wrap(scroll, 9); x < X1; x += 9) g.fillRect(Math.round(x), ceil, 2, fy - ceil);
@@ -349,13 +549,22 @@ export class FighterWhatOnceWas {
       g.fillStyle(dead || flick ? HALL.dead : HALL.lit, fade); g.fillRect(px, ceil - 4, 34, 4);
       if (!dead && !flick) { g.fillStyle(HALL.lit, 0.14 * fade); g.fillTriangle(px - 18, fy, px + 52, fy, px + 17, ceil); }
     }
-    g.fillStyle(0xa08c40, fade); g.fillRect(x0, fy - 4, W, 4);                   // skirting board
+    if (sk === 'wowRonin') {                                         // shoji: a lattice of wooden bars over the paper walls
+      g.fillStyle(HALL.stripe, 0.8 * fade); for (let y = ceil + 18; y < fy - 6; y += 22) g.fillRect(x0, y, W, 2);
+      for (let x = x0 - wrap(scroll, 30); x < X1; x += 30) g.fillRect(Math.round(x), ceil, 3, fy - ceil);
+    } else if (sk === 'wowHack') {                                   // a wireframe grid scrolling past
+      g.fillStyle(HALL.tile, 0.5 * fade); for (let y = ceil; y < fy; y += 16) g.fillRect(x0, y, W, 1);
+    } else if (sk === 'wowAero') {                                   // glossy shine bands and bubbles rising up the walls
+      g.fillStyle(0xffffff, 0.25 * fade); g.fillRect(x0, ceil + 8, W, 6); g.fillRect(x0, ceil + 18, W, 2);
+      for (let i = 0; i < 10; i++) { const bx2 = x0 + wrap(i * 97 - scroll * 0.5, W), by2 = fy - ((ct * 1.5 + i * 37) % (fy - ceil)); g.lineStyle(1, 0xffffff, 0.7 * fade); g.strokeCircle(bx2, by2, 2 + (i % 3)); }
+    }
+    g.fillStyle(HALL.skirt, fade); g.fillRect(x0, fy - 4, W, 4);                 // skirting board
     g.fillStyle(HALL.carpet, fade); g.fillRect(x0, fy, W, Y1 - fy);                // damp carpet
     g.fillStyle(HALL.carpetDark, fade); for (let x = x0 - wrap(scroll, 23); x < X1; x += 23) g.fillRect(Math.round(x), fy + 3, 12, 1);
     for (let x = x0 - wrap(scroll, 140); x < X1; x += 140) g.fillEllipse(Math.round(x + 40), fy + 12, 50, 7);
     // the dark it drags along behind it
     for (let i = 0; i < 12; i++) { g.fillStyle(0x000000, 0.09 * fade); g.fillRect(x0, y0, Math.max(0, bx - x0 + 40 - i * 12), H); }
-    if (ct > C.from) this.drawBacteria(g, bx, fy, ct, k, ct >= catchAt);
+    if (ct > C.from) this.drawBacteria(g, bx, fy, ct, k, ct >= catchAt, HALL);
     // over everything (the victims too): the catch - lights out, and the mauling in the dark
     if (!this.lvlTop) { this.lvlTop = this.scene.add.graphics().setDepth(5); this.match.addWorld(this.lvlTop); }
     const T = this.lvlTop; T.clear();
@@ -376,9 +585,9 @@ export class FighterWhatOnceWas {
   // THE BACTERIA: a hunched mass of black mould on long, wrongly jointed legs - ragged fringes of growth
   // all over it, arms like bundled roots ending in hooked fingers, and a long head split by a mouth full of
   // pale teeth. It twitches every frame and leaves spores behind.
-  drawBacteria(g, x, fy, ct, k, lunge) {
+  drawBacteria(g, x, fy, ct, k, lunge, HALL = HALLS.default) {
     const R = (n) => (((ct * 73 + n * 151) % 97) / 97 - 0.5);                     // deterministic twitch
-    const BLK = 0x070504, DRK = 0x1c130c, WET = 0x3a2a1c, H = 118;
+    const [BLK, DRK, WET] = HALL.thing, H = 118;
     const jx = R(1) * 4, jy = R(2) * 3, ph = ct * (0.32 + 0.38 * k);
     const hipX = x - 30 + jx, hipY = fy - 62 + jy;
     const shX = hipX + 24 + 10 * k + (lunge ? 10 : 0), shY = fy - H + 26 + jy;
@@ -432,10 +641,10 @@ export class FighterWhatOnceWas {
     limb(shX, shY, hx - 6, hy + 2, 9, 7, BLK);
     g.fillStyle(BLK, 1); g.fillEllipse(hx + 6, hy - 2, 30, 18);                        // skull
     g.fillTriangle(hx - 4, hy + 2, hx + 22, hy + 2 + gape, hx - 2, hy + 8 + gape);       // hanging jaw
-    g.fillStyle(0x2a0806, 1); g.fillTriangle(hx + 2, hy + 3, hx + 20, hy + 3 + gape * 0.7, hx + 2, hy + 6 + gape * 0.6);   // the inside of its mouth
-    g.fillStyle(0xe8e0c8, 1);                                                          // too many teeth
+    g.fillStyle(HALL.mouth, 1); g.fillTriangle(hx + 2, hy + 3, hx + 20, hy + 3 + gape * 0.7, hx + 2, hy + 6 + gape * 0.6);   // the inside of its mouth
+    g.fillStyle(HALL.teeth, 1);                                                          // too many teeth
     for (let i = 0; i < 6; i++) { const tx = hx + 2 + i * 3; g.fillTriangle(tx, hy + 2, tx + 2, hy + 2, tx + 1, hy + 6); g.fillTriangle(tx, hy + 4 + gape * 0.6 * (i / 6), tx + 2, hy + 4 + gape * 0.6 * (i / 6), tx + 1, hy + gape * 0.6 * (i / 6)); }
-    g.fillStyle(0xffffff, 1); g.fillRect(Math.round(hx + 8), Math.round(hy - 6), 2, 1); g.fillRect(Math.round(hx + 13), Math.round(hy - 5), 1, 1);   // pinprick eyes
+    g.fillStyle(HALL.eyes, 1); g.fillRect(Math.round(hx + 8), Math.round(hy - 6), 2, 1); g.fillRect(Math.round(hx + 13), Math.round(hy - 5), 1, 1);   // pinprick eyes
     if (ct % 30 < 3) { g.fillStyle(0xffffff, 0.5); g.fillRect(Math.round(hx + 6), Math.round(hy - 7), 6, 3); }   // they catch the light
     fringe(hx - 6, hy - 10, hx + 14, hy - 10, 8, 6, 50);
     arm(1, BLK, 0);

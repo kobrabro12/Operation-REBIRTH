@@ -172,6 +172,28 @@ export const SKINS = {
     { name: 'LIGHTS OUT', swatch: 0x34322e, fx: 0xff4a3a, groups: WOWG, rules: { skin: { sat: 0.15, val: 0.42 } },
       pal: { outline: 0x140406, deep: 0x5a0a10, mid: 0xb01a22, light: 0xff4a3a, core: 0xffc8c0, shade: 0x200608, void: 0x060102 },
       vfx: { hit: { shape: 'pixel2', colors: [0xff4a3a, 0x5a0a10, 0xffc8c0], n: 7 } } },
+    // ---- costumes with their own drawing and their own effects, each almost a different fighter
+    // FRUTIGER: glossy white glass full of aqua bubbles, a translucent blue CRT, leafy antennae. Bubbles and
+    // glints everywhere; posters arrive inside bubbles, its door is a glass door onto a blue sky, its LEVEL 0
+    // is an aqua office hallway.
+    { name: 'FRUTIGER', swatch: 0x3fc8ea, fx: 0x9ff0ff, sheetSet: 'aero', style: 'wowAero',
+      pal: { outline: 0x0d3550, deep: 0x1a8ab8, mid: 0x3fc8ea, light: 0x9ff0ff, core: 0xffffff, shade: 0x0d4a6a, void: 0x041a28 },
+      vfx: { hit: { shape: 'bubble', colors: [0x9ff0ff, 0xffffff, 0x6fd03a], n: 9, ring: 0x9ff0ff, glint: true, sound: 'petal' }, trail: 0x9ff0ff,
+             wow: { heal: 0xc8ff8a, rush: 0x9ff0ff, cord: 0x7ad8ec, shock: 0xffffff, taunt: ['HAVE A NICE DAY :)', 'YOUR DESKTOP IS READY', 'BLUE SKIES FOREVER', 'NO SIGNAL... ONLY SKY'] } } },
+    // ROOT ACCESS: a black hoodie crawling with green code, a monitor head with a green phosphor screen. Code
+    // rains off it and it talks like a terminal; posters are ERROR popups, its door is a wireframe portal,
+    // its LEVEL 0 is a wireframe corridor.
+    { name: 'ROOT ACCESS', swatch: 0x3ae060, fx: 0x3ae060, sheetSet: 'hack', style: 'wowHack',
+      pal: { outline: 0x020a04, deep: 0x157a2e, mid: 0x2ad050, light: 0x3ae060, core: 0xb8ffc8, shade: 0x041a08, void: 0x000000 },
+      vfx: { hit: { shape: 'pixel2', colors: [0x3ae060, 0xb8ffc8, 0x157a2e], n: 10, sound: 'glitch' }, trail: 0x3ae060,
+             wow: { heal: 0x3ae060, rush: 0xff2a2a, cord: 0x2ad050, shock: 0xb8ffc8, taunt: ['> whoami', 'ACCESS GRANTED', 'sudo rm -rf /you', 'CONNECTION LOST'] } } },
+    // RONIN: red lacquered armour with gold lacing, a kabuto with a gold crescent over its TV. Sakura petals
+    // drift round it, its hits ring like steel with brush-stroke kanji; posters are paper talismans, its door
+    // is a shoji screen, its LEVEL 0 is a lantern-lit corridor - and the thing in it is an oni.
+    { name: 'RONIN', swatch: 0xb82a22, fx: 0xffe08a, sheetSet: 'ronin', style: 'wowRonin',
+      pal: { outline: 0x1a0606, deep: 0x8a1a12, mid: 0xb82a22, light: 0xffe08a, core: 0xfff6dc, shade: 0x2a0808, void: 0x0a0202 },
+      vfx: { hit: { shape: 'sakura', colors: [0xffb7c5, 0xffffff, 0xd9a32e], n: 8, ink: true, kanji: true, glint: true }, trail: 0xb82a22,
+             wow: { heal: 0xffb7c5, rush: 0xe02a1a, cord: 0xb82a22, shock: 0xffe08a, taunt: ['...', 'THE BLADE REMEMBERS.', 'NO MASTER. NO SIGNAL.', 'COME.'] } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.15, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],

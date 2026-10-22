@@ -7,7 +7,8 @@ export class FighterTaunt {
   st_taunt(c) {
     const T = this.def.taunt;
     if (!this.grounded) { this.setState('air'); return; }
-    if (this.t === 1 && T.lines) this.say(T.lines[Math.floor(Math.random() * T.lines.length)], 70, 'taunt');
+    const lines = (this.vfx && this.vfx.wow && this.vfx.wow.taunt) || T.lines;   // a costume can have its own taunt lines
+    if (this.t === 1 && lines) this.say(lines[Math.floor(Math.random() * lines.length)], 70, this.vfx && this.vfx.wow ? null : 'taunt');
     for (const [at, name, vol, rate] of T.sounds || []) if (this.t === at) sfx(name, vol, rate);
     for (const f of T.fx || []) if (this.t >= f.from && this.t <= f.to && (this.t - f.from) % f.every === 0) this.tauntFx(f);
     if (this.t >= T.frames) this.setState('idle');

@@ -262,7 +262,7 @@ export class MatchScene extends Phaser.Scene {
       for (const t of this.fighters) {
         if (!t.alive || t === hb.owner) continue;
         if (hb.owner && t.team === hb.owner.team) continue;
-        if (t.isIntangible() || t.state === 'grabbed') continue;
+        if (t.isIntangible() || t.state === 'grabbed' || t.state === 'seized') continue;
         const key = hb.id + ':' + t.slot;
         if (this.hits.has(key)) continue;
         if (!overlap(hb, t.hurtbox())) continue;
@@ -317,13 +317,6 @@ export class MatchScene extends Phaser.Scene {
     t.stats.damageTaken += dmg; if (owner) owner.stats.damageDealt += dmg;
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
-    if (t.armor > 0 && !hb.pillar) {                   // DEAD AIR: takes the damage but doesn't flinch
-      t.flash = 4; t.hitstop = 4; if (owner && !hb.projectile && !hb.soul) owner.hitstop = 4;
-      const c0 = t.center(); this.puff(c0.x, c0.y, 0x9ad8f0, 5); sfx('shield', 0.5, 0.6);
-      if (owner) { t.lastHitBy = owner; t.lastHitTimer = 600; }
-      if (this.mode === 'stamina' && t.hp <= 0 && t.state !== 'dying') { t.hp = 0; if (t.def.sheets.death) t.startDying(); else this.onKO(t); }
-      return;
-    }
 
     const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult;
     let dir = hb.facing || 1;
@@ -466,6 +459,9 @@ export class MatchScene extends Phaser.Scene {
     if (f.style === 'onebit') sfx('glitch', 0.8, 0.8);
     if (f.style === 'rose') sfx('petal', 0.8, 0.7);
     if (f.style === 'hero') { sfx('taiko', 0.9); sfx('shing', 0.8, 1.2); }
+    if (f.style === 'wowRonin') { sfx('taiko', 1); sfx('shing', 0.7, 0.8); }
+    if (f.style === 'wowHack') sfx('glitch', 0.9, 0.5);
+    if (f.style === 'wowAero') { sfx('item', 0.7, 0.8); sfx('petal', 0.7, 0.8); }
     this.shake(6, 30);
     this.limitBanner = { t: 0, name: f.limitName || f.def.limit.name, color: f.color };
     let best = null, bd = 1e9;

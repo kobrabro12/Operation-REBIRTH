@@ -25,6 +25,19 @@ const QUIPS = {
     upb: [0.5, 'GOTO 10'], limit: [1, 'SINK();'], ko: [1, 'SEGFAULT.', 'PROCESS ENDED.'],
   },
   // AKATSUKI: an anime hero, shouting her moves
+  // WHAT ONCE WAS's costumes: a desktop that's far too cheerful, a terminal, a silent swordsman
+  'what-once-was:wowAero': {
+    attack: [0.15, ':)', 'CLICK!', 'BLOOP'], smash: [0.5, 'WALLPAPER SET!', 'BUBBLE POP!'], grab: [0.6, 'DRAG AND DROP!'],
+    modeSide: [0.7, 'LET ME HELP!', 'HELLO FRIEND :)'], limit: [1, 'WELCOME TO YOUR DESKTOP'], ko: [1, 'GOODBYE :)', 'SESSION ENDED'],
+  },
+  'what-once-was:wowHack': {
+    jab: [0.3, '> ping', 'ACK'], attack: [0.22, '> exec', '0xFF', 'INJECT;'], smash: [0.6, 'SEGFAULT!', 'BUFFER OVERFLOW'],
+    grab: [0.7, 'PROCESS CAUGHT.'], throw: [0.7, 'kill -9', 'DROP TABLE you;'], modeSide: [0.8, 'TRACING...', 'FOUND YOU.', 'PACKET LOSS'],
+    limit: [1, 'cd /level0'], ko: [1, 'CONNECTION TERMINATED.', 'USER NOT FOUND.'],
+  },
+  'what-once-was:wowRonin': {
+    smash: [0.5, 'HAH!', '斬!'], modeSide: [0.6, '...', 'FOOLISH.'], limit: [1, 'THE DARK REMEMBERS.'], ko: [1, 'ANOTHER LOST SOUL.', '...'],
+  },
   'hero-knight:hero': {
     jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
     attack: [0.3, 'SEIYA!', 'TAAH!', 'THERE!'],
@@ -40,6 +53,9 @@ const QUIPS = {
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
+  wowAero: { typed: false, style: { fontFamily: FONT, fontSize: '7px', color: '#0d3550', backgroundColor: '#e6f8ff', padding: { x: 4, y: 3 } } },
+  wowHack: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#3ae060', backgroundColor: '#020a04', padding: { x: 3, y: 2 } } },
+  wowRonin: { typed: false, style: { fontFamily: 'serif', fontSize: '12px', fontStyle: 'bold', color: '#fff6dc', stroke: '#8a1a12', strokeThickness: 4 } },
   taunt: { typed: false, style: { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 } },   // every fighter's taunt line
 };
 

@@ -80,8 +80,8 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * (this.warnMode > 0 ? this.def.signal.warning.dmg : 1); }   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS's WARNING channel 25%
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel]; }
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg; }   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed; }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
   get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1); }   // posted MISSING: takes 20% more
@@ -133,7 +133,8 @@ export class Fighter {
     if (this.curse > 0) this.curse--;
     if (this.swift > 0) this.swift--;
     if (this.rage > 0) this.rage--;
-    if (this.warnMode > 0) this.warnMode--; if (this.armor > 0) this.armor--; if (this.missingMark > 0) this.missingMark--;   // WHAT ONCE WAS's channels
+    if (this.missingMark > 0) this.missingMark--;   // posted MISSING by WHAT ONCE WAS
+    if (this.wowMode) this.modeTick();              // WHAT ONCE WAS: SMILE mode heals
     if (this.pcBuff > 0) this.pcBuff--;
     if (this.fullAero > 0 && --this.fullAero === 0) this.exitFullAero();
     if (this.aeroLevel && this.age % (this.fullAero > 0 ? 5 : 9) === 0 && !this.match.demo) {   // powered-up sparkle
@@ -219,13 +220,12 @@ export class Fighter {
   // Attacks, specials, grab and Limit, shared by ground and air.
   tryCommon(c, ground) {
     if (this.buffer.limit && this.limit >= LIMIT_MAX) { this.buffer.limit = 0; this.startLimit(); return true; }
-    if (this.buffer.taunt && this.signalFull()) { this.buffer.taunt = 0; this.startChannel(); return true; }   // WHAT ONCE WAS: a full SIGNAL meter opens its CHANNEL menu
     if (this.buffer.special) {
       const M = this.def.moves;
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -298,6 +298,9 @@ export class Fighter {
     sfx(this.def.swingSfx || 'swing', vol, rate * (0.92 + Math.random() * 0.16));
     if (this.style === 'onebit' && Math.random() < 0.4) sfx('glitch', 0.25, 1.2);
     if (this.style === 'hero' && Math.random() < 0.3) sfx('shing', 0.2, 1.5 + Math.random() * 0.3);   // the crystal blade rings
+    if (this.style === 'wowHack' && Math.random() < 0.45) sfx('glitch', 0.25, 1.3);                     // WHAT ONCE WAS costumes
+    if (this.style === 'wowRonin' && Math.random() < 0.35) sfx('shing', 0.25, 1.1 + Math.random() * 0.2);
+    if (this.style === 'wowAero' && Math.random() < 0.35) sfx('petal', 0.3, 1.6);
   }
   st_attack(c) {
     const m = this.move;
@@ -370,7 +373,7 @@ export class Fighter {
   physics(c) {
     const d = this.def;
     const s = this.state;
-    if (s === 'grabbed') return;
+    if (s === 'grabbed' || s === 'seized') return;      // held: whoever holds them places them
     if (s === 'respawn') return;
     if (s.startsWith('ledge')) return;                    // hanging / climbing: the state places the fighter
     if (this.bubbled > 0) {                               // sealed in AERO's bubble: drifting upward until it pops
@@ -401,7 +404,7 @@ export class Fighter {
           this.vx -= Math.sign(this.vx) * Math.min(Math.abs(this.vx), d.airFriction);
         }
       }
-      const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding';
+      const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding' || (this.seized && s.endsWith('_hold'));   // (WHAT ONCE WAS hangs in the air while it holds someone)
       if (!noGravity) {
         const g = s === 'hitstun' ? PHYS.gravity * PHYS.hitstunGravity : PHYS.gravity;
         const cap = this.fastFalling ? PHYS.fastFall : PHYS.maxFall;
@@ -486,7 +489,9 @@ export class Fighter {
 
   ko() {
     if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
-    this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null; this.hideMenuLabels();
+    this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
+    if (this.wowMode || this.signal) { this.clearMode(); this.hideModeScreen(); }   // WHAT ONCE WAS loses its mode: the meter rebuilds from empty
+    if (this.seized) this.releaseSeized();
     if (this.grabbed) { this.grabbed.grabbedBy = null; this.grabbed.setState('air'); this.grabbed = null; }
     if (this.grabbedBy) { this.grabbedBy.grabbed = null; this.grabbedBy.setState('idle'); this.grabbedBy = null; }
     this.sprite.setVisible(false); this.tag.setVisible(false); this.fx.clear(); this.fxBack.clear(); for (const gh of this.ghosts) gh.setVisible(false);
@@ -494,7 +499,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.warnMode = 0; this.armor = 0; this.missingMark = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;
@@ -512,7 +517,7 @@ export class Fighter {
   }
   st_dying() { if (this.t >= 80) this.match.onKO(this); }
 
-  destroy() { if (this.speech) this.speech.destroy(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
+  destroy() { if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).

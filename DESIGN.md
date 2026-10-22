@@ -93,6 +93,7 @@ Arcade's hazards use their own timers in the same spirit. Hazards can be turned 
 | Gravemoon Bridge | stone bridge over a chasm, gargoyles | gargoyle gaze; bat swarms; breakable lantern sets the bridge on fire |
 | Neon Arcade | giant arcade control panel | pixel wave, spin dash, block drop, invader raid |
 | Elderwood Hollow | mossy root at a world tree; day turns to night | bramble snare; spirit stag charge |
+| The Backrooms | a floor adrift in the Backrooms; every minute everyone NOCLIPs to the next of 4 levels (new background + floating platforms) | one per level: lights out (a Smiler lunges in the dark); falling crates; steam vents; the surge (a wave across the floor) |
 
 The stage grid has 8 slots (last = Random); empty slots are placeholders.
 

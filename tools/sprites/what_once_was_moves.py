@@ -6,15 +6,18 @@ What keeps it unsettling rather than stiff: it never quite stops twitching (a je
 lurch layered under every pose), its long arm drags and lags behind the body (drag), the power cord
 swings, and its strikes snap out far too fast then hang there.
 
-  idle / run / jump / fall strips (64x64) and moves_sheet.png (112x104, 24 to a row, feet at 56,95)
-  -> public/assets/fighters/what-once-was/, frame index -> src/fighters/wowMoves.js
+  idle / run / jump / fall strips (64x64) and moves_sheet.png (112x104, 24 to a row, feet at 56,95) for
+  each costume with its own drawing -> public/assets/fighters/what-once-was/ (and frutiger/, root-access/,
+  ronin/), frame index -> src/fighters/wowMoves.js, where its screen is in every frame ->
+  src/fighters/wowScreens.js, and the animated MODE screens -> what-once-was/mode_screens.png
 
   python3 tools/sprites/what_once_was_moves.py [--preview DIR]
 """
-import os, sys, math
+import os, sys, math, json
+import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from PIL import Image
-from puppet import contact
+from puppet import contact, pose_at
 import what_once_was_draw as D
 import nu_moves as N
 from nu_moves import k, legs, CROUCH, DEEP, TUCK
@@ -22,6 +25,7 @@ from nu_moves import k, legs, CROUCH, DEEP, TUCK
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
 DIR = os.path.join(ROOT, 'public/assets/fighters/what-once-was')
 JS = os.path.join(ROOT, 'src/fighters/wowMoves.js')
+SCR_JS = os.path.join(ROOT, 'src/fighters/wowScreens.js')
 FOLLOW = {'head': (0.22, 0.2), 'cord': (0.6, 1.2), 'ffore': (0.25, 0.1), 'ffist': (0.35, 0.2), 'bfore': (0.2, 0)}
 SMALL, BIG = N.build_rig(D, FOLLOW)
 N.GHOST = (255, 236, 140)           # sickly yellow afterimages
@@ -185,10 +189,36 @@ move('downB', 30, [k(0, REST), k(6, mix(PLACE, torso=(-20, -1, 1)), 'out'), k(12
 move('doorwalk', 28, [k(0, REST), k(6, P(torso=(16, 2, 0), head=(-8, 0, 0), fupper=(-30, 0, 0), bupper=(30, 0, 0), root=(0, 2, 0), **legs(30, 20, -40, 20, 0, -8)), 'out'),
                       k(14, P(torso=(16, 2, 0), head=(-8, 0, 0), fupper=(10, 0, 0), bupper=(-30, 0, 0), root=(0, 2, 0), **legs(-20, 30, 22, 50, -8, 0)), 'inout'),
                       k(22, mix(REST, head=(10, 0, 0), torso=(-4, 0, 0)), 'out'), k(28, REST, 'back')], smear=())
-# CHANNEL menu (taunt with a full SIGNAL meter): clutches the TV with both hands, the screen cycling
-CLUTCH = dict(fupper=(-110, 0, 0), ffore=(-90, 0, 0), bupper=(-120, 0, 0), bfore=(-80, 0, 0), torso=(-6, 0, 0), root=(0, 0, 0, 0.98, 1.02))
-move('channel', 48, [k(0, P(**CLUTCH, head=(-6, 0, 0))), k(12, P('scr_warn', **CLUTCH, head=(6, 0, 0))), k(24, P('scr_missing', **CLUTCH, head=(-8, 0, 0))),
-                     k(36, P('scr_eye', **CLUTCH, head=(4, 0, 0))), k(48, P(**CLUTCH, head=(-6, 0, 0)))], step=2, loop=True, smear=())
+# ======================================================================= MODE side specials (SEE / INCOMING / SMILE)
+# SEE: the long arm shoots out to grab them by the neck (see_side); caught (see_hold): lifted, the claw
+# twists - the snap - raised higher, then slammed down into the floor
+SEE_REACH = P('scr_eye', fupper=(-62, 0, 0), ffore=(0, 0, 0), ffist=(-20, 0, 0), torso=(14, 3, 0), head=(-6, 1, 0), root=(0, 4, 0, 1.03, 0.97), **STANCE)
+move('see_side', 30, [k(0, P('scr_eye')), k(5, P('scr_eye', fupper=(30, 0, 0), torso=(-8, -1, 0), head=(6, 0, 0), root=(0, -2, 0, 0.98, 1.02))), k(8, SEE_REACH, 'snap'),
+                      k(14, mix(SEE_REACH, fupper=(-64, 0, 0)), 'linear'), k(30, P('scr_eye'), 'back')])
+SEE_LIFT = P('scr_eye', fupper=(-110, 0, 0), ffore=(-10, 0, 0), ffist=(-30, 0, 0), torso=(-6, -1, 0), head=(-14, 0, 0), root=(0, 0, -1, 0.98, 1.03))
+SEE_SLAM = P('scr_eye', fupper=(10, 0, 0), ffore=(10, 0, 0), ffist=(10, 0, 0), torso=(34, 4, 4), head=(10, 2, 2), root=(0, 4, 3, 1.1, 0.86), **legs(30, -40, -30, 40, 8, -10))
+move('see_hold', 58, [k(0, SEE_REACH), k(12, SEE_LIFT, 'out'), k(20, mix(SEE_LIFT, head=(-18, 0, 0))), k(22, mix(SEE_LIFT, ffist=(40, 0, 0), head=(18, 0, 0)), 'snap'),
+                      k(32, mix(SEE_LIFT, fupper=(-124, 0, 0), ffist=(40, 0, 0), head=(-10, 0, 0)), 'inout'), k(38, SEE_SLAM, 'snap'), k(48, mix(SEE_SLAM, torso=(30, 4, 4)), 'linear'), k(58, P('scr_eye'), 'back')])
+# INCOMING: a shoulder-first lunge (inc_side); caught (inc_hold): pinned to the floor, a fury of blows with
+# both arms, hauled up overhead, thrown
+RUSH = P('scr_red', torso=(50, 6, 4), head=(20, 2, 2), fupper=(-90, 0, 0), ffore=(-10, 0, 0), bupper=(-80, 0, 0), root=(0, 4, 2, 1.05, 0.95), **legs(-30, 30, -50, 40, 0, 0))
+move('inc_side', 34, [k(0, P('scr_red')), k(5, P('scr_red', **DEEP, torso=(16, 0, 2), fupper=(40, 0, 0), bupper=(40, 0, 0), head=(10, 0, 0)), 'out'), k(7, RUSH, 'snap'),
+                      k(20, mix(RUSH, torso=(54, 6, 4)), 'linear'), k(34, P('scr_red'), 'back')], smear=('head', 'ffore'))
+PIN = P('scr_red', torso=(46, 4, 6), head=(20, 2, 3), fupper=(-20, 0, 0), ffore=(10, 0, 0), bupper=(-10, 0, 0), root=(0, 2, 4, 1.1, 0.86), **legs(40, -60, -30, 50, 10, -10))
+PUNCH_A = mix(PIN, fupper=(-80, 0, 0), ffore=(-30, 0, 0), bupper=(10, 0, 0))
+PUNCH_B = mix(PIN, fupper=(20, 0, 0), ffore=(14, 0, 0), bupper=(-100, 0, 0), bfore=(-30, 0, 0))
+HAUL = P('scr_red', torso=(-10, -1, -2), head=(-20, 0, 0), fupper=(-150, 0, 0), ffore=(-20, 0, 0), bupper=(-160, 0, 0), bfore=(-20, 0, 0), root=(0, 0, -3, 0.92, 1.1), **legs(10, 0, -10, 0))
+HURL = P('scr_red', torso=(24, 4, 1), head=(-6, 2, 0), fupper=(-50, 0, 0), ffore=(0, 0, 0), bupper=(-40, 0, 0), root=(0, 5, 0, 1.06, 0.94), **STANCE)
+move('inc_hold', 80, [k(0, RUSH), k(4, PIN, 'snap')] + [k(12 + 3 * i, PUNCH_A if i % 2 else PUNCH_B, 'snap') for i in range(11)]
+                     + [k(46, PIN, 'out'), k(56, HAUL, 'out'), k(64, HURL, 'snap'), k(70, mix(HURL, torso=(22, 4, 1)), 'linear'), k(80, P('scr_red'), 'back')], smear=('ffore', 'ffist', 'bfore'))
+# SMILE: a flicker - it crouches into the static and stands up somewhere else (smile_side); caught
+# (smile_hold): a long shaking laugh, the power cord whips up over its head, shocks, and a flick to send them off
+UP = P('scr_smile', head=(-10, 0, 0), torso=(-4, 0, 0), fupper=(-20, 0, 0), root=(0, 0, 0, 0.98, 1.03))
+move('smile_side', 34, [k(0, P('scr_smile')), k(6, P('scr_smile', **{**CROUCH, 'torso': (10, 0, 1), 'head': (30, 0, 0)}), 'out'), k(8, UP, 'snap'), k(22, UP, 'linear'), k(34, P('scr_smile'), 'back')], smear=())
+CORDUP = P('scr_smile', head=(10, 1, 1), cord=(-150, 0, 0), torso=(6, 0, 0), fupper=(-40, 0, 0), bupper=(20, 0, 0))
+move('smile_hold', 96, [k(0, UP)] + [k(3 + 4 * i, mix(UP, head=(-34 if i % 2 else -12, 0, 0), torso=(-8 if i % 2 else 2, 0, 0), root=(0, 0, -1 if i % 2 else 0, 0.97, 1.04)), 'snap') for i in range(6)]
+                       + [k(30, CORDUP, 'out')] + [k(44 + 2 * i, mix(CORDUP, root=(0, 1 if i % 2 else -1, 0), head=(14 if i % 2 else 6, 1, 1)), 'snap') for i in range(11)]
+                       + [k(78, mix(CORDUP, cord=(-60, 0, 0), head=(-20, 0, 0)), 'snap'), k(84, mix(CORDUP, cord=(-50, 0, 0), head=(-24, 0, 0))), k(96, P('scr_smile'), 'back')], smear=('cord',))
 # LEVEL 0 (Limit): the eye stares... then the screen floods red and it reaches out
 move('limit', 160, [
     k(0, P('scr_eye')),
@@ -204,9 +234,54 @@ move('taunt', 96, [k(0, REST), k(12, mix(TILT, scr='scr_missing'), 'out'), k(30,
                    k(58, mix(TILT, scr='scr_eye', head=(-20, 0, 0)), 'snap'), k(80, mix(TILT, scr='scr_eye', head=(-24, 0, 0)), 'linear'), k(96, REST, 'back')], smear=())
 
 
+STYLE_DIRS = {'default': '', 'aero': 'frutiger', 'hack': 'root-access', 'ronin': 'ronin'}
+
+def screen_track(rig, keys, ticks, step, center, life_fn):
+    """Where the screen is in every frame of one animation: [x, y] of its centre (in frame pixels, x10),
+    its angle (degrees) and scale (x100) - the same poses animate() draws."""
+    out = []
+    feet = rig.feet
+    if center: rig.feet = center
+    for t in range(0, ticks, step):
+        pose = dict(pose_at(keys, t)); prev = dict(pose_at(keys, max(0, t - 3)))
+        pose = life_fn(pose, t); prev = life_fn(prev, max(0, t - 3)); pose['_prev'] = prev
+        M = rig.matrix('scr_static', pose)
+        c = M @ np.array([36.5, 12.5, 1.0]); ux = M @ np.array([1.0, 0, 0]); uy = M @ np.array([0, 1.0, 0])
+        ang = math.degrees(math.atan2(ux[1], ux[0]))
+        out.append([round(c[0] * 10), round(c[1] * 10), round(ang), round(math.hypot(ux[0], ux[1]) * 100), round(math.hypot(uy[0], uy[1]) * 100)])
+    rig.feet = feet
+    return out
+
+def build_style(style):
+    D.set_style(style)
+    small, big = N.build_rig(D, FOLLOW)
+    d = os.path.join(DIR, STYLE_DIRS[style]) if STYLE_DIRS[style] else DIR
+    base, out = N.build_all(small, big, MOVES, d, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)))
+    Image.fromarray(base['idle'][0]).crop((22, 0, 50, 15)).resize((72, 38), Image.NEAREST).save(os.path.join(d, 'icon.png'))   # the TV head
+    return small, big, base, out
+
 def build():
-    base, out = N.build_all(SMALL, BIG, MOVES, DIR, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)))
-    Image.fromarray(base['idle'][0]).crop((22, 0, 50, 15)).resize((72, 38), Image.NEAREST).save(os.path.join(DIR, 'icon.png'))   # the TV head
+    for style in ('aero', 'hack', 'ronin', 'default'):
+        small, big, base, out = build_style(style)
+    # where the screen is in every frame (the same for every costume): read by the game to draw the MODE screens
+    J = ((JUMP, JUMP2), (FALL, FALL2))
+    track = {
+        'idle': screen_track(small, idle_keys(), 192, 6, None, life), 'run': screen_track(small, run_keys(), 48, 6, None, life),
+        'jump': screen_track(small, [k(0, J[0][0]), k(12, J[0][1]), k(24, J[0][0])], 24, 6, None, life),
+        'fall': screen_track(small, [k(0, J[1][0]), k(12, J[1][1]), k(24, J[1][0])], 24, 6, None, life),
+        'moves': [f for name, (ticks, keys, step, smear, loop, center) in MOVES.items() for f in screen_track(big, keys, ticks, step, center, life)],
+    }
+    with open(SCR_JS, 'w') as f:
+        f.write('// Generated by tools/sprites/what_once_was_moves.py - do not edit by hand.\n')
+        f.write('// WHAT ONCE WAS: where its TV screen is in every frame of each sheet - [x*10, y*10, angle in degrees,\n')
+        f.write('// x scale*100, y scale*100] in frame pixels - so the game can draw its animated MODE screens over it.\n')
+        f.write('export const WOW_SCREENS = ' + json.dumps(track, separators=(',', ':')) + ';\n')
+    # the animated MODE screens, one row per costume: SEE x4, INCOMING x4, SMILE x4 (11x9 frames)
+    rows = [D.mode_screens(st) for st in ('default', 'aero', 'hack', 'ronin')]
+    sheet = Image.new('RGBA', (D.MODE_W * 12, D.MODE_H * len(rows)), (0, 0, 0, 0))
+    for r, frames in enumerate(rows):
+        for i, fr in enumerate(frames): sheet.alpha_composite(Image.fromarray(fr, 'RGBA'), (i * D.MODE_W, r * D.MODE_H))
+    sheet.save(os.path.join(DIR, 'mode_screens.png'))
     return base, out
 
 if __name__ == '__main__':

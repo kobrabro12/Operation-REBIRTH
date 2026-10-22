@@ -2,8 +2,8 @@
 // wallpaper with an old CRT television for a head. Still in the lab (Trinkets > TEST FIGHTERS). Data only -
 // stats, sprite sheets and every move's hitboxes. Boxes are [x, y, w, h] from its feet while facing right
 // (negative y = up). Art and animation: tools/sprites/what_once_was_draw.py and what_once_was_moves.py.
-// Its own behaviour (the SIGNAL meter and CHANNEL menu, Channel Surf, the Wrong Door, the elevator, the
-// screen beam, LEVEL 0) is in fighterWhatOnceWas.js. Numbers are first-pass - tune after playtesting.
+// Its own behaviour (the SIGNAL meter and its three MODES, Channel Surf, the Wrong Door, the elevator, the
+// screen beams, LEVEL 0) is in fighterWhatOnceWas.js. Numbers are first-pass - tune after playtesting.
 import { DEFAULT_GRAB } from './common.js';
 import { WOW_MOVES } from './wowMoves.js';
 
@@ -14,6 +14,10 @@ export const WHAT_ONCE_WAS = {
   id: 'what-once-was',
   name: 'WHAT ONCE WAS',
   sheets: { idle: 'wow_idle', run: 'wow_run', jump: 'wow_jump', fall: 'wow_fall', moves: 'wow_moves' },
+  // costumes with their own drawing (skins.js sheetSet): FRUTIGER, ROOT ACCESS, RONIN
+  costumeSheets: Object.fromEntries(['aero', 'hack', 'ronin'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),
+  // which row of mode_screens.png each costume's MODE screens are on
+  screenRow: { default: 0, wowAero: 1, wowHack: 2, wowRonin: 3 },
   runCycle: [0, 8],
   moveAnims: WOW_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,                 // feet on row 58 of the 64x64 frame
@@ -31,16 +35,38 @@ export const WHAT_ONCE_WAS = {
   airSpeed: 2.6, airAccel: 0.24, airFriction: 0.04,
   jumpV: -9.2, shortHopV: -6.2, doubleJumpV: -8.6,
 
-  // SIGNAL meter: fills as it deals and takes damage. Full: the taunt key (1) opens its CHANNEL menu instead
-  // of taunting - pick a channel with a direction (fighterWhatOnceWas.js):
-  //   UP    WARNING   - 8 s of red screen: it deals 25% more damage
-  //   SIDE  MISSING   - vanishes into static and comes out behind the nearest opponent, posting them MISSING
-  //                     for 6 s (they take 20% more damage)
-  //   DOWN  DEAD AIR  - recovers 15% (15 HP in Stamina) and can't be flinched for 4 s
-  signal: { max: 100, perDealt: 0.8, perTaken: 0.6, menuFor: 150,
-    warning: { frames: 480, dmg: 1.25 }, missing: { frames: 360, behind: 28 }, deadAir: { heal: 15, armor: 240 } },
+  // SIGNAL meter: fills as it deals and takes damage. When it's full, it TRANSFORMS into one of three modes
+  // at random. The mode stays until it's KO'd - then the meter starts over and the next mode is a new roll.
+  // In a mode, its side special becomes that mode's command grab (shields don't stop grabs). Timings in frames.
+  signal: { max: 100, perDealt: 0.8, perTaken: 0.6 },
+  modes: {
+    // SEE: one huge eye on the screen. 20% more damage on everything, for good.
+    // Side special: the long arm shoots out, grabs them by the neck, snaps it (7%) and slams them down (9%).
+    see: { name: 'SEE', color: 0xf0ece0, textColor: '#f0ece0', side: 'see_side', dmg: 1.2,
+      lines: ['I SEE YOU.', 'THERE YOU ARE.', 'DON\'T BLINK.'],
+      grab: { frames: 30, from: 7, to: 14, box: [8, -60, 74, 44], snapAt: 22, slamAt: 38, holdFrames: 58,
+        snap: { dmg: 7, angle: 90, base: 1, growth: 0, stun: 40 },
+        slam: { dmg: 9, angle: 82, base: 5.0, growth: 4.6 } } },
+    // INCOMING: the screen floods bright red. 20% faster, for good.
+    // Side special: a lunge; anyone it hits is tackled to the floor (3%), beaten (6 x 2%), hauled up and thrown (7%).
+    incoming: { name: 'INCOMING', color: 0xff3a2a, textColor: '#ff4a3a', side: 'inc_side', speed: 1.2,
+      lines: ['INCOMING.', 'RUN.', 'TOO SLOW.'],
+      rush: { frames: 34, from: 6, to: 20, vx: 9.5, box: [0, -52, 42, 52], furyFrom: 12, furyTo: 42, furyEvery: 6, liftAt: 50, throwAt: 64, holdFrames: 80,
+        tackle: { dmg: 3, angle: -60, base: 1, growth: 0, stun: 40 },
+        fury: { dmg: 2, angle: -60, base: 0.5, growth: 0, stun: 40 },
+        throw: { dmg: 7, angle: 30, base: 5.4, growth: 6.2 } } },
+    // SMILE: a wide grin on the screen. Heals 2% a second (1% every half second), for good.
+    // Side special: if someone is in range it teleports behind them, laughs, lifts them on its power cord,
+    // shocks them (3 x 3%) and drops them somewhere random on the stage (3%).
+    smile: { name: 'SMILE', color: 0xfff6b0, textColor: '#fff6b0', side: 'smile_side', heal: { every: 30, amount: 1 },
+      lines: [':)', 'HA... HA... HA...', 'SMILE.'],
+      tele: { frames: 34, at: 8, range: 240, rangeY: 120, behind: 26, box: [-6, -56, 52, 56], laugh: ['HA HA HA HA', 'HEHEHEHE', 'HA... HA... HA...'],
+        laughFor: 24, shockFrom: 44, shockTo: 64, shockEvery: 10, dropAt: 78, holdFrames: 96,
+        shock: { dmg: 3, angle: 90, base: 1, growth: 0, stun: 40 },
+        drop: { dmg: 3, angle: 90, base: 2.0, growth: 0.8 } } },
+  },
 
-  // TAUNT (1, when the meter isn't full): NO SIGNAL - the head tilts right over; the screen flicks through posters
+  // TAUNT (1): NO SIGNAL - the head tilts right over; the screen flicks through posters
   taunt: { name: 'NO SIGNAL', frames: 96, lines: ['HAVE YOU SEEN ME?', '...MISSING...', 'PLEASE STAND BY', 'NO SIGNAL'],
     sounds: [[1, 'buzz', 0.3, 1], [30, 'glitch', 0.4, 0.8], [58, 'buzz', 0.4, 0.7]] },
 
@@ -90,7 +116,7 @@ export const WHAT_ONCE_WAS = {
       speed: 4.2, life: 80, flutter: 6, mark: 120,
       hit: { dmg: 6, angle: 40, base: 2.4, growth: 2.2 },
     } },
-    // CHANNEL SURF (side): dissolves into static and can't be hit while it's out of reality, then flickers
+    // CHANNEL SURF (side, before it transforms): dissolves into static and can't be hit while it's out of reality, then flickers
     // back in further ahead, hitting anyone where it lands. Once per jump.
     sideB: { frames: 40, landLag: 10, fx: 'spin', noclip: { from: 8, to: 22, vx: 8.2 },
       hits: [{ from: 23, to: 26, box: [-26, -58, 52, 58], dmg: 9, angle: 50, base: 3.2, growth: 5.0 }] },

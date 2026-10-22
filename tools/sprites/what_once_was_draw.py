@@ -9,7 +9,18 @@ power cord trailing down its spine. The screen shows one of several pictures - e
 so a move picks what's on screen by hiding the others:
   scr_static   grey static (default)          scr_warn     a yellow warning triangle
   scr_missing  a MISSING poster (a face)      scr_eye      one huge staring eye
-  scr_red      red static with a '!' (its CHANNEL: WARNING mode)
+  scr_red      red static with a '!'
+Its three MODES (SEE / INCOMING / SMILE) aren't baked in: the game draws an animated mode screen over
+this one (mode_screens.png, made here too) using where the screen is in every frame (wowScreens.js).
+
+Costumes with their own drawing - same parts and joints, so every animation fits - pick a STYLE:
+  default  stained wallpaper skin, grey CRT, rabbit ears
+  aero     FRUTIGER: glossy white glass skin full of aqua bubbles, a translucent blue CRT, leaf-tipped
+           antennae, a clear tube for a cord
+  hack     ROOT ACCESS: a black hoodie crawling with green code, hood up round a black monitor with a
+           green phosphor screen, an LED antenna, a glowing green cable
+  ronin    RONIN: red lacquered armour with gold lacing over indigo hakama, a lacquered TV under a
+           kabuto neck guard with a gold crescent crest, a braided red cord
 
 Every part is drawn on its own 64x64 layer (facing right, feet on row 58): flat colour, cel shade (lit
 from the upper left), dark outline. draw_parts() returns {name: RGBA array}.
@@ -21,6 +32,7 @@ from PIL import Image, ImageDraw
 from nu_draw import hx, capsule, blank, JOINTS
 
 OUT = 0x120e06
+STYLE = 'default'                                   # set by set_style()
 PAL = {
     'skin': (0xeedc84, 0xcdb85a, 0x8c7a32),         # wallpaper skin (skins recolour this group)
     'stripe': (0xb8a24a, 0xa48e3c, 0x7a6a2c),       # wallpaper stripes / stains
@@ -33,6 +45,31 @@ PAL = {
     'cord': (0x2e2c28, 0x1e1c18, 0x100f0c),
 }
 SCR = (31, 8, 41, 16)                                # screen rectangle (x1, y1, x2, y2) inside the TV
+STATIC = (0xf0f0f0, 0x9a9a9a, 0x4a4a4a, 0x1a1a1a)    # the static's colours, light to dark
+BASE_PAL = dict(PAL)
+STYLE_PALS = {
+    'aero': {
+        'skin': (0xffffff, 0xe2f2fa, 0x96c4da), 'stripe': (0xc8f4ff, 0x9fe6f8, 0x5ac0e0), 'flesh': (0x7ae0f0, 0x2aa8d0, 0x0d6a90),
+        'limb': (0xffffff, 0xd4ecf6, 0x88b8d0), 'far': (0xbcdeee, 0x94c4dc, 0x5a8eaa), 'case': (0x9aeaf6, 0x3fb8d8, 0x1a7a9a),
+        'rim': (0xffffff, 0xe6f4fb, 0x9ac8dc), 'metal': (0xc8f88a, 0x6fd03a, 0x3a8a1a), 'cord': (0xe8fcff, 0x9ae4f2, 0x4aa8c8)},
+    'hack': {
+        'skin': (0x3a3a42, 0x26262c, 0x121216), 'stripe': (0x2a3a2e, 0x1e2a22, 0x101810), 'flesh': (0x2e2e32, 0x18181c, 0x08080a),
+        'limb': (0x4e4e56, 0x36363c, 0x1c1c20), 'far': (0x2e2e34, 0x222226, 0x101012), 'case': (0x34363c, 0x1e2024, 0x0c0d10),
+        'rim': (0x0e0e10, 0x060607, 0x020203), 'metal': (0xb8ffc8, 0x3ae060, 0x157a2e), 'cord': (0x9affb0, 0x2ad050, 0x0e6a2a)},
+    'ronin': {
+        'skin': (0xf05a48, 0xb82a22, 0x5a1010), 'stripe': (0xc8382c, 0xa02820, 0x5a1010), 'flesh': (0x4a3e44, 0x241c22, 0x0e0a0c),
+        'limb': (0x5a6a9c, 0x3a4674, 0x1e2444), 'far': (0x34406a, 0x262e50, 0x141a30), 'case': (0x4a3e44, 0x241c22, 0x0e0a0c),
+        'rim': (0xffe08a, 0xd9a32e, 0x8a5e10), 'metal': (0xfff0b0, 0xe8b440, 0x9a6a14), 'cord': (0xf05a48, 0xb82a22, 0x5a1010)},
+}
+STYLE_STATIC = {'aero': (0xffffff, 0x9ff0ff, 0x3fc8ea, 0x1a8ab8), 'hack': (0xb8ffc8, 0x3ae060, 0x157a2e, 0x041808), 'ronin': (0xf4ecd8, 0xb0a490, 0x5a5248, 0x1a1614)}
+GOLD = (0xffe08a, 0xd9a32e, 0x8a5e10)
+
+def set_style(style):
+    """Switch every palette to a costume's look (draw_parts() then draws that costume)."""
+    global STYLE, STATIC
+    STYLE = style
+    PAL.clear(); PAL.update(BASE_PAL); PAL.update(STYLE_PALS.get(style, {}))
+    STATIC = STYLE_STATIC.get(style, (0xf0f0f0, 0x9a9a9a, 0x4a4a4a, 0x1a1a1a))
 
 def finish(img, pal, outline=True):
     a = np.array(img)
@@ -159,7 +196,7 @@ def draw_parts():
     # ---------------- the screens (one shown at a time)
     def static_px(x, y):
         v = rng.random()
-        return 0xf0f0f0 if v > 0.72 else 0x9a9a9a if v > 0.4 else 0x4a4a4a if v > 0.15 else 0x1a1a1a
+        return STATIC[0] if v > 0.72 else STATIC[1] if v > 0.4 else STATIC[2] if v > 0.15 else STATIC[3]
     P['scr_static'] = screen(static_px)
     def warn_px(x, y):                                                    # yellow triangle with a black '!' on black
         cx = 5; top = 0; h = 8
@@ -191,6 +228,13 @@ def draw_parts():
         v = rng.random()
         return 0xff4a3a if v > 0.6 else 0xa8140e if v > 0.25 else 0x3a0604
     P['scr_red'] = screen(red_px)
+    def smile_px(x, y):                                                   # SMILE: two dot eyes and a wide grin on black
+        if y == 2 and x in (2, 3, 7, 8): return 0xffffff
+        if y == 5 and 1 <= x <= 9: return 0xffffff
+        if y == 6 and 2 <= x <= 8: return 0xffffff if x % 2 else 0x3a3a3a
+        if y == 4 and x in (1, 9): return 0xffffff
+        return 0x0a0a0a
+    P['scr_smile'] = screen(smile_px)
     # ---------------- front arm: far too long, hanging down to a three-fingered claw
     im = blank(); d = ImageDraw.Draw(im)
     capsule(d, JOINTS['fshoulder'], JOINTS['felbow'], 6, hx(Lm[1]))
@@ -206,9 +250,133 @@ def draw_parts():
     a = finish(im, PAL['flesh'])
     put(a, [(48, 51), (52, 52), (56, 48), (48, 50), (52, 51), (55, 48)], 0xe8e2cc)   # long pale claw tips
     P['ffist'] = a
+    decorate(P)
     return P
 
-SCREENS = ('scr_static', 'scr_warn', 'scr_missing', 'scr_eye', 'scr_red')
+def shine(a, pts, col=0xffffff):
+    for (x, y) in pts:
+        if 0 <= y < 64 and 0 <= x < 64 and a[y, x, 3] and not np.all(a[y, x] == np.array(hx(OUT))): a[y, x] = hx(col)
+
+def decorate(P):
+    """The costume-specific details painted over the base parts (the same shapes, so animations still fit)."""
+    rng = np.random.default_rng(11)
+    if STYLE == 'aero':
+        # glossy glass: a white shine streak on every big part, aqua bubbles floating inside the body
+        shine(P['torso'], [(27, 22), (27, 23), (26, 24), (26, 25), (26, 26), (28, 21)])
+        for (x, y, r) in [(33, 27, 1), (36, 33, 2), (30, 37, 1), (38, 25, 1), (29, 30, 1)]:
+            for dx in range(-r, r + 1):
+                for dy in range(-r, r + 1):
+                    if abs(dx) + abs(dy) == r or (r == 1 and (dx, dy) == (0, 0)): shine(P['torso'], [(x + dx, y + dy)], 0x7ad8f0)
+            shine(P['torso'], [(x - r + 1, y - r + 1)])
+        for n in ('fthigh', 'fupper', 'ffore', 'fshin'):
+            a = P[n]; ys, xs = np.where(a[..., 3] > 0)
+            if len(xs): shine(a, [(int(xs.min()) + 2, int(ys.min()) + 2), (int(xs.min()) + 2, int(ys.min()) + 3)])
+        shine(P['head'], [(29, 6), (30, 6), (31, 6), (29, 7)])                          # gloss on the CRT case
+        for (x, y) in [(30, 0), (44, 0)]:                                               # leaf tips on the antennae
+            for (dx, dy, c) in [(0, 0, 0x6fd03a), (-1, 0, 0xc8f88a), (1, 0, 0x3a8a1a), (0, 1, 0x6fd03a)]:
+                if 0 <= x + dx < 64: P['head'][y + dy, x + dx] = hx(c)
+        cd = P['cord']; ys, xs = np.where(cd[..., 3] > 0)
+        for i in range(0, len(xs), 7): shine(cd, [(int(xs[i]), int(ys[i]))], 0xffffff)   # bubbles in the tube
+    elif STYLE == 'hack':
+        # green code crawling down the hoodie and the limbs; the hood up round the monitor
+        t = P['torso']
+        for x in range(25, 42, 3):
+            for y in range(20, 42):
+                if rng.random() < 0.28: shine(t, [(x, y)], 0x3ae060 if rng.random() < 0.7 else 0xb8ffc8)
+        for n in ('fthigh', 'fupper', 'ffore', 'bupper', 'bthigh'):
+            a = P[n]; ys, xs = np.where((a[..., 3] > 0) & ~np.all(a == np.array(hx(OUT)), -1))
+            for i in range(0, len(xs), 11): shine(a, [(int(xs[i]), int(ys[i]))], 0x3ae060)
+        h = P['head']                                                                   # the hood: dark fabric behind and over the monitor
+        hood = np.zeros_like(h); im = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        d.pieslice([24, 1, 48, 30], 180, 360, fill=hx(PAL['skin'][1])); d.rectangle([24, 15, 27, 22], fill=hx(PAL['skin'][1]))
+        hood = finish(im, PAL['skin'])
+        m = (hood[..., 3] > 0) & (h[..., 3] == 0); h[m] = hood[m]
+        for (x, y) in [(31, 18), (32, 19), (33, 20), (40, 18), (39, 19)]: shine(h, [(x, y)], 0xb8ffc8)   # drawstrings
+        h[17, 43] = hx(0x3ae060)                                                        # green power light
+        ff = P['ffist']; ys, xs = np.where(ff[..., 3] > 0)
+        for i in range(len(xs)):
+            if np.all(ff[ys[i], xs[i]] == np.array(hx(0xe8e2cc))): ff[ys[i], xs[i]] = hx(0x3ae060)   # glowing green fingertips
+    elif STYLE == 'ronin':
+        # lacquered armour plates with gold lacing; a kabuto neck guard and a gold crescent crest
+        t = P['torso']
+        for y in range(23, 42, 4):
+            for x in range(23, 44): shine(t, [(x, y)], 0x1a0808)
+            for x in range(25, 42, 4): shine(t, [(x, y + 1)], GOLD[1])
+        shine(t, [(27, 22), (28, 22), (29, 22)], 0xf8907a)
+        for n in ('fthigh', 'bthigh'):                                                  # armoured thigh plates
+            a = P[n]; ys, xs = np.where(a[..., 3] > 0)
+            if len(xs):
+                y0 = int(ys.min()) + 2
+                for y in range(y0, y0 + 6, 2):
+                    for x in range(int(xs.min()) + 1, int(xs.max())): shine(a, [(x, y)], 0xb82a22 if y % 4 else 0x5a1010)
+        h = P['head']
+        im = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        d.polygon([(27, 6), (46, 6), (48, 9), (26, 9)], fill=hx(PAL['case'][1]))       # the helmet bowl over the TV
+        d.polygon([(24, 9), (29, 9), (27, 20), (22, 18)], fill=hx(PAL['skin'][1]))    # the neck guard (shikoro) at the back
+        lay = finish(im, PAL['case'])
+        for y in range(10, 20, 3):
+            for x in range(22, 30): shine(lay, [(x, y)], GOLD[1])
+        m = lay[..., 3] > 0; h[m] = lay[m]
+        h[0:6, 28:47] = 0                                                               # rabbit ears off...
+        im = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        d.line([(37, 5), (33, 3), (30, 1), (28, 0)], fill=hx(GOLD[1]), width=2)        # ...a gold crescent crest (maedate) on
+        d.line([(37, 5), (41, 3), (44, 1), (46, 0)], fill=hx(GOLD[1]), width=2)
+        d.rectangle([35, 4, 39, 6], fill=hx(GOLD[1]))
+        cr = finish(im, GOLD); m = cr[..., 3] > 0; h[m] = cr[m]
+        ff = P['ffist']; ys, xs = np.where(ff[..., 3] > 0)
+        for i in range(len(xs)):
+            if np.all(ff[ys[i], xs[i]] == np.array(hx(0xe8e2cc))): ff[ys[i], xs[i]] = hx(GOLD[0])   # gilded claw tips
+        cd = P['cord']; ys, xs = np.where(cd[..., 3] > 0)
+        for i in range(0, len(xs), 4): shine(cd, [(int(xs[i]), int(ys[i]))], GOLD[1])  # braided with gold
+
+# ---------------------------------------------------------------- the animated MODE screens (drawn by the game)
+MODE_W, MODE_H = 11, 9
+def mode_screens(style):
+    """4 frames each of SEE (the eye looks about and blinks), INCOMING (bright red, flashing '!') and SMILE (a
+    grin that glitches), in this costume's colours. Returns 12 RGBA frames of 11x9."""
+    iris = {'aero': 0x3fc8ea, 'hack': 0x3ae060, 'ronin': 0xd9a32e}.get(style, 0x8a6a2a)
+    white = {'hack': 0x9affb0}.get(style, 0xf0ece0)
+    red = {'aero': (0xff6a7a, 0xffc0c8), 'hack': (0xff3a2a, 0xffa090), 'ronin': (0xe02a1a, 0xffd060)}.get(style, (0xff2a1a, 0xffb0a0))
+    grin = {'aero': 0xffffff, 'hack': 0x3ae060, 'ronin': 0xffe08a}.get(style, 0xffffff)
+    bg = {'aero': 0x0d3550, 'hack': 0x020a04, 'ronin': 0x140a06}.get(style, 0x0a0a0a)
+    frames = []
+    def frame(fn):
+        a = np.zeros((MODE_H, MODE_W, 4), np.uint8)
+        for y in range(MODE_H):
+            for x in range(MODE_W): a[y, x] = hx(fn(x, y))
+        for (x, y) in ((0, 0), (MODE_W - 1, 0), (0, MODE_H - 1), (MODE_W - 1, MODE_H - 1)): a[y, x] = 0
+        return a
+    for look, lid in ((0, 0), (-2, 0), (2, 0), (0, 1)):                           # SEE
+        def eye(x, y, look=look, lid=lid):
+            dx, dy = (x - 5) / 5.5, (y - 4) / 3.8
+            if dx * dx + dy * dy > 1: return bg
+            if lid: return 0x3a342a if y != 4 else 0x1a1814                       # blink
+            px = 5 + look
+            if (x - px) ** 2 + (y - 4) ** 2 <= 1: return 0x050505
+            if (x - px) ** 2 + (y - 4) ** 2 <= 4: return iris
+            if (x, y) == (px - 1, 3): return 0xffffff
+            return 0xb83a2a if (x * 7 + y * 3) % 11 == 0 else white
+        frames.append(frame(eye))
+    for k in range(4):                                                             # INCOMING
+        def inc(x, y, k=k):
+            if x == 5 and (1 <= y <= 5 or y == 7) and k % 2 == 0: return 0xffffff
+            lit = (y + k) % 3 != 0
+            return red[1] if (k == 1 and lit and (x + y) % 4 == 0) else red[0] if lit else 0xa8140e
+        frames.append(frame(inc))
+    for k in range(4):                                                             # SMILE
+        def sm(x, y, k=k):
+            sx = x + (1 if (k == 3 and y in (5, 6)) else 0)                           # one frame tears sideways
+            if y == 2 and sx in (2, 3, 7, 8) and not (k == 2 and sx in (7, 8)): return grin   # (a wink)
+            if k == 2 and y == 3 and sx in (7, 8): return grin
+            if y == 5 and 1 <= sx <= 9: return grin
+            if y == 6 and 2 <= sx <= 8: return grin if sx % 2 else 0x3a3a3a
+            if y == 4 and sx in (1, 9): return grin
+            if y == 7 and 3 <= sx <= 7 and k == 1: return 0xc8281e                 # a sliver of red
+            return bg
+        frames.append(frame(sm))
+    return frames
+
+SCREENS = ('scr_static', 'scr_warn', 'scr_missing', 'scr_eye', 'scr_red', 'scr_smile')
 # draw order (back to front) and the rig: name -> (pivot, parent)
 ORDER = ['cord', 'bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', *SCREENS, 'fupper', 'ffore', 'ffist']
 RIG = {
@@ -220,7 +388,7 @@ RIG = {
     'bthigh': ((28, 40), None), 'bshin': ((24, 48), 'bthigh'), 'bshoe': ((26, 54), 'bshin'),
     'fthigh': ((36, 40), None), 'fshin': ((40, 48), 'fthigh'), 'fshoe': ((41, 55), 'fshin'),
 }
-PROPS = ('scr_warn', 'scr_missing', 'scr_eye', 'scr_red')     # hidden unless a pose shows them
+PROPS = ('scr_warn', 'scr_missing', 'scr_eye', 'scr_red', 'scr_smile')     # hidden unless a pose shows them
 
 def composite(P, hide=PROPS):
     out = np.zeros((64, 64, 4), np.uint8)
@@ -232,6 +400,7 @@ def composite(P, hide=PROPS):
 
 if __name__ == '__main__':
     import sys
+    if len(sys.argv) > 2: set_style(sys.argv[2])
     parts = draw_parts()
     tiles = []
     for scr in SCREENS:

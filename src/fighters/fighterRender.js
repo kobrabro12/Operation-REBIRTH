@@ -46,7 +46,7 @@ export class FighterRender {
       case 'helpless': return { ...loop('fall', 8), alpha: this.anim % 16 < 8 ? 1 : 0.8 };
       case 'airdodge': return { ...loop('fall', 6), alpha: 0.55 };
       case 'hitstun': return once('hit', this.t, 16);                      // the Take Hit strip on every hit
-      case 'grabbed': return { sheet: S.hit, frame: N.hit - 1 };
+      case 'grabbed': case 'seized': return { sheet: S.hit, frame: N.hit - 1 };
       case 'dizzy': return { sheet: S.hit, frame: N.hit - 1, rot: Math.sin(this.t * 0.2) * 0.15 };
       case 'dying': return once('death', this.t, 66);
       case 'attack': {
@@ -115,7 +115,7 @@ export class FighterRender {
   moveAnimKey(s) {
     const A = this.def.moveAnims;
     const k = s === 'attack' ? (this.moveName === 'throw' ? 'throw_' + this.throwDir : this.moveName)
-      : s === 'dizzy' ? 'hitstun' : s;
+      : s === 'dizzy' ? 'hitstun' : s === 'seized' ? 'grabbed' : s;
     return A[k] ? k : null;
   }
 
@@ -166,7 +166,7 @@ export class FighterRender {
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
     else if (s === 'ledgeroll') { spr.setAlpha(0.55); frame = 6; }
     else if (s === 'holding') { sheet = alt; frame = 1; }
-    else if (s === 'grabbed') { frame = 10; spr.setRotation(-0.2 * this.facing); }
+    else if (s === 'grabbed' || s === 'seized') { frame = 10; spr.setRotation(-0.2 * this.facing); }
     if (this.hurtAnim > 0) this.hurtAnim--;
     const ma = !d.ownAnims && d.moveAnims && this.sheets.moves && this.moveAnimKey(s);
     if (ma) {                                  // a drawn animation for this move: it carries its own lean and squash

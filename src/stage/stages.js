@@ -5,6 +5,7 @@ import { SpireStage, drawSpirePreview } from './spireStage.js';
 import { MoonStage, drawMoonPreview } from './moonStage.js';
 import { ArcadeStage, drawArcadePreview } from './arcadeStage.js';
 import { ForestStage, drawForestPreview } from './forestStage.js';
+import { BackroomsStage, drawBackroomsPreview } from './backroomsStage.js';
 
 export const STAGES = [
   {
@@ -36,6 +37,12 @@ export const STAGES = [
     blurb: ['A mossy root at a glowing world tree, deep in', 'a mythical forest. Day slowly turns to night.'],
     hazard: 'BRAMBLE SNARE: THORNS BURST FROM THE MOSS;\nSPIRIT STAG: A GLOWING STAG CHARGES ACROSS.',
     preview: drawForestPreview,
+  },
+  {
+    id: 'backrooms', name: 'THE BACKROOMS', available: true, make: (scene) => new BackroomsStage(scene),
+    blurb: ['A scrap of floor adrift in the back rooms of', 'reality. Every minute: NOCLIP to a new level.'],
+    hazard: 'LIGHTS OUT, FALLING CRATES, STEAM VENTS,\nTHE SURGE - ONE FOR EACH OF ITS 4 LEVELS.',
+    preview: drawBackroomsPreview,
   },
 ];
 

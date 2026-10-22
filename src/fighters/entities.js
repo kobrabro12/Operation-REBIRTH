@@ -847,8 +847,33 @@ export class FlyingCD {
 // ---------------------------------------------------------------- WHAT ONCE WAS (test fighter)
 // MISSING POSTER: a paper poster flung from its claw. It flutters forward, rising and dipping; whoever it
 // hits is MARKED - posted MISSING - for a moment (they take more damage, see Fighter.dmgTakenMult).
-export function drawPoster(g, x, y, tilt = 0, a = 1, s = 1) {
+// Costumes change what a "poster" is: FRUTIGER sends it inside a glossy bubble, ROOT ACCESS throws an
+// ERROR popup window, RONIN a paper talisman (ofuda) with a red seal.
+export function drawPoster(g, x, y, tilt = 0, a = 1, s = 1, style = null) {
   x = Math.round(x); y = Math.round(y);
+  if (style === 'wowHack') {
+    const w = 15 * s, h = 11 * s;
+    g.fillStyle(0x3ae060, a); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
+    g.fillStyle(0x020a04, a); g.fillRect(x - w / 2, y - h / 2, w, h);
+    g.fillStyle(0x3ae060, a); g.fillRect(x - w / 2, y - h / 2, w, 2 * s);                         // title bar
+    g.fillStyle(0xff2a2a, a); g.fillRect(x + w / 2 - 3 * s, y - h / 2, 2 * s, 2 * s);             // [x]
+    g.fillStyle(0xff2a2a, a); g.fillRect(x - w / 2 + 2, y - h / 2 + 4 * s, 5 * s, 2 * s);         // ERROR
+    g.fillStyle(0x3ae060, a); g.fillRect(x - w / 2 + 2, y - h / 2 + 7 * s, w - 4, 1); g.fillRect(x - w / 2 + 2, y - h / 2 + 9 * s, w - 7, 1);
+    return;
+  }
+  if (style === 'wowRonin') {
+    const w = 7 * s, h = 16 * s;
+    g.fillStyle(0x1a0606, a); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
+    g.fillStyle(0xf4ecd8, a); g.fillRect(x - w / 2, y - h / 2, w, h);
+    g.fillStyle(0x1a1614, a); for (let i = 0; i < 4; i++) g.fillRect(x - 1 + ((i * 3) % 3) - 1 + Math.round(tilt), y - h / 2 + 2 + i * 3 * s, 3, 2);   // ink strokes
+    g.fillStyle(0xc8281e, a); g.fillCircle(x, y + h / 2 - 3 * s, 2 * s);                          // the red seal
+    return;
+  }
+  if (style === 'wowAero') {
+    g.fillStyle(0x9ff0ff, 0.2 * a); g.fillCircle(x, y, 11 * s);
+    g.lineStyle(1, 0xffffff, 0.9 * a); g.strokeCircle(x, y, 11 * s);
+    g.fillStyle(0xffffff, a); g.fillRect(x - 7 * s, y - 7 * s, 3, 1); g.fillRect(x - 7 * s, y - 7 * s, 1, 3);   // gloss
+  }
   const w = 10 * s, h = 13 * s, sk = Math.round(tilt * 2);
   g.fillStyle(0x16120a, a); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
   g.fillStyle(0xe8e2cc, a); g.fillRect(x - w / 2, y - h / 2, w, h);
@@ -879,7 +904,7 @@ export class MissingPoster {
     if (!this.alive) return;
     let best = null, bd = 1e9;
     for (const f of this.match.fighters) { if (!f.alive || f.team === this.owner.team) continue; const d = Math.hypot(f.x - this.x, f.y - 26 - this.y); if (d < bd) { bd = d; best = f; } }
-    if (best && bd < 40 && best.state === 'hitstun') best.markMissing(this.spec.mark);
+    if (best && bd < 40 && best.state === 'hitstun') best.markMissing(this.spec.mark, this.owner.style);
     sfx('petal', 0.6, 1.2); this.remove(false);
   }
   remove(fade) {
@@ -890,7 +915,7 @@ export class MissingPoster {
   render() {
     if (!this.alive) return;
     const g = this.g; g.clear();
-    drawPoster(g, this.x, this.y, Math.sin(this.t * 0.3), Math.min(1, this.life / 10));
+    drawPoster(g, this.x, this.y, Math.sin(this.t * 0.3), Math.min(1, this.life / 10), 1, this.owner.style);
   }
 }
 
@@ -899,9 +924,11 @@ export class MissingPoster {
 // Sized for a fighter: the opening is a bit taller and wider than a fighter's body (50 px tall), so
 // it (or anyone) visibly fits through it.
 export const DOOR = { w: 30, h: 64 };          // the doorway opening
-export function drawDoor(g, x, y, open = 0, a = 1, flash = false) {
+// Costume doors: FRUTIGER a glass door onto a blue sky, ROOT ACCESS a wireframe portal, RONIN a sliding shoji screen.
+export function drawDoor(g, x, y, open = 0, a = 1, flash = false, style = null) {
   x = Math.round(x); y = Math.round(y);
   const W = DOOR.w, H = DOOR.h, hw = W / 2, fr = 3, pw = hw + fr + 6, ph = H + fr + 8;
+  if (style === 'wowAero' || style === 'wowHack' || style === 'wowRonin') return drawStyledDoor(g, x, y, open, a, flash, style, W, H, hw, fr);
   g.fillStyle(0x16120a, a); g.fillRect(x - pw - 1, y - ph - 1, pw * 2 + 2, ph + 1);
   g.fillStyle(0xcbb662, a); g.fillRect(x - pw, y - ph, pw * 2, ph);          // the wallpaper patch
   g.fillStyle(0xb09a48, a * 0.7); for (let sx = x - pw + 2; sx < x + pw; sx += 5) g.fillRect(sx, y - ph, 1, ph);
@@ -921,6 +948,44 @@ export function drawDoor(g, x, y, open = 0, a = 1, flash = false) {
     }
     if (w > W - 6) { g.fillStyle(0x8a7a4a, a); g.fillRect(L + w - 6, y - 32, 3, 3); g.fillStyle(0xf0e6b8, a); g.fillRect(L + w - 6, y - 32, 1, 1); }   // knob, at hand height
     g.fillStyle(0x3a2e14, a * 0.6); g.fillRect(L + 1, top + 8, 1, 3); g.fillRect(L + 1, y - 14, 1, 3);   // hinges
+  }
+}
+function drawStyledDoor(g, x, y, open, a, flash, style, W, H, hw, fr) {
+  const L = x - hw, top = y - H, w = Math.max(0, Math.round(W * (1 - open)));
+  if (style === 'wowAero') {
+    g.fillStyle(0x0d3550, a); g.fillRect(L - fr - 1, top - fr - 1, W + fr * 2 + 2, H + fr + 1);
+    g.fillStyle(0xf4fbff, a); g.fillRect(L - fr, top - fr, W + fr * 2, H + fr);              // glossy white frame
+    for (let i = 0; i < 6; i++) { g.fillStyle([0x3fc8ea, 0x5ad2ee, 0x7adcf2, 0x9ae6f6, 0xb8eef8, 0xd6f6fb][i], a); g.fillRect(L, top + i * H / 6, W, H / 6 + 1); }   // the sky beyond
+    g.fillStyle(0xffffff, 0.9 * a); g.fillEllipse(x - 4, top + 14, 14, 5); g.fillEllipse(x + 6, top + 26, 10, 4);   // clouds
+    g.fillStyle(0x8be04a, a); g.fillEllipse(x, y + 2, W + 8, 14);                            // a green hill
+    if (w > 0) {                                                                             // the glass door, swinging open
+      g.fillStyle(flash ? 0xffffff : 0x9ff0ff, 0.45 * a); g.fillRect(L, top, w, H);
+      g.lineStyle(1, 0xffffff, a); g.strokeRect(L + 0.5, top + 0.5, w - 1, H - 1);
+      g.fillStyle(0xffffff, 0.8 * a); for (let i = 0; i < 3; i++) g.fillRect(L + 3 + i * 2, top + 4 + i * 6, 2, Math.min(18, H / 3));   // shine
+      if (w > W - 6) { g.fillStyle(0x3fc8ea, a); g.fillRect(L + w - 5, y - 32, 2, 6); }
+    }
+    return;
+  }
+  if (style === 'wowHack') {
+    g.fillStyle(0x000000, 0.9 * a); g.fillRect(L, top, W, H);
+    const fl = flash ? 0xffffff : 0x3ae060;
+    g.lineStyle(1, fl, a); g.strokeRect(L - 0.5, top - 0.5, W + 1, H + 1); g.strokeRect(L - 3.5, top - 3.5, W + 7, H + 4);
+    g.fillStyle(0x3ae060, 0.5 * a); for (let i = 1; i < 8; i++) g.fillRect(x - Math.round(hw * (1 - i / 8)), top + H - i * 8, Math.round(W * (1 - i / 8)), 1);   // a tunnel of wireframe
+    g.fillStyle(0x3ae060, a); g.fillRect(L, top - 8, W, 4); g.fillStyle(0x020a04, a); g.fillRect(L + 2, top - 7, 3, 2); g.fillRect(L + 7, top - 7, 9, 2);   // "> door"
+    if (w > 0) { g.fillStyle(0x0e3a1a, 0.85 * a); g.fillRect(L, top, w, H); g.fillStyle(0x3ae060, a); for (let yy = top + 4; yy < y - 2; yy += 6) g.fillRect(L + 2, yy, Math.max(0, w - 4 - ((yy * 7) % 9)), 1); }   // scrolling code
+    return;
+  }
+  // RONIN: a shoji screen in a dark wood frame; it slides open sideways
+  g.fillStyle(0x1a0606, a); g.fillRect(L - fr - 1, top - fr - 4, W + fr * 2 + 2, H + fr + 4);
+  g.fillStyle(0x3a2a1a, a); g.fillRect(L - fr, top - fr - 3, W + fr * 2, H + fr + 3);
+  g.fillStyle(0x1a0606, a); g.fillRect(L, top, W, H);                                        // the dark room beyond
+  g.fillStyle(0xff8a5a, 0.25 * a); g.fillCircle(x, top + 20, 8);                            // a lantern glowing far inside
+  if (w > 0) {
+    const sx = L + (W - w);                                                                  // slides to the right
+    g.fillStyle(flash ? 0xffffff : 0xf0e4c8, a); g.fillRect(sx, top, w, H);
+    g.fillStyle(0x3a2a1a, a); for (let yy = top + 10; yy < y; yy += 12) g.fillRect(sx, yy, w, 1);
+    for (let xx = sx + 7; xx < sx + w; xx += 8) g.fillRect(xx, top, 1, H);
+    g.fillRect(sx, top, 2, H);
   }
 }
 export class WrongDoor {
@@ -968,7 +1033,7 @@ export class WrongDoor {
     if (!this.alive) return;
     const g = this.g, fade = Math.min(1, this.t / 6) * (this.life - this.t < 60 && (this.t >> 2) % 2 ? 0.5 : 1);
     g.clear();
-    drawDoor(g, this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0), this.y, 0, fade, this.flash > 0);
+    drawDoor(g, this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0), this.y, 0, fade, this.flash > 0, this.owner.style);
     if (this.hp < this.spec.hp) {
       const by = this.y - DOOR.h - 22;
       g.fillStyle(0x0b0a14, 0.8); g.fillRect(this.x - 14, by, 28, 3);

@@ -22,7 +22,6 @@ export class CpuController extends Controller {
     if (me.state === 'holding') return this.throwPlan(me);
     if (me.state === 'respawn') { if (Math.random() < 0.03) this.x = Math.random() < 0.5 ? -1 : 1; return; }
     if (me.state === 'charge' || me.state === 'swingcharge') { this.cur.special = true; return; }
-    if (me.state === 'channel') { if (me.t >= 8 + Math.floor(Math.random() * 10)) { const c = me.cpuChannel || 'up'; if (c === 'up') this.y = -1; else if (c === 'down') this.y = 1; else this.x = me.facing; } return; }   // WHAT ONCE WAS picks a channel
     this.holdSpecial = false;
     if (me.possessed > 0) { if (Math.random() < this.lv.mash) this.tap(['attack', 'jump', 'special', 'shield'][Math.floor(Math.random() * 4)]); return; }
     if (this.dodgeLimit(me)) return;
@@ -94,10 +93,9 @@ export class CpuController extends Controller {
     // AERO: set computers down (two powers up FULL AERO); in FULL AERO, keep a CD storm going
     if (M.downB && M.downB.pc && me.grounded && this.match.pcsOf(me).length < 2 && adx > 80 && Math.random() < 0.1 * L.aggression) { this.y = 1; this.tap('special'); return; }
     if (M.downB && M.downB.cdcloud && !me.cdCloud && adx < 280 && Math.random() < 0.3) { this.y = 1; this.tap('special'); return; }
-    // WHAT ONCE WAS: a full SIGNAL meter - open the CHANNEL menu and pick what fits the moment
-    if (me.def.signal && me.signalFull() && (me.grounded || me.vy > -1) && Math.random() < 0.25) {
-      me.cpuChannel = me.percent > 90 ? 'down' : tgt.percent > 70 && adx > 120 ? 'side' : 'up';
-      this.tap('taunt'); return;
+    // WHAT ONCE WAS transformed: its side special is a command grab (SMILE's teleports from far away)
+    if (me.wowMode && !me.usedDive && Math.abs(dy) < 50 && adx < (me.wowMode === 'smile' ? 220 : me.wowMode === 'incoming' ? 120 : 76) && Math.random() < 0.3 * L.aggression) {
+      this.x = Math.sign(dx) || me.facing; this.tap('special'); return;
     }
     // WHAT ONCE WAS: put a door down away from the action; step back out of it when things get hot
     if (M.downB && M.downB.door && !me.wrongDoor() && me.grounded && adx > 100 && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
@@ -243,7 +241,7 @@ export class CpuController extends Controller {
     if (me.state === 'helpless' || me.state === 'hitstun') return;
     const M = me.def.moves;
     if (M.downB && M.downB.door && me.wrongDoor() && me.state === 'air' && (below || Math.abs(me.x) > P.x2 + 60)) { this.x = 0; this.y = 1; this.tap('special'); return; }   // WHAT ONCE WAS: back out of its door
-    if (M.sideB && M.sideB.noclip && !me.usedDive && me.state === 'air' && Math.abs(me.y - P.y) < 60 && Math.min(Math.abs(me.x - P.x1), Math.abs(me.x - P.x2)) > 70) { this.tap('special'); return; }   // ... or noclip back to the stage
+    if (M.sideB && M.sideB.noclip && !me.wowMode && !me.usedDive && me.state === 'air' && Math.abs(me.y - P.y) < 60 && Math.min(Math.abs(me.x - P.x1), Math.abs(me.x - P.x2)) > 70) { this.tap('special'); return; }   // ... or noclip back to the stage
     if (below || me.vy > 1) {
       if (me.jumpsLeft > 0 && me.vy > -1) { this.tap('jump'); return; }
       if (!me.usedUpB && me.y > -20 && me.vy > 0) { this.y = -1; this.tap('special'); }

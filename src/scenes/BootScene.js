@@ -25,6 +25,11 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + k, 'assets/fighters/what-once-was/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // WHAT ONCE WAS (test fighter): tools/sprites/what_once_was_moves.py
     this.load.spritesheet('wow_moves', 'assets/fighters/what-once-was/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    for (const [s, dir] of [['aero', 'frutiger'], ['hack', 'root-access'], ['ronin', 'ronin']]) {   // its costumes with their own drawing
+      for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + s + '_' + k, 'assets/fighters/what-once-was/' + dir + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('wow_' + s + '_moves', 'assets/fighters/what-once-was/' + dir + '/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    }
+    this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {
       this.load.spritesheet('hk_' + k, 'assets/fighters/hero-knight/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });
@@ -45,6 +50,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_spires', ['assets/audio/music/spires.ogg', 'assets/audio/music/spires.mp3']);
     this.load.audio('bgm_forest', ['assets/audio/music/forest.ogg', 'assets/audio/music/forest.mp3']);   // Elderwood Hollow: plays once these files are added
     this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
+    this.load.audio('bgm_backrooms', ['assets/audio/music/backrooms.ogg', 'assets/audio/music/backrooms.mp3']);   // tools/audio/backrooms_music.py
     this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
     this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');
   }
