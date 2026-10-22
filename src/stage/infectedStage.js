@@ -2,7 +2,7 @@
 // taskbar of a giant CRT monitor, and on the title bars of windows left open above it. Three infamous
 // viruses take turns with the machine:
 //   YOU ARE AN IDIOT  laughing pop-up windows flashing black and white bounce all over the screen and
-//                     slam into whoever they touch. Hit one to close it... and two more open.
+//                     slam into whoever they touch. Twenty of them - and hitting them does nothing.
 //   ILOVEYOU          "1 NEW MESSAGE". Love letters rain onto the taskbar and burst into hearts - then it
 //                     mails itself to everyone: a second wave falls right on top of each fighter.
 //   THE RED ROOM      "Do you like the red room?" won't stay closed. The screen goes red, a crosshair picks
@@ -70,10 +70,10 @@ function drawEnvelope(g, x, y, P = VPAL) {
 // YOU ARE AN IDIOT's pop-ups
 const IDIOT = {
   end: 920,          // frames the hazard lasts (pop-ups from frame 70, so about 14 seconds of them)
-  every: 26,         // a new pop-up opens this often (frames)
-  max: 12,           // most pop-ups on screen at once
-  total: 40,         // most pop-ups in one hazard (counting the two that open when you close one)
-  w: 68, h: 54,      // pop-up size in pixels
+  every: 16,         // a new pop-up opens this often (frames) until all of them are out
+  max: 20,           // pop-ups in one hazard (they can't be closed: attacks pass straight through them)
+  total: 20,
+  w: 80, h: 64,      // pop-up size in pixels
 };
 
 export class InfectedStage {
@@ -227,7 +227,7 @@ export class InfectedStage {
   }
 
   // ---------------------------------------------------------------- hazards
-  // YOU ARE AN IDIOT: laughing pop-ups bounce around the screen. Hit one to close it - two more open.
+  // YOU ARE AN IDIOT: twenty laughing pop-ups bounce around the screen. Hitting them doesn't close them.
   start_idiot(match, h) { h.title = 'YOU ARE AN IDIOT'; h.wins = []; h.end = IDIOT.end; h.n = 0; h.spawned = 0; }
   // its song (Mason's sfx_idiot): starts when the pop-ups do, fades out as they close
   idiotSong(match, h) {
@@ -265,7 +265,7 @@ export class InfectedStage {
       if (ww < 6) continue;
       const g = this.hzG, x = Math.round(w.x - ww / 2), y = Math.round(w.y - hh / 2), fg = inv ? 0xffffff : 0x000000, bg = inv ? 0x000000 : 0xffffff;
       drawWindow(g, x, y, ww, hh, bg);
-      if (k > 0.8) for (let i = -1; i <= 1; i++) drawSmiley(g, w.x + i * 19, w.y + 7, 6, 0xffffff, fg === 0x000000 ? 0x000000 : 0x2a2a2a);
+      if (k > 0.8) for (let i = -1; i <= 1; i++) drawSmiley(g, w.x + i * 22, w.y + 8, 7, 0xffffff, fg === 0x000000 ? 0x000000 : 0x2a2a2a);
       if (k > 0.8) out.push({ x1: x, x2: x + ww, y1: y, y2: y + hh, dmg: 5, angle: 50, base: 3.4, growth: 2.6, dirX: Math.sign(w.vx) || 1, id: 'idiot' + h.id + ':' + w.n + ':' + Math.floor(h.t / 40), hazard: true });
     }
     if (h.wins.length && !closing) {                             // the caption across the sky, flashing with them
@@ -273,22 +273,6 @@ export class InfectedStage {
       this.bgFx.fillStyle(inv ? 0x000000 : 0xffffff, 0.06); this.bgFx.fillRect(0, 0, 640, 360);
     }
     return h.t >= h.end;
-  }
-  // a fighter's hit closes a pop-up... and two more open in its place
-  strikeTargets(match, hbs) {
-    const h = this.cycle.hz;
-    if (!h || h.kind !== 'idiot' || !this.hazardsOn || h.t > h.end - 80) return;
-    for (const w of [...h.wins]) {
-      if (w.open < 1) continue;
-      const b = { x1: w.x - IDIOT.w / 2, x2: w.x + IDIOT.w / 2, y1: w.y - IDIOT.h / 2, y2: w.y + IDIOT.h / 2 };
-      const hb = hbs.find((x) => x.x1 < b.x2 && x.x2 > b.x1 && x.y1 < b.y2 && x.y2 > b.y1 && !w.seen.has(x.id));
-      if (!hb) continue;
-      w.seen.add(hb.id);
-      h.wins.splice(h.wins.indexOf(w), 1);
-      match.puff(w.x, w.y, 0xffffff, 8); match.puff(w.x, w.y, 0x000000, 6);
-      sfx('popup', 1);
-      if (h.wins.length < IDIOT.max) { this.openWindow(h, w.x - 20, w.y); this.openWindow(h, w.x + 20, w.y); }
-    }
   }
 
   // ILOVEYOU: "1 NEW MESSAGE" - love letters rain onto the taskbar and burst into hearts, then a second wave
