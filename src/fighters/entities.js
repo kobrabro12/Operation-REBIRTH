@@ -612,6 +612,7 @@ export class MicToss {
 // lands on (a hard spike - drop it off the ledge onto someone recovering). Once it lands it thumps a big
 // shockwave on every beat that pushes people away, and any Power Chord fired through it comes out AMPED.
 // One amp at a time; if it falls off the stage it's gone.
+const AMP_SONGS = 5;                          // how many songs the amp rotates through (amp_song1..N, loaded in BootScene)
 export class SpeakerAmp {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
@@ -662,18 +663,23 @@ export class SpeakerAmp {
     if (this.song && this.life - this.t < 40) this.song.setVolume(this.songVol * Math.max(0, (this.life - this.t) / 40));   // fades out as it dies
     if (this.t >= this.life || !o.alive) this.kill();
   }
-  // one of four 8-bit rock songs (amp_song1-4, 90 BPM so the thumps land on the kick); each amp he drops plays the next
+  // NU's amp songs, played in turn - each amp he drops plays the next: four 8-bit rock loops at 90 BPM (amp_song1-4,
+  // so the thumps land on the kick) and Mason's own track (amp_song5). A long song picks up where it left off last time.
   playSong() {
     const m = this.match, o = this.owner;
-    o.ampSong = (o.ampSong || 0) % 4 + 1;
+    o.ampSong = (o.ampSong || 0) % AMP_SONGS + 1;
     const key = 'amp_song' + o.ampSong;
     this.songVol = Math.min(1, 0.6 * m.sfxVol());
     if (this.songVol <= 0 || !m.cache.audio.exists(key)) return;
-    this.song = m.sound.add(key, { volume: this.songVol, loop: true }); this.song.play();
+    this.song = m.sound.add(key, { volume: this.songVol, loop: true });
+    o.ampSeek = o.ampSeek || {};
+    const at = this.song.duration > 30 ? (o.ampSeek[key] || 0) % this.song.duration : 0;
+    this.song.play({ seek: at });
     this.stopHook = () => this.stopSong(); m.events.once('shutdown', this.stopHook);   // leaving the match mid-song
   }
   stopSong() {
     if (!this.song) return;
+    if (this.song.duration > 30) this.owner.ampSeek['amp_song' + this.owner.ampSong] = this.song.seek;   // remember where the long song got to
     this.song.stop(); this.song.destroy(); this.song = null;
     if (this.stopHook) { this.match.events.off('shutdown', this.stopHook); this.stopHook = null; }
   }

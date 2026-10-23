@@ -69,7 +69,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_aero', ['assets/audio/music/aero.ogg', 'assets/audio/music/aero.mp3']);   // tools/audio/aero_music.py
     this.load.audio('bgm_infected', ['assets/audio/music/infected.ogg', 'assets/audio/music/infected.mp3']);   // Mason's track, levelled down ~10 dB so it sits under the fight
     this.load.audio('sfx_idiot', ['assets/audio/sfx/idiot.ogg', 'assets/audio/sfx/idiot.mp3']);   // INFECTED.EXE: plays while YOU ARE AN IDIOT's pop-ups are up
-    for (let i = 1; i <= 4; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (tools/audio/amp_songs.py)
+    for (let i = 1; i <= 5; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (1-4: tools/audio/amp_songs.py; 5: Mason's own track)
     this.load.audio('sfx_mail_voice', ['assets/audio/sfx/mail_voice.ogg', 'assets/audio/sfx/mail_voice.mp3']);   // INFECTED.EXE: "You've got mail!" (tools/audio/mail_voice.py)
     this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
     this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');
