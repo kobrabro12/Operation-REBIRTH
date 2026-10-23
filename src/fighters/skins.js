@@ -157,6 +157,14 @@ export const SKINS = {
     { name: 'PLATINUM', swatch: 0xd8dce4, fx: 0xf3c358, groups: NUG, rules: { acid: { to: 44, sat: 0.9, val: 1.1 }, hair: { hue: 46, sat: 0.6 }, cloth: { sat: 0.15, val: 2.6 } },
       pal: { outline: 0x2a1c06, deep: 0x8a6a1c, mid: 0xd9a32e, light: 0xf3c358, core: 0xfff4c8, shade: 0x3a2a0a, void: 0x120c02 },
       vfx: { hit: { shape: 'note', colors: [0xf3c358, 0xfff4c8, 0xffffff], n: 7, glint: true } } },
+    // INFERNO: the headliner of a show that's on fire - hair made of flame, studded leather, a burning skull
+    // on his chest, platform boots with flames up the side (pre-drawn sheets, see nu.costumeSheets). Embers
+    // rise off him, he scorches the floor when he runs, his hits burst into fire and on-beat hits go up in pyro.
+    { name: 'INFERNO', swatch: 0xff7a1a, fx: 0xffa030, sheetSet: 'inferno', style: 'nuInferno',
+      lore: 'The last show on the tour. The pyro went off early, and he kept singing.',
+      pal: { outline: 0x1a0604, deep: 0xb8320a, mid: 0xff7a1a, light: 0xffd060, core: 0xfff6c8, shade: 0x2a0a06, void: 0x0a0202 },
+      vfx: { hit: { shape: 'flame', colors: [0xffd060, 0xff7a1a, 0xff3a1a, 0xfff6c8], n: 9, ring: 0xff7a1a, sound: 'whoosh' },
+             aura: { inferno: true }, trail: 0xff7a1a } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],
@@ -194,6 +202,15 @@ export const SKINS = {
       pal: { outline: 0x1a0606, deep: 0x8a1a12, mid: 0xb82a22, light: 0xffe08a, core: 0xfff6dc, shade: 0x2a0808, void: 0x0a0202 },
       vfx: { hit: { shape: 'sakura', colors: [0xffb7c5, 0xffffff, 0xd9a32e], n: 8, ink: true, kanji: true, glint: true }, trail: 0xb82a22,
              wow: { heal: 0xffb7c5, rush: 0xe02a1a, cord: 0xb82a22, shock: 0xffe08a, taunt: ['...', 'THE BLADE REMEMBERS.', 'NO MASTER. NO SIGNAL.', 'COME.'] } } },
+    // DIAL-UP: an old beige home computer - a PC-tower body with a floppy slot and blinking LEDs, a motherboard
+    // in its tear, a beige CRT for a head with a ball webcam on top, a coiled phone cord. A mouse cursor follows
+    // it around and clicks, an hourglass spins by its head, it dials in (with the screech) for its Limit; hits
+    // burst into little error windows; posters are dialog boxes, its door is a window, its LEVEL 0 is a desktop.
+    { name: 'DIAL-UP', swatch: 0xd8cfb0, fx: 0x2a6ad8, sheetSet: 'dial', style: 'wowDial',
+      lore: 'Somewhere a modem is still dialling in. It never got through. Something else picked up.',
+      pal: { outline: 0x0a0a14, deep: 0x0a2484, mid: 0x2a6ad8, light: 0x8ab8f0, core: 0xffffff, shade: 0x808080, void: 0x000020 },
+      vfx: { hit: { shape: 'win95', colors: [0x2a6ad8, 0xc0c0c0, 0xffffff, 0x108484], n: 6, sound: 'popup' }, trail: 0x2a6ad8,
+             wow: { heal: 0x3ae060, rush: 0xff2a1a, cord: 0xb0b0b0, shock: 0x8ab8f0, taunt: ['CONNECTING...', 'PLEASE WAIT...', 'PRESS ANY KEY', 'IT IS NOW SAFE TO TURN OFF YOUR COMPUTER.'] } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.15, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],

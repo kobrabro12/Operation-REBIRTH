@@ -229,12 +229,15 @@ move('throw_up', 18, [k(0, mix(HOLD, **CROUCH)), k(4, P(torso=(-8, 0, -2), head=
 move('throw_down', 18, [k(0, P(torso=(-8, 0, -2), fupper=(-160, 0, -1), bupper=(-160, 0, -1), root=(0, 0, -3, 0.95, 1.06))), k(4, P(torso=(36, 3, 6), head=(8, 1, 2), fupper=(-30, 0, 2), bupper=(-30, 0, 2), root=(0, 0, 0, 1.12, 0.82), **legs(56, -76, -22, 40, 18, -18)), 'snap'), k(10, P(torso=(32, 3, 5), head=(6, 1, 2), fupper=(-30, 0, 2), bupper=(-30, 0, 2), root=(0, 0, 0, 1.1, 0.84), **legs(52, -70, -22, 36, 18, -18)), 'linear'), k(18, REST, 'back')], smear=())
 
 # ---- specials
-# CROWD CALL: cups a hand to his ear ("I can't hear you!"), then screams into the mic
+# POWER CHORD: crouches and pulls the mic in tight to his chest (held there while the chord builds), then
+# straightens up and screams it all out
+CHORD = P(torso=(22, 2, 2), head=(26, 1, 2), hair=(-16, 0, 0), fupper=(10, 0, 0), ffore=(-120, 0, 0), mic=(-30, 0, 0), bupper=(-30, 0, 0), bfore=(-80, 0, 0), **DEEP)
 move('neutralB', 30, [
     k(0, REST),
-    k(8, P(torso=(-12, -1, 0), head=(-18, 0, 0), hair=(10, 0, 0), bupper=(-160, 2, 0), bfore=(-90, 0, 0), fupper=(-20, 0, 0), root=(0, -2, 0, 0.98, 1.03), **legs(8, 0, -4, 0)), 'out'),
-    k(12, P(torso=(18, 4, 1), head=(-16, 2, 0), hair=(18, 0, 0), fupper=(-70, 0, 0), ffore=(50, 0, 0), mic=(24, 0, 0), bupper=(20, 0, 0), bfore=(-30, 0, 0), root=(0, 4, 0, 1.08, 0.94), **STANCE), 'snap'),
-    k(22, P(torso=(16, 4, 1), head=(-14, 2, 0), hair=(14, 0, 0), fupper=(-66, 0, 0), ffore=(46, 0, 0), mic=(24, 0, 0), bupper=(16, 0, 0), root=(0, 4, 0), **STANCE), 'linear'),
+    k(6, mix(CHORD, torso=(16, 1, 1), head=(18, 1, 1), root=(0, 0, 0, 1.08, 0.86)), 'out'),
+    k(10, CHORD, 'inout'),
+    k(12, P(torso=(18, 4, 1), head=(-20, 2, 0), hair=(22, 0, 0), fupper=(-70, 0, 0), ffore=(50, 0, 0), mic=(24, 0, 0), bupper=(40, 0, 0), bfore=(-10, 0, 0), root=(0, 5, 0, 1.1, 0.92), **STANCE), 'snap'),
+    k(22, P(torso=(16, 4, 1), head=(-16, 2, 0), hair=(16, 0, 0), fupper=(-66, 0, 0), ffore=(46, 0, 0), mic=(24, 0, 0), bupper=(30, 0, 0), root=(0, 4, 0), **STANCE), 'linear'),
     k(30, REST, 'back'),
 ], smear=())
 # STAGE DIVE: a flat-out dive forward, arms first
@@ -243,27 +246,30 @@ move('sideB', 34, [k(0, REST), k(6, P(**DEEP, torso=(14, 0, 2), fupper=(50, 0, 0
 # CROWD SURF: laid back on a sea of hands, arms spread, riding upward
 SURF = P(torso=(-86, -6, 6), head=(-12, 0, 0), hair=(24, 0, 0), fupper=(-130, 0, 0), ffore=(-20, 0, 0), bupper=(-150, 0, 0), bfore=(-20, 0, 0), root=(0, 0, -2), **legs(-66, 26, -76, 16, 0, 0))
 move('upb', 40, [k(0, P(**DEEP, fupper=(30, 0, 0), bupper=(30, 0, 0))), k(8, SURF, 'snap'), k(18, mix(SURF, fupper=(-110, 0, 0), bupper=(-170, 0, 0))), k(28, mix(SURF, fupper=(-140, 0, 0), bupper=(-140, 0, 0), torso=(-90, -6, 6))), k(40, FALL, 'inout')], smear=())
-# GRAFFITI TAG: pulls out a can, shakes it, and sprays his tag along the floor
-SPRAY = P(_hide=(), torso=(20, 2, 2), head=(8, 0, 1), bupper=(-60, 3, 2), bfore=(-40, 0, 0), can=(-20, 0, 0), fupper=(-10, 0, 0), ffore=(10, 0, 0), root=(0, 0, 0, 1.08, 0.88), **legs(24, -34, -22, 34, 6, -6))
+# AMP DROP: hauls both arms up overhead and slams them down - an amp cabinet crashes onto the floor
+LIFT = P(torso=(-12, -1, -2), head=(-14, 0, 0), hair=(12, 0, 0), fupper=(-170, 0, -2), ffore=(10, 0, 0), mic=(-20, 0, 0), bupper=(-165, 0, -2), bfore=(10, 0, 0), root=(0, 0, -3, 0.95, 1.07), **legs(10, 0, -10, 0))
+SLAM = P(torso=(40, 4, 6), head=(16, 1, 2), hair=(-14, 0, 0), fupper=(-30, 3, 3), ffore=(10, 0, 0), mic=(40, 0, 0), bupper=(-34, 3, 3), bfore=(0, 0, 0), root=(0, 2, 0, 1.14, 0.8), **legs(60, -84, -24, 44, 20, -20))
 move('downB', 34, [
-    k(0, P(_hide=())),
-    k(4, P(_hide=(), bupper=(-120, 0, 0), bfore=(-40, 0, 0), can=(-30, 0, 0)), 'out'),
-    k(6, P(_hide=(), bupper=(-100, 0, 0), bfore=(-20, 0, 0), can=(20, 0, 0)), 'inout'),             # shake shake
-    k(8, P(_hide=(), bupper=(-120, 0, 0), bfore=(-40, 0, 0), can=(-30, 0, 0)), 'inout'),
-    k(12, SPRAY, 'snap'),
-    k(18, mix(SPRAY, bupper=(-30, 3, 2), _hide=()), 'inout'),
-    k(24, mix(SPRAY, bupper=(-80, 3, 2), _hide=()), 'inout'),
+    k(0, REST),
+    k(8, LIFT, 'out'),
+    k(11, mix(LIFT, torso=(-16, -2, -3), root=(0, 0, -4, 0.93, 1.1)), 'inout'),
+    k(14, SLAM, 'snap'),
+    k(22, mix(SLAM, torso=(34, 3, 5), head=(6, 1, 2)), 'linear'),
     k(34, REST, 'back'),
 ], smear=())
-# MOSH PIT (Limit): raises the mic high, holds it, then spikes it into the floor
-move('limit', 120, [
-    k(0, REST),
-    k(20, P(torso=(-10, 0, -1), head=(-24, 0, 0), hair=(16, 0, 0), fupper=(-178, 0, -3), ffore=(-10, 0, 0), mic=(-10, 0, 0), bupper=(-150, 0, -2), root=(0, 0, -3, 0.94, 1.1))),
-    k(40, P(torso=(-14, 0, -1), head=(-28, 0, 0), hair=(18, 0, 0), fupper=(-182, 0, -3), ffore=(-12, 0, 0), mic=(-10, 0, 0), bupper=(-158, 0, -2), root=(0, 0, -4, 0.92, 1.12))),
-    k(44, P(torso=(36, 3, 6), head=(12, 1, 2), hair=(-12, 0, 0), fupper=(-20, 2, 3), ffore=(30, 0, 0), mic=(60, 0, 0), bupper=(-20, 0, 2), root=(0, 0, 0, 1.16, 0.78), **legs(58, -80, -22, 40, 18, -18)), 'snap'),
-    k(100, P(torso=(28, 3, 5), head=(-14, 1, 2), hair=(14, 0, 0), fupper=(-20, 2, 3), ffore=(30, 0, 0), mic=(60, 0, 0), bupper=(-20, 0, 2), root=(0, 0, 0, 1.1, 0.84), **legs(50, -68, -20, 34, 16, -16)), 'linear'),
-    k(120, REST, 'back'),
-], step=4, smear=())
+# WALL OF SOUND (Limit): thrusts the mic up as the amps rise, headbangs on each of the four bass drops,
+# then rears back and screams THE DROP straight ahead
+HORN_UP = P(torso=(-10, 0, -1), head=(-24, 0, 0), hair=(16, 0, 0), fupper=(-178, 0, -3), ffore=(-10, 0, 0), mic=(-10, 0, 0), bupper=(-60, 0, 0), bfore=(-30, 0, 0), root=(0, 0, -3, 0.94, 1.1))
+def wall_bang(down):
+    return P(bupper=(-150, 0, -1), bfore=(-20, 0, 0), fupper=(-80, 0, -1), ffore=(90, 0, 0), mic=(0, 0, 0),
+             torso=(20, 2, 2) if down else (-4, -1, -1), head=(38, 2, 2) if down else (-20, 0, -1), hair=(-20, 0, 0) if down else (18, 0, 0),
+             root=(0, 0, 0, 1.08, 0.9) if down else (0, 0, -1, 0.98, 1.04), **(legs(24, -32, -24, 32, 8, -10) if down else legs(8, -6, -8, 8)))
+REAR = P(torso=(-22, -3, -1), head=(-30, 0, -1), hair=(24, 0, 0), fupper=(-60, 0, 0), ffore=(-110, 0, 0), mic=(-20, 0, 0), bupper=(50, 0, 0), bfore=(-40, 0, 0), root=(0, -4, 0, 0.96, 1.05), **legs(12, -6, -4, 4))
+SCREAM = P(torso=(26, 6, 1), head=(-22, 2, 0), hair=(28, 0, 0), fupper=(-90, 0, 0), ffore=(80, 0, 0), mic=(40, 0, 0), bupper=(40, 0, 0), bfore=(-10, 0, 0), root=(0, 6, 0, 1.12, 0.9), **legs(26, -8, -30, 18, 0, -12))
+move('limit', 150, [k(0, REST), k(14, HORN_UP, 'out'), k(30, mix(HORN_UP, root=(0, 0, -4, 0.92, 1.12)), 'inout'), k(36, wall_bang(False), 'inout')]
+     + [kk for b in (40, 58, 76, 94) for kk in (k(b, wall_bang(True), 'snap'), k(b + 9, wall_bang(False), 'out'))]
+     + [k(108, REAR, 'out'), k(114, mix(REAR, torso=(-26, -3, -1)), 'inout'), k(116, SCREAM, 'snap'), k(138, mix(SCREAM, torso=(22, 5, 1), head=(-18, 2, 0)), 'linear'), k(150, REST, 'back')],
+     step=2, smear=())
 # ---- reactions
 HURT = P(root=(-16, -2, 0, 1.08, 0.92), torso=(-16, -1, 0), head=(-26, -1, 0), hair=(26, 0, 0), fupper=(50, 0, 2), bupper=(60, 0, 0), **legs(28, 0, -28, 14))
 move('hitstun', 16, [k(0, HURT), k(8, mix(HURT, root=(-20, -3, 0, 1.03, 0.97), head=(-32, -1, 0))), k(16, HURT)], smear=(), loop=True, step=2)

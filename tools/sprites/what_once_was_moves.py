@@ -254,7 +254,7 @@ move('taunt', 96, [k(0, REST), k(12, mix(TILT, scr='scr_missing'), 'out'), k(30,
 # every body the TV can sit on, and where its sheets go. The costumes' own bodies, then the bodies OUT OF BODY
 # can grow. All are drawn WITHOUT the head: the game draws the TV head (heads.png) on top, wherever wowScreens.js
 # says it is, so any body can wear any costume's TV.
-STYLE_DIRS = {'default': '', 'aero': 'frutiger', 'hack': 'root-access', 'ronin': 'ronin', 'suit': 'body-suit', 'swat': 'body-swat', 'doctor': 'body-doctor'}
+STYLE_DIRS = {'default': '', 'aero': 'frutiger', 'hack': 'root-access', 'ronin': 'ronin', 'dial': 'dial-up', 'suit': 'body-suit', 'swat': 'body-swat', 'doctor': 'body-doctor'}
 HEAD_PARTS = ('head',) + tuple(D.SCREENS)
 HEAD_CROP = (20, 0, 52, 32)                       # the box round the TV (with its neck, crest or hood) in heads.png
 
@@ -309,7 +309,7 @@ def heads_row(style):
     return tiles
 
 def build():
-    for style in ('suit', 'swat', 'doctor', 'aero', 'hack', 'ronin', 'default'):
+    for style in ('suit', 'swat', 'doctor', 'aero', 'hack', 'ronin', 'dial', 'default'):
         base, out = build_style(style)
     D.set_style('default')
     small, big = N.build_rig(D, FOLLOW)
@@ -329,14 +329,14 @@ def build():
         f.write('export const WOW_SCREENS = ' + json.dumps(track, separators=(',', ':')) + ';\n')
         f.write('export const WOW_HEAD = ' + json.dumps({'w': HEAD_CROP[2] - HEAD_CROP[0], 'h': HEAD_CROP[3] - HEAD_CROP[1], 'ox': 36.5 - HEAD_CROP[0], 'oy': 12.5 - HEAD_CROP[1], 'screens': len(D.SCREENS)}) + ';\n')
     # the TV heads, one row per costume, one column per screen picture
-    rows = [heads_row(st) for st in ('default', 'aero', 'hack', 'ronin')]
+    rows = [heads_row(st) for st in ('default', 'aero', 'hack', 'ronin', 'dial')]
     hw, hh = HEAD_CROP[2] - HEAD_CROP[0], HEAD_CROP[3] - HEAD_CROP[1]
     sheet = Image.new('RGBA', (hw * len(D.SCREENS), hh * len(rows)), (0, 0, 0, 0))
     for r, tiles in enumerate(rows):
         for i, tl in enumerate(tiles): sheet.alpha_composite(Image.fromarray(tl, 'RGBA'), (i * hw, r * hh))
     sheet.save(os.path.join(DIR, 'heads.png'))
     # the animated MODE screens, one row per costume: SEE x4, INCOMING x4, SMILE x4 (11x9 frames)
-    rows = [D.mode_screens(st) for st in ('default', 'aero', 'hack', 'ronin')]
+    rows = [D.mode_screens(st) for st in ('default', 'aero', 'hack', 'ronin', 'dial')]
     sheet = Image.new('RGBA', (D.MODE_W * 12, D.MODE_H * len(rows)), (0, 0, 0, 0))
     for r, frames in enumerate(rows):
         for i, fr in enumerate(frames): sheet.alpha_composite(Image.fromarray(fr, 'RGBA'), (i * D.MODE_W, r * D.MODE_H))

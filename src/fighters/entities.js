@@ -494,21 +494,32 @@ export class VoidOrb {
   }
 }
 
-// NU's CROWD CALL: a wall of sound rolling forward from the mic - three bright arcs that widen as they go.
+// NU's POWER CHORD: a wall of sound rolling forward from the mic - three bright arcs that widen as they go.
+// A held chord makes a bigger, faster one; passing through his AMP turns it into an AMPED wave.
 export class SoundWave {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec;
     this.dir = owner.facing;
     this.x = owner.x + owner.facing * (owner.def.handOffset.x + 4);
     this.y = owner.y + owner.def.handOffset.y + 6;
-    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++; this.kind = 'CROWD CALL';
+    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++; this.kind = 'POWER CHORD';
+    this.beat = !!owner.onBeatMove; this.amped = false; this.chord = spec.chord || 0;
     this.g = match.add.graphics(); match.addWorld(this.g);
-    sfx('summon', 0.5, 1.6); sfx('bighit', 0.25, 1.8);
+    sfx('summon', 0.5, 1.6 - this.chord * 0.5); sfx('bighit', 0.25 + this.chord * 0.4, 1.8 - this.chord * 0.7);
   }
-  get h() { return this.spec.h0 + (this.spec.h1 - this.spec.h0) * Math.min(1, this.t / 30); }
+  get h() { return (this.spec.h0 + (this.spec.h1 - this.spec.h0) * Math.min(1, this.t / 30)) * (this.amped ? 1.4 : 1); }
   hitbox() {
     const h = this.h;
-    return { x1: this.x - 10, x2: this.x + 10, y1: this.y - h / 2, y2: this.y + h / 2, h: this.owner.rage > 0 ? this.spec.rageHit : this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this };
+    return { x1: this.x - 10, x2: this.x + 10, y1: this.y - h / 2, y2: this.y + h / 2, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this };
+  }
+  // NU's AMP: a wave fired through it comes out bigger, faster and stronger
+  amp(boost) {
+    if (this.amped) return;
+    this.amped = true;
+    const H = this.spec.hit;
+    this.spec = { ...this.spec, speed: this.spec.speed * 1.3, hit: { ...H, dmg: Math.round(H.dmg * boost), base: H.base * 1.2, growth: H.growth * 1.25 } };
+    this.life = Math.max(this.life, 40); this.id = nextId++;
+    sfx('bighit', 0.6, 1.1); this.match.puff(this.x, this.y, 0xffffff, 10);
   }
   step() {
     this.t++;
@@ -522,15 +533,73 @@ export class SoundWave {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fade = Math.min(1, this.life / 10), h = this.h;
     g.clear();
-    for (let i = 0; i < 3; i++) {                                     // three arcs, the leading one brightest
+    const cols = this.amped ? [0xffffff, P.core, P.light, P.mid] : [P.core, P.light, P.mid, P.deep];
+    const n = 3 + (this.chord > 0.5 || this.amped ? 1 : 0), big = this.chord >= 1 || this.amped;
+    if (big) { g.fillStyle(P.light, 0.18 * fade); g.fillEllipse(this.x - this.dir * 8, this.y, 30, h); }
+    for (let i = 0; i < n; i++) {                                     // the arcs, the leading one brightest
       const ax = this.x - this.dir * i * 7, r = h / 2 - i * 3;
-      const cols = [P.core, P.light, P.mid];
-      for (let a = -0.9; a <= 0.9; a += 0.12) {
-        const px = ax + this.dir * Math.cos(a) * 6 - this.dir * 6, py = this.y + Math.sin(a) * r;
-        g.fillStyle(cols[i], fade * (1 - i * 0.25)); g.fillRect(Math.round(px) - 1, Math.round(py) - 1, i ? 2 : 3, i ? 2 : 3);
+      for (let a = -0.9; a <= 0.9; a += 0.1) {
+        const px = ax + this.dir * Math.cos(a) * 6 - this.dir * 6, py = this.y + Math.sin(a) * r, sz = (i ? 2 : 3) + (big ? 1 : 0);
+        g.fillStyle(cols[i], fade * (1 - i * 0.2)); g.fillRect(Math.round(px) - 1, Math.round(py) - 1, sz, sz);
       }
     }
-    if (this.t % 3 === 0) this.match.particles.push({ shape: 'note', x: this.x, y: this.y + (Math.random() - 0.5) * h * 0.6, vx: -this.dir * 0.4, vy: -0.6, life: 26, color: P.light, grav: 0 });
+    if (this.beat && this.t % 4 < 2) { g.fillStyle(0xffffff, 0.5 * fade); g.fillRect(this.x - 1, this.y - h / 2, 2, h); }   // on beat: it strobes
+    if (this.t % (big ? 2 : 3) === 0) this.match.particles.push({ shape: 'note', x: this.x, y: this.y + (Math.random() - 0.5) * h * 0.6, vx: -this.dir * 0.4, vy: -0.6, life: 26, color: this.amped ? 0xffffff : P.light, grav: 0 });
+  }
+}
+
+// NU's AMP DROP: a speaker cabinet slammed onto the floor. It thumps a shockwave on every beat that pushes
+// people away, and any of his Power Chords fired through it comes out AMPED. One amp at a time.
+export class SpeakerAmp {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
+    this.x = owner.x + owner.facing * spec.ahead;
+    let best = null;
+    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
+    if (!best) { this.x = owner.x; for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p; }
+    if (!best) { this.alive = false; return; }
+    this.y = best.y; this.drop = 0; this.pulse = 0;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('bighit', 0.6, 0.7); match.shake(4, 6); match.puff(this.x, this.y - 2, 0xd8d4e8, 8);
+  }
+  step() {
+    if (!this.alive) return;
+    this.t++;
+    const o = this.owner, m = this.match;
+    if (this.pulse > 0) this.pulse--;
+    if (o.def.beat && o.age % o.def.beat.every === 0 && this.t > 10) {   // thump on the beat
+      this.pulse = 12; sfx('taiko', 0.35, 1.1);
+      for (const f of m.fighters) {
+        if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn') continue;
+        if (Math.hypot(f.x - this.x, f.y - 14 - (this.y - 14)) <= this.spec.radius)
+          m.applyHit(f, { h: { ...this.spec.pulse, dirX: Math.sign(f.x - this.x) || 1 }, owner: o, facing: Math.sign(f.x - this.x) || 1, id: 'amp' + o.slot + ':' + f.slot + ':' + o.age, projectile: this }, this.x);
+      }
+    }
+    for (const p of m.projectiles) {                                  // Power Chords passing through get AMPED
+      if (p instanceof SoundWave && p.owner === o && !p.amped && Math.abs(p.x - this.x) < 14 && p.y > this.y - 70 && p.y < this.y + 4) p.amp(this.spec.boost);
+    }
+    if (this.t >= this.life || !o.alive) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, P = this.owner.pal, fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
+    const land = Math.min(1, this.t / 6), w = 30, h = 30 * land, x = this.x - w / 2, y = this.y - h, k = this.pulse / 12;
+    g.clear();
+    if (k > 0) { g.lineStyle(2, P.light, 0.7 * k * fade); g.strokeEllipse(this.x, this.y - 14, (1 - k) * this.spec.radius * 2 + 20, (1 - k) * this.spec.radius * 1.2 + 10); }
+    g.fillStyle(0x0b0a14, fade); g.fillRect(x - 1, y - 1, w + 2, h + 2);
+    g.fillStyle(0x2e2a36, fade); g.fillRect(x, y, w, h);
+    g.fillStyle(0x4a4656, fade); g.fillRect(x, y, w, 2); g.fillRect(x, y, 2, h);
+    if (land >= 1) {
+      const pr = 9 + k * 2;                                            // the big cone, pumping on the beat
+      g.fillStyle(0x0b0a14, fade); g.fillCircle(this.x, y + 17, pr + 1);
+      g.fillStyle(0x4a4656, fade); g.fillCircle(this.x, y + 17, pr);
+      g.fillStyle(0x24212c, fade); g.fillCircle(this.x, y + 17, pr * 0.55);
+      g.fillStyle(P.light, (0.5 + 0.5 * k) * fade); g.fillCircle(this.x, y + 17, 2);
+      g.fillStyle(0x6c7480, fade); g.fillCircle(this.x - 8, y + 6, 2); g.fillCircle(this.x + 8, y + 6, 2);   // knobs
+      g.fillStyle(P.light, fade * (this.t % 20 < 10 ? 1 : 0.4)); g.fillRect(this.x + 11, y + 4, 2, 2);         // the power light
+      g.fillStyle(P.mid, fade); g.fillRect(this.x - 4, y + 3, 6, 2);
+    }
   }
 }
 
@@ -849,8 +918,33 @@ export class FlyingCD {
 // hits is MARKED - posted MISSING - for a moment (they take more damage, see Fighter.dmgTakenMult).
 // Costumes change what a "poster" is: FRUTIGER sends it inside a glossy bubble, ROOT ACCESS throws an
 // ERROR popup window, RONIN a paper talisman (ofuda) with a red seal.
+// an old desktop's arrow mouse pointer, tip at (x, y) (DIAL-UP); `down` = mid-click (it darkens)
+export function drawCursor(g, x, y, down = 0, a = 1) {
+  const rows = [1, 2, 3, 4, 5, 6, 7, 4, 2];
+  g.fillStyle(0x000000, a); for (let r = 0; r < rows.length; r++) g.fillRect(x - 1, y + r - 1, rows[r] + 2, 3);
+  g.fillStyle(down ? 0xc0c0c0 : 0xffffff, a); for (let r = 0; r < 7; r++) g.fillRect(x, y + r, Math.max(1, rows[r] - 1), 1);
+  g.fillRect(x + 2, y + 7, 1, 2);
+}
+// a little grey dialog window with a blue title bar and its [x] (DIAL-UP)
+export function drawMiniWindow(g, x, y, w, h, a = 1, title = 0x0a2484) {
+  g.fillStyle(0x000000, a); g.fillRect(x - 1, y - 1, w + 2, h + 2);
+  g.fillStyle(0xffffff, a); g.fillRect(x, y, w, h);
+  g.fillStyle(0xc0c0c0, a); g.fillRect(x + 1, y + 1, w - 1, h - 1);
+  g.fillStyle(title, a); g.fillRect(x + 1, y + 1, w - 2, Math.max(2, Math.round(h * 0.22)));
+  g.fillStyle(0xc0c0c0, a); g.fillRect(x + w - 4, y + 1, 3, Math.max(2, Math.round(h * 0.22)));
+  g.fillStyle(0x000000, a); g.fillRect(x + w - 3, y + 2, 1, 1);
+}
 export function drawPoster(g, x, y, tilt = 0, a = 1, s = 1, style = null) {
   x = Math.round(x); y = Math.round(y);
+  if (style === 'wowDial') {                                       // DIAL-UP: a dialog box - MISSING.TXT, a face, an OK button
+    const w = 16 * s, h = 13 * s;
+    drawMiniWindow(g, x - w / 2, y - h / 2, w, h, a);
+    g.fillStyle(0xffffff, a); g.fillRect(x - w / 2 + 2, y - h / 2 + 4 * s, w - 4, 6 * s);
+    g.fillStyle(0xc8281e, a); g.fillRect(x - w / 2 + 3, y - h / 2 + 5 * s, 4 * s, 1);
+    g.fillStyle(0x3a342a, a); g.fillRect(x + 1 + Math.round(tilt), y - h / 2 + 5 * s, 3 * s, 2 * s); g.fillRect(x + Math.round(tilt), y - h / 2 + 7 * s, 5 * s, 2 * s);
+    g.fillStyle(0x000000, a); g.fillRect(x - 3 * s, y + h / 2 - 3 * s, 6 * s, 2 * s); g.fillStyle(0xc0c0c0, a); g.fillRect(x - 3 * s + 1, y + h / 2 - 3 * s + 1, 6 * s - 2, 2 * s - 2);   // [ OK ]
+    return;
+  }
   if (style === 'wowHack') {
     const w = 15 * s, h = 11 * s;
     g.fillStyle(0x3ae060, a); g.fillRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2);
@@ -928,7 +1022,7 @@ export const DOOR = { w: 30, h: 64 };          // the doorway opening
 export function drawDoor(g, x, y, open = 0, a = 1, flash = false, style = null) {
   x = Math.round(x); y = Math.round(y);
   const W = DOOR.w, H = DOOR.h, hw = W / 2, fr = 3, pw = hw + fr + 6, ph = H + fr + 8;
-  if (style === 'wowAero' || style === 'wowHack' || style === 'wowRonin') return drawStyledDoor(g, x, y, open, a, flash, style, W, H, hw, fr);
+  if (style === 'wowAero' || style === 'wowHack' || style === 'wowRonin' || style === 'wowDial') return drawStyledDoor(g, x, y, open, a, flash, style, W, H, hw, fr);
   g.fillStyle(0x16120a, a); g.fillRect(x - pw - 1, y - ph - 1, pw * 2 + 2, ph + 1);
   g.fillStyle(0xcbb662, a); g.fillRect(x - pw, y - ph, pw * 2, ph);          // the wallpaper patch
   g.fillStyle(0xb09a48, a * 0.7); for (let sx = x - pw + 2; sx < x + pw; sx += 5) g.fillRect(sx, y - ph, 1, ph);
@@ -963,6 +1057,21 @@ function drawStyledDoor(g, x, y, open, a, flash, style, W, H, hw, fr) {
       g.lineStyle(1, 0xffffff, a); g.strokeRect(L + 0.5, top + 0.5, w - 1, H - 1);
       g.fillStyle(0xffffff, 0.8 * a); for (let i = 0; i < 3; i++) g.fillRect(L + 3 + i * 2, top + 4 + i * 6, 2, Math.min(18, H / 3));   // shine
       if (w > W - 6) { g.fillStyle(0x3fc8ea, a); g.fillRect(L + w - 5, y - 32, 2, 6); }
+    }
+    return;
+  }
+  if (style === 'wowDial') {                                       // DIAL-UP: a window standing on the floor - the dark inside it
+    drawMiniWindow(g, L - fr - 2, top - fr - 10, W + fr * 2 + 4, H + fr + 10, a);
+    g.fillStyle(0xffffff, a); for (let i = 0; i < 3; i++) g.fillRect(L + 1 + i * 4, top - 8, 2, 1);   // the title, too small to read
+    g.fillStyle(0x000000, a); g.fillRect(L, top, W, H);                                       // the dark beyond
+    g.fillStyle(0x2a5ad8, 0.4 * a); for (let yy = top + 2; yy < y; yy += 3) g.fillRect(L, yy, W, 1);   // CRT scanlines
+    if (w > 0) {                                                                              // a teal desktop "door", folding away
+      g.fillStyle(flash ? 0xffffff : 0x108484, a); g.fillRect(L, top, w, H);
+      if (w > 14) {                                                                           // a folder icon on it
+        g.fillStyle(0xffd23a, a); g.fillRect(L + w / 2 - 6, top + 22, 12, 9); g.fillRect(L + w / 2 - 6, top + 20, 5, 2);
+        g.fillStyle(0xb8901a, a); g.fillRect(L + w / 2 - 6, top + 30, 12, 1);
+        g.fillStyle(0xffffff, a); g.fillRect(L + w / 2 - 5, top + 34, 10, 2);
+      }
     }
     return;
   }

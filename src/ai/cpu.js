@@ -80,7 +80,7 @@ export class CpuController extends Controller {
       this.x = Math.sign(dx); this.tap('special'); return;
     }
     // Mr Wake: drop a Shadow Pool when someone is close
-    if (M.downB && (M.downB.pool || M.downB.tag) && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
+    if (M.downB && (M.downB.pool || M.downB.tag || M.downB.amp) && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;
     }
     // Lacy's Grand Slam: a charged home-run swing up close
@@ -202,10 +202,12 @@ export class CpuController extends Controller {
         if (me.grounded && o.t > lim.grabAt - 20 && Math.random() < 0.3) this.tap('jump');
         return true;
       }
-      if (lim.type === 'mosh') {                         // jump the mic-drop shockwave as it comes
-        const until = o.t - lim.dropAt;
-        if (until > -10 && until < 30 && me.grounded && Math.abs(me.y - o.y) < 6) { this.tap('jump'); return true; }
-        return false;
+      if (lim.type === 'wall') {                         // get out of reach before the first ring, stay out of the cone
+        if (o.ult && o.ult.caught.includes(me)) return false;
+        if (o.t > lim.dropAt + 4 || adx > lim.reach + 40) return false;
+        this.x = Math.sign(me.x - o.x) || 1;
+        if (me.grounded && Math.random() < 0.08) this.tap('jump');
+        return true;
       }
       if (lim.type === 'blade') {                       // the giant sword hangs raised, then falls: roll away or dodge as it drops
         if (adx > (lim.reach || 170) + 40) return false;

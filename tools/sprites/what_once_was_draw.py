@@ -19,6 +19,9 @@ Costumes with their own drawing - same parts and joints, so every animation fits
            antennae, a clear tube for a cord
   hack     ROOT ACCESS: a black hoodie crawling with green code, hood up round a black monitor with a
            green phosphor screen, an LED antenna, a glowing green cable
+  dial     DIAL-UP: an old beige home computer - a PC-tower body with drive bays, a floppy slot and
+           blinking LEDs, a motherboard showing through its tear, grey ribbon-cable limbs, a beige CRT
+           monitor for a head with a ball webcam on top, and a coiled phone cord
   ronin    RONIN: red lacquered armour with gold lacing over indigo hakama, a lacquered TV under a
            kabuto neck guard with a gold crescent crest, a braided red cord
 The BODIES its TV can land on after its up special (OUT OF BODY) - human bodies, same joints:
@@ -64,8 +67,12 @@ STYLE_PALS = {
         'skin': (0xf05a48, 0xb82a22, 0x5a1010), 'stripe': (0xc8382c, 0xa02820, 0x5a1010), 'flesh': (0x4a3e44, 0x241c22, 0x0e0a0c),
         'limb': (0x5a6a9c, 0x3a4674, 0x1e2444), 'far': (0x34406a, 0x262e50, 0x141a30), 'case': (0x4a3e44, 0x241c22, 0x0e0a0c),
         'rim': (0xffe08a, 0xd9a32e, 0x8a5e10), 'metal': (0xfff0b0, 0xe8b440, 0x9a6a14), 'cord': (0xf05a48, 0xb82a22, 0x5a1010)},
+    'dial': {
+        'skin': (0xf2ead2, 0xd8cfb0, 0x9a9278), 'stripe': (0xc8c0a4, 0xbab296, 0x8a8268), 'flesh': (0x5ac05a, 0x1e7a32, 0x0e4a1e),
+        'limb': (0xe6e6e2, 0xc0c0bc, 0x808080), 'far': (0xa8a8a4, 0x8a8a86, 0x5a5a58), 'case': (0xf2ead2, 0xd4cba8, 0x8c846a),
+        'rim': (0x5a5a5a, 0x3a3a3a, 0x1e1e1e), 'metal': (0xd0d0d0, 0x9a9a9a, 0x5e5e5e), 'cord': (0xececec, 0xb0b0b0, 0x6a6a6a)},
 }
-STYLE_STATIC = {'aero': (0xffffff, 0x9ff0ff, 0x3fc8ea, 0x1a8ab8), 'hack': (0xb8ffc8, 0x3ae060, 0x157a2e, 0x041808), 'ronin': (0xf4ecd8, 0xb0a490, 0x5a5248, 0x1a1614)}
+STYLE_STATIC = {'dial': (0xffffff, 0x8ab8f0, 0x2a5ad8, 0x0a1a6a), 'aero': (0xffffff, 0x9ff0ff, 0x3fc8ea, 0x1a8ab8), 'hack': (0xb8ffc8, 0x3ae060, 0x157a2e, 0x041808), 'ronin': (0xf4ecd8, 0xb0a490, 0x5a5248, 0x1a1614)}
 GOLD = (0xffe08a, 0xd9a32e, 0x8a5e10)
 HUMAN = ('suit', 'swat', 'doctor')                 # bodies (no wallpaper skin, no tear)
 STYLE_PALS.update({
@@ -311,6 +318,49 @@ def decorate(P):
         ff = P['ffist']; ys, xs = np.where(ff[..., 3] > 0)
         for i in range(len(xs)):
             if np.all(ff[ys[i], xs[i]] == np.array(hx(0xe8e2cc))): ff[ys[i], xs[i]] = hx(0x3ae060)   # glowing green fingertips
+    elif STYLE == 'dial':
+        # a beige PC tower: a 5.25" drive bay, a floppy slot, power button and LEDs, cooling vents
+        t = P['torso']
+        for x in range(27, 39): shine(t, [(x, 25), (x, 28)], 0x9a9278)
+        for x in range(27, 39): shine(t, [(x, 26), (x, 27)], 0xc8bf9e)
+        shine(t, [(x, 26) for x in range(29, 37)], 0x3a3a3a)                          # the CD tray seam
+        for x in range(28, 38): shine(t, [(x, 30)], 0x9a9278)
+        shine(t, [(x, 31) for x in range(30, 36)], 0x1a1a1a)                          # the floppy slot
+        shine(t, [(37, 31)], 0x8a8270)                                                  # its eject button
+        shine(t, [(36, 35), (37, 35), (36, 36), (37, 36)], 0xb8b096); shine(t, [(36, 35)], 0xffffff)   # power button
+        shine(t, [(31, 35)], 0x3ae060); shine(t, [(33, 35)], 0xff9a2a)                 # power and disk LEDs
+        for y in range(37, 40): shine(t, [(x, y) for x in range(27, 34, 2)], 0x9a9278)  # vents
+        shine(t, [(27, 22), (28, 22), (26, 23)], 0xffffff)
+        fl = np.all(t[..., :3] == np.array(hx(PAL['flesh'][2]))[:3], -1)               # the tear: a motherboard with gold traces
+        ys, xs = np.where(fl)
+        for i in range(len(xs)): t[ys[i], xs[i]] = hx(0xd9a32e if (xs[i] + ys[i]) % 2 else 0x1e7a32)
+        for n in ('fupper', 'ffore', 'bupper', 'bfore', 'fthigh', 'bthigh', 'fshin', 'bshin'):   # ribbon-cable stripes on the limbs
+            a = P[n]; ys, xs = np.where((a[..., 3] > 0) & ~np.all(a == np.array(hx(OUT)), -1))
+            for i in range(len(xs)):
+                if xs[i] % 3 == 0: a[ys[i], xs[i]] = hx(0xa0a09c)
+        for n in ('bshoe', 'fshoe'):                                                    # feet: chunky grey plastic, like a keyboard's
+            a = P[n]
+            for src, dst in zip(PAL['flesh'], (0x8a8a86, 0x5a5a58, 0x2e2e2c)):
+                m = np.all(a[..., :3] == np.array(hx(src))[:3], -1) & (a[..., 3] > 0); a[m] = hx(dst)
+        h = P['head']
+        h[0:5, 28:47] = 0                                                               # rabbit ears off...
+        im = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        d.rectangle([35, 4, 39, 5], fill=hx(0x6a6a6a))                                 # ...a ball webcam on a little stand
+        d.ellipse([34, 0, 40, 5], fill=hx(0xd8d8d4))
+        cam = finish(im, (0xffffff, 0xd8d8d4, 0x8a8a86))
+        cam[2, 37] = hx(0x1a1a1a); cam[2, 38] = hx(0x2a5ad8); cam[1, 38] = hx(0xffffff); cam[3, 36] = hx(0xff2a2a)
+        m = cam[..., 3] > 0; h[m] = cam[m]
+        shine(h, [(31, 17), (32, 17), (33, 17), (34, 17)], 0x9a9278)                    # the badge under the screen...
+        for i, c in enumerate((0xff3a2a, 0x3ae060, 0x2a6ad8, 0xffd23a)): shine(h, [(31 + i, 17)], c)   # ...four little coloured squares
+        h[17, 43] = hx(0x3ae060)                                                        # green power light
+        shine(h, [(29, 6), (30, 6), (29, 7)])
+        ff = P['ffist']; ys, xs = np.where(ff[..., 3] > 0)
+        for i in range(len(xs)):
+            c = tuple(ff[ys[i], xs[i], :3])
+            if c == tuple(hx(0xe8e2cc)[:3]): ff[ys[i], xs[i]] = hx(0xffffff)            # claw tips: white plastic
+            elif c in [tuple(hx(v)[:3]) for v in PAL['flesh']]: ff[ys[i], xs[i]] = hx(PAL['limb'][['flesh'].index('flesh') + [tuple(hx(v)[:3]) for v in PAL['flesh']].index(c)])
+        cd = P['cord']; ys, xs = np.where(cd[..., 3] > 0)
+        for i in range(0, len(xs), 2): shine(cd, [(int(xs[i]), int(ys[i]))], 0x6a6a6a)  # a coiled phone cord
     elif STYLE == 'ronin':
         # lacquered armour plates with gold lacing; a kabuto neck guard and a gold crescent crest
         t = P['torso']
@@ -394,11 +444,11 @@ MODE_W, MODE_H = 11, 9
 def mode_screens(style):
     """4 frames each of SEE (the eye looks about and blinks), INCOMING (bright red, flashing '!') and SMILE (a
     grin that glitches), in this costume's colours. Returns 12 RGBA frames of 11x9."""
-    iris = {'aero': 0x3fc8ea, 'hack': 0x3ae060, 'ronin': 0xd9a32e}.get(style, 0x8a6a2a)
+    iris = {'aero': 0x3fc8ea, 'hack': 0x3ae060, 'ronin': 0xd9a32e, 'dial': 0x2a5ad8}.get(style, 0x8a6a2a)
     white = {'hack': 0x9affb0}.get(style, 0xf0ece0)
     red = {'aero': (0xff6a7a, 0xffc0c8), 'hack': (0xff3a2a, 0xffa090), 'ronin': (0xe02a1a, 0xffd060)}.get(style, (0xff2a1a, 0xffb0a0))
-    grin = {'aero': 0xffffff, 'hack': 0x3ae060, 'ronin': 0xffe08a}.get(style, 0xffffff)
-    bg = {'aero': 0x0d3550, 'hack': 0x020a04, 'ronin': 0x140a06}.get(style, 0x0a0a0a)
+    grin = {'aero': 0xffffff, 'hack': 0x3ae060, 'ronin': 0xffe08a, 'dial': 0xffffff}.get(style, 0xffffff)
+    bg = {'aero': 0x0d3550, 'hack': 0x020a04, 'ronin': 0x140a06, 'dial': 0x0a2484}.get(style, 0x0a0a0a)
     frames = []
     def frame(fn):
         a = np.zeros((MODE_H, MODE_W, 4), np.uint8)

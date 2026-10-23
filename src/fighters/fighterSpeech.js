@@ -35,8 +35,19 @@ const QUIPS = {
     grab: [0.7, 'PROCESS CAUGHT.'], throw: [0.7, 'kill -9', 'DROP TABLE you;'], modeSide: [0.8, 'TRACING...', 'FOUND YOU.', 'PACKET LOSS'],
     limit: [1, 'cd /level0'], ko: [1, 'CONNECTION TERMINATED.', 'USER NOT FOUND.'],
   },
+  'what-once-was:wowDial': {
+    jab: [0.25, '*click*', '*click click*'], attack: [0.18, 'PLEASE WAIT...', 'LOADING...', 'BUFFERING...'],
+    smash: [0.5, 'FATAL EXCEPTION!', 'ILLEGAL OPERATION!', 'ERROR 404!'], grab: [0.7, 'DRAG...'], throw: [0.7, '...AND DROP.', 'MOVED TO RECYCLE BIN.'],
+    modeSide: [0.7, 'CONNECTING...', 'NEW MAIL!', 'ARE YOU SURE? [YES]'], limit: [1, 'DIALLING...'], ko: [1, 'CONNECTION LOST.', 'IT IS NOW SAFE TO TURN OFF YOUR COMPUTER.'],
+  },
   'what-once-was:wowRonin': {
     smash: [0.5, 'HAH!', '斬!'], modeSide: [0.6, '...', 'FOOLISH.'], limit: [1, 'THE DARK REMEMBERS.'], ko: [1, 'ANOTHER LOST SOUL.', '...'],
+  },
+  // NU in INFERNO: a headliner playing to a stadium
+  'nu:nuInferno': {
+    attack: [0.12, 'BURN!', 'HEY!'], smash: [0.5, 'FEEL THE HEAT!', 'ARE YOU READY?!', 'TOO HOT!'],
+    grab: [0.6, 'FRONT ROW!'], throw: [0.6, 'INTO THE PIT!'], upb: [0.4, 'LIFT ME UP!'],
+    limit: [1, 'THIS ONE GOES TO ELEVEN!'], ko: [1, 'GOODNIGHT!', 'ENCORE!', 'BURN IT DOWN!'],
   },
   'hero-knight:hero': {
     jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
@@ -52,9 +63,11 @@ const QUIPS = {
 // how each costume's lines look: a terminal box (typed out) or a hero's shout (pops in, bounces)
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
+  nuInferno: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd060', stroke: '#5a0a06', strokeThickness: 4 } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
   wowAero: { typed: false, style: { fontFamily: FONT, fontSize: '7px', color: '#0d3550', backgroundColor: '#e6f8ff', padding: { x: 4, y: 3 } } },
   wowHack: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#3ae060', backgroundColor: '#020a04', padding: { x: 3, y: 2 } } },
+  wowDial: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#000000', backgroundColor: '#c0c0c0', padding: { x: 4, y: 3 } } },
   wowRonin: { typed: false, style: { fontFamily: 'serif', fontSize: '12px', fontStyle: 'bold', color: '#fff6dc', stroke: '#8a1a12', strokeThickness: 4 } },
   taunt: { typed: false, style: { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 } },   // every fighter's taunt line
 };

@@ -4,7 +4,7 @@
 // drawMissingMark) are used on whoever it hits, so they work on any fighter.
 import { sfx } from '../audio/sfx.js';
 import { PHYS } from '../config.js';
-import { drawDoor, drawPoster } from './entities.js';
+import { drawDoor, drawPoster, drawCursor } from './entities.js';
 import { WOW_SCREENS, WOW_HEAD } from './wowScreens.js';
 import { skinSheets, skinTexture, skinInfo } from './skins.js';
 import { newAttackId } from './attackIds.js';
@@ -18,12 +18,15 @@ const HALLS = {
   wowHack: { wall: 0x041008, stripe: 0x0e3a1a, ceil: 0x020804, tile: 0x1a6a2a, carpet: 0x020a04, carpetDark: 0x1a6a2a, skirt: 0x3ae060, lit: 0x9affb0, dead: 0x0e2a14, thing: [0x000000, 0x041a08, 0x0e4a1a], eyes: 0x3ae060, mouth: 0x000000, teeth: 0x9affb0 },
   // RONIN: shoji walls, tatami floor, paper lanterns - and an ink-black oni
   wowRonin: { wall: 0xf0e4c8, stripe: 0x3a2a1a, ceil: 0x4a3426, tile: 0x2a1c12, carpet: 0xb8a468, carpetDark: 0x6a5a30, skirt: 0x3a2a1a, lit: 0xff8a5a, dead: 0x5a3a2a, thing: [0x0a0606, 0x1e1010, 0x5a1010], eyes: 0xff3a2a, mouth: 0x8a0a0a, teeth: 0xf0e8d8 },
+  // DIAL-UP: a teal desktop for walls with windows open on it, grey office carpet - and a blue-screen thing in it
+  wowDial: { wall: 0x108484, stripe: 0x0a6a6a, ceil: 0xc0c0c0, tile: 0x808080, carpet: 0x5a6a8a, carpetDark: 0x3a4a6a, skirt: 0x808080, lit: 0xffffff, dead: 0x606060, thing: [0x000020, 0x0a1a6a, 0x2a5ad8], eyes: 0xffffff, mouth: 0x000000, teeth: 0xffffff },
 };
 // the costume's effect colours: beams, static
 const FXS = {
   default: { beam: [0xfff6b0, 0xffffff, 0xffffff], beamRed: [0xa8140e, 0xff4a3a, 0xffd0c0], car: [0x2e2a22, 0x3e382c, 0x7a7468, 0x4a463c], cable: 0x16120a },
   wowAero: { beam: [0x3fc8ea, 0xc8f8ff, 0xffffff], beamRed: [0xc0408a, 0xff7ac0, 0xffe0f0], car: [0x9adcf0, 0xc8f0fa, 0xffffff, 0x3fb8d8], cable: 0x6fd03a },
   wowHack: { beam: [0x157a2e, 0x3ae060, 0xb8ffc8], beamRed: [0x7a0a0a, 0xff2a2a, 0xffb0a0], car: [0x020a04, 0x0e3a1a, 0x3ae060, 0x1a6a2a], cable: 0x3ae060 },
+  wowDial: { beam: [0x0a2484, 0x2a6ad8, 0xffffff], beamRed: [0x8a0000, 0xff2a1a, 0xffd0c0], car: [0xc0c0c0, 0xd8cfb0, 0x0a2484, 0x808080], cable: 0xb0b0b0 },
   wowRonin: { beam: [0xd9a32e, 0xffe08a, 0xffffff], beamRed: [0x5a0a0a, 0xe02a1a, 0xffd060], car: [0x241c22, 0x3a2a1a, 0xd9a32e, 0xb82a22], cable: 0xb82a22 },
 };
 
@@ -179,10 +182,32 @@ export class FighterWhatOnceWas {
     } else if (k === 'wowHack') {                                    // green code raining off it; now and then it glitches sideways
       if (t % 4 === 0) P.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 30, y: this.y - 64 + R() * 10, vx: 0, vy: 1.2 + R(), life: 22 + R() * 10, color: R() < 0.7 ? 0x3ae060 : 0xb8ffc8, grav: 0 });
       if ((t * 13) % 97 < 3) { g.fillStyle(0x3ae060, 0.35); g.fillRect(this.x - 14 + (R() - 0.5) * 8, this.y - 40 + (R() - 0.5) * 30, 28, 2); }
+    } else if (k === 'wowDial') {                                    // a mouse cursor tags along and clicks, an hourglass spins by its head
+      this.drawDialAura(g, t, R, P);
     } else if (k === 'wowRonin') {                                   // sakura petals in the air around it, a faint red battle aura
       if (t % 11 === 0) P.push({ shape: 'sakura', x: this.x + (R() - 0.5) * 60, y: this.y - 70 - R() * 20, vx: -0.3 - R() * 0.4, vy: 0.4 + R() * 0.3, life: 60, color: R() < 0.6 ? 0xffb7c5 : 0xffffff, grav: 0, sway: R() * 6 });
       g.fillStyle(0xb82a22, 0.05 + 0.03 * Math.sin(t * 0.1)); g.fillEllipse(this.x, this.y - 30, 44, 70);
     }
+  }
+
+  drawDialAura(g, t, R, P) {
+    // the cursor: drifts after it (a little behind and above), now and then "clicks" with a ring
+    const tx = this.x - this.facing * 22, ty = this.y - 70;
+    if (this.cursorX == null) { this.cursorX = tx; this.cursorY = ty; }
+    this.cursorX += (tx - this.cursorX) * 0.06 + Math.sin(t * 0.05) * 0.4; this.cursorY += (ty - this.cursorY) * 0.06 + Math.cos(t * 0.07) * 0.3;
+    const cx = Math.round(this.cursorX), cy = Math.round(this.cursorY), click = t % 90;
+    if (click < 8) { g.lineStyle(1, 0xffffff, 1 - click / 8); g.strokeCircle(cx, cy, 2 + click); }
+    drawCursor(g, cx, cy, click < 4 ? 1 : 0);
+    // the hourglass, spinning when it's standing still
+    if (this.state === 'idle') {
+      const hx = this.x + this.facing * 16, hy = this.y - 72 + Math.round(Math.sin(t * 0.08) * 2), flip = Math.floor(t / 30) % 2;
+      g.fillStyle(0x000000, 1); g.fillRect(hx - 3, hy - 5, 7, 1); g.fillRect(hx - 3, hy + 5, 7, 1);
+      g.fillStyle(0xffffff, 1); g.fillTriangle(hx - 2, hy - 4, hx + 3, hy - 4, hx + 0.5, hy); g.fillTriangle(hx - 2, hy + 4, hx + 3, hy + 4, hx + 0.5, hy);
+      g.fillStyle(0xd8cfb0, 1); if (flip) g.fillRect(hx - 1, hy + 2, 3, 2); else g.fillRect(hx - 1, hy - 3, 3, 2);
+      g.fillStyle(0xd8cfb0, 1); g.fillRect(hx, hy, 1, 2);
+    }
+    // little error windows popping off it now and then
+    if (t % 70 === 0) P.push({ shape: 'win95', x: this.x + (R() - 0.5) * 30, y: this.y - 40 - R() * 20, vx: (R() - 0.5) * 0.6, vy: -0.4, life: 40, color: 0x0a2484, grav: 0 });
   }
 
   glitchBurst(n) {
@@ -633,6 +658,15 @@ export class FighterWhatOnceWas {
     if (sk === 'wowRonin') {                                         // shoji: a lattice of wooden bars over the paper walls
       g.fillStyle(HALL.stripe, 0.8 * fade); for (let y = ceil + 18; y < fy - 6; y += 22) g.fillRect(x0, y, W, 2);
       for (let x = x0 - wrap(scroll, 30); x < X1; x += 30) g.fillRect(Math.round(x), ceil, 3, fy - ceil);
+    } else if (sk === 'wowDial') {                                   // windows left open all down the desktop walls
+      for (let x = x0 - wrap(scroll, 120); x < X1; x += 120) {
+        const wx = Math.round(x + 20), wy = ceil + 20 + ((Math.round(x) * 7) & 15);
+        g.fillStyle(0x000000, fade); g.fillRect(wx - 1, wy - 1, 52, 36);
+        g.fillStyle(0xc0c0c0, fade); g.fillRect(wx, wy, 50, 34);
+        g.fillStyle(0x0a2484, fade); g.fillRect(wx + 2, wy + 2, 46, 6);
+        g.fillStyle(0xffffff, fade); g.fillRect(wx + 3, wy + 10, 44, 21);
+        g.fillStyle(0x808080, fade); for (let l = 0; l < 3; l++) g.fillRect(wx + 6, wy + 14 + l * 5, 20 + ((l * 13) % 18), 2);
+      }
     } else if (sk === 'wowHack') {                                   // a wireframe grid scrolling past
       g.fillStyle(HALL.tile, 0.5 * fade); for (let y = ceil; y < fy; y += 16) g.fillRect(x0, y, W, 1);
     } else if (sk === 'wowAero') {                                   // glossy shine bands and bubbles rising up the walls

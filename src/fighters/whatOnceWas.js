@@ -15,12 +15,12 @@ export const WHAT_ONCE_WAS = {
   name: 'WHAT ONCE WAS',
   sheets: { idle: 'wow_idle', run: 'wow_run', jump: 'wow_jump', fall: 'wow_fall', moves: 'wow_moves' },
   // costumes with their own drawing (skins.js sheetSet): FRUTIGER, ROOT ACCESS, RONIN
-  costumeSheets: Object.fromEntries(['aero', 'hack', 'ronin'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['aero', 'hack', 'ronin', 'dial'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),
   // which row of mode_screens.png each costume's MODE screens are on
-  screenRow: { default: 0, wowAero: 1, wowHack: 2, wowRonin: 3 },
+  screenRow: { default: 0, wowAero: 1, wowHack: 2, wowRonin: 3, wowDial: 4 },
   // all its sheets are drawn WITHOUT the head (the game draws the TV - heads.png - where wowScreens.js says);
   // menus show these instead, head and all
-  menuSheets: { default: 'wow_menu', aero: 'wow_aero_menu', hack: 'wow_hack_menu', ronin: 'wow_ronin_menu' },
+  menuSheets: { default: 'wow_menu', aero: 'wow_aero_menu', hack: 'wow_hack_menu', ronin: 'wow_ronin_menu', dial: 'wow_dial_menu' },
   // the bodies OUT OF BODY can grow ('self' = the costume's own)
   bodies: ['self', 'suit', 'swat', 'doctor'],
   bodySheets: Object.fromEntries(['suit', 'swat', 'doctor'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wow_' + s + '_' + k]))])),

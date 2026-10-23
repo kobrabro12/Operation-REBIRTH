@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, GraffitiTag, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -309,7 +309,11 @@ export class MatchScene extends Phaser.Scene {
 
   applyHit(t, hb, srcX) {
     const h = hb.h, owner = hb.owner;
-    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult));
+    const beat = owner && owner.def.beat ? owner.beatBonus(hb) : null;        // NU: an attack started on the beat
+    if (t.def.beat) t.dropStreak();
+    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1)));
+    if (beat) owner.beatLanded(t, hb);
+    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.dive && owner.move.dive.bounce) owner.diveBounce = true;   // NU's Stage Dive: bounce off them
     let kbPct;
     if (this.mode === 'stamina') { t.hp -= dmg; kbPct = 40 + 50 * (1 - Math.max(0, t.hp) / t.maxHp); }
     else { t.percent = Math.min(999, t.percent + dmg); kbPct = t.percent; }
@@ -318,7 +322,7 @@ export class MatchScene extends Phaser.Scene {
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
 
-    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult;
+    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult * (beat ? beat.kb : 1);
     let dir = hb.facing || 1;
     if (!owner || h.radial) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel; explosions push outward
     const rad = h.angle * Math.PI / 180;
@@ -427,6 +431,10 @@ export class MatchScene extends Phaser.Scene {
   spawnSword(owner, spec) { const p = new ThrownSword(this, owner, spec); this.projectiles.push(p); return p; }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnWave(owner, spec) { const p = new SoundWave(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnAmp(owner, spec) {
+    for (const p of this.pools) if (p.owner === owner && p instanceof SpeakerAmp) p.kill();   // one amp per NU
+    const p = new SpeakerAmp(this, owner, spec); if (p.alive) this.pools.push(p); return p;
+  }
   spawnTag(owner, spec) {
     for (const p of this.pools) if (p.owner === owner && p instanceof GraffitiTag) p.kill();   // one tag per NU
     const p = new GraffitiTag(this, owner, spec); if (p.alive) this.pools.push(p); return p;
@@ -460,6 +468,7 @@ export class MatchScene extends Phaser.Scene {
     if (f.style === 'rose') sfx('petal', 0.8, 0.7);
     if (f.style === 'hero') { sfx('taiko', 0.9); sfx('shing', 0.8, 1.2); }
     if (f.style === 'wowRonin') { sfx('taiko', 1); sfx('shing', 0.7, 0.8); }
+    if (f.style === 'wowDial') sfx('dialup', 0.6);                    // DIAL-UP: it dials in
     if (f.style === 'wowHack') sfx('glitch', 0.9, 0.5);
     if (f.style === 'wowAero') { sfx('item', 0.7, 0.8); sfx('petal', 0.7, 0.8); }
     this.shake(6, 30);
@@ -507,6 +516,16 @@ export class MatchScene extends Phaser.Scene {
     const n = v.n + Math.floor(kb / 2);
     const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
     switch (v.shape) {
+      case 'win95':                                   // DIAL-UP: little error windows bursting off, and a few stray bits
+        for (let i = 0; i < Math.ceil(n / 2); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.4; add({ shape: 'win95', x, y, vx: Math.cos(a) * sp + dir * 0.5, vy: Math.sin(a) * sp, life: 26 + R() * 14, color: [0x0a2484, 0x8a0000, 0x108484][i % 3], drag: 0.93, grav: 0.04 }); }
+        for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 14 + R() * 10, color: col(i), drag: 0.9, grav: 0 }); }
+        if (dmg >= 9 || kb > 7) add({ shape: 'cursor', x: x + dir * 6, y: y - 10, vx: dir * 0.5, vy: -0.6, life: 30, color: 0xffffff, grav: 0 });
+        break;
+      case 'flame':                                   // INFERNO: a burst of fire licking upward, with a hot flash
+        add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, r: 10 + kb, color: 0xffa030, grav: 0 });
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.2, sp = 1.5 + R() * 3; add({ x: x + (R() - 0.5) * 12, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 16 + R() * 14, color: col(i), size: 2 + (R() < 0.5), grav: -0.05, drag: 0.93 }); }
+        for (let i = 0; i < 3; i++) add({ shape: 'smoke', x: x + (R() - 0.5) * 10, y: y - 6, vx: (R() - 0.5) * 0.6, vy: -0.6, life: 30, maxLife: 30, r: 3, color: 0x3a2a2a, grav: -0.01 });
+        break;
       case 'dust': for (let i = 0; i < n; i++) add({ x, y, vx: (R() - 0.5) * 2.4, vy: -R() * 1.6, life: 20 + R() * 16, color: col(i), size: 2 + (i % 3 === 0), grav: 0.02, drag: 0.94 }); break;
       case 'wisp': for (let i = 0; i < n; i++) add({ shape: 'wisp', x: x + (R() - 0.5) * 16, y, vx: (R() - 0.5) * 1.2, vy: -0.6 - R() * 1.4, life: 34 + R() * 20, color: col(i), grav: -0.01, sway: R() * 6 }); break;
       case 'skull': for (let i = 0; i < n; i++) add({ shape: 'skull', x: x + (R() - 0.5) * 20, y: y - 4, vx: (R() - 0.5) * 1.5, vy: -1 - R(), life: 36, color: col(i), grav: -0.02, drag: 0.96 }); break;
@@ -537,6 +556,8 @@ export class MatchScene extends Phaser.Scene {
   drawParticle(g, p) {
     const a = Math.min(1, p.life / 10), X = Math.round(p.x), Y = Math.round(p.y);
     switch (p.shape) {
+      case 'win95': drawMiniWindow(g, X - 4, Y - 3, 9, 7, a, p.color); break;   // DIAL-UP: a tiny error window
+      case 'cursor': drawCursor(g, X, Y, 0, a); break;
       case 'wisp': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.5); g.fillRect(X, Y + 2, 1, 3); g.fillStyle(0xffffff, a); g.fillRect(X, Y, 1, 1); break;
       case 'skull':
         g.fillStyle(p.color, a); g.fillRect(X - 2, Y - 2, 5, 3); g.fillRect(X - 1, Y + 1, 3, 2);
@@ -608,8 +629,10 @@ export class MatchScene extends Phaser.Scene {
       if (life <= 0) { B.t.destroy(); B.plate.destroy(); this.aeroBanner = null; }
     }
     const g = this.aeroBg, w = this.aeroWorld; g.clear(); w.clear();
-    const k = A.k; if (k <= 0) return;
+    const k = A.k;
+    if (k <= 0) { if (this.clashText) for (const c of this.clashText) c.setAlpha(0); A.push = 0; return; }
     const t = A.t, W = VIEW_W, H = VIEW_H;
+    if (this.stage.id === 'infected') { this.renderAeroClash(g, w, k, t); return; }
     // sky: a smooth aqua gradient, bright toward the horizon
     for (let i = 0; i < 36; i++) {
       const f = i / 35, c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(0x1f8fe0), Phaser.Display.Color.ValueToColor(0xd8f8ff), 100, f * 100);
@@ -662,6 +685,125 @@ export class MatchScene extends Phaser.Scene {
       const p = this.stage.platforms[0], sx = p.x1 + ((i * 131 + t * 1.3) % (p.x2 - p.x1));
       w.fillStyle(0xffffff, 0.8 * k * Math.abs(Math.sin(t * 0.07 + i))); w.fillRect(sx, p.y - 1, 2, 2);
     }
+  }
+
+  // INFECTED.EXE + FULL AERO: the aero world doesn't simply replace the desktop, it pushes out of FULL AERO himself
+  // as a glossy dome and fights the infection back. The dome breathes, the infection bites chunks out of its edge,
+  // error windows dissolve into bubbles where it reaches them, and a tug-of-war bar shows who's winning.
+  renderAeroClash(g, w, k, t) {
+    const W = VIEW_W, H = VIEW_H, A = this.aeroStage, v = this.worldCam.worldView;
+    const n = (a, b) => { let x = Math.imul(a * 374761393 + b * 668265263, 1274126177); x ^= x >>> 15; return ((x >>> 0) % 1000) / 1000; };
+    // the dome follows the FULL AERO fighter around the screen (smoothly)
+    const hero = this.fighters.find((f) => f.fullAero > 0 && f.alive);
+    const hx = hero ? ((hero.x - v.x) / v.width) * W : W / 2, hy = hero ? ((hero.y - 30 - v.y) / v.height) * H : H / 2;
+    A.cx = A.cx == null ? hx : A.cx + (hx - A.cx) * 0.06; A.cy = A.cy == null ? hy : A.cy + (hy - A.cy) * 0.06;
+    // how much of the screen aero holds: grows while he's in the form, the infection keeps knocking it back
+    A.push = Math.min(1, (A.push || 0) + 0.004);
+    const R = (90 + 120 * A.push) * k + Math.sin(t * 0.05) * 12 + (n(t >> 4, 7) < 0.15 ? -26 : 0);
+    const cx = A.cx, cy = Phaser.Math.Clamp(A.cy, 60, H - 60);
+    // --- the infection: a corrupted, red-shifting desktop with scrolling scanlines and torn bands
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.09);
+    g.fillStyle(0x0a4a4a, 0.92 * k); g.fillRect(0, 0, W, H);
+    g.fillStyle(0x8a0000, (0.25 + 0.2 * pulse) * k); g.fillRect(0, 0, W, H);
+    for (let y = (t * 2) % 6; y < H; y += 6) { g.fillStyle(0x000000, 0.25 * k); g.fillRect(0, y, W, 2); }
+    for (let i = 0; i < 6; i++) {                                                         // torn bands that slide sideways
+      const by = n(i, t >> 3) * H, bh = 3 + n(i, 9) * 10, off = (n(i, t >> 2) - 0.5) * 40;
+      g.fillStyle(i % 2 ? 0xff2a2a : 0x2aa0a0, 0.35 * k); g.fillRect(off, by, W, bh);
+    }
+    // error windows drifting on the infected side
+    const wins = [];
+    for (let i = 0; i < 9; i++) {
+      const ww = 54 + (i % 3) * 14, wh = 34 + (i % 2) * 10;
+      const x = ((i * 113 + t * (0.2 + (i % 4) * 0.1)) % (W + ww)) - ww, y = 20 + ((i * 67) % (H - 70)) + Math.sin(t * 0.03 + i) * 6;
+      wins.push([x, y, ww, wh, i]);
+    }
+    for (const [x, y, ww, wh, i] of wins) {
+      const d = Math.hypot(x + ww / 2 - cx, y + wh / 2 - cy), eaten = Phaser.Math.Clamp((R + 30 - d) / 40, 0, 1);
+      const a = k * (1 - eaten);
+      if (a <= 0.02) continue;
+      g.fillStyle(0x0a0a12, a); g.fillRect(x - 1, y - 1, ww + 2, wh + 2);
+      g.fillStyle(0xc0c0c0, a); g.fillRect(x, y, ww, wh);
+      g.fillStyle(i % 3 ? 0x0a2484 : 0x8a0000, a); g.fillRect(x + 2, y + 2, ww - 4, 7);
+      g.fillStyle(0xffffff, a); g.fillRect(x + ww - 9, y + 3, 6, 5);
+      g.fillStyle(0xff2a2a, a); g.fillRect(x + ww - 8, y + 4, 4, 3);
+      g.fillStyle(0xffffff, a); g.fillRect(x + 3, y + 11, ww - 6, wh - 14);
+      // the warning icon and some unreadable error text
+      g.fillStyle(0xff2a2a, a); g.fillTriangle(x + 6, y + wh - 6, x + 16, y + wh - 6, x + 11, y + 14);
+      g.fillStyle(0xffffff, a); g.fillRect(x + 10, y + 19, 2, 5);
+      g.fillStyle(0x0a0a12, a); for (let l = 0; l < 3; l++) g.fillRect(x + 20, y + 15 + l * 5, (ww - 26) * (0.5 + n(i, l) * 0.5), 2);
+      if (eaten > 0) for (let b = 0; b < 4; b++) {                                         // where the dome touches, pixels fizz into bubbles
+        const bx = x + n(i, b + t) * ww, by = y + n(b, i + t) * wh;
+        g.lineStyle(1, 0x9ff0ff, eaten * k); g.strokeCircle(bx, by, 2 + b);
+      }
+    }
+    // static snow
+    for (let i = 0; i < 160; i++) { g.fillStyle(n(i, t) < 0.5 ? 0xffffff : 0xff2a2a, 0.5 * k); g.fillRect(n(i, t + 1) * W, n(t, i + 3) * H, 2, 2); }
+    // --- the aero dome, drawn row by row so its edge can be ragged where the infection bites it
+    const edges = [];
+    for (let y = 0; y < H; y += 3) {
+      const dy = y - cy; if (Math.abs(dy) >= R) continue;
+      const bite = (n(y >> 3, t >> 2) < 0.12 ? -14 : 0) + (n(y, t) - 0.5) * 6;
+      const hw = Math.sqrt(R * R - dy * dy) + bite; if (hw <= 0) continue;
+      const f = y / H, c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(0x1f8fe0), Phaser.Display.Color.ValueToColor(0xd8f8ff), 100, f * 100);
+      g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), k); g.fillRect(cx - hw, y, hw * 2, 3);
+      edges.push([cx - hw, cx + hw, y]);
+    }
+    // the sun rising out of him, and aurora inside the dome
+    g.fillStyle(0xffffff, 0.22 * k); g.fillCircle(cx, cy, R * 0.55); g.fillStyle(0xffffff, 0.35 * k); g.fillCircle(cx, cy, R * 0.3);
+    for (let r = 0; r < 2; r++) for (let i = 0; i <= 48; i++) {
+      const x = cx - R + (i / 48) * R * 2, y = cy - R * 0.35 + r * R * 0.3 + Math.sin(i * 0.25 + t * 0.03 + r * 2) * 10;
+      if (Math.hypot(x - cx, y - cy) > R - 8) continue;
+      g.fillStyle(r ? 0x8be04a : 0x9ff0ff, 0.3 * k); g.fillRect(x, y, (R * 2) / 48 + 1, 6);
+      g.fillStyle(0xffffff, 0.4 * k); g.fillRect(x, y, (R * 2) / 48 + 1, 1);
+    }
+    // bubbles rise inside; any that cross the edge pop into red pixels
+    for (let i = 0; i < 26; i++) {
+      const ang = n(i, 3) * Math.PI * 2, life = (t * (0.6 + n(i, 5)) + i * 37) % 160, dist = (life / 160) * (R + 30);
+      const bx = cx + Math.cos(ang) * dist, by = cy + Math.sin(ang) * dist - life * 0.2, rr = 2 + (i % 4);
+      if (dist < R - 6) { g.lineStyle(1, 0xffffff, 0.8 * k); g.strokeCircle(bx, by, rr); g.fillStyle(0xffffff, 0.9 * k); g.fillRect(bx - rr * 0.5, by - rr * 0.5, 2, 2); }
+      else { g.fillStyle(0xff2a2a, 0.8 * k); for (let q = 0; q < 4; q++) g.fillRect(bx + (n(i, q) - 0.5) * 10, by + (n(q, i) - 0.5) * 10, 2, 2); }
+    }
+    // the front line: a bright glossy rim with red glitch blocks gnawing at it from outside
+    for (const [l, r, y] of edges) {
+      for (const x of [l, r]) {
+        g.fillStyle(0xffffff, 0.9 * k); g.fillRect(x - 1, y, 2, 3);
+        g.fillStyle(0x9ff0ff, 0.6 * k); g.fillRect(x + (x === l ? 1 : -4), y, 3, 3);
+        if (n(y, t + x) < 0.35) { const out = x === l ? -1 : 1; g.fillStyle(n(y, t) < 0.5 ? 0xff2a2a : 0xff00aa, 0.85 * k); g.fillRect(x + out * (2 + n(x, y + t) * 10), y, 2 + n(y, x) * 8, 3); }
+      }
+    }
+    for (let i = 0; i < 10; i++) {                                                        // sparks flying where they meet
+      const a = n(i, t >> 1) * Math.PI * 2, x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+      g.fillStyle(i % 2 ? 0xffffff : 0xf3c358, k); g.fillRect(x - 1, y - 1, 3, 3); g.fillRect(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 2, 2);
+    }
+    // the tug of war: AERO.SYS vs INFECTED.EXE
+    const share = Phaser.Math.Clamp((Math.PI * R * R) / (W * H), 0.05, 0.95), bw = 220, bx0 = (W - bw) / 2, by0 = H - 22;
+    g.fillStyle(0x0a0a12, k); g.fillRect(bx0 - 2, by0 - 2, bw + 4, 11);
+    g.fillStyle(0x8a0000, k); g.fillRect(bx0, by0, bw, 7);
+    g.fillStyle(0x3fc8ea, k); g.fillRect(bx0, by0, bw * share, 7);
+    g.fillStyle(0xffffff, 0.6 * k); g.fillRect(bx0, by0, bw * share, 2);
+    for (let i = 0; i < 8; i++) { g.fillStyle(0xff2a2a, 0.9 * k); g.fillRect(bx0 + bw * share + n(i, t) * 8, by0 + n(t, i) * 6, 2, 2); }
+    this.clashLabel(k, bx0, by0, bw);
+    // the platforms: glossy aero glass, with red corruption crawling along them
+    for (const p of this.stage.platforms) {
+      const pw = p.x2 - p.x1;
+      if (p.solid !== false) {
+        w.fillStyle(0x8be04a, k); w.fillRect(p.x1, p.y, pw, 6); w.fillStyle(0xd6ff9a, k); w.fillRect(p.x1, p.y, pw, 2);
+        w.fillStyle(0x9ff0ff, 0.3 * k); w.fillRect(p.x1, p.y + 7, pw, (p.bottom || 30) - 7);
+      } else { w.fillStyle(0x3fc8ea, 0.45 * k); w.fillRoundedRect(p.x1, p.y - 1, pw, 7, 3); w.fillStyle(0xffffff, 0.8 * k); w.fillRect(p.x1 + 4, p.y, pw - 8, 1); }
+      for (let i = 0; i < Math.ceil(pw / 30); i++) {
+        const gx = p.x1 + ((i * 47 + t * (i % 2 ? 0.7 : -0.5)) % pw + pw) % pw;
+        w.fillStyle(i % 3 ? 0xff2a2a : 0xff00aa, 0.8 * k); w.fillRect(gx, p.y + (i % 3), 3 + (i % 4) * 2, 2);
+      }
+    }
+  }
+  clashLabel(k, x, y, bw) {
+    if (!this.clashText) {
+      const st = { fontFamily: FONT, fontSize: '6px', stroke: '#0b0a14', strokeThickness: 3 };
+      this.clashText = [this.add.text(0, 0, 'AERO.SYS', { ...st, color: '#9ff0ff' }).setOrigin(0, 1), this.add.text(0, 0, 'INFECTED.EXE', { ...st, color: '#ff4a4a' }).setOrigin(1, 1)];
+      this.addBg(...this.clashText); for (const c of this.clashText) c.setScrollFactor(0).setDepth(51);
+    }
+    const [a, b] = this.clashText;
+    a.setPosition(x, y - 3).setAlpha(k); b.setPosition(x + bw, y - 3).setAlpha(k);
   }
 
   popText(f, text, color) {

@@ -112,6 +112,15 @@ export function initSfx(scene) {
   build('popup', 0.35, (t) => { ph += 392 / SR; ph2 += 494 / SR; return (sq(ph, 0.5) + sq(ph2, 0.5)) * 0.3 * Math.exp(-t * 7); });
   ph = 0;
   build('mail', 0.6, (t) => { ph += (t < 0.14 ? 1568 : t < 0.28 ? 1175 : 1760) / SR; return sq(ph, 0.25) * 0.4 * Math.exp(-((t % 0.14) * 9)) * (t < 0.42 ? 1 : 0); });
+  // WHAT ONCE WAS in DIAL-UP: a modem dialling in - touch tones, the answer whistle, then the screech
+  ph = 0; ph2 = 0; n1 = noiseStep(3);
+  const DTMF = [[697, 1209], [770, 1336], [852, 1477], [941, 1336]];
+  build('dialup', 1.6, (t) => {
+    if (t < 0.48) { const k = Math.floor(t / 0.12), u = t % 0.12; if (u > 0.08) return 0; ph += DTMF[k][0] / SR; ph2 += DTMF[k][1] / SR; return (Math.sin(ph * 6.283) + Math.sin(ph2 * 6.283)) * 0.35; }
+    if (t < 0.85) { ph += 2100 / SR; return Math.sin(ph * 6.283) * 0.5 * (Math.floor(t * 30) % 9 ? 1 : 0.2); }
+    const w = 1200 + 900 * Math.sin(t * 90) + 400 * Math.sin(t * 13); ph += w / SR; ph2 += (w * 1.5) / SR;
+    return (sq(ph, 0.5) * 0.3 + sq(ph2, 0.3) * 0.15 + n1() * 0.25) * (t > 1.45 ? (1.6 - t) / 0.15 : 1);
+  });
 }
 
 // the title screen's demo match plays silently

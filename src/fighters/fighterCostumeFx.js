@@ -165,6 +165,19 @@ export class FighterCostumeFx {
         g.fillStyle(0xffffff, on); g.fillRect(Math.round(x), Math.round(y), 1, 1);
       }
     }
+    if (a.inferno) {                                 // INFERNO: heat glow round his burning hair, embers, a scorched trail
+      const hy = top + 6, fl = 0.16 + 0.06 * Math.sin(t * 0.5);
+      back.fillStyle(0xff7a1a, fl); back.fillCircle(cx - f * 3, hy, 14);
+      back.fillStyle(0xffd060, fl * 0.8); back.fillCircle(cx - f * 3, hy, 8);
+      g.fillStyle(0xff7a1a, 0.18); g.fillEllipse(cx, this.y + 1, 26, 5);
+      if (!this.match.frozen) {
+        if (t % 3 === 0) P.push({ x: cx - f * (2 + R() * 10), y: top - R() * 4, vx: -f * (0.3 + R() * 0.6), vy: -0.8 - R() * 1.2, life: 20 + R() * 24, color: [0xffd060, 0xff7a1a, 0xff3a1a][t % 3], size: 1 + (R() < 0.3), grav: -0.01, sway: R() * 6 });
+        if (this.grounded && Math.abs(this.vx) > 2 && t % 4 === 0) {
+          P.push({ x: cx - f * 6, y: this.y - 1, vx: 0, vy: -0.6 - R(), life: 14, color: R() < 0.5 ? 0xff7a1a : 0xffd060, size: 2, grav: -0.02 });
+          P.push({ shape: 'smoke', x: cx - f * 8, y: this.y - 3, vx: -f * 0.3, vy: -0.4, life: 24, maxLife: 24, r: 2, color: 0x2a1e1e, grav: -0.01 });
+        }
+      }
+    }
     if (!this.match.frozen) {                        // particles that drift off the body
       if (a.motes && t % a.motes.rate === 0) {
         const c = a.motes.colors[(t / a.motes.rate) % a.motes.colors.length | 0];

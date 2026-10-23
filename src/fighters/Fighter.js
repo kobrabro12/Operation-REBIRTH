@@ -18,6 +18,7 @@ import { FighterLedge } from './fighterLedge.js';
 import { FighterRender } from './fighterRender.js';
 import { LimitAero } from './limitAero.js';
 import { LimitMosh } from './limitMosh.js';
+import { FighterBeat } from './fighterBeat.js';
 import { FighterTaunt } from './fighterTaunt.js';
 import { FighterWhatOnceWas } from './fighterWhatOnceWas.js';
 import { popBubble } from './entities.js';
@@ -291,7 +292,8 @@ export class Fighter {
   startAttack(name) {
     this.quip(name === 'jab' ? 'jab' : /smash/.test(name) ? 'smash' : name === 'grab' ? null : 'attack');
     this.move = this.def.moves[name]; this.moveName = name; this.attackId = newAttackId();
-    this.setState('attack'); this.hitList = new Set(); this.rapidLoops = 0;
+    this.setState('attack'); this.hitList = new Set(); this.rapidLoops = 0; this.chord = 0;
+    if (this.def.beat) this.markBeat();               // NU: was it started on the beat?
     if (this.move.lunge && this.grounded) this.vx = this.facing * this.move.lunge;
     this.swingSound(name === 'jab' ? 1.3 : 1);
   }
@@ -304,9 +306,17 @@ export class Fighter {
     if (this.style === 'wowHack' && Math.random() < 0.45) sfx('glitch', 0.25, 1.3);                     // WHAT ONCE WAS costumes
     if (this.style === 'wowRonin' && Math.random() < 0.35) sfx('shing', 0.25, 1.1 + Math.random() * 0.2);
     if (this.style === 'wowAero' && Math.random() < 0.35) sfx('petal', 0.3, 1.6);
+    if (this.style === 'wowDial' && Math.random() < 0.3) sfx('popup', 0.15, 2.2);                      // DIAL-UP: a mouse click
+    if (this.style === 'nuInferno' && Math.random() < 0.4) sfx('whoosh', 0.25, 0.7 + Math.random() * 0.2);   // NU's INFERNO: the swing roars
   }
   st_attack(c) {
     const m = this.move;
+    if (m.hold && this.holdChord(c)) return;            // NU's Power Chord: holding special builds the chord
+    if (this.diveBounce) {                              // NU's Stage Dive landed on someone: crowd surf off them
+      this.diveBounce = false; this.vy = m.dive.bounce; this.vx = this.facing * 2; this.usedDive = false; this.jumpsLeft = Math.max(this.jumpsLeft, 1);
+      this.match.popText(this, 'CROWD SURF!', '#' + this.pal.light.toString(16).padStart(6, '0')); sfx('djump', 0.7, 1.2);
+      this.setState('air'); return;
+    }
     if (m.rapid && this.t === m.rapid.at && this.rapidLoops < m.rapid.max && c.held('attack')) {   // hold attack to keep a rapid jab going
       this.rapidLoops++; this.t = m.rapid.to; this.swingSound(1.3 + 0.08 * this.rapidLoops, 0.3);
     }
@@ -320,7 +330,8 @@ export class Fighter {
       const R = Math.random;
       for (let i = 0; i < 3; i++) this.match.particles.push({ shape: 'bubble', x: this.x + this.facing * 6 + (R() - 0.5) * 20, y: this.y - 64 - R() * 10, vx: (R() - 0.5) * 1.2, vy: -2.2 - R() * 1.6, life: 26 + R() * 12, color: [0x9ff0ff, 0xffffff, 0x3fc8ea][i], grav: -0.02, r: 1 + Math.floor(R() * 3), sway: R() * 6, size: 2 });
     }
-    if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave);
+    if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave.full ? this.chordWave(m.wave) : m.wave);
+    if (m.amp && this.t === m.spawnAt) this.match.spawnAmp(this, m.amp);
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
     if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
     if (m.fish && this.t === m.spawnAt && !this.fishOut) {
@@ -527,7 +538,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, LimitAero, FighterWhatOnceWas]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, LimitAero, FighterWhatOnceWas]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

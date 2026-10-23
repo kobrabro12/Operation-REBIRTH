@@ -160,7 +160,7 @@ export class FighterRender {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'mosh', 'screensaver', 'level0'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'wall', 'screensaver', 'level0'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -284,7 +284,8 @@ export class FighterRender {
     // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
     if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
-    if (s === 'limit' && d.limit.type === 'mosh' && this.ult) this.drawMosh(g, d.limit, this.ult);
+    if (s === 'limit' && d.limit.type === 'wall' && this.ult) this.drawWallLimit(g, d.limit, this.ult);
+    if (d.beat) this.drawBeat(g);                                   // NU: the beat ring at his feet and his STREAK
     if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
     if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);
     if (this.bubbled > 0) drawBubble(g, this.x, this.y - this.body.h / 2, 26 + Math.sin(this.anim * 0.4), { light: 0x9ff0ff, core: 0xffffff, mid: 0x3fc8ea });
