@@ -410,7 +410,7 @@ export class Fighter {
       this.vy = 0;
     } else {
       if (canSteerAir) {
-        const max = d.airSpeed * this.speedMult * (s === 'helpless' ? 0.7 : 1);
+        const max = d.airSpeed * this.speedMult * (s === 'helpless' ? 0.9 : 1);
         if (Math.abs(c.x) > 0.2) {
           const target = c.x * max;
           this.vx += Math.sign(target - this.vx) * Math.min(Math.abs(target - this.vx), d.airAccel);

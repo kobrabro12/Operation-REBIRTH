@@ -71,8 +71,9 @@ export const SOUL_SUMMONER = {
     // Hold left/right to steer. The jet burns anyone underneath (light hits that drag them down),
     // and a burst at the top pops away anyone next to him. Helpless until landing afterwards.
     upb: {
-      frames: 40, riseAt: 6, drift: 2.4, kick: -3.5,
-      jet: { from: 6, to: 27, thrust: 0.95, maxRise: -8.6 },
+      frames: 44, riseAt: 6, drift: 3.6, kick: -5,
+      // how long the jet burns (frames), how hard it pushes each frame, and its top speed upward
+      jet: { from: 6, to: 32, thrust: 1.2, maxRise: -10 },
       hits: [
         { from: 6, to: 8, box: [-13, 0, 26, 50], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },
         { from: 12, to: 14, box: [-13, 0, 26, 50], dmg: 2, angle: -80, base: 1.2, growth: 0, stun: 8 },

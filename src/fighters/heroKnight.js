@@ -114,7 +114,7 @@ export const HERO_KNIGHT = {
     //  On the ground: hold the button to charge (up to 1 s), release to spin in place. One big hit
     //    all around her, stronger the longer it charged (9% -> 16%). She stays on the ground.
     upb: {
-      spin: true, frames: 40, riseAt: 6, riseV: -9.8, drift: 2.7,
+      spin: true, frames: 40, riseAt: 6, riseV: -14.4, drift: 3.8,
       hits: [
         { from: 6, to: 7, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },
         { from: 10, to: 11, box: [-34, -56, 68, 58], dmg: 2, angle: 88, base: 1.6, growth: 0, stun: 10, pull: true },

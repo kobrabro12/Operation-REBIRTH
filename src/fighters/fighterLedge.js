@@ -22,9 +22,10 @@ export class FighterLedge {
         const L = { p, side, x: side < 0 ? p.x1 : p.x2, y: p.y };
         const h = this.hangPos(L);
         if (side < 0 ? this.x > p.x1 : this.x < p.x2) continue;  // must be outside the stage
-        if (Math.abs(this.x - h.x) > 20) continue;
+        const rec = s === 'upb' || s === 'helpless';             // coming back with an up special: the ledge snaps from further away
+        if (Math.abs(this.x - h.x) > (rec ? 32 : 20)) continue;
         const top = this.y - this.body.h - L.y;                  // head height relative to the ledge
-        if (top < -34 || top > 22) continue;
+        if (top < (rec ? -46 : -34) || top > (rec ? 34 : 22)) continue;
         if (s !== 'upb' && this.vy < -1.5) continue;             // rising past it on a jump: no grab
         if (this.match.fighters.some((f) => f !== this && f.alive && f.ledge && f.ledge.p === p && f.ledge.side === side && f.state.startsWith('ledge'))) continue;
         this.grabLedge(L); return;

@@ -548,30 +548,46 @@ export class SoundWave {
   }
 }
 
-// NU's AMP DROP: a speaker cabinet slammed onto the floor. It thumps a shockwave on every beat that pushes
-// people away, and any of his Power Chords fired through it comes out AMPED. One amp at a time.
+// NU's AMP DROP: a speaker cabinet dropped from above, in front of him. While it falls it crushes anyone it
+// lands on (a hard spike - drop it off the ledge onto someone recovering). Once it lands it thumps a big
+// shockwave on every beat that pushes people away, and any Power Chord fired through it comes out AMPED.
+// One amp at a time; if it falls off the stage it's gone.
 export class SpeakerAmp {
   constructor(match, owner, spec) {
     this.match = match; this.owner = owner; this.spec = spec; this.t = 0; this.life = spec.life; this.alive = true;
-    this.x = owner.x + owner.facing * spec.ahead;
-    let best = null;
-    for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p;
-    if (!best) { this.x = owner.x; for (const p of match.stage.platforms) if (this.x >= p.x1 && this.x <= p.x2 && p.y >= owner.y - 2 && (!best || p.y < best.y)) best = p; }
-    if (!best) { this.alive = false; return; }
-    this.y = best.y; this.drop = 0; this.pulse = 0;
+    this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y - spec.dropFrom;
+    this.vy = 1; this.falling = true; this.pulse = 0; this.crushed = new Set(); this.id = nextId++;
     this.g = match.add.graphics(); match.addWorld(this.g);
-    sfx('bighit', 0.6, 0.7); match.shake(4, 6); match.puff(this.x, this.y - 2, 0xd8d4e8, 8);
+    sfx('swing', 0.5, 0.6);
   }
   step() {
     if (!this.alive) return;
-    this.t++;
     const o = this.owner, m = this.match;
+    if (this.falling) {
+      this.vy = Math.min(this.spec.maxFall, this.vy + this.spec.gravity);
+      const ny = this.y + this.vy;
+      for (const p of m.stage.platforms) {                             // lands on the first floor it crosses
+        if (this.x >= p.x1 && this.x <= p.x2 && this.y <= p.y && ny >= p.y) { this.y = p.y; this.land(); return; }
+      }
+      this.y = ny;
+      for (const f of m.fighters) {                                    // crushes whoever it falls on
+        if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn' || this.crushed.has(f)) continue;
+        const hw = f.body.w / 2 + 14;
+        if (Math.abs(f.x - this.x) < hw && this.y > f.y - f.body.h && this.y - 30 < f.y) {
+          this.crushed.add(f); sfx('bighit', 0.9, 0.55); m.shake(10, 8);
+          m.applyHit(f, { h: this.spec.drop, owner: o, facing: o.facing, id: 'ampdrop' + this.id + ':' + f.slot, projectile: this }, this.x);
+        }
+      }
+      if (this.y > 340) this.kill();
+      return;
+    }
+    this.t++;
     if (this.pulse > 0) this.pulse--;
     if (o.def.beat && o.age % o.def.beat.every === 0 && this.t > 10) {   // thump on the beat
-      this.pulse = 12; sfx('taiko', 0.35, 1.1);
+      this.pulse = 16; sfx('taiko', 0.45, 1.0); m.shake(3, 4);
       for (const f of m.fighters) {
         if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn') continue;
-        if (Math.hypot(f.x - this.x, f.y - 14 - (this.y - 14)) <= this.spec.radius)
+        if (Math.hypot(f.x - this.x, (f.y - 14 - (this.y - 14)) * 1.4) <= this.spec.radius)
           m.applyHit(f, { h: { ...this.spec.pulse, dirX: Math.sign(f.x - this.x) || 1 }, owner: o, facing: Math.sign(f.x - this.x) || 1, id: 'amp' + o.slot + ':' + f.slot + ':' + o.age, projectile: this }, this.x);
       }
     }
@@ -580,26 +596,36 @@ export class SpeakerAmp {
     }
     if (this.t >= this.life || !o.alive) this.kill();
   }
+  land() {
+    this.falling = false; this.t = 0;
+    sfx('bighit', 0.7, 0.6); this.match.shake(6, 6);
+    this.match.puff(this.x - 14, this.y - 2, 0xd8d4e8, 6); this.match.puff(this.x + 14, this.y - 2, 0xd8d4e8, 6);
+  }
   kill() { if (!this.alive) return; this.alive = false; if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
   render() {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
-    const land = Math.min(1, this.t / 6), w = 30, h = 30 * land, x = this.x - w / 2, y = this.y - h, k = this.pulse / 12;
+    const squash = this.falling ? 1 : Math.min(1, 0.7 + this.t / 20), w = 30 / squash, h = 30 * squash, x = this.x - w / 2, y = this.y - h, k = this.pulse / 16;
     g.clear();
-    if (k > 0) { g.lineStyle(2, P.light, 0.7 * k * fade); g.strokeEllipse(this.x, this.y - 14, (1 - k) * this.spec.radius * 2 + 20, (1 - k) * this.spec.radius * 1.2 + 10); }
+    if (this.falling) {                                               // speed lines above it, and a warning shadow below
+      g.fillStyle(0xffffff, 0.5); for (const dx of [-10, 0, 10]) g.fillRect(this.x + dx, y - 6 - this.vy * 2, 1, this.vy * 2);
+    }
+    if (k > 0) {                                                      // the beat: a big shockwave rolling out
+      const r = (1 - k) * this.spec.radius;
+      g.lineStyle(3, P.light, 0.8 * k * fade); g.strokeEllipse(this.x, this.y - 14, r * 2 + 20, (r * 2 + 20) / 1.4);
+      g.lineStyle(1, 0xffffff, k * fade); g.strokeEllipse(this.x, this.y - 14, r * 1.7 + 14, (r * 1.7 + 14) / 1.4);
+    }
     g.fillStyle(0x0b0a14, fade); g.fillRect(x - 1, y - 1, w + 2, h + 2);
     g.fillStyle(0x2e2a36, fade); g.fillRect(x, y, w, h);
     g.fillStyle(0x4a4656, fade); g.fillRect(x, y, w, 2); g.fillRect(x, y, 2, h);
-    if (land >= 1) {
-      const pr = 9 + k * 2;                                            // the big cone, pumping on the beat
-      g.fillStyle(0x0b0a14, fade); g.fillCircle(this.x, y + 17, pr + 1);
-      g.fillStyle(0x4a4656, fade); g.fillCircle(this.x, y + 17, pr);
-      g.fillStyle(0x24212c, fade); g.fillCircle(this.x, y + 17, pr * 0.55);
-      g.fillStyle(P.light, (0.5 + 0.5 * k) * fade); g.fillCircle(this.x, y + 17, 2);
-      g.fillStyle(0x6c7480, fade); g.fillCircle(this.x - 8, y + 6, 2); g.fillCircle(this.x + 8, y + 6, 2);   // knobs
-      g.fillStyle(P.light, fade * (this.t % 20 < 10 ? 1 : 0.4)); g.fillRect(this.x + 11, y + 4, 2, 2);         // the power light
-      g.fillStyle(P.mid, fade); g.fillRect(this.x - 4, y + 3, 6, 2);
-    }
+    const pr = 9 + k * 3, cy = y + h * 0.57;                          // the big cone, pumping on the beat
+    g.fillStyle(0x0b0a14, fade); g.fillCircle(this.x, cy, pr + 1);
+    g.fillStyle(0x4a4656, fade); g.fillCircle(this.x, cy, pr);
+    g.fillStyle(0x24212c, fade); g.fillCircle(this.x, cy, pr * 0.55);
+    g.fillStyle(P.light, (0.5 + 0.5 * k) * fade); g.fillCircle(this.x, cy, 2);
+    g.fillStyle(0x6c7480, fade); g.fillCircle(this.x - 8, y + 6, 2); g.fillCircle(this.x + 8, y + 6, 2);   // knobs
+    g.fillStyle(P.light, fade * (this.t % 20 < 10 ? 1 : 0.4)); g.fillRect(this.x + 11, y + 4, 2, 2);         // the power light
+    g.fillStyle(P.mid, fade); g.fillRect(this.x - 4, y + 3, 6, 2);
   }
 }
 

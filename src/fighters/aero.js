@@ -73,7 +73,7 @@ export const AERO = {
       back: { dmg: 4, angle: 25, base: 2.6, growth: 0.6, stun: 18 },
     } },
     // BUBBLE RIDE (up): floats upward inside a bubble, steering freely, until it pops around him
-    upb: { frames: 40, riseAt: 6, riseV: -9.6, drift: 3.2, bubble: true, popAt: 30, hits: [
+    upb: { frames: 40, riseAt: 6, riseV: -12, floatV: -6, drift: 4.2, bubble: true, popAt: 34, hits: [
       { from: 8, to: 9, box: [-24, -48, 48, 52], dmg: 2, angle: 85, base: 1.6, growth: 0, stun: 8 },
       { from: 16, to: 17, box: [-24, -48, 48, 52], dmg: 2, angle: 85, base: 1.6, growth: 0, stun: 8 },
       { from: 30, to: 32, box: [-30, -54, 60, 62], dmg: 6, angle: 75, base: 3.6, growth: 4.8 },
@@ -143,7 +143,7 @@ export const AERO_FULL = {
     // GOLDFISH FLING: two fish at once
     sideB: { ...AERO.moves.sideB, fish: { ...AERO.moves.sideB.fish, twin: true } },
     // BUBBLE RIDE: floats up much faster, and for much longer
-    upb: { ...AERO.moves.upb, frames: 56, floatV: -5.4, drift: 4.2, popAt: 46, hits: [
+    upb: { ...AERO.moves.upb, frames: 56, floatV: -6.8, drift: 5.2, popAt: 48, hits: [
       ...AERO.moves.upb.hits.slice(0, 2),
       { from: 46, to: 48, box: [-34, -58, 68, 68], dmg: 8, angle: 75, base: 4.0, growth: 5.0 },
     ] },

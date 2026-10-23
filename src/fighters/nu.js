@@ -89,17 +89,21 @@ export const NU = {
     sideB: { frames: 34, landLag: 10, fx: 'thrust', dive: { from: 9, to: 22, vx: 7.4, vy: -2.6, bounce: -8.4 },
       hits: [{ from: 9, to: 20, box: [-4, -44, 46, 34], dmg: 9, angle: 40, base: 3.4, growth: 5.2 }] },
     // CROWD SURF (up): a sea of hands carries him up; the hands slap anyone underneath
-    upb: { frames: 40, riseAt: 8, riseV: -11.2, pushX: 1.6, drift: 2.4, crowd: true, hits: [
+    upb: { frames: 40, riseAt: 8, riseV: -14.6, pushX: 2.6, drift: 3.6, crowd: true, hits: [
       { from: 8, to: 10, box: [-24, -10, 48, 26], dmg: 3, angle: 85, base: 2.0, growth: 0, stun: 10 },
       { from: 14, to: 16, box: [-24, -10, 48, 26], dmg: 3, angle: 85, base: 2.0, growth: 0, stun: 10 },
       { from: 20, to: 23, box: [-28, -50, 56, 56], dmg: 5, angle: 70, base: 3.4, growth: 4.6 },
     ] },
-    // AMP DROP (down): slams a speaker cabinet on the floor in front of him. It thumps a shockwave on every
-    // beat (pushing people away) and AMPS any Power Chord fired through it. One amp at a time; 8 seconds.
-    downB: { frames: 34, spawnAt: 14, amp: { ahead: 30, life: 480, radius: 46,
-      pulse: { dmg: 3, angle: 50, base: 3.4, growth: 1.6, radial: true },
-      boost: 1.5 },
-      hits: [{ from: 13, to: 17, box: [8, -22, 34, 22], dmg: 4, angle: 30, base: 2.0, growth: 2.4 }] },
+    // AMP DROP (down): drops a speaker cabinet from above, in front of him (on the ground or in the air). If it
+    // falls on someone it crushes them for 25% and spikes them down - drop it off the ledge onto someone
+    // recovering. Once it lands it thumps a big shockwave on every beat (pushing people away) and AMPS any
+    // Power Chord fired through it. One amp at a time; it lasts 8 seconds after landing.
+    downB: { frames: 30, spawnAt: 10, amp: { ahead: 34, dropFrom: 70, gravity: 0.55, maxFall: 11, life: 480,
+      // landing on someone: a heavy spike
+      drop: { dmg: 25, angle: -75, base: 4.0, growth: 4.2 },
+      // the shockwave on each beat: how far it reaches (pixels), and the push
+      radius: 120, pulse: { dmg: 4, angle: 45, base: 4.4, growth: 2.4, radial: true },
+      boost: 1.5 } },
   },
 
   // ON BEAT (passive): a beat runs under every fight (the ring closing in on his feet). Start an attack on

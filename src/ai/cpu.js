@@ -79,6 +79,11 @@ export class CpuController extends Controller {
     if (M.sideB && (M.sideB.hits || []).some((h) => h.possess) && adx < 56 && Math.abs(dy) < 36 && !(tgt.possessImmune > 0) && !(tgt.possessed > 0) && Math.random() < 0.3 * L.aggression) {
       this.x = Math.sign(dx); this.tap('special'); return;
     }
+    // NU: drop the amp on someone below him (off the ledge, recovering)
+    if (M.downB && M.downB.amp && dy > 30 && adx < 50 && Math.random() < 0.25 * L.aggression) {
+      if (me.facing !== Math.sign(dx) && Math.abs(dx) > 8) { this.x = Math.sign(dx); return; }
+      this.y = 1; this.tap('special'); return;
+    }
     // Mr Wake: drop a Shadow Pool when someone is close
     if (M.downB && (M.downB.pool || M.downB.tag || M.downB.amp) && adx < 60 && Math.abs(dy) < 30 && me.grounded && Math.random() < 0.12 * L.aggression) {
       this.y = 1; this.tap('special'); return;

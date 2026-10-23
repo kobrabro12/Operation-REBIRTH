@@ -130,7 +130,7 @@ export const WHAT_ONCE_WAS = {
     // hits anyone above on the way up. Where the TV lands a new body grows, picks it up and puts it on - a suited
     // man, a SWAT officer, a doctor or its own body (never the one it just had). It keeps that body until the next
     // up special. Growing back takes a moment: it can be hit while it does (that just puts the TV straight on).
-    upb: { tvhead: true, frames: 40, launchAt: 10, riseAt: 10, launchV: -11, drift: 2.2,
+    upb: { tvhead: true, frames: 40, launchAt: 10, riseAt: 10, launchV: -14.5, drift: 3.4,
       neck: 38,                     // how far above its feet the TV starts
       tv: { w: 18, h: 18 },         // its hurtbox while it's only a TV
       regrow: { frames: 64, pickAt: 34, placeAt: 46, speed: 1.4 },   // in growth-animation frames; speed 1.4 = about 46 game frames

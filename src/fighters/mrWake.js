@@ -132,7 +132,7 @@ export const MR_WAKE = {
     // stays on the ground for 4 s, and any opponent who steps in is slowed for 2 s after leaving it.
     downB: convert(RAW.downB, { fx: 'low', fxTint: 0x2a1040, pool: { width: 120, life: 240, slow: 120 } }),
     // Gem Rocket: blasts the staff downward and launches up, then helpless
-    upb: { frames: upB.frames, riseAt: RAW.upB.startup, riseV: -12, pushX: 2.4, drift: 2.0, hits: upB.hits },
+    upb: { frames: upB.frames, riseAt: RAW.upB.startup, riseV: -15, pushX: 3.2, drift: 3.4, hits: upB.hits },
   },
 
   // Limit: THE UNDERTOW. He melts into a puddle that floods across the floor. Anyone standing on the main
