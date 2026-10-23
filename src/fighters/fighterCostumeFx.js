@@ -170,19 +170,6 @@ export class FighterCostumeFx {
       if (t % 46 === 3) P.push({ shape: 'star', x: cx + f * 4 + (R() - 0.5) * 6, y: this.y - d.body.h * 0.66, vx: 0, vy: -0.3, life: 14, color: 0xfff0a8, grav: 0 });
       if (this.grounded && Math.abs(this.vx) > 2.5 && t % 6 === 0) P.push({ shape: 'smoke', x: cx - f * 8, y: this.y - 2, vx: -f * 0.4, vy: -0.3, life: 18, maxLife: 18, r: 2, color: 0xd8d4e8, grav: 0 });
     }
-    if (a.scream && !this.match.frozen) {           // SCREAMER: his smashes let out a scream you can see; tattoo-flame sparks off his arms
-      const M = this.move, fh = this.state === 'attack' && M && M.hits && M.hits[0] && /smash|limit/.test(this.moveName || '') ? M.hits[0].from : -1;
-      if (this.t === fh) for (let i = 0; i < 3; i++) P.push({ shape: 'ring', x: cx + f * 8, y: top + 10, vx: 0, vy: 0, life: 16 + i * 6, maxLife: 16 + i * 6, r: 6 + i * 6, dr: 2.2, color: i % 2 ? 0xffffff : 0xd8221e, grav: 0 });
-      if (t % 10 === 0) P.push({ x: cx + f * (6 + R() * 8), y: this.y - d.body.h * (0.4 + R() * 0.2), vx: (R() - 0.5) * 0.4, vy: -0.6, life: 14, color: R() < 0.5 ? 0x2a5ad8 : 0xff8a1a, size: 1, grav: 0 });
-    }
-    if (a.mist && !this.match.frozen) {            // KILTED: red mist creeping round his boots, crackling now and then
-      if (t % 5 === 0) P.push({ shape: 'smoke', x: cx + (R() - 0.5) * 34, y: this.y - 2, vx: (R() - 0.5) * 0.5, vy: -0.15, life: 34, maxLife: 34, r: 3 + R() * 3, color: R() < 0.6 ? 0x6a0e0e : 0x2a0a0e, grav: 0 });
-      if (t % 37 === 0) for (let i = 0; i < 3; i++) P.push({ shape: 'shard', x: cx + (R() - 0.5) * 30, y: this.y - 6 - R() * 12, vx: (R() - 0.5) * 2, vy: -R() * 2, life: 10, color: 0xff6a5a, drag: 0.9, grav: 0, ang: R() * 6 });
-    }
-    if (a.steam && !this.match.frozen) {           // JUMPSUIT: steam venting off his back, sparks when he lands
-      if (t % 14 === 0) P.push({ shape: 'smoke', x: cx - f * 8, y: this.y - d.body.h * 0.7, vx: -f * 0.4, vy: -0.7, life: 28, maxLife: 28, r: 2, color: 0xd8d8e0, grav: -0.01 });
-      if (this.state === 'land' && this.t === 1) for (let i = 0; i < 8; i++) { const ang = -Math.PI / 2 + (R() - 0.5) * 2.6; P.push({ shape: 'shard', x: cx, y: this.y - 1, vx: Math.cos(ang) * 3, vy: Math.sin(ang) * 3, life: 12, color: i % 2 ? 0xffd060 : 0xffa030, drag: 0.95, grav: 0.25, ang }); }
-    }
     if (a.school && !this.match.frozen) {           // HOMEROOM: paper airplanes glide past now and then, a little chalk dust
       if (t % 150 === 0) { const d2 = R() < 0.5 ? 1 : -1; P.push({ shape: 'plane', x: cx - d2 * 60, y: this.y - d.body.h - 10 - R() * 20, vx: d2 * 2.2, vy: 0.15, life: 60, color: 0xffffff, grav: 0, dir: d2 }); }
       if (t % 12 === 0) P.push({ x: cx + (R() - 0.5) * d.body.w, y: this.y - R() * d.body.h, vx: 0, vy: -0.2, life: 18, color: 0xf4f4f0, size: 1, grav: 0 });

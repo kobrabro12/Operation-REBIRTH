@@ -55,27 +55,6 @@ const QUIPS = {
     grab: [0.6, 'C\'MERE!'], throw: [0.6, 'GET OUTTA HERE!'], upb: [0.4, 'UP TOP!'],
     limit: [1, 'TURN IT UP!'], ko: [1, 'PEACE OUT.', 'STAY FRESH.'],
   },
-  // NU's TRIBUTE costumes (no lyrics - just stage shouts)
-  'nu:nuScream': {
-    attack: [0.12, 'HAAH!', 'YEAH!'], smash: [0.55, 'AAAAAAAAH!', 'ONE MORE TIME!', 'SCREAM IT!'],
-    grab: [0.6, 'COME HERE!'], throw: [0.6, 'GET OUT!'], upb: [0.4, 'HIGHER!'],
-    limit: [1, 'SING IT WITH ME!'], ko: [1, 'THANK YOU... GOODNIGHT.', 'WE LOVE YOU.'],
-  },
-  'nu:nuKilt': {
-    attack: [0.12, 'HAH!', 'UGH!'], smash: [0.5, 'HERE WE GO!', 'BOOM!', 'GET UP!'],
-    grab: [0.6, 'GOTCHA.'], throw: [0.6, 'AWAY!'], upb: [0.4, 'UP!'],
-    limit: [1, 'ARE YOU READY?!'], ko: [1, "THAT'S IT...", 'NOT AGAIN...'],
-  },
-  'nu:nuProphet': {
-    attack: [0.15, 'HA!', 'HEY!', 'OH!'], smash: [0.55, 'WAKE UP!', 'HA-HA-HA-HA!', 'WHY?!', 'BEHOLD!'],
-    grab: [0.6, 'COME, CHILD!'], throw: [0.6, 'FLY AWAY!'], upb: [0.4, 'ASCEND!'],
-    limit: [1, 'THE SHOW BEGINS!'], ko: [1, 'CURTAIN CALL!', 'EXIT, STAGE LEFT!'],
-  },
-  'nu:nuJump': {
-    attack: [0.12, 'GRAH!', 'HUH!'], smash: [0.5, 'GET DOWN!', 'NOISE!', 'MOVE!'],
-    grab: [0.6, '...'], throw: [0.6, 'OUT.'], upb: [0.4, 'JUMP!'],
-    limit: [1, 'EVERYBODY JUMP!'], ko: [1, '...', 'STILL HERE.'],
-  },
   'nu:nuSchool': {
     attack: [0.12, 'POP QUIZ!', 'HEY!'], smash: [0.5, 'DETENTION!', 'CLASS DISMISSED!', 'SEE ME AFTER CLASS!'],
     grab: [0.6, 'HALL PASS?'], throw: [0.6, 'GO TO THE PRINCIPAL!'], upb: [0.4, 'RECESS!'],
@@ -101,10 +80,6 @@ const QUIPS = {
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   nuStreet: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#d8221e', strokeThickness: 4 } },
-  nuScream: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffffff', stroke: '#d8221e', strokeThickness: 4 } },
-  nuKilt: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd23a', stroke: '#6a0e0e', strokeThickness: 4 } },
-  nuProphet: { typed: false, style: { fontFamily: 'serif', fontSize: '12px', fontStyle: 'bold', color: '#fff0a8', stroke: '#46101a', strokeThickness: 4 } },
-  nuJump: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#ffa030', backgroundColor: '#1e1e24', padding: { x: 3, y: 2 } } },
   nuSchool: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#2a3670', strokeThickness: 4 } },
   nuBones: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#e8ffd8', stroke: '#1e3a12', strokeThickness: 4 } },
   nuInferno: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd060', stroke: '#5a0a06', strokeThickness: 4 } },
