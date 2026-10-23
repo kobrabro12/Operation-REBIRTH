@@ -55,6 +55,11 @@ const QUIPS = {
     grab: [0.6, 'C\'MERE!'], throw: [0.6, 'GET OUTTA HERE!'], upb: [0.4, 'UP TOP!'],
     limit: [1, 'TURN IT UP!'], ko: [1, 'PEACE OUT.', 'STAY FRESH.'],
   },
+  'nu:nuSchool': {
+    attack: [0.12, 'POP QUIZ!', 'HEY!'], smash: [0.5, 'DETENTION!', 'CLASS DISMISSED!', 'SEE ME AFTER CLASS!'],
+    grab: [0.6, 'HALL PASS?'], throw: [0.6, 'GO TO THE PRINCIPAL!'], upb: [0.4, 'RECESS!'],
+    limit: [1, 'SCHOOL\'S OUT!'], ko: [1, 'SKIPPING CLASS...', 'TARDY...'],
+  },
   'nu:nuBones': {
     attack: [0.12, 'BOO!', 'RATTLE!'], smash: [0.5, 'BONE ZONE!', 'SPOOKY SCARY!', 'NO BONES ABOUT IT!'],
     grab: [0.6, 'HUG TIME!'], throw: [0.6, 'BONE APPETIT!'], upb: [0.4, 'WHEEE!'],
@@ -75,6 +80,7 @@ const QUIPS = {
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
   nuStreet: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#d8221e', strokeThickness: 4 } },
+  nuSchool: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#2a3670', strokeThickness: 4 } },
   nuBones: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#e8ffd8', stroke: '#1e3a12', strokeThickness: 4 } },
   nuInferno: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd060', stroke: '#5a0a06', strokeThickness: 4 } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },

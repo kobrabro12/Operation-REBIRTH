@@ -556,7 +556,7 @@ export class MicToss {
     const h = this.hand(); this.x = h.x + this.dir * 4; this.y = h.y;
     this.vx = this.dir * spec.speed; this.vy = -0.4;
     this.phase = 'out'; this.t = 0; this.pt = 0; this.alive = true; this.id = nextId++; this.persist = true; this.kind = 'MIC TOSS';
-    this.beat = !!owner.onBeatMove; this.spin = 0;
+    this.beat = !!owner.onBeatMove;
     this.g = match.add.graphics(); match.addWorld(this.g);
     sfx('swing', 0.6, 1.2); sfx('whoosh', 0.3, 1.6);
   }
@@ -568,7 +568,7 @@ export class MicToss {
   }
   step() {
     const S = this.spec, o = this.owner;
-    this.t++; this.pt++; this.spin += this.phase === 'out' ? 0.6 : -0.6;
+    this.t++; this.pt++;
     if (!o.alive) { this.remove(); return; }
     const h = this.hand();
     if (this.phase === 'out') {
@@ -597,8 +597,8 @@ export class MicToss {
       const u = i / 12, qx = (1 - u) * (1 - u) * h.x + 2 * (1 - u) * u * mx + u * u * x, qy = (1 - u) * (1 - u) * h.y + 2 * (1 - u) * u * my + u * u * y;
       g.lineStyle(2, 0x14101c, 1); g.lineBetween(px, py, qx, qy); px = qx; py = qy;
     }
-    // the mic, tumbling end over end: handle and grille
-    const a = this.spin, cx = Math.cos(a), sy = Math.sin(a);
+    // the mic flies straight, lined up with its cord: handle toward his hand, grille leading
+    const a = Math.atan2(y - h.y, x - h.x), cx = Math.cos(a), sy = Math.sin(a);
     g.lineStyle(4, 0x14101c, 1); g.lineBetween(x - cx * 5, y - sy * 5, x + cx * 3, y + sy * 3);
     g.lineStyle(2, 0xb8c0ca, 1); g.lineBetween(x - cx * 5, y - sy * 5, x + cx * 3, y + sy * 3);
     g.fillStyle(0x14101c, 1); g.fillCircle(x + cx * 5, y + sy * 5, 4);
@@ -618,6 +618,9 @@ export class SpeakerAmp {
     this.x = owner.x + owner.facing * spec.ahead; this.y = owner.y - spec.dropFrom;
     this.vy = 1; this.falling = true; this.pulse = 0; this.crushed = new Set(); this.id = nextId++;
     this.g = match.add.graphics(); match.addWorld(this.g);
+    // costumes with their own amp drawing (HOMEROOM: a locker with a boombox on top)
+    const key = { nuSchool: 'nu_school_amp' }[owner.style];
+    if (key && match.textures.exists(key)) { this.img = match.add.sprite(this.x, this.y, key, 0).setOrigin(0.5, 1); match.addWorld(this.img); }
     sfx('swing', 0.5, 0.6);
   }
   step() {
@@ -680,6 +683,7 @@ export class SpeakerAmp {
     this.plat = { x1: this.x - 15, x2: this.x + 15, y: this.y - 60, solid: false, amp: true };
     this.match.stage.platforms.push(this.plat);
     sfx('bighit', 0.7, 0.6); this.match.shake(6, 6);
+    if (this.img) { sfx('ding', 0.5, 1.2); sfx('ding', 0.35, 1.5); }               // HOMEROOM: the school bell rings
     this.match.puff(this.x - 14, this.y - 2, 0xd8d4e8, 6); this.match.puff(this.x + 14, this.y - 2, 0xd8d4e8, 6);
   }
   removePlat() {
@@ -689,7 +693,7 @@ export class SpeakerAmp {
     for (const f of this.match.fighters) if (f.platform === this.plat) { f.grounded = false; f.platform = null; if (['idle', 'run', 'land', 'taunt'].includes(f.state)) f.setState('air'); }
     this.plat = null;
   }
-  kill() { if (!this.alive) return; this.alive = false; this.stopSong(); this.removePlat(); if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
+  kill() { if (!this.alive) return; this.alive = false; this.stopSong(); this.removePlat(); if (this.img) this.img.destroy(); if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
   render() {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
@@ -702,6 +706,10 @@ export class SpeakerAmp {
       const r = (1 - k) * this.spec.radius;
       g.lineStyle(3, P.light, 0.8 * k * fade); g.strokeEllipse(this.x, this.y - 28, r * 2 + 20, (r * 2 + 20) / 1.4);
       g.lineStyle(1, 0xffffff, k * fade); g.strokeEllipse(this.x, this.y - 28, r * 1.7 + 14, (r * 1.7 + 14) / 1.4);
+    }
+    if (this.img) {                                                   // a costume's own drawing: two frames, cones pumped on the beat
+      this.img.setPosition(Math.round(this.x), Math.round(this.y)).setScale(1 / squash, squash).setAlpha(fade).setFrame(k > 0.35 ? 1 : 0).setDepth(this.g.depth);
+      return;
     }
     // two cabinets stacked: a big single cone on the bottom, two smaller cones on top
     for (let c = 0; c < 2; c++) {

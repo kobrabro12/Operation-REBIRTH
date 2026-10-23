@@ -170,6 +170,10 @@ export class FighterCostumeFx {
       if (t % 46 === 3) P.push({ shape: 'star', x: cx + f * 4 + (R() - 0.5) * 6, y: this.y - d.body.h * 0.66, vx: 0, vy: -0.3, life: 14, color: 0xfff0a8, grav: 0 });
       if (this.grounded && Math.abs(this.vx) > 2.5 && t % 6 === 0) P.push({ shape: 'smoke', x: cx - f * 8, y: this.y - 2, vx: -f * 0.4, vy: -0.3, life: 18, maxLife: 18, r: 2, color: 0xd8d4e8, grav: 0 });
     }
+    if (a.school && !this.match.frozen) {           // HOMEROOM: paper airplanes glide past now and then, a little chalk dust
+      if (t % 150 === 0) { const d2 = R() < 0.5 ? 1 : -1; P.push({ shape: 'plane', x: cx - d2 * 60, y: this.y - d.body.h - 10 - R() * 20, vx: d2 * 2.2, vy: 0.15, life: 60, color: 0xffffff, grav: 0, dir: d2 }); }
+      if (t % 12 === 0) P.push({ x: cx + (R() - 0.5) * d.body.w, y: this.y - R() * d.body.h, vx: 0, vy: -0.2, life: 18, color: 0xf4f4f0, size: 1, grav: 0 });
+    }
     if (a.spooky) {                                  // BONEZ: a ghostly green glow pulsing round him, wisps drifting off
       const pulse = 0.08 + 0.06 * Math.sin(t * 0.08);
       back.fillStyle(0x9aff6a, pulse); back.fillEllipse(cx, this.y - d.body.h * 0.5, d.body.w * 2.4, d.body.h * 1.5);

@@ -178,6 +178,14 @@ export const SKINS = {
       lore: 'Wore it to one Halloween show and never took it off. The bones started glowing on their own.',
       pal: { outline: 0x08060c, deep: 0x2a6a1a, mid: 0x4ab02a, light: 0x9aff6a, core: 0xe8ffd8, shade: 0x0e1a0a, void: 0x040804 },
       vfx: { hit: { shape: 'bones', colors: [0xe8ffd8, 0x9aff6a, 0xffffff], n: 6, ring: 0x9aff6a }, aura: { spooky: true }, trail: 0x9aff6a } },
+    // HOMEROOM: a school uniform worn his way - navy blazer with a gold crest, loose red tie, grey slacks, loafers, a
+    // red backpack and a red sweatband (pre-drawn sheets). His AMP DROP is a school locker with a boombox on top
+    // (school/amp.png) that rings the school bell when it lands. Paper and chalk dust fly off his hits, paper
+    // airplanes glide past, and his big hits fold up into paper airplanes of their own.
+    { name: 'HOMEROOM', swatch: 0x2a3670, fx: 0xd8221e, sheetSet: 'school', style: 'nuSchool',
+      lore: 'Front row of the school talent show, back row of every class. Got detention for the encore.',
+      pal: { outline: 0x10101a, deep: 0x161d44, mid: 0x2a3670, light: 0xd8221e, core: 0xffffff, shade: 0x0a0e22, void: 0x04060e },
+      vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xe8f0ff, 0xd8221e], n: 7 }, aura: { school: true } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],

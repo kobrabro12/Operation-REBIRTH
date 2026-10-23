@@ -85,7 +85,7 @@ def idle_keys():
         spin = -i * 7.5                                                   # one full turn every 48 ticks
         ph = i * math.pi / 24
         nod = math.sin(i * math.pi / 48) ** 2                            # a nod every 48 ticks, in time with the twirl
-        keys.append(k(i, P(fupper=(-55 + 6 * math.sin(ph), 0, 0), ffore=(25 + 10 * math.cos(ph), 0, 0), mic=(spin, 0, 0), ffist=(0, 0, 0),
+        keys.append(k(i, P(fupper=(12 + 5 * math.sin(ph), 0, 0), ffore=(105 + 8 * math.cos(ph), 0, 0), mic=(spin, 0, 0), ffist=(0, 0, 0),
                            head=(4 + 10 * nod, 0, 1 if nod > 0.5 else 0), hair=(-6 * nod, 0, 0), torso=(-2 + 3 * nod, 0, 0),
                            bupper=(10, 0, 0), bfore=(-20, 0, 0), root=(0, 0, 0, 1 + 0.02 * nod, 1 - 0.02 * nod), **legs(2 * nod, -2 * nod, -2 * nod, 3 * nod)), 'linear'))
     return keys

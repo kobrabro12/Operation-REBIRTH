@@ -517,6 +517,11 @@ export class MatchScene extends Phaser.Scene {
     const n = v.n + Math.floor(kb / 2);
     const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
     switch (v.shape) {
+      case 'paper':                                   // HOMEROOM: notebook paper scraps and chalk dust; big hits fold a paper airplane
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.8, sp = 1.4 + R() * 2.6; add({ shape: 'paper', x, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 34 + R() * 16, color: col(i), ang: R() * 6, spin: (R() - 0.5) * 0.3, drag: 0.94, grav: 0.05, sway: R() * 6 }); }
+        for (let i = 0; i < 6; i++) add({ x: x + (R() - 0.5) * 14, y: y + (R() - 0.5) * 10, vx: (R() - 0.5) * 1.2, vy: -R(), life: 16 + R() * 10, color: 0xf4f4f0, size: 1 + (R() < 0.3), grav: 0, drag: 0.92 });
+        if (dmg >= 9 || kb > 7) add({ shape: 'plane', x, y: y - 6, vx: dir * 3.2, vy: -1.4, life: 46, color: 0xffffff, grav: 0.02, dir });
+        break;
       case 'splat':                                   // BLOCK BOSS: spray-paint splats flying off, dripping
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.8, sp = 1.5 + R() * 3; add({ shape: 'splat', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp, life: 24 + R() * 14, color: col(i), r: 2 + Math.floor(R() * 3), drag: 0.9, grav: 0.12 }); }
         if (dmg >= 9 || kb > 7) for (let i = 0; i < 4; i++) add({ shape: 'star', x: x + (R() - 0.5) * 20, y: y - 10 + (R() - 0.5) * 16, vx: (R() - 0.5), vy: -1, life: 20, color: 0xffd23a, grav: 0 });   // bling on the big hits
@@ -567,6 +572,17 @@ export class MatchScene extends Phaser.Scene {
     const a = Math.min(1, p.life / 10), X = Math.round(p.x), Y = Math.round(p.y);
     switch (p.shape) {
       case 'win95': drawMiniWindow(g, X - 4, Y - 3, 9, 7, a, p.color); break;
+      case 'paper': {                                 // a scrap of lined notebook paper, fluttering
+        p.ang = (p.ang || 0) + (p.spin || 0.2); const w = Math.max(1, Math.round(Math.abs(Math.cos(p.ang)) * 4));
+        g.fillStyle(0x10101a, a * 0.6); g.fillRect(X - w / 2 - 1, Y - 3, w + 2, 6);
+        g.fillStyle(p.color, a); g.fillRect(X - w / 2, Y - 2, w, 4); if (w > 1) { g.fillStyle(0x8ab0e8, a); g.fillRect(X - w / 2, Y, w, 1); } break;
+      }
+      case 'plane': {                                 // a paper airplane gliding
+        const d2 = p.dir || 1;
+        g.fillStyle(0x10101a, a); g.fillTriangle(X + d2 * 6, Y, X - d2 * 6, Y - 4, X - d2 * 4, Y + 1);
+        g.fillStyle(0xffffff, a); g.fillTriangle(X + d2 * 5, Y, X - d2 * 5, Y - 3, X - d2 * 3, Y);
+        g.fillStyle(0xc8d0e0, a); g.fillTriangle(X + d2 * 5, Y, X - d2 * 3, Y, X - d2 * 4, Y + 2); break;
+      }
       case 'splat': g.fillStyle(p.color, a); g.fillCircle(X, Y, p.r); g.fillRect(X - 1, Y, 2, p.r + 2); g.fillStyle(0xffffff, a * 0.6); g.fillRect(X - 1, Y - p.r + 1, 1, 1); break;   // a paint splat with a drip
       case 'bone': {                                  // a little bone, tumbling
         p.ang = (p.ang || 0) + (p.spin || 0.3); const c = Math.cos(p.ang) * 3, s2 = Math.sin(p.ang) * 3;
