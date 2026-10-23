@@ -186,6 +186,32 @@ export const SKINS = {
       lore: 'Front row of the school talent show, back row of every class. Got detention for the encore.',
       pal: { outline: 0x10101a, deep: 0x161d44, mid: 0x2a3670, light: 0xd8221e, core: 0xffffff, shade: 0x0a0e22, void: 0x04060e },
       vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xe8f0ff, 0xd8221e], n: 7 }, aura: { school: true } } },
+    // ---- TRIBUTES: nods to the classic nu-metal frontmen's stage looks (original drawings, tools/sprites/nu_tribute_draw.py)
+    // SCREAMER: bleached spikes, thick black glasses, flame tattoos, black tee and cargos. His smash attacks let out a
+    // scream you can see - rings of sound off his head - and his hits crack out in red and white sound rings.
+    { name: 'SCREAMER', swatch: 0xe8d890, fx: 0xd8221e, sheetSet: 'scream', style: 'nuScream',
+      lore: 'A tribute to the voices that could go from a whisper to a roar in one breath. This one never held back.',
+      pal: { outline: 0x121216, deep: 0x8a0e0e, mid: 0xd8221e, light: 0xff6a5a, core: 0xffffff, shade: 0x26262c, void: 0x0a0a0c },
+      vfx: { hit: { shape: 'scream', colors: [0xd8221e, 0xffffff, 0x26262c], n: 6 }, aura: { scream: true } } },
+    // KILTED: long black dreads, a red tartan kilt, a sleeveless white track top. Red mist creeps round his boots and
+    // crackles with sparks; his hits burst into tartan shards and dark red smoke.
+    { name: 'KILTED', swatch: 0xb01e1a, fx: 0xd8221e, sheetSet: 'kilt', style: 'nuKilt',
+      lore: 'A tribute to the dreads, the kilt and the stage that felt like a nightmare you wanted to stay in.',
+      pal: { outline: 0x0e0e12, deep: 0x6a0e0e, mid: 0xb01e1a, light: 0xe03a2a, core: 0xffd23a, shade: 0x1e1418, void: 0x080406 },
+      vfx: { hit: { shape: 'tartan', colors: [0xb01e1a, 0x1e1418, 0xffd23a], n: 8 }, aura: { mist: true } } },
+    // THE PROPHET: long wild hair, a big beard, an ornate maroon suit with gold paisley. Gold glyphs orbit him and
+    // his hits throw gold ornaments and confetti - all theatre.
+    { name: 'THE PROPHET', swatch: 0x7e1e30, fx: 0xe0a83a, sheetSet: 'prophet', style: 'nuProphet',
+      lore: 'A tribute to the wild-eyed showmen who sang like opera and screamed like thunder in the same verse.',
+      pal: { outline: 0x0e0a0c, deep: 0x46101a, mid: 0x7e1e30, light: 0xe0a83a, core: 0xfff0a8, shade: 0x2a0a10, void: 0x0a0204 },
+      vfx: { hit: { shape: 'ornament', colors: [0xe0a83a, 0xfff0a8, 0xff6a9a, 0x6ad8ff, 0xffffff], n: 9, glint: true },
+             aura: { orbit: { n: 3, r: 22, colors: [0xe0a83a, 0xfff0a8, 0xffffff] } } } },
+    // JUMPSUIT: a red boiler suit with a barcode, boots, and an original stitched mask. Steam vents off him, his
+    // landings throw sparks, and his hits shower hot metal sparks.
+    { name: 'JUMPSUIT', swatch: 0xc8401e, fx: 0xffa030, sheetSet: 'jumpsuit', style: 'nuJump',
+      lore: 'A tribute to the masked ones - nine of them on stage, all noise and fury. Nobody saw his face.',
+      pal: { outline: 0x0e0e12, deep: 0x7a220e, mid: 0xc8401e, light: 0xffa030, core: 0xfff0c8, shade: 0x1e1e24, void: 0x080406 },
+      vfx: { hit: { shape: 'sparks', colors: [0xffd060, 0xffa030, 0xffffff], n: 10 }, aura: { steam: true } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],

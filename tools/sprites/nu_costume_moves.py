@@ -6,8 +6,9 @@ every one of them).
   street   nu_street_draw.py    BLOCK BOSS: backwards snapback, white tee, gold chain, jeans
   bones    nu_bones_draw.py     BONEZ: a glow-in-the-dark skeleton onesie
   school   nu_school_draw.py    HOMEROOM: a school uniform (its locker amp: run nu_school_draw.py)
+  scream / kilt / prophet / jumpsuit   nu_tribute_draw.py   the TRIBUTE costumes
 
-  python3 tools/sprites/nu_costume_moves.py [inferno street bones school]
+  python3 tools/sprites/nu_costume_moves.py [inferno street bones school scream kilt prophet jumpsuit]
 """
 import os, sys, tempfile, importlib
 import numpy as np
@@ -15,7 +16,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from puppet import Part, Rig
 import nu_moves as M
 
-COSTUMES = {'inferno': ('nu_inferno_draw', (255, 122, 26)), 'street': ('nu_street_draw', (255, 210, 90)), 'bones': ('nu_bones_draw', (154, 255, 106)), 'school': ('nu_school_draw', (90, 138, 232))}
+COSTUMES = {'inferno': ('nu_inferno_draw', (255, 122, 26)), 'street': ('nu_street_draw', (255, 210, 90)), 'bones': ('nu_bones_draw', (154, 255, 106)), 'school': ('nu_school_draw', (90, 138, 232)),
+            # the TRIBUTE costumes: one drawing module, a style each
+            'scream': ('nu_tribute_draw:scream', (216, 34, 30)), 'kilt': ('nu_tribute_draw:kilt', (176, 30, 26)),
+            'prophet': ('nu_tribute_draw:prophet', (224, 168, 58)), 'jumpsuit': ('nu_tribute_draw:jumpsuit', (240, 106, 58))}
 
 def build_rig(D):
     layers = D.draw_parts()
@@ -33,7 +37,10 @@ def build_rig(D):
 if __name__ == '__main__':
     for name in (sys.argv[1:] or COSTUMES):
         mod, ghost = COSTUMES[name]
-        small, big = build_rig(importlib.import_module(mod))
+        mod, _, style = mod.partition(':')
+        D = importlib.import_module(mod)
+        if style: D.set_style(style)
+        small, big = build_rig(D)
         M.GHOST = ghost                            # the afterimages in the costume's colour
         js = os.path.join(tempfile.gettempdir(), 'nu_costume_index.js')
         M.build_all(small, big, M.MOVES, os.path.join(M.DIR, name), js, 'NU_MOVES', 'nu_costume_moves.py')

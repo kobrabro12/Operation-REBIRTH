@@ -517,6 +517,21 @@ export class MatchScene extends Phaser.Scene {
     const n = v.n + Math.floor(kb / 2);
     const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
     switch (v.shape) {
+      case 'scream':                                  // SCREAMER: rings of sound cracking out of the hit
+        for (let i = 0; i < 2; i++) add({ shape: 'ring', x, y, vx: 0, vy: 0, life: 14 + i * 6, maxLife: 14 + i * 6, r: 4 + i * 4, dr: 1.4 + kb * 0.1, color: col(i), grav: 0 });
+        for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 2 + R() * 3; add({ shape: 'shard', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 14 + R() * 10, color: col(i), drag: 0.9, grav: 0, ang: a }); }
+        break;
+      case 'tartan':                                  // KILTED: tartan shards and dark red smoke
+        for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp + dir * 0.5, vy: Math.sin(a) * sp - 0.6, life: 18 + R() * 12, color: col(i), drag: 0.9, grav: 0.05 }); }
+        for (let i = 0; i < 4; i++) add({ shape: 'smoke', x: x + (R() - 0.5) * 12, y: y + (R() - 0.5) * 8, vx: (R() - 0.5) * 0.8, vy: -0.5, life: 30, maxLife: 30, r: 3 + R() * 2, color: 0x4a0a0e, grav: -0.01 });
+        break;
+      case 'ornament':                                // THE PROPHET: gold ornaments and confetti
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 3, sp = 1.5 + R() * 3; add({ shape: i % 3 ? 'pixel2' : 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 26 + R() * 16, color: col(i), drag: 0.93, grav: 0.06 }); }
+        break;
+      case 'sparks':                                  // JUMPSUIT: a shower of hot metal sparks and a white flash
+        add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 6, maxLife: 6, r: 8 + kb, color: 0xffffff, grav: 0 });
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 3.2, sp = 3 + R() * 4; add({ shape: 'shard', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp, life: 12 + R() * 12, color: col(i), drag: 0.95, grav: 0.25, ang: a }); }
+        break;
       case 'paper':                                   // HOMEROOM: notebook paper scraps and chalk dust; big hits fold a paper airplane
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.8, sp = 1.4 + R() * 2.6; add({ shape: 'paper', x, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 34 + R() * 16, color: col(i), ang: R() * 6, spin: (R() - 0.5) * 0.3, drag: 0.94, grav: 0.05, sway: R() * 6 }); }
         for (let i = 0; i < 6; i++) add({ x: x + (R() - 0.5) * 14, y: y + (R() - 0.5) * 10, vx: (R() - 0.5) * 1.2, vy: -R(), life: 16 + R() * 10, color: 0xf4f4f0, size: 1 + (R() < 0.3), grav: 0, drag: 0.92 });
