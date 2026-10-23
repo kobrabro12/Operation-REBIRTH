@@ -1,8 +1,9 @@
 // Test Fighters (TRINKETS > TEST FIGHTERS): the lab. Experimental fighters (roster.TEST_ROSTER) can be
 // tried out before they join the real roster: TRAINING (against a dummy, with hitboxes and the speed
-// controls) or VS CPU (one stock match against a random fighter from the real roster).
-// W/S picks a fighter, A/D picks their costume, Q (or a pad's Y) switches TRAINING / VS CPU,
-// J / Enter / A starts, K / Esc / B goes back. Mouse: click a fighter, the < > arrows, a swatch or a mode.
+// controls) or VS CPU (one stock match against a random fighter from the real roster), on any map.
+// W/S picks a fighter, A/D picks their costume, E (or a pad's X) picks the map, Q (or a pad's Y) switches
+// TRAINING / VS CPU, J / Enter / A starts, K / Esc / B goes back. Mouse: click a fighter, the < > arrows, a
+// swatch, the map arrows or a mode.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic } from '../audio/music.js';
 import { MenuInput } from './menuInput.js';
@@ -12,16 +13,22 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { settings } from '../settings.js';
 import { skinsFor } from '../fighters/skins.js';
+import { STAGES } from '../stage/stages.js';
 
 const GOLD = '#f3c358', DIM = '#8a87a3', LINE = 0x5ee07a, PANEL = 0x10241a;
 const L = { x: 16, y: 56, w: 200, h: 262 }, R = { x: 228, y: 56, w: 396, h: 262 };
 const MODES = ['TRAINING', 'VS CPU'];
+// the maps to pick from: every stage, then RANDOM. Remembered while the game is open.
+const MAPS = () => [...STAGES.filter((st) => st.available), { id: 'random', name: 'RANDOM' }];
+let lastMap = 0;
 
 export class TestFightersScene extends Phaser.Scene {
   constructor() { super('TestFighters'); }
 
   create() {
     this.t = 0; this.sel = 0; this.mode = 0; this.menu = new MenuInput(this);
+    this.maps = MAPS(); this.map = Math.min(lastMap, this.maps.length - 1);
+    this.eKey = this.input.keyboard.addKey('E');
     this.skin = {};                                  // the costume picked for each test fighter
     this.qKey = this.input.keyboard.addKey('Q');
     playMusic(this, 'bgm_title');
@@ -43,6 +50,12 @@ export class TestFightersScene extends Phaser.Scene {
     this.tag = this.add.text(tx, R.y + 30, '', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14', backgroundColor: '#5ee07a', padding: { x: 3, y: 2 } });
     this.notes = this.add.text(tx, R.y + 50, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 172 } });
     this.modeTexts = MODES.map((m, i) => this.add.text(tx + i * 110, R.y + R.h - 34, m, { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }));
+    // the map: a little picture of it, its name, arrows
+    this.mapG = this.add.graphics();
+    const MX = L.x + L.w / 2, MY = L.y + 150;                       // (in the left panel, under the list)
+    this.mapLabel = this.add.text(L.x + 10, MY - 12, 'MAP  (E)', { fontFamily: FONT, fontSize: '6px', color: DIM });
+    this.mapName = this.add.text(MX, MY + 76, '', { fontFamily: FONT, fontSize: '7px', color: GOLD }).setOrigin(0.5);
+    this.mapArrows = [-1, 1].map((d) => makeButton(this, MX + d * 84, MY + 34, d < 0 ? '<' : '>', () => this.stepMap(d), { originX: 0.5, originY: 0.5, size: '8px' }));
     this.empty = this.add.text(R.x + R.w / 2, R.y + R.h / 2, 'THE LAB IS EMPTY.\n\nNEW FIGHTERS SHOW UP HERE TO BE\nTRIED OUT BEFORE THEY JOIN THE ROSTER.', { fontFamily: FONT, fontSize: '7px', color: DIM, align: 'center', lineSpacing: 8 }).setOrigin(0.5).setVisible(!TEST_ROSTER.length);
     // costume picker under the platform: name, a row of swatches, arrows
     const cx = R.x + 80;
@@ -50,7 +63,7 @@ export class TestFightersScene extends Phaser.Scene {
     this.skinCount = this.add.text(cx, R.y + 246, '', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5);
     this.swatchG = this.add.graphics();
     this.arrows = [-1, 1].map((d) => makeButton(this, cx + d * 66, R.y + 214, d < 0 ? '<' : '>', () => this.stepSkin(d), { originX: 0.5, originY: 0.5, size: '8px' }));
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S FIGHTER   A/D COSTUME   Q MODE   J / ENTER / A START   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5, 1);
+    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S FIGHTER   A/D COSTUME   E MAP   Q MODE   J / ENTER / A START   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5, 1);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
@@ -69,6 +82,7 @@ export class TestFightersScene extends Phaser.Scene {
   }
 
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  stepMap(d) { const n = this.maps.length; this.map = (this.map + d + n) % n; lastMap = this.map; sfx('menu', 0.5, 1.1); }
   stepSkin(d) {
     const f = TEST_ROSTER[this.sel]; if (!f) return;
     const n = skinsFor(f.id).length;
@@ -79,9 +93,10 @@ export class TestFightersScene extends Phaser.Scene {
     const f = TEST_ROSTER[this.sel]; if (!f) { sfx('curse', 0.3, 1.5); return; }
     const foes = ROSTER.filter((r) => r.available);
     const foe = foes[Math.floor(Math.random() * foes.length)].id;
+    const stage = this.maps[this.map].id;
     Object.assign(settings, this.mode === 0
-      ? { mode: 'training', dummy: 'stand', picks: [f.id, foe], skins: [this.skin[f.id] || 0, 0], cpuCount: 1, cpuLevels: [], stage: 'sky-sanctum' }
-      : { mode: 'stock', stocks: 2, picks: [f.id, foe], skins: [this.skin[f.id] || 0, 0], cpuCount: 1, cpuLevels: [], stage: 'random' });
+      ? { mode: 'training', dummy: 'stand', picks: [f.id, foe], skins: [this.skin[f.id] || 0, 0], cpuCount: 1, cpuLevels: [], stage }
+      : { mode: 'stock', stocks: 2, picks: [f.id, foe], skins: [this.skin[f.id] || 0, 0], cpuCount: 1, cpuLevels: [], stage });
     sfx('go', 0.8);
     this.scene.start('Match');
   }
@@ -93,19 +108,31 @@ export class TestFightersScene extends Phaser.Scene {
     if (n && m.down) { this.sel = (this.sel + 1) % n; sfx('menu', 0.5); }
     if (m.left || m.right) this.stepSkin(m.left ? -1 : 1);
     if (Phaser.Input.Keyboard.JustDown(this.qKey) || m.pads.some((p) => p.button === 'y')) { this.mode = 1 - this.mode; sfx('menu', 0.5, 1.2); }
+    if (Phaser.Input.Keyboard.JustDown(this.eKey) || m.pads.some((p) => p.button === 'x')) this.stepMap(1);
     if (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start')) { this.clicked = false; return this.start(); }
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     const f = TEST_ROSTER[this.sel], c = this.cursor; c.clear();
     this.names.forEach((t, i) => t.setColor(i === this.sel ? '#ffffff' : '#8fbfa0'));
     this.tag.setVisible(!!f); this.skinName.setVisible(!!f); this.skinCount.setVisible(!!f); this.arrows.forEach((a) => a.setVisible(!!f));
+    this.mapLabel.setVisible(!!f); this.mapName.setVisible(!!f); this.mapArrows.forEach((a) => a.setVisible(!!f)); this.mapG.clear();
     this.modeTexts.forEach((t, i) => t.setVisible(!!f).setColor(i === this.mode ? (this.t % 30 < 15 ? GOLD : '#ffffff') : '#5a6a60'));
     if (!f) return;
     c.fillStyle(LINE, 0.22); c.fillRect(L.x + 8, L.y + 26 + this.sel * 24, L.w - 16, 20);
     c.fillStyle(LINE, 1); c.fillRect(L.x + 8, L.y + 26 + this.sel * 24, 3, 20);
     const mt = this.modeTexts[this.mode]; c.fillStyle(LINE, 0.25); c.fillRect(mt.x - 6, mt.y - 6, mt.width + 12, 20);
+    const mp = this.maps[this.map], mw = 128, mh = 68, mx = L.x + (L.w - mw) / 2, my = L.y + 150, mg = this.mapG;   // the map picker
+    mg.fillStyle(LINE, 1); mg.fillRect(mx - 2, my - 2, mw + 4, mh + 4); mg.fillStyle(0x0b0a14, 1); mg.fillRect(mx - 1, my - 1, mw + 2, mh + 2);
+    if (mp.preview) mp.preview(mg, mx, my, mw, mh);
+    else {                                                            // RANDOM: a big question mark
+      mg.fillStyle(0x1e3a2a, 1); mg.fillRect(mx, my, mw, mh); mg.fillStyle(0x5ee07a, 1);
+      const q = (x, y, w, h) => mg.fillRect(mx + mw / 2 - 12 + x * 4, my + 10 + y * 4, w * 4, h * 4);
+      q(1, 0, 4, 1); q(0, 1, 1, 2); q(5, 1, 1, 3); q(3, 4, 2, 1); q(3, 5, 1, 3); q(3, 9, 1, 2);
+    }
+    this.mapName.setText(mp.name);
     this.head.setText(f.name);
     this.tag.setText(f.tag || 'PROTOTYPE');
     this.notes.setText(f.notes || '');
+    this.notes.setLineSpacing(5); if (this.notes.height > R.h - 92) this.notes.setLineSpacing(2);   // long notes squeeze up so they clear the mode buttons
     // the fighter on a lab platform under a scanning light
     const sg = this.stageG, cx = R.x + 80, by = R.y + 200; sg.clear();
     sg.fillStyle(0x5ee07a, 0.06 + 0.04 * Math.sin(this.t * 0.06)); sg.fillTriangle(cx - 10, R.y + 8, cx + 10, R.y + 8, cx + 60, by); sg.fillTriangle(cx - 10, R.y + 8, cx - 60, by, cx + 60, by);

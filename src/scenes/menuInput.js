@@ -26,7 +26,7 @@ export class MenuInput {
       const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
       now.up = now.up || b(12) || ay < -0.6; now.down = now.down || b(13) || ay > 0.6;
       now.left = now.left || b(14) || ax < -0.6; now.right = now.right || b(15) || ax > 0.6;
-      for (const [btn, name] of [[0, 'a'], [1, 'b'], [3, 'y'], [9, 'start']]) {
+      for (const [btn, name] of [[0, 'a'], [1, 'b'], [2, 'x'], [3, 'y'], [9, 'start']]) {
         const key = 'pad' + i + name;
         if (b(btn) && !this.prev[key]) padPresses.push({ pad: i, button: name });
         now[key] = b(btn);
