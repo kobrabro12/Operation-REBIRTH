@@ -129,6 +129,8 @@ export const AERO_FULL = {
   ...AERO,
   swingSfx: 'whoosh',
   sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
+  // on some stages he transforms into a different look: on INFECTED.EXE, Mason's white-and-navy FULL AERO
+  stageSheets: { infected: { idle: 'aero_king_inf_idle', run: 'aero_king_inf_run', jump: 'aero_king_inf_jump', fall: 'aero_king_inf_fall', moves: 'aero_king_inf_moves' } },
   // his spear attacks (k_* in aero_moves.py) in place of the normal ones
   moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king, ...Object.fromEntries(Object.keys(SPEAR.dir).map((k) => [k, AERO_MOVES['k_' + k]])) },
   // he floats: falls slowly and hovers a little off the ground

@@ -79,6 +79,7 @@ const IDIOT = {
 export class InfectedStage {
   constructor(scene) {
     this.scene = scene;
+    this.id = 'infected';                                      // (fighters can look different here: AERO's FULL AERO)
     this.platforms = [
       { x1: -280, x2: 280, y: 0, solid: true, bottom: 60 },     // the taskbar of the giant monitor
       { x1: -214, x2: -94, y: -86, solid: false },             // title bars of windows left open

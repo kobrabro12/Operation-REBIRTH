@@ -140,7 +140,9 @@ export class LimitAero {
   }
   enterFullAero(frames) {
     if (!(this.fullAero > 0)) { this.baseDef = this.def; this.baseSheets = this.sheets; }
-    this.def = this.baseDef.fullAero; this.sheets = { ...this.baseSheets, ...this.def.sheets };
+    this.def = this.baseDef.fullAero;
+    const onStage = this.def.stageSheets && this.def.stageSheets[this.match.stage.id];   // a stage-specific look (INFECTED.EXE)
+    this.sheets = { ...this.baseSheets, ...(onStage || this.def.sheets) };
     this.fullAero = frames; this.match.setAeroStage(true);
     this.match.puff(this.x, this.y - 30, 0xffffff, 20); this.match.puff(this.x, this.y - 30, 0xf3c358, 12);
   }

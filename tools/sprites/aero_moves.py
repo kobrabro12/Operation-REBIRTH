@@ -228,20 +228,26 @@ def build():
     N.GHOST = (159, 240, 255)
     return N.build_all(SMALL, BIG, MOVES, DIR, JS, 'AERO_MOVES', 'aero_moves.py', life_fn=life, idle=idle_keys)
 
-# ---- FULL AERO: the transformed look (tools/sprites/aero_king_draw.py) - the same animations on his
+# ---- FULL AERO: the transformed look (Mason's drawings, cut by tools/sprites/aero_king_mason.py) - the same animations on his
 # winged, haloed, caped form, with the wings beating slowly and the halo bobbing. Same frame layout as
 # the normal sheet, so src/fighters/aeroMoves.js indexes both.
-import aero_king_draw
 KFOLLOW = dict(FOLLOW, wings=(0.35, 0.8), halo=(0.3, 0.2))
-KSMALL, KBIG = N.build_rig(aero_king_draw, KFOLLOW)
 def king_life(pose, t):
     p = life(pose, t)
     w = N.full(p.get('wings')); w[0] += 9 * math.sin(t * 0.15); p['wings'] = tuple(w)
     h = N.full(p.get('halo')); h[2] += math.sin(t * 0.1) * 0.8; p['halo'] = tuple(h)
     return p
 def build_king():
-    N.GHOST = (243, 195, 88)        # golden afterimages
-    return N.build_all(KSMALL, KBIG, MOVES, os.path.join(DIR, 'king'), os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=king_life, idle=idle_keys)
+    """FULL AERO from Mason's drawings (aero_king_mason.py): his everyday look -> aero/king/, and the white-and-navy
+    look he wears on INFECTED.EXE -> aero/king/infected/. Same frame layout as the normal sheet."""
+    import aero_king_mason
+    out = None
+    for art, sub, ghost in (('full_aero.png', 'king', (243, 195, 88)), ('full_aero_infected.png', 'king/infected', (230, 240, 248))):
+        N.GHOST = ghost                 # afterimages: gold / white
+        small, big = N.build_rig(aero_king_mason.source(art), KFOLLOW)
+        res = N.build_all(small, big, MOVES, os.path.join(DIR, sub), os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=king_life, idle=idle_keys)
+        out = out or res
+    return out
 
 if __name__ == '__main__':
     base, out = build()

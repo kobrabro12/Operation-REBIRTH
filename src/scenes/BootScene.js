@@ -20,9 +20,12 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + k, 'assets/fighters/nu/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // NU (test fighter): tools/sprites/nu_moves.py
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_' + k, 'assets/fighters/aero/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // AERO (test fighter): tools/sprites/aero_moves.py
     this.load.spritesheet('aero_moves', 'assets/fighters/aero/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    // FULL AERO: his transformed look (tools/sprites/aero_king_draw.py, built by aero_moves.py)
+    // FULL AERO: his transformed look (Mason's drawings, tools/sprites/art/full_aero*.png, built by aero_moves.py);
+    // the white-and-navy one is what he wears on INFECTED.EXE
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_' + k, 'assets/fighters/aero/king/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('aero_king_moves', 'assets/fighters/aero/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_inf_' + k, 'assets/fighters/aero/king/infected/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('aero_king_inf_moves', 'assets/fighters/aero/king/infected/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + k, 'assets/fighters/what-once-was/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // WHAT ONCE WAS (test fighter): tools/sprites/what_once_was_moves.py
     this.load.spritesheet('wow_moves', 'assets/fighters/what-once-was/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });

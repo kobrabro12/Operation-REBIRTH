@@ -51,7 +51,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 - **Lacy / Hero Knight** (`hero-knight`, keys `hk_*`): 150×90 frames, 180×140 moves. Battle-Worn damage stages (worn1–3), Samurai + Akatsuki costumes. Unarmed `_u` sheets.
 - **Test fighters** (`TEST_ROSTER` in `roster.js`, played from Trinkets > TEST FIGHTERS, never on the select grid):
   **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py`) and **AERO** (`aero`, keys `aero_*`, `aero_draw.py` +
-  `aero_moves.py`; his FULL AERO form - permanent until KO'd, floating (`def.float`), attacking with a golden spear (spear animations `k_*`) (part `spear`; `SPEAR` in aero.js grows his normals' reach and damage) - is `aero_king_*`, `aero_king_draw.py`, def `AERO_FULL`). 64×64 base frames, 112×104 moves.
+  `aero_moves.py`; his FULL AERO form - permanent until KO'd, floating (`def.float`), attacking with a golden spear (spear animations `k_*`) (part `spear`; `SPEAR` in aero.js grows his normals' reach and damage) - is `aero_king_*`, def `AERO_FULL`; its art is Mason's drawings `tools/sprites/art/full_aero.png` (and `full_aero_infected.png`, worn on INFECTED.EXE via `stageSheets`), cut into parts by `aero_king_mason.py`). 64×64 base frames, 112×104 moves.
   **WHAT ONCE WAS** (`what-once-was`, keys `wow_*`, art `tools/sprites/what_once_was_draw.py` + `what_once_was_moves.py`, same rig as NU):
   a deformed Backrooms entity with a CRT TV head (screen layers `scr_*` picked per pose). MISSING Poster, Channel Surf side-B, OUT OF
   BODY up-B, Wrong Door down-B, LEVEL 0 limit (the Bacteria chase). Unique mechanic: `def.signal` meter -> when full it
