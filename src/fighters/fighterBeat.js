@@ -1,6 +1,6 @@
 // Fighter methods: NU's ON BEAT passive - the beat under every fight, on-beat attacks, the STREAK - plus his
 // Power Chord charge and Stage Dive bounce. Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
-// Tuning lives in nu.js (`beat`, and the moves' `hold` / `dive.bounce`).
+// Tuning lives in nu.js (`beat`, and the moves' `hold`).
 import { sfx } from '../audio/sfx.js';
 
 export class FighterBeat {

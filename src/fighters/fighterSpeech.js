@@ -49,6 +49,17 @@ const QUIPS = {
     grab: [0.6, 'FRONT ROW!'], throw: [0.6, 'INTO THE PIT!'], upb: [0.4, 'LIFT ME UP!'],
     limit: [1, 'THIS ONE GOES TO ELEVEN!'], ko: [1, 'GOODNIGHT!', 'ENCORE!', 'BURN IT DOWN!'],
   },
+  // NU as BLOCK BOSS and in BONEZ
+  'nu:nuStreet': {
+    attack: [0.12, 'WORD.', 'YEAH!'], smash: [0.5, 'STEP UP!', "YOU AIN'T READY!", 'THIS MY BLOCK!'],
+    grab: [0.6, 'C\'MERE!'], throw: [0.6, 'GET OUTTA HERE!'], upb: [0.4, 'UP TOP!'],
+    limit: [1, 'TURN IT UP!'], ko: [1, 'PEACE OUT.', 'STAY FRESH.'],
+  },
+  'nu:nuBones': {
+    attack: [0.12, 'BOO!', 'RATTLE!'], smash: [0.5, 'BONE ZONE!', 'SPOOKY SCARY!', 'NO BONES ABOUT IT!'],
+    grab: [0.6, 'HUG TIME!'], throw: [0.6, 'BONE APPETIT!'], upb: [0.4, 'WHEEE!'],
+    limit: [1, 'WAKE THE DEAD!'], ko: [1, 'BACK TO BED...', 'I HAVE A BONE TO PICK...'],
+  },
   'hero-knight:hero': {
     jab: [0.4, 'HAH!', 'HYAH!', 'TEH!'],
     attack: [0.3, 'SEIYA!', 'TAAH!', 'THERE!'],
@@ -63,6 +74,8 @@ const QUIPS = {
 // how each costume's lines look: a terminal box (typed out) or a hero's shout (pops in, bounces)
 const SPEECH = {
   onebit: { typed: true, style: { fontFamily: FONT, fontSize: '7px', color: '#f4f4f0', backgroundColor: '#0e0e10', padding: { x: 3, y: 2 } } },
+  nuStreet: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#d8221e', strokeThickness: 4 } },
+  nuBones: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#e8ffd8', stroke: '#1e3a12', strokeThickness: 4 } },
   nuInferno: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd060', stroke: '#5a0a06', strokeThickness: 4 } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
   wowAero: { typed: false, style: { fontFamily: FONT, fontSize: '7px', color: '#0d3550', backgroundColor: '#e6f8ff', padding: { x: 4, y: 3 } } },

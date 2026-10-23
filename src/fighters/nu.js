@@ -11,8 +11,8 @@ export const NU = {
   id: 'nu',
   name: 'NU',
   sheets: { idle: 'nu_idle', run: 'nu_run', jump: 'nu_jump', fall: 'nu_fall', moves: 'nu_moves' },
-  // INFERNO costume (skins.js sheetSet): its own drawing - tools/sprites/nu_inferno_moves.py
-  costumeSheets: { inferno: { idle: 'nu_inferno_idle', run: 'nu_inferno_run', jump: 'nu_inferno_jump', fall: 'nu_inferno_fall', moves: 'nu_inferno_moves' } },
+  // costumes with their own drawing (skins.js sheetSet) - tools/sprites/nu_costume_moves.py
+  costumeSheets: Object.fromEntries(['inferno', 'street', 'bones'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'nu_' + s + '_' + k]))])),
   runCycle: [0, 8],
   moveAnims: NU_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,                 // feet on row 58 of the 64x64 frame
@@ -84,10 +84,16 @@ export const NU = {
       // what a full chord adds on top (scaled by how long it was held)
       full: { dmg: 8, base: 2.4, growth: 3.0, speed: 2.4, h: 30 },
     } },
-    // STAGE DIVE (side): a flat-out dive forward that carries him a long way - once per jump. If it lands on
-    // someone he CROWD SURFS off them: bounces up and gets his dive and his double jump back.
-    sideB: { frames: 34, landLag: 10, fx: 'thrust', dive: { from: 9, to: 22, vx: 7.4, vy: -2.6, bounce: -8.4 },
-      hits: [{ from: 9, to: 20, box: [-4, -44, 46, 34], dmg: 9, angle: 40, base: 3.4, growth: 5.2 }] },
+    // MIC TOSS (side): whips his mic out on its cord. It flies out, and at the end of the cord it swings back
+    // to his hand - hitting on the way out and again on the way back (that one pulls them toward him). In the
+    // air he hangs for a moment while he throws. One mic: no second toss until it's back in his hand.
+    sideB: { frames: 52, spawnAt: 10, landLag: 8, mic: {
+      speed: 9.5, decel: 0.42, outTime: 24,          // how fast it flies, how quickly it slows, the longest it flies out
+      returnSpeed: 4, cord: 120,                      // how fast it starts back, and the cord's length (it can't go further)
+      out: { dmg: 8, angle: 38, base: 3.2, growth: 5.2 },
+      back: { dmg: 5, angle: 25, base: 2.8, growth: 1.6 },
+      airStall: 1.2,                                  // in the air: the fastest he falls while throwing
+    } },
     // CROWD SURF (up): a sea of hands carries him up; the hands slap anyone underneath
     upb: { frames: 40, riseAt: 8, riseV: -14.6, pushX: 2.6, drift: 3.6, crowd: true, hits: [
       { from: 8, to: 10, box: [-24, -10, 48, 26], dmg: 3, angle: 85, base: 2.0, growth: 0, stun: 10 },

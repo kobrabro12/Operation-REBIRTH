@@ -34,7 +34,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
 import { stageById, STAGES } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -431,6 +431,7 @@ export class MatchScene extends Phaser.Scene {
   spawnSword(owner, spec) { const p = new ThrownSword(this, owner, spec); this.projectiles.push(p); return p; }
   spawnBolt(owner, spec) { const p = new EnergyBolt(this, owner, spec); this.projectiles.push(p); return p; }
   spawnWave(owner, spec) { const p = new SoundWave(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnMic(owner, spec) { const p = new MicToss(this, owner, spec); this.projectiles.push(p); return p; }
   spawnAmp(owner, spec) {
     for (const p of this.pools) if (p.owner === owner && p instanceof SpeakerAmp) p.kill();   // one amp per NU
     const p = new SpeakerAmp(this, owner, spec); if (p.alive) this.pools.push(p); return p;
@@ -516,6 +517,15 @@ export class MatchScene extends Phaser.Scene {
     const n = v.n + Math.floor(kb / 2);
     const add = (o) => P.push({ size: 2, grav: 0.08, ...o });
     switch (v.shape) {
+      case 'splat':                                   // BLOCK BOSS: spray-paint splats flying off, dripping
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.8, sp = 1.5 + R() * 3; add({ shape: 'splat', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp, life: 24 + R() * 14, color: col(i), r: 2 + Math.floor(R() * 3), drag: 0.9, grav: 0.12 }); }
+        if (dmg >= 9 || kb > 7) for (let i = 0; i < 4; i++) add({ shape: 'star', x: x + (R() - 0.5) * 20, y: y - 10 + (R() - 0.5) * 16, vx: (R() - 0.5), vy: -1, life: 20, color: 0xffd23a, grav: 0 });   // bling on the big hits
+        break;
+      case 'bones':                                   // BONEZ: a rattle of little bones and a ghostly flash
+        add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, r: 9 + kb, color: 0x9aff6a, grav: 0 });
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 1.8 + R() * 3; add({ shape: 'bone', x, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 30 + R() * 14, color: col(i), ang: R() * 6, spin: (R() - 0.5) * 0.6, drag: 0.96, grav: 0.14 }); }
+        if (dmg >= 9 || kb > 7) add({ shape: 'skull', x, y: y - 8, vx: dir * 0.4, vy: -1.2, life: 34, color: 0xe8ffd8, grav: -0.02, drag: 0.96 });
+        break;
       case 'win95':                                   // DIAL-UP: little error windows bursting off, and a few stray bits
         for (let i = 0; i < Math.ceil(n / 2); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.4; add({ shape: 'win95', x, y, vx: Math.cos(a) * sp + dir * 0.5, vy: Math.sin(a) * sp, life: 26 + R() * 14, color: [0x0a2484, 0x8a0000, 0x108484][i % 3], drag: 0.93, grav: 0.04 }); }
         for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 14 + R() * 10, color: col(i), drag: 0.9, grav: 0 }); }
@@ -556,7 +566,13 @@ export class MatchScene extends Phaser.Scene {
   drawParticle(g, p) {
     const a = Math.min(1, p.life / 10), X = Math.round(p.x), Y = Math.round(p.y);
     switch (p.shape) {
-      case 'win95': drawMiniWindow(g, X - 4, Y - 3, 9, 7, a, p.color); break;   // DIAL-UP: a tiny error window
+      case 'win95': drawMiniWindow(g, X - 4, Y - 3, 9, 7, a, p.color); break;
+      case 'splat': g.fillStyle(p.color, a); g.fillCircle(X, Y, p.r); g.fillRect(X - 1, Y, 2, p.r + 2); g.fillStyle(0xffffff, a * 0.6); g.fillRect(X - 1, Y - p.r + 1, 1, 1); break;   // a paint splat with a drip
+      case 'bone': {                                  // a little bone, tumbling
+        p.ang = (p.ang || 0) + (p.spin || 0.3); const c = Math.cos(p.ang) * 3, s2 = Math.sin(p.ang) * 3;
+        g.lineStyle(2, p.color, a); g.lineBetween(X - c, Y - s2, X + c, Y + s2);
+        g.fillStyle(p.color, a); g.fillRect(X - c - 1, Y - s2 - 1, 2, 2); g.fillRect(X + c - 1, Y + s2 - 1, 2, 2); break;
+      }   // DIAL-UP: a tiny error window
       case 'cursor': drawCursor(g, X, Y, 0, a); break;
       case 'wisp': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.5); g.fillRect(X, Y + 2, 1, 3); g.fillStyle(0xffffff, a); g.fillRect(X, Y, 1, 1); break;
       case 'skull':

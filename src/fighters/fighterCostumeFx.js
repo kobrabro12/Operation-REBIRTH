@@ -165,6 +165,17 @@ export class FighterCostumeFx {
         g.fillStyle(0xffffff, on); g.fillRect(Math.round(x), Math.round(y), 1, 1);
       }
     }
+    if (a.bling && !this.match.frozen) {            // BLOCK BOSS: his chain throws off bling; sneaker scuffs when he runs
+      if (t % 46 === 0) P.push({ shape: 'glint', x: cx + f * 2, y: this.y - d.body.h * 0.62, vx: 0, vy: 0, life: 10, maxLife: 10, color: 0xffe08a, grav: 0, dir: 1 });
+      if (t % 46 === 3) P.push({ shape: 'star', x: cx + f * 4 + (R() - 0.5) * 6, y: this.y - d.body.h * 0.66, vx: 0, vy: -0.3, life: 14, color: 0xfff0a8, grav: 0 });
+      if (this.grounded && Math.abs(this.vx) > 2.5 && t % 6 === 0) P.push({ shape: 'smoke', x: cx - f * 8, y: this.y - 2, vx: -f * 0.4, vy: -0.3, life: 18, maxLife: 18, r: 2, color: 0xd8d4e8, grav: 0 });
+    }
+    if (a.spooky) {                                  // BONEZ: a ghostly green glow pulsing round him, wisps drifting off
+      const pulse = 0.08 + 0.06 * Math.sin(t * 0.08);
+      back.fillStyle(0x9aff6a, pulse); back.fillEllipse(cx, this.y - d.body.h * 0.5, d.body.w * 2.4, d.body.h * 1.5);
+      back.fillStyle(0x9aff6a, pulse * 0.8); back.fillEllipse(cx, this.y - d.body.h * 0.5, d.body.w * 1.6, d.body.h * 1.1);
+      if (!this.match.frozen && t % 8 === 0) P.push({ shape: 'wisp', x: cx + (R() - 0.5) * d.body.w * 1.6, y: this.y - R() * d.body.h, vx: (R() - 0.5) * 0.3, vy: -0.6 - R() * 0.5, life: 36 + R() * 20, color: R() < 0.7 ? 0x9aff6a : 0xe8ffd8, grav: -0.01, sway: R() * 6 });
+    }
     if (a.inferno) {                                 // INFERNO: heat glow round his burning hair, embers, a scorched trail
       const hy = top + 6, fl = 0.16 + 0.06 * Math.sin(t * 0.5);
       back.fillStyle(0xff7a1a, fl); back.fillCircle(cx - f * 3, hy, 14);

@@ -165,6 +165,19 @@ export const SKINS = {
       pal: { outline: 0x1a0604, deep: 0xb8320a, mid: 0xff7a1a, light: 0xffd060, core: 0xfff6c8, shade: 0x2a0a06, void: 0x0a0202 },
       vfx: { hit: { shape: 'flame', colors: [0xffd060, 0xff7a1a, 0xff3a1a, 0xfff6c8], n: 9, ring: 0xff7a1a, sound: 'whoosh' },
              aura: { inferno: true }, trail: 0xff7a1a } },
+    // BLOCK BOSS: straight off the street - a red snapback worn backwards, shades, an oversized white tee, a big gold
+    // chain, baggy jeans with a bandana out the pocket, fresh high-tops (pre-drawn sheets). His chain throws off
+    // bling, he leaves sneaker scuffs when he runs, and his hits burst into spray-paint splats.
+    { name: 'BLOCK BOSS', swatch: 0xd8221e, fx: 0xffd23a, sheetSet: 'street', style: 'nuStreet',
+      lore: 'Grew up two streets from the venue. Every wall between here and there has his tag on it.',
+      pal: { outline: 0x14101c, deep: 0x8a0e0e, mid: 0xd8221e, light: 0xffd23a, core: 0xfff0a8, shade: 0x2a0a0a, void: 0x0a0204 },
+      vfx: { hit: { shape: 'splat', colors: [0xd8221e, 0xffd23a, 0x3ac8ff, 0xffffff], n: 7 }, aura: { bling: true } } },
+    // BONEZ: a black skeleton onesie that glows in the dark, the hood up with a skull on it (pre-drawn sheets). A
+    // ghostly green glow pulses round him, wisps drift off, and his hits rattle out a spray of little bones.
+    { name: 'BONEZ', swatch: 0x9aff6a, fx: 0x9aff6a, sheetSet: 'bones', style: 'nuBones',
+      lore: 'Wore it to one Halloween show and never took it off. The bones started glowing on their own.',
+      pal: { outline: 0x08060c, deep: 0x2a6a1a, mid: 0x4ab02a, light: 0x9aff6a, core: 0xe8ffd8, shade: 0x0e1a0a, void: 0x040804 },
+      vfx: { hit: { shape: 'bones', colors: [0xe8ffd8, 0x9aff6a, 0xffffff], n: 6, ring: 0x9aff6a }, aura: { spooky: true }, trail: 0x9aff6a } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],

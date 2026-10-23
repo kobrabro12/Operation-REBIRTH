@@ -548,6 +548,66 @@ export class SoundWave {
   }
 }
 
+// NU's MIC TOSS: his mic flung out on its cord. It flies out until it slows or runs out of cord, then swings
+// back to his hand. Hits once on the way out and once on the way back (pulling them in toward him).
+export class MicToss {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec; this.dir = owner.facing;
+    const h = this.hand(); this.x = h.x + this.dir * 4; this.y = h.y;
+    this.vx = this.dir * spec.speed; this.vy = -0.4;
+    this.phase = 'out'; this.t = 0; this.pt = 0; this.alive = true; this.id = nextId++; this.persist = true; this.kind = 'MIC TOSS';
+    this.beat = !!owner.onBeatMove; this.spin = 0;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    sfx('swing', 0.6, 1.2); sfx('whoosh', 0.3, 1.6);
+  }
+  hand() { const o = this.owner; return { x: o.x + o.facing * o.def.handOffset.x, y: o.y + o.def.handOffset.y + 6 }; }
+  hitbox() {
+    const r = 9, out = this.phase === 'out', o = this.owner;
+    return { x1: this.x - r, x2: this.x + r, y1: this.y - r, y2: this.y + r, h: out ? this.spec.out : this.spec.back, owner: o, id: this.id + this.phase,
+      facing: out ? this.dir : (Math.sign(o.x - this.x) || -this.dir), projectile: this, persist: true };
+  }
+  step() {
+    const S = this.spec, o = this.owner;
+    this.t++; this.pt++; this.spin += this.phase === 'out' ? 0.6 : -0.6;
+    if (!o.alive) { this.remove(); return; }
+    const h = this.hand();
+    if (this.phase === 'out') {
+      this.vx -= this.dir * S.decel; this.vy += 0.05;
+      if (Math.sign(this.vx) !== this.dir || this.pt >= S.outTime || Math.hypot(this.x - h.x, this.y - h.y) >= S.cord) this.turn();
+    } else {                                                          // reeled back in, faster and faster
+      const dx = h.x - this.x, dy = h.y - this.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(S.returnSpeed + this.pt * 0.5, 13);
+      this.vx += (dx / d * sp - this.vx) * 0.45; this.vy += (dy / d * sp - this.vy) * 0.45;
+      if (d < 10 || this.pt > 120) { this.home(); return; }
+    }
+    this.x += this.vx; this.y += this.vy;
+    if (this.t % 3 === 0) this.match.particles.push({ shape: 'note', x: this.x, y: this.y, vx: -this.vx * 0.1, vy: -0.6, life: 20, color: o.pal.light, grav: 0 });
+  }
+  turn() { if (this.phase === 'out') { this.phase = 'back'; this.pt = 0; sfx('swing', 0.4, 1.6); } }
+  kill() { if (!this.alive) return; if (this.phase === 'out') { this.turn(); return; } }   // blocked: it just swings back
+  home() { sfx('land', 0.3, 1.8); this.remove(); }
+  remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); if (this.owner.micOut === this) this.owner.micOut = null; }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, o = this.owner, P = o.pal, h = this.hand(), x = this.x, y = this.y;
+    g.clear();
+    // the cord: a sagging curve from his hand to the mic, tighter the further out it is
+    const d = Math.hypot(x - h.x, y - h.y), sag = Math.max(2, 18 - d * 0.12), mx = (x + h.x) / 2, my = (y + h.y) / 2 + sag;
+    let px = h.x, py = h.y;
+    for (let i = 1; i <= 12; i++) {
+      const u = i / 12, qx = (1 - u) * (1 - u) * h.x + 2 * (1 - u) * u * mx + u * u * x, qy = (1 - u) * (1 - u) * h.y + 2 * (1 - u) * u * my + u * u * y;
+      g.lineStyle(2, 0x14101c, 1); g.lineBetween(px, py, qx, qy); px = qx; py = qy;
+    }
+    // the mic, tumbling end over end: handle and grille
+    const a = this.spin, cx = Math.cos(a), sy = Math.sin(a);
+    g.lineStyle(4, 0x14101c, 1); g.lineBetween(x - cx * 5, y - sy * 5, x + cx * 3, y + sy * 3);
+    g.lineStyle(2, 0xb8c0ca, 1); g.lineBetween(x - cx * 5, y - sy * 5, x + cx * 3, y + sy * 3);
+    g.fillStyle(0x14101c, 1); g.fillCircle(x + cx * 5, y + sy * 5, 4);
+    g.fillStyle(0xd8dee6, 1); g.fillCircle(x + cx * 5, y + sy * 5, 3);
+    g.fillStyle(P.light, 1); g.fillRect(Math.round(x + cx * 5) - 1, Math.round(y + sy * 5) - 1, 2, 2);
+    if (this.beat && this.t % 4 < 2) { g.lineStyle(1, 0xffffff, 0.8); g.strokeCircle(x, y, 9); }   // on beat: it flashes
+  }
+}
+
 // NU's AMP DROP: a speaker cabinet dropped from above, in front of him. While it falls it crushes anyone it
 // lands on (a hard spike - drop it off the ledge onto someone recovering). Once it lands it thumps a big
 // shockwave on every beat that pushes people away, and any Power Chord fired through it comes out AMPED.

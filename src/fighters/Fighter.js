@@ -228,7 +228,7 @@ export class Fighter {
       this.buffer.special = 0;
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -307,6 +307,7 @@ export class Fighter {
     if (this.style === 'wowRonin' && Math.random() < 0.35) sfx('shing', 0.25, 1.1 + Math.random() * 0.2);
     if (this.style === 'wowAero' && Math.random() < 0.35) sfx('petal', 0.3, 1.6);
     if (this.style === 'wowDial' && Math.random() < 0.3) sfx('popup', 0.15, 2.2);                      // DIAL-UP: a mouse click
+    if (this.style === 'nuBones' && Math.random() < 0.3) sfx('glass', 0.12, 2.4);                       // NU's BONEZ: a dry rattle
     if (this.style === 'nuInferno' && Math.random() < 0.4) sfx('whoosh', 0.25, 0.7 + Math.random() * 0.2);   // NU's INFERNO: the swing roars
   }
   st_attack(c) {
@@ -333,6 +334,10 @@ export class Fighter {
     }
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave.full ? this.chordWave(m.wave) : m.wave);
     if (m.amp && this.t === m.spawnAt) this.match.spawnAmp(this, m.amp);
+    if (m.mic) {                                                    // NU's MIC TOSS: out on its cord and back
+      if (this.t === m.spawnAt && !this.micOut) this.micOut = this.match.spawnMic(this, m.mic);
+      if (!this.grounded) this.vy = Math.min(this.vy, m.mic.airStall);
+    }
     if (m.tag && this.t === m.spawnAt) this.match.spawnTag(this, m.tag);
     if (m.bubble && this.t === m.spawnAt) this.match.spawnAeroBubble(this, m.bubble);
     if (m.fish && this.t === m.spawnAt && !this.fishOut) {

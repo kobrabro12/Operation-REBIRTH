@@ -27,8 +27,10 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_inf_' + k, 'assets/fighters/aero/king/infected/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('aero_king_inf_moves', 'assets/fighters/aero/king/infected/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_inferno_' + k, 'assets/fighters/nu/inferno/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // NU's INFERNO costume
-    this.load.spritesheet('nu_inferno_moves', 'assets/fighters/nu/inferno/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    for (const c of ['inferno', 'street', 'bones']) {   // NU's costumes with their own drawing (tools/sprites/nu_costume_moves.py)
+      for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + c + '_' + k, 'assets/fighters/nu/' + c + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('nu_' + c + '_moves', 'assets/fighters/nu/' + c + '/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    }
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('wow_' + k, 'assets/fighters/what-once-was/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });   // WHAT ONCE WAS (test fighter): tools/sprites/what_once_was_moves.py
     this.load.spritesheet('wow_moves', 'assets/fighters/what-once-was/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const [s, dir] of [['aero', 'frutiger'], ['hack', 'root-access'], ['ronin', 'ronin'], ['dial', 'dial-up']]) {   // its costumes with their own drawing

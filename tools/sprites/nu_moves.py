@@ -79,14 +79,15 @@ def life(pose, t):
 
 # ======================================================================= idle / run / jump / fall
 def idle_keys():
+    """Twirling his mic round and round on its cord, arm held out, nodding along to the beat."""
     keys = []
-    for b in range(4):                                                   # four nods to the beat, each one bigger than the breath
-        t0 = b * 48
-        keys += [k(t0, P(root=(0, 0, 0)), 'inout'),
-                 k(t0 + 8, P(head=(14, 1, 1), hair=(-8, 0, 0), torso=(4, 0, 1), fupper=(6, 0, 1), ffore=(-10, 0, 0), mic=(8, 0, 0), bupper=(6, 0, 1), root=(0, 0, 0, 1.03, 0.97), **legs(4, -4, -4, 6)), 'out'),
-                 k(t0 + 20, P(head=(-4, 0, -1), hair=(6, 0, 0), torso=(-2, 0, 0), fupper=(-4, 0, 0), ffore=(4, 0, 0), bupper=(-4, 0, 0), root=(0, 0, 0, 0.99, 1.02)), 'back'),
-                 k(t0 + 34, P(root=(0, 0, 0)), 'inout')]
-    keys.append(k(192, P()))
+    for i in range(0, 193, 6):
+        spin = -i * 7.5                                                   # one full turn every 48 ticks
+        ph = i * math.pi / 24
+        nod = math.sin(i * math.pi / 48) ** 2                            # a nod every 48 ticks, in time with the twirl
+        keys.append(k(i, P(fupper=(-55 + 6 * math.sin(ph), 0, 0), ffore=(25 + 10 * math.cos(ph), 0, 0), mic=(spin, 0, 0), ffist=(0, 0, 0),
+                           head=(4 + 10 * nod, 0, 1 if nod > 0.5 else 0), hair=(-6 * nod, 0, 0), torso=(-2 + 3 * nod, 0, 0),
+                           bupper=(10, 0, 0), bfore=(-20, 0, 0), root=(0, 0, 0, 1 + 0.02 * nod, 1 - 0.02 * nod), **legs(2 * nod, -2 * nod, -2 * nod, 3 * nod)), 'linear'))
     return keys
 
 def run_keys():
@@ -240,9 +241,22 @@ move('neutralB', 30, [
     k(22, P(torso=(16, 4, 1), head=(-16, 2, 0), hair=(16, 0, 0), fupper=(-66, 0, 0), ffore=(46, 0, 0), mic=(24, 0, 0), bupper=(30, 0, 0), root=(0, 4, 0), **STANCE), 'linear'),
     k(30, REST, 'back'),
 ], smear=())
-# STAGE DIVE: a flat-out dive forward, arms first
-DIVE = P(torso=(78, 6, 4), head=(14, 0, 0), hair=(-26, 0, 0), fupper=(-160, 0, 0), ffore=(10, 0, 0), bupper=(-170, 0, 0), bfore=(10, 0, 0), root=(0, 0, -6, 1.0, 1.0), **legs(-50, 30, -60, 40, 0, 0))
-move('sideB', 34, [k(0, REST), k(6, P(**DEEP, torso=(14, 0, 2), fupper=(50, 0, 0), bupper=(50, 0, 0), head=(10, 0, 0)), 'out'), k(9, DIVE, 'snap'), k(22, mix(DIVE, root=(0, 0, -6, 1.05, 0.96), torso=(82, 6, 4)), 'linear'), k(34, AIR, 'inout')], smear=())
+# MIC TOSS: winds the mic back over his shoulder, whips it out on its cord (the mic itself is drawn by the
+# game while it's out - entities.js MicToss - so it's hidden here), holds the cord out, then yanks it home
+NOMIC = ('can', 'mic')
+TOSS = P(_hide=NOMIC, torso=(22, 4, 1), head=(-12, 2, 0), hair=(16, 0, 0), fupper=(-84, 0, 0), ffore=(14, 0, 0), bupper=(40, 0, 0), bfore=(-30, 0, 0), root=(0, 5, 0, 1.06, 0.95), **STANCE)
+HOLDC = P(_hide=NOMIC, torso=(12, 2, 1), head=(-8, 1, 0), hair=(8, 0, 0), fupper=(-76, 0, 0), ffore=(6, 0, 0), bupper=(30, 0, 0), bfore=(-40, 0, 0), root=(0, 3, 0), **STANCE)
+YANK = P(_hide=NOMIC, torso=(-12, -2, 0), head=(6, 0, 0), hair=(-10, 0, 0), fupper=(-40, 0, 0), ffore=(-70, 0, 0), bupper=(50, 0, 0), bfore=(-30, 0, 0), root=(0, -2, 0, 0.98, 1.02), **legs(10, -4, -10, 8))
+move('sideB', 52, [
+    k(0, REST),
+    k(7, P(torso=(-16, -2, 0), head=(10, 0, 0), hair=(-8, 0, 0), fupper=(-150, -1, 0), ffore=(-30, 0, 0), mic=(-40, 0, 0), bupper=(40, 0, 0), root=(0, -3, 0, 0.97, 1.03), **legs(12, -6, -4, 4)), 'out'),
+    k(10, TOSS, 'snap'),
+    k(18, mix(TOSS, torso=(18, 3, 1)), 'out'),
+    k(36, HOLDC, 'inout'),
+    k(42, YANK, 'snap'),
+    k(46, P(torso=(-6, -1, 0), fupper=(-30, 0, 0), ffore=(-40, 0, 0), mic=(-20, 0, 0)), 'out'),
+    k(52, REST, 'back'),
+], smear=())
 # CROWD SURF: laid back on a sea of hands, arms spread, riding upward
 SURF = P(torso=(-86, -6, 6), head=(-12, 0, 0), hair=(24, 0, 0), fupper=(-130, 0, 0), ffore=(-20, 0, 0), bupper=(-150, 0, 0), bfore=(-20, 0, 0), root=(0, 0, -2), **legs(-66, 26, -76, 16, 0, 0))
 move('upb', 40, [k(0, P(**DEEP, fupper=(30, 0, 0), bupper=(30, 0, 0))), k(8, SURF, 'snap'), k(18, mix(SURF, fupper=(-110, 0, 0), bupper=(-170, 0, 0))), k(28, mix(SURF, fupper=(-140, 0, 0), bupper=(-140, 0, 0), torso=(-90, -6, 6))), k(40, FALL, 'inout')], smear=())
