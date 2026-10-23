@@ -573,7 +573,7 @@ export class SpeakerAmp {
       for (const f of m.fighters) {                                    // crushes whoever it falls on
         if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn' || this.crushed.has(f)) continue;
         const hw = f.body.w / 2 + 14;
-        if (Math.abs(f.x - this.x) < hw && this.y > f.y - f.body.h && this.y - 30 < f.y) {
+        if (Math.abs(f.x - this.x) < hw && this.y > f.y - f.body.h && this.y - 60 < f.y) {   // two cabinets tall
           this.crushed.add(f); sfx('bighit', 0.9, 0.55); m.shake(10, 8);
           m.applyHit(f, { h: this.spec.drop, owner: o, facing: o.facing, id: 'ampdrop' + this.id + ':' + f.slot, projectile: this }, this.x);
         }
@@ -588,14 +588,14 @@ export class SpeakerAmp {
       this.pulse = 16; sfx('taiko', 0.3, 1.0); m.shake(3, 4);
       for (const f of m.fighters) {
         if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn') continue;
-        if (Math.hypot(f.x - this.x, (f.y - 14 - (this.y - 14)) * 1.4) <= this.spec.radius)
+        if (Math.hypot(f.x - this.x, (f.y - 24 - (this.y - 28)) * 1.4) <= this.spec.radius)
           m.applyHit(f, { h: { ...this.spec.pulse, dirX: Math.sign(f.x - this.x) || 1 }, owner: o, facing: Math.sign(f.x - this.x) || 1, id: 'amp' + o.slot + ':' + f.slot + ':' + o.age, projectile: this }, this.x);
       }
     }
     for (const p of m.projectiles) {                                  // Power Chords passing through get AMPED
       if (p instanceof SoundWave && p.owner === o && !p.amped && Math.abs(p.x - this.x) < 14 && p.y > this.y - 70 && p.y < this.y + 4) p.amp(this.spec.boost);
     }
-    if (this.song && this.t % 9 === 0) m.particles.push({ shape: 'note', x: this.x + (Math.random() - 0.5) * 20, y: this.y - 24, vx: (Math.random() - 0.5) * 1.6, vy: -1.2 - Math.random(), life: 34, color: Math.random() < 0.5 ? o.pal.light : 0xffffff, grav: -0.01, sway: Math.random() * 6 });   // notes blasting out
+    if (this.song && this.t % 9 === 0) m.particles.push({ shape: 'note', x: this.x + (Math.random() - 0.5) * 20, y: this.y - 56, vx: (Math.random() - 0.5) * 1.6, vy: -1.2 - Math.random(), life: 34, color: Math.random() < 0.5 ? o.pal.light : 0xffffff, grav: -0.01, sway: Math.random() * 6 });   // notes blasting out
     if (this.song && this.life - this.t < 40) this.song.setVolume(this.songVol * Math.max(0, (this.life - this.t) / 40));   // fades out as it dies
     if (this.t >= this.life || !o.alive) this.kill();
   }
@@ -626,24 +626,31 @@ export class SpeakerAmp {
     const squash = this.falling ? 1 : Math.min(1, 0.7 + this.t / 20), w = 30 / squash, h = 30 * squash, x = this.x - w / 2, y = this.y - h, k = this.pulse / 16;
     g.clear();
     if (this.falling) {                                               // speed lines above it, and a warning shadow below
-      g.fillStyle(0xffffff, 0.5); for (const dx of [-10, 0, 10]) g.fillRect(this.x + dx, y - 6 - this.vy * 2, 1, this.vy * 2);
+      g.fillStyle(0xffffff, 0.5); for (const dx of [-10, 0, 10]) g.fillRect(this.x + dx, y - h - 6 - this.vy * 2, 1, this.vy * 2);
     }
     if (k > 0) {                                                      // the beat: a big shockwave rolling out
       const r = (1 - k) * this.spec.radius;
-      g.lineStyle(3, P.light, 0.8 * k * fade); g.strokeEllipse(this.x, this.y - 14, r * 2 + 20, (r * 2 + 20) / 1.4);
-      g.lineStyle(1, 0xffffff, k * fade); g.strokeEllipse(this.x, this.y - 14, r * 1.7 + 14, (r * 1.7 + 14) / 1.4);
+      g.lineStyle(3, P.light, 0.8 * k * fade); g.strokeEllipse(this.x, this.y - 28, r * 2 + 20, (r * 2 + 20) / 1.4);
+      g.lineStyle(1, 0xffffff, k * fade); g.strokeEllipse(this.x, this.y - 28, r * 1.7 + 14, (r * 1.7 + 14) / 1.4);
     }
-    g.fillStyle(0x0b0a14, fade); g.fillRect(x - 1, y - 1, w + 2, h + 2);
-    g.fillStyle(0x2e2a36, fade); g.fillRect(x, y, w, h);
-    g.fillStyle(0x4a4656, fade); g.fillRect(x, y, w, 2); g.fillRect(x, y, 2, h);
-    const pr = 9 + k * 3, cy = y + h * 0.57;                          // the big cone, pumping on the beat
-    g.fillStyle(0x0b0a14, fade); g.fillCircle(this.x, cy, pr + 1);
-    g.fillStyle(0x4a4656, fade); g.fillCircle(this.x, cy, pr);
-    g.fillStyle(0x24212c, fade); g.fillCircle(this.x, cy, pr * 0.55);
-    g.fillStyle(P.light, (0.5 + 0.5 * k) * fade); g.fillCircle(this.x, cy, 2);
-    g.fillStyle(0x6c7480, fade); g.fillCircle(this.x - 8, y + 6, 2); g.fillCircle(this.x + 8, y + 6, 2);   // knobs
-    g.fillStyle(P.light, fade * (this.t % 20 < 10 ? 1 : 0.4)); g.fillRect(this.x + 11, y + 4, 2, 2);         // the power light
-    g.fillStyle(P.mid, fade); g.fillRect(this.x - 4, y + 3, 6, 2);
+    // two cabinets stacked: a big single cone on the bottom, two smaller cones on top
+    for (let c = 0; c < 2; c++) {
+      const cy0 = y - c * h, top = c === 1;
+      g.fillStyle(0x0b0a14, fade); g.fillRect(x - 1, cy0 - 1, w + 2, h + 2);
+      g.fillStyle(0x2e2a36, fade); g.fillRect(x, cy0, w, h);
+      g.fillStyle(0x4a4656, fade); g.fillRect(x, cy0, w, 2); g.fillRect(x, cy0, 2, h);
+      const cones = top ? [[-7, 6], [7, 6]] : [[0, 9]];
+      for (const [dx, r0] of cones) {                                 // the cones, pumping on the beat
+        const pr = r0 + k * (top ? 2 : 3), cx = this.x + dx, cy = cy0 + h * (top ? 0.6 : 0.57);
+        g.fillStyle(0x0b0a14, fade); g.fillCircle(cx, cy, pr + 1);
+        g.fillStyle(0x4a4656, fade); g.fillCircle(cx, cy, pr);
+        g.fillStyle(0x24212c, fade); g.fillCircle(cx, cy, pr * 0.55);
+        g.fillStyle(P.light, (0.5 + 0.5 * k) * fade); g.fillCircle(cx, cy, top ? 1.5 : 2);
+      }
+      if (!top) { g.fillStyle(0x6c7480, fade); g.fillCircle(this.x - 8, cy0 + 6, 2); g.fillCircle(this.x + 8, cy0 + 6, 2); }   // knobs
+      else { g.fillStyle(P.light, fade * (this.t % 20 < 10 ? 1 : 0.4)); g.fillRect(this.x + 11, cy0 + 3, 2, 2); }             // the power light
+      g.fillStyle(P.mid, fade); g.fillRect(this.x - 4, cy0 + (top ? h - 5 : 3), 6, 2);   // brand plates
+    }
   }
 }
 
