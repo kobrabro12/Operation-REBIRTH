@@ -616,10 +616,20 @@ export class SpeakerAmp {
   }
   land() {
     this.falling = false; this.t = 0;
+    // its top is a platform anyone can stand on (and drop through, like a cloud)
+    this.plat = { x1: this.x - 15, x2: this.x + 15, y: this.y - 60, solid: false, amp: true };
+    this.match.stage.platforms.push(this.plat);
     sfx('bighit', 0.7, 0.6); this.match.shake(6, 6);
     this.match.puff(this.x - 14, this.y - 2, 0xd8d4e8, 6); this.match.puff(this.x + 14, this.y - 2, 0xd8d4e8, 6);
   }
-  kill() { if (!this.alive) return; this.alive = false; this.stopSong(); if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
+  removePlat() {
+    if (!this.plat) return;
+    const P = this.match.stage.platforms, i = P.indexOf(this.plat);
+    if (i >= 0) P.splice(i, 1);
+    for (const f of this.match.fighters) if (f.platform === this.plat) { f.grounded = false; f.platform = null; if (['idle', 'run', 'land', 'taunt'].includes(f.state)) f.setState('air'); }
+    this.plat = null;
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.stopSong(); this.removePlat(); if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
   render() {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;

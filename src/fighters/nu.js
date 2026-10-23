@@ -97,12 +97,12 @@ export const NU = {
     // AMP DROP (down): drops a speaker cabinet from above, in front of him (on the ground or in the air). If it
     // falls on someone it crushes them for 25% and spikes them down - drop it off the ledge onto someone
     // recovering. Once it lands it thumps a big shockwave on every beat (pushing people away) and AMPS any
-    // Power Chord fired through it. One amp at a time: two cabinets tall, it lasts 15 seconds after landing.
+    // Power Chord fired through it. Anyone can stand on top of it. One amp at a time: two cabinets tall, it lasts 15 seconds after landing.
     downB: { frames: 30, spawnAt: 10, amp: { ahead: 34, dropFrom: 90, gravity: 0.55, maxFall: 11, life: 900,
       // landing on someone: a heavy spike
       drop: { dmg: 25, angle: -75, base: 4.0, growth: 4.2 },
       // the shockwave on each beat: how far it reaches (pixels), and the push
-      radius: 120, pulse: { dmg: 4, angle: 45, base: 4.4, growth: 2.4, radial: true },
+      radius: 220, pulse: { dmg: 4, angle: 45, base: 4.4, growth: 2.4, radial: true },
       boost: 1.5 } },
   },
 

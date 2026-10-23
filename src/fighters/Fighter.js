@@ -312,6 +312,7 @@ export class Fighter {
   st_attack(c) {
     const m = this.move;
     if (m.hold && this.holdChord(c)) return;            // NU's Power Chord: holding special builds the chord
+    if (this.diveBounce && !m.dive) this.diveBounce = false;   // the dive was cut short before it could bounce
     if (this.diveBounce) {                              // NU's Stage Dive landed on someone: crowd surf off them
       this.diveBounce = false; this.vy = m.dive.bounce; this.vx = this.facing * 2; this.usedDive = false; this.jumpsLeft = Math.max(this.jumpsLeft, 1);
       this.match.popText(this, 'CROWD SURF!', '#' + this.pal.light.toString(16).padStart(6, '0')); sfx('djump', 0.7, 1.2);
