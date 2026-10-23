@@ -584,7 +584,8 @@ export class SpeakerAmp {
     this.t++;
     if (this.pulse > 0) this.pulse--;
     if (o.def.beat && o.age % o.def.beat.every === 0 && this.t > 10) {   // thump on the beat
-      this.pulse = 16; sfx('taiko', 0.45, 1.0); m.shake(3, 4);
+      if (!this.song && this.t < 60) this.playSong();                  // the song kicks in on its first beat
+      this.pulse = 16; sfx('taiko', 0.3, 1.0); m.shake(3, 4);
       for (const f of m.fighters) {
         if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'respawn') continue;
         if (Math.hypot(f.x - this.x, (f.y - 14 - (this.y - 14)) * 1.4) <= this.spec.radius)
@@ -594,14 +595,31 @@ export class SpeakerAmp {
     for (const p of m.projectiles) {                                  // Power Chords passing through get AMPED
       if (p instanceof SoundWave && p.owner === o && !p.amped && Math.abs(p.x - this.x) < 14 && p.y > this.y - 70 && p.y < this.y + 4) p.amp(this.spec.boost);
     }
+    if (this.song && this.t % 9 === 0) m.particles.push({ shape: 'note', x: this.x + (Math.random() - 0.5) * 20, y: this.y - 24, vx: (Math.random() - 0.5) * 1.6, vy: -1.2 - Math.random(), life: 34, color: Math.random() < 0.5 ? o.pal.light : 0xffffff, grav: -0.01, sway: Math.random() * 6 });   // notes blasting out
+    if (this.song && this.life - this.t < 40) this.song.setVolume(this.songVol * Math.max(0, (this.life - this.t) / 40));   // fades out as it dies
     if (this.t >= this.life || !o.alive) this.kill();
+  }
+  // one of four 8-bit rock songs (amp_song1-4, 90 BPM so the thumps land on the kick); each amp he drops plays the next
+  playSong() {
+    const m = this.match, o = this.owner;
+    o.ampSong = (o.ampSong || 0) % 4 + 1;
+    const key = 'amp_song' + o.ampSong;
+    this.songVol = Math.min(1, 0.6 * m.sfxVol());
+    if (this.songVol <= 0 || !m.cache.audio.exists(key)) return;
+    this.song = m.sound.add(key, { volume: this.songVol, loop: true }); this.song.play();
+    this.stopHook = () => this.stopSong(); m.events.once('shutdown', this.stopHook);   // leaving the match mid-song
+  }
+  stopSong() {
+    if (!this.song) return;
+    this.song.stop(); this.song.destroy(); this.song = null;
+    if (this.stopHook) { this.match.events.off('shutdown', this.stopHook); this.stopHook = null; }
   }
   land() {
     this.falling = false; this.t = 0;
     sfx('bighit', 0.7, 0.6); this.match.shake(6, 6);
     this.match.puff(this.x - 14, this.y - 2, 0xd8d4e8, 6); this.match.puff(this.x + 14, this.y - 2, 0xd8d4e8, 6);
   }
-  kill() { if (!this.alive) return; this.alive = false; if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
+  kill() { if (!this.alive) return; this.alive = false; this.stopSong(); if (this.g) { this.match.puff(this.x, this.y - 12, 0x4a4656, 8); this.g.destroy(); } }
   render() {
     if (!this.alive) return;
     const g = this.g, P = this.owner.pal, fade = this.life - this.t < 40 ? (this.life - this.t) / 40 : 1;
