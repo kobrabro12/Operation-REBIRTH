@@ -28,6 +28,11 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('aero_king_inf_moves', 'assets/fighters/aero/king/infected/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_school_amp', 'assets/fighters/nu/school/amp.png', { frameWidth: 32, frameHeight: 64 });   // HOMEROOM's AMP DROP: a locker and a boombox
+    // LAST SEEN (test fighter) and SEEN, what she turns into: tools/sprites/last_seen_moves.py
+    for (const [pre, dir] of [['ls_', ''], ['ls_wrong_', 'wrong/']]) {
+      for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/last-seen/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet(pre + 'moves', 'assets/fighters/last-seen/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    }
     for (const c of ['inferno', 'street', 'bones', 'school']) {   // NU's costumes with their own drawing (tools/sprites/nu_costume_moves.py)
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + c + '_' + k, 'assets/fighters/nu/' + c + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('nu_' + c + '_moves', 'assets/fighters/nu/' + c + '/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });

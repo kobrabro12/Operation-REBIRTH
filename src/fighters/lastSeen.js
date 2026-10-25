@@ -1,0 +1,137 @@
+// LAST SEEN: a TEST FIGHTER out of analog horror - a woman who went missing, and what came back. She starts out
+// frail: light, weak, easy to launch. Her SIGHTINGS meter fills as she deals and takes damage; when it's full she
+// turns into SEEN - grey, too thin, jaw hanging open, crawling on all fours - and stays that way until she's KO'd:
+// heavy, fast, and brutal. Data only. Art: tools/sprites/last_seen_draw.py + last_seen_moves.py. Code: fighterLastSeen.js.
+import { DEFAULT_GRAB } from './common.js';
+import { LS_MOVES } from './lsMoves.js';
+import { LS_WRONG_MOVES } from './lsWrongMoves.js';
+
+export const PAL_RAIN = { outline: 0x0e0a08, deep: 0x8a6a22, mid: 0xc8a240, light: 0xe8c86a, core: 0xfff6dc, shade: 0x2a2a30, void: 0x08080a };
+export const PAL_WRONG = { outline: 0x060508, deep: 0x2a2e28, mid: 0x5a6258, light: 0xb4bcb0, core: 0xffffff, shade: 0x141216, void: 0x020203 };
+
+const COMMON = {
+  id: 'last-seen',
+  runCycle: [0, 8],
+  movesOrigin: [56 / 112, 95 / 104],
+  originY: 59 / 64,
+  handOffset: { x: 14, y: -36 },
+  portrait: [16, 0, 36, 32],
+  swingSfx: 'swing',
+  body: { w: 20, h: 50 },
+  headTop: 54,
+  tagY: 64,
+};
+
+export const LAST_SEEN = {
+  ...COMMON,
+  name: 'LAST SEEN',
+  sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves' },
+  moveAnims: LS_MOVES,
+  fxColor: 0xe8c86a,
+  pal: PAL_RAIN,
+  weight: 0.84,                     // light: easy to send flying
+  walkSpeed: 3.0, runAccel: 0.55, groundFriction: 0.5,
+  airSpeed: 2.8, airAccel: 0.25, airFriction: 0.04,
+  jumpV: -9.6, shortHopV: -6.4, doubleJumpV: -9.2,
+  // SIGHTINGS: fills from damage she deals and takes; full = she turns into SEEN (until KO'd)
+  sightings: { max: 100, perDealt: 1.6, perTaken: 1.2 },
+
+  // TAUNT (1): holds up the poster of herself
+  taunt: { name: 'HAVE YOU SEEN ME?', frames: 84, lines: ['HAVE YOU SEEN ME?', 'PLEASE... HELP ME.', "I DON'T KNOW HOW I GOT HERE."],
+    sounds: [[12, 'petal', 0.4, 0.8]] },
+
+  moves: {
+    ...DEFAULT_GRAB,
+    // ---- her attacks are weak: shoves and flailing
+    jab: { frames: 24, fx: 'jab', hits: [{ from: 4, to: 6, box: [8, -48, 30, 24], dmg: 3, angle: 40, base: 2.0, growth: 1.6 }] },
+    ftilt: { frames: 28, fx: 'arc', hits: [{ from: 9, to: 12, box: [8, -50, 42, 30], dmg: 6, angle: 36, base: 2.6, growth: 4.4 }] },
+    utilt: { frames: 26, fx: 'spin', hits: [{ from: 8, to: 14, box: [-24, -90, 48, 40], dmg: 5, angle: 88, base: 2.6, growth: 4.2 }] },
+    dtilt: { frames: 22, fx: 'low', hits: [{ from: 6, to: 9, box: [6, -16, 38, 16], dmg: 4, angle: 24, base: 2.0, growth: 3.0 }] },
+    dashAttack: { frames: 34, fx: 'low', slide: { from: 4, to: 18, vx: 6.4 }, hits: [{ from: 5, to: 14, box: [4, -32, 38, 32], dmg: 6, angle: 60, base: 2.8, growth: 3.6 }] },
+    fsmash: { frames: 46, lunge: 1.6, fx: 'thrust', hits: [{ from: 18, to: 21, box: [8, -44, 42, 28], dmg: 11, angle: 36, base: 3.6, growth: 6.0 }] },
+    usmash: { frames: 44, fx: 'up', hits: [{ from: 14, to: 20, box: [-30, -92, 60, 68], dmg: 10, angle: 86, base: 3.6, growth: 6.0 }] },
+    dsmash: { frames: 44, fx: 'low2', hits: [{ from: 15, to: 19, box: [-50, -14, 100, 16], dmg: 9, angle: 30, base: 3.2, growth: 5.6 }] },
+    nair: { frames: 26, landLag: 6, fx: 'spin', hits: [{ from: 4, to: 14, box: [-26, -56, 52, 50], dmg: 5, angle: 45, base: 2.4, growth: 3.4 }] },
+    fair: { frames: 26, landLag: 9, fx: 'thrust', hits: [{ from: 8, to: 11, box: [6, -40, 38, 24], dmg: 7, angle: 40, base: 2.6, growth: 5.0 }] },
+    bair: { frames: 24, landLag: 9, fx: 'back', hits: [{ from: 7, to: 9, box: [-38, -42, 32, 26], dmg: 8, angle: 145, base: 2.8, growth: 5.2 }] },
+    uair: { frames: 24, landLag: 6, fx: 'up', hits: [{ from: 6, to: 11, box: [-22, -90, 44, 40], dmg: 6, angle: 86, base: 2.6, growth: 4.6 }] },
+    dair: { frames: 34, landLag: 14, fx: 'down', hits: [{ from: 10, to: 14, box: [-14, -12, 28, 24], dmg: 8, angle: -80, base: 2.6, growth: 3.6 }] },
+    // ---- specials
+    // FLYER (neutral): throws a missing poster of herself. Whoever it hits is posted MISSING: they take 20% more
+    // damage for a few seconds
+    neutralB: { frames: 30, spawnAt: 12, flyer: { speed: 4.6, life: 70, flutter: 5, mark: 240, hit: { dmg: 4, angle: 40, base: 2.4, growth: 1.6 } } },
+    // STUMBLE (side): a desperate lunge forward - once per jump
+    sideB: { frames: 34, landLag: 10, fx: 'thrust', dive: { from: 9, to: 22, vx: 6.6, vy: -2.4 },
+      hits: [{ from: 9, to: 20, box: [-4, -44, 42, 34], dmg: 6, angle: 40, base: 3.0, growth: 4.2 }] },
+    // A FRIGHTENED JUMP (up)
+    upb: { frames: 40, riseAt: 8, riseV: -14, pushX: 2.0, drift: 3.4, hits: [{ from: 8, to: 14, box: [-20, -56, 40, 58], dmg: 4, angle: 80, base: 2.6, growth: 2.4 }] },
+    // HIDE (down): curls up with her arms over her head - nothing touches her for a moment
+    downB: { frames: 34, hide: { from: 3, to: 26 } },
+  },
+
+  // Limit: I SEE IT TOO. She stops fighting it: a scream that knocks everyone near her away, and she turns into
+  // SEEN right now, meter or not.
+  limit: {
+    name: 'I SEE IT TOO', type: 'turn', frames: 40, radius: 120,
+    blast: { dmg: 18, angle: 60, base: 6.0, growth: 5.0, radial: true },
+    colors: PAL_RAIN,
+  },
+};
+
+// SEEN: every normal attack harder and further (her long arms, her claws)
+function wrongMove(m) {
+  if (!m.hits) return m;
+  return { ...m, hits: m.hits.map((h) => {
+    const [x, y, w, hh] = h.box;
+    return { ...h, box: [x - 4, y - 4, w + 16, hh + 8], dmg: Math.round(h.dmg * 1.6), base: h.base + 0.8, growth: h.growth * 1.15 };
+  }) };
+}
+const NORMALS = ['jab', 'ftilt', 'utilt', 'dtilt', 'dashAttack', 'fsmash', 'usmash', 'dsmash', 'nair', 'fair', 'bair', 'uair', 'dair'];
+
+export const SEEN = {
+  ...COMMON,
+  name: 'SEEN',
+  sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves' },
+  moveAnims: LS_WRONG_MOVES,
+  fxColor: 0xb4bcb0,
+  pal: PAL_WRONG,
+  wrong: true,                      // fighterLastSeen.js: its drips, smears and glitches
+  hitVfx: { shape: 'wrong', colors: [0x141216, 0x5a6258, 0xb4bcb0], n: 8 },   // its hits, whatever the costume
+  weight: 1.14,                     // heavy now
+  takenMult: 0.85,                  // and tougher: 15% less damage taken
+  walkSpeed: 3.6, runAccel: 0.8, groundFriction: 0.5,
+  airSpeed: 3.2, airAccel: 0.3, airFriction: 0.04,
+  jumpV: -10.4, shortHopV: -7.0, doubleJumpV: -10.0,
+  taunt: { name: 'LOOK AT ME', frames: 84, lines: ['...', 'LOOK AT ME.', 'YOU FOUND ME.'], sounds: [[40, 'glitch', 0.6, 0.5], [46, 'curse', 0.4, 0.6]] },
+  moves: {
+    ...DEFAULT_GRAB,
+    ...Object.fromEntries(NORMALS.map((n) => [n, wrongMove(LAST_SEEN.moves[n])])),
+    // WAIL (neutral): a scream that hits everything around her
+    neutralB: { frames: 40, fx: 'up', hits: [{ from: 14, to: 20, box: [-62, -84, 124, 90], dmg: 14, angle: 60, base: 4.6, growth: 5.2 }] },
+    // SKITTER (side): a fast, low crawl that rakes them over and over - once per jump
+    sideB: { frames: 34, landLag: 8, multi: true, dive: { from: 5, to: 22, vx: 9.4, vy: -0.6 }, hits: [
+      { from: 6, to: 7, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
+      { from: 11, to: 12, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
+      { from: 16, to: 17, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
+      { from: 21, to: 24, box: [-4, -34, 50, 34], dmg: 8, angle: 40, base: 4.2, growth: 5.0 },
+    ] },
+    // CLIMB (up): claws its way up the air itself
+    upb: { frames: 40, riseAt: 6, riseV: -15.5, pushX: 2.0, drift: 3.8, hits: [
+      { from: 6, to: 8, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
+      { from: 12, to: 14, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
+      { from: 18, to: 20, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
+      { from: 24, to: 27, box: [-26, -76, 52, 46], dmg: 7, angle: 80, base: 4.0, growth: 4.6 },
+    ] },
+    // DRAG (down): both arms slam down on the floor in front of her, popping them up
+    downB: { frames: 36, hits: [{ from: 13, to: 16, box: [-54, -16, 108, 20], dmg: 15, angle: 78, base: 4.4, growth: 6.0 }] },
+  },
+  // Limit: DO NOT APPROACH. The lights go out. Missing posters flicker on the walls. She's suddenly right behind
+  // the nearest opponent - and there's nothing they can do: seven slashes and a last swipe. 7 x 5 + 20 = 55%.
+  limit: {
+    name: 'DO NOT APPROACH', type: 'approach', frames: 150, reach: 460, appearAt: 36, slashes: [40, 52, 64, 76, 88, 100, 112], finalAt: 126,
+    slash: { dmg: 5, angle: 70, base: 1.0, growth: 0, stun: 30 },
+    final: { dmg: 20, angle: 42, base: 7.4, growth: 6.0 },
+    colors: PAL_WRONG,
+  },
+};
+LAST_SEEN.wrongDef = SEEN;

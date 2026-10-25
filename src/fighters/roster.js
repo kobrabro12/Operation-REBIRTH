@@ -5,6 +5,7 @@ import { MR_WAKE } from './mrWake.js';
 import { HERO_KNIGHT } from './heroKnight.js';
 import { NU } from './nu.js';
 import { AERO } from './aero.js';
+import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
 import { skinTexture, skinInfo } from './skins.js';
 
@@ -33,6 +34,11 @@ export const TEST_ROSTER = [
       + 'K      MISSING POSTER  SIDE K CHANNEL SURF\nUP K   OUT OF BODY     DOWN K WRONG DOOR\n\n'
       + 'FULL SIGNAL METER: IT TRANSFORMS AT RANDOM\nUNTIL KO - SEE (+20% DMG, NECK SNAP GRAB),\nINCOMING (+20% SPEED, TACKLE AND FURY),\nSMILE (HEALS, TELEPORT + CORD SHOCK)\n\n'
       + 'LIMIT  LEVEL 0 - THE BACTERIA HUNTS THEM' },
+  { id: 'last-seen', name: 'LAST SEEN', def: LAST_SEEN, tag: 'PROTOTYPE 04',
+    notes: 'SHE WENT MISSING. SOMETHING CAME BACK.\nSTARTS FRAIL: LIGHT, WEAK, EASY TO LAUNCH.\n\n'
+      + 'SIGHTINGS (THE EYES OVER HER HEAD) FILL AS SHE\nDEALS AND TAKES DAMAGE. ALL OPEN: SHE TURNS\nINTO SEEN UNTIL KO - HEAVY, FAST, BRUTAL.\n\n'
+      + 'K      FLYER / WAIL\nSIDE K STUMBLE / SKITTER\nUP K   JUMP / CLIMB\nDOWN K HIDE / DRAG\n\n'
+      + 'LIMIT  I SEE IT TOO - TURN NOW\n       DO NOT APPROACH (AS SEEN) - 55%' },
 ];
 
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"

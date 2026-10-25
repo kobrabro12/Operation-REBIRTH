@@ -321,6 +321,8 @@ export class MatchScene extends Phaser.Scene {
     t.stats.damageTaken += dmg; if (owner) owner.stats.damageDealt += dmg;
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
+    if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
+    if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
 
     const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult * (beat ? beat.kb : 1);
     let dir = hb.facing || 1;
@@ -501,7 +503,7 @@ export class MatchScene extends Phaser.Scene {
   }
   // Milestone costumes: each has its own hit effect (skins.js vfx.hit), bigger at higher milestones.
   skinHitFx(owner, x, y, kb, dir, dmg = 0) {
-    const v = (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];
+    const v = owner.def.hitVfx || (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];   // (a form can override the costume: LAST SEEN as SEEN)
     if (!v) return;
     if (v.sound) sfx(v.sound, 0.35, 0.9 + Math.random() * 0.3);
     if (v.words && (dmg >= 7 || kb > 6)) {                // Akatsuki: manga sound-effect lettering on solid hits
@@ -530,6 +532,12 @@ export class MatchScene extends Phaser.Scene {
         add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, r: 9 + kb, color: 0x9aff6a, grav: 0 });
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 1.8 + R() * 3; add({ shape: 'bone', x, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 30 + R() * 14, color: col(i), ang: R() * 6, spin: (R() - 0.5) * 0.6, drag: 0.96, grav: 0.14 }); }
         if (dmg >= 9 || kb > 7) add({ shape: 'skull', x, y: y - 8, vx: dir * 0.4, vy: -1.2, life: 34, color: 0xe8ffd8, grav: -0.02, drag: 0.96 });
+        break;
+      case 'wrong':                                   // SEEN: black ink splats, torn poster scraps and static
+        for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ shape: 'ink', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp - 0.5, life: 20 + R() * 14, color: col(i), r: 2 + R() * 3, drag: 0.9, grav: 0.15 }); }
+        for (let i = 0; i < 3; i++) add({ shape: 'paper', x, y, vx: dir * (1 + R() * 2), vy: -1 - R() * 2, life: 36, color: R() < 0.5 ? 0xece6d4 : 0xc8281e, ang: R() * 6, spin: 0.3, drag: 0.94, grav: 0.05 });
+        for (let i = 0; i < 6; i++) add({ shape: 'pixel2', x: x + (R() - 0.5) * 20, y: y + (R() - 0.5) * 16, vx: 0, vy: 0, life: 8, color: R() < 0.5 ? 0xffffff : 0x141216, grav: 0 });
+        if (dmg >= 12 || kb > 7) this.shake(4, 4);
         break;
       case 'win95':                                   // DIAL-UP: little error windows bursting off, and a few stray bits
         for (let i = 0; i < Math.ceil(n / 2); i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.4; add({ shape: 'win95', x, y, vx: Math.cos(a) * sp + dir * 0.5, vy: Math.sin(a) * sp, life: 26 + R() * 14, color: [0x0a2484, 0x8a0000, 0x108484][i % 3], drag: 0.93, grav: 0.04 }); }

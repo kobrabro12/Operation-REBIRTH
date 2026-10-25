@@ -19,6 +19,7 @@ import { FighterRender } from './fighterRender.js';
 import { LimitAero } from './limitAero.js';
 import { LimitMosh } from './limitMosh.js';
 import { FighterBeat } from './fighterBeat.js';
+import { FighterLastSeen } from './fighterLastSeen.js';
 import { FighterTaunt } from './fighterTaunt.js';
 import { FighterWhatOnceWas } from './fighterWhatOnceWas.js';
 import { popBubble } from './entities.js';
@@ -85,7 +86,7 @@ export class Fighter {
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed; }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
-  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1); }   // posted MISSING: takes 20% more
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1); }   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
@@ -149,6 +150,7 @@ export class Fighter {
     if (this.state !== 'shield' && this.shieldHp < 60) this.shieldHp = Math.min(60, this.shieldHp + 0.12);
     if (this.limit >= LIMIT_MAX && !this.limitReadyShown) { this.limitReadyShown = true; sfx('limitready', 0.8); this.match.popText(this, 'LIMIT READY!', '#78a0c6'); }
 
+    if (this.def.id === 'last-seen') this.lastSeenTick();   // LAST SEEN: turning into SEEN when SIGHTINGS is full
     const handler = this['st_' + this.state];
     if (handler) handler.call(this, c);
     this.physics(c);
@@ -334,6 +336,8 @@ export class Fighter {
     }
     if (m.wave && this.t === m.spawnAt) this.match.spawnWave(this, m.wave.full ? this.chordWave(m.wave) : m.wave);
     if (m.amp && this.t === m.spawnAt) this.match.spawnAmp(this, m.amp);
+    if (m.flyer && this.t === m.spawnAt) this.match.spawnPoster(this, m.flyer);   // LAST SEEN's FLYER
+    if (m.hide && this.t >= m.hide.from && this.t <= m.hide.to) this.invincible = Math.max(this.invincible, 2);   // LAST SEEN's HIDE
     if (m.mic) {                                                    // NU's MIC TOSS: out on its cord and back
       if (this.t === m.spawnAt && !this.micOut) this.micOut = this.match.spawnMic(this, m.mic);
       if (!this.grounded) this.vy = Math.min(this.vy, m.mic.airStall);
@@ -510,6 +514,7 @@ export class Fighter {
 
   ko() {
     if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
+    if (this.def.id === 'last-seen') this.revertLastSeen();   // SEEN goes back to LAST SEEN
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;
     if (this.wowMode || this.signal) { this.clearMode(); this.hideModeScreen(); }   // WHAT ONCE WAS loses its mode: the meter rebuilds from empty
     if (this.seized) this.releaseSeized();
@@ -544,7 +549,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, LimitAero, FighterWhatOnceWas]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

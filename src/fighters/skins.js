@@ -42,6 +42,11 @@ const AEG = {
   lime: { h: [75, 110], s: [0.3, 1], center: 92 },
   fish: { h: [10, 40], s: [0.5, 1], v: [0.5, 1], center: 24 },
 };
+// LAST SEEN (test fighter): her raincoat and her hair (SEEN's rags are the same coat)
+const LSG = {
+  coat: { h: [35, 62], s: [0.3, 1], v: [0.2, 1], center: 44 },
+  hair: { h: [10, 30], s: [0.45, 1], v: [0.25, 0.9], center: 20 },
+};
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -234,6 +239,19 @@ export const SKINS = {
              wow: { heal: 0x3ae060, rush: 0xff2a1a, cord: 0xb0b0b0, shock: 0x8ab8f0, taunt: ['CONNECTING...', 'PLEASE WAIT...', 'PRESS ANY KEY', 'IT IS NOW SAFE TO TURN OFF YOUR COMPUTER.'] } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.15, hi: 0.5 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+  ],
+  // LAST SEEN (test fighter): scraps of her missing poster fly off every hit (as SEEN: ink and static instead)
+  'last-seen': [
+    { name: 'LAST SEEN', swatch: 0xc8a240, vfx: { hit: { shape: 'paper', colors: [0xece6d4, 0xe8c86a, 0xc8281e], n: 6 } } },
+    { name: 'NIGHT RAIN', swatch: 0x2a3a6a, fx: 0x8ab0e8, groups: LSG, rules: { coat: { to: 222, sat: 0.8, val: 0.62 }, hair: { sat: 0.2, val: 0.45 } },
+      pal: { outline: 0x0a0e1a, deep: 0x1a2a5a, mid: 0x3a5aa0, light: 0x8ab0e8, core: 0xe8f0ff, shade: 0x141a2a, void: 0x04060a },
+      vfx: { hit: { shape: 'drop', colors: [0x8ab0e8, 0xe8f0ff, 0x3a5aa0], n: 8 } } },
+    { name: 'SCARLET', swatch: 0xb02a26, fx: 0xff6a5a, groups: LSG, rules: { coat: { to: 358, sat: 1.1, val: 0.9 }, hair: { to: 44, sat: 0.55, val: 1.45 } },
+      pal: { outline: 0x1a0606, deep: 0x6a1210, mid: 0xb02a26, light: 0xff6a5a, core: 0xffe0d8, shade: 0x2a0a0a, void: 0x0a0202 },
+      vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xff6a5a, 0x6a1210], n: 6 } } },
+    { name: 'FADED', swatch: 0x8a9478, fx: 0xb4bcb0, groups: LSG, rules: { coat: { to: 90, sat: 0.3, val: 0.85 }, hair: { sat: 0.15, val: 1.3 } },
+      pal: { outline: 0x0e100e, deep: 0x3a4238, mid: 0x6a7468, light: 0xb4bcb0, core: 0xffffff, shade: 0x1a1e1a, void: 0x060806 },
+      vfx: { hit: { shape: 'dust', colors: [0xb4bcb0, 0x6a7468, 0xffffff], n: 8 } } },
   ],
   // AERO (test fighter): glossy bubbles on every hit
   'aero': [

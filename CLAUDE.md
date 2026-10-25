@@ -65,6 +65,12 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   gives for the current frame (`drawHead`). OUT OF BODY launches the TV (the player flies as it); where it lands a new body grows
   (`def.bodies`: self / suit / swat / doctor, sheets in `body-*/`, `bodySheets`) and keeps it until the next up-B. Menus use
   `menuSheets` (drawn with the head).
+  **LAST SEEN** (`last-seen`, keys `ls_*` and `ls_wrong_*`, art `tools/sprites/last_seen_draw.py` + `last_seen_moves.py`, code
+  `fighterLastSeen.js`, def `lastSeen.js`): an original analog-horror transformation fighter - a frail missing woman whose SIGHTINGS
+  meter (`def.sightings`, eyes over her head) fills from damage dealt/taken; full -> state `turning` -> she becomes SEEN (def
+  `SEEN`, `wrongDef`: heavy, `takenMult`, stronger normals via `wrongMove`) until KO'd. Limits: `turn` (I SEE IT TOO) and
+  `approach` (DO NOT APPROACH, 55%). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
+  analog-horror fighter, not wired into the game.
 - Every fighter has a taunt (`def.taunt`, 1 key / stick click); training hotkeys are 2–7.
 
 ## How to add things

@@ -207,6 +207,10 @@ export class CpuController extends Controller {
         if (me.grounded && o.t > lim.grabAt - 20 && Math.random() < 0.3) this.tap('jump');
         return true;
       }
+      if (lim.type === 'turn') {                         // LAST SEEN's scream: get out of its reach
+        if (adx > lim.radius + 30 || o.t > 4) return false;
+        this.x = Math.sign(me.x - o.x) || 1; return true;
+      }
       if (lim.type === 'wall') {                         // get out of reach before the first ring, stay out of the cone
         if (o.ult && o.ult.caught.includes(me)) return false;
         if (o.t > lim.dropAt + 4 || adx > lim.reach + 40) return false;

@@ -160,7 +160,7 @@ export class FighterRender {
     }
     else if (s === 'summon') { sheet = alt; frame = this.t < 20 ? 2 : 12; spr.setScale(1, this.t < 20 ? 0.94 : 1.04); }
     else if (s === 'upb') { frame = 6; spr.setScale(0.92, 1.12); }
-    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'wall', 'screensaver', 'level0'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
+    else if (s === 'limit') { sheet = alt; frame = 12; if (!['undertow', 'wall', 'screensaver', 'level0', 'turn', 'approach'].includes(d.limit.type)) spr.y -= Math.min(16, this.t / 2); }
     else if (s === 'roll' || s === 'spotdodge') spr.setAlpha(0.55);
     else if (s === 'ledge') { frame = 6; spr.setRotation(-0.12 * this.facing); }
     else if (s === 'ledgeclimb' || s === 'ledgeattack') { frame = s === 'ledgeattack' && this.t >= 14 ? 3 : 6; if (s === 'ledgeattack' && this.t >= 14) sheet = alt; spr.setScale(1, this.t < 6 ? 1.08 : 1); }
@@ -285,6 +285,9 @@ export class FighterRender {
     if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'wall' && this.ult) this.drawWallLimit(g, d.limit, this.ult);
+    if (s === 'limit' && d.limit.type === 'approach' && this.ult) this.drawApproach(g, d.limit, this.ult);
+    if (d.sightings) this.drawSightings(g);                         // LAST SEEN: her SIGHTINGS meter
+    if (d.wrong) this.drawSeen(g, spr);                              // SEEN: skipping frames, a dark haze
     if (d.beat) this.drawBeat(g);                                   // NU: the beat ring at his feet and his STREAK
     if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
     if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);
