@@ -89,10 +89,18 @@ def wrong_idle():
     H = dict(torso=(30, 2, 2), head=(-24, 0, 0), fupper=(10, 0, 0), ffore=(80, 0, 0), ffist=(30, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), **legs(26, -30, -26, 30, 8, -8))
     return [k(0, P(**H)), k(96, P(**mix(H, torso=(36, 2, 2), fupper=(16, 0, 0))), 'inout'), k(192, P(**H), 'inout')]
 def wrong_run():
-    """On all fours: a fast, scuttling crawl."""
-    def C(s): return P(torso=(78, 4, 6), head=(-70, 0, 0), hair=(-20, 0, 0), fupper=(60 + 30 * s, 0, 0), ffore=(10, 0, 0), bupper=(60 - 30 * s, 0, 0), bfore=(10, 0, 0),
-                       root=(0, 0, 6, 1.1, 0.86), **legs(60 - 20 * s, -90, 40 + 20 * s, -80, 20, 10))
-    return [k(0, C(1)), k(12, C(0), 'linear'), k(24, C(-1), 'linear'), k(36, C(0), 'linear'), k(48, C(1), 'linear')]
+    """A stiff, limping lurch: hunched over, the axe dragging along the floor behind its hand, the bare metal leg
+    landing hard (the whole body dips and the head jerks), the furred leg swinging through."""
+    AXE_DRAG = dict(fupper=(0, 0, 0), ffore=(60, 0, 0), ffist=(16, 0, 0))       # blade trailing just above the floor
+    def L(bt, bs, ft, fs, bsh=0, fsh=0):                                            # a short stride on top of the hunch's bent knees
+        return legs(26 + bt, -30 + bs, -26 + ft, 30 + fs, 8 + bsh, -8 + fsh)
+    def W(lg, torso, head, bup, dip, sq):
+        return P(torso=(torso, 2, 2), head=(head, 0, 0), bupper=(bup, 0, 0), bfore=(20, 0, 0), root=(0, 0, dip, 1 + sq, 1 - sq), **AXE_DRAG, **lg)
+    A = W(L(-10, 6, -14, 6, 0, -4), 33, -20, 30, 1, 0.03)       # front foot plants
+    B = W(L(-20, 22, 6, -6, -8, 4), 30, -26, 10, -1, -0.02)     # passing: the metal leg swings through, stiff
+    C = W(L(14, 2, 10, 16, 4, 0), 37, -12, -10, 2, 0.05)        # the metal leg lands hard: a dip, the head jolts
+    D = W(L(4, -6, -22, 22, 0, -6), 30, -28, 20, -1, -0.02)     # passing: the furred leg swings through
+    return [k(0, A), k(12, B, 'out'), k(22, C, 'snap'), k(36, D, 'out'), k(48, A, 'in')]
 
 WRONG = borrowed()
 # ---- SEEN's own attacks: hunched over, swinging the bloody axe (they replace the borrowed upright swings)
