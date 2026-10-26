@@ -313,7 +313,8 @@ export class MatchScene extends Phaser.Scene {
     if (t.def.beat) t.dropStreak();
     const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1)));
     if (beat) owner.beatLanded(t, hb);
-    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.dive && owner.move.dive.bounce) owner.diveBounce = true;   // NU's Stage Dive: bounce off them
+    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.dive && owner.move.dive.bounce) owner.diveBounce = true;
+    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.cling && t.alive) owner.startCling(t);   // LAST SEEN: she clings on   // NU's Stage Dive: bounce off them
     let kbPct;
     if (this.mode === 'stamina') { t.hp -= dmg; kbPct = 40 + 50 * (1 - Math.max(0, t.hp) / t.maxHp); }
     else { t.percent = Math.min(999, t.percent + dmg); kbPct = t.percent; }
@@ -532,6 +533,13 @@ export class MatchScene extends Phaser.Scene {
         add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 10, maxLife: 10, r: 9 + kb, color: 0x9aff6a, grav: 0 });
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 1.8 + R() * 3; add({ shape: 'bone', x, y, vx: Math.cos(a) * sp + dir * 0.6, vy: Math.sin(a) * sp, life: 30 + R() * 14, color: col(i), ang: R() * 6, spin: (R() - 0.5) * 0.6, drag: 0.96, grav: 0.14 }); }
         if (dmg >= 9 || kb > 7) add({ shape: 'skull', x, y: y - 8, vx: dir * 0.4, vy: -1.2, life: 34, color: 0xe8ffd8, grav: -0.02, drag: 0.96 });
+        break;
+      case 'scrap':                                   // SEEN (the animatronic): sparks, tufts of fur and a splash of oil
+        add({ shape: 'flash', x, y, vx: 0, vy: 0, life: 6, maxLife: 6, r: 7 + kb, color: 0xffd060, grav: 0 });
+        for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 3, sp = 2.5 + R() * 4; add({ shape: 'shard', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp, life: 10 + R() * 12, color: col(i), drag: 0.94, grav: 0.25, ang: a }); }
+        for (let i = 0; i < 4; i++) add({ shape: 'pixel2', x: x + (R() - 0.5) * 10, y, vx: (R() - 0.5) * 2 + dir, vy: -1 - R(), life: 30, color: R() < 0.5 ? 0xd8c070 : 0xb89e4e, drag: 0.95, grav: 0.05 });
+        for (let i = 0; i < 3; i++) add({ shape: 'ink', x, y, vx: dir * (1 + R() * 2), vy: -R() * 2, life: 20, color: 0x141008, r: 2 + R() * 2, drag: 0.9, grav: 0.2 });
+        if (dmg >= 12 || kb > 7) this.shake(4, 4);
         break;
       case 'wrong':                                   // SEEN: black ink splats, torn poster scraps and static
         for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ shape: 'ink', x, y, vx: Math.cos(a) * sp + dir, vy: Math.sin(a) * sp - 0.5, life: 20 + R() * 14, color: col(i), r: 2 + R() * 3, drag: 0.9, grav: 0.15 }); }

@@ -66,8 +66,12 @@ CALM = borrowed()
 mv(CALM, 'neutralB', 30, [k(0, REST), k(8, P(torso=(-12, -1, 0), head=(8, 0, 0), fupper=(-160, 0, 0), ffore=(-30, 0, 0)), 'out'),
                           k(12, P(torso=(18, 3, 1), head=(-10, 1, 0), fupper=(-70, 0, 0), ffore=(20, 0, 0), root=(0, 4, 0), **STANCE), 'snap'),
                           k(20, P(torso=(14, 2, 1), fupper=(-60, 0, 0), ffore=(30, 0, 0), **STANCE), 'linear'), k(30, REST, 'back')], smear=('ffore', 'ffist'))
-LUNGE = P(torso=(70, 6, 4), head=(-10, 0, 0), hair=(-20, 0, 0), fupper=(-150, 0, 0), ffore=(10, 0, 0), bupper=(-160, 0, 0), bfore=(10, 0, 0), root=(0, 0, -6), **legs(-50, 30, -60, 40))
-mv(CALM, 'sideB', 34, [k(0, REST), k(6, P(**DEEP, torso=(14, 0, 2), head=(10, 0, 0)), 'out'), k(9, LUNGE, 'snap'), k(22, mix(LUNGE, torso=(76, 6, 4)), 'linear'), k(34, REST, 'inout')])
+# PLEASE HELP ME: a desperate lunge, one hand reaching out ahead of her
+REACH = P(torso=(56, 5, 3), head=(-30, 0, 0), hair=(-20, 0, 0), fupper=(-60, 0, 0), ffore=(120, 0, 0), ffist=(-10, 0, 0), bupper=(74, 0, 0), bfore=(38, 0, 0), root=(0, 0, -4), **legs(-40, 30, -50, 40))
+mv(CALM, 'sideB', 34, [k(0, REST), k(6, P(**DEEP, torso=(14, 0, 2), head=(10, 0, 0), fupper=(20, 0, 0)), 'out'), k(9, REACH, 'snap'), k(22, mix(REACH, torso=(60, 5, 3), ffist=(-20, 0, 0)), 'linear'), k(34, REST, 'inout')])
+# clinging on: both arms wrapped round them, face pressed in, shaking
+HOLD = P(torso=(30, 4, 1), head=(-14, 2, 0), fupper=(-50, 0, 0), ffore=(110, 0, 0), bupper=(-100, 0, 0), bfore=(32, 0, 0), root=(0, 2, 0), **legs(18, -10, -18, 14, 0, -6))
+mv(CALM, 'cling', 24, [k(0, HOLD), k(6, mix(HOLD, head=(-6, 2, 0), torso=(34, 4, 1)), 'snap'), k(12, HOLD, 'inout'), k(18, mix(HOLD, head=(-20, 2, 0), torso=(28, 4, 1)), 'snap'), k(24, HOLD, 'inout')], loop=True, step=2)
 mv(CALM, 'upb', 40, [k(0, P(**DEEP)), k(8, P(fupper=(-170, 0, -1), ffore=(10, 0, 0), bupper=(-170, 0, -1), head=(-20, 0, 0), hair=(20, 0, 0), **TUCK), 'snap'),
                      k(28, P(fupper=(-150, 0, 0), bupper=(-150, 0, 0), head=(-14, 0, 0), **TUCK), 'linear'), k(40, P(fupper=(-120, 0, 0), bupper=(-130, 0, 0), **legs(20, 14, -14, 26)), 'inout')])
 HIDE = P(torso=(40, 3, 6), head=(30, 1, 2), fupper=(-150, 0, 0), ffore=(-70, 0, 0), bupper=(-150, 0, 0), bfore=(-60, 0, 0), root=(0, 0, 0, 1.1, 0.82), **legs(56, -80, -24, 44, 18, -18))

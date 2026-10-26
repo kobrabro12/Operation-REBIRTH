@@ -7,9 +7,10 @@ creases and hair strands. Two looks - set_style():
 
   calm   LAST SEEN: a slight, timid woman in a faded mustard raincoat (belted, buttoned, down past the knee), an
          auburn bob, pale and tired, dark circles, red rain boots; a torn missing poster of herself in one hand.
-  wrong  SEEN: what she turns into. Grey wet skin, too-thin limbs ending in long claws, bare feet with long toes,
-         black wet hair hanging round the face, white pinprick eyes and a jaw that hangs far too low; the
-         raincoat faded and torn to rags.
+  wrong  SEEN: what she turns into - an old restaurant mascot animatronic, a canary, scrapped and rotting, with her
+         inside it. Faded yellow fur torn away in patches over a rusted metal endoskeleton, wires hanging out, one
+         plastic eye, the beak hanging open - and through the gaps, her: her eye in the beak, her auburn hair at the
+         neck, her mustard raincoat through the hole in its chest. (draw_mascot())
 
   python3 tools/sprites/last_seen_draw.py preview.png
 """
@@ -72,7 +73,102 @@ def limb(d, a, b, w, col):
     r = w / 2 - 0.5
     for (x, y) in (a, b): d.ellipse([x - r, y - r, x + r, y + r], fill=col)
 
+FUR = (0xf0e09a, 0xd8c070, 0xb89e4e, 0x86703a, 0x4a3c1e)          # faded yellow fur
+FURD = (0xc8b478, 0xa89458, 0x86743e, 0x5e5028, 0x30280e)         # the far side, dirtier
+METAL = (0xc8ccd0, 0xa0a4aa, 0x7a7e86, 0x52565e, 0x24262c)        # the endoskeleton
+BEAK = (0xf0a868, 0xd8844a, 0xb06636, 0x7a4422, 0x3e200e)         # orange plastic, faded
+RUST = (0x8a4a22, 0x6a3418)
+WIRES = (0xc8281e, 0x2a5ad8, 0xffd23a)
+
+def rod(d, a, b, col, w=2):
+    d.line([a, b], fill=col, width=w)
+
+def draw_mascot():
+    """SEEN: the scrapped canary animatronic, with her inside it."""
+    P = {}
+    rng = np.random.RandomState(5)
+    def grime(a, n=6):                                                 # rust and stains scattered over a part
+        ys, xs = np.nonzero(a[..., 3] > 0)
+        for i in rng.choice(len(xs), min(n, len(xs)), replace=False):
+            if tuple(a[ys[i], xs[i], :3]) not in (tuple(hx(FUR[4])[:3]), tuple(hx(METAL[4])[:3])): a[ys[i], xs[i]] = hx(RUST[i % 2])
+    # ---------------- legs: back leg stripped to the metal, front leg still furred
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (28, 40), (25, 48), 6, hx(FURD[2])); a = shade(im, FURD); grime(a, 3); P['bthigh'] = a
+    im = blank(); d = ImageDraw.Draw(im); rod(d, (25, 48), (24, 55), hx(METAL[2]), 2); d.ellipse([23, 46, 27, 50], fill=hx(METAL[2]))
+    d.rectangle([24, 50, 26, 52], fill=hx(METAL[3])); a = shade(im, METAL); put(a, [(25, 51)], RUST[0]); P['bshin'] = a
+    im = blank(); d = ImageDraw.Draw(im)
+    for (tx, ty) in ((19, 58), (23, 58), (27, 58)): d.line([(24, 55), (tx, ty)], fill=hx(METAL[2]), width=2)
+    a = shade(im, METAL); P['bshoe'] = a
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (37, 40), (40, 48), 7, hx(FUR[2])); a = shade(im, FUR)
+    put(a, [(39, 45), (40, 46), (41, 46), (40, 47)], 0x1a1a1a); put(a, [(40, 46)], METAL[1]); grime(a, 3); P['fthigh'] = a   # a tear at the knee: metal underneath
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (40, 48), (40, 54), 6, hx(FUR[2])); a = shade(im, FUR)
+    for y in (53, 54): put(a, [(39, y), (40, y), (41, y)], METAL[2])                                                       # torn away at the ankle
+    P['fshin'] = a
+    im = blank(); d = ImageDraw.Draw(im)
+    for (tx, ty) in ((44, 58), (47, 57), (36, 58)): limb(d, (40, 55), (tx, ty), 3, hx(BEAK[2]))                             # big three-toed bird foot
+    a = shade(im, BEAK); grime(a, 2); P['fshoe'] = a
+    # ---------------- back arm: the fur hanging off it, the forearm bare metal with a claw hand
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (27, 24), (25, 31), 6, hx(FURD[2])); a = shade(im, FURD); grime(a, 2); P['bupper'] = a
+    im = blank(); d = ImageDraw.Draw(im); rod(d, (25, 31), (26, 38), hx(METAL[2]), 2); d.ellipse([23, 29, 27, 33], fill=hx(METAL[3]))
+    for (tx, ty) in ((23, 43), (26, 44), (29, 42)): d.line([(26, 38), (tx, ty)], fill=hx(METAL[2]), width=1)
+    a = shade(im, METAL); put(a, [(27, 34), (27, 35)], WIRES[0]); put(a, [(28, 36)], WIRES[1]); P['bfore'] = a
+    P['poster'] = np.array(blank())
+    # ---------------- body: a round furred belly, a bow tie, stitched seams - and a hole torn in the chest: her inside
+    im = blank(); d = ImageDraw.Draw(im)
+    d.ellipse([25, 20, 41, 44], fill=hx(FUR[2]))
+    d.rectangle([28, 40, 38, 45], fill=hx(FUR[2]))
+    a = shade(im, FUR)
+    for (x, y) in [(29, 23), (30, 22), (31, 23), (32, 22), (33, 23)]: put(a, [(x, y)], 0xc8281e)                          # a faded bow tie
+    put(a, [(31, 22), (31, 23)], 0x8a1a14)
+    hole = [(x, y) for y in range(27, 35) for x in range(30, 37) if (x - 33) ** 2 / 9 + (y - 31) ** 2 / 14 <= 1]
+    put(a, hole, 0x0a0806)                                                                                                   # the hole...
+    put(a, [(31, 30), (32, 30), (31, 31), (32, 31), (32, 32), (33, 32), (33, 33)], 0xb8923a)                               # ...her raincoat inside it
+    put(a, [(34, 29), (35, 30), (35, 31)], 0xd9ae98)                                                                        # ...and her pale hand, pressed to the gap
+    put(a, [(36, 32), (36, 33), (37, 34)], WIRES[0]); put(a, [(30, 34), (29, 35)], WIRES[1])                               # wires spilling out
+    for (x, y0, c) in [(31, 44, WIRES[0]), (35, 44, WIRES[2]), (37, 43, 0x1a1a1a)]:                                        # more dangling from under it
+        for y in range(y0, y0 + 4): a[y, x] = hx(c)
+    for (x, y) in [(29, 27), (30, 26), (37, 28), (36, 35), (30, 36)]: put(a, [(x, y)], FUR[4])                             # torn edges
+    for y in range(36, 44, 2): put(a, [(33, y)], FUR[3])                                                                    # a stitched seam
+    grime(a, 8)
+    P['torso'] = a
+    # ---------------- head: a big round canary head, one plastic eye, the beak hanging open - her eye inside
+    im = blank(); d = ImageDraw.Draw(im)
+    d.rectangle([31, 16, 35, 22], fill=hx(METAL[2]))                                                                        # the neck: bare metal
+    d.ellipse([27, 3, 42, 19], fill=hx(FUR[2]))
+    a = shade(im, FUR)
+    im2 = blank(); d2 = ImageDraw.Draw(im2)
+    d2.polygon([(40, 9), (47, 11), (40, 13)], fill=hx(BEAK[2]))                                                             # upper beak
+    d2.polygon([(39, 15), (45, 19), (39, 18)], fill=hx(BEAK[2]))                                                            # lower beak, hanging open
+    bk = shade(im2, BEAK); m = bk[..., 3] > 0; a[m] = bk[m]
+    put(a, [(40, 13), (41, 13), (40, 14), (41, 14), (42, 14), (40, 15)], 0x0a0806)                                          # the gap...
+    put(a, [(41, 14)], 0xf4f2ec); put(a, [(40, 14)], 0x3a2a2a)                                                               # ...and her eye in it, looking out
+    for (x, y) in [(x, y) for y in range(6, 11) for x in range(35, 40) if (x - 37) ** 2 + (y - 8) ** 2 <= 5]: put(a, [(x, y)], 0xf0f0e8)   # its big plastic eye
+    put(a, [(35, 6), (39, 6), (35, 10), (39, 10)], FUR[3])
+    put(a, [(38, 9), (38, 8)], 0x101010); put(a, [(36, 7)], 0xffffff); put(a, [(35, 9), (34, 10), (34, 11)], 0x6a6458)    # pupil, drooping; a crack
+    for (x, y) in [(29, 12), (30, 13), (30, 14), (31, 13)]: put(a, [(x, y)], METAL[2])                                      # fur torn off: the metal skull
+    put(a, [(30, 12)], METAL[0])
+    grime(a, 6)
+    P['head'] = a
+    # ---------------- 'hair': a matted crest of feathers - and her auburn hair hanging out at the neck
+    im = blank(); d = ImageDraw.Draw(im)
+    for (x0, x1, y1) in [(32, 29, 0), (34, 34, 0), (36, 38, 1)]: d.line([(x0, 5), (x1, y1)], fill=hx(FURD[2]), width=2)
+    a = shade(im, FURD)
+    for (x, y) in [(30, 19), (30, 20), (30, 21), (29, 22), (31, 20), (31, 21), (31, 22), (30, 23)]: a[y, x] = hx(0x8a4426)  # her hair
+    a[20, 31] = hx(0xb0603a); a[19, 30] = hx(0x5e2a16)
+    P['hair'] = a
+    # ---------------- front arm: furred, a big mascot mitten with a finger missing
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (38, 24), (42, 31), 6, hx(FUR[2])); a = shade(im, FUR); grime(a, 2); P['fupper'] = a
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (42, 31), (44, 27), 5, hx(FUR[2])); a = shade(im, FUR); put(a, [(43, 29), (44, 30)], METAL[2]); P['ffore'] = a
+    im = blank(); d = ImageDraw.Draw(im)
+    d.ellipse([41, 21, 48, 28], fill=hx(FUR[2]))
+    for (tx, ty) in ((49, 19), (50, 23)): limb(d, (45, 23), (tx, ty), 2, hx(FUR[2]))
+    a = shade(im, FUR); im2 = blank(); d2 = ImageDraw.Draw(im2); d2.line([(46, 22), (49, 17)], fill=hx(METAL[2]), width=1)   # a bare metal finger
+    mt = shade(im2, METAL); m = mt[..., 3] > 0; a[m] = mt[m]
+    grime(a, 2)
+    P['ffist'] = a
+    return P
+
 def draw_parts():
+    if STYLE == 'wrong': return draw_mascot()
     W = STYLE == 'wrong'
     C = WRONG if W else CALM
     K, T, B, CO, HR = C['skin'], C['tight'], C['boot'], C['coat'], C['hair']

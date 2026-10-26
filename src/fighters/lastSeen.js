@@ -1,13 +1,14 @@
 // LAST SEEN: a TEST FIGHTER out of analog horror - a woman who went missing, and what came back. She starts out
 // frail: light, weak, easy to launch. Her SIGHTINGS meter fills as she deals and takes damage; when it's full she
-// turns into SEEN - grey, too thin, jaw hanging open, crawling on all fours - and stays that way until she's KO'd:
-// heavy, fast, and brutal. Data only. Art: tools/sprites/last_seen_draw.py + last_seen_moves.py. Code: fighterLastSeen.js.
+// turns into SEEN - an old canary mascot animatronic, scrapped and rotting, with her inside it - and stays that way
+// until she's KO'd: heavy, fast, and brutal. Data only. Art: tools/sprites/last_seen_draw.py + last_seen_moves.py.
+// Code: fighterLastSeen.js.
 import { DEFAULT_GRAB } from './common.js';
 import { LS_MOVES } from './lsMoves.js';
 import { LS_WRONG_MOVES } from './lsWrongMoves.js';
 
 export const PAL_RAIN = { outline: 0x0e0a08, deep: 0x8a6a22, mid: 0xc8a240, light: 0xe8c86a, core: 0xfff6dc, shade: 0x2a2a30, void: 0x08080a };
-export const PAL_WRONG = { outline: 0x060508, deep: 0x2a2e28, mid: 0x5a6258, light: 0xb4bcb0, core: 0xffffff, shade: 0x141216, void: 0x020203 };
+export const PAL_WRONG = { outline: 0x24262c, deep: 0x86703a, mid: 0xb89e4e, light: 0xf0e09a, core: 0xffffff, shade: 0x2a2620, void: 0x0a0806 };
 
 const COMMON = {
   id: 'last-seen',
@@ -60,9 +61,17 @@ export const LAST_SEEN = {
     // FLYER (neutral): throws a missing poster of herself. Whoever it hits is posted MISSING: they take 20% more
     // damage for a few seconds
     neutralB: { frames: 30, spawnAt: 12, flyer: { speed: 4.6, life: 70, flutter: 5, mark: 240, hit: { dmg: 4, angle: 40, base: 2.4, growth: 1.6 } } },
-    // STUMBLE (side): a desperate lunge forward - once per jump
-    sideB: { frames: 34, landLag: 10, fx: 'thrust', dive: { from: 9, to: 22, vx: 6.6, vy: -2.4 },
-      hits: [{ from: 9, to: 20, box: [-4, -44, 42, 34], dmg: 6, angle: 40, base: 3.0, growth: 4.2 }] },
+    // PLEASE HELP ME (side): she lunges, one hand out, a long way forward - once per jump. If she catches someone
+    // she CLINGS to them, begging, and they can't get away: little hits while her SIGHTINGS fill fast, then she
+    // shoves them off. 2 + 4 x 2 + 5 = 15%, and a big chunk of her meter.
+    sideB: { frames: 34, landLag: 10, dive: { from: 8, to: 22, vx: 7.0, vy: -2.2 },
+      hits: [{ from: 8, to: 22, box: [-2, -48, 42, 36], dmg: 2, angle: 0, base: 0.4, growth: 0, stun: 30 }],
+      cling: {
+        frames: 54, every: 12,                        // how long she hangs on, and how often she squeezes
+        tick: { dmg: 2, angle: 90, base: 0.3, growth: 0, stun: 24 },
+        fill: 8,                                      // SIGHTINGS for each squeeze (on top of the damage)
+        shove: { dmg: 5, angle: 40, base: 4.4, growth: 3.6 },
+      } },
     // A FRIGHTENED JUMP (up)
     upb: { frames: 40, riseAt: 8, riseV: -14, pushX: 2.0, drift: 3.4, hits: [{ from: 8, to: 14, box: [-20, -56, 40, 58], dmg: 4, angle: 80, base: 2.6, growth: 2.4 }] },
     // HIDE (down): curls up with her arms over her head - nothing touches her for a moment
@@ -93,16 +102,16 @@ export const SEEN = {
   name: 'SEEN',
   sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves' },
   moveAnims: LS_WRONG_MOVES,
-  fxColor: 0xb4bcb0,
+  fxColor: 0xd8c070,
   pal: PAL_WRONG,
   wrong: true,                      // fighterLastSeen.js: its drips, smears and glitches
-  hitVfx: { shape: 'wrong', colors: [0x141216, 0x5a6258, 0xb4bcb0], n: 8 },   // its hits, whatever the costume
+  hitVfx: { shape: 'scrap', colors: [0xffd060, 0xffa030, 0xffffff], n: 8 },   // its hits, whatever the costume: sparks, fur, oil
   weight: 1.14,                     // heavy now
   takenMult: 0.85,                  // and tougher: 15% less damage taken
   walkSpeed: 3.6, runAccel: 0.8, groundFriction: 0.5,
   airSpeed: 3.2, airAccel: 0.3, airFriction: 0.04,
   jumpV: -10.4, shortHopV: -7.0, doubleJumpV: -10.0,
-  taunt: { name: 'LOOK AT ME', frames: 84, lines: ['...', 'LOOK AT ME.', 'YOU FOUND ME.'], sounds: [[40, 'glitch', 0.6, 0.5], [46, 'curse', 0.4, 0.6]] },
+  taunt: { name: 'HAPPY BIRTHDAY', frames: 84, lines: ['HAPPY BIRTHDAY!', "L-L-LET'S PLAY!", '...HELP ME.'], sounds: [[2, 'buzz', 0.4, 0.7], [40, 'glitch', 0.6, 0.5], [46, 'buzz', 0.5, 1.3]] },
   moves: {
     ...DEFAULT_GRAB,
     ...Object.fromEntries(NORMALS.map((n) => [n, wrongMove(LAST_SEEN.moves[n])])),

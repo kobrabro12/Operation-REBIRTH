@@ -42,7 +42,7 @@ export class FighterLastSeen {
     this.sheets = skinSheets(this.scene, this.def, this.skin);
     this.pal = this.def.pal;
     sfx('ko', 0.7, 0.4); sfx('bighit', 0.9, 0.5); m.shake(14, 14);
-    m.popText(this, 'SEEN', '#ff3a2a');
+    m.popText(this, 'SEEN', '#ff3a2a'); sfx('buzz', 0.7, 0.6);
     for (let i = 0; i < 24; i++) {                                    // posters torn off her and scattered
       const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
       m.particles.push({ shape: 'paper', x: this.x, y: this.y - 30, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 40 + Math.random() * 20, color: i % 3 ? 0xece6d4 : 0xc8281e, ang: Math.random() * 6, spin: 0.3, drag: 0.95, grav: 0.06 });
@@ -52,6 +52,28 @@ export class FighterLastSeen {
   revertLastSeen() {
     if (this.baseDef) { this.def = this.baseDef; this.sheets = this.baseSheets; this.pal = this.basePal; this.baseDef = null; }
     this.sightings = 0; this.wantTurn = false;
+  }
+
+  // ---- PLEASE HELP ME (side special): she caught someone - she clings on, begging, then shoves them off
+  startCling(t) {
+    this.clingTo = t; this.setState('cling'); this.vx = this.vy = this.lx = this.ly = 0;
+    this.match.popText(this, ['PLEASE HELP ME', 'DID YOU SEE IT?', "DON'T LEAVE ME"][Math.floor(Math.random() * 3)], '#e8c86a');
+    sfx('dodge', 0.5, 1.4);
+  }
+  st_cling() {
+    const C = this.def.moves.sideB.cling, t = this.clingTo, m = this.match;
+    if (!C || !t || !t.alive || t.state === 'respawn') { this.clingTo = null; this.setState(this.grounded ? 'idle' : 'air'); return; }
+    this.x = t.x - this.facing * 12; this.y = t.y; this.vx = this.vy = 0; this.grounded = t.grounded; this.platform = t.platform;
+    t.vx = t.vy = t.lx = t.ly = 0;
+    if (t.state === 'hitstun') t.hitstun = Math.max(t.hitstun, 6);
+    if (this.t > 1 && this.t % C.every === 0 && this.t < C.frames) {
+      m.applyHit(t, { h: C.tick, owner: this, facing: this.facing, id: 'cling' + this.slot + ':' + this.t + ':' + this.age, pillar: true }, this.x);
+      this.addSightings(C.fill); sfx('hit', 0.3, 1.3);
+    }
+    if (this.t >= C.frames) {
+      m.applyHit(t, { h: C.shove, owner: this, facing: this.facing, id: 'clings' + this.slot + ':' + this.age }, this.x);
+      this.clingTo = null; this.vx = -this.facing * 2; this.vy = -3; this.grounded = false; this.platform = null; this.setState('air');
+    }
   }
 
   // ---- I SEE IT TOO (her Limit): a scream that knocks everyone near her away, then she turns
@@ -121,7 +143,9 @@ export class FighterLastSeen {
   // ---- SEEN: dark drips falling off her, a smear behind her when she moves, now and then she skips like bad footage
   seenTick() {
     const m = this.match, R = Math.random;
-    if (this.anim % 5 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: R() < 0.5 ? 0x141216 : 0x2a2e28, size: 2, grav: 0.12 });
+    if (this.anim % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: R() < 0.5 ? 0x141216 : 0x3a2a14, size: 2, grav: 0.12 });   // oil dripping out of it
+    if ((this.anim * 7) % 61 < 2) { for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2; m.particles.push({ shape: 'shard', x: this.x + (R() - 0.5) * 16, y: this.y - 20 - R() * 24, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 10, color: i % 2 ? 0xffd060 : 0xffffff, drag: 0.92, grav: 0.2, ang: a }); } if (this.anim % 3 === 0) sfx('buzz', 0.12, 2); }   // a short in its wiring
+    if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
     if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: 0x141216, grav: 0 });
   }
   drawSeen(g, spr) {
