@@ -289,6 +289,13 @@ def draw_mascot():
             for i, (x, y) in enumerate(pts):
                 if 0 <= x < 64 and 0 <= y < 64: a[y, x] = hx(0x3a6a1a if i % 2 else 0x5a8a2a)
         put(P['head'], [(36, 11), (36, 12), (37, 13)], 0x8ab8c8)                                                             # water leaking from the eye
+    # ---------------- the axe as it's dragged: the same axe, held by the very end of its handle, hanging down from the fist
+    ax = P['axe']; dr = np.zeros_like(ax)
+    ys, xs = np.nonzero(ax[..., 3] > 0)
+    for y, x in zip(ys, xs):
+        nx, ny = 90 - x, 56 - y                                                       # turned over, slid so the fist holds the end
+        if 0 <= nx < 64 and 0 <= ny < 64: dr[ny, nx] = ax[y, x]
+    P['axed'] = dr
     return P
 
 def draw_parts():
@@ -415,10 +422,11 @@ def draw_parts():
         d.ellipse([42, 24, 46, 28], fill=hx(K[2])); a = shade(im, K); put(a, [(43, 25)], K[0])
     P['ffist'] = a
     P['axe'] = np.array(blank())                                       # (only SEEN carries the axe)
+    P['axed'] = np.array(blank())
     return P
 
-ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
-RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist')}
+ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
+RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist')}
 
 def composite(P, hide=()):
     out = np.zeros((64, 64, 4), np.uint8)

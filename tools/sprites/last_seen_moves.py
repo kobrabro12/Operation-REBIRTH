@@ -32,15 +32,21 @@ def calm_life(pose, t):
     return p
 
 def wrong_life(pose, t):
-    """Never still: the head ticks and jerks, the shoulders hitch."""
+    """Never quite still, but loose rather than stiff: it breathes and sways, the head lolls on its broken neck and
+    lags behind, the free arm dangles and swings, the axe scrapes along behind it - and now and then the head
+    twitches, eased in and out so it reads as a spasm, not a pop."""
     p = dict(pose)
     hd = N.full(p.get('head'))
-    if (t // 5) % 7 == 0: hd[0] += 14 * (1 if (t // 35) % 2 else -1)
-    hd[0] += 3 * math.sin(t * 0.31)
+    hd[0] += 6 * math.sin(t * 0.11 + 0.8) + 2.5 * math.sin(t * 0.37)                    # lolling
+    ph = t % 90                                                                          # the twitch: a quick tilt, eased back
+    if ph < 14: hd[0] += 16 * math.sin(math.pi * ph / 14) * (1 if (t // 90) % 2 else -1)
+    hd[1] += 0.6 * math.sin(t * 0.11)
     p['head'] = tuple(hd)
-    tor = N.full(p.get('torso')); tor[0] += 2 * math.sin(t * 0.23); p['torso'] = tuple(tor)
-    for n in ('ffist', 'bfore'):
-        a = N.full(p.get(n)); a[0] += 5 * math.sin(t * 0.9 + len(n)) if (t // 9) % 4 == 0 else 0; p[n] = tuple(a)
+    tor = N.full(p.get('torso')); tor[0] += 3 * math.sin(t * 0.07); tor[2] += 0.5 * math.sin(t * 0.14); p['torso'] = tuple(tor)
+    for n, amp, sp in (('bupper', 7, 0.09), ('bfore', 10, 0.13)):                     # the free arm swinging loose
+        a = N.full(p.get(n)); a[0] += amp * math.sin(t * sp + 1.3); p[n] = tuple(a)
+    if 'axe' in (p.get('_hide') or ()):                                                  # dragging: the blade skips and scrapes
+        a = N.full(p.get('ffist')); a[0] += 3 * math.sin(t * 0.5) + (2 if t % 11 < 2 else 0); p['ffist'] = tuple(a)
     return p
 
 def borrowed():
@@ -84,42 +90,51 @@ mv(CALM, 'taunt', 84, [k(0, REST), k(12, P(bupper=(-80, 0, 0), bfore=(-70, 0, 0)
                       k(60, P(bupper=(-84, 0, 0), bfore=(-74, 0, 0), head=(6, 0, 0), torso=(6, 0, 0)), 'linear'), k(84, REST, 'inout')])
 
 # ======================================================================= SEEN (wrong)
-UPA = dict(fupper=(-140, 0, 0), ffore=(50, 0, 0), ffist=(80, 0, 0))     # SEEN always has the axe raised over its head
-UPJ = dict(fupper=(-120, 0, 0), ffore=(46, 0, 0), ffist=(80, 0, 0))     # (a touch lower in the air, where it stands up straighter)
+# SEEN drags the axe behind it along the floor (part 'axed': the axe held by the very end of the handle) - the
+# arm hangs back, the blade trails behind its heels. It only swings the axe up (part 'axe') to attack.
+DRAG_ARM = dict(fupper=(60, -8, 3), ffore=(20, 0, 0), ffist=(-60, 0, 0), _hide=('axe',))
+def dragging(pose):
+    """A pose with the axe dragged behind (and the arm hanging back for it)."""
+    return {**pose, **DRAG_ARM}
 def wrong_idle():
-    """Hunched over, the axe held up over its head, swaying - waiting to bring it down."""
-    H = dict(torso=(30, 2, 2), head=(-24, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), **UPA, **legs(26, -30, -26, 30, 8, -8))
-    return [k(0, P(**H)), k(96, P(**mix(H, torso=(34, 2, 2), fupper=(-136, 0, 0), ffist=(84, 0, 0), bupper=(26, 0, 0))), 'inout'), k(192, P(**H), 'inout')]
+    """Hunched over, the axe dragging behind it, swaying from foot to foot; the free arm hangs and swings."""
+    def I(torso, head, dx, lg, bup, fist=0, sq=0):
+        return dragging(P(torso=(torso, 2, 2), head=(head, 0, 0), bupper=(bup, 0, 0), bfore=(24, 0, 0), root=(0, dx, 0, 1 + sq, 1 - sq), **lg)) | {'ffist': (-60 + fist, 0, 0)}
+    A = I(30, -22, 0, legs(26, -30, -26, 30, 8, -8), 18)
+    B = I(35, -14, 1, legs(30, -36, -22, 34, 10, -10), 30, -4, 0.03)       # leaning onto the front foot, head drooping
+    C = I(28, -30, 0, legs(24, -26, -28, 28, 6, -6), 10, 3)               # rocking back, head lifting
+    D = I(33, -18, -1, legs(22, -24, -30, 38, 6, -10), 24, -2, 0.02)      # onto the metal leg
+    return [k(0, A), k(48, B, 'inout'), k(96, C, 'inout'), k(144, D, 'inout'), k(192, A, 'inout')]
 def wrong_run():
-    """A heavy, hunched charge with the axe held high: a clean four-beat stride (contact - down - passing - up)
-    on each leg, the body rising and sinking with it, the free arm pumping, the axe arm locked overhead with only
-    a small bob as each foot lands."""
-    def W(b, f, sh, torso, bup, sq, fi):
-        return P(torso=(torso, 2, 2), head=(-22 - (torso - 30), 0, 0), bupper=(bup, 0, 0), bfore=(-20, 0, 0), fupper=(-140, 0, 0), ffore=(50, 0, 0),
-                 ffist=(80 + fi, 0, 0), root=(0, 0, 0, 1 + sq, 1 - sq), **legs(b[0], b[1], f[0], f[1], sh[0], sh[1]))
-    A = W((20, 10), (-24, 14), (0, -8), 26, -30, 0.03, 3)       # contact: front foot out ahead
-    B = W((14, 24), (-12, 22), (-4, -4), 28, -16, 0.05, 4)      # down: the weight sinks onto it
-    C = W((-4, 44), (2, 10), (-12, 0), 26, 0, 0.0, 0)           # passing: the metal leg swings through, knee up
-    D = W((-16, 24), (12, 10), (-6, 2), 25, 18, -0.02, -2)      # up: pushing off
-    E = W((-24, 14), (20, 10), (-8, 0), 26, 34, 0.03, 3)        # contact: the metal foot out ahead
-    F = W((-12, 22), (14, 24), (-4, -4), 28, 18, 0.05, 4)       # down
-    G = W((2, 10), (-4, 44), (0, -12), 26, 0, 0.0, 0)           # passing: the furred leg swings through
-    H = W((12, 10), (-16, 24), (2, -6), 25, -16, -0.02, -2)     # up
+    """A loose, lurching jog, dragging the axe: the torso rocks and bobs with each step, the head lags and lolls,
+    the free arm swings wide, and the axe trails along the floor behind it, bouncing."""
+    def W(b, f, sh, torso, bup, bfo, sq, fi, hd):
+        return dragging(P(torso=(torso, 2, 2), head=(hd, 0, 0), bupper=(bup, 0, 0), bfore=(bfo, 0, 0),
+                          root=(0, 0, 0, 1 + sq, 1 - sq), **legs(b[0], b[1], f[0], f[1], sh[0], sh[1]))) | {'ffist': (-60 + fi, 0, 0)}
+    A = W((20, 10), (-24, 14), (0, -8), 30, -40, 10, 0.04, 0, -24)       # contact: front foot out ahead
+    B = W((14, 24), (-12, 22), (-4, -4), 34, -24, 30, 0.07, 4, -16)      # down: the weight lands, the body folds forward
+    C = W((-4, 44), (2, 10), (-12, 0), 31, 0, 20, 0.0, -2, -20)          # passing: the metal leg swings through
+    D = W((-16, 24), (12, 10), (-6, 2), 30, 30, -10, -0.02, -6, -26)     # up: pushing off, head thrown back
+    E = W((-24, 14), (20, 10), (-8, 0), 30, 48, -20, 0.04, 0, -24)       # contact: the metal foot out ahead
+    F = W((-12, 22), (14, 24), (-4, -4), 34, 26, 0, 0.07, 4, -16)        # down
+    G = W((2, 10), (-4, 44), (0, -12), 31, 0, 20, 0.0, -2, -20)          # passing: the furred leg swings through
+    H = W((12, 10), (-16, 24), (2, -6), 30, -28, 30, -0.02, -6, -26)     # up
     keys = [A, B, C, D, E, F, G, H]
     # plant it: shift every pose so its lowest foot sits on the floor, then add the bob on top (sinks on 'down')
     rig, _ = N.build_rig(D_, {})
-    bob = [0, 1, 0, -1, 0, 1, 0, -1]
+    bob = [0, 2, 1, 0, 0, 2, 1, 0]
     for i, p in enumerate(keys):
         r = list(p['root']); r[2] = 0; p['root'] = tuple(r)
-        img = rig.render(p, fi=0); low = 63 - int((img[::-1, :, 3] > 0).any(1).argmax())
+        img = rig.render(p, only=('bshoe', 'fshoe', 'bshin', 'fshin'), fi=0); low = 63 - int((img[::-1, :, 3] > 0).any(1).argmax())
         r[2] = GROUND - low + bob[i]; p['root'] = tuple(r)
     return [k(i * 6, p, 'linear') for i, p in enumerate(keys)] + [k(48, A, 'linear')]
 GROUND = 59                       # the bottom row of its feet when standing (as in the idle)
 D_ = D
 def run_life(pose, t):
-    """While running: none of the twitching, just a slight sway - the run stays clean."""
+    """While running: a loose head and a scraping axe on top of the stride - no twitches."""
     p = dict(pose)
-    tor = N.full(p.get('torso')); tor[0] += 0.8 * math.sin(t * 0.26); p['torso'] = tuple(tor)
+    hd = N.full(p.get('head')); hd[0] += 4 * math.sin(t * 0.26 - 1.0); p['head'] = tuple(hd)
+    a = N.full(p.get('ffist')); a[0] += 2 * math.sin(t * 0.9); p['ffist'] = tuple(a)
     return p
 
 WRONG = borrowed()
@@ -127,7 +142,7 @@ WRONG = borrowed()
 HB = dict(torso=(30, 2, 2), head=(-24, 0, 0), **legs(26, -30, -26, 30, 8, -8))       # the hunch
 def AX(fu, ff, fist=0, **kw):                                                          # a pose with the axe arm set (axe raised / chopping / dragging...)
     return P(**{**HB, 'fupper': (fu, 0, 0), 'ffore': (ff, 0, 0), 'ffist': (fist, 0, 0), 'bupper': (20, 0, 0), 'bfore': (20, 0, 0), **kw})
-LOW = AX(-140, 50, 80)                   # its ready pose: the axe raised over its head (every attack starts and ends here)
+LOW = dragging(AX(0, 0, 0))              # its ready pose: dragging the axe behind it (every attack starts and ends here)
 RAISED = AX(-70, 40)                     # raised in front
 HIGH = AX(-150, 60, 0, head=(-34, 0, 0), torso=(14, 0, 0))     # wound right up over its head
 CHOP = AX(-20, 70, 0, torso=(36, 4, 3), head=(-14, 2, 0))      # chopped out level in front
@@ -171,22 +186,27 @@ mv(WRONG, 'turning', 70, [k(0, CLUTCH), k(50, CLUTCH, 'linear'), k(60, mix(WIDE,
 mv(WRONG, 'taunt', 84, [k(0, P(torso=(30, 2, 2), head=(-24, 0, 0))), k(40, P(torso=(30, 2, 2), head=(-110, 0, 0)), 'linear'), k(46, P(torso=(30, 2, 2), head=(-80, 0, 0)), 'snap'),
                         k(70, P(torso=(30, 2, 2), head=(-100, 0, 0)), 'inout'), k(84, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
 
-def overhead(M, names):
-    """Keep the axe raised over its head through the whole of these animations."""
+def drag_through(M, names):
+    """Keep the axe dragging behind it through the whole of these animations."""
     for n in names:
         ticks, keys, step, smear, loop, center = M[n]
-        M[n] = (ticks, [(t, {**pose, **UPA}, e) for (t, pose, e) in keys], step, smear, loop, center)
-overhead(WRONG, ['grab', 'holding', 'throw_forward', 'throw_back', 'throw_up', 'throw_down', 'hitstun', 'shield', 'grabbed', 'ledge',
-                 'neutralB', 'sideB', 'upb', 'turning', 'taunt'])
-# DRAG and the Limit swing it, but start and end with it held high
+        M[n] = (ticks, [(t, dragging(pose), e) for (t, pose, e) in keys], step, smear, loop, center)
+drag_through(WRONG, ['hitstun', 'shield', 'grabbed', 'ledge', 'neutralB', 'sideB', 'turning', 'taunt'])
+# DRAG and the Limit swing it, but start and end dragging it
 for n in ('downB', 'limit'):
     ticks, keys, step, smear, loop, center = WRONG[n]
-    keys = [(t, {**pose, **UPA}, e) if i in (0, len(keys) - 1) else (t, pose, e) for i, (t, pose, e) in enumerate(keys)]
+    keys = [(t, dragging(pose), e) if i in (0, len(keys) - 1) else (t, pose, e) for i, (t, pose, e) in enumerate(keys)]
     WRONG[n] = (ticks, keys, step, ('ffore', 'ffist', 'axe'), loop, center)
+# everything else holds the axe in its hand (the dragged one hidden); loosen the stiff linear holds into eases
+for n, (ticks, keys, step, smear, loop, center) in list(WRONG.items()):
+    keys = [(t, pose if '_hide' in pose else {**pose, '_hide': ('axed',)}, 'inout' if e == 'linear' else e) for (t, pose, e) in keys]
+    WRONG[n] = (ticks, keys, step, smear, loop, center)
 
-WJUMP = P(torso=(20, 0, 0), head=(-30, 0, 0), bupper=(-50, 0, 0), **UPJ, **TUCK)
-WFALL = P(torso=(10, 0, 0), head=(-20, 0, 0), bupper=(-150, 0, 0), **UPJ, **legs(20, 14, -14, 26))
+WJUMP = dragging(P(torso=(20, 0, 0), head=(-30, 0, 0), bupper=(-60, 0, 0), bfore=(-30, 0, 0), **TUCK)) | {'ffist': (-40, 0, 0)}    # the axe swinging below it
+WFALL = dragging(P(torso=(10, 0, 0), head=(-20, 0, 0), root=(0, 0, 3), bupper=(-150, 0, 0), bfore=(30, 0, 0), **legs(20, 14, -14, 26))) | {'ffist': (-80, 0, 0)}
 
+# SEEN's joints: everything trails and swings after the body (less stiff); the dragged axe lags furthest
+LOOSE = {'head': (0.35, 0.4), 'hair': (0.2, 0.3), 'ffore': (0.25, 0.2), 'ffist': (0.3, 0.2), 'bfore': (0.4, 0.4), 'bupper': (0.15, 0.2), 'axe': (0.2, 0.05), 'axed': (0.4, 0.5)}
 # SEEN's looks and the colour of the smear its axe leaves
 VARIANTS = {'scrap': (154, 16, 16), 'rave': (255, 42, 216), 'showtime': (255, 210, 60), 'drowned': (90, 160, 120)}
 
@@ -197,12 +217,12 @@ def build():
     D.set_style('wrong')
     for v, ghost in VARIANTS.items():                       # SEEN, and the costumes that redraw it (skins.js sheetSet)
         D.set_variant(v)
-        small, big = N.build_rig(D, {**FOLLOW, 'hair': (0.1, 0.15), 'axe': (0.15, 0)}); N.GHOST = ghost   # the crest is stiff; a smear behind the axe
+        small, big = N.build_rig(D, {**FOLLOW, **LOOSE}); N.GHOST = ghost   # loose joints; a smear behind the axe
         sub = 'wrong' if v == 'scrap' else 'wrong/' + v
         js = os.path.join(ROOT, 'src/fighters/lsWrongMoves.js') if v == 'scrap' else os.devnull    # (the costumes share SEEN's frame index)
         out[v] = N.build_all(small, big, WRONG, os.path.join(DIR, sub), js, 'LS_WRONG_MOVES', 'last_seen_moves.py',
                              life_fn=wrong_life, idle=wrong_idle, run=wrong_run, run_life=run_life,
-                             jumps=((WJUMP, mix(WJUMP, head=(-36, 0, 0))), (WFALL, mix(WFALL, head=(-26, 0, 0)))))
+                             jumps=((WJUMP, mix(WJUMP, head=(-38, 0, 0), bupper=(-80, 0, 0), ffist=(-30, 0, 0))), (WFALL, mix(WFALL, head=(-28, 0, 0), bupper=(-160, 0, 0), ffist=(-90, 0, 0)))))
     D.set_variant('scrap')
     return out
 
