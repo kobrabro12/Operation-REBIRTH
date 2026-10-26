@@ -71,7 +71,9 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   mascot animatronic with her inside carrying a bloody axe (`draw_mascot()`, part `axe`; its own hunched axe attacks `ATK` in last_seen_moves.py;
   def `SEEN`, `wrongDef`: heavy, `takenMult`, normals grown by `AXE`/`wrongMove`) until
   KO'd. SEEN drags the axe behind it (part `axed` = the axe held by the end of the handle, `DRAG_ARM`/`dragging()` in last_seen_moves.py;
-  attacks start/end dragging and switch to part `axe` to swing, via `_hide`); its joints are loose (`LOOSE` follow values, `wrong_life`). SEEN's down-B SCREAM (`downB.scream`, `screamStep` in
+  attacks start/end dragging and switch to part `axe` to swing, via `_hide`); its joints are loose (`LOOSE` follow values, `wrong_life`). SEEN's neutral-B HEAVY SWING (`neutralB.axeCharge`, state `axecharge`:
+  hold to charge, shuffles slowly - `Fighter.physics` - anims `axecharge` / `axecharge_walk`), side-B LUNGE (`sideB.flurry`: on hit state `flurry`,
+  `startFlurry`; on a miss the axe sticks in the floor = long end lag). SEEN's down-B SCREAM (`downB.scream`, `screamStep` in
   fighterLastSeen.js; part `jaw`): axe into the floor (`axe.png` per look), jaw wrenched open, blood; foes near it get `shaken`
   (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout. Costumes AFTER HOURS (rave) /
   GRAND OPENING (showtime) / LAKEBED (drowned) / DEEP SEA (angler: an anglerfish) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;

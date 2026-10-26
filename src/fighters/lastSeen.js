@@ -123,15 +123,28 @@ export const SEEN = {
   moves: {
     ...DEFAULT_GRAB,
     ...Object.fromEntries(NORMALS.map((n) => [n, wrongMove(LAST_SEEN.moves[n])])),
-    // WAIL (neutral): a scream that hits everything around her
-    neutralB: { frames: 40, fx: 'up', hits: [{ from: 14, to: 20, box: [-62, -84, 124, 90], dmg: 14, angle: 60, base: 4.6, growth: 5.2 }] },
-    // SKITTER (side): a fast, low crawl that rakes them over and over - once per jump
-    sideB: { frames: 34, landLag: 8, multi: true, dive: { from: 5, to: 22, vx: 9.4, vy: -0.6 }, hits: [
-      { from: 6, to: 7, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
-      { from: 11, to: 12, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
-      { from: 16, to: 17, box: [-4, -30, 46, 30], dmg: 3, angle: 30, base: 1.6, growth: 0, stun: 10 },
-      { from: 21, to: 24, box: [-4, -34, 50, 34], dmg: 8, angle: 40, base: 4.2, growth: 5.0 },
+    // HEAVY SWING (neutral): hold special to haul the axe up behind its head and charge it - it can still shuffle
+    // along while it charges, very slowly - then let go for one enormous chop. Damage and launch grow with the charge.
+    neutralB: { frames: 46, axeCharge: {
+      max: 120,                                       // frames to a full charge (2 s); it swings by itself at 'hold'
+      hold: 210,
+      walk: 0.9,                                      // walking speed while charging (it normally walks at 3.6)
+      tip: [-10, -76],                                // where the axe head is in the wind-up (for the glow)
+    }, hits: [
+      // dmg/base/growth at no charge -> maxDmg/maxBase/maxGrowth at full
+      { from: 15, to: 20, box: [-6, -74, 66, 76], dmg: 9, maxDmg: 26, angle: 48, base: 3.0, maxBase: 7.6, growth: 4.0, maxGrowth: 7.0 },
     ] },
+    // LUNGE (side): a lunging chop. MISS and the axe buries itself in the floor - it has to wrench it back out (a lot
+    // of end lag). HIT and it's a FLURRY: five quick chops and one big swing that sends them flying (3 x 5 + 10 = 25%).
+    // (on the ground it lunges along the floor; in the air it just swings - and landing mid-move costs 40 frames)
+    sideB: { frames: 72, landLag: 40, slide: { from: 6, to: 15, vx: 8.2, dust: 0x5a5248 }, hits: [
+      { from: 9, to: 15, box: [0, -44, 56, 44], dmg: 4, angle: 30, base: 2.0, growth: 0, stun: 30 },
+    ], flurry: {
+      frames: 66,                                     // the whole flurry (its animation)
+      chops: [10, 17, 24, 31, 38], chop: { dmg: 3, angle: 60, base: 1.0, growth: 0, stun: 22 },
+      finishAt: 51, finish: { dmg: 10, angle: 38, base: 5.6, growth: 6.4 },
+      gap: 26,                                        // how far in front of it they're held
+    } },
     // CLIMB (up): claws its way up the air itself
     upb: { frames: 40, riseAt: 6, riseV: -15.5, pushX: 2.0, drift: 3.8, hits: [
       { from: 6, to: 8, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },

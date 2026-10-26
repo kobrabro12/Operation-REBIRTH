@@ -115,7 +115,7 @@ export class FighterRender {
   moveAnimKey(s) {
     const A = this.def.moveAnims;
     const k = s === 'attack' ? (this.moveName === 'throw' ? 'throw_' + this.throwDir : this.moveName)
-      : s === 'dizzy' ? 'hitstun' : s === 'seized' ? 'grabbed' : s;
+      : s === 'dizzy' ? 'hitstun' : s === 'seized' ? 'grabbed' : s === 'axecharge' && Math.abs(this.vx) > 0.3 && A.axecharge_walk ? 'axecharge_walk' : s;
     return A[k] ? k : null;
   }
 

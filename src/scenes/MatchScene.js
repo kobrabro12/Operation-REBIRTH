@@ -314,7 +314,8 @@ export class MatchScene extends Phaser.Scene {
     const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1)));
     if (beat) owner.beatLanded(t, hb);
     if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.dive && owner.move.dive.bounce) owner.diveBounce = true;
-    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.cling && t.alive) owner.startCling(t);   // LAST SEEN: she clings on   // NU's Stage Dive: bounce off them
+    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.cling && t.alive) owner.startCling(t);
+    if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.flurry && t.alive) owner.startFlurry(t);   // SEEN's LUNGE hit: the flurry   // LAST SEEN: she clings on   // NU's Stage Dive: bounce off them
     let kbPct;
     if (this.mode === 'stamina') { t.hp -= dmg; kbPct = 40 + 50 * (1 - Math.max(0, t.hp) / t.maxHp); }
     else { t.percent = Math.min(999, t.percent + dmg); kbPct = t.percent; }

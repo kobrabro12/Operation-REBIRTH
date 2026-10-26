@@ -167,12 +167,36 @@ ATK = {
 for name, (ticks, keys) in ATK.items():
     mv(WRONG, name, ticks, keys, smear=('ffore', 'ffist', 'axe'))
 
-WAIL = P(torso=(22, 3, 1), head=(-34, 2, 0), hair=(30, 0, 0), fupper=(70, 0, 0), ffore=(20, 0, 0), bupper=(70, 0, 0), bfore=(20, 0, 0), root=(0, 3, 0, 1.06, 0.95), **STANCE)
-mv(WRONG, 'neutralB', 40, [k(0, P(torso=(30, 2, 2), head=(-24, 0, 0))), k(10, P(torso=(-10, -1, -1), head=(30, 0, 0), fupper=(-120, 0, 0), bupper=(-120, 0, 0), **DEEP), 'out'),
-                           k(14, WAIL, 'snap'), k(30, mix(WAIL, head=(-40, 2, 0)), 'linear'), k(40, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
-SKIT = P(torso=(84, 4, 8), head=(-76, 0, 0), hair=(-30, 0, 0), fupper=(-10, 0, 0), ffore=(-20, 0, 0), bupper=(10, 0, 0), bfore=(-10, 0, 0), root=(0, 0, 8, 1.12, 0.84), **legs(80, -100, 50, -90, 20, 10))
-mv(WRONG, 'sideB', 34, [k(0, P(torso=(30, 2, 2))), k(5, SKIT, 'snap'), k(12, mix(SKIT, fupper=(40, 0, 0), bupper=(-30, 0, 0)), 'linear'), k(18, mix(SKIT, fupper=(-30, 0, 0), bupper=(40, 0, 0)), 'linear'),
-                        k(24, mix(SKIT, fupper=(40, 0, 0), bupper=(-30, 0, 0)), 'linear'), k(34, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
+# ---- CHARGE (neutral special): the axe hauled up behind its head, trembling, building - it can shuffle along
+# slowly while it charges - then one enormous chop down into the floor
+WIND = AX(-170, 40, 0, head=(-30, 0, 0), torso=(18, 1, 1))                        # the axe wound back over its head
+def wind(s, **kw): return mix(WIND, fupper=(-170 - 4 * s, 0, 0), ffist=(3 * s, 0, 0), torso=(18 + s, 1, 1), head=(-30 + 3 * s, 0, 0), **kw)
+mv(WRONG, 'axecharge', 24, [k(0, wind(0)), k(6, wind(1), 'inout'), k(12, wind(0), 'inout'), k(18, wind(-1), 'inout'), k(24, wind(0), 'inout')], step=2, loop=True)
+def shuffle(b, f, sh, dip, s):                                                     # a slow, heavy step with the axe still up
+    return wind(s, root=(0, 0, dip), **legs(26 + b[0], -30 + b[1], -26 + f[0], 30 + f[1], 8 + sh[0], -8 + sh[1]))
+mv(WRONG, 'axecharge_walk', 48, [k(0, shuffle((-12, 6), (-10, 4), (0, -4), 0, 0)), k(12, shuffle((-4, 20), (10, -4), (-6, 0), -1, 1), 'inout'),
+                                  k(24, shuffle((10, -6), (-18, 14), (4, -6), 1, 0), 'inout'), k(36, shuffle((4, -4), (2, 20), (0, -8), -1, -1), 'inout'),
+                                  k(48, shuffle((-12, 6), (-10, 4), (0, -4), 0, 0), 'inout')], step=4, loop=True)
+mv(WRONG, 'neutralB', 46, [k(0, WIND), k(10, mix(WIND, fupper=(-185, 0, 0), torso=(8, 0, 0), head=(-36, 0, -1), root=(0, -1, -1, 0.96, 1.05)), 'out'),
+                           k(15, mix(CHOP, torso=(46, 5, 4)), 'snap'), k(19, mix(FLOOR, torso=(54, 5, 7), root=(0, 0, 1, 1.1, 0.86)), 'snap'),
+                           k(34, mix(FLOOR, torso=(50, 5, 7), head=(-20, 2, 1)), 'inout'), k(46, LOW, 'inout')], smear=('ffore', 'ffist', 'axe'))
+# ---- LUNGE (side special): a desperate lunging chop. On a miss the axe buries itself in the floor and it has to
+# wrench it back out (long end lag)...
+LUNGE = mix(CHOP, torso=(58, 6, 4), head=(-20, 2, 0), root=(0, 2, 2, 1.06, 0.92), **legs(-30, 20, -60, 40, 0, -10))
+STUCK = mix(FLOOR, torso=(60, 5, 8), head=(-14, 2, 1), **legs(40, -60, -40, 56, 14, -14))
+def tug(s): return mix(STUCK, torso=(54 - 6 * s, 4, 7), head=(-22 - 8 * s, 1, 1), fupper=(14 + 8 * s, 0, 0), root=(0, -s, 0, 1.08, 0.88))
+mv(WRONG, 'sideB', 72, [k(0, LOW), k(5, mix(BEHIND, **DEEP), 'out'), k(9, LUNGE, 'snap'), k(16, STUCK, 'snap'),
+                        k(26, tug(0), 'inout'), k(32, tug(1), 'snap'), k(38, tug(0), 'inout'), k(44, tug(1), 'snap'), k(50, tug(2), 'snap'),
+                        k(56, mix(RAISED, torso=(20, 0, 0)), 'out'), k(72, LOW, 'inout')], smear=('ffore', 'ffist', 'axe'))
+# ...but on a hit it's a flurry: chop after chop, then one big swing that sends them flying
+def chop(s): return mix(CHOP, torso=(40 + 6 * s, 4, 3), head=(-16 - 4 * s, 2, 0), fupper=(-20 + 10 * s, 0, 0), **STANCE)
+def lift(s): return mix(RAISED, torso=(22, 1, 1), head=(-26, 0, 0), fupper=(-90 - 30 * s, 0, 0), **STANCE)
+FLURRY_KEYS = [k(0, LUNGE)]
+for i, at in enumerate((10, 17, 24, 31, 38)):                                       # the chops land on these frames
+    FLURRY_KEYS += [k(at - 4, lift(i % 2), 'out'), k(at, chop(i % 2), 'snap')]
+FLURRY_KEYS += [k(44, mix(HIGH, **STANCE), 'out'), k(48, mix(HIGH, fupper=(-170, 0, 0), torso=(4, 0, 0), **STANCE), 'inout'),
+                k(51, mix(CHOP, torso=(52, 6, 4), **legs(-30, 20, -60, 40, 0, -10)), 'snap'), k(55, mix(FLOOR, torso=(54, 5, 7)), 'snap'), k(66, LOW, 'inout')]
+mv(WRONG, 'flurry', 66, FLURRY_KEYS, smear=('ffore', 'ffist', 'axe'))
 def claw(s): return P(fupper=(-170 + 30 * s, 0, -1), ffore=(-20, 0, 0), bupper=(-140 - 30 * s, 0, -1), bfore=(-20, 0, 0), head=(-30, 0, 0), torso=(-6, 0, 0), **legs(10, 40, -30, 60))
 mv(WRONG, 'upb', 40, [k(0, P(**DEEP, torso=(30, 2, 2)))] + [k(6 + i * 6, claw(i % 2), 'snap') for i in range(5)] + [k(40, mix(claw(0), fupper=(-120, 0, 0)), 'inout')])
 # SCREAM (down special): throws the axe down into the floor, takes its jaw in both hands and wrenches it open -
@@ -207,7 +231,7 @@ def drag_through(M, names):
     for n in names:
         ticks, keys, step, smear, loop, center = M[n]
         M[n] = (ticks, [(t, dragging(pose), e) for (t, pose, e) in keys], step, smear, loop, center)
-drag_through(WRONG, ['hitstun', 'shield', 'grabbed', 'ledge', 'neutralB', 'sideB', 'turning', 'taunt'])
+drag_through(WRONG, ['hitstun', 'shield', 'grabbed', 'ledge', 'turning', 'taunt'])
 # DRAG and the Limit swing it, but start and end dragging it
 for n in ('limit',):
     ticks, keys, step, smear, loop, center = WRONG[n]

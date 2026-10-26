@@ -233,7 +233,7 @@ export class Fighter {
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
-      if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB) this.startAttack('neutralB');
+      if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB && M.neutralB.axeCharge) this.startAxeCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
     if (this.buffer.grab && ground) { this.buffer.grab = 0; this.startAttack('grab'); return true; }
@@ -411,11 +411,11 @@ export class Fighter {
     if (this.dropTimer > 0) this.dropTimer--;
 
     const canSteerAir = ['air', 'helpless', 'attack', 'charge', 'summon'].includes(s) && !this.grounded;
-    const groundMove = this.grounded && (s === 'run');
+    const groundMove = this.grounded && (s === 'run' || s === 'axecharge');   // (SEEN can shuffle along, slowly, while it charges)
 
     if (this.grounded) {
       if (groundMove) {
-        const target = c.x * d.walkSpeed * this.speedMult;
+        const target = c.x * (s === 'axecharge' ? d.moves.neutralB.axeCharge.walk : d.walkSpeed) * this.speedMult;
         this.vx += Math.sign(target - this.vx) * Math.min(Math.abs(target - this.vx), d.runAccel);
       } else if (s !== 'roll') {
         this.vx -= Math.sign(this.vx) * Math.min(Math.abs(this.vx), d.groundFriction);

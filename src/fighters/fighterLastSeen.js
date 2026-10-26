@@ -2,6 +2,7 @@
 // two Limits (I SEE IT TOO, DO NOT APPROACH) and SEEN's look. Mixed into the Fighter class (Fighter.js) - `this` is
 // the fighter. Tuning: lastSeen.js.
 import { sfx } from '../audio/sfx.js';
+import { newAttackId } from './attackIds.js';
 import { skinSheets } from './skins.js';
 import { drawPoster } from './entities.js';
 
@@ -150,6 +151,59 @@ export class FighterLastSeen {
     if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: S.tuft || 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
     if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: S.smoke || 0x141216, grav: 0 });
   }
+  // ---- HEAVY SWING (SEEN's neutral special): charge the axe up behind its head - it can shuffle along, very slowly -
+  // then let go for one huge chop; the longer the charge, the harder and further it hits (tuning: lastSeen.js)
+  startAxeCharge() { this.setState('axecharge'); this.axeCharged = 0; sfx('whoosh', 0.5, 0.5); }
+  st_axecharge(c) {
+    const nb = this.def.moves.neutralB, C = nb.axeCharge, m = this.match, R = Math.random;
+    this.axeCharged = Math.min(C.max, this.axeCharged + 1);
+    const k = this.axeCharged / C.max, full = k >= 1;
+    // (on the ground it shuffles along slowly: Fighter.physics); in the air it drifts a little and hangs
+    if (!this.grounded) { this.vx += c.x * 0.08; this.vx = Math.max(-C.walk * 1.5, Math.min(C.walk * 1.5, this.vx)); this.vy = Math.min(this.vy, 2); }
+    if (this.axeCharged === C.max && this.t === C.max) { sfx('limitready', 0.6, 0.8); sfx('clang', 0.5, 0.5); m.shake(3, 6); }
+    const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1];
+    if (R() < 0.2 + k * 0.6) m.particles.push({ shape: 'drop', x: tx + (R() - 0.5) * 8, y: ty + 4, vx: (R() - 0.5) * 0.6, vy: 0.5, life: 24, color: R() < 0.5 ? 0xb01010 : 0x7a0808, grav: 0.2 });   // blood running off the blade
+    if (full && this.t % 4 === 0) m.particles.push({ shape: 'pixel2', x: tx + (R() - 0.5) * 16, y: ty + (R() - 0.5) * 16, vx: 0, vy: -0.4, life: 12, color: R() < 0.5 ? 0xff3a2a : 0xffffff, grav: 0 });
+    if (this.t % (full ? 8 : 18) === 0) sfx('buzz', 0.12 + 0.2 * k, 0.6 + k * 0.6);
+    const release = (!c.held('special') && this.t > 2) || this.t >= C.hold || (this.isCpu && this.t >= (this.cpuChargeTarget || 40));
+    if (!release) return;
+    const lerp = (a, b) => (b === undefined ? a : a + (b - a) * k);
+    this.move = { ...nb, hits: nb.hits.map((h) => ({ ...h, dmg: Math.round(lerp(h.dmg, h.maxDmg)), base: lerp(h.base, h.maxBase), growth: lerp(h.growth, h.maxGrowth), full })) };
+    this.moveName = 'neutralB'; this.attackId = newAttackId(); this.hitList = new Set();
+    this.setState('attack'); this.vx *= 0.3;
+    sfx('whoosh', 0.9, 0.6 - 0.15 * k); if (full) sfx('bighit', 0.4, 0.5);
+    if (full) m.popText(this, 'FULL SWING', '#ff3a2a');
+  }
+  // the glow on the axe head while it charges
+  drawAxeCharge(g) {
+    const C = this.def.moves.neutralB.axeCharge, k = this.axeCharged / C.max, full = k >= 1;
+    const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 3 : 0;
+    g.fillStyle(0xff1a1a, 0.15 + 0.25 * k); g.fillCircle(tx, ty, 4 + 9 * k + pulse);
+    g.fillStyle(0xffffff, 0.5 + 0.4 * k); g.fillCircle(tx, ty, 1 + 2 * k);
+  }
+
+  // ---- LUNGE (SEEN's side special) hit someone: the FLURRY - it holds them in front of it and chops, and chops,
+  // and one last big swing sends them flying
+  startFlurry(t) {
+    if (this.state === 'flurry') return;
+    this.flurryOn = t; this.setState('flurry'); this.vx = this.vy = this.lx = this.ly = 0;
+    sfx('bighit', 0.5, 0.7); this.match.shake(4, 6);
+  }
+  st_flurry() {
+    const F = this.def.moves.sideB.flurry, t = this.flurryOn, m = this.match;
+    if (!F || !t || !t.alive || t.state === 'respawn') { this.flurryOn = null; this.setState(this.grounded ? 'idle' : 'air'); return; }
+    this.vx = 0; this.vy = this.grounded ? 0 : Math.min(this.vy + 0.1, 1);
+    if (this.t < F.finishAt) {                                        // hold them right in front of it
+      t.x = this.x + this.facing * F.gap; t.y = this.y; t.vx = t.vy = t.lx = t.ly = 0;
+      if (t.state !== 'hitstun' && t.state !== 'shield') t.setState('hitstun');   // no wriggling out between the chops
+      t.hitstun = Math.max(t.hitstun || 0, 8);
+    }
+    const hit = (h, id) => m.applyHit(t, { h, owner: this, facing: this.facing, id: 'flurry' + this.slot + ':' + id + ':' + this.age, pillar: true }, this.x);
+    if (F.chops.includes(this.t)) { hit(F.chop, this.t); sfx('slash', 0.5, 0.8 + 0.05 * F.chops.indexOf(this.t)); m.shake(2, 3); }
+    if (this.t === F.finishAt) { hit(F.finish, 'fin'); sfx('bighit', 0.8, 0.6); m.shake(8, 8); this.flurryOn = null; }
+    if (this.t >= F.frames) { this.flurryOn = null; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+
   // ---- SCREAM (SEEN's down special, tuning in lastSeen.js): the axe goes into the floor, the jaw is wrenched
   // open, and it screams - blood spraying out, everyone near it SHAKEN; finish the scream and it's in a FRENZY
   screamStep(S) {
@@ -208,6 +262,7 @@ export class FighterLastSeen {
   }
   drawSeen(g, spr) {
     this.drawThrownAxe(spr);
+    if (this.state === 'axecharge') this.drawAxeCharge(g);
     if (this.frenzy > 0) {                                             // FRENZY: a red pulse round it, blood steaming off it
       const pulse = 0.12 + 0.08 * Math.sin(this.anim * 0.3), mid = this.y - this.def.body.h * 0.5;
       this.fxBack.fillStyle(0xff1a1a, pulse); this.fxBack.fillEllipse(this.x, mid, this.def.body.w * 2.6, this.def.body.h * 1.5);

@@ -22,6 +22,7 @@ export class CpuController extends Controller {
     if (me.state === 'holding') return this.throwPlan(me);
     if (me.state === 'respawn') { if (Math.random() < 0.03) this.x = Math.random() < 0.5 ? -1 : 1; return; }
     if (me.state === 'charge' || me.state === 'swingcharge') { this.cur.special = true; return; }
+    if (me.state === 'axecharge') { this.cur.special = true; const t = this.pickTarget(me); this.x = t && Math.abs(t.x - me.x) > 50 ? Math.sign(t.x - me.x) : 0; return; }   // SEEN: lumbers toward them while it charges
     this.holdSpecial = false;
     if (me.possessed > 0) { if (Math.random() < this.lv.mash) this.tap(['attack', 'jump', 'special', 'shield'][Math.floor(Math.random() * 4)]); return; }
     if (this.dodgeLimit(me)) return;
@@ -89,7 +90,7 @@ export class CpuController extends Controller {
       this.y = 1; this.tap('special'); return;
     }
     // Lacy's Grand Slam: a charged home-run swing up close
-    if (M.neutralB && M.neutralB.charge && adx < 64 && Math.abs(dy) < 40 && me.grounded && Math.random() < 0.06 * L.aggression) {
+    if (M.neutralB && (M.neutralB.charge || M.neutralB.axeCharge) && adx < (M.neutralB.axeCharge ? 120 : 64) && Math.abs(dy) < 40 && me.grounded && Math.random() < 0.06 * L.aggression) {
       if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; }
       this.tap('special'); this.holdSpecial = true;
       me.cpuChargeTarget = 8 + Math.floor(Math.random() * (Math.random() < 0.2 ? 170 : 50));   // usually quick, sometimes a big wind-up
@@ -118,7 +119,7 @@ export class CpuController extends Controller {
         me.cpuChargeTarget = 10 + Math.floor(Math.random() * (adx > 260 ? 74 : 30));
       } else if (M.sideB && !(M.sideB.hits || []).some((h) => h.possess) && (Math.random() < 0.35 || me.facing !== Math.sign(dx))) {
         this.x = Math.sign(dx); this.tap('special');               // Drifting Soul
-      } else if (!(M.neutralB && M.neutralB.charge)) {
+      } else if (!(M.neutralB && (M.neutralB.charge || M.neutralB.axeCharge))) {
         this.tap('special');                                       // Wake: Void Orb
       }
       return;
