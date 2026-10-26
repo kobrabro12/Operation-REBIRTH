@@ -3,6 +3,8 @@
 // the fighter. Tuning: lastSeen.js.
 import { sfx } from '../audio/sfx.js';
 import { newAttackId } from './attackIds.js';
+import { VIEW_W, VIEW_H, FONT } from '../config.js';
+import { showFighter } from './roster.js';
 import { skinSheets } from './skins.js';
 import { drawPoster } from './entities.js';
 
@@ -141,8 +143,10 @@ export class FighterLastSeen {
     if (t > 8 && t < L.frames - 10 && R() < 0.15) { g.fillStyle(0xffffff, 0.08); g.fillRect(x0, v.y + R() * v.height, W, 2); }
   }
 
-  // ---- THE BIRTHDAY SHOW (SEEN's Limit, tuning in lastSeen.js): lights down, a music box, a spotlight on the
-  // nearest opponent; a red curtain drops over them with SEEN behind it; chop after chop; the curtain rips open
+  // ---- THE BIRTHDAY SHOW (SEEN's Limit, tuning in lastSeen.js). In the arena: the lights go down, a music box,
+  // a spotlight finds the nearest opponent. Then a CUTSCENE: backstage, they wander down a dark corridor, bump into
+  // something standing in the dark - it's SEEN - and get sliced to pieces in black-and-white impact frames. Back in
+  // the arena, the last cut sends them flying.
   birthdayLimit(L) {
     const m = this.match, R = Math.random;
     if (this.t === 1) {
@@ -151,76 +155,155 @@ export class FighterLastSeen {
         if (o === this || !o.alive || o.team === this.team || o.state === 'respawn') continue;
         const d = Math.hypot(o.x - this.x, o.y - this.y); if (d < bd) { bd = d; best = o; }
       }
-      this.ult = { target: best, x: best ? best.x : this.x, y: best ? best.y : this.y, splats: [], shake: 0, rip: 0 };
+      this.ult = { target: best, victims: best ? [best] : [], x: best ? best.x : this.x, y: best ? best.y : this.y, phase: 'intro', ct: 0 };
       sfx('buzz', 0.6, 0.5);
     }
     const U = this.ult, T = U.target;
-    for (const [at, rate] of L.notes) if (this.t === at) sfx('ding', 0.55, rate * 0.9);   // the music box
     this.vx = 0; this.lx = 0;
-    if (T && (!T.alive || T.state === 'respawn')) U.target = null;
-    if (U.target && this.t < L.dropAt) { U.x = T.x; U.y = T.y; }      // the spotlight follows them...
-    if (this.t === L.dropAt) { sfx('land', 0.9, 0.5); sfx('whoosh', 0.7, 0.4); m.shake(6, 8); }
-    if (U.target && this.t >= L.dropAt && this.t < L.finalAt + 2) {    // ...then the curtain drops, and it's in there with them
-      this.x = U.x - this.facing * 22; this.y = U.y; this.vy = 0; this.grounded = T.grounded; this.facing = Math.sign(U.x - this.x) || this.facing;
-      T.x = U.x; T.y = U.y; T.vx = T.vy = T.lx = T.ly = 0;
-      if (T.state !== 'hitstun') T.setState('hitstun');             // trapped in there with it
-      T.hitstun = Math.max(T.hitstun || 0, 6);
-      if (L.chops.includes(this.t)) {
-        m.applyHit(T, { h: L.chop, owner: this, facing: this.facing, id: 'bday' + this.slot + ':' + this.t + ':' + this.age, pillar: true }, this.x);
-        sfx('slash', 0.6, 0.6 + R() * 0.3); sfx('hit', 0.4, 0.6); m.shake(3, 4); U.shake = 8;
-        for (let i = 0; i < 2; i++) U.splats.push({ x: (R() - 0.5) * 80, y: -20 - R() * 80, r: 3 + R() * 5, at: this.t, drip: 6 + R() * 22 });
-        if (this.t % 2) sfx('curse', 0.3, 1.6);                         // muffled, from behind the curtain
+    if (U.phase === 'intro') {
+      for (const [at, rate] of L.notes) if (this.t === at) sfx('ding', 0.55, rate * 0.9);   // the music box
+      if (T && T.alive && T.state !== 'respawn') { U.x = T.x; U.y = T.y; } else U.target = null;
+      if (this.t >= L.sceneAt) {
+        if (!U.target) { if (this.t >= L.sceneAt + 20) this.endBirthday(); return; }
+        U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this;      // everyone else stops; the letterbox comes down
+        U.origin = { x: this.x, y: this.y };
+        T.vx = T.vy = T.lx = T.ly = 0; T.setState('hitstun'); T.hitstun = 999;
+        sfx('whoosh', 0.6, 0.4);
       }
+      return;
     }
-    if (this.t === L.finalAt) {                                       // the curtain rips open
-      if (U.target) m.applyHit(T, { h: L.final, owner: this, facing: this.facing, id: 'bdayf' + this.slot + ':' + this.age }, this.x);
-      sfx('bighit', 1, 0.5); sfx('ko', 0.7, 0.6); m.shake(16, 12); U.rip = 1; U.target = null;
-      m.popText(this, 'HAPPY BIRTHDAY!', '#ffd23a');
-      for (let i = 0; i < 26; i++) {                                    // shreds of curtain and confetti
-        const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 2 + R() * 4;
-        m.particles.push({ shape: 'paper', x: U.x + (R() - 0.5) * 80, y: U.y - 20 - R() * 80, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 50 + R() * 20, color: i % 3 ? 0x9a0a16 : [0xffd23a, 0x2a8af0, 0x39d86a][i % 9 / 3 | 0], ang: R() * 6, spin: 0.3, drag: 0.96, grav: 0.08 });
-      }
-    }
-    if (U.shake > 0) U.shake--;
-    if (U.rip > 0) U.rip++;
-    if (this.t >= L.frames) { this.invincible = 30; this.ult = null; this.setState(this.grounded ? 'idle' : 'air'); }
+    if (U.phase === 'cutscene') return this.birthdayCutscene(L, U, T);
+    if (U.phase === 'out' && this.t >= U.outEnd) this.endBirthday();
   }
-  // its own layer, above every fighter: the dark, the spotlight, the curtain and the blood soaking through it
-  drawBirthday(U) {
-    if (!this.bdayG) { this.bdayG = this.scene.add.graphics().setDepth(30); this.match.addWorld(this.bdayG); }
-    const g = this.bdayG; g.clear();
-    if (!U) return;
-    const L = this.def.limit, m = this.match, v = m.worldCam.worldView, t = this.t;
-    const dark = t < 10 ? t / 10 : t > L.frames - 14 ? (L.frames - t) / 14 : 1;
-    const W = 112, H = 124, cx = U.x, fy = U.y, top = fy - H;
-    // the house lights go down; a spotlight on the stage
-    g.fillStyle(0x000000, 0.62 * dark); g.fillRect(v.x - 4, v.y - 4, v.width + 8, v.height + 8);
-    const sw = t < L.dropAt ? 38 : W / 2 + 10;
-    g.fillStyle(0xfff4c0, 0.14 * dark); g.fillTriangle(cx - 8, v.y - 4, cx + 8, v.y - 4, cx + sw, fy); g.fillTriangle(cx - 8, v.y - 4, cx - sw, fy, cx + sw, fy);
-    g.fillStyle(0xfff4c0, 0.22 * dark); g.fillEllipse(cx, fy + 1, sw * 2, 10);
-    if (t < L.dropAt) return;
-    // the curtain: drops in fast, shakes with every chop, rips apart at the end
-    const drop = Math.min(1, (t - L.dropAt) / 7), h = H * drop;
-    const open = U.rip > 0 ? Math.min(1, U.rip / 10) : 0, fade = 1 - Math.max(0, (U.rip - 6) / 18);
-    if (fade <= 0) return;
-    const jig = U.shake > 0 ? Math.sin(t * 2.3) * U.shake * 0.4 : 0;
-    for (const side of [-1, 1]) {
-      const x0 = cx + (side < 0 ? -W / 2 : 0) + side * open * 70 + jig * (side < 0 ? 1 : -1);
-      for (let i = 0; i < W / 2; i += 4) {                              // velvet folds
-        const fold = (i / 4) % 3;
-        g.fillStyle([0x8a0a14, 0xb01a24, 0x6a0610][fold], fade); g.fillRect(x0 + i, top, 4, h - (open > 0 ? (i % 8) * 6 * open : 0));
-        g.fillStyle(0xd83a3a, 0.35 * fade); if (fold === 1) g.fillRect(x0 + i + 1, top, 1, h - 4);
+  birthdayCutscene(L, U, T) {
+    const m = this.match, C = L.scene, ct = ++U.ct;
+    if (!T.alive || T.state === 'dying') return this.endBirthday();
+    T.vx = T.vy = T.lx = T.ly = 0; T.x = U.x; T.y = U.y;
+    for (const [at, rate] of L.notes) if (ct === at + C.notesAt) sfx('ding', 0.4, rate * 0.75);   // the music box again, slower, backstage
+    if (ct % 14 === 0 && ct < C.bump) sfx('land', 0.15, 1.6);                                     // their footsteps
+    if (ct === C.bump) { sfx('land', 0.7, 0.6); sfx('dodge', 0.5, 0.7); }                      // ...bump
+    if (ct === C.reveal) { sfx('buzz', 0.7, 0.5); sfx('glitch', 0.7, 0.5); }                    // the bulb flickers on: it's SEEN
+    if (ct === C.reveal + 14) { sfx('scream', 0.5, 1.2); }
+    const ci = C.cuts.indexOf(ct);
+    if (ci >= 0) {                                                                                // a cut: impact frames
+      m.applyHit(T, { h: L.chop, owner: this, facing: this.facing, id: 'bday' + this.slot + ':' + ct + ':' + this.age, pillar: true }, this.x);
+      T.vx = T.vy = T.lx = T.ly = 0; T.setState('hitstun'); T.hitstun = 999;
+      sfx('slash', 0.8, 0.7 + ci * 0.05); sfx('bighit', 0.4, 0.8 + ci * 0.05); m.shake(6, 4);
+      U.impact = ct; U.cut = ci;
+    }
+    if (ct === C.final) { sfx('shing', 0.9, 0.6); sfx('bighit', 1, 0.45); U.impact = ct; U.cut = 99; }
+    if (ct >= C.end) {                                                                            // back to the arena: the last cut lands
+      m.frozen = 0; m.cutscene = null; U.phase = 'out'; U.outEnd = this.t + 24;
+      this.x = U.origin.x; this.y = U.origin.y;
+      T.hitstun = 0; T.setState('idle');
+      m.applyHit(T, { h: L.final, owner: this, facing: Math.sign(T.x - this.x) || this.facing, id: 'bdayf' + this.slot + ':' + this.age }, this.x);
+      sfx('ko', 0.8, 0.5); m.shake(18, 12); m.popText(T, 'HAPPY BIRTHDAY!', '#ffd23a');
+      const R = Math.random;
+      for (let i = 0; i < 24; i++) {                                                              // confetti and blood
+        const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 2 + R() * 4;
+        m.particles.push({ shape: i % 2 ? 'paper' : 'drop', x: T.x, y: T.y - 30, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 40 + R() * 20, color: i % 2 ? [0xffd23a, 0x2a8af0, 0x39d86a, 0xe8202a][i % 4] : 0xa01010, ang: R() * 6, spin: 0.3, drag: 0.96, grav: 0.12 });
       }
     }
-    g.fillStyle(0x4a040a, fade); g.fillRect(cx - W / 2 - 6, top - 10, W + 12, 12);              // the valance and its gold fringe
-    g.fillStyle(0xffd23a, fade); for (let x = cx - W / 2 - 6; x < cx + W / 2 + 6; x += 4) g.fillRect(x, top + 2, 2, 3);
-    for (const s of U.splats) {                                       // blood soaking through, running down
-      const age = t - s.at, k = Math.min(1, age / 10), sx = cx + s.x + jig, sy = top + H + s.y;
-      if (open > 0 && Math.abs(s.x) < 70 * open) continue;
-      g.fillStyle(0x3a0206, 0.85 * fade); g.fillCircle(sx, sy, s.r * k);
-      g.fillStyle(0x6a0408, 0.8 * fade); g.fillCircle(sx - 1, sy - 1, s.r * k * 0.6);
-      g.fillRect(sx - 1, sy, 2, Math.min(s.drip, age * 0.8));
+  }
+  endBirthday() {
+    const U = this.ult, m = this.match;
+    if (U && U.phase === 'cutscene') { m.frozen = 0; m.cutscene = null; if (U.origin) { this.x = U.origin.x; this.y = U.origin.y; } if (U.target) { U.target.hitstun = 0; U.target.setState('air'); } }
+    this.ult = null; this.invincible = 30; this.setState(this.grounded ? 'idle' : 'air');
+  }
+  // its own layers, above everything: the dark and the spotlight in the arena, then the whole backstage cutscene
+  drawBirthday(U) {
+    const m = this.match;
+    if (!this.bdayG) {
+      this.bdayG = this.scene.add.graphics().setDepth(30); m.addWorld(this.bdayG);                   // arena: dark + spotlight
+      this.bdayUI = this.scene.add.graphics().setDepth(40); m.addUI(this.bdayUI);                   // the cutscene, on screen
+      this.bdayFront = this.scene.add.graphics().setDepth(42); m.addUI(this.bdayFront);             // over the actors: slashes, impact lines, letterbox
+      this.bdayVic = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.bdayVic);
+      this.bdaySeen = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.bdaySeen);
+      this.bdayText = this.scene.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '10px', color: '#ffd23a' }).setOrigin(0.5).setDepth(43).setVisible(false); m.addUI(this.bdayText);
+      this.bdaySign = this.scene.add.text(185, 81, 'EMPLOYEES\nONLY', { fontFamily: FONT, fontSize: '6px', color: '#f4efe0', align: 'center', lineSpacing: 2 }).setOrigin(0.5).setDepth(40.5).setVisible(false); m.addUI(this.bdaySign);
     }
+    const g = this.bdayG, ui = this.bdayUI, fr = this.bdayFront;
+    g.clear(); ui.clear(); fr.clear(); this.bdayVic.setVisible(false); this.bdaySeen.setVisible(false); this.bdayText.setVisible(false); this.bdaySign.setVisible(false);
+    if (!U) return;
+    const L = this.def.limit, t = this.t, v = m.worldCam.worldView;
+    if (U.phase !== 'cutscene') {                                                  // in the arena: house lights down, a spotlight on them
+      const dark = t < 10 ? t / 10 : U.phase === 'out' ? Math.max(0, (U.outEnd - t) / 24) : 1, cx = U.x, fy = U.y;
+      g.fillStyle(0x000000, 0.62 * dark); g.fillRect(v.x - 4, v.y - 4, v.width + 8, v.height + 8);
+      g.fillStyle(0xfff4c0, 0.14 * dark); g.fillTriangle(cx - 8, v.y - 4, cx + 8, v.y - 4, cx + 38, fy); g.fillTriangle(cx - 8, v.y - 4, cx - 38, fy, cx + 38, fy);
+      g.fillStyle(0xfff4c0, 0.22 * dark); g.fillEllipse(cx, fy + 1, 76, 10);
+      return;
+    }
+    this.drawBackstage(ui, fr, L, U);
+  }
+  drawBackstage(ui, fr, L, U) {
+    const C = L.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, R = Math.random;
+    const floor = H - 70, bulbX = 430;
+    const since = U.impact ? ct - U.impact : 99, imp = since < 4 && ct >= C.cuts[0], inv = since < 2;   // impact frames: 2 white, 2 black
+    const flick = ct < C.reveal ? ((ct * 13) % 41 < 3 ? 0.25 : 0.08) : ((ct * 7) % 23 < 2 ? 0.2 : 0.55);   // the bulb: dead, then on
+    this.bdaySign.setVisible(!imp);
+    if (imp) {                                                                                   // ---- an impact frame: flat black and white
+      ui.fillStyle(inv ? 0xffffff : 0x000000, 1); ui.fillRect(0, 0, W, H);
+    } else {                                                                                     // ---- backstage
+      ui.fillStyle(0x0c0a10, 1); ui.fillRect(0, 0, W, H);
+      for (let x = 0; x < W; x += 24) { ui.fillStyle(x % 48 ? 0x17131c : 0x1c1722, 1); ui.fillRect(x, 0, 24, floor); }   // wall panels
+      ui.fillStyle(0x2a2030, 1); ui.fillRect(0, floor - 26, W, 4);                               // a dado rail
+      ui.fillStyle(0x221a14, 1); ui.fillRect(0, floor, W, H - floor);                            // the floorboards
+      for (let x = (ct * 0) % 40; x < W; x += 40) { ui.fillStyle(0x18120e, 1); ui.fillRect(x, floor, 2, H - floor); }
+      ui.fillStyle(0x6a0610, 1); ui.fillRect(0, 0, 70, floor + 6);                               // the edge of the stage curtain
+      for (let x = 0; x < 70; x += 8) { ui.fillStyle(x % 16 ? 0x8a0a14 : 0x4a040a, 1); ui.fillRect(x, 0, 4, floor + 6); }
+      ui.fillStyle(0xd8d0b8, 1); ui.fillRect(150, 70, 70, 22); ui.fillStyle(0x8a1010, 1); ui.fillRect(152, 72, 66, 18);   // EMPLOYEES ONLY
+      ui.fillStyle(0x2a2420, 1); ui.fillRect(240, 56, 150, 2);                                   // a torn HAPPY BIRTHDAY banner
+      for (let i = 0; i < 9; i++) { ui.fillStyle([0xffd23a, 0x2a8af0, 0xe8202a][i % 3], 0.8); ui.fillTriangle(244 + i * 16, 58, 256 + i * 16, 58, 250 + i * 16, 70 + (i % 2) * 4); }
+      for (const [x, c] of [[470, 0xe8202a], [500, 0x2a8af0], [180, 0xffd23a]]) { ui.fillStyle(c, 0.7); ui.fillEllipse(x, floor - 5, 14, 9); }   // deflated balloons
+      ui.fillStyle(0xfff4c0, flick * 0.5); ui.fillTriangle(bulbX - 4, 40, bulbX + 4, 40, bulbX + 90, floor); ui.fillTriangle(bulbX - 4, 40, bulbX - 90, floor, bulbX + 90, floor);   // the hanging bulb's light
+      ui.lineStyle(1, 0x3a3440, 1); ui.lineBetween(bulbX, 0, bulbX, 36);
+      ui.fillStyle(flick > 0.3 ? 0xfff4c0 : 0x5a5448, 1); ui.fillCircle(bulbX, 40, 5);
+      ui.fillStyle(0xfff4c0, flick * 0.35); ui.fillEllipse(bulbX, floor + 2, 180, 14);
+    }
+    // ---- the actors: them (walking in, then frozen), and it
+    const tex = (f) => (f.sheets.walk || f.sheets.run || f.sheets.idle);
+    const walkEnd = C.bump, wk = Math.min(1, ct / walkEnd), vx = 60 + (bulbX - 74 - 60) * wk - (ct > walkEnd ? Math.min(8, (ct - walkEnd) * 2) : 0);
+    const vKey = ct < walkEnd ? tex(T) : T.sheets.idle, vTex = this.scene.textures.get(vKey), vFrames = Math.max(1, vTex.frameTotal - 1);
+    if (T.def.menuSheets) showFighter(this.bdayVic, T.def, Math.floor(ct / 6), T.skin);          // (WHAT ONCE WAS: its sheets have no head - the menu ones do)
+    else this.bdayVic.setTexture(vKey, ct < walkEnd ? Math.floor(ct / 5) % Math.min(8, vFrames) : 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1).setFlipX(!!T.def.facesLeft);
+    this.bdayVic.setScale(2).setPosition(vx, floor).setVisible(true)
+      .setRotation(ct >= C.cuts[0] ? Math.sin(ct * 1.3) * 0.08 : 0);
+    const sx = bulbX + 26, cutting = ct >= C.cuts[0] - 2;
+    if (cutting) {                                                                               // SEEN, swinging: frames of its flurry
+      const [from, n] = this.def.moveAnims.flurry, k = U.cut === 99 ? 52 : 10 + ((U.cut || 0) % 2) * 7 + Math.min(4, Math.max(0, ct - (U.impact || ct)));
+      this.bdaySeen.setTexture(this.sheets.moves, from + Math.min(n - 1, Math.floor(k))).setOrigin(this.def.movesOrigin[0], this.def.movesOrigin[1]);
+    } else this.bdaySeen.setTexture(this.sheets.idle, Math.floor(ct / 6) % 32).setOrigin(0.5, this.def.originY);
+    this.bdaySeen.setScale(2).setPosition(sx - (cutting ? 22 : 0), floor).setFlipX(true).setVisible(true).setRotation(ct > C.reveal && ct < C.cuts[0] && (ct >> 2) % 5 === 0 ? 0.08 : 0);
+    if (imp) for (const s of [this.bdayVic, this.bdaySeen]) s.setTint(inv ? 0x000000 : 0xffffff).setTintMode(Phaser.TintModes.FILL);   // silhouettes
+    else {
+      this.bdayVic.setTint(0xffffff).setTintMode(Phaser.TintModes.MULTIPLY);
+      this.bdaySeen.setTint(ct < C.reveal ? 0x141018 : (flick < 0.3 ? 0x8a7a70 : 0xffffff)).setTintMode(Phaser.TintModes.MULTIPLY);   // in the dark until the bulb comes on
+    }
+    if (ct < C.reveal) { fr.fillStyle(0xffffff, (ct >> 3) % 6 ? 0.9 : 0.2); fr.fillRect(sx + 6, floor - 104, 3, 3); }   // ...just an eye, catching the light
+    if (ct >= C.bump && ct < C.bump + 24) {                                                    // "!"
+      fr.fillStyle(0xffffff, 1); fr.fillRect(vx - 2, floor - 150, 5, 14); fr.fillRect(vx - 2, floor - 132, 5, 5);
+    }
+    // ---- impact lines, slashes
+    if (ct >= C.cuts[0] - 2) {
+      const cx = vx + 10, cy = floor - 60, n = imp ? 26 : 14;
+      for (let i = 0; i < n; i++) {                                                              // radial speed lines
+        const a = i * 2.39996 + ct * 0.7, r1 = 70 + R() * 40, r2 = 420;
+        fr.lineStyle(imp ? 3 : 1, imp ? (inv ? 0x000000 : 0xffffff) : 0xffffff, imp ? 1 : 0.35);
+        fr.lineBetween(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1, cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      }
+      if (since < 8) {                                                                           // the cut itself: a streak through them
+        const k = 1 - since / 8, ang = U.cut === 99 ? -0.5 : [0.6, -0.7, 0.2, -0.3, 0.9, -0.9, 0.4, -0.1][(U.cut || 0) % 8], len = U.cut === 99 ? 700 : 170;
+        const dx = Math.cos(ang) * len / 2, dy = Math.sin(ang) * len / 2;
+        fr.lineStyle(10 * k, imp ? (inv ? 0x000000 : 0xffffff) : 0xff2a2a, 1); fr.lineBetween(cx - dx, cy - dy, cx + dx, cy + dy);
+        fr.lineStyle(3 * k, imp ? (inv ? 0xffffff : 0x000000) : 0xffffff, 1); fr.lineBetween(cx - dx, cy - dy, cx + dx, cy + dy);
+        if (!imp) for (let i = 0; i < 4; i++) { fr.fillStyle(0xa01010, k); fr.fillCircle(cx + (R() - 0.5) * 40, cy + (R() - 0.5) * 40, 2 + R() * 4); }   // blood
+      }
+    }
+    // ---- letterbox, and a line of text in it
+    fr.fillStyle(0x000000, 1); fr.fillRect(0, 0, W, 34); fr.fillRect(0, H - 34, W, 34);
+    const line = ct < C.bump ? '' : ct < C.reveal + 10 ? '...?' : ct < C.cuts[0] ? 'HAPPY BIRTHDAY.' : '';
+    if (line) this.bdayText.setText(line).setVisible(true);
+    if (ct < 8 || ct > C.end - 6) { fr.fillStyle(0x000000, ct < 8 ? 1 - ct / 8 : (ct - (C.end - 6)) / 6); fr.fillRect(0, 0, W, H); }   // fade in / out
   }
 
   // ---- SEEN: dark drips falling off her, a smear behind her when she moves, now and then she skips like bad footage

@@ -78,7 +78,8 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout. Costumes AFTER HOURS (rave) /
   GRAND OPENING (showtime) / LAKEBED (drowned) / DEEP SEA (angler: an anglerfish) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;
   the calm form is only recoloured; `vfx.seen` / `vfx.seenHit` / aura `rave|showtime|drowned`). Her side-B PLEASE HELP ME clings to whoever it catches (state `cling`, `sideB.cling`). Limits: `turn` (I SEE IT TOO) and, as
-  SEEN, `birthday` (THE BIRTHDAY SHOW, 52%: `birthdayLimit`/`drawBirthday` - spotlight, a curtain on its own layer, blood soaking through;
+  SEEN, `birthday` (THE BIRTHDAY SHOW, 52%: `birthdayLimit` -> `birthdayCutscene`/`drawBackstage` - a screen-space cutscene on the UI
+  layer: the victim walks backstage into SEEN, black/white impact frames per cut; `limit.scene` holds its timings;
   `approach`/DO NOT APPROACH is unused). SEEN is drawn bloodied; her face (part `face`) shows only while the jaw is wrenched open (`face_shows`). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
   analog-horror fighter, not wired into the game.
 - Every fighter has a taunt (`def.taunt`, 1 key / stick click); training hotkeys are 2–7.

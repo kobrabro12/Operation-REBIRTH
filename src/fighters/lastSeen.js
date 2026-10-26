@@ -168,17 +168,23 @@ export const SEEN = {
       blood: { dmg: 2, angle: 30, base: 1.4, growth: 0, stun: 8 },
     } },
   },
-  // Limit: THE BIRTHDAY SHOW. The lights go down, a music box plays, and a spotlight finds the nearest opponent -
-  // then a red stage curtain drops over them, and SEEN is behind it with them. Chop after chop, blood soaking through
-  // the curtain... then it rips open and they're sent flying. 8 x 4 + 20 = 52%. (fighterLastSeen.js birthdayLimit)
+  // Limit: THE BIRTHDAY SHOW. The lights go down, a music box plays, a spotlight finds the nearest opponent... CUT TO
+  // backstage: they wander down a dark corridor and bump into something standing in the dark. It's SEEN. Impact frames,
+  // cut after cut - and back in the arena the last one sends them flying. 8 x 4 + 20 = 52%. (fighterLastSeen.js)
   limit: {
-    name: 'THE BIRTHDAY SHOW', type: 'birthday', frames: 170,
-    reach: 460,                                       // how far away it can find someone
-    dropAt: 30,                                       // the curtain falls (and it's in there with them)
-    chops: [42, 53, 64, 75, 86, 97, 108, 119],        // behind the curtain
-    chop: { dmg: 4, angle: 80, base: 0.8, growth: 0, stun: 30 },
-    finalAt: 141, final: { dmg: 20, angle: 48, base: 7.4, growth: 6.2 },   // the curtain rips open
+    name: 'THE BIRTHDAY SHOW', type: 'birthday', frames: 400,  // (ends itself when the show's over)
+    reach: 460,                                       // how far away it can find someone (nobody: the lights just come back up)
+    sceneAt: 40,                                      // the cut to backstage
     notes: [[2, 1], [10, 1], [18, 1.122], [26, 1], [34, 1.335], [42, 1.26]],   // the music box: "happy birthday to you" (frame, pitch)
+    scene: {                                          // the cutscene, in its own frames
+      notesAt: 6,                                     // the music box again, slower
+      bump: 84,                                       // they walk into it
+      reveal: 104,                                    // the bulb flickers on: it's SEEN
+      cuts: [140, 147, 154, 161, 168, 175, 182, 189], // each cut: an impact frame
+      final: 204, end: 222,                           // the last cut - then back to the arena, where it lands
+    },
+    chop: { dmg: 4, angle: 80, base: 0.8, growth: 0, stun: 30 },
+    final: { dmg: 20, angle: 48, base: 7.4, growth: 6.2 },
     colors: PAL_WRONG,
   },
 };
