@@ -313,12 +313,12 @@ def strip(frames, path):
     for i, f in enumerate(frames): sheet.alpha_composite(Image.fromarray(f, 'RGBA'), (i * 64, 0))
     sheet.save(path)
 
-def build_all(small, big, moves, out_dir, js, const, name, life_fn=life, idle=idle_keys, run=run_keys, jumps=None):
+def build_all(small, big, moves, out_dir, js, const, name, life_fn=life, idle=idle_keys, run=run_keys, jumps=None, run_life=None):
     os.makedirs(out_dir, exist_ok=True)
     J = jumps or ((JUMP, JUMP2), (FALL, FALL2))
     base = {
         'idle': animate(small, idle(), 192, step=6, life=life_fn),
-        'run': animate(small, run(), 48, step=6, life=life_fn),
+        'run': animate(small, run(), 48, step=6, life=run_life or life_fn),
         'jump': animate(small, [k(0, J[0][0]), k(12, J[0][1]), k(24, J[0][0])], 24, step=6, life=life_fn),
         'fall': animate(small, [k(0, J[1][0]), k(12, J[1][1]), k(24, J[1][0])], 24, step=6, life=life_fn),
     }

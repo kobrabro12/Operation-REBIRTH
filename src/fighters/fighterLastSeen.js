@@ -142,11 +142,13 @@ export class FighterLastSeen {
 
   // ---- SEEN: dark drips falling off her, a smear behind her when she moves, now and then she skips like bad footage
   seenTick() {
-    const m = this.match, R = Math.random;
-    if (this.anim % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: R() < 0.5 ? 0x141216 : 0x3a2a14, size: 2, grav: 0.12 });   // oil dripping out of it
-    if ((this.anim * 7) % 61 < 2) { for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2; m.particles.push({ shape: 'shard', x: this.x + (R() - 0.5) * 16, y: this.y - 20 - R() * 24, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 10, color: i % 2 ? 0xffd060 : 0xffffff, drag: 0.92, grav: 0.2, ang: a }); } if (this.anim % 3 === 0) sfx('buzz', 0.12, 2); }   // a short in its wiring
-    if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
-    if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: 0x141216, grav: 0 });
+    const m = this.match, R = Math.random, S = (this.vfx && this.vfx.seen) || {};          // (a costume recolours all of it)
+    const pick = (a, d) => (a ? a[Math.floor(R() * a.length)] : d);
+    if (this.anim % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: pick(S.drips, R() < 0.5 ? 0x141216 : 0x3a2a14), size: 2, grav: 0.12 });   // oil dripping out of it
+    if (S.confetti && this.anim % 9 === 0) m.particles.push({ shape: 'paper', x: this.x + (R() - 0.5) * 50, y: this.y - 70 - R() * 20, vx: (R() - 0.5) * 0.6, vy: 0.5, life: 60, color: pick(S.drips), ang: R() * 6, spin: 0.2, drag: 0.98, grav: 0.01, sway: R() * 6 });   // GRAND OPENING: confetti falling round it
+    if ((this.anim * 7) % 61 < 2) { for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2; m.particles.push({ shape: 'shard', x: this.x + (R() - 0.5) * 16, y: this.y - 20 - R() * 24, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 10, color: S.sparks ? S.sparks[i % 2] : (i % 2 ? 0xffd060 : 0xffffff), drag: 0.92, grav: 0.2, ang: a }); } if (this.anim % 3 === 0) sfx('buzz', 0.12, 2); }   // a short in its wiring
+    if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: S.tuft || 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
+    if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: S.smoke || 0x141216, grav: 0 });
   }
   drawSeen(g, spr) {
     if ((this.anim * 11) % 53 < 2) spr.x += (Math.random() < 0.5 ? -4 : 4);                  // a skipped frame

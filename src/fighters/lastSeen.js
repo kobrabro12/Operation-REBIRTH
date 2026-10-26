@@ -107,6 +107,8 @@ export const SEEN = {
   name: 'SEEN',
   swingSfx: 'whoosh',                // the axe
   sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves' },
+  // costumes that redraw the animatronic (skins.js sheetSet) - her first form just gets recoloured
+  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
   moveAnims: LS_WRONG_MOVES,
   fxColor: 0xd8c070,
   pal: PAL_WRONG,

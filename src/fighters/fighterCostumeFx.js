@@ -193,6 +193,36 @@ export class FighterCostumeFx {
         }
       }
     }
+    if (a.rave) {                                    // LAST SEEN's AFTER HOURS: a black-light glow pulsing on the beat, lasers sweeping over her, glow sparks
+      const NEON = [0xff2ad8, 0x2af0ff, 0x39ff6a, 0xfff03a], c = NEON[(t >> 4) % 4], c2 = NEON[((t >> 4) + 2) % 4], beat = t % 20 < 4 ? 1 : 0.55;
+      back.fillStyle(c, 0.16 * beat); back.fillEllipse(cx, mid, d.body.w * 2.8, d.body.h * 1.7);
+      back.fillStyle(c2, 0.12 * beat); back.fillEllipse(cx, mid, d.body.w * 1.7, d.body.h * 1.2);
+      g.fillStyle(c, 0.35 * beat); g.fillEllipse(cx, this.y + 1, 40, 7);                   // a glowing ring on the floor
+      g.fillStyle(0xffffff, 0.25 * beat); g.fillEllipse(cx, this.y + 1, 18, 3);
+      for (let k = 0; k < 2; k++) {                  // two lasers from somewhere above, crossing back and forth
+        const ox = cx + (k ? 70 : -70), oy = this.y - 150, sw = Math.sin(t * 0.045 + k * 2.1);
+        const ex = cx + sw * 46, ey = this.y + 2, col = NEON[(k + (t >> 5)) % 4];
+        back.lineStyle(3, col, 0.18); back.lineBetween(ox, oy, ex, ey);
+        back.lineStyle(1, col, 0.75); back.lineBetween(ox, oy, ex, ey);
+        back.fillStyle(0xffffff, 0.7); back.fillRect(Math.round(ex) - 1, ey - 1, 3, 2);
+      }
+      if (!this.match.frozen && t % 4 === 0) P.push({ shape: 'pixel2', x: cx + (R() - 0.5) * d.body.w * 1.6, y: this.y - R() * d.body.h, vx: (R() - 0.5) * 0.4, vy: -0.4 - R() * 0.4, life: 18 + R() * 14, color: NEON[Math.floor(R() * 4)], grav: 0, drag: 0.97 });
+    }
+    if (a.showtime) {                                // GRAND OPENING: a stage spotlight following her, a glint now and then
+      const sx = cx + Math.sin(t * 0.03) * 3, topY = this.y - 170, w = d.body.w * 1.5;
+      back.fillStyle(0xfff4c0, 0.07); back.fillTriangle(sx - 6, topY, sx + 6, topY, sx + w, this.y); back.fillTriangle(sx - 6, topY, sx - w, this.y, sx + w, this.y);
+      back.fillStyle(0xfff4c0, 0.06); back.fillTriangle(sx - 3, topY, sx + 3, topY, sx + w * 0.6, this.y); back.fillTriangle(sx - 3, topY, sx - w * 0.6, this.y, sx + w * 0.6, this.y);
+      g.fillStyle(0xfff4c0, 0.3); g.fillEllipse(cx, this.y + 1, w * 2, 7);
+      if (!this.match.frozen && t % 40 === 0) P.push({ shape: 'glint', x: cx + (R() - 0.5) * d.body.w, y: this.y - R() * d.body.h, vx: 0, vy: 0, life: 10, maxLife: 10, color: 0xffffff, grav: 0, dir: 1 });
+    }
+    if (a.drowned) {                                 // LAKEBED: water streaming off her, a puddle, bubbles rising from nowhere
+      g.fillStyle(0x4a8070, 0.3); g.fillEllipse(cx, this.y + 1, 34 + Math.sin(t * 0.05) * 3, 5);
+      g.fillStyle(0x8ab8c8, 0.25); g.fillEllipse(cx - 4, this.y + 1, 16, 2);
+      if (!this.match.frozen) {
+        if (t % 5 === 0) P.push({ shape: 'drop', x: cx + (R() - 0.5) * d.body.w * 1.2, y: this.y - d.body.h * (0.3 + R() * 0.6), vx: 0, vy: 0.4, life: 24, color: R() < 0.6 ? 0x8ab8c8 : 0xc8e4ec, grav: 0.18 });
+        if (t % 22 === 0) P.push({ shape: 'bubble', x: cx + (R() - 0.5) * d.body.w * 1.6, y: this.y - R() * d.body.h, vx: 0, vy: -0.5, life: 40, color: 0xc8e4ec, grav: -0.01, r: 1 + Math.floor(R() * 2), sway: R() * 6 });
+      }
+    }
     if (!this.match.frozen) {                        // particles that drift off the body
       if (a.motes && t % a.motes.rate === 0) {
         const c = a.motes.colors[(t / a.motes.rate) % a.motes.colors.length | 0];

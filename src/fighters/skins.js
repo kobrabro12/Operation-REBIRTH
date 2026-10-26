@@ -252,6 +252,30 @@ export const SKINS = {
     { name: 'FADED', swatch: 0x8a9478, fx: 0xb4bcb0, groups: LSG, rules: { coat: { to: 90, sat: 0.3, val: 0.85 }, hair: { sat: 0.15, val: 1.3 } },
       pal: { outline: 0x0e100e, deep: 0x3a4238, mid: 0x6a7468, light: 0xb4bcb0, core: 0xffffff, shade: 0x1a1e1a, void: 0x060806 },
       vfx: { hit: { shape: 'dust', colors: [0xb4bcb0, 0x6a7468, 0xffffff], n: 8 } } },
+    // AFTER HOURS: a neon raincoat - and SEEN is a black-light party canary splattered in UV paint and glow sticks
+    // (redrawn: tools/sprites/last_seen_draw.py VARIANTS). A pulsing rave glow, sweeping lasers, glow-stick drips
+    { name: 'AFTER HOURS', swatch: 0xff2ad8, fx: 0x2af0ff, sheetSet: 'rave', groups: LSG, rules: { coat: { to: 285, sat: 1.2, val: 1.05 }, hair: { to: 318, sat: 1.1, val: 1.3 } },
+      pal: { outline: 0x16083a, deep: 0x7a1ab8, mid: 0xff2ad8, light: 0x2af0ff, core: 0xffffff, shade: 0x1a0a30, void: 0x06020e },
+      vfx: { hit: { shape: 'pixel2', colors: [0xff2ad8, 0x2af0ff, 0x39ff6a, 0xfff03a], n: 10, glint: true },
+        seenHit: { shape: 'star', colors: [0xff2ad8, 0x2af0ff, 0x39ff6a, 0xfff03a], n: 9, sparks: [0xff2ad8, 0x2af0ff, 0x39ff6a], glint: true },
+        seen: { drips: [0xff2ad8, 0x2af0ff, 0x39ff6a], tuft: 0x7a4ae0, sparks: [0x2af0ff, 0xffffff], smoke: 0x3a1a6a },
+        aura: { rave: true } } },
+    // GRAND OPENING: her coat in show red - and SEEN exactly as it looked on its first day: spotless gold, a top hat,
+    // white gloves. A spotlight follows it; confetti on every hit
+    { name: 'GRAND OPENING', swatch: 0xffd23a, fx: 0xffd23a, sheetSet: 'showtime', groups: LSG, rules: { coat: { to: 356, sat: 1.15, val: 0.95 }, hair: { to: 36, sat: 0.8, val: 1.3 } },
+      pal: { outline: 0x3a1a04, deep: 0xc81a24, mid: 0xf0c428, light: 0xffe45a, core: 0xffffff, shade: 0x2a0a0a, void: 0x0a0402 },
+      vfx: { hit: { shape: 'star', colors: [0xffd23a, 0xffffff, 0xe8202a], n: 7 },
+        seenHit: { shape: 'paper', colors: [0xe8202a, 0xffd23a, 0x2a8af0, 0x39d86a, 0xffffff], n: 10, glint: true },
+        seen: { drips: [0xffd23a, 0xe8202a, 0x2a8af0, 0xffffff], tuft: 0xffe45a, sparks: [0xffffff, 0xffd23a], smoke: 0xfff4c0, confetti: true },
+        aura: { showtime: true } } },
+    // LAKEBED: a drowned, waterlogged coat - and SEEN as what they pulled out of the lake: algae, barnacles, weed,
+    // verdigris. Water streams off it, bubbles rise
+    { name: 'LAKEBED', swatch: 0x4a7a5a, fx: 0x8ab8a0, sheetSet: 'drowned', groups: LSG, rules: { coat: { to: 150, sat: 0.45, val: 0.7 }, hair: { sat: 0.5, val: 0.6 } },
+      pal: { outline: 0x10241e, deep: 0x2e5248, mid: 0x4a8070, light: 0x8ab8a0, core: 0xe0f4ec, shade: 0x142420, void: 0x040a08 },
+      vfx: { hit: { shape: 'drop', colors: [0x8ab8c8, 0xc8e4ec, 0x4a8070], n: 9, bubbles: true },
+        seenHit: { shape: 'drop', colors: [0x8ab8c8, 0x4a7a2a, 0xc8e4ec], n: 10, bubbles: true },
+        seen: { drips: [0x8ab8c8, 0x4a7a5a], tuft: 0x4a7a2a, sparks: [0xc8e4ec, 0xffffff], smoke: 0x2e4c40 },
+        aura: { drowned: true } } },
   ],
   // AERO (test fighter): glossy bubbles on every hit
   'aero': [

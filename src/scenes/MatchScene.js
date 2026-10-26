@@ -504,7 +504,7 @@ export class MatchScene extends Phaser.Scene {
   }
   // Milestone costumes: each has its own hit effect (skins.js vfx.hit), bigger at higher milestones.
   skinHitFx(owner, x, y, kb, dir, dmg = 0) {
-    const v = owner.def.hitVfx || (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];   // (a form can override the costume: LAST SEEN as SEEN)
+    const v = (owner.def.wrong && owner.vfx && owner.vfx.seenHit) || owner.def.hitVfx || (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];   // (a form can override the costume: LAST SEEN as SEEN)
     if (!v) return;
     if (v.sound) sfx(v.sound, 0.35, 0.9 + Math.random() * 0.3);
     if (v.words && (dmg >= 7 || kb > 6)) {                // Akatsuki: manga sound-effect lettering on solid hits
