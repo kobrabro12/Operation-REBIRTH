@@ -52,6 +52,7 @@ export class BootScene extends Phaser.Scene {
     for (const [s, dir] of [['menu', ''], ['aero_menu', 'frutiger/'], ['hack_menu', 'root-access/'], ['ronin_menu', 'ronin/'], ['dial_menu', 'dial-up/']]) this.load.spritesheet('wow_' + s, 'assets/fighters/what-once-was/' + dir + 'menu_idle_sheet.png', { frameWidth: 64, frameHeight: 64 });   // with the head, for menus
     this.load.spritesheet('wow_heads', 'assets/fighters/what-once-was/heads.png', { frameWidth: 32, frameHeight: 32 });   // its TV heads: a row per costume, a column per screen picture
     this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
+    this.load.spritesheet('wow_faces', 'assets/fighters/what-once-was/faces.png', { frameWidth: 11, frameHeight: 9 });   // Mason's three faces for its screen (tools/sprites/wow_faces.py)
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {
       this.load.spritesheet('hk_' + k, 'assets/fighters/hero-knight/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });
@@ -78,6 +79,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_infected', ['assets/audio/music/infected.ogg', 'assets/audio/music/infected.mp3']);   // Mason's track, levelled down ~10 dB so it sits under the fight
     this.load.audio('sfx_idiot', ['assets/audio/sfx/idiot.ogg', 'assets/audio/sfx/idiot.mp3']);   // INFECTED.EXE: plays while YOU ARE AN IDIOT's pop-ups are up
     for (let i = 1; i <= 5; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (1-4: tools/audio/amp_songs.py; 5: Mason's own track)
+    this.load.audio('sfx_seen_scream', ['assets/audio/sfx/seen_scream.ogg', 'assets/audio/sfx/seen_scream.mp3']);   // LAST SEEN as SEEN: its SCREAM (cut from Mason's pixelated_audio_3)
     this.load.audio('sfx_mail_voice', ['assets/audio/sfx/mail_voice.ogg', 'assets/audio/sfx/mail_voice.mp3']);   // INFECTED.EXE: "You've got mail!" (tools/audio/mail_voice.py)
     this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
     this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');

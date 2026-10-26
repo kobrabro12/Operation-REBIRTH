@@ -53,7 +53,7 @@ export class FighterLastSeen {
   }
   // KO'd: she's herself again, the meter empty
   revertLastSeen() {
-    this.axeLost = 0; this.armedSheets = null;
+    this.axeLost = 0; this.armedSheets = null; this.stopScream();
     if (this.baseDef) { this.def = this.baseDef; this.sheets = this.baseSheets; this.pal = this.basePal; this.baseDef = null; }
     this.sightings = 0; this.wantTurn = false;
   }
@@ -309,6 +309,7 @@ export class FighterLastSeen {
 
   // ---- SEEN: dark drips falling off her, a smear behind her when she moves, now and then she skips like bad footage
   seenTick() {
+    if (this.screamSnd && !(this.state === 'attack' && this.move && this.move.scream)) this.stopScream();   // knocked out of the SCREAM: it stops
     const m = this.match, R = Math.random, S = (this.vfx && this.vfx.seen) || {};          // (a costume recolours all of it)
     const pick = (a, d) => (a ? a[Math.floor(R() * a.length)] : d);
     if (this.anim % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: pick(S.drips, R() < 0.5 ? 0x141216 : 0x3a2a14), size: 2, grav: 0.12 });   // oil dripping out of it
@@ -385,7 +386,7 @@ export class FighterLastSeen {
       for (let i = 0; i < 6; i++) m.particles.push({ shape: 'pixel2', x: this.thrownAxe.x + (R() - 0.5) * 8, y: this.y - 1, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 18, color: R() < 0.5 ? 0x8a8478 : 0x5a5248, grav: 0.15 });
     }
     if (this.t === S.from) {                                            // the scream
-      sfx('scream', 1, 1); sfx('bighit', 0.5, 0.45); sfx('glitch', 0.6, 0.5); m.shake(10, 12);
+      this.playScream(); sfx('bighit', 0.5, 0.45); sfx('glitch', 0.6, 0.5); m.shake(10, 12);
       m.popText(this, 'SCREAM', '#ff3a2a');
     }
     if (this.t >= S.from && this.t <= S.to) {
@@ -441,6 +442,16 @@ export class FighterLastSeen {
     this.match.popText(this, 'AXE BACK', '#e8c86a'); sfx('shing', 0.6, 0.7); sfx('clang', 0.4, 0.8);
   }
   noAxe() { if (this.age - (this.noAxeAt ?? -99) < 30) return; this.noAxeAt = this.age; this.match.popText(this, 'NO AXE', '#ff8a7a'); sfx('dodge', 0.3, 0.6); }
+
+  // the SCREAM itself: Mason's recording (sfx_seen_scream); cut off if it's knocked out of it
+  playScream() {
+    const sc = this.scene, v = Math.min(1, this.match.sfxVol() * 1.25);
+    if (!sc.cache.audio.exists('sfx_seen_scream') || v <= 0) { sfx('scream', 1, 1); return; }
+    this.stopScream();
+    this.screamSnd = sc.sound.add('sfx_seen_scream', { volume: v }); this.screamSnd.play();
+    if (!this.screamHook) { this.screamHook = true; sc.events.once('shutdown', () => this.stopScream()); }   // leaving the match mid-scream
+  }
+  stopScream() { if (this.screamSnd) { this.screamSnd.stop(); this.screamSnd.destroy(); this.screamSnd = null; } }
 
   // the thrown axe, sticking out of the floor (or tumbling away if it was thrown in the air)
   drawThrownAxe(spr) {

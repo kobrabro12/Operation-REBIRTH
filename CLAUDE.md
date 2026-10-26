@@ -64,7 +64,9 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   **Its sheets are all drawn WITHOUT the head**: the game draws the TV (`heads.png`, a row per costume) at the spot `wowScreens.js`
   gives for the current frame (`drawHead`). OUT OF BODY launches the TV (the player flies as it); where it lands a new body grows
   (`def.bodies`: self / suit / swat / doctor, sheets in `body-*/`, `bodySheets`) and keeps it until the next up-B. Menus use
-  `menuSheets` (drawn with the head).
+  `menuSheets` (drawn with the head). Mason's three faces (`tools/sprites/art/wow_faces/`, redrawn 11x9 by `wow_faces.py` ->
+  `faces.png`, a row per costume) show on its screen outside MODEs: grimace when hit, stare when taunting, grin after landing a hit, and
+  now and then on their own (`screenFace`).
   **LAST SEEN** (`last-seen`, keys `ls_*` and `ls_wrong_*`, art `tools/sprites/last_seen_draw.py` + `last_seen_moves.py`, code
   `fighterLastSeen.js`, def `lastSeen.js`): an original analog-horror transformation fighter - a frail missing woman whose SIGHTINGS
   meter (`def.sightings`, eyes over her head) fills from damage dealt/taken; full -> state `turning` -> she becomes SEEN, a scrapped canary
@@ -75,7 +77,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   hold to charge, shuffles slowly - `Fighter.physics` - anims `axecharge` / `axecharge_walk`), side-B LUNGE (`sideB.flurry`: on hit state `flurry`,
   `startFlurry`; on a miss the axe sticks in the floor = long end lag). SEEN's down-B SCREAM (`downB.scream`, `screamStep` in
   fighterLastSeen.js; part `jaw`): axe into the floor (`axe.png` per look), jaw wrenched open, blood; foes near it get `shaken`
-  (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout; used in the air it loses the axe for 5 s (`axeLost`,
+  (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout; its scream is Mason's recording (`sfx_seen_scream`, `playScream`); used in the air it loses the axe for 5 s (`axeLost`,
   `loseAxe` lazy-loads the no-axe sheets `wrong/<set>/noaxe/` - only up-B works, hits 35% softer). Costumes AFTER HOURS (rave) /
   GRAND OPENING (showtime) / LAKEBED (drowned) / DEEP SEA (angler: an anglerfish) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;
   the calm form is only recoloured; `vfx.seen` / `vfx.seenHit` / aura `rave|showtime|drowned`). Her side-B PLEASE HELP ME clings to whoever it catches (state `cling`, `sideB.cling`). Limits: `turn` (I SEE IT TOO) and, as

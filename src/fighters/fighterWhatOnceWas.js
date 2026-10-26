@@ -77,7 +77,9 @@ export class FighterWhatOnceWas {
       this.headImg = this.scene.add.image(0, 0, this.headKey, 0).setOrigin(WOW_HEAD.ox / WOW_HEAD.w, WOW_HEAD.oy / WOW_HEAD.h);
       if (this.scrImg) this.scrImg.destroy();
       this.scrImg = this.scene.add.image(0, 0, 'wow_modescr', 0).setOrigin(0.5);
-      this.match.addWorld(this.headImg, this.scrImg);
+      if (this.faceImg) this.faceImg.destroy();
+      this.faceImg = this.scene.add.image(0, 0, 'wow_faces', 0).setOrigin(0.5);
+      this.match.addWorld(this.headImg, this.scrImg, this.faceImg);
     }
     const head = this.headImg, img = this.scrImg, U = this.def.moves.upb, s = this.state;
     let X = this.headXform(spr), alpha = spr.alpha;
@@ -90,18 +92,37 @@ export class FighterWhatOnceWas {
         X = k <= 0 ? floor : { ...X, x: floor.x + (X.x - floor.x) * e, y: floor.y + (X.y - floor.y) * e - Math.sin(k * Math.PI) * 8, rot: X.rot * e, scr: 0 };
       } else { X = loose; alpha = this.isIntangible() && (this.anim >> 2) % 2 ? 0.45 : 1; spr.setAlpha(0); }
     }
-    if (!spr.visible || !this.alive) { head.setVisible(false); img.setVisible(false); return; }
+    if (!spr.visible || !this.alive) { head.setVisible(false); img.setVisible(false); this.faceImg.setVisible(false); return; }
     const row = this.def.screenRow[this.styleKey] || 0;
     head.setFrame(row * WOW_HEAD.screens + X.scr).setPosition(X.x, X.y).setRotation(X.rot).setFlipX(X.flip < 0).setScale(X.sx, X.sy)
       .setAlpha(alpha).setDepth(spr.depth).setTint(spr.tintTopLeft).setTintMode(spr.tintMode).setVisible(alpha > 0.02);
-    const mode = this.wowMode;
+    const mode = this.wowMode, face = !mode && !this.headless && alpha >= 0.05 && !(this.flash > 0) && !(this.silhouette > 0) ? this.screenFace() : -1;
+    if (face >= 0) {                                                 // one of Mason's faces on the screen (a flicker as it tunes in)
+      this.faceImg.setFrame(row * 3 + face).setPosition(X.x, X.y).setRotation(X.rot).setFlipX(X.flip < 0)
+        .setScale(X.sx, X.sy).setAlpha(alpha * ((this.anim - (this.faceFrom || 0)) < 4 && this.anim % 2 ? 0.4 : 1)).setDepth(spr.depth).setVisible(true);
+    } else this.faceImg.setVisible(false);
     if (!mode || alpha < 0.05 || this.flash > 0 || this.silhouette > 0) { img.setVisible(false); return; }
     const a = this.anim, mi = { see: 0, incoming: 1, smile: 2 }[mode];
     const sub = mode === 'see' ? [0, 0, 1, 0, 2, 0, 0, 3][(a >> 4) % 8] : mode === 'incoming' ? (a >> 2) % 4 : ((a * 7) % 53 < 4 ? 1 + ((a >> 1) % 3) : 0);
     img.setFrame(row * 12 + mi * 4 + sub).setPosition(X.x, X.y).setRotation(X.rot).setFlipX(X.flip < 0)
       .setScale(X.sx, X.sy).setAlpha(alpha).setDepth(spr.depth).setVisible(true);
   }
-  hideModeScreen() { if (this.scrImg) this.scrImg.setVisible(false); if (this.headImg) this.headImg.setVisible(false); }
+  hideModeScreen() { if (this.scrImg) this.scrImg.setVisible(false); if (this.headImg) this.headImg.setVisible(false); if (this.faceImg) this.faceImg.setVisible(false); }
+  // which of Mason's faces (faces.png: 0 grimace, 1 staring tongue-out, 2 toothy grin) its screen shows now, or -1:
+  // the grimace while it's hurt, the stare while it taunts, the grin for a moment after it lands a hit - and now
+  // and then one of them flickers on all by itself
+  screenFace() {
+    const dealt = this.stats ? this.stats.damageDealt : 0;
+    if (dealt > (this.faceDealt ?? dealt)) { this.faceIdx = 2; this.faceUntil = this.anim + 36; }
+    this.faceDealt = dealt;
+    let f = -1;
+    if (this.state === 'hitstun' || this.state === 'dizzy') f = 0;
+    else if (this.state === 'taunt') f = 1;
+    else if ((this.faceUntil || 0) > this.anim) f = this.faceIdx;
+    else { const c = this.anim + this.slot * 211; if (c % 540 < 48) f = Math.floor(c / 540) % 3; }   // every 9 s or so, for under a second
+    if (f !== this.faceWas) { this.faceWas = f; this.faceFrom = this.anim; }
+    return f;
+  }
 
   // ---- OUT OF BODY (up special): it heaves and its TV launches off its neck - the player flies as the TV,
   // hitting anyone above. The body it left slumps and sinks into the floor. Wherever the TV lands, a new body
