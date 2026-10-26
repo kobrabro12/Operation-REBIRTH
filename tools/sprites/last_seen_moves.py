@@ -31,6 +31,11 @@ def calm_life(pose, t):
     hd = N.full(p.get('head')); hd[0] += 1.5 * math.sin(t * 0.07); p['head'] = tuple(hd)
     return p
 
+def face_shows(p):
+    """Her face inside it only shows when the jaw is wrenched wide open (SCREAM)."""
+    if N.full(p.get('jaw'))[0] < 20: p['_hide'] = tuple(set(p.get('_hide') or ()) | {'face'})
+    return p
+
 def wrong_life(pose, t):
     """Never quite still, but loose rather than stiff: it breathes and sways, the head lolls on its broken neck and
     lags behind, the free arm dangles and swings, the axe scrapes along behind it - and now and then the head
@@ -47,7 +52,7 @@ def wrong_life(pose, t):
         a = N.full(p.get(n)); a[0] += amp * math.sin(t * sp + 1.3); p[n] = tuple(a)
     if 'axe' in (p.get('_hide') or ()):                                                  # dragging: the blade skips and scrapes
         a = N.full(p.get('ffist')); a[0] += 3 * math.sin(t * 0.5) + (2 if t % 11 < 2 else 0); p['ffist'] = tuple(a)
-    return p
+    return face_shows(p)
 
 def borrowed():
     out = {}
@@ -135,7 +140,7 @@ def run_life(pose, t):
     p = dict(pose)
     hd = N.full(p.get('head')); hd[0] += 4 * math.sin(t * 0.26 - 1.0); p['head'] = tuple(hd)
     a = N.full(p.get('ffist')); a[0] += 2 * math.sin(t * 0.9); p['ffist'] = tuple(a)
-    return p
+    return face_shows(p)
 
 WRONG = borrowed()
 # ---- SEEN's own attacks: hunched over, swinging the bloody axe (they replace the borrowed upright swings)
@@ -218,9 +223,14 @@ mv(WRONG, 'downB', 112, [
     + [k(100, P(torso=(50, 3, 4), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-20, 0, 0), ffore=(70, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), _hide=NOAXE, **legs(36, -50, -34, 50, 14, -14)), 'inout'),   # reaching down for the axe
        k(104, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=('axed',)), 'snap'),           # pulled out of the floor
        k(112, LOW, 'inout')], step=2)
-SLASH = lambda s: P(torso=(30, 4, 2), head=(-30, 1, 0), fupper=(-150 if s else 30, 0, 0), ffore=(40, 0, 0), bupper=(30 if s else -150, 0, 0), bfore=(40, 0, 0), root=(0, 3, 0), **STANCE)
-mv(WRONG, 'limit', 150, [k(0, P(**DEEP, torso=(40, 2, 4), head=(-30, 0, 0))), k(30, P(**DEEP, torso=(50, 2, 6), head=(-40, 0, 0)), 'inout')]
-   + [k(40 + i * 12, SLASH(i % 2), 'snap') for i in range(7)] + [k(126, mix(SLASH(0), torso=(46, 6, 2), fupper=(-60, 0, 0)), 'snap'), k(150, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')], step=2)
+# THE BIRTHDAY SHOW (Limit): it bows - head cocked all the way over - and presents the stage with its free arm;
+# then, behind the curtain, chop after chop; then the last huge swing as the curtain rips open
+BOW = dragging(P(torso=(36, 2, 3), head=(-70, 1, 0), bupper=(-80, 0, 0), bfore=(30, 0, 0), **STANCE))
+SHOWCHOPS = [42, 53, 64, 75, 86, 97, 108, 119]                                       # (the hits, lastSeen.js limit.chops)
+mv(WRONG, 'limit', 170, [k(0, LOW), k(12, BOW, 'out'), k(24, mix(BOW, head=(-84, 1, 0)), 'inout'), k(32, mix(HIGH, **STANCE), 'out')]
+   + sum([[k(c - 5, mix(HIGH, **STANCE), 'out'), k(c, mix(CHOP, torso=(44, 4, 3), **STANCE), 'snap')] for c in SHOWCHOPS], [])
+   + [k(132, mix(HIGH, fupper=(-170, 0, 0), torso=(6, 0, 0), **STANCE), 'out'), k(141, mix(FLOOR, torso=(54, 5, 7)), 'snap'),
+      k(156, mix(FLOOR, torso=(50, 5, 7), head=(-30, 2, 1)), 'inout'), k(170, LOW, 'inout')], step=2, smear=('ffore', 'ffist', 'axe'))
 # the transformation, as it finishes: unfolding up out of the crouch, arms spreading, and hunching
 mv(WRONG, 'turning', 70, [k(0, CLUTCH), k(50, CLUTCH, 'linear'), k(60, mix(WIDE, head=(-40, 0, -1)), 'snap'), k(70, P(torso=(30, 2, 2), head=(-24, 0, 0), fupper=(30, 0, 0), bupper=(20, 0, 0)), 'inout')], step=2)
 mv(WRONG, 'taunt', 84, [k(0, P(torso=(30, 2, 2), head=(-24, 0, 0))), k(40, P(torso=(30, 2, 2), head=(-110, 0, 0)), 'linear'), k(46, P(torso=(30, 2, 2), head=(-80, 0, 0)), 'snap'),

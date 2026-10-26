@@ -168,12 +168,17 @@ export const SEEN = {
       blood: { dmg: 2, angle: 30, base: 1.4, growth: 0, stun: 8 },
     } },
   },
-  // Limit: DO NOT APPROACH. The lights go out. Missing posters flicker on the walls. She's suddenly right behind
-  // the nearest opponent - and there's nothing they can do: seven slashes and a last swipe. 7 x 5 + 20 = 55%.
+  // Limit: THE BIRTHDAY SHOW. The lights go down, a music box plays, and a spotlight finds the nearest opponent -
+  // then a red stage curtain drops over them, and SEEN is behind it with them. Chop after chop, blood soaking through
+  // the curtain... then it rips open and they're sent flying. 8 x 4 + 20 = 52%. (fighterLastSeen.js birthdayLimit)
   limit: {
-    name: 'DO NOT APPROACH', type: 'approach', frames: 150, reach: 460, appearAt: 36, slashes: [40, 52, 64, 76, 88, 100, 112], finalAt: 126,
-    slash: { dmg: 5, angle: 70, base: 1.0, growth: 0, stun: 30 },
-    final: { dmg: 20, angle: 42, base: 7.4, growth: 6.0 },
+    name: 'THE BIRTHDAY SHOW', type: 'birthday', frames: 170,
+    reach: 460,                                       // how far away it can find someone
+    dropAt: 30,                                       // the curtain falls (and it's in there with them)
+    chops: [42, 53, 64, 75, 86, 97, 108, 119],        // behind the curtain
+    chop: { dmg: 4, angle: 80, base: 0.8, growth: 0, stun: 30 },
+    finalAt: 141, final: { dmg: 20, angle: 48, base: 7.4, growth: 6.2 },   // the curtain rips open
+    notes: [[2, 1], [10, 1], [18, 1.122], [26, 1], [34, 1.335], [42, 1.26]],   // the music box: "happy birthday to you" (frame, pitch)
     colors: PAL_WRONG,
   },
 };

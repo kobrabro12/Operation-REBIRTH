@@ -335,6 +335,41 @@ def draw_mascot():
             for i, (x, y) in enumerate(pts):
                 if 0 <= x < 64 and 0 <= y < 64: a[y, x] = hx(0x3a6a1a if i % 2 else 0x5a8a2a)
         put(P['head'], [(36, 11), (36, 12), (37, 13)], 0x8ab8c8)                                                             # water leaking from the eye
+    # ---------------- blood and damage over all of it (GRAND OPENING too: spotless, apart from the blood)
+    BR = (0x8a0a0a, 0x5a0606, 0xb01818)
+    brng = np.random.RandomState(11)
+    for n, k_ in [('torso', 7), ('head', 4), ('fupper', 3), ('ffore', 2), ('ffist', 3), ('fthigh', 3), ('fshin', 2), ('bupper', 2), ('bthigh', 2)]:
+        a = P[n]; ys, xs = np.nonzero(a[..., 3] > 0)
+        for j, i in enumerate(brng.choice(len(xs), min(k_, len(xs)), replace=False)):   # splatters: a blot and a few flecks
+            y, x = ys[i], xs[i]
+            put(a, [(x, y), (x + 1, y), (x, y + 1)], BR[j % 2]); put(a, [(x + 1, y + 1)], BR[2])
+            for (dx, dy) in [(brng.randint(-3, 4), brng.randint(-3, 4)) for _ in range(2)]: put(a, [(x + dx, y + dy)], BR[0])
+    t = P['torso']
+    if not clean:
+        for (x, y0, ln) in [(31, 35, 6), (33, 36, 8), (35, 35, 5)]:                    # blood running out of the hole in its chest
+            put(t, [(x, y) for y in range(y0, y0 + ln)], BR[0]); put(t, [(x, y0 + ln)], BR[1])
+        hole2 = [(x, y) for y in range(38, 42) for x in range(36, 40) if (x - 37.5) ** 2 + (y - 40) ** 2 <= 3]    # another hole, lower down
+        put(t, hole2, 0x0a0806); put(t, [(37, 40)], METAL[1]); put(t, [(38, 41), (38, 42)], WIRES[1]); put(t, [(36, 38), (39, 39)], FUR[4])
+        put(P['fthigh'], [(36, 42), (37, 42), (37, 43)], 0x0a0806); put(P['fthigh'], [(37, 43)], METAL[1])          # torn at the hip
+        put(P['bupper'], [(26, 27), (26, 28)], METAL[2])
+        h = P['head']; put(h, [(31, 6), (32, 7), (33, 7), (34, 8)], FUR[4]); put(h, [(32, 8)], METAL[2])           # a crack across the top of the skull
+    else:
+        put(t, [(33, 26), (33, 27), (33, 28)], BR[0])
+    h = P['head']; put(h, [(41, 15), (41, 16), (42, 17), (41, 18)] if not V.get('angler') else [(38, 16), (39, 17), (41, 16)], BR[0])   # blood from the mouth
+    put(P['ffist'], [(44, 29), (45, 30), (46, 29)], BR[1])
+    # ---------------- her face, inside: seen only when the jaw is wrenched open (SCREAM) - pale, stretched, bloodied,
+    # one eye staring, barely recognisable
+    im = blank(); d = ImageDraw.Draw(im)
+    d.polygon([(39, 13), (45, 12), (47, 15), (46, 21), (42, 23), (39, 19)], fill=hx(0xa89080))                    # grey, waxy skin
+    f = shade(im, (0xc8b0a0, 0xb89c8c, 0xa89080, 0x7a5e54, 0x3a2420))
+    put(f, [(39, 13), (40, 13), (41, 13), (39, 14), (40, 14), (39, 15), (42, 12), (43, 12)], FUR[2]); put(f, [(41, 14), (40, 15)], FUR[4])   # a torn flap of the costume over it
+    put(f, [(43, 14), (44, 14), (43, 15), (44, 15)], 0x2a1414); put(f, [(43, 14)], 0xf4f0e8)                       # one eye: a white pinprick in a bruised socket
+    put(f, [(45, 16), (46, 16), (46, 15)], 0x140808)                                                               # the other: gone, a dark smear
+    put(f, [(41, 17), (42, 17), (41, 18), (42, 18), (43, 18), (42, 19), (43, 19), (44, 19), (42, 20), (43, 20)], 0x140303)   # the mouth, stretched far too long
+    put(f, [(40, 16), (40, 17), (40, 18), (41, 19), (41, 20), (44, 21), (45, 20), (46, 18), (46, 19), (45, 17), (44, 16), (42, 21), (43, 21)], 0x7a0808)   # blood over all of it
+    put(f, [(46, 17), (45, 21), (44, 20)], 0xa01010)
+    put(f, [(44, 12), (45, 12), (46, 13), (46, 14), (47, 15)], 0x5a2814)                                            # matted hair
+    P['face'] = f
     # ---------------- the axe as it's dragged: the same axe, held by the very end of its handle, hanging down from the fist
     ax = P['axe']; dr = np.zeros_like(ax)
     ys, xs = np.nonzero(ax[..., 3] > 0)
@@ -470,10 +505,11 @@ def draw_parts():
     P['axe'] = np.array(blank())                                       # (only SEEN carries the axe)
     P['axed'] = np.array(blank())
     P['jaw'] = np.array(blank())
+    P['face'] = np.array(blank())
     return P
 
-ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'jaw', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
-RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed', 'jaw')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist'), 'jaw': ((38, 16), 'head')}
+ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'jaw', 'face', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
+RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed', 'jaw', 'face')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist'), 'jaw': ((38, 16), 'head'), 'face': ((42, 16), 'head')}
 
 def composite(P, hide=()):
     out = np.zeros((64, 64, 4), np.uint8)

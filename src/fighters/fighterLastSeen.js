@@ -141,6 +141,88 @@ export class FighterLastSeen {
     if (t > 8 && t < L.frames - 10 && R() < 0.15) { g.fillStyle(0xffffff, 0.08); g.fillRect(x0, v.y + R() * v.height, W, 2); }
   }
 
+  // ---- THE BIRTHDAY SHOW (SEEN's Limit, tuning in lastSeen.js): lights down, a music box, a spotlight on the
+  // nearest opponent; a red curtain drops over them with SEEN behind it; chop after chop; the curtain rips open
+  birthdayLimit(L) {
+    const m = this.match, R = Math.random;
+    if (this.t === 1) {
+      let best = null, bd = L.reach;
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn') continue;
+        const d = Math.hypot(o.x - this.x, o.y - this.y); if (d < bd) { bd = d; best = o; }
+      }
+      this.ult = { target: best, x: best ? best.x : this.x, y: best ? best.y : this.y, splats: [], shake: 0, rip: 0 };
+      sfx('buzz', 0.6, 0.5);
+    }
+    const U = this.ult, T = U.target;
+    for (const [at, rate] of L.notes) if (this.t === at) sfx('ding', 0.55, rate * 0.9);   // the music box
+    this.vx = 0; this.lx = 0;
+    if (T && (!T.alive || T.state === 'respawn')) U.target = null;
+    if (U.target && this.t < L.dropAt) { U.x = T.x; U.y = T.y; }      // the spotlight follows them...
+    if (this.t === L.dropAt) { sfx('land', 0.9, 0.5); sfx('whoosh', 0.7, 0.4); m.shake(6, 8); }
+    if (U.target && this.t >= L.dropAt && this.t < L.finalAt + 2) {    // ...then the curtain drops, and it's in there with them
+      this.x = U.x - this.facing * 22; this.y = U.y; this.vy = 0; this.grounded = T.grounded; this.facing = Math.sign(U.x - this.x) || this.facing;
+      T.x = U.x; T.y = U.y; T.vx = T.vy = T.lx = T.ly = 0;
+      if (T.state !== 'hitstun') T.setState('hitstun');             // trapped in there with it
+      T.hitstun = Math.max(T.hitstun || 0, 6);
+      if (L.chops.includes(this.t)) {
+        m.applyHit(T, { h: L.chop, owner: this, facing: this.facing, id: 'bday' + this.slot + ':' + this.t + ':' + this.age, pillar: true }, this.x);
+        sfx('slash', 0.6, 0.6 + R() * 0.3); sfx('hit', 0.4, 0.6); m.shake(3, 4); U.shake = 8;
+        for (let i = 0; i < 2; i++) U.splats.push({ x: (R() - 0.5) * 80, y: -20 - R() * 80, r: 3 + R() * 5, at: this.t, drip: 6 + R() * 22 });
+        if (this.t % 2) sfx('curse', 0.3, 1.6);                         // muffled, from behind the curtain
+      }
+    }
+    if (this.t === L.finalAt) {                                       // the curtain rips open
+      if (U.target) m.applyHit(T, { h: L.final, owner: this, facing: this.facing, id: 'bdayf' + this.slot + ':' + this.age }, this.x);
+      sfx('bighit', 1, 0.5); sfx('ko', 0.7, 0.6); m.shake(16, 12); U.rip = 1; U.target = null;
+      m.popText(this, 'HAPPY BIRTHDAY!', '#ffd23a');
+      for (let i = 0; i < 26; i++) {                                    // shreds of curtain and confetti
+        const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 2 + R() * 4;
+        m.particles.push({ shape: 'paper', x: U.x + (R() - 0.5) * 80, y: U.y - 20 - R() * 80, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 50 + R() * 20, color: i % 3 ? 0x9a0a16 : [0xffd23a, 0x2a8af0, 0x39d86a][i % 9 / 3 | 0], ang: R() * 6, spin: 0.3, drag: 0.96, grav: 0.08 });
+      }
+    }
+    if (U.shake > 0) U.shake--;
+    if (U.rip > 0) U.rip++;
+    if (this.t >= L.frames) { this.invincible = 30; this.ult = null; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+  // its own layer, above every fighter: the dark, the spotlight, the curtain and the blood soaking through it
+  drawBirthday(U) {
+    if (!this.bdayG) { this.bdayG = this.scene.add.graphics().setDepth(30); this.match.addWorld(this.bdayG); }
+    const g = this.bdayG; g.clear();
+    if (!U) return;
+    const L = this.def.limit, m = this.match, v = m.worldCam.worldView, t = this.t;
+    const dark = t < 10 ? t / 10 : t > L.frames - 14 ? (L.frames - t) / 14 : 1;
+    const W = 112, H = 124, cx = U.x, fy = U.y, top = fy - H;
+    // the house lights go down; a spotlight on the stage
+    g.fillStyle(0x000000, 0.62 * dark); g.fillRect(v.x - 4, v.y - 4, v.width + 8, v.height + 8);
+    const sw = t < L.dropAt ? 38 : W / 2 + 10;
+    g.fillStyle(0xfff4c0, 0.14 * dark); g.fillTriangle(cx - 8, v.y - 4, cx + 8, v.y - 4, cx + sw, fy); g.fillTriangle(cx - 8, v.y - 4, cx - sw, fy, cx + sw, fy);
+    g.fillStyle(0xfff4c0, 0.22 * dark); g.fillEllipse(cx, fy + 1, sw * 2, 10);
+    if (t < L.dropAt) return;
+    // the curtain: drops in fast, shakes with every chop, rips apart at the end
+    const drop = Math.min(1, (t - L.dropAt) / 7), h = H * drop;
+    const open = U.rip > 0 ? Math.min(1, U.rip / 10) : 0, fade = 1 - Math.max(0, (U.rip - 6) / 18);
+    if (fade <= 0) return;
+    const jig = U.shake > 0 ? Math.sin(t * 2.3) * U.shake * 0.4 : 0;
+    for (const side of [-1, 1]) {
+      const x0 = cx + (side < 0 ? -W / 2 : 0) + side * open * 70 + jig * (side < 0 ? 1 : -1);
+      for (let i = 0; i < W / 2; i += 4) {                              // velvet folds
+        const fold = (i / 4) % 3;
+        g.fillStyle([0x8a0a14, 0xb01a24, 0x6a0610][fold], fade); g.fillRect(x0 + i, top, 4, h - (open > 0 ? (i % 8) * 6 * open : 0));
+        g.fillStyle(0xd83a3a, 0.35 * fade); if (fold === 1) g.fillRect(x0 + i + 1, top, 1, h - 4);
+      }
+    }
+    g.fillStyle(0x4a040a, fade); g.fillRect(cx - W / 2 - 6, top - 10, W + 12, 12);              // the valance and its gold fringe
+    g.fillStyle(0xffd23a, fade); for (let x = cx - W / 2 - 6; x < cx + W / 2 + 6; x += 4) g.fillRect(x, top + 2, 2, 3);
+    for (const s of U.splats) {                                       // blood soaking through, running down
+      const age = t - s.at, k = Math.min(1, age / 10), sx = cx + s.x + jig, sy = top + H + s.y;
+      if (open > 0 && Math.abs(s.x) < 70 * open) continue;
+      g.fillStyle(0x3a0206, 0.85 * fade); g.fillCircle(sx, sy, s.r * k);
+      g.fillStyle(0x6a0408, 0.8 * fade); g.fillCircle(sx - 1, sy - 1, s.r * k * 0.6);
+      g.fillRect(sx - 1, sy, 2, Math.min(s.drip, age * 0.8));
+    }
+  }
+
   // ---- SEEN: dark drips falling off her, a smear behind her when she moves, now and then she skips like bad footage
   seenTick() {
     const m = this.match, R = Math.random, S = (this.vfx && this.vfx.seen) || {};          // (a costume recolours all of it)
