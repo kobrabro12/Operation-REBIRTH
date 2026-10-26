@@ -246,9 +246,14 @@ export const SKINS = {
     { name: 'NIGHT RAIN', swatch: 0x2a3a6a, fx: 0x8ab0e8, groups: LSG, rules: { coat: { to: 222, sat: 0.8, val: 0.62 }, hair: { sat: 0.2, val: 0.45 } },
       pal: { outline: 0x0a0e1a, deep: 0x1a2a5a, mid: 0x3a5aa0, light: 0x8ab0e8, core: 0xe8f0ff, shade: 0x141a2a, void: 0x04060a },
       vfx: { hit: { shape: 'drop', colors: [0x8ab0e8, 0xe8f0ff, 0x3a5aa0], n: 8 } } },
-    { name: 'SCARLET', swatch: 0xb02a26, fx: 0xff6a5a, groups: LSG, rules: { coat: { to: 358, sat: 1.1, val: 0.9 }, hair: { to: 44, sat: 0.55, val: 1.45 } },
-      pal: { outline: 0x1a0606, deep: 0x6a1210, mid: 0xb02a26, light: 0xff6a5a, core: 0xffe0d8, shade: 0x2a0a0a, void: 0x0a0202 },
-      vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xff6a5a, 0x6a1210], n: 6 } } },
+    // DEEP SEA: a deep-blue raincoat - and SEEN is an anglerfish mascot, needle teeth and a glowing lure
+    // (redrawn: last_seen_draw.py VARIANTS 'angler'). Bubbles, glowing spots, the lure's light in the dark
+    { name: 'DEEP SEA', swatch: 0x1e4a7a, fx: 0x9af0ff, sheetSet: 'angler', groups: LSG, rules: { coat: { to: 205, sat: 0.9, val: 0.6 }, hair: { sat: 0.7, val: 0.7 } },
+      pal: { outline: 0x060e1a, deep: 0x1e3a6a, mid: 0x2e6aa0, light: 0x9af0ff, core: 0xe8ffb0, shade: 0x0a1426, void: 0x02060c },
+      vfx: { hit: { shape: 'bubble', colors: [0x9af0ff, 0xffffff, 0x2e6aa0], n: 8 },
+        seenHit: { shape: 'drop', colors: [0x9af0ff, 0x2e6aa0, 0xe8ffb0], n: 9, bubbles: true },
+        seen: { drips: [0x9af0ff, 0x2e6aa0], tuft: 0x34507a, sparks: [0x9af0ff, 0xe8ffb0], smoke: 0x0a1426 },
+        aura: { angler: true } } },
     { name: 'FADED', swatch: 0x8a9478, fx: 0xb4bcb0, groups: LSG, rules: { coat: { to: 90, sat: 0.3, val: 0.85 }, hair: { sat: 0.15, val: 1.3 } },
       pal: { outline: 0x0e100e, deep: 0x3a4238, mid: 0x6a7468, light: 0xb4bcb0, core: 0xffffff, shade: 0x1a1e1a, void: 0x060806 },
       vfx: { hit: { shape: 'dust', colors: [0xb4bcb0, 0x6a7468, 0xffffff], n: 8 } } },

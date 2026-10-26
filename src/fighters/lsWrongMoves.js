@@ -28,8 +28,8 @@ export const LS_WRONG_MOVES = {
    "neutralB": [566, 40, 1],
    "sideB": [606, 34, 1],
    "upb": [640, 40, 1],
-   "downB": [680, 36, 1],
-   "limit": [716, 75, 2],
-   "turning": [791, 35, 2],
-   "taunt": [826, 84, 1],
+   "downB": [680, 56, 2],
+   "limit": [736, 75, 2],
+   "turning": [811, 35, 2],
+   "taunt": [846, 84, 1],
 };

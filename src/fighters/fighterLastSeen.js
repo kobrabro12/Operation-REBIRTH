@@ -150,7 +150,70 @@ export class FighterLastSeen {
     if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: S.tuft || 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
     if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: S.smoke || 0x141216, grav: 0 });
   }
+  // ---- SCREAM (SEEN's down special, tuning in lastSeen.js): the axe goes into the floor, the jaw is wrenched
+  // open, and it screams - blood spraying out, everyone near it SHAKEN; finish the scream and it's in a FRENZY
+  screamStep(S) {
+    const m = this.match, R = Math.random, f = this.facing;
+    if (this.t === 1) this.thrownAxe = null;
+    if (this.t === S.throwAt) {                                         // the throw
+      this.thrownAxe = { x: this.x + f * S.axeX, y: this.y, y0: this.y - 46, stuck: this.grounded, f };
+      sfx('whoosh', 0.7, 0.6);
+    }
+    if (this.t === S.land && this.thrownAxe && this.thrownAxe.stuck) {    // it bites into the floor
+      sfx('clang', 0.6, 0.55); sfx('land', 0.6, 0.6); m.shake(3, 6);
+      for (let i = 0; i < 6; i++) m.particles.push({ shape: 'pixel2', x: this.thrownAxe.x + (R() - 0.5) * 8, y: this.y - 1, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 18, color: R() < 0.5 ? 0x8a8478 : 0x5a5248, grav: 0.15 });
+    }
+    if (this.t === S.from) {                                            // the scream
+      sfx('scream', 1, 1); sfx('bighit', 0.5, 0.45); sfx('glitch', 0.6, 0.5); m.shake(10, 12);
+      m.popText(this, 'SCREAM', '#ff3a2a');
+    }
+    if (this.t >= S.from && this.t <= S.to) {
+      const mx = this.x + f * 14, my = this.y - this.def.body.h * 0.8;
+      if (this.t % 2 === 0) for (let i = 0; i < 3; i++) {             // blood, sprayed out of the mouth
+        m.particles.push({ shape: 'drop', x: mx, y: my, vx: f * (2 + R() * 4.5), vy: -2 + R() * 3, life: 26 + R() * 14, color: [0xb01010, 0x7a0808, 0xd82020][i], grav: 0.22 });
+      }
+      if (this.t % 5 === 0) m.particles.push({ shape: 'ink', x: mx + f * (10 + R() * 30), y: my + R() * 20, vx: f * (1 + R() * 2), vy: R(), life: 20, color: 0x6a0606, r: 2 + R() * 2, drag: 0.9, grav: 0.2 });
+      if (this.t % 9 === 0) m.particles.push({ shape: 'ring', x: mx, y: my, vx: 0, vy: 0, life: 24, maxLife: 24, r: 8, dr: (S.radius - 8) / 24, color: (this.t / 9) % 2 ? 0xffffff : 0xff3a2a, grav: 0 });
+      if (this.t % 4 === 0) m.shake(2, 4);
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.state === 'respawn' || o.team === this.team) continue;
+        if (Math.hypot(o.x - this.x, (o.y - o.body.h / 2) - my) > S.radius) continue;
+        if (!(o.shaken > 0)) { m.popText(o, 'SHAKEN', '#ff8a7a'); sfx('curse', 0.4, 1.4); }
+        o.shaken = Math.max(o.shaken || 0, S.shaken);
+        const dx = (o.x - this.x) * f;                                  // right in front of its mouth: the blood
+        if (dx > 0 && dx < S.cone && Math.abs(o.y - this.y) < 50 && (this.t - S.from) % S.every === 0 && !o.isIntangible()) {
+          m.applyHit(o, { h: S.blood, owner: this, facing: f, id: 'blood' + this.slot + ':' + o.slot + ':' + this.t + ':' + this.age, pillar: true }, this.x);
+        }
+      }
+    }
+    if (this.t === S.to) {                                              // it got it all out: FRENZY
+      this.frenzy = S.frenzy; this.limit = Math.min(100, this.limit + S.limit);
+      m.popText(this, 'FRENZY', '#ff2a2a'); sfx('limitready', 0.6, 0.7); sfx('buzz', 0.5, 0.6);
+    }
+  }
+  // the thrown axe, sticking out of the floor (or tumbling away if it was thrown in the air)
+  drawThrownAxe(spr) {
+    const A = this.thrownAxe, M = this.move, S = M && M.scream;
+    const show = A && S && this.state === 'attack' && this.t >= S.throwAt && this.t < S.pickAt && this.sheets.axe;
+    if (!show) { if (this.axeSpr) this.axeSpr.setVisible(false); return; }
+    if (!this.axeSpr || this.axeSpr.texture.key !== this.sheets.axe) {
+      if (this.axeSpr) this.axeSpr.destroy();
+      this.axeSpr = this.scene.add.sprite(0, 0, this.sheets.axe, 0).setOrigin(0.5, 1); this.match.addWorld(this.axeSpr);
+    }
+    const k = Math.min(1, (this.t - S.throwAt) / Math.max(1, S.land - S.throwAt));
+    let x = A.x, y = A.y + 6, rot = (A.f > 0 ? 0.25 : -0.25);              // stuck in at a slant, the blade sunk 6 px in
+    if (k < 1) { y = A.y0 + (A.y + 6 - A.y0) * k * k; x = this.x + A.f * S.axeX * k; rot = -A.f * Math.PI * 2 * (1 - k); }   // still flying
+    if (!A.stuck && k >= 1) { y = A.y + (this.t - S.land) * (this.t - S.land) * 0.2; rot += A.f * 0.2 * (this.t - S.land); }   // thrown in the air: it falls away
+    this.axeSpr.setVisible(true).setPosition(x, y).setRotation(rot).setFlipX(A.f < 0).setDepth(spr.depth - 0.02);
+  }
   drawSeen(g, spr) {
+    this.drawThrownAxe(spr);
+    if (this.frenzy > 0) {                                             // FRENZY: a red pulse round it, blood steaming off it
+      const pulse = 0.12 + 0.08 * Math.sin(this.anim * 0.3), mid = this.y - this.def.body.h * 0.5;
+      this.fxBack.fillStyle(0xff1a1a, pulse); this.fxBack.fillEllipse(this.x, mid, this.def.body.w * 2.6, this.def.body.h * 1.5);
+      this.fxBack.fillStyle(0x6a0000, pulse * 0.8); this.fxBack.fillEllipse(this.x, mid, this.def.body.w * 1.6, this.def.body.h * 1.1);
+      if (!this.match.frozen && this.anim % 5 === 0) this.match.particles.push({ shape: 'smoke', x: this.x + (Math.random() - 0.5) * 20, y: this.y - Math.random() * this.def.body.h, vx: 0, vy: -0.6, life: 20, maxLife: 20, r: 3, color: 0x8a0a0a, grav: -0.01 });
+    }
     if ((this.anim * 11) % 53 < 2) spr.x += (Math.random() < 0.5 ? -4 : 4);                  // a skipped frame
     g.fillStyle(0x000000, 0.12); this.fxBack.fillStyle(0x000000, 0.08); this.fxBack.fillEllipse(this.x, this.y - 26, 40, 60);
   }

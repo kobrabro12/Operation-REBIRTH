@@ -71,8 +71,10 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   mascot animatronic with her inside carrying a bloody axe (`draw_mascot()`, part `axe`; its own hunched axe attacks `ATK` in last_seen_moves.py;
   def `SEEN`, `wrongDef`: heavy, `takenMult`, normals grown by `AXE`/`wrongMove`) until
   KO'd. SEEN drags the axe behind it (part `axed` = the axe held by the end of the handle, `DRAG_ARM`/`dragging()` in last_seen_moves.py;
-  attacks start/end dragging and switch to part `axe` to swing, via `_hide`); its joints are loose (`LOOSE` follow values, `wrong_life`). Costumes AFTER HOURS (rave) /
-  GRAND OPENING (showtime) / LAKEBED (drowned) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;
+  attacks start/end dragging and switch to part `axe` to swing, via `_hide`); its joints are loose (`LOOSE` follow values, `wrong_life`). SEEN's down-B SCREAM (`downB.scream`, `screamStep` in
+  fighterLastSeen.js; part `jaw`): axe into the floor (`axe.png` per look), jaw wrenched open, blood; foes near it get `shaken`
+  (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout. Costumes AFTER HOURS (rave) /
+  GRAND OPENING (showtime) / LAKEBED (drowned) / DEEP SEA (angler: an anglerfish) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;
   the calm form is only recoloured; `vfx.seen` / `vfx.seenHit` / aura `rave|showtime|drowned`). Her side-B PLEASE HELP ME clings to whoever it catches (state `cling`, `sideB.cling`). Limits: `turn` (I SEE IT TOO) and
   `approach` (DO NOT APPROACH, 55%). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
   analog-horror fighter, not wired into the game.

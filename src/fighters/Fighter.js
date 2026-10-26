@@ -82,11 +82,11 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg; }   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed; }   // WHAT ONCE WAS in INCOMING mode: 20% faster
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1); }   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
-  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1); }   // posted MISSING: takes 20% more
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1); }   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
@@ -136,6 +136,8 @@ export class Fighter {
     if (this.swift > 0) this.swift--;
     if (this.rage > 0) this.rage--;
     if (this.missingMark > 0) this.missingMark--;   // posted MISSING by WHAT ONCE WAS
+    if (this.shaken > 0) this.shaken--;             // SEEN's SCREAM: shaken...
+    if (this.frenzy > 0) this.frenzy--;             // ...and its FRENZY
     if (this.wowMode) this.modeTick();              // WHAT ONCE WAS: SMILE mode heals
     if (this.headless || this.regrowing) this.bodyTick();   // WHAT ONCE WAS: a TV on the ground grows a body
     if (this.pcBuff > 0) this.pcBuff--;
@@ -338,6 +340,7 @@ export class Fighter {
     if (m.amp && this.t === m.spawnAt) this.match.spawnAmp(this, m.amp);
     if (m.flyer && this.t === m.spawnAt) this.match.spawnPoster(this, m.flyer);   // LAST SEEN's FLYER
     if (m.hide && this.t >= m.hide.from && this.t <= m.hide.to) this.invincible = Math.max(this.invincible, 2);   // LAST SEEN's HIDE
+    if (m.scream) this.screamStep(m.scream);                        // SEEN's SCREAM
     if (m.mic) {                                                    // NU's MIC TOSS: out on its cord and back
       if (this.t === m.spawnAt && !this.micOut) this.micOut = this.match.spawnMic(this, m.mic);
       if (!this.grounded) this.vy = Math.min(this.vy, m.mic.airStall);
@@ -527,7 +530,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0; this.shaken = 0; this.frenzy = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;

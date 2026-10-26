@@ -215,6 +215,21 @@ export class FighterCostumeFx {
       g.fillStyle(0xfff4c0, 0.3); g.fillEllipse(cx, this.y + 1, w * 2, 7);
       if (!this.match.frozen && t % 40 === 0) P.push({ shape: 'glint', x: cx + (R() - 0.5) * d.body.w, y: this.y - R() * d.body.h, vx: 0, vy: 0, life: 10, maxLife: 10, color: 0xffffff, grav: 0, dir: 1 });
     }
+    if (a.angler) {                                  // DEEP SEA: the deep closing in round her, bubbles, glowing spots - and as SEEN, the lure's light
+      back.fillStyle(0x02101e, 0.22); back.fillEllipse(cx, mid, d.body.w * 3, d.body.h * 1.8);
+      for (let k = 0; k < 6; k++) {
+        const h = Math.sin(k * 77.1) * 0.5 + 0.5, h2 = Math.sin(k * 23.9) * 0.5 + 0.5, on = Math.sin(t * 0.06 + k * 2.1);
+        if (on < 0) continue;
+        g.fillStyle(0x9af0ff, 0.35 * on); g.fillRect(Math.round(cx + (h - 0.5) * d.body.w * 1.8) - 1, Math.round(this.y - 6 - h2 * d.body.h) - 1, 3, 3);
+      }
+      if (this.def.wrong) {                          // the lure: up over its head and out in front, swaying
+        const lx = cx + f * (11 + Math.sin(t * 0.05)), ly = this.y - d.body.h - 8 + Math.sin(t * 0.07) * 2, fl = 0.5 + 0.25 * Math.sin(t * 0.2);
+        back.fillStyle(0xe8ffb0, 0.12 * fl); back.fillCircle(lx, ly, 22);
+        back.fillStyle(0xe8ffb0, 0.22 * fl); back.fillCircle(lx, ly, 11);
+        g.fillStyle(0xffffff, 0.6 * fl); g.fillCircle(lx, ly, 2);
+      }
+      if (!this.match.frozen && t % 16 === 0) P.push({ shape: 'bubble', x: cx + (R() - 0.5) * d.body.w * 1.6, y: this.y - R() * d.body.h, vx: 0, vy: -0.6, life: 46, color: 0xc8f4ff, grav: -0.01, r: 1 + Math.floor(R() * 2), sway: R() * 6 });
+    }
     if (a.drowned) {                                 // LAKEBED: water streaming off her, a puddle, bubbles rising from nowhere
       g.fillStyle(0x4a8070, 0.3); g.fillEllipse(cx, this.y + 1, 34 + Math.sin(t * 0.05) * 3, 5);
       g.fillStyle(0x8ab8c8, 0.25); g.fillEllipse(cx - 4, this.y + 1, 16, 2);

@@ -105,6 +105,14 @@ VARIANTS = {
                     RUST=(0x5a7a2a, 0x3a5a1a), WIRES=(0x4a6a3a, 0x2a4a5a, 0x8a8a3a), TIE=(0x6a3a3a, 0x3a1a1a), BLOOD=(0x5a1010, 0x3a0808, 0x4a1a10),
                     HANDLE=(0x7a6a50, 0x5e5038, 0x4a3e2a, 0x30281a, 0x16120a), EYE=(0xc8d4cc, 0xa8b8b0), COAT=0x6a7448, HAIR=0x3a2418,
                     CREST=None, grime=1, wet=True),
+    # DEEP SEA: an anglerfish mascot from some aquarium restaurant - dark blue rubber skin, a dorsal fin, glowing
+    # spots down its sides, a huge underbite full of needle teeth, a milky little eye, and a lure on a stalk over
+    # its head that still lights up. Her inside it, as ever
+    'angler': dict(FUR=(0x7a9ac8, 0x4e6c98, 0x34507a, 0x203452, 0x0a1426), FURD=(0x56709a, 0x3c5478, 0x283c5a, 0x18243a, 0x080e1a),
+                   METAL=(0x9ab8c8, 0x6a8698, 0x4a6070, 0x2e3e4a, 0x101820), BEAK=(0x9ab8d0, 0x6a8aa8, 0x4a6a88, 0x2e4660, 0x0e1a2a),
+                   RUST=(0x2a7a6a, 0x1a5a4e), WIRES=(0x9af0ff, 0x2a5ad8, 0xe8ffb0), TIE=(0x34507a, 0x203452), BLOOD=(0xa01010, 0x700808, 0x900e0e),
+                   HANDLE=(0x7a6a58, 0x5e503e, 0x463a2a, 0x2e2418, 0x14100a), EYE=(0xd8ece8, 0x9af0ff), COAT=0x2a6a8a, HAIR=0x8a4426,
+                   CREST=None, grime=1, angler=True),
 }
 
 def rod(d, a, b, col, w=2):
@@ -185,21 +193,41 @@ def draw_mascot():
     grime(a, 8)
     P['torso'] = a
     # ---------------- head: a big round canary head, one plastic eye, the beak hanging open - her eye inside
+    angler = V.get('angler', False)
     im = blank(); d = ImageDraw.Draw(im)
     d.rectangle([31, 16, 35, 22], fill=hx(FUR[3] if clean else METAL[2]))                                                  # the neck
-    d.ellipse([27, 3, 42, 19], fill=hx(FUR[2]))
+    if angler: d.polygon([(27, 10), (29, 4), (36, 3), (43, 6), (46, 10), (46, 13), (35, 16), (29, 18), (27, 15)], fill=hx(FUR[2]))   # a big blunt fish head
+    else: d.ellipse([27, 3, 42, 19], fill=hx(FUR[2]))
     a = shade(im, FUR)
     im2 = blank(); d2 = ImageDraw.Draw(im2)
-    d2.polygon([(40, 9), (47, 11), (40, 13)], fill=hx(BEAK[2]))                                                             # upper beak
-    d2.polygon([(39, 15), (45, 19), (39, 18)], fill=hx(BEAK[2]))                                                            # lower beak, hanging open
-    bk = shade(im2, BEAK); m = bk[..., 3] > 0; a[m] = bk[m]
-    put(a, [(40, 13), (41, 13), (40, 14), (41, 14), (42, 14), (40, 15)], 0x0a0806)                                          # the gap...
-    put(a, [(41, 14)], 0xf4f2ec); put(a, [(40, 14)], 0x3a2a2a)                                                               # ...and her eye in it, looking out
+    if not angler: d2.polygon([(40, 9), (47, 11), (40, 13)], fill=hx(BEAK[2]))                                              # upper beak
+    jw = blank(); dj = ImageDraw.Draw(jw)                                                                                   # (the lower jaw is its own part: it can be wrenched open)
+    if angler:
+        dj.polygon([(33, 16), (36, 14), (49, 11), (48, 16), (38, 19), (33, 18)], fill=hx(FUR[2]))                          # a jutting underbite
+        jaw = shade(jw, FUR)
+        put(jaw, [(38, 14), (41, 13), (44, 12), (47, 11)], 0xf4f2e8); put(jaw, [(38, 13), (44, 11)], 0xf4f2e8)              # needle teeth, pointing up
+        put(jaw, [(40, 17), (43, 16), (45, 15)], V['WIRES'][0])                                                              # glowing spots
+    else:
+        dj.polygon([(39, 15), (45, 19), (39, 18)], fill=hx(BEAK[2]))                                                        # lower beak, hanging open
+        jaw = shade(jw, BEAK)
+    if not angler:
+        bk = shade(im2, BEAK); m = bk[..., 3] > 0; a[m] = bk[m]
+        put(a, [(40, 13), (41, 13), (40, 14), (41, 14), (42, 14), (40, 15)], 0x0a0806)                                      # the gap...
+        put(a, [(41, 14)], 0xf4f2ec); put(a, [(40, 14)], 0x3a2a2a)                                                           # ...and her eye in it, looking out
+    else:
+        put(a, [(x, y) for y in (12, 13, 14) for x in range(36, 46) if y >= 12 + (x - 36) // 5], 0x04080e)                 # the mouth: black inside...
+        put(a, [(37, 12), (39, 12), (42, 12), (45, 12), (39, 13), (45, 13)], 0xf4f2e8)                                      # ...needle teeth hanging down
+        put(a, [(41, 14)], 0xf4f2ec); put(a, [(40, 14)], 0x3a2a2a)                                                           # ...and her eye, deep inside it
+    P['jaw'] = jaw
     E0, E1 = V['EYE']
     eye = [(x, y) for y in range(6, 11) for x in range(35, 40) if (x - 37) ** 2 + (y - 8) ** 2 <= 5]
-    put(a, eye, 0xf0f0e8 if VARIANT != 'rave' else 0x0a1a2a)                                                                 # its big plastic eye
-    put(a, [(35, 6), (39, 6), (35, 10), (39, 10)], FUR[3])
-    if VARIANT == 'rave':                                                                                                    # an LED ring, lit
+    if not angler:
+        put(a, eye, 0xf0f0e8 if VARIANT != 'rave' else 0x0a1a2a)                                                             # its big plastic eye
+        put(a, [(35, 6), (39, 6), (35, 10), (39, 10)], FUR[3])
+    if angler:                                                                                                               # a small milky eye, a gill slit, glowing spots
+        put(a, [(36, 7), (37, 7), (36, 8), (37, 8)], E0); put(a, [(37, 7)], 0xffffff); put(a, [(35, 7), (35, 8), (36, 9), (37, 9)], FUR[4])
+        put(a, [(30, 11), (31, 12), (31, 13), (30, 14)], FUR[4]); put(a, [(33, 6), (40, 6), (29, 9)], V['WIRES'][0])
+    elif VARIANT == 'rave':                                                                                                    # an LED ring, lit
         put(a, [(36, 6), (37, 6), (38, 6), (35, 7), (39, 7), (35, 8), (39, 8), (35, 9), (39, 9), (36, 10), (37, 10), (38, 10)], E0)
         put(a, [(37, 8)], E1); put(a, [(36, 7)], 0xffffff)
     elif VARIANT == 'drowned':                                                                                               # milky, no pupil left
@@ -222,6 +250,12 @@ def draw_mascot():
         d.polygon([(31, 6), (38, 4.5), (37, -1), (31, 0)], fill=hx(0x2a2a34))
         a = shade(im, (0x6a6a7a, 0x4a4a58, 0x2a2a34, 0x18181e, 0x08080a))
         put(a, [(x, 4) for x in range(31, 38)] + [(x, 5) for x in range(31, 34)], 0xe8202a); put(a, [(32, 1), (32, 2)], 0x8a8a9a)
+    elif angler:                                                                                                             # the lure: a stalk curling up over its head, a glowing bulb
+        d.line([(33, 5), (33, 2), (35, 0), (39, 0), (42, 1), (44, 3)], fill=hx(FURD[2]), width=1)
+        a = shade(im, FURD)
+        for (x, y) in [(33, 5), (33, 4), (33, 3), (33, 2), (34, 1), (35, 0), (36, 0), (37, 0), (38, 0), (39, 0), (40, 1), (41, 1), (42, 2), (43, 3), (44, 3)]: a[y, x] = hx(FURD[1])
+        for (x, y, c) in [(44, 4, 0xe8ffb0), (45, 4, 0xe8ffb0), (44, 5, 0xe8ffb0), (45, 5, 0xffffff), (43, 4, 0x9af0a0), (46, 5, 0x9af0a0), (44, 6, 0x9af0a0), (45, 6, 0x9af0a0)]: a[y, x] = hx(c)
+        for (x, y) in [(30, 19), (30, 20), (30, 21), (29, 22), (31, 20), (31, 21), (31, 22), (30, 23)]: a[y, x] = hx(V['HAIR'])   # her hair
     else:
         for (x0, x1, y1) in [(32, 29, 0), (34, 34, 0), (36, 38, 1)]: d.line([(x0, 5), (x1, y1)], fill=hx(FURD[2]), width=2)
         a = shade(im, FURD)
@@ -276,6 +310,18 @@ def draw_mascot():
         put(P['axe'], [(45, 22), (45, 23), (45, 28), (45, 29)], N[1]); put(P['axe'], [(44, 25), (45, 25)], N[0])          # glow tape on the haft
         put(P['axe'], [(55, 8), (54, 7), (54, 9), (53, 11)], 0xffffff)
         put(P['torso'], [(31, 30), (32, 30)], N[2])
+    if angler:
+        im = blank(); d = ImageDraw.Draw(im)                                                                                # a ragged dorsal fin down its back
+        d.polygon([(28, 22), (22, 20), (25, 25), (20, 27), (25, 30), (21, 33), (26, 34), (27, 38)], fill=hx(FURD[1]))
+        fin = shade(im, FURD)
+        for (x0, y0, x1, y1) in [(28, 23, 22, 20), (27, 27, 20, 27), (27, 31, 21, 33)]:                                  # its spines
+            for i in range(7):
+                x, y = round(x0 + (x1 - x0) * i / 6), round(y0 + (y1 - y0) * i / 6)
+                if fin[y, x, 3]: fin[y, x] = hx(FURD[4])
+        t = P['torso']; m = (fin[..., 3] > 0) & (t[..., 3] == 0); t[m] = fin[m]
+        for n, pts in [('torso', [(27, 30), (28, 34), (29, 38), (37, 26), (39, 31), (38, 36)]), ('fthigh', [(38, 43)]), ('fupper', [(40, 27)]), ('bthigh', [(27, 43)])]:
+            put(P[n], pts, V['WIRES'][0])                                                                                    # glowing spots down its sides
+        put(P['torso'], [(29, 23), (30, 22), (31, 23), (32, 22), (33, 23), (31, 22), (31, 23)], FUR[3])                    # no bow tie: a fold of skin
     if VARIANT == 'drowned':
         for n, k_ in [('torso', 9), ('head', 5), ('fthigh', 3), ('bthigh', 2), ('fupper', 2), ('bupper', 2), ('fshin', 2)]:   # barnacles and algae
             a = P[n]; ys, xs = np.nonzero(a[..., 3] > 0)
@@ -423,10 +469,11 @@ def draw_parts():
     P['ffist'] = a
     P['axe'] = np.array(blank())                                       # (only SEEN carries the axe)
     P['axed'] = np.array(blank())
+    P['jaw'] = np.array(blank())
     return P
 
-ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
-RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist')}
+ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'jaw', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
+RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed', 'jaw')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist'), 'jaw': ((38, 16), 'head')}
 
 def composite(P, hide=()):
     out = np.zeros((64, 64, 4), np.uint8)

@@ -106,9 +106,9 @@ export const SEEN = {
   ...COMMON,
   name: 'SEEN',
   swingSfx: 'whoosh',                // the axe
-  sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves' },
+  sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves', axe: 'ls_wrong_axe' },
   // costumes that redraw the animatronic (skins.js sheetSet) - her first form just gets recoloured
-  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned', 'angler'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves', 'axe'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
   moveAnims: LS_WRONG_MOVES,
   fxColor: 0xd8c070,
   pal: PAL_WRONG,
@@ -139,8 +139,21 @@ export const SEEN = {
       { from: 18, to: 20, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
       { from: 24, to: 27, box: [-26, -76, 52, 46], dmg: 7, angle: 80, base: 4.0, growth: 4.6 },
     ] },
-    // DRAG (down): both arms slam down on the floor in front of her, popping them up
-    downB: { frames: 36, hits: [{ from: 13, to: 16, box: [-54, -16, 108, 20], dmg: 15, angle: 78, base: 4.4, growth: 6.0 }] },
+    // SCREAM (down): HIGH RISK, HIGH REWARD. It throws its axe into the floor, wrenches its jaw open with both hands
+    // and screams, spewing blood. It does almost no damage and leaves it wide open (it takes more damage the whole
+    // time) - but everyone near the scream is SHAKEN (slowed, and their hits do less), and if it gets the whole
+    // scream out it goes into a FRENZY for 10 s and fills its Limit meter. Get hit out of it and it gets nothing.
+    downB: { frames: 112, hits: [], scream: {
+      throwAt: 10, land: 15, axeX: 30, pickAt: 102,   // the axe: thrown at frame 10, lands in the floor 30 px ahead, pulled back out at 102
+      from: 40, to: 98,                               // the scream (frames)
+      radius: 170,                                    // how near you have to be to be SHAKEN by it
+      shaken: 300,                                    // SHAKEN lasts 5 s after you're out of range: 40% slower, your hits do 30% less
+      frenzy: 600,                                    // a full scream: FRENZY for 10 s (see Fighter: hits 30% harder, 15% faster)
+      limit: 30,                                      // ...and +30 Limit meter
+      taken: 1.3,                                     // the risk: it takes 30% more damage for the whole move
+      cone: 64, every: 12,                            // the blood: anyone right in front of its mouth takes a little, every 12 frames
+      blood: { dmg: 2, angle: 30, base: 1.4, growth: 0, stun: 8 },
+    } },
   },
   // Limit: DO NOT APPROACH. The lights go out. Missing posters flicker on the walls. She's suddenly right behind
   // the nearest opponent - and there's nothing they can do: seven slashes and a last swipe. 7 x 5 + 20 = 55%.

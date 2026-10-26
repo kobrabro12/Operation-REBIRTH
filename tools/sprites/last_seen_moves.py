@@ -175,9 +175,25 @@ mv(WRONG, 'sideB', 34, [k(0, P(torso=(30, 2, 2))), k(5, SKIT, 'snap'), k(12, mix
                         k(24, mix(SKIT, fupper=(40, 0, 0), bupper=(-30, 0, 0)), 'linear'), k(34, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
 def claw(s): return P(fupper=(-170 + 30 * s, 0, -1), ffore=(-20, 0, 0), bupper=(-140 - 30 * s, 0, -1), bfore=(-20, 0, 0), head=(-30, 0, 0), torso=(-6, 0, 0), **legs(10, 40, -30, 60))
 mv(WRONG, 'upb', 40, [k(0, P(**DEEP, torso=(30, 2, 2)))] + [k(6 + i * 6, claw(i % 2), 'snap') for i in range(5)] + [k(40, mix(claw(0), fupper=(-120, 0, 0)), 'inout')])
-DRAGUP = P(torso=(-14, 0, -2), head=(-30, 0, 0), fupper=(-175, 0, -2), ffore=(-10, 0, 0), bupper=(-170, 0, -2), bfore=(-10, 0, 0), root=(0, 0, -5, 0.92, 1.12), **legs(10, 0, -10, 0))
-DRAG = P(torso=(56, 3, 8), head=(-30, 1, 2), fupper=(-30, 4, 4), ffore=(10, 0, 0), bupper=(-30, 4, 4), bfore=(10, 0, 0), root=(0, 0, 0, 1.16, 0.78), **legs(66, -90, -24, 46, 22, -22))
-mv(WRONG, 'downB', 36, [k(0, P(torso=(30, 2, 2))), k(10, DRAGUP, 'out'), k(13, DRAG, 'snap'), k(24, mix(DRAG, torso=(52, 3, 8)), 'linear'), k(36, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
+# SCREAM (down special): throws the axe down into the floor, takes its jaw in both hands and wrenches it open -
+# then screams, spewing blood, shaking all over - and at the end bends down and pulls the axe back out
+NOAXE = ('axe', 'axed')                                                                # (the axe is in the floor: drawn by the game)
+SPLAY = legs(30, -24, -30, 32, 8, -8)
+def SCR(s, **kw):                                                                      # screaming, shaking one way or the other
+    return P(torso=(6 + 3 * s, 2 + s, 0), head=(-4 + 6 * s, 1, 0), jaw=(30 + 4 * s, 0, 3, 1, 1.5 + 0.05 * s), fupper=(36 + 8 * s, 0, 0), ffore=(14, 0, 0),
+             bupper=(64 - 8 * s, 0, 0), bfore=(20, 0, 0), root=(0, s, 0, 1.07, 0.94), _hide=NOAXE, **SPLAY, **kw)
+mv(WRONG, 'downB', 112, [
+    k(0, LOW),
+    k(5, AX(-150, 60, 0, head=(-34, 0, 0), torso=(14, 0, 0)), 'out'),                                       # wound up over its head...
+    k(10, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=NOAXE), 'snap'),                     # ...and thrown down into the floor
+    k(18, P(torso=(10, 0, 0), head=(-10, 0, 0), fupper=(-100, 0, 0), ffore=(80, 0, 0), bupper=(-100, 0, 0), bfore=(70, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),
+    k(26, P(torso=(0, 0, 0), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-110, 0, 0), ffore=(60, 0, 0), bupper=(-120, 0, 0), bfore=(60, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),   # both hands on its jaw
+    k(36, P(torso=(-8, 0, -1), head=(-45, 0, 0), jaw=(26, 0, 2, 1, 1.35), fupper=(-50, 0, 0), ffore=(30, 0, 0), bupper=(-160, 0, 0), bfore=(30, 0, 0), _hide=NOAXE, **SPLAY), 'out'),   # wrenching it open
+    k(40, SCR(1), 'snap')]                                                                                    # SCREAM
+    + [k(46 + i * 6, SCR(-1 if i % 2 == 0 else 1), 'snap') for i in range(9)]                               # shaking all over
+    + [k(100, P(torso=(50, 3, 4), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-20, 0, 0), ffore=(70, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), _hide=NOAXE, **legs(36, -50, -34, 50, 14, -14)), 'inout'),   # reaching down for the axe
+       k(104, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=('axed',)), 'snap'),           # pulled out of the floor
+       k(112, LOW, 'inout')], step=2)
 SLASH = lambda s: P(torso=(30, 4, 2), head=(-30, 1, 0), fupper=(-150 if s else 30, 0, 0), ffore=(40, 0, 0), bupper=(30 if s else -150, 0, 0), bfore=(40, 0, 0), root=(0, 3, 0), **STANCE)
 mv(WRONG, 'limit', 150, [k(0, P(**DEEP, torso=(40, 2, 4), head=(-30, 0, 0))), k(30, P(**DEEP, torso=(50, 2, 6), head=(-40, 0, 0)), 'inout')]
    + [k(40 + i * 12, SLASH(i % 2), 'snap') for i in range(7)] + [k(126, mix(SLASH(0), torso=(46, 6, 2), fupper=(-60, 0, 0)), 'snap'), k(150, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')], step=2)
@@ -193,7 +209,7 @@ def drag_through(M, names):
         M[n] = (ticks, [(t, dragging(pose), e) for (t, pose, e) in keys], step, smear, loop, center)
 drag_through(WRONG, ['hitstun', 'shield', 'grabbed', 'ledge', 'neutralB', 'sideB', 'turning', 'taunt'])
 # DRAG and the Limit swing it, but start and end dragging it
-for n in ('downB', 'limit'):
+for n in ('limit',):
     ticks, keys, step, smear, loop, center = WRONG[n]
     keys = [(t, dragging(pose), e) if i in (0, len(keys) - 1) else (t, pose, e) for i, (t, pose, e) in enumerate(keys)]
     WRONG[n] = (ticks, keys, step, ('ffore', 'ffist', 'axe'), loop, center)
@@ -208,7 +224,18 @@ WFALL = dragging(P(torso=(10, 0, 0), head=(-20, 0, 0), root=(0, 0, 3), bupper=(-
 # SEEN's joints: everything trails and swings after the body (less stiff); the dragged axe lags furthest
 LOOSE = {'head': (0.35, 0.4), 'hair': (0.2, 0.3), 'ffore': (0.25, 0.2), 'ffist': (0.3, 0.2), 'bfore': (0.4, 0.4), 'bupper': (0.15, 0.2), 'axe': (0.2, 0.05), 'axed': (0.4, 0.5)}
 # SEEN's looks and the colour of the smear its axe leaves
-VARIANTS = {'scrap': (154, 16, 16), 'rave': (255, 42, 216), 'showtime': (255, 210, 60), 'drowned': (90, 160, 120)}
+VARIANTS = {'scrap': (154, 16, 16), 'rave': (255, 42, 216), 'showtime': (255, 210, 60), 'drowned': (90, 160, 120), 'angler': (154, 240, 255)}
+
+def save_axe(path):
+    """The axe on its own, blade down (as it sticks in the floor when it's thrown): 32x40, the blade's edge on the
+    bottom row, the handle centred. The game draws it (fighterLastSeen.js) with its origin at the bottom middle."""
+    from PIL import Image
+    import numpy as np
+    a = D.draw_parts()['axe'][::-1, ::-1]
+    ys, xs = np.nonzero(a[..., 3] > 0); a = a[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    out = np.zeros((40, 32, 4), np.uint8); h, w = a.shape[:2]
+    out[40 - h:, 16 - w // 2:16 - w // 2 + w] = a
+    os.makedirs(os.path.dirname(path), exist_ok=True); Image.fromarray(out).save(path)
 
 def build():
     out = {}
@@ -220,6 +247,7 @@ def build():
         small, big = N.build_rig(D, {**FOLLOW, **LOOSE}); N.GHOST = ghost   # loose joints; a smear behind the axe
         sub = 'wrong' if v == 'scrap' else 'wrong/' + v
         js = os.path.join(ROOT, 'src/fighters/lsWrongMoves.js') if v == 'scrap' else os.devnull    # (the costumes share SEEN's frame index)
+        save_axe(os.path.join(DIR, sub, 'axe.png'))
         out[v] = N.build_all(small, big, WRONG, os.path.join(DIR, sub), js, 'LS_WRONG_MOVES', 'last_seen_moves.py',
                              life_fn=wrong_life, idle=wrong_idle, run=wrong_run, run_life=run_life,
                              jumps=((WJUMP, mix(WJUMP, head=(-38, 0, 0), bupper=(-80, 0, 0), ffist=(-30, 0, 0))), (WFALL, mix(WFALL, head=(-28, 0, 0), bupper=(-160, 0, 0), ffist=(-90, 0, 0)))))
