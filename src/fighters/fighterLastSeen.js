@@ -150,7 +150,7 @@ export class FighterLastSeen {
   }
   drawSeen(g, spr) {
     if ((this.anim * 11) % 53 < 2) spr.x += (Math.random() < 0.5 ? -4 : 4);                  // a skipped frame
-    g.fillStyle(0x000000, 0.12); this.fxBack.fillStyle(0x000000, 0.18); this.fxBack.fillEllipse(this.x, this.y - 26, 44, 66);
+    g.fillStyle(0x000000, 0.12); this.fxBack.fillStyle(0x000000, 0.08); this.fxBack.fillEllipse(this.x, this.y - 26, 40, 60);
   }
 
   // ---- the SIGHTINGS meter: a strip of eyes over her head, opening one by one

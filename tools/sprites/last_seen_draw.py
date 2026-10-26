@@ -159,12 +159,24 @@ def draw_mascot():
     im = blank(); d = ImageDraw.Draw(im); limb(d, (38, 24), (42, 31), 6, hx(FUR[2])); a = shade(im, FUR); grime(a, 2); P['fupper'] = a
     im = blank(); d = ImageDraw.Draw(im); limb(d, (42, 31), (44, 27), 5, hx(FUR[2])); a = shade(im, FUR); put(a, [(43, 29), (44, 30)], METAL[2]); P['ffore'] = a
     im = blank(); d = ImageDraw.Draw(im)
-    d.ellipse([41, 21, 48, 28], fill=hx(FUR[2]))
-    for (tx, ty) in ((49, 19), (50, 23)): limb(d, (45, 23), (tx, ty), 2, hx(FUR[2]))
-    a = shade(im, FUR); im2 = blank(); d2 = ImageDraw.Draw(im2); d2.line([(46, 22), (49, 17)], fill=hx(METAL[2]), width=1)   # a bare metal finger
-    mt = shade(im2, METAL); m = mt[..., 3] > 0; a[m] = mt[m]
+    d.ellipse([41, 22, 48, 29], fill=hx(FUR[2]))                                                                           # a mascot mitten, clenched round the axe
+    a = shade(im, FUR); put(a, [(43, 24), (44, 24), (45, 24)], FUR[3]); put(a, [(47, 26), (47, 27)], METAL[2])            # knuckles; a finger torn to the metal
     grime(a, 2)
     P['ffist'] = a
+    # ---------------- the axe: a long wooden handle, a chipped steel head, blood down the blade and the haft
+    im = blank(); d = ImageDraw.Draw(im)
+    d.line([(44, 33), (46, 7)], fill=hx(0x8a5a30), width=2)                                                                # the handle
+    ax = shade(im, (0xc0905a, 0xa8743e, 0x8a5a30, 0x5e3a1c, 0x2e1a0a))
+    im2 = blank(); d2 = ImageDraw.Draw(im2)
+    d2.polygon([(46, 6), (52, 3), (55, 8), (53, 14), (46, 11)], fill=hx(METAL[2]))                                         # the blade
+    d2.polygon([(45, 7), (42, 8), (45, 10)], fill=hx(METAL[3]))                                                            # the back spike
+    bl = shade(im2, METAL); m = bl[..., 3] > 0; ax[m] = bl[m]
+    put(ax, [(54, 7), (54, 8), (54, 9), (53, 10), (53, 11), (52, 12)], METAL[0])                                          # the edge catching the light
+    put(ax, [(53, 9), (52, 10), (52, 11), (51, 11), (50, 12), (49, 11), (51, 9), (52, 8), (50, 10)], 0x9a1010)            # blood on the blade
+    put(ax, [(52, 13), (51, 12), (53, 12)], 0x6a0808)
+    put(ax, [(46, 12), (46, 14), (45, 16), (45, 19)], 0x8a0e0e)                                                           # running down the haft
+    put(ax, [(48, 5), (49, 5)], 0x3a3a40)                                                                                 # a chip in it
+    P['axe'] = ax
     return P
 
 def draw_parts():
@@ -290,10 +302,11 @@ def draw_parts():
     else:
         d.ellipse([42, 24, 46, 28], fill=hx(K[2])); a = shade(im, K); put(a, [(43, 25)], K[0])
     P['ffist'] = a
+    P['axe'] = np.array(blank())                                       # (only SEEN carries the axe)
     return P
 
-ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'ffist']
-RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n != 'poster'}, 'poster': ((26, 38), 'bfore')}
+ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
+RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist')}
 
 def composite(P, hide=()):
     out = np.zeros((64, 64, 4), np.uint8)

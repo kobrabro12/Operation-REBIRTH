@@ -68,7 +68,8 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   **LAST SEEN** (`last-seen`, keys `ls_*` and `ls_wrong_*`, art `tools/sprites/last_seen_draw.py` + `last_seen_moves.py`, code
   `fighterLastSeen.js`, def `lastSeen.js`): an original analog-horror transformation fighter - a frail missing woman whose SIGHTINGS
   meter (`def.sightings`, eyes over her head) fills from damage dealt/taken; full -> state `turning` -> she becomes SEEN, a scrapped canary
-  mascot animatronic with her inside (`draw_mascot()`; def `SEEN`, `wrongDef`: heavy, `takenMult`, stronger normals via `wrongMove`) until
+  mascot animatronic with her inside carrying a bloody axe (`draw_mascot()`, part `axe`; its own hunched axe attacks `ATK` in last_seen_moves.py;
+  def `SEEN`, `wrongDef`: heavy, `takenMult`, normals grown by `AXE`/`wrongMove`) until
   KO'd. Her side-B PLEASE HELP ME clings to whoever it catches (state `cling`, `sideB.cling`). Limits: `turn` (I SEE IT TOO) and
   `approach` (DO NOT APPROACH, 55%). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
   analog-horror fighter, not wired into the game.

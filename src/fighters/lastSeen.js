@@ -87,12 +87,17 @@ export const LAST_SEEN = {
   },
 };
 
-// SEEN: every normal attack harder and further (her long arms, her claws)
+// SEEN: every normal attack is a swing of the bloody axe - much further and much harder
+const AXE = {
+  reach: 26,                        // extra reach in pixels (the axe's length)
+  dmg: 1.7,                         // damage multiplier
+  base: 0.9,                        // extra base knockback
+};
 function wrongMove(m) {
   if (!m.hits) return m;
-  return { ...m, hits: m.hits.map((h) => {
+  return { ...m, fx: 'arc', hits: m.hits.map((h) => {
     const [x, y, w, hh] = h.box;
-    return { ...h, box: [x - 4, y - 4, w + 16, hh + 8], dmg: Math.round(h.dmg * 1.6), base: h.base + 0.8, growth: h.growth * 1.15 };
+    return { ...h, box: [x - 6, y - 8, w + AXE.reach, hh + 12], dmg: Math.round(h.dmg * AXE.dmg), base: h.base + AXE.base, growth: h.growth * 1.15 };
   }) };
 }
 const NORMALS = ['jab', 'ftilt', 'utilt', 'dtilt', 'dashAttack', 'fsmash', 'usmash', 'dsmash', 'nair', 'fair', 'bair', 'uair', 'dair'];
@@ -100,6 +105,7 @@ const NORMALS = ['jab', 'ftilt', 'utilt', 'dtilt', 'dashAttack', 'fsmash', 'usma
 export const SEEN = {
   ...COMMON,
   name: 'SEEN',
+  swingSfx: 'whoosh',                // the axe
   sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves' },
   moveAnims: LS_WRONG_MOVES,
   fxColor: 0xd8c070,

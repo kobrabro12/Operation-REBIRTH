@@ -86,8 +86,8 @@ mv(CALM, 'taunt', 84, [k(0, REST), k(12, P(bupper=(-80, 0, 0), bfore=(-70, 0, 0)
 # ======================================================================= SEEN (wrong)
 def wrong_idle():
     """Hunched over, long arms hanging, swaying."""
-    H = dict(torso=(30, 2, 2), head=(-24, 0, 0), fupper=(30, 0, 0), ffore=(30, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), **legs(26, -30, -26, 30, 8, -8))
-    return [k(0, P(**H)), k(96, P(**mix(H, torso=(36, 2, 2), fupper=(36, 0, 0))), 'inout'), k(192, P(**H), 'inout')]
+    H = dict(torso=(30, 2, 2), head=(-24, 0, 0), fupper=(10, 0, 0), ffore=(80, 0, 0), ffist=(30, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), **legs(26, -30, -26, 30, 8, -8))
+    return [k(0, P(**H)), k(96, P(**mix(H, torso=(36, 2, 2), fupper=(16, 0, 0))), 'inout'), k(192, P(**H), 'inout')]
 def wrong_run():
     """On all fours: a fast, scuttling crawl."""
     def C(s): return P(torso=(78, 4, 6), head=(-70, 0, 0), hair=(-20, 0, 0), fupper=(60 + 30 * s, 0, 0), ffore=(10, 0, 0), bupper=(60 - 30 * s, 0, 0), bfore=(10, 0, 0),
@@ -95,6 +95,35 @@ def wrong_run():
     return [k(0, C(1)), k(12, C(0), 'linear'), k(24, C(-1), 'linear'), k(36, C(0), 'linear'), k(48, C(1), 'linear')]
 
 WRONG = borrowed()
+# ---- SEEN's own attacks: hunched over, swinging the bloody axe (they replace the borrowed upright swings)
+HB = dict(torso=(30, 2, 2), head=(-24, 0, 0), **legs(26, -30, -26, 30, 8, -8))       # the hunch
+def AX(fu, ff, fist=0, **kw):                                                          # a pose with the axe arm set (axe raised / chopping / dragging...)
+    return P(**{**HB, 'fupper': (fu, 0, 0), 'ffore': (ff, 0, 0), 'ffist': (fist, 0, 0), 'bupper': (20, 0, 0), 'bfore': (20, 0, 0), **kw})
+LOW = AX(10, 80, 30)                     # dragging it, blade on the floor
+RAISED = AX(-70, 40)                     # raised in front
+HIGH = AX(-150, 60, 0, head=(-34, 0, 0), torso=(14, 0, 0))     # wound right up over its head
+CHOP = AX(-20, 70, 0, torso=(36, 4, 3), head=(-14, 2, 0))      # chopped out level in front
+FLOOR = AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1), root=(0, 0, 0, 1.08, 0.88))   # buried in the floor
+BEHIND = AX(70, 60, 0, torso=(18, 0, 1))                       # swung behind it
+ATK = {
+    'jab': (24, [k(0, LOW), k(3, RAISED, 'out'), k(5, CHOP, 'snap'), k(12, mix(CHOP, torso=(42, 4, 3)), 'linear'), k(24, LOW, 'back')]),
+    'ftilt': (30, [k(0, LOW), k(8, BEHIND, 'out'), k(11, CHOP, 'snap'), k(15, AX(0, 90, 20, torso=(48, 4, 3)), 'out'), k(30, LOW, 'back')]),
+    'utilt': (26, [k(0, LOW), k(5, RAISED, 'out'), k(10, AX(-160, 30, 0, head=(-40, 0, 0)), 'snap'), k(16, AX(-200, 20, 0, head=(-40, 0, 0)), 'linear'), k(26, LOW, 'back')]),
+    'dtilt': (22, [k(0, LOW), k(4, mix(BEHIND, **DEEP), 'out'), k(7, mix(FLOOR, torso=(50, 4, 6)), 'snap'), k(12, mix(FLOOR, torso=(48, 4, 6)), 'linear'), k(22, LOW, 'back')]),
+    'dashAttack': (34, [k(0, LOW), k(5, mix(CHOP, torso=(48, 6, 4), root=(0, 0, 2, 1.06, 0.94)), 'snap'), k(20, mix(CHOP, torso=(44, 6, 4)), 'linear'), k(34, LOW, 'back')]),
+    'fsmash': (46, [k(0, LOW), k(10, HIGH, 'out'), k(16, mix(HIGH, fupper=(-160, 0, 0), torso=(8, 0, 0)), 'inout'), k(18, CHOP, 'snap'), k(21, FLOOR, 'snap'), k(32, mix(FLOOR, head=(-20, 2, 1)), 'linear'), k(46, LOW, 'back')]),
+    'usmash': (44, [k(0, LOW), k(10, mix(LOW, **DEEP), 'out'), k(14, AX(-170, 20, 0, head=(-44, 0, -1), torso=(-6, 0, -2), root=(0, 0, -4, 0.9, 1.14)), 'snap'),
+                    k(22, AX(-180, 10, 0, head=(-40, 0, -1), torso=(-4, 0, -1)), 'linear'), k(44, LOW, 'back')]),
+    'dsmash': (44, [k(0, LOW), k(10, HIGH, 'out'), k(15, mix(FLOOR, torso=(50, 4, 7)), 'snap'), k(19, mix(FLOOR, fupper=(60, 0, 0), ffore=(70, 0, 0), torso=(50, 4, 7)), 'linear'), k(30, FLOOR, 'inout'), k(44, LOW, 'back')]),
+    'nair': (26, [k(0, mix(CHOP, **TUCK)), k(4, mix(CHOP, **TUCK, root=(-30, 0, -2)), 'out'), k(15, mix(CHOP, **TUCK, root=(340, 0, -2)), 'linear'), k(26, mix(CHOP, **TUCK, root=(360, 0, 0)), 'back')]),
+    'fair': (26, [k(0, mix(RAISED, **TUCK)), k(6, mix(HIGH, **TUCK), 'out'), k(9, mix(CHOP, **TUCK), 'snap'), k(13, mix(FLOOR, **TUCK, torso=(40, 0, 0)), 'linear'), k(26, mix(RAISED, **TUCK), 'back')]),
+    'bair': (24, [k(0, mix(RAISED, **TUCK)), k(5, mix(CHOP, **TUCK), 'out'), k(8, mix(BEHIND, **TUCK, fupper=(90, 0, 0), torso=(10, 0, 0)), 'snap'), k(13, mix(BEHIND, **TUCK), 'linear'), k(24, mix(RAISED, **TUCK), 'back')]),
+    'uair': (24, [k(0, mix(CHOP, **TUCK)), k(4, mix(CHOP, **TUCK), 'out'), k(7, mix(AX(-160, 30, 0, head=(-40, 0, 0)), **TUCK), 'snap'), k(12, mix(AX(-200, 20, 0, head=(-40, 0, 0)), **TUCK), 'linear'), k(24, mix(RAISED, **TUCK), 'back')]),
+    'dair': (34, [k(0, mix(RAISED, **TUCK)), k(8, mix(HIGH, **TUCK), 'out'), k(10, mix(AX(30, 80, 40, torso=(40, 0, 0), head=(-10, 0, 0)), **legs(6, 0, -6, 0)), 'snap'), k(24, mix(AX(30, 80, 40, torso=(36, 0, 0)), **legs(6, 0, -6, 0)), 'linear'), k(34, mix(RAISED, **TUCK), 'back')]),
+}
+for name, (ticks, keys) in ATK.items():
+    mv(WRONG, name, ticks, keys, smear=('ffore', 'ffist', 'axe'))
+
 WAIL = P(torso=(22, 3, 1), head=(-34, 2, 0), hair=(30, 0, 0), fupper=(70, 0, 0), ffore=(20, 0, 0), bupper=(70, 0, 0), bfore=(20, 0, 0), root=(0, 3, 0, 1.06, 0.95), **STANCE)
 mv(WRONG, 'neutralB', 40, [k(0, P(torso=(30, 2, 2), head=(-24, 0, 0))), k(10, P(torso=(-10, -1, -1), head=(30, 0, 0), fupper=(-120, 0, 0), bupper=(-120, 0, 0), **DEEP), 'out'),
                            k(14, WAIL, 'snap'), k(30, mix(WAIL, head=(-40, 2, 0)), 'linear'), k(40, P(torso=(30, 2, 2), head=(-24, 0, 0)), 'inout')])
@@ -121,7 +150,7 @@ def build():
     out = {}
     D.set_style('calm'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (232, 200, 106)
     out['calm'] = N.build_all(small, big, CALM, DIR, os.path.join(ROOT, 'src/fighters/lsMoves.js'), 'LS_MOVES', 'last_seen_moves.py', life_fn=calm_life, idle=calm_idle)
-    D.set_style('wrong'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (60, 70, 60)
+    D.set_style('wrong'); small, big = N.build_rig(D, {**FOLLOW, 'hair': (0.1, 0.15), 'axe': (0.15, 0)}); N.GHOST = (154, 16, 16)   # the crest is stiff; a red smear behind the axe
     out['wrong'] = N.build_all(small, big, WRONG, os.path.join(DIR, 'wrong'), os.path.join(ROOT, 'src/fighters/lsWrongMoves.js'), 'LS_WRONG_MOVES', 'last_seen_moves.py',
                                life_fn=wrong_life, idle=wrong_idle, run=wrong_run, jumps=((WJUMP, mix(WJUMP, head=(-36, 0, 0))), (WFALL, mix(WFALL, head=(-26, 0, 0)))))
     return out
