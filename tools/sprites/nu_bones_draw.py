@@ -44,7 +44,7 @@ def draw_parts():
     old = dict(N.PAL)
     N.PAL.update(PAL)
     try:
-        P = N.draw_parts()
+        P = N.draw_parts_v1()
     finally:
         N.PAL.clear(); N.PAL.update(old)
     # ---- the body: ribcage, sternum, spine and pelvis printed on black

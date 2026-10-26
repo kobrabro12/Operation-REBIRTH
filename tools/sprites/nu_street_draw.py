@@ -29,7 +29,7 @@ def draw_parts():
     old = dict(N.PAL)
     N.PAL.update(PAL)
     try:
-        P = N.draw_parts()
+        P = N.draw_parts_v1()
     finally:
         N.PAL.clear(); N.PAL.update(old)
     # ---- the tee: the NU print and drawstrings off, a gold chain and medallion on

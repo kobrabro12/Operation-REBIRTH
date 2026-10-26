@@ -31,8 +31,8 @@ export const LS_WRONG_MOVES = {
    "sideB": [636, 72, 1],
    "flurry": [708, 66, 1],
    "upb": [774, 40, 1],
-   "downB": [814, 56, 2],
-   "limit": [870, 85, 2],
-   "turning": [955, 35, 2],
-   "taunt": [990, 84, 1],
+   "downB": [814, 67, 2],
+   "limit": [881, 85, 2],
+   "turning": [966, 35, 2],
+   "taunt": [1001, 84, 1],
 };

@@ -156,9 +156,11 @@ export const SEEN = {
     // and screams, spewing blood. It does almost no damage and leaves it wide open (it takes more damage the whole
     // time) - but everyone near the scream is SHAKEN (slowed, and their hits do less), and if it gets the whole
     // scream out it goes into a FRENZY for 10 s and fills its Limit meter. Get hit out of it and it gets nothing.
-    downB: { frames: 112, hits: [], scream: {
-      throwAt: 10, land: 15, axeX: 30, pickAt: 102,   // the axe: thrown at frame 10, lands in the floor 30 px ahead, pulled back out at 102
-      from: 40, to: 98,                               // the scream (frames)
+    // In the AIR it's worse: the axe falls away and it has to fight without it for 5 s (only CLIMB works; its hits are weak).
+    downB: { frames: 134, hits: [], scream: {
+      throwAt: 16, land: 22, axeX: 30, pickAt: 124,   // the axe: thrown at frame 16, lands in the floor 30 px ahead, pulled back out at 124
+      from: 60, to: 118,                              // the scream (frames) - a long, slow wind-up before it
+      airLoss: 300,                                   // used in the air: no axe for 5 s
       radius: 170,                                    // how near you have to be to be SHAKEN by it
       shaken: 300,                                    // SHAKEN lasts 5 s after you're out of range: 40% slower, your hits do 30% less
       frenzy: 600,                                    // a full scream: FRENZY for 10 s (see Fighter: hits 30% harder, 15% faster)

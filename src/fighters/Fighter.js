@@ -82,7 +82,7 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1); }   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get dmgMult() { return this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
@@ -138,6 +138,7 @@ export class Fighter {
     if (this.missingMark > 0) this.missingMark--;   // posted MISSING by WHAT ONCE WAS
     if (this.shaken > 0) this.shaken--;             // SEEN's SCREAM: shaken...
     if (this.frenzy > 0) this.frenzy--;             // ...and its FRENZY
+    if (this.axeLost > 0) this.axeLostTick();       // SEEN lost its axe in the air
     if (this.wowMode) this.modeTick();              // WHAT ONCE WAS: SMILE mode heals
     if (this.headless || this.regrowing) this.bodyTick();   // WHAT ONCE WAS: a TV on the ground grows a body
     if (this.pcBuff > 0) this.pcBuff--;
@@ -230,6 +231,7 @@ export class Fighter {
     if (this.buffer.special) {
       const M = this.def.moves;
       this.buffer.special = 0;
+      if (this.axeLost > 0 && !c.up) { this.noAxe(); return false; }   // SEEN without its axe: only CLIMB
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
@@ -530,7 +532,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0; this.shaken = 0; this.frenzy = 0;
+    this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0; this.shaken = 0; this.frenzy = 0; this.axeLost = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;
     this.setState('respawn'); this.invincible = 0;

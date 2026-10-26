@@ -5,7 +5,7 @@ import { sfx } from '../audio/sfx.js';
 import { newAttackId } from './attackIds.js';
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { showFighter } from './roster.js';
-import { skinSheets } from './skins.js';
+import { skinSheets, skinTexture, skinInfo } from './skins.js';
 import { drawPoster } from './entities.js';
 
 const TURN = { frames: 70, swapAt: 50 };          // the transformation: how long, and the frame she becomes SEEN
@@ -53,6 +53,7 @@ export class FighterLastSeen {
   }
   // KO'd: she's herself again, the meter empty
   revertLastSeen() {
+    this.axeLost = 0; this.armedSheets = null;
     if (this.baseDef) { this.def = this.baseDef; this.sheets = this.baseSheets; this.pal = this.basePal; this.baseDef = null; }
     this.sightings = 0; this.wantTurn = false;
   }
@@ -377,6 +378,7 @@ export class FighterLastSeen {
     if (this.t === S.throwAt) {                                         // the throw
       this.thrownAxe = { x: this.x + f * S.axeX, y: this.y, y0: this.y - 46, stuck: this.grounded, f };
       sfx('whoosh', 0.7, 0.6);
+      if (!this.grounded && S.airLoss) this.loseAxe(S.airLoss);         // in the air: it's gone
     }
     if (this.t === S.land && this.thrownAxe && this.thrownAxe.stuck) {    // it bites into the floor
       sfx('clang', 0.6, 0.55); sfx('land', 0.6, 0.6); m.shake(3, 6);
@@ -410,6 +412,36 @@ export class FighterLastSeen {
       m.popText(this, 'FRENZY', '#ff2a2a'); sfx('limitready', 0.6, 0.7); sfx('buzz', 0.5, 0.6);
     }
   }
+  // ---- no axe (SCREAM used in the air): its art without the axe, loaded the first time it's needed, for 'frames'
+  unarmedKeys() {
+    const set = skinInfo(this.def.id, this.skin).sheetSet, sets = this.def.costumeSheets || {};
+    const pre = set && sets[set] ? 'ls_wrong_' + set + '_noaxe_' : 'ls_wrong_noaxe_', dir = set && sets[set] ? 'wrong/' + set + '/noaxe/' : 'wrong/noaxe/';
+    return { pre, dir, own: !!(set && sets[set]) };
+  }
+  loseAxe(frames) {
+    const m = this.match, K = this.unarmedKeys(), sc = this.scene, tm = sc.textures;
+    this.axeLost = frames; this.armedSheets = this.armedSheets || this.sheets;
+    m.popText(this, 'NO AXE', '#ff8a7a'); sfx('clang', 0.6, 0.4);
+    const apply = () => {
+      if (!(this.axeLost > 0) || !this.def.wrong) return;
+      const out = {};
+      for (const k of ['idle', 'run', 'jump', 'fall', 'moves']) out[k] = K.own ? K.pre + k : skinTexture(sc, K.pre + k, this.def.id, this.skin);
+      this.sheets = { ...this.armedSheets, ...out };
+    };
+    if (tm.exists(K.pre + 'moves')) return apply();
+    for (const k of ['idle', 'run', 'jump', 'fall']) sc.load.spritesheet(K.pre + k, 'assets/fighters/last-seen/' + K.dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    sc.load.spritesheet(K.pre + 'moves', 'assets/fighters/last-seen/' + K.dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    sc.load.once('complete', apply); sc.load.start();                       // (until it's in, it still looks armed)
+  }
+  axeLostTick() {
+    if (!this.def.wrong) { this.axeLost = 0; this.armedSheets = null; return; }
+    if (--this.axeLost > 0) return;
+    if (this.armedSheets) this.sheets = this.armedSheets;
+    this.armedSheets = null;
+    this.match.popText(this, 'AXE BACK', '#e8c86a'); sfx('shing', 0.6, 0.7); sfx('clang', 0.4, 0.8);
+  }
+  noAxe() { if (this.age - (this.noAxeAt ?? -99) < 30) return; this.noAxeAt = this.age; this.match.popText(this, 'NO AXE', '#ff8a7a'); sfx('dodge', 0.3, 0.6); }
+
   // the thrown axe, sticking out of the floor (or tumbling away if it was thrown in the air)
   drawThrownAxe(spr) {
     const A = this.thrownAxe, M = this.move, S = M && M.scream;

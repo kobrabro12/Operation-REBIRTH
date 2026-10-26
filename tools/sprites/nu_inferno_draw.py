@@ -62,7 +62,7 @@ def draw_parts():
     old, old_out = dict(N.PAL), N.OUT
     N.PAL.update(PAL); N.OUT = OUT
     try:
-        P = N.draw_parts()
+        P = N.draw_parts_v1()
     finally:
         N.PAL.clear(); N.PAL.update(old); N.OUT = old_out
     # ---- jacket: studs on the shoulders, a burning skull on the chest instead of the NU print, flame cuffs

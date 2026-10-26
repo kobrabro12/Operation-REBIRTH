@@ -8,6 +8,7 @@ import { ForestStage, drawForestPreview } from './forestStage.js';
 import { BackroomsStage, drawBackroomsPreview } from './backroomsStage.js';
 import { InfectedStage, drawInfectedPreview } from './infectedStage.js';
 import { AeroStage, drawAeroPreview } from './aeroStage.js';
+import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
 
 export const STAGES = [
   {
@@ -57,6 +58,12 @@ export const STAGES = [
     blurb: ['A glossy Frutiger Aero dream where old gadgets', 'were left in the grass and nature took them back.'],
     hazard: 'CD SHOWER: GLINTS IN THE SKY, THEN\nSPINNING CDS STREAK DOWN AT AN ANGLE.',
     preview: drawAeroPreview,
+  },
+  {
+    id: 'baseplate', name: 'BASEPLATE 2012', available: true, make: (scene) => new BaseplateStage(scene),
+    blurb: ['A studded green baseplate from the old block', 'games, between two sword-fight towers.'],
+    hazard: 'ROCKET BARRAGE, LOOSE BRICKS FROM THE\nSKY - AND THE DREADED LAG SPIKE.',
+    preview: drawBaseplatePreview,
   },
 ];
 

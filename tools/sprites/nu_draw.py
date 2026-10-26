@@ -66,7 +66,8 @@ def finish(img, pal, outline=True, rim=True):
         a[ring] = hx(OUT)
     return a
 
-def draw_parts():
+def draw_parts_v1():
+    """The first drawing (chunky, black outlines). The costumes (nu_*_draw.py) are still built on it."""
     P = {}
     # ---------------- back leg (behind everything): thigh, then shin + shoe
     im = blank(); d = ImageDraw.Draw(im)
@@ -194,6 +195,156 @@ def draw_parts():
     a = finish(im, PAL['acid'])
     a[32, 29:31] = hx(PAL['chrome'][1]); a[31, 30] = hx(0xffffff)          # cap and nozzle
     a[36, 28:32] = hx(OUT)                                               # label band
+    P['can'] = a
+    return P
+
+# ======================================================================= the drawing (v2)
+# Drawn to sit next to Mason's Soul Summoner: slim and tall, a small head, long limbs, fine 1px detail, five-tone
+# shading lit from the upper left, and each piece outlined in a dark shade of its own colour (no black outline).
+P5 = {   # highlight, light, mid, shadow, outline
+    'skin': (0xf8d8bc, 0xe8b48e, 0xc88a64, 0x965c40, 0x4a2a1c),
+    'hair': (0xfffbea, 0xf4e8bc, 0xdccc90, 0xae9a62, 0x5c4e2a),
+    'tip': (0xeeffb0, 0xc8ff5a, 0x9be32a, 0x5a9a14, 0x2a4a08),
+    'hood': (0x76728a, 0x55516a, 0x3c3850, 0x26233a, 0x100e1c),
+    'pants': (0x5e5a70, 0x45415a, 0x312e44, 0x211f30, 0x0c0a16),
+    'shoe': (0xffffff, 0xf0f2f6, 0xccd0d8, 0x8e949e, 0x3a3e48),
+    'chrome': (0xffffff, 0xdce4ec, 0xa8b2be, 0x6c7684, 0x2a2e38),
+    'band': (0x4a4658, 0x34303e, 0x24212c, 0x16141c, 0x08060c),
+}
+
+def shade5(img, pal):
+    """Light from the upper left: a highlight edge, the mid tone, a two-pixel shadow down the lower right, and an
+    outline in the material's own darkest shade. Pixels painted in other colours (details) are kept."""
+    a = np.array(img)
+    solid = a[..., 3] > 0
+    base = np.all(a[..., :3] == np.array(hx(pal[2])[:3]), -1) & solid
+    H, W = solid.shape
+    def sh(m, dy, dx):
+        o = np.zeros_like(m)
+        o[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)] = m[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+        return o
+    ul = ~sh(solid, 1, 0) | ~sh(solid, 0, 1); ul2 = ~sh(solid, 2, 0) | ~sh(solid, 0, 2)
+    dr = ~sh(solid, -1, 0) | ~sh(solid, 0, -1); dr2 = ~sh(solid, -2, 0) | ~sh(solid, 0, -2)
+    a[base & dr2] = hx(pal[3])
+    a[base & ul2 & ~dr2] = hx(pal[1])
+    a[base & ul & ~dr] = hx(pal[0])
+    ring = ~solid & (sh(solid, 1, 0) | sh(solid, -1, 0) | sh(solid, 0, 1) | sh(solid, 0, -1))
+    a[ring] = hx(pal[4])
+    return a
+
+def put(a, pts, col):
+    for (x, y) in pts:
+        if 0 <= y < 64 and 0 <= x < 64 and a[y, x, 3]: a[y, x] = hx(col)
+
+def limb(d, a, b, w, col):
+    d.line([a, b], fill=col, width=w)
+    r = w / 2 - 0.5
+    for (x, y) in (a, b): d.ellipse([x - r, y - r, x + r, y + r], fill=col)
+
+def draw_parts():
+    """NU, slim: a lanky frontman in a fitted charcoal hoodie, tapered pants and white high-tops."""
+    S, HR, TP, HD, PN, SH, CH, BD = (P5[k] for k in ('skin', 'hair', 'tip', 'hood', 'pants', 'shoe', 'chrome', 'band'))
+    G = TP
+    P = {}
+    # ---------------- legs: long and slim, the pants bunching a little over the high-tops
+    for side, hip, knee, ank in (('b', (28, 40), (25, 48), (24, 54)), ('f', (37, 40), (40, 48), (40, 54))):
+        im = blank(); d = ImageDraw.Draw(im); limb(d, hip, knee, 5, hx(PN[2]))
+        a = shade5(im, PN); put(a, [(knee[0] + (1 if side == 'f' else -1), knee[1] - 2)], PN[3])      # a crease at the knee
+        P[side + 'thigh'] = a
+        im = blank(); d = ImageDraw.Draw(im); limb(d, knee, ank, 5, hx(PN[2]))
+        d.polygon([(ank[0] - 3, ank[1] - 2), (ank[0] + 3, ank[1] - 2), (ank[0] + 3, ank[1] + 1), (ank[0] - 3, ank[1] + 1)], fill=hx(PN[2]))   # bunched at the ankle
+        a = shade5(im, PN); put(a, [(ank[0] - 1, ank[1] - 1), (ank[0] + 1, ank[1])], PN[3])
+        P[side + 'shin'] = a
+        im = blank(); d = ImageDraw.Draw(im); x0 = ank[0] - 3                                  # a white high-top
+        d.polygon([(x0, 54), (x0 + 5, 54), (x0 + 7, 56), (x0 + 9, 56), (x0 + 9, 58), (x0, 58)], fill=hx(SH[2]))
+        a = shade5(im, SH)
+        put(a, [(x, 58) for x in range(x0, x0 + 10)], 0x3a3e48); put(a, [(x, 57) for x in range(x0 + 1, x0 + 9)], 0xb8bcc6)   # the sole
+        put(a, [(x0 + 2, 55), (x0 + 3, 55), (x0 + 4, 56), (x0 + 5, 56), (x0 + 6, 56)], TP[2]); put(a, [(x0 + 3, 54)], TP[1])   # the green stripe
+        put(a, [(x0 + 7, 56), (x0 + 8, 56)], 0xffffff)
+        P[side + 'shoe'] = a
+    # ---------------- back arm: a hoodie sleeve, a spiked wristband, a fist
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (27, 24), (25, 31), 4, hx(HD[2])); a = shade5(im, HD); put(a, [(26, 27)], HD[3]); P['bupper'] = a
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (25, 31), (26, 36), 4, hx(HD[2])); a = shade5(im, HD)
+    im2 = blank(); d2 = ImageDraw.Draw(im2); d2.rectangle([24, 35, 28, 36], fill=hx(BD[2])); band = shade5(im2, BD); m = band[..., 3] > 0; a[m] = band[m]
+    put(a, [(24, 35), (26, 35), (28, 35)], CH[0])                                                  # studs
+    put(a, [(24, 34), (25, 34), (26, 34), (27, 34)], G[3])                                          # green cuff
+    im2 = blank(); d2 = ImageDraw.Draw(im2); d2.ellipse([24, 36, 28, 40], fill=hx(S[2])); fist = shade5(im2, S); m = fist[..., 3] > 0; a[m] = fist[m]
+    put(a, [(25, 38), (26, 38)], S[3])
+    P['bfore'] = a
+    # ---------------- torso: a fitted charcoal hoodie, hood bunched behind the neck, the NU print, a wallet chain
+    im = blank(); d = ImageDraw.Draw(im)
+    d.polygon([(29, 21), (37, 21), (39, 23), (38, 31), (38, 38), (39, 41), (28, 41), (27, 38), (28, 31), (27, 23)], fill=hx(HD[2]))   # tapering to the waist
+    d.polygon([(27, 18), (31, 17), (32, 22), (27, 23)], fill=hx(HD[2]))                            # the hood behind his neck
+    a = shade5(im, HD)
+    put(a, [(28, 19), (29, 18), (30, 19)], HD[3]); put(a, [(29, 20)], HD[4])                      # inside the hood
+    put(a, [(32, 21), (33, 21), (34, 21)], S[2]); put(a, [(33, 22)], S[3])                        # his neck in the collar
+    G = TP
+    for (x, y) in [(29, 27), (29, 28), (29, 29), (29, 30), (30, 28), (31, 29), (32, 27), (32, 28), (32, 29), (32, 30),   # a small N U print
+                   (34, 27), (34, 28), (34, 29), (35, 30), (36, 27), (36, 28), (36, 29)]:
+        put(a, [(x, y)], G[2])
+    put(a, [(29, 27), (32, 27), (34, 27), (36, 27)], G[1])
+    put(a, [(35, y) for y in range(22, 25)] + [(37, y) for y in range(22, 24)], G[2]); put(a, [(35, 25), (37, 24)], CH[1])   # drawstrings with metal tips
+    put(a, [(x, 33) for x in range(29, 38)], HD[3]); put(a, [(29, 34), (37, 34)], HD[3])           # the pouch pocket
+    put(a, [(x, 39) for x in range(27, 40)], BD[2]); put(a, [(x, 40) for x in range(27, 40)], BD[3])   # the ribbed hem...
+    for x in range(28, 39, 2): put(a, [(x, 39)], BD[1])
+    put(a, [(x, 38) for x in range(28, 39)], G[3])                                                   # ...with an acid-green trim
+    put(a, [(28, 18), (29, 17), (30, 18), (31, 18)], G[3]); put(a, [(33, y) for y in range(22, 38, 2)], HD[3])   # the hood's green lining; a zip
+    put(a, [(28, 24), (28, 25), (28, 26)], HD[1]); put(a, [(36, 30), (37, 31)], HD[3])             # light on the shoulder, a fold
+    im2 = blank(); d2 = ImageDraw.Draw(im2)
+    for (x, y) in [(38, 41), (37, 42), (36, 43), (35, 43), (34, 43), (33, 42)]: im2.putpixel((x, y), hx(CH[2]))   # the wallet chain, hanging
+    c = np.array(im2); m = c[..., 3] > 0; a[m] = c[m]; put(a, [(37, 42), (35, 43)], CH[0])
+    a[42, 37] = hx(CH[0]); a[43, 35] = hx(CH[0]); a[43, 34] = hx(CH[3])
+    P['torso'] = a
+    # ---------------- head: small, narrow; the black face-paint stripe across the eyes, one eye glinting green
+    im = blank(); d = ImageDraw.Draw(im)
+    d.rectangle([32, 17, 34, 21], fill=hx(S[2]))
+    d.polygon([(31, 9), (37, 9), (38, 12), (39, 15), (38, 16), (37, 18), (35, 19), (32, 19), (31, 17)], fill=hx(S[2]))
+    a = shade5(im, S)
+    put(a, [(x, 13) for x in range(32, 40)] + [(x, 12) for x in range(33, 39)] + [(x, 14) for x in range(34, 39)], 0x1a1424)   # the paint stripe
+    put(a, [(37, 13)], 0xc8ff5a); put(a, [(36, 13)], 0xf4f8fc); put(a, [(34, 13)], 0x3a3450)        # an eye glinting green through it
+    put(a, [(39, 15)], S[3]); put(a, [(38, 15)], S[1])                                              # nose
+    put(a, [(36, 17), (37, 17)], 0x8a4a3a); put(a, [(38, 17)], CH[0])                              # mouth, lip ring
+    put(a, [(32, 13), (32, 14), (32, 15)], S[3]); put(a, [(31, 15)], CH[1])                        # ear and an earring
+    put(a, [(35, 16), (36, 16)], S[3])                                                              # cheekbone
+    P['head'] = a
+    # ---------------- hair: bleached, spiked up and back, acid-green tips; goggles pushed up into it
+    im = blank(); d = ImageDraw.Draw(im)
+    d.polygon([(30, 13), (29, 9), (31, 7), (36, 6), (39, 8), (39, 10), (35, 10), (32, 11), (31, 13)], fill=hx(HR[2]))
+    spikes = [((30, 10), (24, 6), (31, 8)), ((30, 8), (25, 2), (32, 7)), ((32, 7), (29, 0), (34, 6)), ((34, 6), (34, 0), (36, 6)), ((36, 6), (39, 1), (38, 7)), ((37, 8), (42, 4), (39, 9))]
+    for tri in spikes: d.polygon(tri, fill=hx(HR[2]))
+    a = shade5(im, HR)
+    for (b0, tip, b1) in spikes:                                                                    # strands down each spike, green tips
+        tx, ty = tip; cx, cy = (b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2
+        for k in range(6):
+            f = k / 7; x = int(round(tx + (cx - tx) * f)); y = int(round(ty + (cy - ty) * f))
+            put(a, [(x, y)], TP[min(3, k // 2 + (k > 3))] if k < 4 else HR[3] if k == 5 else HR[1])
+    put(a, [(x, 9) for x in range(30, 39)], BD[3])                                                  # the goggle strap...
+    put(a, [(35, 8), (36, 8), (37, 8), (35, 9), (36, 9), (37, 9)], CH[2]); put(a, [(35, 8), (36, 8)], CH[0])   # ...and lenses
+    put(a, [(36, 9)], TP[1]); put(a, [(35, 10), (36, 10), (37, 10)], CH[4])
+    P['hair'] = a
+    # ---------------- front arm: sleeve, wristband, then the mic on its cable and the fist around it
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (38, 24), (42, 31), 4, hx(HD[2])); a = shade5(im, HD); put(a, [(39, 26)], HD[1]); P['fupper'] = a
+    im = blank(); d = ImageDraw.Draw(im); limb(d, (42, 31), (44, 27), 4, hx(HD[2])); a = shade5(im, HD)
+    im2 = blank(); d2 = ImageDraw.Draw(im2); d2.rectangle([42, 27, 45, 28], fill=hx(BD[2])); band = shade5(im2, BD); m = band[..., 3] > 0; a[m] = band[m]
+    put(a, [(43, 27), (45, 27)], CH[0]); put(a, [(42, 29), (43, 29), (44, 29)], G[3])               # studs; green cuff
+    P['ffore'] = a
+    im = blank(); d = ImageDraw.Draw(im)
+    d.rectangle([44, 21, 45, 27], fill=hx(CH[2]))                                                   # the handle
+    d.ellipse([42, 16, 47, 21], fill=hx(CH[2]))                                                     # the grille
+    a = shade5(im, CH)
+    for (x, y) in [(43, 18), (45, 18), (44, 19), (44, 17), (46, 19)]: put(a, [(x, y)], CH[3])        # the mesh
+    put(a, [(44, 18), (45, 19)], TP[1]); put(a, [(43, 17)], 0xffffff)                               # glowing green inside
+    put(a, [(x, 21) for x in range(43, 47)], TP[3])                                                 # its band
+    cable = blank(); dc = ImageDraw.Draw(cable)
+    dc.line([(44, 28), (42, 33), (41, 37), (42, 40), (45, 40)], fill=hx(0x24212c), width=1)       # the cable, looping down
+    c = np.array(cable); m = c[..., 3] > 0; a[m] = c[m]
+    P['mic'] = a
+    im = blank(); d = ImageDraw.Draw(im); d.ellipse([42, 23, 46, 28], fill=hx(S[2])); a = shade5(im, S)
+    put(a, [(43, 25), (44, 25), (45, 25)], S[3]); put(a, [(43, 24)], S[1])                         # knuckles
+    P['ffist'] = a
+    # ---------------- the spray can (only out for GRAFFITI TAG)
+    im = blank(); d = ImageDraw.Draw(im); d.rectangle([28, 33, 30, 39], fill=hx(TP[2])); a = shade5(im, TP)
+    put(a, [(28, 32), (29, 32), (30, 32)], CH[2]); put(a, [(29, 31)], 0xffffff); put(a, [(28, 36), (29, 36), (30, 36)], 0x1a1424)
     P['can'] = a
     return P
 

@@ -34,7 +34,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Costumes / palettes | `src/fighters/skins.js`, `common.js` | |
 | Sprite loading | `src/scenes/BootScene.js` | Every sheet key + frame size is registered here. |
 | Match loop, hits, KOs | `src/scenes/MatchScene.js` | |
-| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute; `infectedStage.js` (INFECTED.EXE: virus pop-ups - `IDIOT` block tunes YOU ARE AN IDIOT); `aeroStage.js` (AERO MEADOW: Frutiger Aero + overgrown gadgets, CD SHOWER). FULL AERO on INFECTED.EXE draws a clash instead of the plain aero sky (`renderAeroClash` in MatchScene). Select grid: `STAGE_SLOTS` in stages.js | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
+| Stages | `src/stage/<name>Stage.js`, list in `stages.js`; `backroomsStage.js` swaps between 4 levels every minute; `infectedStage.js` (INFECTED.EXE: virus pop-ups - `IDIOT` block tunes YOU ARE AN IDIOT); `aeroStage.js` (AERO MEADOW: Frutiger Aero + overgrown gadgets, CD SHOWER); `baseplateStage.js` (BASEPLATE 2012: an original homage to 2010-2016 block-building games - no real names/logos; ROCKET BARRAGE, LOOSE BRICKS, LAG SPIKE = `match.frozen` then everyone snaps back to their position a second ago). FULL AERO on INFECTED.EXE draws a clash instead of the plain aero sky (`renderAeroClash` in MatchScene). Select grid: `STAGE_SLOTS` in stages.js | Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`. |
 | Items | `src/items/items.js` | Soul Heart, Limit Orb, Cursed Skull. Textures drawn from char maps. |
 | CPU AI | `src/ai/cpu.js` | Presses buttons on a `Controller` like a human. |
 | Input | `src/input/controllers.js`, `touch.js` | |
@@ -50,7 +50,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 - **Mr Wake** (`mr-wake`, keys `wake_*`): 176×120 move frames. Rosebud costume.
 - **Lacy / Hero Knight** (`hero-knight`, keys `hk_*`): 150×90 frames, 180×140 moves. Battle-Worn damage stages (worn1–3), Samurai + Akatsuki costumes. Unarmed `_u` sheets.
 - **Test fighters** (`TEST_ROSTER` in `roster.js`, played from Trinkets > TEST FIGHTERS, never on the select grid):
-  **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py`; passive ON BEAT (`def.beat`: attacks started on the
+  **NU** (`nu`, keys `nu_*`, art `tools/sprites/nu_draw.py` + `nu_moves.py` - `draw_parts()` is the slim Soul-Summoner-style drawing (`shade5`, 5-tone `P5` palettes); the costumes are still built on the old `draw_parts_v1()`; passive ON BEAT (`def.beat`: attacks started on the
   beat ring hit harder and build a STREAK), Power Chord (hold), MIC TOSS side-B (`MicToss` in entities.js), AMP DROP (`SpeakerAmp` in entities.js), WALL OF
   SOUND limit (4 x 8 + 18 = 50%); costumes with their own drawing - INFERNO / BLOCK BOSS / BONEZ / HOMEROOM - drawn by `nu_inferno_draw.py` / `nu_street_draw.py` / `nu_bones_draw.py` / `nu_school_draw.py`, built by `nu_costume_moves.py`, styles `nuInferno` / `nuStreet` / `nuBones` / `nuSchool`; HOMEROOM's amp is its own sprite `nu/school/amp.png`) and **AERO** (`aero`, keys `aero_*`, `aero_draw.py` +
   `aero_moves.py`; his FULL AERO form - permanent until KO'd, floating (`def.float`), attacking with a golden spear (spear animations `k_*`) (part `spear`; `SPEAR` in aero.js grows his normals' reach and damage) - is `aero_king_*`, def `AERO_FULL`; its art is Mason's drawings `tools/sprites/art/full_aero.png` (and `full_aero_infected.png`, worn on INFECTED.EXE via `stageSheets`), cut into parts by `aero_king_mason.py`). 64×64 base frames, 112×104 moves.
@@ -75,7 +75,8 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
   hold to charge, shuffles slowly - `Fighter.physics` - anims `axecharge` / `axecharge_walk`), side-B LUNGE (`sideB.flurry`: on hit state `flurry`,
   `startFlurry`; on a miss the axe sticks in the floor = long end lag). SEEN's down-B SCREAM (`downB.scream`, `screamStep` in
   fighterLastSeen.js; part `jaw`): axe into the floor (`axe.png` per look), jaw wrenched open, blood; foes near it get `shaken`
-  (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout. Costumes AFTER HOURS (rave) /
+  (slower, weaker hits), a full scream gives `frenzy` (10 s) + Limit; it takes more damage throughout; used in the air it loses the axe for 5 s (`axeLost`,
+  `loseAxe` lazy-loads the no-axe sheets `wrong/<set>/noaxe/` - only up-B works, hits 35% softer). Costumes AFTER HOURS (rave) /
   GRAND OPENING (showtime) / LAKEBED (drowned) / DEEP SEA (angler: an anglerfish) redraw SEEN (`VARIANTS` in last_seen_draw.py, sheets `wrong/<set>/`, `SEEN.costumeSheets`;
   the calm form is only recoloured; `vfx.seen` / `vfx.seenHit` / aura `rave|showtime|drowned`). Her side-B PLEASE HELP ME clings to whoever it catches (state `cling`, `sideB.cling`). Limits: `turn` (I SEE IT TOO) and, as
   SEEN, `birthday` (THE BIRTHDAY SHOW, 52%: `birthdayLimit` -> `birthdayCutscene`/`drawBackstage` - a screen-space cutscene on the UI

@@ -211,18 +211,20 @@ SPLAY = legs(30, -24, -30, 32, 8, -8)
 def SCR(s, **kw):                                                                      # screaming, shaking one way or the other
     return P(torso=(6 + 3 * s, 2 + s, 0), head=(-4 + 6 * s, 1, 0), jaw=(30 + 4 * s, 0, 3, 1, 1.5 + 0.05 * s), fupper=(36 + 8 * s, 0, 0), ffore=(14, 0, 0),
              bupper=(64 - 8 * s, 0, 0), bfore=(20, 0, 0), root=(0, s, 0, 1.07, 0.94), _hide=NOAXE, **SPLAY, **kw)
-mv(WRONG, 'downB', 112, [
+mv(WRONG, 'downB', 134, [                                                                   # (a slow, deliberate start: high risk)
     k(0, LOW),
-    k(5, AX(-150, 60, 0, head=(-34, 0, 0), torso=(14, 0, 0)), 'out'),                                       # wound up over its head...
-    k(10, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=NOAXE), 'snap'),                     # ...and thrown down into the floor
-    k(18, P(torso=(10, 0, 0), head=(-10, 0, 0), fupper=(-100, 0, 0), ffore=(80, 0, 0), bupper=(-100, 0, 0), bfore=(70, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),
-    k(26, P(torso=(0, 0, 0), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-110, 0, 0), ffore=(60, 0, 0), bupper=(-120, 0, 0), bfore=(60, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),   # both hands on its jaw
-    k(36, P(torso=(-8, 0, -1), head=(-45, 0, 0), jaw=(26, 0, 2, 1, 1.35), fupper=(-50, 0, 0), ffore=(30, 0, 0), bupper=(-160, 0, 0), bfore=(30, 0, 0), _hide=NOAXE, **SPLAY), 'out'),   # wrenching it open
-    k(40, SCR(1), 'snap')]                                                                                    # SCREAM
-    + [k(46 + i * 6, SCR(-1 if i % 2 == 0 else 1), 'snap') for i in range(9)]                               # shaking all over
-    + [k(100, P(torso=(50, 3, 4), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-20, 0, 0), ffore=(70, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), _hide=NOAXE, **legs(36, -50, -34, 50, 14, -14)), 'inout'),   # reaching down for the axe
-       k(104, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=('axed',)), 'snap'),           # pulled out of the floor
-       k(112, LOW, 'inout')], step=2)
+    k(9, AX(-150, 60, 0, head=(-34, 0, 0), torso=(14, 0, 0)), 'out'),                                       # wound up over its head...
+    k(13, mix(AX(-160, 60, 0, head=(-38, 0, -1), torso=(10, 0, 0)), root=(0, -1, -1, 0.97, 1.04)), 'inout'),   # ...held there a moment...
+    k(16, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=NOAXE), 'snap'),                     # ...and thrown down into the floor
+    k(28, P(torso=(10, 0, 0), head=(-10, 0, 0), fupper=(-100, 0, 0), ffore=(80, 0, 0), bupper=(-100, 0, 0), bfore=(70, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),
+    k(40, P(torso=(0, 0, 0), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-110, 0, 0), ffore=(60, 0, 0), bupper=(-120, 0, 0), bfore=(60, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),   # both hands on its jaw
+    k(48, P(torso=(-4, 0, 0), head=(-30, 0, 0), jaw=(16, 0, 1, 1, 1.15), fupper=(-80, 0, 0), ffore=(40, 0, 0), bupper=(-140, 0, 0), bfore=(40, 0, 0), _hide=NOAXE, **SPLAY), 'inout'),   # pulling...
+    k(56, P(torso=(-8, 0, -1), head=(-45, 0, 0), jaw=(26, 0, 2, 1, 1.35), fupper=(-50, 0, 0), ffore=(30, 0, 0), bupper=(-160, 0, 0), bfore=(30, 0, 0), _hide=NOAXE, **SPLAY), 'out'),   # wrenching it open
+    k(60, SCR(1), 'snap')]                                                                                    # SCREAM
+    + [k(66 + i * 6, SCR(-1 if i % 2 == 0 else 1), 'snap') for i in range(9)]                               # shaking all over
+    + [k(120, P(torso=(50, 3, 4), head=(-20, 0, 0), jaw=(10, 0, 0), fupper=(-20, 0, 0), ffore=(70, 0, 0), bupper=(20, 0, 0), bfore=(20, 0, 0), _hide=NOAXE, **legs(36, -50, -34, 50, 14, -14)), 'inout'),   # reaching down for the axe
+       k(124, mix(AX(10, 80, 30, torso=(44, 4, 5), head=(-10, 2, 1)), _hide=('axed',)), 'snap'),           # pulled out of the floor
+       k(134, LOW, 'inout')], step=2)
 # THE BIRTHDAY SHOW (Limit): it bows - head cocked all the way over - and presents the stage with its free arm;
 # then, behind the curtain, chop after chop; then the last huge swing as the curtain rips open
 BOW = dragging(P(torso=(36, 2, 3), head=(-70, 1, 0), bupper=(-80, 0, 0), bfore=(30, 0, 0), **STANCE))
@@ -271,6 +273,12 @@ def save_axe(path):
     out[40 - h:, 16 - w // 2:16 - w // 2 + w] = a
     os.makedirs(os.path.dirname(path), exist_ok=True); Image.fromarray(out).save(path)
 
+def unarmed(life_fn):
+    """A life function that also hides the axe, both ways it's held."""
+    def f(pose, t):
+        p = life_fn(pose, t); p['_hide'] = tuple(set(p.get('_hide') or ()) | {'axe', 'axed'}); return p
+    return f
+
 def build():
     out = {}
     D.set_style('calm'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (232, 200, 106)
@@ -282,9 +290,12 @@ def build():
         sub = 'wrong' if v == 'scrap' else 'wrong/' + v
         js = os.path.join(ROOT, 'src/fighters/lsWrongMoves.js') if v == 'scrap' else os.devnull    # (the costumes share SEEN's frame index)
         save_axe(os.path.join(DIR, sub, 'axe.png'))
+        J = ((WJUMP, mix(WJUMP, head=(-38, 0, 0), bupper=(-80, 0, 0), ffist=(-30, 0, 0))), (WFALL, mix(WFALL, head=(-28, 0, 0), bupper=(-160, 0, 0), ffist=(-90, 0, 0))))
         out[v] = N.build_all(small, big, WRONG, os.path.join(DIR, sub), js, 'LS_WRONG_MOVES', 'last_seen_moves.py',
-                             life_fn=wrong_life, idle=wrong_idle, run=wrong_run, run_life=run_life,
-                             jumps=((WJUMP, mix(WJUMP, head=(-38, 0, 0), bupper=(-80, 0, 0), ffist=(-30, 0, 0))), (WFALL, mix(WFALL, head=(-28, 0, 0), bupper=(-160, 0, 0), ffist=(-90, 0, 0)))))
+                             life_fn=wrong_life, idle=wrong_idle, run=wrong_run, run_life=run_life, jumps=J)
+        # the same, with no axe (SCREAM in the air loses it for a while): same frames, so the same frame index
+        N.build_all(small, big, WRONG, os.path.join(DIR, sub, 'noaxe'), os.devnull, 'LS_WRONG_MOVES', 'last_seen_moves.py',
+                    life_fn=unarmed(wrong_life), idle=wrong_idle, run=wrong_run, run_life=unarmed(run_life), jumps=J)
     D.set_variant('scrap')
     return out
 

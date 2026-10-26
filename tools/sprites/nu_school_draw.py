@@ -37,7 +37,7 @@ def draw_parts():
     old = dict(N.PAL)
     N.PAL.update(PAL)
     try:
-        P = N.draw_parts()
+        P = N.draw_parts_v1()
     finally:
         N.PAL.clear(); N.PAL.update(old)
     # ---- the blazer: no print or drawstrings; shirt and loose tie down the front, lapels, crest, buttons
