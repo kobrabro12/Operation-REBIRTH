@@ -26,7 +26,7 @@ function demoSettings() {
   };
 }
 
-import { playMusic, stopMusic } from '../audio/music.js';
+import { playMusic, playPlaylist, stopMusic } from '../audio/music.js';
 import { resolveSkins } from '../fighters/skins.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES, demoRequest } from '../settings.js';
@@ -79,7 +79,7 @@ export class MatchScene extends Phaser.Scene {
     this.aeroStage = { k: 0, on: false, t: 0 };
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
-    else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
+    else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest

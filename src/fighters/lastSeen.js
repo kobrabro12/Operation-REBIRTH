@@ -1,4 +1,4 @@
-// LAST SEEN: a TEST FIGHTER out of analog horror - a woman who went missing, and what came back. She starts out
+// ROSEMARY (id 'last-seen', first called LAST SEEN): a TEST FIGHTER out of analog horror - a woman who went missing, and what came back. She starts out
 // frail: light, weak, easy to launch. Her SIGHTINGS meter fills as she deals and takes damage; when it's full she
 // turns into SEEN - an old canary mascot animatronic, scrapped and rotting, with her inside it - and stays that way
 // until she's KO'd: heavy, fast, and brutal. Data only. Art: tools/sprites/last_seen_draw.py + last_seen_moves.py.
@@ -25,7 +25,7 @@ const COMMON = {
 
 export const LAST_SEEN = {
   ...COMMON,
-  name: 'LAST SEEN',
+  name: 'ROSEMARY',                 // (was LAST SEEN; her id and files keep the old name)
   sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves' },
   moveAnims: LS_MOVES,
   fxColor: 0xe8c86a,

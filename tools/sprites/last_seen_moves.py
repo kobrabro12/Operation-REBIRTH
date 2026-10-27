@@ -283,6 +283,7 @@ def build():
     out = {}
     D.set_style('calm'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (232, 200, 106)
     out['calm'] = N.build_all(small, big, CALM, DIR, os.path.join(ROOT, 'src/fighters/lsMoves.js'), 'LS_MOVES', 'last_seen_moves.py', life_fn=calm_life, idle=calm_idle)
+    if '--calm' in sys.argv: return out                      # (only her: python3 last_seen_moves.py --calm)
     D.set_style('wrong')
     for v, ghost in VARIANTS.items():                       # SEEN, and the costumes that redraw it (skins.js sheetSet)
         D.set_variant(v)

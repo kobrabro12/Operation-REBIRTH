@@ -4,6 +4,7 @@
 import { settings } from '../settings.js';
 
 let current = null, currentKey = null, base = 1;
+const rotation = {};                                 // playlists: which track each one starts on next time
 
 export function playMusic(scene, key, volume = 0.6) {
   if (key && key === currentKey && current && (current.isPlaying || current.pendingPlay)) return;
@@ -17,6 +18,30 @@ export function playMusic(scene, key, volume = 0.6) {
     const snd = current;
     sm.once('unlocked', () => { if (current === snd) { snd.pendingPlay = false; snd.play(); } });
   } else current.play();
+}
+
+// A rotating soundtrack: plays each track through once, then the next, round and round. Each time the
+// same playlist is started again (the next match on that stage) it begins one track further on.
+export function playPlaylist(scene, keys, volume = 0.6) {
+  keys = keys.filter((k) => scene.cache.audio.exists(k));
+  if (!keys.length) { stopMusic(); return; }
+  const id = 'list:' + keys.join(',');
+  if (id === currentKey && current && (current.isPlaying || current.pendingPlay)) return;
+  stopMusic();
+  let i = rotation[id] || 0; rotation[id] = (i + 1) % keys.length;
+  const sm = scene.sound;
+  currentKey = id; base = volume;
+  const next = () => {
+    if (currentKey !== id) return;
+    const snd = sm.add(keys[i % keys.length], { loop: false, volume: base * settings.musicVolume });
+    i++;
+    if (current) { try { current.destroy(); } catch (e) { /* gone */ } }
+    current = snd;
+    snd.once('complete', () => { if (current === snd) next(); });
+    if (sm.locked) { snd.pendingPlay = true; sm.once('unlocked', () => { if (current === snd) { snd.pendingPlay = false; snd.play(); } }); }
+    else snd.play();
+  };
+  next();
 }
 
 export function stopMusic() {

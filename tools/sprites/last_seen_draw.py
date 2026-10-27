@@ -506,6 +506,12 @@ def draw_parts():
     P['axed'] = np.array(blank())
     P['jaw'] = np.array(blank())
     P['face'] = np.array(blank())
+    # Mason's edit of her base sprite (tools/sprites/art/rosemary_base.png): one wide, staring eye and a raw,
+    # open mouth. Kept here as pixels on the head part (same coordinates as the art, she stands at rest in it).
+    if STYLE == 'calm':
+        put(P['head'], [(35, 12), (36, 12), (35, 13), (35, 14), (36, 14)], 0xffffff)
+        put(P['head'], [(36, 13)], 0x000000); put(P['head'], [(37, 13)], 0xa87c6c)
+        put(P['head'], [(35, 18), (36, 18)], 0xb06a6a); put(P['head'], [(37, 18)], 0xc74848)
     return P
 
 ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'jaw', 'face', 'hair', 'fupper', 'ffore', 'axe', 'ffist']

@@ -1,8 +1,10 @@
 // "BASEPLATE 2012": a love letter to the old block-building games of 2010-2016 (an original stage - no
 // names or logos from any real game). The fight is on a studded green baseplate floating in a bright default
 // sky, between a red tower and a blue tower built for sword fights, with a grey brick hanging over the middle.
-// Far off, blocky guests in the classic default colours stand around on their own floating plates, building
-// things and chatting in speech bubbles. All art is drawn in code. Music: 'bgm_baseplate'.
+// Far off, guests (Mason's drawing) spawn in on their own floating plates, wander about, hop, chat in speech
+// bubbles and log off again - and one spawn in fifty is the other one (his glitched drawing), which only stands
+// there and stares. A blimp drifts past. On the plate: two jump pads that fling you up, and the grey brick slides
+// back and forth overhead, carrying whoever's on it. Music: Mason's three tracks on rotation ('bgm_baseplate_4/5/6').
 //
 // Stage hazards, one at a time every 10-14 s, each announced with a CAUTION banner first:
 //   ROCKET BARRAGE - red crosshairs appear on the plate; rockets fire from the tops of the towers and blow
@@ -11,6 +13,7 @@
 //                    tumble away.
 //   LAG SPIKE      - the connection bars flicker... everything freezes, then everyone snaps back to where
 //                    they were a moment ago.
+//   THE BOULDER    - a warning arrow at one edge... a huge grey ball rolls the whole length of the plate. Jump it.
 import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
 import { HazardCycle } from './hazardCycle.js';
@@ -29,6 +32,15 @@ export const BPAL = {
   fire: [0xfff4a8, 0xffc23a, 0xff7a1a, 0xc8320a],
 };
 const BRICK_COLS = [[0xc4281c, 0xe8503e, 0x8a1810], [0x1e64c8, 0x4a8ae8, 0x12408a], [0xf5cd30, 0xffe680, 0xb8941a], [0x4b974b, 0x74c074, 0x2e6a2e], [0xa3a2a5, 0xc8c8ca, 0x6e6e72]];
+// the guests: a new one spawns in every 'every' frames (min, max); each stays 'life' frames; one in glitchOdds is the
+// glitched one, which stays 'glitchLife' frames
+const GUEST = { every: [90, 240], life: [600, 1500], glitchOdds: 50, glitchLife: [180, 360] };
+// the grey brick slides 'swing' px either side of the middle, there and back every 'period' frames
+const BRICK = { swing: 96, period: 600 };
+// the jump pads: where they are, how close you have to stand, how hard they fling you up, from which states
+const PAD = { xs: [-120, 120], reach: 11, launch: -11.5, states: ['idle', 'run', 'land', 'walk', 'dash', 'crouch'] };
+// THE BOULDER: warning frames, rolling speed (px/frame), radius, damage
+const BOULDER = { warn: 80, speed: 6, r: 24, dmg: 14 };
 const CHAT = ['lol', 'brb', 'who wants to sword fight', 'free admin??', 'can someone build me a house', 'lag...', 'noob', 'oof', 'follow me', 'gg', 'how do u jump', 'tix 4 trade', 'im a guest', 'meet at spawn'];
 
 export class BaseplateStage {
@@ -38,20 +50,23 @@ export class BaseplateStage {
       { x1: -280, x2: 280, y: 0, solid: true, bottom: 40 },      // the baseplate
       { x1: -262, x2: -170, y: -110, solid: false },             // the red tower's top
       { x1: 170, x2: 262, y: -110, solid: false },               // the blue tower's top
-      { x1: -56, x2: 56, y: -190, solid: false },                // the floating grey brick
+      { x1: -56, x2: 56, y: -190, solid: false },                // the floating grey brick (it slides: BRICK below)
     ];
     this.spawns = [{ x: -150, y: 0 }, { x: 150, y: 0 }, { x: -50, y: 0 }, { x: 50, y: 0 }];
     this.hazardsOn = true;
     this.t = 0;
-    this.music = 'bgm_baseplate';
-    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag'], { color: '#ffffff', stroke: '#1b2a35' });
+    this.musicList = ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6'];   // Mason's three tracks, taking turns (music.js playPlaylist)
+    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'boulder'], { color: '#ffffff', stroke: '#1b2a35' });
     const R = (n) => { let s = n; return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff); };
     const r = R(11);
     this.rnd = r;
-    // the guests on the far plates: x, y on screen (parallax layer), and what they're up to
-    this.guests = [[70, 236, 0], [112, 236, 1], [300, 210, 2], [520, 240, 3], [560, 240, 4], [760, 220, 5]].map(([x, y, i]) => ({ x, y, i, ph: r() * 6.28 }));
+    // the guests: they spawn in on the far plates (screen x, the plate's top y, its width; parallax layer)
+    this.plates = [[30, 233, 140], [250, 207, 120], [480, 237, 150], [720, 217, 110]];
+    this.guests = [];
+    this.nextGuest = 20;                                     // frames until the next one spawns in
     this.bubbles = [];
     this.hist = new Map();                                   // where each fighter was, the last second (LAG SPIKE)
+    this.pads = PAD.xs.map((x) => ({ x, squash: 0 }));
   }
 
   // ---------------------------------------------------------------- drawing helpers
@@ -64,18 +79,6 @@ export class BaseplateStage {
     g.fillStyle(d, 1); g.fillRect(x, y + h - 2, w, 2); g.fillRect(x + w - 1, y, 1, h);
     if (studs) for (let sx = x + 3; sx < x + w - 3; sx += 8) { g.fillStyle(d, 1); g.fillRect(sx, y - 3, 5, 3); g.fillStyle(l, 1); g.fillRect(sx, y - 3, 4, 2); g.fillStyle(0xffffff, 0.35); g.fillRect(sx + 1, y - 3, 1, 1); }
   }
-  // a classic blocky guest: yellow head and arms, blue torso, green legs
-  guest(g, x, y, dir, wave, s = 1) {
-    const P = BPAL, u = s;
-    g.fillStyle(P.outline, 1); g.fillRect(x - 5 * u, y - 22 * u, 10 * u, 22 * u);
-    g.fillStyle(P.legs, 1); g.fillRect(x - 4 * u, y - 9 * u, 4 * u, 9 * u); g.fillRect(x, y - 9 * u, 4 * u, 9 * u);
-    g.fillStyle(P.shirt, 1); g.fillRect(x - 4 * u, y - 17 * u, 8 * u, 8 * u);
-    g.fillStyle(P.skin, 1); g.fillRect(x - 6 * u, y - 17 * u + (wave ? -6 * u : 0), 2 * u, 8 * u); g.fillRect(x + 4 * u, y - 17 * u, 2 * u, 8 * u);   // arms (one waving)
-    g.fillRect(x - 3 * u, y - 22 * u, 6 * u, 5 * u);                                    // head
-    g.fillStyle(P.black, 1); g.fillRect(x + dir * u - u, y - 21 * u, u, u); g.fillRect(x + dir * u + u, y - 21 * u, u, u);   // eyes
-    g.fillRect(x + dir * u - u, y - 19 * u, 3 * u, u);                                  // a smile
-  }
-
   draw(worldLayer, bgLayer) {
     const s = this.scene, P = BPAL;
     // the sky: hard bands of the classic default blue, white flat clouds
@@ -100,8 +103,39 @@ export class BaseplateStage {
     far.fillStyle(0x6a4a2a, 1); far.fillRect(290, 190, 10, 18); far.fillStyle(0x9ad0f0, 1); far.fillRect(274, 184, 10, 8); far.fillRect(306, 184, 10, 8);
     BRICK_COLS.forEach((c, i) => { far.fillStyle(c[0], 1); far.fillRect(600 + i * 26, 200 - (i % 2) * 24 - i * 6, 18, 6); far.fillStyle(c[1], 1); far.fillRect(600 + i * 26, 200 - (i % 2) * 24 - i * 6, 18, 2); });
     for (let k = 0; k < 7; k++) { const c = BRICK_COLS[k % 5]; far.fillStyle(c[0], 1); far.fillRect(740 + Math.round(Math.sin(k) * 4) + k * 2, 214 - k * 10, 22, 9); far.fillStyle(c[1], 1); far.fillRect(740 + Math.round(Math.sin(k) * 4) + k * 2, 214 - k * 10, 22, 2); }
-    bgLayer.push(sky, far);
-    this.bgFx = s.add.graphics().setScrollFactor(0.3); bgLayer.push(this.bgFx);      // the guests (they move a little) and their chat
+    // blocky trees: a brown trunk and a green cube on top
+    for (const [x, y] of [[40, 233], [150, 233], [600, 237], [820, 217]]) {
+      far.fillStyle(0x6a4a2a, 1); far.fillRect(x - 2, y - 14, 4, 14);
+      far.fillStyle(0x2e7a2e, 1); far.fillRect(x - 9, y - 30, 18, 17); far.fillStyle(0x4ba04b, 1); far.fillRect(x - 9, y - 30, 18, 4); far.fillStyle(0x1e5a1e, 1); far.fillRect(x + 5, y - 30, 4, 17);
+    }
+    // a red and white checkpoint flag, and a spawn pad on each plate (where the guests appear)
+    far.fillStyle(0xdcdcdc, 1); far.fillRect(540, 205, 2, 32); far.fillStyle(0xc4281c, 1); far.fillRect(542, 206, 14, 9); far.fillStyle(0xffffff, 1); far.fillRect(546, 208, 6, 5);
+    for (const [x, y, w] of this.plates) { far.fillStyle(0x6e6e72, 1); far.fillRect(x + w / 2 - 9, y - 2, 18, 3); far.fillStyle(0xc8c8ca, 1); far.fillRect(x + w / 2 - 9, y - 2, 18, 1); }
+    // further still, faint: a huge obstacle course of floating platforms, towers and a lava strip
+    const haze = s.add.graphics().setScrollFactor(0.15);
+    haze.fillStyle(0x9cc8ee, 1);                                         // (just a shade off the sky: very far away)
+    for (let i = 0; i < 9; i++) haze.fillRect(120 + i * 70, 170 - (i % 3) * 12 - (i > 4 ? 8 : 0), 30, 5);
+    haze.fillRect(70, 140, 14, 50); haze.fillRect(860, 130, 16, 60);
+    bgLayer.push(sky, haze, far);
+    // the blimp: drifts slowly across the sky now and then (moved in step)
+    this.blimp = s.add.graphics().setScrollFactor(0.12);
+    const bl = this.blimp;
+    bl.fillStyle(BPAL.outline, 1); bl.fillRect(-46, -15, 92, 30); bl.fillRect(-52, -10, 6, 20); bl.fillRect(46, -10, 6, 20);
+    bl.fillStyle(0xe8e8ec, 1); bl.fillRect(-45, -14, 90, 28); bl.fillRect(-50, -9, 4, 18); bl.fillRect(46, -9, 4, 18);
+    bl.fillStyle(0xffffff, 1); bl.fillRect(-45, -14, 90, 4); bl.fillStyle(0xb8b8c0, 1); bl.fillRect(-45, 9, 90, 5);
+    bl.fillStyle(0xc4281c, 1); bl.fillRect(-58, -12, 10, 8); bl.fillRect(-58, 4, 10, 8);              // tail fins
+    bl.fillStyle(0x1e64c8, 1); bl.fillRect(-30, -6, 60, 12); bl.fillStyle(0xffffff, 1);
+    for (let i = 0; i < 6; i++) bl.fillRect(-26 + i * 10, -3, 6, 6);                                   // blocks on its banner
+    bl.fillStyle(0x6e6e72, 1); bl.fillRect(-10, 15, 20, 7); bl.fillStyle(0x9ad0f0, 1); bl.fillRect(-7, 17, 4, 3); bl.fillRect(1, 17, 4, 3);   // the gondola
+    bl.setScale(0.75).setPosition(-200, 46);
+    bgLayer.push(bl);
+    // the guests: Mason's drawings, a pool of sprites (half size: tools/sprites/baseplate_guests.py)
+    this.guestSpr = [];
+    for (let i = 0; i < 8; i++) {
+      const sp = s.add.image(0, 0, 'bp_guest').setOrigin(0.5, 1).setScrollFactor(0.3).setVisible(false);
+      bgLayer.push(sp); this.guestSpr.push(sp);
+    }
+    this.bgFx = s.add.graphics().setScrollFactor(0.3); bgLayer.push(this.bgFx);      // spawn sparkles, poofs, static, chat bubbles
     this.chatText = [];
     for (let i = 0; i < 3; i++) {
       const tx = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#1b2a35' }).setOrigin(0.5, 1).setScrollFactor(0.3).setVisible(false);
@@ -109,7 +143,7 @@ export class BaseplateStage {
     }
     // the world: the towers, the plate, the brick, the spawn pad
     const w = s.add.graphics();
-    this.drawTowers(w); this.drawPlate(w); this.drawBrickPlatform(w);
+    this.drawTowers(w); this.drawPlate(w);                               // (the sliding brick and the jump pads are drawn every frame)
     worldLayer.push(w);
     this.fxG = s.add.graphics(); this.hzG = s.add.graphics(); worldLayer.push(this.fxG, this.hzG);
     this.cycle.makeBanner(this.scene);
@@ -149,10 +183,21 @@ export class BaseplateStage {
       g.fillStyle(0x000000, 0.35); g.fillRect(x1 + 40, -70, 12, 16);          // a window
     }
   }
-  drawBrickPlatform(g) {
+  // ---- the sliding grey brick
+  drawBrickPlatform(g, x) {
     const P = BPAL;
-    this.brick(g, -56, -190, 112, 12, [P.grey, P.greyLight, P.greyDark], true);
-    g.fillStyle(0x000000, 0.12); g.fillRect(-56, -178, 112, 3);
+    this.brick(g, x - 56, -190, 112, 12, [P.grey, P.greyLight, P.greyDark], true);
+    g.fillStyle(0x000000, 0.12); g.fillRect(x - 56, -178, 112, 3);
+    g.fillStyle(0x000000, 0.07); g.fillRect(x - 40, -2, 80, 2);                       // its shadow far below
+  }
+  // ---- a jump pad: a squat studded block with a spring in it (squashed for a moment after it fires)
+  drawPad(g, x, squash) {
+    const P = BPAL, h = 6 - squash * 3;
+    g.fillStyle(P.outline, 1); g.fillRect(x - 13, -h - 2, 26, h + 2);
+    g.fillStyle(0x2ad84a, 1); g.fillRect(x - 12, -h - 1, 24, h); g.fillStyle(0x9aff8a, 1); g.fillRect(x - 12, -h - 1, 24, 1);
+    g.fillStyle(0x1a8a2a, 1); g.fillRect(x - 12, -2, 24, 1);
+    for (const sx of [-9, -3, 3]) { g.fillStyle(0x9aff8a, 1); g.fillRect(x + sx, -h - 3, 5, 2); }
+    g.fillStyle(0xffffff, 0.5 + 0.3 * Math.sin(this.t * 0.2)); g.fillTriangle(x - 4, -h - 6, x + 4, -h - 6, x, -h - 11);   // an arrow, bobbing
   }
 
   step(match) {
@@ -163,31 +208,103 @@ export class BaseplateStage {
       let h = this.hist.get(fi); if (!h) { h = []; this.hist.set(fi, h); }
       h.push([fi.x, fi.y]); if (h.length > 60) h.shift();
     }
-    // the guests: idling, one waving now and then; a chat bubble pops up over one every few seconds
-    bg.clear();
-    for (const gst of this.guests) {
-      const hop = (t + gst.i * 37) % 300 < 12 ? -Math.round(Math.sin(((t + gst.i * 37) % 300) / 12 * Math.PI) * 6) : 0;
-      this.guest(bg, gst.x, gst.y + hop, gst.i % 2 ? -1 : 1, (t + gst.i * 50) % 240 < 40 && (t >> 3) % 2 === 0, 1);
+    bg.clear(); f.clear();
+    this.stepGuests(bg);
+    // the blimp: across the sky every 40 s or so, slowly
+    const bt = t % 2400; this.blimp.setVisible(bt < 1500).setPosition(-160 + bt * 0.85, 46 + Math.sin(t * 0.01) * 4);
+    // the grey brick slides back and forth; whoever is standing on it rides along
+    const plat = this.platforms[3], bx = Math.round(Math.sin(t * Math.PI * 2 / BRICK.period) * BRICK.swing), dx = bx - (plat.x1 + 56);
+    if (dx) {
+      plat.x1 += dx; plat.x2 += dx;
+      for (const fi of match.fighters) if (fi.grounded && fi.platform === plat) fi.x += dx;
     }
-    if (t % 150 === 0) {
-      const gst = this.guests[Math.floor(Math.random() * this.guests.length)];
-      this.bubbles.push({ gst, text: CHAT[Math.floor(Math.random() * CHAT.length)], life: 140 });
-      if (this.bubbles.length > 3) this.bubbles.shift();
+    this.drawBrickPlatform(f, bx);
+    // the jump pads
+    for (const pad of this.pads) {
+      if (pad.squash > 0) pad.squash--;
+      for (const fi of match.fighters) {
+        if (!fi.alive || !fi.grounded || fi.platform !== this.platforms[0] || Math.abs(fi.x - pad.x) > PAD.reach) continue;
+        if (!PAD.states.includes(fi.state) || (fi.bpPadCd || 0) > t) continue;
+        fi.vy = PAD.launch; fi.vx *= 0.5; fi.grounded = false; fi.platform = null; fi.setState('air');
+        fi.bpPadCd = t + 30; pad.squash = 8;
+        sfx('djump', 0.6, 1.4); sfx('land', 0.3, 1.8);
+        for (let i = 0; i < 5; i++) match.particles.push({ shape: 'pixel2', x: pad.x + (Math.random() - 0.5) * 20, y: -6, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, life: 18, color: i % 2 ? 0x9aff8a : 0xffffff, grav: 0.1 });
+      }
+      this.drawPad(f, pad.x, pad.squash / 8);
     }
+    // a little life on the plate: the spawn pad's glow
+    f.fillStyle(0xffffff, 0.08 + 0.05 * Math.sin(t * 0.05)); f.fillRect(-24, -10, 48, 6);
+    this.hzG.clear();
+    return this.cycle.run(match, []);
+  }
+
+  // ---------------------------------------------------------------- the guests
+  // They spawn in on a plate's pad in a column of sparkles, wander about, hop, chat now and then, and log off in a
+  // puff. One spawn in GUEST.glitchOdds is the glitched one: no sparkles - it's just there, flickering, static
+  // crackling round its head; it doesn't move or talk, the guests on its plate log off, and then it's gone.
+  spawnGuest() {
+    const free = this.guestSpr.filter((sp) => !this.guests.some((g) => g.spr === sp));
+    if (!free.length) return;
+    const pi = Math.floor(Math.random() * this.plates.length), [px, py, pw] = this.plates[pi];
+    const glitch = Math.random() < 1 / GUEST.glitchOdds;
+    if (glitch && this.guests.some((g) => g.glitch)) return;
+    const x = glitch ? px + 14 + Math.random() * (pw - 28) : px + pw / 2;
+    const g = { spr: free[0], plate: pi, x, y: py, vy: 0, h: 0, t: 0, glitch, state: 'spawn', dir: Math.random() < 0.5 ? -1 : 1,
+      life: glitch ? GUEST.glitchLife[0] + Math.random() * (GUEST.glitchLife[1] - GUEST.glitchLife[0]) : GUEST.life[0] + Math.random() * (GUEST.life[1] - GUEST.life[0]), walk: 0 };
+    g.spr.setTexture(glitch ? 'bp_guest_glitch' : 'bp_guest').setVisible(true).setAlpha(glitch ? 1 : 0);
+    this.guests.push(g);
+    if (glitch) {
+      for (const o of this.guests) if (o !== g && o.plate === pi && o.state !== 'leave') { o.state = 'leave'; o.t = 0; }   // everyone near it logs off
+      this.bubbles = this.bubbles.filter((b) => b.gst.plate !== pi);
+    }
+  }
+  stepGuests(bg) {
+    const t = this.t, P = BPAL;
+    if (--this.nextGuest <= 0) { this.spawnGuest(); this.nextGuest = GUEST.every[0] + Math.floor(Math.random() * (GUEST.every[1] - GUEST.every[0])); }
+    for (const g of this.guests) {
+      g.t++;
+      const [px, py, pw] = this.plates[g.plate];
+      if (g.state === 'spawn') {                                         // sparkles rising, the guest fading in
+        if (!g.glitch) {
+          const k = g.t / 24;
+          g.spr.setAlpha(Math.min(1, k * 1.4) * (g.t % 4 < 2 ? 1 : 0.6));
+          for (let i = 0; i < 5; i++) { bg.fillStyle(i % 2 ? 0xffffff : 0xfff4a8, 1 - k); bg.fillRect(g.x - 10 + ((i * 7 + g.t * 3) % 20), g.y - ((g.t * 2 + i * 9) % 36), 2, 2); }
+        }
+        if (g.t >= 24) { g.state = 'idle'; g.t = 0; }
+      } else if (g.state === 'leave') {                                  // a puff, and gone
+        g.spr.setAlpha(Math.max(0, 1 - g.t / 10));
+        for (let i = 0; i < 6; i++) { bg.fillStyle(0xffffff, 1 - g.t / 16); bg.fillRect(g.x - 8 + ((i * 11) % 16), g.y - 6 - ((i * 13 + g.t * 2) % 26), 3, 3); }
+        if (g.t >= 16) g.gone = true;
+      } else if (g.glitch) {                                             // it just stands there
+        g.spr.setAlpha(Math.random() < 0.08 ? 0.15 : 1).setPosition(Math.round(g.x + (Math.random() < 0.1 ? (Math.random() < 0.5 ? -2 : 2) : 0)), g.y);
+        if (Math.random() < 0.3) {                                        // static crackling round its head
+          const hx = g.x + (Math.random() - 0.5) * 30, hy = g.y - 30 + (Math.random() - 0.5) * 12;
+          bg.lineStyle(1, 0x000000, 0.8); bg.lineBetween(hx, hy, hx + (Math.random() - 0.5) * 8, hy + (Math.random() - 0.5) * 8);
+        }
+        if (g.t > g.life) { g.gone = true; sfx('glitch', 0.25, 0.5); }   // no puff: one frame it's there, the next it isn't
+        continue;
+      } else {
+        if (g.t > g.life) { g.state = 'leave'; g.t = 0; continue; }
+        if (g.walk <= 0 && Math.random() < 0.02) { g.walk = 30 + Math.floor(Math.random() * 60); g.dir = Math.random() < 0.5 ? -1 : 1; }
+        if (g.walk > 0) { g.walk--; g.x += g.dir * 0.4; if (g.x < px + 8 || g.x > px + pw - 8) { g.dir *= -1; g.x = Math.max(px + 8, Math.min(px + pw - 8, g.x)); } }
+        if (g.h === 0 && Math.random() < 0.006) g.vy = -2.6;              // a hop
+        if (g.vy || g.h < 0) { g.h += g.vy; g.vy += 0.18; if (g.h >= 0) { g.h = 0; g.vy = 0; } }
+        if (Math.random() < 0.0016 && this.bubbles.length < 3 && !this.bubbles.some((b) => b.gst === g)) this.bubbles.push({ gst: g, text: CHAT[Math.floor(Math.random() * CHAT.length)], life: 140 });
+      }
+      g.spr.setPosition(Math.round(g.x), Math.round(g.y + g.h - (g.walk > 0 && (g.t >> 3) % 2 ? 1 : 0)));
+    }
+    for (const g of this.guests) if (g.gone) { g.spr.setVisible(false); this.bubbles = this.bubbles.filter((b) => b.gst !== g); }
+    this.guests = this.guests.filter((g) => !g.gone);
+    // the chat bubbles, over whoever said it
     this.bubbles = this.bubbles.filter((b) => --b.life > 0);
     this.chatText.forEach((tx, i) => {
       const b = this.bubbles[i];
       if (!b) { tx.setVisible(false); return; }
-      const x = b.gst.x, y = b.gst.y - 28, wpx = b.text.length * 6 + 8;
+      const x = Math.round(b.gst.x), y = Math.round(b.gst.y + b.gst.h) - 36, wpx = b.text.length * 6 + 8;
       bg.fillStyle(0xffffff, 0.92); bg.fillRect(x - wpx / 2, y - 12, wpx, 12); bg.fillTriangle(x - 3, y, x + 3, y, x, y + 4);
       bg.lineStyle(1, P.black, 0.6); bg.strokeRect(x - wpx / 2, y - 12, wpx, 12);
       tx.setText(b.text).setPosition(x, y - 2).setVisible(true);
     });
-    // a little life on the plate: the spawn pad's glow
-    f.clear();
-    f.fillStyle(0xffffff, 0.08 + 0.05 * Math.sin(t * 0.05)); f.fillRect(-24, -10, 48, 6);
-    this.hzG.clear();
-    return this.cycle.run(match, []);
   }
 
   // ---------------------------------------------------------------- hazards
@@ -309,6 +426,35 @@ export class BaseplateStage {
       return true;
     }
     return true;
+  }
+
+  // ---- THE BOULDER: a warning arrow at one edge, a rumble... then a huge grey ball rolls the length of the plate
+  start_boulder(match, h) {
+    h.title = 'THE BOULDER - JUMP IT!';
+    h.dir = Math.random() < 0.5 ? 1 : -1; h.x = -h.dir * 340; h.rot = 0;
+  }
+  step_boulder(match, h, out) {
+    const g = this.hzG, P = BPAL, B = BOULDER;
+    if (h.t < B.warn) {                                                  // a flashing arrow at the edge it'll come from
+      const ex = -h.dir * 262, on = h.t % 12 < 7;
+      if (on) { g.fillStyle(0xff3a2a, 1); g.fillTriangle(ex, -40, ex, -12, ex + h.dir * 18, -26); g.fillRect(ex - h.dir * 16, -31, 16, 10); }
+      if (h.t % 20 === 0) { sfx('rumble', 0.4, 0.8); match.shake(2, 6); }
+      return false;
+    }
+    if (h.t === B.warn) sfx('rumble', 0.8, 0.6);
+    h.x += h.dir * B.speed; h.rot += h.dir * B.speed / B.r;
+    const cx = h.x, cy = -B.r;
+    g.fillStyle(0x000000, 0.2); g.fillEllipse(cx, -1, B.r * 2.2, 6);                                  // its shadow
+    g.fillStyle(P.outline, 1); g.fillCircle(cx, cy, B.r + 1);
+    g.fillStyle(P.greyDark, 1); g.fillCircle(cx, cy, B.r);
+    g.fillStyle(P.grey, 1); g.fillCircle(cx - 3, cy - 3, B.r - 4);
+    g.fillStyle(P.greyLight, 1); g.fillCircle(cx - 8, cy - 9, 7);
+    for (let i = 0; i < 4; i++) {                                         // studs round it, turning as it rolls
+      const a = h.rot + i * Math.PI / 2; g.fillStyle(P.greyDark, 1); g.fillRect(Math.round(cx + Math.cos(a) * (B.r - 7)) - 2, Math.round(cy + Math.sin(a) * (B.r - 7)) - 2, 5, 4);
+    }
+    if (h.t % 6 === 0) { match.shake(2, 3); match.puff(cx - h.dir * B.r, -3, 0xd8d8dc, 2); }
+    if (Math.abs(h.x) < 300) out.push({ x1: cx - B.r + 4, x2: cx + B.r - 4, y1: cy - B.r + 4, y2: 0, dmg: B.dmg, angle: 55, base: 5, growth: 4.8, dirX: h.dir, id: 'boulder' + h.id, hazard: true });
+    return Math.abs(h.x) > 360;
   }
 }
 

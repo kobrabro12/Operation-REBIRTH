@@ -242,7 +242,7 @@ export const SKINS = {
   ],
   // LAST SEEN (test fighter): scraps of her missing poster fly off every hit (as SEEN: ink and static instead)
   'last-seen': [
-    { name: 'LAST SEEN', swatch: 0xc8a240, vfx: { hit: { shape: 'paper', colors: [0xece6d4, 0xe8c86a, 0xc8281e], n: 6 } } },
+    { name: 'ROSEMARY', swatch: 0xc8a240, vfx: { hit: { shape: 'paper', colors: [0xece6d4, 0xe8c86a, 0xc8281e], n: 6 } } },
     { name: 'NIGHT RAIN', swatch: 0x2a3a6a, fx: 0x8ab0e8, groups: LSG, rules: { coat: { to: 222, sat: 0.8, val: 0.62 }, hair: { sat: 0.2, val: 0.45 } },
       pal: { outline: 0x0a0e1a, deep: 0x1a2a5a, mid: 0x3a5aa0, light: 0x8ab0e8, core: 0xe8f0ff, shade: 0x141a2a, void: 0x04060a },
       vfx: { hit: { shape: 'drop', colors: [0x8ab0e8, 0xe8f0ff, 0x3a5aa0], n: 8 } } },
