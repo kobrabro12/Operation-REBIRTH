@@ -13,6 +13,7 @@ import { StageSelectScene } from './scenes/StageSelectScene.js';
 import { SelectScene } from './scenes/SelectScene.js';
 import { MatchScene } from './scenes/MatchScene.js';
 import { ResultsScene } from './scenes/ResultsScene.js';
+import { WinScene } from './scenes/WinScene.js';
 
 const config = {
   type: Phaser.WEBGL,
@@ -23,7 +24,7 @@ const config = {
   pixelArt: true,
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, TrinketsScene, FilesScene, TestFightersScene, SetupScene, StageSelectScene, SelectScene, MatchScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, TrinketsScene, FilesScene, TestFightersScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.

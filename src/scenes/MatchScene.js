@@ -1,5 +1,6 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
+import { hasWinCutscene } from './WinScene.js';
 import { addKO } from '../progress.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
@@ -422,7 +423,9 @@ export class MatchScene extends Phaser.Scene {
     if (this.mode === 'time') order = [...this.fighters].sort((a, b) => (b.kos - b.falls) - (a.kos - a.falls) || a.percent - b.percent);
     else order = [...this.fighters].sort((a, b) => (b.eliminated ? 0 : 1) - (a.eliminated ? 0 : 1) || b.stocks - a.stocks || (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
     const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, skin: f.skin, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
-    this.scene.start('Results', { results, mode: this.mode, unlocks: this.unlocks });
+    const data = { results, mode: this.mode, unlocks: this.unlocks };
+    if (hasWinCutscene(results[0].fighter) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
+    this.scene.start('Results', data);
   }
 
   // ------------------------------------------------------------------ spawns used by fighters
