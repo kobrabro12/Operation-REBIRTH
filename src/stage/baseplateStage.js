@@ -13,7 +13,9 @@
 //                    tumble away.
 //   LAG SPIKE      - the connection bars flicker... everything freezes, then everyone snaps back to where
 //                    they were a moment ago.
-//   THE BOULDER    - a warning arrow at one edge... a huge grey ball rolls the whole length of the plate. Jump it.
+//   THE GRIEFER    - a blocky troublemaker joins the game on top of one of the towers and throws a load of
+//                    classic gear at you: a spinning sword, a bouncing superball, a ticking timebomb, a shaken-up
+//                    soda can and a rocket. Then he logs off.
 import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
 import { HazardCycle } from './hazardCycle.js';
@@ -39,8 +41,10 @@ const GUEST = { every: [90, 240], life: [600, 1500], glitchOdds: 50, glitchLife:
 const BRICK = { swing: 96, period: 600 };
 // the jump pads: where they are, how close you have to stand, how hard they fling you up, from which states
 const PAD = { xs: [-120, 120], reach: 11, launch: -11.5, states: ['idle', 'run', 'land', 'walk', 'dash', 'crouch'] };
-// THE BOULDER: warning frames, rolling speed (px/frame), radius, damage
-const BOULDER = { warn: 80, speed: 6, r: 24, dmg: 14 };
+// THE GRIEFER: how many things he throws, the frames between throws, and what he can throw (each one's
+// damage/launch is in its own section of step_griefer below)
+const GRIEFER = { throws: 6, firstAt: 60, every: 32, items: ['sword', 'ball', 'bomb', 'soda', 'rocket'] };
+const GRIEF_CHAT = ['lol', 'ez', 'catch!!', 'free gear', 'get noobed', 'ur bad', 'hehehe', 'incoming', 'rekt'];
 const CHAT = ['lol', 'brb', 'who wants to sword fight', 'free admin??', 'can someone build me a house', 'lag...', 'noob', 'oof', 'follow me', 'gg', 'how do u jump', 'tix 4 trade', 'im a guest', 'meet at spawn'];
 
 export class BaseplateStage {
@@ -56,7 +60,7 @@ export class BaseplateStage {
     this.hazardsOn = true;
     this.t = 0;
     this.musicList = ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6'];   // Mason's three tracks, taking turns (music.js playPlaylist)
-    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'boulder'], { color: '#ffffff', stroke: '#1b2a35' });
+    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'griefer'], { color: '#ffffff', stroke: '#1b2a35' });
     const R = (n) => { let s = n; return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff); };
     const r = R(11);
     this.rnd = r;
@@ -146,6 +150,8 @@ export class BaseplateStage {
     this.drawTowers(w); this.drawPlate(w);                               // (the sliding brick and the jump pads are drawn every frame)
     worldLayer.push(w);
     this.fxG = s.add.graphics(); this.hzG = s.add.graphics(); worldLayer.push(this.fxG, this.hzG);
+    this.grText = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#1b2a35' }).setOrigin(0.5, 1).setVisible(false);   // the griefer's chat
+    worldLayer.push(this.grText);
     this.cycle.makeBanner(this.scene);
   }
   drawPlate(g) {
@@ -428,33 +434,173 @@ export class BaseplateStage {
     return true;
   }
 
-  // ---- THE BOULDER: a warning arrow at one edge, a rumble... then a huge grey ball rolls the length of the plate
-  start_boulder(match, h) {
-    h.title = 'THE BOULDER - JUMP IT!';
-    h.dir = Math.random() < 0.5 ? 1 : -1; h.x = -h.dir * 340; h.rot = 0;
+  // ---- THE GRIEFER: joins the game on a tower top and throws classic gear at whoever's on the plate
+  start_griefer(match, h) {
+    h.title = 'A GRIEFER JOINED THE GAME!';
+    h.side = Math.random() < 0.5 ? -1 : 1;                                 // which tower he stands on
+    h.gx = h.side * 238; h.gy = -110;
+    const pool = GRIEFER.items.slice().sort(() => Math.random() - 0.5);   // a bit of everything, in a random order
+    h.queue = Array.from({ length: GRIEFER.throws }, (_, i) => pool[i % pool.length]);
+    h.items = []; h.thrown = 0; h.leaveAt = 0; h.say = null;
   }
-  step_boulder(match, h, out) {
-    const g = this.hzG, P = BPAL, B = BOULDER;
-    if (h.t < B.warn) {                                                  // a flashing arrow at the edge it'll come from
-      const ex = -h.dir * 262, on = h.t % 12 < 7;
-      if (on) { g.fillStyle(0xff3a2a, 1); g.fillTriangle(ex, -40, ex, -12, ex + h.dir * 18, -26); g.fillRect(ex - h.dir * 16, -31, 16, 10); }
-      if (h.t % 20 === 0) { sfx('rumble', 0.4, 0.8); match.shake(2, 6); }
-      return false;
+  // a classic blocky player, but a troublemaker: a backwards red cap, shades, a black shirt with a skull, a smirk
+  drawGriefer(g, x, y, dir, armA, alpha) {
+    const P = BPAL, u = 2;
+    g.fillStyle(P.outline, alpha); g.fillRect(x - 5 * u, y - 22 * u, 10 * u, 22 * u);
+    g.fillStyle(0x3a3a44, alpha); g.fillRect(x - 4 * u, y - 9 * u, 4 * u, 9 * u); g.fillRect(x, y - 9 * u, 4 * u, 9 * u);   // dark jeans
+    g.fillStyle(0x16161c, alpha); g.fillRect(x - 4 * u, y - 17 * u, 8 * u, 8 * u);                 // black shirt...
+    g.fillStyle(0xf2f3f3, alpha); g.fillRect(x - 1 * u, y - 15 * u, 2 * u, 2 * u); g.fillRect(x - 1 * u, y - 13 * u, u, u); g.fillRect(x, y - 13 * u, u, u);   // ...with a little skull
+    g.fillStyle(P.skin, alpha); g.fillRect(x - 3 * u, y - 22 * u, 6 * u, 5 * u);                     // head
+    g.fillStyle(0x101014, alpha); g.fillRect(x - 3 * u + (dir > 0 ? u : 0), y - 21 * u, 5 * u, u);    // shades
+    g.fillStyle(0x6a3a10, alpha); g.fillRect(x + dir * u - u, y - 19 * u, 3 * u, u * 0.5 + 1); g.fillRect(x + dir * 2 * u, y - 19.5 * u, u, u * 0.5 + 1);   // a smirk
+    g.fillStyle(P.red, alpha); g.fillRect(x - 3 * u, y - 24 * u, 6 * u, 2 * u); g.fillRect(x - dir * 5 * u, y - 23 * u, 2 * u, u);   // backwards cap, brim behind
+    g.fillStyle(P.redLight, alpha); g.fillRect(x - 3 * u, y - 24 * u, 6 * u, u * 0.5 + 1);
+    g.fillStyle(P.skin, alpha); g.fillRect(x - dir * 6 * u, y - 17 * u, 2 * u, 8 * u);                // the other arm, by his side
+    const sx = x + dir * 5 * u, sy = y - 16 * u, ex = sx + Math.cos(armA) * 8 * u * dir, ey = sy + Math.sin(armA) * 8 * u;   // the throwing arm, swinging
+    g.lineStyle(2 * u, P.outline, alpha); g.lineBetween(sx, sy, ex, ey);
+    g.lineStyle(2 * u - 2, P.skin, alpha); g.lineBetween(sx, sy, ex, ey);
+  }
+  // one piece of gear, drawn where it is (spinning things use it.rot)
+  drawGear(g, it) {
+    const P = BPAL, x = it.x, y = it.y;
+    if (it.kind === 'sword') {                                             // the classic sword: grey blade, crossguard, dark grip
+      const c = Math.cos(it.rot), sn = Math.sin(it.rot), at = (d) => [x + c * d, y + sn * d];
+      const [tx, ty] = at(14), [hx, hy] = at(-8), [gx, gy] = at(-4);
+      g.lineStyle(4, P.outline, 1); g.lineBetween(hx, hy, tx, ty);
+      g.lineStyle(2, 0xd8dce4, 1); g.lineBetween(gx, gy, tx, ty);
+      g.lineStyle(2, 0x5a3a1a, 1); g.lineBetween(hx, hy, gx, gy);
+      g.lineStyle(2, 0x8a8a96, 1); g.lineBetween(gx - sn * 5, gy + c * 5, gx + sn * 5, gy - c * 5);
+    } else if (it.kind === 'ball') {                                       // the superball: bright red, a white shine
+      g.fillStyle(P.outline, 1); g.fillCircle(x, y, 7); g.fillStyle(0xe8202a, 1); g.fillCircle(x, y, 6);
+      g.fillStyle(0xff8a8a, 1); g.fillCircle(x - 2, y - 2, 2.5); g.fillStyle(0xffffff, 1); g.fillRect(x - 3, y - 4, 2, 2);
+    } else if (it.kind === 'bomb') {                                       // the timebomb: black, a fuse, blinking red as it ticks
+      const blink = it.state === 'tick' && (it.tt % (it.tt > 40 ? 6 : 14) < 3);
+      g.fillStyle(P.outline, 1); g.fillCircle(x, y, 8); g.fillStyle(blink ? 0xe8202a : 0x2a2a30, 1); g.fillCircle(x, y, 7);
+      g.fillStyle(0x5a5a64, 1); g.fillCircle(x - 2, y - 3, 2);
+      g.lineStyle(2, 0x8a6a3a, 1); g.lineBetween(x + 3, y - 6, x + 6, y - 11);
+      g.fillStyle(it.t % 4 < 2 ? 0xffd23a : 0xff7a1a, 1); g.fillCircle(x + 6, y - 12, 2);
+    } else if (it.kind === 'soda') {                                       // a plain red soda can, tumbling
+      const c = Math.cos(it.rot), sn = Math.sin(it.rot), at = (d) => [x + c * d, y + sn * d];
+      const [ax, ay] = at(-6), [bx, by] = at(6);
+      g.lineStyle(9, P.outline, 1); g.lineBetween(ax, ay, bx, by);
+      g.lineStyle(7, 0xc4281c, 1); g.lineBetween(ax, ay, bx, by);
+      g.lineStyle(2, 0xf2f3f3, 1); g.lineBetween(...at(-2), ...at(2));
+      g.lineStyle(7, 0xc8c8ca, 1); g.lineBetween(...at(5), bx, by);
+    } else if (it.kind === 'rocket') {                                     // a rocket, straight at them
+      const c = Math.cos(it.rot), sn = Math.sin(it.rot);
+      g.lineStyle(5, P.outline, 1); g.lineBetween(x - c * 10, y - sn * 10, x + c * 6, y + sn * 6);
+      g.lineStyle(3, P.grey, 1); g.lineBetween(x - c * 9, y - sn * 9, x + c * 3, y + sn * 3);
+      g.lineStyle(3, P.black, 1); g.lineBetween(x + c * 3, y + sn * 3, x + c * 6, y + sn * 6);
+      g.fillStyle(P.fire[1], 1); g.fillCircle(x - c * 11, y - sn * 11, 2 + (it.t % 3));
     }
-    if (h.t === B.warn) sfx('rumble', 0.8, 0.6);
-    h.x += h.dir * B.speed; h.rot += h.dir * B.speed / B.r;
-    const cx = h.x, cy = -B.r;
-    g.fillStyle(0x000000, 0.2); g.fillEllipse(cx, -1, B.r * 2.2, 6);                                  // its shadow
-    g.fillStyle(P.outline, 1); g.fillCircle(cx, cy, B.r + 1);
-    g.fillStyle(P.greyDark, 1); g.fillCircle(cx, cy, B.r);
-    g.fillStyle(P.grey, 1); g.fillCircle(cx - 3, cy - 3, B.r - 4);
-    g.fillStyle(P.greyLight, 1); g.fillCircle(cx - 8, cy - 9, 7);
-    for (let i = 0; i < 4; i++) {                                         // studs round it, turning as it rolls
-      const a = h.rot + i * Math.PI / 2; g.fillStyle(P.greyDark, 1); g.fillRect(Math.round(cx + Math.cos(a) * (B.r - 7)) - 2, Math.round(cy + Math.sin(a) * (B.r - 7)) - 2, 5, 4);
+  }
+  // an explosion (the timebomb, the rocket): a chunky orange ball that swells then breaks up
+  drawBoom(g, it) {
+    const P = BPAL, k = it.bt / 26, R = 14 + 34 * Math.min(1, it.bt / 8);
+    for (let i = 3; i >= 0; i--) { g.fillStyle(P.fire[i], (1 - k) * (i ? 0.9 : 1)); g.fillCircle(it.x, it.y - 6, R * (0.35 + i * 0.22)); }
+  }
+  step_griefer(match, h, out) {
+    const g = this.hzG, P = BPAL, G = GRIEFER, R = Math.random;
+    const foes = match.fighters.filter((f) => f.alive && f.state !== 'respawn' && f.state !== 'dying');
+    // ---- him: sparkles in, throws, then poofs out
+    const fadeIn = Math.min(1, h.t / 20), fadeOut = h.leaveAt ? Math.max(0, 1 - (h.t - h.leaveAt) / 16) : 1, alpha = fadeIn * fadeOut;
+    if (h.t === 1) sfx('ding', 0.5, 1.4);                                  // "joined the game"
+    if (h.t < 24) for (let i = 0; i < 2; i++) match.particles.push({ shape: 'pixel2', x: h.gx + (R() - 0.5) * 30, y: h.gy - R() * 50, vx: 0, vy: -0.6, life: 16, color: i ? 0xffffff : 0x9ad0f0, grav: 0 });
+    const next = G.firstAt + h.thrown * G.every, wind = h.thrown < h.queue.length ? Math.max(0, Math.min(1, 1 - (next - h.t) / 10)) : 0;
+    const target = foes.length ? foes.reduce((a, b) => (Math.abs(b.x - h.gx) < Math.abs(a.x - h.gx) === (h.thrown % 2 === 0) ? b : a)) : null;   // the nearest, then the furthest, by turns
+    const dir = target ? (Math.sign(target.x - h.gx) || -h.side) : -h.side;
+    const armA = wind > 0 ? -Math.PI / 2 - wind * 1.2 : (h.t - next + G.every < 8 ? 0.2 : Math.PI / 2 - 0.3);   // wound up behind his head; follow-through; resting
+    if (alpha > 0) {
+      g.fillStyle(0x000000, 0.18 * alpha); g.fillEllipse(h.gx, h.gy + 1, 26, 4);
+      this.drawGriefer(g, h.gx, h.gy, dir, armA, alpha);
     }
-    if (h.t % 6 === 0) { match.shake(2, 3); match.puff(cx - h.dir * B.r, -3, 0xd8d8dc, 2); }
-    if (Math.abs(h.x) < 300) out.push({ x1: cx - B.r + 4, x2: cx + B.r - 4, y1: cy - B.r + 4, y2: 0, dmg: B.dmg, angle: 55, base: 5, growth: 4.8, dirX: h.dir, id: 'boulder' + h.id, hazard: true });
-    return Math.abs(h.x) > 360;
+    // ---- his chat
+    if (h.say && h.t < h.say.until && alpha > 0.5) {
+      const x = h.gx, y = h.gy - 54, wpx = h.say.text.length * 6 + 8;
+      g.fillStyle(0xffffff, 0.92); g.fillRect(x - wpx / 2, y - 12, wpx, 12); g.fillTriangle(x - 3, y, x + 3, y, x, y + 4);
+      g.lineStyle(1, P.black, 0.6); g.strokeRect(x - wpx / 2, y - 12, wpx, 12);
+      this.grText.setText(h.say.text).setPosition(x, y - 2).setVisible(true);
+    } else this.grText.setVisible(false);
+    // ---- a throw
+    if (h.thrown < h.queue.length && h.t === next) {
+      const kind = h.queue[h.thrown++], sx = h.gx + dir * 10, sy = h.gy - 36;
+      const tx = target ? Math.max(-270, Math.min(270, target.x + target.vx * 18)) : (R() - 0.5) * 400, ty = target ? Math.min(0, target.y - 20) : -20;
+      const it = { kind, x: sx, y: sy, t: 0, rot: 0, state: 'fly', bounces: 0, id: h.id + ':' + h.thrown };
+      if (kind === 'rocket') {                                            // straight at them
+        const d = Math.hypot(tx - sx, ty - sy) || 1; it.vx = (tx - sx) / d * 7.5; it.vy = (ty - sy) / d * 7.5; it.rot = Math.atan2(it.vy, it.vx);
+        sfx('whoosh', 0.6, 1.3); sfx('laser', 0.3, 0.5); match.puff(sx, sy, P.grey, 3);
+      } else {                                                            // lobbed: lands on them in T frames
+        const T = kind === 'sword' ? 26 : 34, gr = 0.3;
+        it.vx = (tx - sx) / T; it.vy = (ty - sy) / T - 0.5 * gr * T; it.grav = gr; it.spin = (kind === 'sword' ? 0.45 : 0.25) * Math.sign(it.vx || 1);
+        sfx('whoosh', 0.5, kind === 'sword' ? 1.2 : 0.9);
+      }
+      h.items.push(it);
+      if (R() < 0.6) { h.say = { text: GRIEF_CHAT[Math.floor(R() * GRIEF_CHAT.length)], until: h.t + 50 }; }
+    }
+    // ---- the gear in the air
+    const onPlate = (x) => Math.abs(x) <= 280;
+    for (const it of h.items) {
+      if (it.state === 'gone') continue;
+      it.t++;
+      if (it.state === 'boom') {                                          // (bomb, rocket) exploding
+        it.bt++; this.drawBoom(g, it);
+        if (it.bt < 6) out.push({ x1: it.x - 44, x2: it.x + 44, y1: it.y - 54, y2: it.y + 10, dmg: it.kind === 'bomb' ? 14 : 12, angle: 70, base: 5.4, growth: 5.2, radial: true, cx: it.x, cy: it.y - 6, id: 'grf' + it.id, hazard: true });
+        if (it.bt > 26) it.state = 'gone';
+        continue;
+      }
+      if (it.state === 'stuck') {                                         // the sword, stuck in the plate, then gone
+        if (it.t > it.until) { it.state = 'gone'; match.puff(it.x, it.y, 0xd8d8dc, 3); continue; }
+        this.drawGear(g, it); continue;
+      }
+      if (it.state === 'tick') {                                          // the timebomb, sat on the plate, ticking
+        it.tt++;
+        if (it.tt % (it.tt > 40 ? 8 : 16) === 0) sfx('ding', 0.25, 2);
+        if (it.tt >= 60) { it.state = 'boom'; it.bt = 0; sfx('bighit', 0.8, 0.7); sfx('rumble', 0.6, 1.2); match.shake(8, 8); }
+        this.drawGear(g, it); continue;
+      }
+      if (it.state === 'fizz') {                                          // the soda can, burst: a fizzy spray for a moment
+        it.ft++;
+        if (it.ft % 2 === 0) for (let i = 0; i < 3; i++) match.particles.push({ shape: 'drop', x: it.x, y: it.y - 4, vx: (R() - 0.5) * 5, vy: -2 - R() * 4, life: 24, color: i ? 0x8a3a1a : 0xf2f3f3, grav: 0.2 });
+        if (it.ft < 24) out.push({ x1: it.x - 26, x2: it.x + 26, y1: it.y - 40, y2: it.y + 4, dmg: 3, angle: 85, base: 3.4, growth: 1.6, id: 'grf' + it.id + ':' + Math.floor(it.ft / 12), hazard: true });
+        if (it.ft > 30) it.state = 'gone';
+        continue;
+      }
+      // flying
+      it.x += it.vx; it.y += it.vy; if (it.grav) it.vy += it.grav; if (it.spin) it.rot += it.spin;
+      if (it.kind === 'rocket') { it.rot = Math.atan2(it.vy, it.vx); if (it.t % 2 === 0) match.particles.push({ shape: 'smoke', x: it.x - Math.cos(it.rot) * 10, y: it.y - Math.sin(it.rot) * 10, vx: 0, vy: -0.2, life: 22, maxLife: 22, r: 3, color: 0xd8d8dc, grav: 0 }); }
+      const landed = onPlate(it.x) && it.y >= -6 && it.vy > 0;
+      if (it.kind === 'sword') {
+        out.push({ x1: it.x - 12, x2: it.x + 12, y1: it.y - 12, y2: it.y + 12, dmg: 8, angle: 45, base: 3.6, growth: 3.8, dirX: Math.sign(it.vx) || 1, id: 'grf' + it.id, hazard: true });
+        if (landed) { it.state = 'stuck'; it.y = -10; it.rot = -Math.PI / 2 + 0.25 * Math.sign(it.vx || 1) + Math.PI; it.until = it.t + 50; sfx('clang', 0.5, 1.2); match.puff(it.x, -2, 0xd8d8dc, 3); }
+      } else if (it.kind === 'ball') {                                    // bounces along the plate, lower each time
+        out.push({ x1: it.x - 8, x2: it.x + 8, y1: it.y - 8, y2: it.y + 8, dmg: 5, angle: 80, base: 3.2, growth: 2.6, id: 'grf' + it.id + ':' + it.bounces, hazard: true });
+        if (landed) {
+          it.y = -6; it.bounces++; it.vy = -Math.abs(it.vy) * 0.78; it.vx *= 0.95;
+          sfx('land', 0.4, 1.6 + it.bounces * 0.1); match.puff(it.x, -2, 0xe8202a, 2);
+          if (it.bounces > 4 || Math.abs(it.vy) < 1.5) { it.state = 'gone'; match.puff(it.x, -4, 0xe8202a, 4); sfx('dodge', 0.3, 1.8); continue; }   // out of bounce: pop
+        }
+      } else if (it.kind === 'bomb') {
+        if (landed) { it.state = 'tick'; it.tt = 0; it.y = -8; sfx('land', 0.5, 1.2); }
+      } else if (it.kind === 'soda') {
+        out.push({ x1: it.x - 7, x2: it.x + 7, y1: it.y - 7, y2: it.y + 7, dmg: 4, angle: 60, base: 2.4, growth: 2.2, id: 'grf' + it.id + ':c', hazard: true });
+        if (landed) { it.state = 'fizz'; it.ft = 0; it.y = -2; sfx('smoke', 0.6, 1.6); sfx('glass', 0.3, 1.4); }
+      } else if (it.kind === 'rocket') {
+        out.push({ x1: it.x - 7, x2: it.x + 7, y1: it.y - 7, y2: it.y + 7, dmg: 6, angle: 60, base: 3, growth: 3, id: 'grf' + it.id + ':r', hazard: true });
+        const hit = foes.some((f) => Math.abs(f.x - it.x) < 14 && it.y > f.y - (f.def.body ? f.def.body.h : 50) && it.y < f.y);
+        if (landed || hit) { it.state = 'boom'; it.bt = 0; if (landed) it.y = -2; sfx('bighit', 0.8, 0.7); sfx('rumble', 0.6, 1.2); match.shake(8, 8); continue; }
+      }
+      if (it.y > 60 || Math.abs(it.x) > 340) { it.state = 'gone'; continue; }        // off the edge: gone
+      if (it.state !== 'gone') this.drawGear(g, it);
+    }
+    // ---- done throwing and everything's landed: he logs off
+    const busy = h.items.some((it) => it.state !== 'gone');
+    if (h.thrown >= h.queue.length && !busy && !h.leaveAt) {
+      h.leaveAt = h.t; sfx('dodge', 0.5, 0.8);
+      h.say = { text: 'gtg bye', until: h.t + 16 };
+    }
+    if (h.leaveAt && h.t === h.leaveAt + 8) for (let i = 0; i < 10; i++) match.particles.push({ shape: 'smoke', x: h.gx + (R() - 0.5) * 20, y: h.gy - R() * 44, vx: (R() - 0.5) * 1.5, vy: -0.4, life: 20, maxLife: 20, r: 4, color: 0xffffff, grav: 0 });
+    if (h.leaveAt && h.t > h.leaveAt + 16) { this.grText.setVisible(false); return true; }
+    return false;
   }
 }
 

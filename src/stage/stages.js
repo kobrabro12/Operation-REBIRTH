@@ -62,7 +62,7 @@ export const STAGES = [
   {
     id: 'baseplate', name: 'BASEPLATE 2012', available: true, make: (scene) => new BaseplateStage(scene),
     blurb: ['A studded green baseplate from the old block', 'games, between two sword-fight towers.'],
-    hazard: 'ROCKET BARRAGE, LOOSE BRICKS FROM THE\nSKY - AND THE DREADED LAG SPIKE.',
+    hazard: 'ROCKETS, FALLING BRICKS, LAG SPIKES -\nAND A GRIEFER WHO THROWS HIS GEAR AT YOU.',
     preview: drawBaseplatePreview,
   },
 ];
