@@ -109,6 +109,7 @@ export function initSfx(scene) {
   ph = 0;
   build('laugh', 0.9, (t) => { const k = Math.floor(t * 9), u = (t * 9) % 1; ph += (900 - k * 40 + 260 * Math.exp(-u * 6)) / SR; return sq(ph, 0.3) * 0.5 * (u < 0.62 ? Math.min(1, u * 30) * (1 - u / 0.62) : 0) * (k < 7 ? 1 : 0); });
   { let sp = 0; const r = rand(4077); build('scream', 1.4, (t) => { sp += (1150 + 240 * Math.sin(t * 46) + 160 * Math.sin(t * 7.3) - 260 * t) / SR; const env = Math.min(1, t * 25) * (t > 1.05 ? (1.4 - t) / 0.35 : 1); return (sq(sp, 0.35) * 0.55 + sq(sp * 0.503, 0.5) * 0.2 + r() * 0.35) * env; }); }   // SEEN's SCREAM: a warbling shriek through torn speakers
+  { let ph = 0, lp = 0, lp2 = 0; const r = rand(911); build('roar', 1.9, (t) => { ph += (78 + 22 * Math.sin(t * 2.7) + 9 * Math.sin(t * 41) - 18 * t) / SR; lp += (r() - lp) * 0.09; lp2 += (lp - lp2) * 0.2; const saw = 2 * (ph % 1) - 1, am = 0.65 + 0.35 * Math.sin(t * 2 * Math.PI * 27), env = Math.min(1, t * 9) * (t > 1.3 ? Math.max(0, (1.9 - t) / 0.6) : 1); return Math.max(-1, Math.min(1, (saw * 0.55 + lp2 * 2.2 + sq(ph * 0.5, 0.5) * 0.2) * am * env * 1.3)); }); }   // WHAT ONCE WAS: a roar from behind the screen - a growling, rumbling low saw through noise
   ph = 0; ph2 = 0;
   build('popup', 0.35, (t) => { ph += 392 / SR; ph2 += 494 / SR; return (sq(ph, 0.5) + sq(ph2, 0.5)) * 0.3 * Math.exp(-t * 7); });
   ph = 0;
