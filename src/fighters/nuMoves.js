@@ -31,4 +31,5 @@ export const NU_MOVES = {
    "grabbed": [783, 8, 2, 1],
    "ledge": [791, 12, 2, 1],
    "taunt": [803, 84, 1],
+   "micdrop": [887, 30, 2],
 };

@@ -27,14 +27,14 @@ const CUTS = {
   'hero-knight': { len: 400, card: 236, name: 'LACY', line: 'NO ONE ELSE FALLS TONIGHT.', sub: 'THE LAST OF THE ORDER',
     color: '#ffd08a', stroke: '#1e0a04', shots: [[0, 'field'], [112, 'close'], [188, 'salute']] },
   // ---- the test fighters
-  'nu': { len: 400, card: 236, name: 'NU', line: 'THANK YOU, GOODNIGHT!', sub: 'THE FRONTMAN',
+  'nu': { len: 440, card: 236, name: 'NU', line: 'THANK YOU, GOODNIGHT!', sub: 'THE FRONTMAN',
     color: '#9be32a', stroke: '#0a1404', shots: [[0, 'stage'], [120, 'close'], [196, 'encore']] },
   'aero': { len: 400, card: 240, name: 'AERO', line: 'STAY HYDRATED.', sub: 'THE LAST SCREENSAVER',
     color: '#9ff0ff', stroke: '#04203a', shots: [[0, 'sky'], [116, 'close'], [190, 'ascend']] },
   'what-once-was': { len: 410, card: 250, name: 'WHAT ONCE WAS', line: 'PLEASE STAND BY.', sub: 'LOST IN LEVEL 0',
     color: '#fff6b0', stroke: '#1a1404', shots: [[0, 'hall'], [118, 'screen'], [196, 'lightsout']] },
-  'last-seen': { len: 410, card: 248, name: 'ROSEMARY', line: 'HAVE YOU SEEN ME?', sub: 'STILL MISSING',
-    color: '#e8c86a', stroke: '#1a0404', shots: [[0, 'street'], [110, 'flicker'], [204, 'seen']] },
+  'last-seen': { len: 470, card: 352, name: 'ROSEMARY', line: 'HAVE YOU SEEN ME?', sub: 'STILL MISSING',
+    color: '#e8c86a', stroke: '#1a0404', shots: [[0, 'street'], [100, 'flicker'], [186, 'cry'], [262, 'mirror']] },
 };
 // where each fighter's head is in its idle frame (for the close-ups), and its feet (the sprite origin)
 // (by idle sheet, so a fighter's other forms - FULL AERO, SEEN - have their own)
@@ -62,6 +62,7 @@ export class WinScene extends Phaser.Scene {
     });
     this.mid = this.add.graphics();                                        // between them and the winner
     this.hero = this.add.sprite(W / 2, 300, this.def.sheets.idle, 0);
+    this.hero2 = this.add.sprite(0, 0, this.def.sheets.idle, 0).setVisible(false);   // a second figure (ROSEMARY: her reflection)
     this.fx = this.add.graphics();                                         // in front: wisps, embers, rain, eyes
     this.faceImg = this.add.image(W / 2, 160, 'wow_faces', 0).setVisible(false);   // (WHAT ONCE WAS: Mason's faces, up on its screen)
     this.front = this.add.graphics();                                      // in front of that
@@ -122,6 +123,7 @@ export class WinScene extends Phaser.Scene {
   vignette(g, strength = 0.55) {
     for (let i = 0; i < 6; i++) { const m = i * 10; g.fillStyle(0x000000, strength * 0.16); g.fillRect(0, 0, W, m + 8); g.fillRect(0, H - m - 8, W, m + 8); g.fillRect(0, 0, m + 12, H); g.fillRect(W - m - 12, 0, m + 12, H); }
   }
+  glow(g, x, y, r, col, a) { for (let i = 1; i <= 6; i++) { g.fillStyle(col, a / 6); g.fillCircle(x, y, r * (1.15 - i * 0.15)); } }   // a soft light: rings, brighter in the middle
   cutTo() { this.flash = 6; sfx('whoosh', 0.5, 0.7); this.cameras.main.shake(80, 0.004); }
 
   update() {
@@ -131,7 +133,7 @@ export class WinScene extends Phaser.Scene {
     if (t > 30 && (m.ok || m.back || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start' || p.button === 'b'))) return this.done();
     this.clicked = false;
     if (t >= C.len) return this.done();
-    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false);
+    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false);
     // which shot
     let si = 0; while (si + 1 < C.shots.length && t >= C.shots[si + 1][0]) si++;
     const [from, name] = C.shots[si], to = si + 1 < C.shots.length ? C.shots[si + 1][0] : C.len;
@@ -468,19 +470,48 @@ export class WinScene extends Phaser.Scene {
     const floor = 262;
     this.arena(this.bg, t, floor);
     this.hideLosers();
-    this.move('taunt', Math.min(83, 40 + s * 0.3), W / 2, floor, 3);
-    for (const px of [150, 490]) {                                              // the pyro
+    const MD = 120, drop = MD + 29;                                             // the mic drop: arm out at MD, lets go at 'drop'
+    if (s < MD) this.move('taunt', Math.min(83, 40 + s * 0.3), W / 2, floor, 3);
+    else this.move('micdrop', (s - MD) * 0.5, W / 2, floor, 3);
+    if (s >= drop) {                                                            // the lights cut to one spot on him... and the mic falls
+      const d = s - drop, k = Math.min(1, d / 6);
+      this.mid.fillStyle(0x000000, 0.75 * k); this.mid.fillRect(0, 0, W, H);
+      this.mid.fillStyle(0xf2f3f3, 0.12 * k); this.mid.fillTriangle(W / 2 - 6, 50, W / 2 + 6, 50, W / 2 + 80, floor); this.mid.fillTriangle(W / 2 - 6, 50, W / 2 - 50, floor, W / 2 + 80, floor);
+      this.mid.fillStyle(0xf2f3f3, 0.2 * k); this.mid.fillEllipse(W / 2 + 14, floor + 2, 140, 10);
+      const g0 = 0.5, T = Math.sqrt(2 * 120 / g0);                               // falls 120 px from his fist
+      let mx = W / 2 + 51 + Math.min(d, T) * 0.4, my = floor - 120 + 0.5 * g0 * Math.min(d, T) ** 2, rot = Math.min(d, T) * 0.12;
+      if (d >= T) {                                                             // ...hits the stage, one little bounce, lies there
+        const b = d - T, hop = b < 12 ? Math.sin(b / 12 * Math.PI) * 10 : 0;
+        mx = W / 2 + 51 + T * 0.4 + Math.min(b, 12) * 0.8; my = floor - 4 - hop; rot = 1.57 + Math.min(b, 12) * 0.1;
+        if (b === 0) { sfx('clang', 1, 0.5); sfx('bighit', 0.6, 0.4); this.cameras.main.shake(220, 0.012); this.flash = 3; }
+        if (b === 2) sfx('buzz', 0.7, 2.4);                                     // feedback, screeching through the speakers
+        if (b === 12) sfx('clang', 0.4, 0.7);
+        if (b < 30) { this.fx.lineStyle(2, 0x9be32a, 1 - b / 30); this.fx.strokeEllipse(mx, floor, b * 8, b * 1.6); }   // the thud rippling out
+      }
+      this.drawMic(this.fx, mx, my, rot);
+    }
+    for (const px of (s < drop ? [150, 490] : [])) {                           // the pyro (stops when the mic drops)
       const on = s % 40 < 22, h = on ? 90 + Math.sin(s * 0.6) * 20 : 0;
       if (s % 40 === 0) { sfx('flame', 0.6, 0.8); this.cameras.main.shake(80, 0.004); }
       if (h) { this.mid.fillStyle(0xff7a1a, 0.9); this.mid.fillTriangle(px - 16, floor, px + 16, floor, px, floor - h); this.mid.fillStyle(0x9be32a, 0.9); this.mid.fillTriangle(px - 8, floor, px + 8, floor, px, floor - h * 0.6); }
     }
-    for (let i = 0; i < 40; i++) {                                              // confetti
+    for (let i = 0; i < (s < drop ? 40 : 0); i++) {                            // confetti
       const sp = this.spots[i], x = (sp[0] * W + Math.sin(s * 0.05 + i) * 20) % W, y = ((sp[1] * H + s * (1 + sp[2])) % H);
       this.fx.fillStyle([0x9be32a, 0xffffff, 0xff5ad0, 0xffd23a][i % 4], 1); this.fx.fillRect(x, y, 3, 2);
     }
     this.crowd(this.fx, t, 312);
-    if (s === 120) { sfx('clang', 0.8, 0.6); sfx('rumble', 0.5, 0.6); }        // the mic drop
     this.vignette(this.over);
+  }
+
+  drawMic(g, x, y, rot) {                                                       // NU's mic, at 3x: chrome handle, grille, a green glow
+    const c = Math.cos(rot), sn = Math.sin(rot), at = (d) => [x + sn * d, y - c * d];
+    const [hx, hy] = at(-12), [gx, gy] = at(6);
+    g.lineStyle(7, 0x2a2e38, 1); g.lineBetween(hx, hy, gx, gy);
+    g.lineStyle(4, 0xa8b2be, 1); g.lineBetween(hx, hy, gx, gy);
+    g.fillStyle(0x2a2e38, 1); g.fillCircle(...at(10), 8); g.fillStyle(0xdce4ec, 1); g.fillCircle(...at(10), 6.5);
+    g.fillStyle(0x6c7684, 1); for (const [ox, oy] of [[-2, -2], [2, -2], [0, 0], [-2, 2], [2, 2]]) { const [px, py] = at(10); g.fillRect(px + ox - 1, py + oy - 1, 2, 2); }
+    g.fillStyle(0x9be32a, 0.9); g.fillCircle(...at(10), 2);
+    g.lineStyle(2, 0x24212c, 1); const [cx, cy] = at(-12); g.lineBetween(cx, cy, cx - 8, cy + 6);   // a bit of cable
   }
 
   // ================================================================ AERO
@@ -675,14 +706,64 @@ export class WinScene extends Phaser.Scene {
     this.rain(this.fx, t, 0x9ab0d0, on ? 0.35 : 0.15);
     this.vignette(this.over, 0.8);
   }
-  shot_last_seen_seen(t, k, s) {
-    const ground = 296;
-    this.street(this.bg, t, ground, 1, 1);
-    this.roseLosers();
-    this.idle(300, ground, 3.2, t, false, SEEN);                               // SEEN, dragging its axe
-    if (s === 1) { this.flash = 6; sfx('glitch', 0.8, 0.5); this.cameras.main.shake(220, 0.01); }
-    for (let i = 0; i < 8; i++) { const sp = this.spots[i]; this.fx.fillStyle(0x8a0a0a, 0.9); this.fx.fillRect(250 + sp[0] * 110, ground - 90 + ((s * (1 + sp[2]) + sp[1] * 90) % 90), 2, 3); }   // blood dripping
-    this.rain(this.fx, t, 0xd09a9a, 0.3);
+  // she's back - herself again - and she breaks down: shaking, tears running down her face
+  shot_last_seen_cry(t, k, s) {
+    this.sky(this.bg, 0x04060c, 0x141c2c);
+    this.glow(this.bg, W / 2 - 120, 40, 200, 0xffe8a0, 0.3);                  // the streetlight, somewhere above
+    this.hideLosers();
+    const sob = (s % 26) < 8 ? Math.sin((s % 26) / 8 * Math.PI) * 3 : 0, sc = 6.2 + k * 0.5, cx = W / 2, cy = 150 + sob;
+    this.closeUp(cx, cy, sc, t);
+    this.hero.setTint(0xc8d4ec).setTintMode(Phaser.TintModes.MULTIPLY);
+    if (s % 26 === 0) sfx('curse', 0.18, 1.7);                                 // a sob
+    const ex = cx + 3 * sc, ey = cy + 1 * sc;                                  // her eye (head at 34,11; the eye at 37,12)
+    this.fx.fillStyle(0xbcd8ff, 0.85); this.fx.fillRect(ex - 2, ey + 6, 3, Math.min(70, s * 1.2));   // a tear track down her cheek
+    for (let i = 0; i < 4; i++) {                                              // tears, welling and falling
+      const p = (s * 1.5 + i * 22) % 90;
+      this.fx.fillStyle(0xe0f0ff, 1); this.fx.fillCircle(ex - 1, ey + 6 + p * 1.6, 2.5 - p / 60);
+    }
+    this.rain(this.fx, t, 0x9ab0d0, 0.3);
+    this.vignette(this.over, 0.9);
+  }
+  // she looks up into an old mirror - and what looks back is the animatronic
+  shot_last_seen_mirror(t, k, s) {
+    const g = this.bg, floor = 300, mx = 430, mw = 150, top = 92, swap = 54;
+    this.hideLosers();
+    g.fillStyle(0x10140e, 1); g.fillRect(0, 0, W, H);                             // a bare room: peeling wallpaper, floorboards
+    for (let x = 0; x < W; x += 16) { g.fillStyle(0x161c14, 1); g.fillRect(x, 0, 6, floor); }
+    g.fillStyle(0x0e0a08, 1); g.fillRect(0, floor, W, H - floor);
+    for (let x = 0; x < W; x += 40) { g.fillStyle(0x080604, 1); g.fillRect(x, floor, 2, H - floor); }
+    const flick = s >= swap - 4 && s < swap + 2 ? (s % 2 ? 0 : 0.4) : 1;          // the bulb flickers once, right before
+    g.lineStyle(1, 0x2a2a2a, 1); g.lineBetween(300, 0, 300, 50);
+    g.fillStyle(flick > 0.5 ? 0xfff0c0 : 0x3a3428, 1); g.fillCircle(300, 54, 5);
+    this.glow(g, 300, 54, 190, 0xfff0c0, 0.28 * flick);
+    g.fillStyle(0x0a1018, 1); g.fillRect(mx - mw / 2, top, mw, floor - top - 6);  // the mirror's glass
+    g.fillStyle(0x14202c, 1); g.fillRect(mx - mw / 2, top, mw, 30);
+    // her: facing the mirror; sobbing until she sees it, then frozen
+    const sob = s < swap && (s % 26) < 8 ? Math.sin((s % 26) / 8 * Math.PI) * 2 : 0;
+    this.idle(250, floor + sob, 3, s < swap ? t : 0);
+    this.hero.setTint(flick > 0.5 ? 0xd8d0c0 : 0x3a3a40).setTintMode(Phaser.TintModes.MULTIPLY);
+    // the reflection: her, flipped... until the light comes back and it's SEEN looking out at her
+    const R = this.hero2, seen = s >= swap;
+    showFighter(R, seen ? SEEN : this.def, Math.floor((seen ? t : (s < swap ? t : 0)) / 6), this.win.skin || 0);
+    R.setPosition(mx + 6, floor - 8).setScale(2.4).setFlipX(true).setRotation(seen ? Math.sin(s * 0.05) * 0.04 : 0).setAlpha(flick).setVisible(true)
+      .setTint(seen ? 0xc0b0a8 : 0x9aa8c0).setTintMode(Phaser.TintModes.MULTIPLY);
+    if (s === swap) { sfx('glitch', 0.8, 0.5); sfx('bighit', 0.6, 0.35); this.cameras.main.shake(260, 0.01); this.flash = 4; }
+    if (s === swap + 30) sfx('buzz', 0.4, 0.5);
+    const f = this.fx;
+    f.fillStyle(0x3a2a1a, 1); f.fillRect(mx - mw / 2 - 10, top - 10, mw + 20, 10); f.fillRect(mx - mw / 2 - 10, floor - 6, mw + 20, 10);   // the frame
+    f.fillRect(mx - mw / 2 - 10, top, 10, floor - top - 6); f.fillRect(mx + mw / 2, top, 10, floor - top - 6);
+    f.fillStyle(0x5a4228, 1); f.fillRect(mx - mw / 2 - 10, top - 10, mw + 20, 2);
+    f.fillStyle(0xffffff, 0.06); f.fillTriangle(mx - mw / 2, top, mx - mw / 2 + 50, top, mx - mw / 2, top + 120);   // the glass's sheen
+    if (seen) {                                                                   // cracks spreading across the glass from where it's looking
+      const n = Math.min(9, Math.floor((s - swap) / 4)), ox = mx + 20, oy = top + 70;
+      f.lineStyle(1, 0xd8dce8, 0.7);
+      for (let i = 0; i < n; i++) {
+        const a = i * 0.7 + 0.3, len = 30 + (i * 37) % 50;
+        const x1 = ox + Math.cos(a) * len * 0.5, y1 = oy + Math.sin(a) * len * 0.5;
+        f.lineBetween(ox, oy, x1, y1); f.lineBetween(x1, y1, Math.max(mx - mw / 2, Math.min(mx + mw / 2, x1 + Math.cos(a + 0.5) * len * 0.6)), Math.max(top, Math.min(floor - 8, y1 + Math.sin(a + 0.5) * len * 0.6)));
+      }
+    }
     this.vignette(this.over, 0.8);
   }
+
 }

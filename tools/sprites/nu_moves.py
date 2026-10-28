@@ -307,6 +307,14 @@ move('taunt', 84, [k(0, REST), k(8, bang(False), 'back')]
      + [k(54, mix(POINT, ffore=(-30, 0, 0), torso=(-4, 0, 0)), 'out'), k(58, POINT, 'snap'), k(74, mix(POINT, head=(-14, 1, 0)), 'inout'), k(84, REST, 'back')],
      smear=())
 
+# ---- the mic drop (only his win cutscene uses it, WinScene.js): holds the mic out at arm's length... lets go
+# (the mic is hidden from then on - the cutscene draws it falling), and lowers his arm, head bowed
+ARM_OUT = P(fupper=(-70, 0, 0), ffore=(120, 0, 0), mic=(-80, 0, 0), torso=(-6, 0, 0), head=(-14, 0, 0), bupper=(10, 0, 0), bfore=(-20, 0, 0), **STANCE)
+LET_GO = mix(ARM_OUT, _hide=NOMIC, ffist=(-20, 0, 0))
+BOWED = mix(LET_GO, fupper=(10, 0, 0), ffore=(140, 0, 0), head=(18, 0, 1), torso=(8, 1, 0))
+move('micdrop', 60, [k(0, REST), k(12, ARM_OUT, 'out'), k(28, mix(ARM_OUT, head=(-18, 0, 0)), 'inout'), k(29, LET_GO, 'snap'),
+                     k(44, mix(LET_GO, head=(-6, 0, 0)), 'inout'), k(60, BOWED, 'inout')], smear=(), step=2)
+
 
 def strip(frames, path):
     sheet = Image.new('RGBA', (64 * len(frames), 64), (0, 0, 0, 0))
