@@ -32,4 +32,5 @@ export const NU_MOVES = {
    "ledge": [791, 12, 2, 1],
    "taunt": [803, 84, 1],
    "micdrop": [887, 30, 2],
+   "spraytag": [917, 65, 2],
 };

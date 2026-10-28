@@ -34,6 +34,11 @@ GHOST = (155, 227, 42)          # acid green afterimages (skins recolour it with
 # how much each part trails behind its parent's swing / streams back when the body moves
 FOLLOW = {'head': (0.18, 0.2), 'hair': (0.55, 1.4), 'mic': (0.5, 0.4), 'ffist': (0.12, 0), 'can': (0.3, 0), 'bfore': (0.15, 0), 'ffore': (0.1, 0)}
 
+# a copy of the spray can, moved from his back fist into his front one (the spray tag in his BLOCK BOSS outro)
+def fcan_part(layers, order):
+    c = np.roll(np.roll(layers['can'], -14, axis=0), 14, axis=1)
+    return Part('fcan', c[..., 3] > 0, (44, 26), 'ffore', z=order.index('ffist') - 0.5, variants=[c])
+
 def build_rig(draw, follow, order=None):
     layers = draw.draw_parts()
     base = draw.composite(layers, hide=())
@@ -42,12 +47,14 @@ def build_rig(draw, follow, order=None):
         pivot, parent = draw.RIG[name]
         dr, sw = follow.get(name, (0, 0))
         parts.append(Part(name, layers[name][..., 3] > 0, pivot, parent, z=z, variants=[layers[name]], drag=dr, sway=sw))
+    parts.append(fcan_part(layers, draw.ORDER))
     return Rig(base, parts, (64, 64), (0, 0), FEET), Rig(base, parts, (112, 104), (24, 36), FEET)
 
 SMALL, BIG = build_rig(nu_draw, FOLLOW)
 
 def P(**kw):
     kw.setdefault('_hide', ('can',))
+    if not kw.pop('_fcan', False) and 'fcan' not in kw['_hide']: kw['_hide'] = tuple(kw['_hide']) + ('fcan',)   # the can in his front fist: only out when a pose asks (_fcan=True)
     return kw
 def k(t, pose, ease='inout'): return (t, pose, ease)
 def mix(a, **kw): return P(**{**a, **kw})            # a pose with a few parts changed
@@ -314,6 +321,20 @@ LET_GO = mix(ARM_OUT, _hide=NOMIC, ffist=(-20, 0, 0))
 BOWED = mix(LET_GO, fupper=(10, 0, 0), ffore=(140, 0, 0), head=(18, 0, 1), torso=(8, 1, 0))
 move('micdrop', 60, [k(0, REST), k(12, ARM_OUT, 'out'), k(28, mix(ARM_OUT, head=(-18, 0, 0)), 'inout'), k(29, LET_GO, 'snap'),
                      k(44, mix(LET_GO, head=(-6, 0, 0)), 'inout'), k(60, BOWED, 'inout')], smear=(), step=2)
+
+# ---- the spray tag (only his BLOCK BOSS outro uses it, winSkins.js): mic into his pocket, a spray can out, a shake,
+# then two strokes at the wall - an X (the cutscene paints it: stroke one ticks 50-66, stroke two 72-88) - and away again
+NOCAN = ('can', 'mic')
+POCKET = P(fupper=(25, 0, 0), ffore=(120, 0, 0), torso=(6, 0, 0), head=(10, 0, 0), **STANCE)
+POCKET_CAN = mix(POCKET, _hide=NOCAN, _fcan=True)
+SHAKE = lambda d: mix(POCKET_CAN, fupper=(-10 + d, 0, 0), ffore=(20 - d, 0, 0), torso=(0, 0, 0), head=(-4, 0, 0), _hide=NOCAN, _fcan=True)
+HI = lambda dx: P(_hide=NOCAN, _fcan=True, fupper=(-105, 0, 0), ffore=(110, 0, 0), fcan=(-40, 0, 0), torso=(-8, 0, 0), head=(-18, 0, 0), root=(dx, 0, 0), **STANCE)
+LO = lambda dx: P(_hide=NOCAN, _fcan=True, fupper=(-45, 0, 0), ffore=(120, 0, 0), fcan=(-70, 0, 0), torso=(6, 0, 0), head=(-2, 0, 0), root=(dx, 1, 0), **STANCE)
+move('spraytag', 130, [k(0, REST), k(10, POCKET, 'inout'), k(11, POCKET_CAN, 'snap'), k(22, SHAKE(0), 'out')]
+     + [k(24 + 4 * i, SHAKE(-14 if i % 2 else 14), 'inout') for i in range(6)]
+     + [k(50, HI(-2), 'out'), k(66, LO(2), 'inout'), k(72, HI(2), 'inout'), k(88, LO(-2), 'inout'),
+        k(100, mix(LO(0), head=(-10, 0, 0), _hide=NOCAN, _fcan=True), 'inout'), k(112, POCKET_CAN, 'inout'), k(113, POCKET, 'snap'), k(130, REST, 'inout')],
+     smear=(), step=2)
 
 
 def strip(frames, path):

@@ -28,6 +28,7 @@ def build_rig(D):
         var = hair if (name == 'hair' and hair) else [layers[name]]
         mask = np.any([v[..., 3] > 0 for v in var], axis=0)
         parts.append(Part(name, mask, pivot, parent, z=z, variants=var, drag=dr, sway=sw))
+    parts.append(M.fcan_part(layers, D.ORDER))
     return Rig(base, parts, (64, 64), (0, 0), M.FEET), Rig(base, parts, (112, 104), (24, 36), M.FEET)
 
 if __name__ == '__main__':
