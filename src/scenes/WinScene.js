@@ -29,8 +29,8 @@ const CUTS = {
   // ---- the test fighters
   'nu': { len: 440, card: 236, name: 'NU', line: 'THANK YOU, GOODNIGHT!', sub: 'THE FRONTMAN',
     color: '#9be32a', stroke: '#0a1404', shots: [[0, 'stage'], [120, 'close'], [196, 'encore']] },
-  'aero': { len: 400, card: 240, name: 'AERO', line: 'STAY HYDRATED.', sub: 'THE LAST SCREENSAVER',
-    color: '#9ff0ff', stroke: '#04203a', shots: [[0, 'sky'], [116, 'close'], [190, 'ascend']] },
+  'aero': { len: 440, card: 296, off: 380, name: 'AERO', line: 'STAY HYDRATED.', sub: 'THE LAST SCREENSAVER',
+    color: '#9ff0ff', stroke: '#04203a', shots: [[0, 'purge'], [150, 'rise'], [236, 'true'], [380, 'off']] },
   'what-once-was': { len: 410, card: 250, name: 'WHAT ONCE WAS', line: 'PLEASE STAND BY.', sub: 'LOST IN LEVEL 0',
     color: '#fff6b0', stroke: '#1a1404', shots: [[0, 'hall'], [118, 'screen'], [196, 'lightsout']] },
   'last-seen': { len: 470, card: 352, name: 'ROSEMARY', line: 'HAVE YOU SEEN ME?', sub: 'STILL MISSING',
@@ -47,7 +47,7 @@ export function hasWinCutscene(id) { return !!CUTS[id]; }
 export class WinScene extends Phaser.Scene {
   constructor() { super('Win'); }
   create(data) {
-    this.data0 = data; this.t = 0; this.menu = new MenuInput(this);
+    this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];
     this.win = win; this.cut = CUTS[win.fighter];
     this.def = (ALL().find((r) => r.id === win.fighter) || ROSTER[0]).def;
@@ -85,11 +85,11 @@ export class WinScene extends Phaser.Scene {
     showFighter(this.hero, def, Math.floor(t / 6), this.win.skin || 0);
     this.hero.setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft !== flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
-  move(name, i, x, y, sc, def = this.def) {
+  move(name, i, x, y, sc, def = this.def, flip = false) {
     const A = def.moveAnims[name], set = skinInfo(def.id, this.win.skin || 0).sheetSet;
     const key = set && def.costumeSheets && def.costumeSheets[set] ? def.costumeSheets[set].moves : skinTexture(this, def.sheets.moves, def.id, this.win.skin || 0);
     this.hero.setTexture(key, A[0] + Math.max(0, Math.min(A[1] - 1, Math.floor(i)))).setOrigin(def.movesOrigin[0], def.movesOrigin[1])
-      .setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft).setRotation(0).setAlpha(1).clearTint().setVisible(true);
+      .setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft !== flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
   // a close-up: the winner's head at (cx, cy), at scale sc
   closeUp(cx, cy, sc, t, def = this.def) {
@@ -149,6 +149,7 @@ export class WinScene extends Phaser.Scene {
       if (k >= 18) { this.lineT.setText(C.line.slice(0, n)).setVisible(true); if (n <= C.line.length && (k - 18) % 4 === 0 && C.line[n - 1] !== ' ') sfx('menu', 0.25, 1.4); }
       this.over.fillStyle(0x000000, 0.35); this.over.fillRect(0, 40, W, 58);
     }
+    if (C.off && t >= C.off) { this.title.setVisible(false); this.subT.setVisible(false); this.lineT.setVisible(false); }   // (the screen's switching off)
     // the letterbox (slides in), the flash
     const bar = Math.min(34, t * 3);
     this.over.fillStyle(0x000000, 1); this.over.fillRect(0, 0, W, bar); this.over.fillRect(0, H - bar, W, bar);
@@ -515,9 +516,6 @@ export class WinScene extends Phaser.Scene {
   }
 
   // ================================================================ AERO
-  // Glossy glass, aqua skies, bubbles: the old desktop dream. On a green hill under a lens-flared sun, the beaten
-  // drift away sealed in bubbles. A close-up with a shine sweeping across the glass. Then the bubbles pop, the sky
-  // turns gold, and he rises as FULL AERO with his golden spear.
   aeroSky(g, t, hill, gold = 0) {
     this.sky(g, gold ? 0x2a6ab8 : 0x2a8ae0, gold ? 0xfff0b0 : 0xc8f0ff);
     const sx = 500, sy = 80;
@@ -537,46 +535,99 @@ export class WinScene extends Phaser.Scene {
     g.lineStyle(2, 0xffffff, 0.7 * a); g.strokeCircle(x, y, r);
     g.fillStyle(0xffffff, 0.8 * a); g.fillEllipse(x - r * 0.4, y - r * 0.45, r * 0.5, r * 0.25);
   }
-  aeroLosers(s, pop = -1) {                                                    // floating away, each in its bubble
-    const pos = [0, 1, 2].map((i) => [120 + i * 200 + Math.sin(s * 0.03 + i) * 20, 210 - s * (0.35 + i * 0.1) - i * 20 + Math.sin(s * 0.05 + i * 2) * 6]);
-    this.posLosers(pos.map(([x, y], i) => [x, y + 30, 1.3, Math.sin(s * 0.04 + i) * 0.4, pop >= 0 && s > pop + i * 6 ? 0 : 0.9]), 0x0d3550);
-    pos.slice(0, this.losers.length).forEach(([x, y], i) => {
-      if (pop >= 0 && s > pop + i * 6) { if (s === pop + i * 6 + 1) { sfx('dodge', 0.4, 1.6); } const r = (s - pop - i * 6) * 4; if (r < 50) { this.fx.lineStyle(2, 0xffffff, 1 - r / 50); this.fx.strokeCircle(x, y + 10, 34 + r); } return; }
-      this.bubble(this.fx, x, y + 10, 34);
-    });
+  // AERO: the old desktop dream is infected - viruses crawling over the meadow, error pop-ups swarming the sky, the
+  // beaten glitching red. He purges them, one attack each; the beaten are cleaned back into bubbles. Then he floats
+  // up, past the clouds, into a golden sky, and shines in his true form - FULL AERO - brighter and brighter, until the
+  // screen switches off like an old monitor.
+  virus(g, x, y, r, t, i) {                                                     // a computer infection: a glitching, spiky blob with one eye
+    const j = (t + i * 7) % 11 < 2 ? 3 : 0;
+    g.fillStyle(0x3a0418, 1);
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + t * 0.05; g.fillTriangle(x + Math.cos(a - 0.3) * r, y + Math.sin(a - 0.3) * r, x + Math.cos(a + 0.3) * r, y + Math.sin(a + 0.3) * r, x + Math.cos(a) * r * 1.5, y + Math.sin(a) * r * 1.5); }
+    g.fillStyle(0x8a0a3a, 1); g.fillCircle(x + j, y, r); g.fillStyle(0xd81a5a, 1); g.fillCircle(x - r * 0.3 + j, y - r * 0.3, r * 0.45);
+    g.fillStyle(0xffffff, 1); g.fillCircle(x + j, y - 1, r * 0.42); g.fillStyle(0xff1a2a, 1); g.fillCircle(x + j + Math.sin(t * 0.1 + i) * 2, y - 1, r * 0.2);
+    if (j) { g.fillStyle(0x2affd8, 0.8); g.fillRect(x - r - 4, y - 2, r * 2 + 8, 3); }   // a glitch slice
   }
-  shot_aero_sky(t, k, s) {
-    const hill = 236;
+  popup(g, x, y, w, h, t, i) {                                                  // an infected error window
+    const j = (t + i * 5) % 13 < 2 ? 4 : 0;
+    g.fillStyle(0x0a0a10, 1); g.fillRect(x - w / 2 - 1 + j, y - h / 2 - 1, w + 2, h + 2);
+    g.fillStyle(0xd8dce4, 1); g.fillRect(x - w / 2 + j, y - h / 2, w, h);
+    g.fillStyle(0xc81a2a, 1); g.fillRect(x - w / 2 + j, y - h / 2, w, 7);
+    g.fillStyle(0xffffff, 1); g.fillRect(x + w / 2 - 7 + j, y - h / 2 + 1, 5, 5);
+    g.fillStyle(0xc81a2a, 1); g.fillCircle(x - w / 2 + 12 + j, y + 4, 6); g.fillStyle(0xffffff, 1); g.fillRect(x - w / 2 + 11 + j, y, 2, 6); g.fillRect(x - w / 2 + 11 + j, y + 7, 2, 2);   // (!)
+    for (let k = 0; k < 3; k++) { g.fillStyle(0x6a6a74, 1); g.fillRect(x - w / 2 + 22 + j, y - 2 + k * 5, w - 30 - k * 8, 2); }
+  }
+  burst(g, x, y, d, col) {                                                      // an infection, deleted: pixels flying out, a ring, bubbles
+    if (d < 0 || d > 34) return;
+    for (let k = 0; k < 12; k++) { const a = k * 0.52 + x, v = 2 + (k % 4); g.fillStyle(k % 3 ? col : 0xffffff, 1 - d / 34); g.fillRect(x + Math.cos(a) * v * d, y + Math.sin(a) * v * d + 0.08 * d * d, 4, 4); }
+    if (d < 20) { g.lineStyle(3, 0xffffff, 1 - d / 20); g.strokeCircle(x, y, 6 + d * 3); }
+    for (let k = 0; k < 4; k++) this.bubble(g, x + (k - 1.5) * 10, y - d * (1 + k * 0.4), 3 + k, 1 - d / 34);
+  }
+  shot_aero_purge(t, k, s) {
+    const hill = 236, x0 = W / 2;
     this.aeroSky(this.bg, t, hill);
-    this.idle(W / 2, hill + 4, 3, t);
-    this.aeroLosers(s);
-    for (let i = 0; i < 14; i++) { const sp = this.spots[i]; this.bubble(this.fx, (sp[0] * W + Math.sin(s * 0.03 + i) * 10), H - ((sp[1] * H + s * (0.6 + sp[2])) % H), 4 + sp[2] * 8, 0.8); }
-    if (s === 1) sfx('petal', 0.5, 1.2);
-    this.vignette(this.over, 0.3);
+    this.bg.fillStyle(0x3a0418, 0.18 * Math.max(0, 1 - Math.max(0, s - 110) / 30)); this.bg.fillRect(0, 0, W, H);   // the sky, tinted by the infection (clears as he purges it)
+    // his attacks, each one deleting an infection: [start, move, frames, facing left?, the frame it lands]
+    const A = [[20, 'fsmash', 46, false, 42], [66, 'ftilt', 28, true, 78], [94, 'usmash', 44, false, 112]];
+    const cur = A.filter((a) => s >= a[0] && s < a[0] + a[2]).pop();
+    if (cur) this.move(cur[1], s - cur[0], x0, hill + 4, 3, this.def, cur[3]);
+    else this.idle(x0, hill + 4, 3, t, s >= 66 && s < 94);
+    for (const a of A) if (s === a[4]) { sfx('bighit', 0.6, 1.1); sfx('glass', 0.5, 1.3); sfx('glitch', 0.4, 1.6); this.cameras.main.shake(100, 0.006); }
+    const kills = [[x0 + 120 - Math.min(20, s) * 1.5, hill - 20, 21, 42], [x0 - 124 + Math.min(66, s) * 0.6, hill - 20, 21, 78]];
+    kills.forEach(([vx, vy, r, kt], i) => { if (s < kt) this.virus(this.fx, vx, vy, r, t, i); else this.burst(this.fx, vx, vy, s - kt, 0xd81a5a); });
+    [[x0 - 60, 92, 70, 40], [x0 + 70, 70, 80, 44]].forEach(([px, py, w, h], i) => {
+      if (s < 112) this.popup(this.mid, px + Math.sin(t * 0.05 + i) * 6, py + Math.cos(t * 0.04 + i) * 4, w, h, t, i); else this.burst(this.fx, px, py, s - 112, 0xc81a2a);
+    });
+    // the beaten, glitching red at the edges of the meadow - cleaned back into bubbles once the infection's gone
+    const clean = Math.min(1, Math.max(0, (s - 118) / 20));
+    this.posLosers([[56, hill + 6, 1.8, 0, 1 - clean], [584, hill + 6, 1.8, 0, 1 - clean], [120, hill + 10, 1.8, 0, 1 - clean]], 0x8a0a3a);
+    this.losers.forEach((l, i) => { if (l.def) { l.s.x += (t + i * 3) % 9 < 2 ? 3 : 0; if (clean > 0 && clean < 1) this.bubble(this.fx, l.s.x, l.s.y - 40 - clean * 40, 14 * clean, 1 - clean); } });
+    if (s % 40 === 5 && s < 100) sfx('popup', 0.3, 1);
+    this.vignette(this.over, 0.35);
   }
-  shot_aero_close(t, k, s) {
-    this.sky(this.bg, 0x2a8ae0, 0xc8f0ff);
-    this.hideLosers();
-    this.closeUp(W / 2, 160, 6.6 + k * 0.6, t);
-    const sx = -200 + s * 12;                                                   // a glossy shine sweeping across
-    this.fx.fillStyle(0xffffff, 0.35); this.fx.fillTriangle(sx, 0, sx + 60, 0, sx - 140, H); this.fx.fillTriangle(sx + 60, 0, sx - 80, H, sx - 140, H);
-    this.fx.fillStyle(0xffffff, 0.2); this.fx.fillTriangle(sx + 80, 0, sx + 100, 0, sx - 40, H); this.fx.fillTriangle(sx + 100, 0, sx - 20, H, sx - 40, H);
-    if (s === 20) sfx('shing', 0.5, 1.4);
-    for (let i = 0; i < 10; i++) { const sp = this.spots[i + 14]; this.bubble(this.fx, sp[0] * W, H - ((sp[1] * H + s * 2) % H), 5 + sp[2] * 10, 0.7); }
-    this.vignette(this.over, 0.4);
-  }
-  shot_aero_ascend(t, k, s) {
-    const hill = 236, gold = Math.min(1, s / 40), up = Math.min(60, s * 0.8);
-    this.aeroSky(this.bg, t, hill, gold);
-    this.aeroLosers(s + 84, 84);                                                // their bubbles pop
-    if (s < 10) this.idle(W / 2, hill + 4, 3, t);
-    else {
-      if (s === 10) { sfx('limitready', 0.6, 1); this.flash = 5; }
-      this.idle(W / 2, hill + 4 - up + Math.sin(s * 0.08) * 4, 3, t, false, AERO_FULL);   // FULL AERO, floating up
-      this.mid.fillStyle(0xffd23a, 0.25 * gold); this.mid.fillCircle(W / 2, hill - 90 - up, 70); this.mid.fillStyle(0xfff4c0, 0.3 * gold); this.mid.fillCircle(W / 2, hill - 90 - up, 36);
+  shot_aero_rise(t, k, s) {
+    const e = k * k * (3 - 2 * k), off = e * 260;                                 // the meadow sinking away below him
+    this.sky(this.bg, 0x2a8ae0, 0xd8f4ff);
+    this.bg.fillStyle(0x5ad05a, 1); this.bg.fillEllipse(320, 286 + off, 560, 120); this.bg.fillStyle(0x2e9a3a, 1); this.bg.fillRect(0, 330 + off, W, H);
+    for (let i = 0; i < 10; i++) {                                                // clouds rushing past downwards
+      const sp = this.spots[i], y = ((sp[1] * H + s * (5 + sp[2] * 5)) % (H + 80)) - 40, x = sp[0] * W;
+      this.fx.fillStyle(0xffffff, 0.85); this.fx.fillRect(x, y, 60 + sp[2] * 60, 12); this.fx.fillRect(x + 14, y - 8, 30 + sp[2] * 20, 8);
     }
-    for (let i = 0; i < 16; i++) { const sp = this.spots[i], a = s * 0.04 + i * 0.39, r = 90 + sp[2] * 30; this.fx.fillStyle(0xffe680, 0.9 * gold); this.fx.fillRect(W / 2 + Math.cos(a) * r, hill - 90 - up + Math.sin(a) * r * 0.6, 2, 2); }   // golden sparkles
+    for (let i = 0; i < 14; i++) { const sp = this.spots[i + 12], x = sp[0] * W, y = ((sp[1] * H + s * 14) % H); this.mid.lineStyle(1, 0xffffff, 0.5); this.mid.lineBetween(x, y, x, y + 26); }   // speed lines
+    this.idle(W / 2, 240 - e * 40 + Math.sin(s * 0.1) * 4, 3, t);
+    this.hideLosers();
+    if (s === 1) { sfx('whoosh', 0.6, 0.6); sfx('petal', 0.5, 1.4); }
     this.vignette(this.over, 0.3);
+  }
+  shot_aero_true(t, k, s) {
+    const y = 300 + Math.sin(s * 0.06) * 4, shine = Math.min(1, s / 120);
+    this.sky(this.bg, 0x4a7ad8, 0xfff0b0);
+    for (let i = 0; i < 6; i++) { const sp = this.spots[i]; this.bg.fillStyle(0xffffff, 0.9); this.bg.fillRect(sp[0] * W, 250 + sp[1] * 80, 90 + sp[2] * 80, 16); }   // the clouds, far below now
+    for (let i = 0; i < 16; i++) {                                                // golden rays, turning
+      const a = t * 0.012 + i * Math.PI / 8;
+      this.bg.fillStyle(0xffd23a, 0.1 + 0.15 * shine); this.bg.fillTriangle(W / 2, y - 60, W / 2 + Math.cos(a) * 600, y - 60 + Math.sin(a) * 600, W / 2 + Math.cos(a + 0.12) * 600, y - 60 + Math.sin(a + 0.12) * 600);
+    }
+    if (s === 1) { this.flash = 6; sfx('limitready', 0.8, 1); sfx('shing', 0.7, 0.8); this.cameras.main.shake(200, 0.008); }
+    this.hideLosers();
+    this.glow(this.mid, W / 2, y - 60, 110 + shine * 80, 0xfff4c0, 0.5 + shine * 0.4);
+    this.idle(W / 2, y, 3.2, t, false, AERO_FULL);                                // his true form
+    for (let i = 0; i < 20; i++) { const sp = this.spots[i], a = s * 0.03 + i * 0.31, r = 80 + sp[2] * 50; this.fx.fillStyle(0xfff4c0, 1); this.fx.fillRect(W / 2 + Math.cos(a) * r, y - 60 + Math.sin(a) * r * 0.7, 2, 2); }
+    this.over.fillStyle(0xffffff, 0.55 * shine * shine); this.over.fillRect(0, 0, W, H);   // shining brighter and brighter
+    if (s % 30 === 0 && s > 0 && s < 144) sfx('shing', 0.3, 1 + s * 0.004);
+  }
+  shot_aero_off(t, k, s) {
+    // the last of him shining - then the screen switches off: squashed to a bright line, the line to a dot, gone
+    this.shot_aero_true(t, 1, 144 + s);
+    const o = this.over;
+    if (s === 1) { sfx('glitch', 0.6, 0.4); sfx('dodge', 0.6, 0.5); }
+    const sq = Math.min(1, s / 10), half = (H / 2) * (1 - sq) + 1;
+    o.fillStyle(0x000000, 1); o.fillRect(0, 0, W, H / 2 - half); o.fillRect(0, H / 2 + half, W, H / 2 - half);
+    if (s >= 8) {
+      const w = W * Math.max(0, 1 - (s - 10) / 12);                              // the line, shrinking to a dot
+      o.fillStyle(0x000000, 1); o.fillRect(0, H / 2 - 4, W, 8);
+      if (w > 4) { o.fillStyle(0xffffff, 1); o.fillRect(W / 2 - w / 2, H / 2 - 1, w, 2); }
+      else if (s < 40) { const a = 1 - (s - 22) / 18; o.fillStyle(0xffffff, a); o.fillCircle(W / 2, H / 2, 3); o.fillStyle(0xffffff, a * 0.3); o.fillCircle(W / 2, H / 2, 8); }
+      if (s >= 40) { o.fillStyle(0x000000, 1); o.fillRect(0, 0, W, H); }
+    }
   }
 
   // ================================================================ WHAT ONCE WAS

@@ -1,6 +1,6 @@
 import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, PLAYER_COLORS, PLAYER_TINTS } from '../config.js';
-import { MODE_NAMES } from '../settings.js';
+import { MODE_NAMES, settings } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { sfx } from '../audio/sfx.js';
@@ -60,8 +60,9 @@ export class ResultsScene extends Phaser.Scene {
       const humans = data.results.filter((r) => !r.cpu);
       humans.forEach((h, k) => {
         const f = ROSTER.find((x) => x.id === h.fighter), n = getKOs(h.fighter), list = skinsFor(h.fighter);
-        const next = MILESTONE_KOS.findIndex((v, i) => i > 0 && n < v);
-        const txt = next < 0 ? 'ALL MILESTONE COSTUMES UNLOCKED' : 'NEXT: ' + list.find((s2) => s2.milestone === next).name + ' AT ' + MILESTONE_KOS[next] + ' KOS';
+        if (!f || !list.some((s2) => s2.milestone)) return;           // (test fighters have no milestone costumes)
+        const next = MILESTONE_KOS.findIndex((v, i) => i > 0 && n < v), nextSkin = list.find((s2) => s2.milestone === next);
+        const txt = next < 0 || !nextSkin ? 'ALL MILESTONE COSTUMES UNLOCKED' : 'NEXT: ' + nextSkin.name + ' AT ' + MILESTONE_KOS[next] + ' KOS';
         this.add.text(60, 268 + k * 14, h.label + '  ' + (f ? f.name : '') + '  ' + n + ' KOS   ' + txt, { fontFamily: FONT, fontSize: '7px', color: PLAYER_CSS[h.slot] });
       });
     }
@@ -85,6 +86,6 @@ export class ResultsScene extends Phaser.Scene {
     this.prompt.setVisible(this.t % 60 < 40);
     if (this.t <= 40) this.clicked = false;
     const m = this.menu.poll();
-    if (this.t > 40 && (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start'))) { sfx('select', 0.8); this.scene.start('Setup'); }
+    if (this.t > 40 && (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start'))) { sfx('select', 0.8); this.scene.start(settings.from || 'Setup'); }   // back to wherever the match was started from
   }
 }

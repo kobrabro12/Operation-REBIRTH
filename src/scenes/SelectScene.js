@@ -199,6 +199,7 @@ export class SelectScene extends Phaser.Scene {
       s.picks = this.players.map((p) => p.pick);
       s.skins = this.players.map((p) => p.skin);
       sfx('go', 0.9);
+      settings.from = 'Setup';                       // (after the match: back to here - ResultsScene / the pause menu's quit)
       this.scene.start('Match');
       return;
     }

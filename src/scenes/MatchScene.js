@@ -134,7 +134,7 @@ export class MatchScene extends Phaser.Scene {
     this.mouseToggle = false; this.mouseQuit = false;
     this.pauseBtn = makeButton(this, VIEW_W - 8, 6, 'II  PAUSE', () => { this.mouseToggle = true; }, { originX: 1, depth: 25, size: '6px' });
     this.resumeBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 34, 'RESUME', () => { this.mouseToggle = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
-    this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
+    this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, settings.from === 'TestFighters' ? 'QUIT TO LAB' : 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
     this.fullBtn = addFullscreenButton(this, VIEW_W - 80, 6, { depth: 25 });
     this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn, this.fullBtn);
     this.qKey = this.input.keyboard.addKey('Q');
@@ -196,7 +196,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.paused) {
       let quit = Phaser.Input.Keyboard.JustDown(this.qKey) || this.mouseQuit;
       for (const i of pads) { const pad = readPad(i); if (pad && pad.buttons[8] && pad.buttons[8].pressed) quit = true; }
-      if (quit) { this.scene.start('Setup'); return true; }
+      if (quit) { this.scene.start(settings.from || 'Setup'); return true; }   // back to wherever the match was started from
       this.draw();
     }
     return this.paused;

@@ -112,6 +112,7 @@ export class TestFightersScene extends Phaser.Scene {
     else Object.assign(settings, this.mode === 0
       ? { mode: 'training', dummy: 'stand', picks: [f.id, foe], skins: [sk, 0], cpuCount: 1, cpuLevels: [], stage }
       : { mode: 'stock', stocks: 2, picks: [f.id, foe], skins: [sk, 0], cpuCount: 1, cpuLevels: [], stage });
+    settings.from = 'TestFighters';                  // after the match (and its win cutscene, and the results): back to the lab
     sfx('go', 0.8);
     this.scene.start('Match');
   }
