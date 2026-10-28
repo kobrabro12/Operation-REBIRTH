@@ -17,15 +17,15 @@ export const SHOP = [
 // how much money the player has (nothing earns any yet)
 export function getCoins() { return 0; }
 
-// THE SHOPKEEPER: a stick-figure robot with a TV for a head and white cartoon gloves (ShopScene.keeper). His hands act
-// out each line (wave hello, rub them together over something pricey, throw them up in shock, point to a shelf, cheer
-// at a sale, shrug when poked). His faces are Mason's drawings (public/assets/shop/face_<name>.png,
-// originals in tools/sprites/art/shopkeeper/) - each one a strip of 64x64 frames, so a face can be an animation:
-// add frames to the right and they play at `fps`. Which face shows depends on what you're doing:
-//   happy  his usual face        money  you're looking at something for sale, or buying it
-//   shock  you tried to buy nothing, or something you can't afford
+// THE SHOPKEEPER: an old TV sitting on a desk (ShopScene.keeper). His faces are Mason's drawings
+// (public/assets/shop/face_<name>.png, originals in tools/sprites/art/shopkeeper/) - each one a strip of 64x64 frames,
+// so a face can be an animation: add frames to the right and they play at `fps`. Which face shows depends on what
+// you're doing:
+//   calm   his resting face        happy  greeting you, or showing you another shelf
+//   money  you're looking at something for sale, or buying it
+//   shock  you tried to buy nothing, or something you can't afford - or you poked his screen
 export const KEEPER = {
-  faces: { happy: { fps: 6 }, money: { fps: 8 }, shock: { fps: 8 } },
+  faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 8 }, shock: { fps: 8 } },
   // how long a reaction face stays up before he goes back to happy (frames)
   hold: 100,
   // what he says
@@ -36,6 +36,6 @@ export const KEEPER = {
     broke: ["YOU CAN'T AFFORD THAT!", 'NOT ENOUGH ' + 'COINS!', 'NO COIN, NO DEAL.'],
     bought: ['PLEASURE DOING BUSINESS!', 'SOLD!'],
     tab: ['RIGHT THIS WAY.', 'HAVE A LOOK.', 'ANOTHER SHELF!'],
-    poke: ['HEY! HANDS OFF THE MERCHANDISE.', 'I AM THE MERCHANDISE?', 'PLEASE DO NOT TAP THE GLASS.'],
+    poke: ['HEY! NO TOUCHING THE SCREEN.', 'PLEASE DO NOT TAP THE GLASS.', 'OW. FINGERPRINTS.'],
   },
 };
