@@ -328,6 +328,7 @@ export class Fighter {
     if (m.rapid && this.t === m.rapid.at && this.rapidLoops < m.rapid.max && c.held('attack')) {   // hold attack to keep a rapid jab going
       this.rapidLoops++; this.t = m.rapid.to; this.swingSound(1.3 + 0.08 * this.rapidLoops, 0.3);
     }
+    if (m.reflect) this.slamReflect();                  // Lacy's Grand Slam bats projectiles back
     if (m.multi && m.hits && m.hits.some((h) => h.from === this.t)) this.attackId = newAttackId();   // each beat of a multi-hit hits again
     if (m.slide && this.grounded && this.t >= m.slide.from && this.t <= m.slide.to) {     // a dash attack carries its run along the floor
       const k = (this.t - m.slide.from) / Math.max(1, m.slide.to - m.slide.from);

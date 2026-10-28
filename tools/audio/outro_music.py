@@ -7,6 +7,11 @@
   abyss    ROSEMARY / DEEP SEA the deep: a sub drone, sonar pings, creaking pressure, far-off whale groans and a
                                broken lullaby on a detuned glass harmonica.
   dialup   WHAT ONCE WAS / DIAL-UP   a modem dialling and handshaking, then a lo-fi late-90s MIDI loop, sad and wrong.
+  western  SOUL SUMMONER / HIGH NOON   whistle and twang guitar, a bell at noon (7.0 s), then brass and choir (9.4 s).
+  monster  MR WAKE / CREATURE FEATURE  theremin and timpani; DUN DUN DUNNN at the reveal (5.0 s).
+  ragtime  NU / SILENT FILM            an original rag on an out-of-tune upright, projector clicking.
+  victory  LACY / 16-BIT HERO          a chip battle loop, a victory fanfare at 6.6 s, a results tune from 10.4 s.
+  weather  AERO / FORECAST             smooth jazz for the local forecast.
 
 Run:  python3 tools/audio/outro_music.py [names...]
 Writes public/assets/audio/music/outro_<name>.ogg and .mp3 (needs ffmpeg). Loaded in BootScene as bgm_outro_<name>.
@@ -268,6 +273,225 @@ def dialup():
     buf += hp(noise(n), 3000) * 0.006                                                      # line hiss
     return finish(buf, 'dialup')
 
-PIECES = {'shrine': shrine, 'rosebud': rosebud, 'abyss': abyss, 'dialup': dialup}
+# ------------------------------------------------------------------ instruments for the homage costumes
+def whistle(midi, dur, vel=1.0, slide_from=None):
+    """A lone whistler: a near-pure sine, breathy, sliding into the note, vibrato on the long ones."""
+    n = secs(dur); t = np.arange(n) / SR
+    st = 0 if slide_from is None else (slide_from - midi) * np.exp(-t / 0.06)
+    vib = 0.25 * np.clip((t - 0.3) / 0.5, 0, 1) * np.sin(2 * np.pi * 5.8 * t)
+    ph = 2 * np.pi * np.cumsum(hz(midi) * 2 ** ((st + vib) / 12)) / SR
+    x = np.sin(ph) + 0.06 * np.sin(2 * ph) + bp(noise(n), hz(midi) * 0.9, hz(midi) * 1.1) * 1.5
+    return x * adsr(n, 0.04, 0, 1, 0.12) * vel
+
+def twang(midi, dur=1.6, vel=1.0):
+    """A twangy reverb guitar: a bright pluck with a fast tremolo."""
+    t = np.arange(secs(dur)) / SR
+    return koto(midi, dur, vel) * (0.75 + 0.25 * np.sin(2 * np.pi * 6.5 * t))
+
+def brass(midi, dur, vel=1.0, bright=1.0):
+    """A brassy stab / trumpet: detuned saws through a filter that opens on the attack."""
+    n = secs(dur); t = np.arange(n) / SR; x = np.zeros(n)
+    for d in (-0.06, 0.06): x += 2 * ((t * hz(midi + d)) % 1) - 1
+    cut = 600 + 3200 * bright * np.exp(-t * 3) + 800 * bright
+    y = np.zeros(n); a = 0.0                                                    # a cheap time-varying one-pole low-pass
+    k = 1 - np.exp(-2 * np.pi * cut / SR)
+    for i in range(n): a += k[i] * (x[i] - a); y[i] = a
+    return y * adsr(n, 0.03, 0.1, 0.8, 0.1) * vel * 0.6
+
+def theremin(notes, vel=1.0):
+    """A theremin: one long wavering sine, gliding from note to note. notes = [(time, midi), ...], last = end."""
+    end = notes[-1][0]; n = secs(end); t = np.arange(n) / SR
+    m = np.interp(t, [a for a, _ in notes], [b for _, b in notes])
+    m = lp(m, 6)                                                                # glide
+    f = hz(0) * 2 ** ((m + 0.45 * np.sin(2 * np.pi * 6.2 * t)) / 12)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.sin(ph) + 0.15 * np.sin(2 * ph) + 0.05 * np.sin(3 * ph)
+    return x * adsr(n, 0.3, 0, 1, 0.6) * vel
+
+def timpani(midi, dur=1.5, vel=1.0, roll=0.0):
+    n = secs(dur); t = np.arange(n) / SR; f = hz(midi)
+    x = (np.sin(2 * np.pi * f * t) + 0.5 * np.sin(2 * np.pi * f * 1.5 * t)) * np.exp(-t * 3) + lp(noise(n), 400) * np.exp(-t * 12) * 2
+    if roll: x *= 0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 9 * t))
+    return x * vel * 0.5
+
+def piano(midi, dur=1.2, vel=1.0, honky=0.12):
+    """An old upright: a few harmonics with their own decays, two strings slightly out of tune with each other."""
+    n = secs(dur); t = np.arange(n) / SR; x = np.zeros(n); f = hz(midi)
+    for h, a, d in [(1, 1, 2.5), (2, 0.5, 3.5), (3, 0.25, 5), (4, 0.12, 7), (5, 0.06, 9)]:
+        for det in (0, honky): x += a * np.sin(2 * np.pi * f * h * 2 ** (det / 12) * t) * np.exp(-t * d)
+    hammer = hp(noise(min(n, secs(0.02))), 2000) * 0.3; x[:len(hammer)] += hammer
+    return x * vel * 0.25
+
+def chip(midi, dur, vel=1.0, duty=0.25):
+    """A 16-bit-ish lead: pulse wave with a touch of vibrato and a soft echo added later."""
+    return sq(midi, dur, vel, duty, vib=0.15)
+
+def rhodes(midi, dur, vel=1.0):
+    n = secs(dur); t = np.arange(n) / SR; f = hz(midi)
+    mod = np.sin(2 * np.pi * f * t) * 1.2 * np.exp(-t * 2)
+    x = np.sin(2 * np.pi * f * t + mod) * np.exp(-t * 0.9) + 0.2 * np.sin(2 * np.pi * f * 2 * t) * np.exp(-t * 3)
+    return x * (1 + 0.15 * np.sin(2 * np.pi * 4.5 * t)) * vel * 0.3
+
+def sax(midi, dur, vel=1.0):
+    n = secs(dur); t = np.arange(n) / SR
+    f = hz(midi) * 2 ** ((0.18 * np.clip(t - 0.25, 0, 1) * np.sin(2 * np.pi * 5 * t) - 0.5 * np.exp(-t / 0.05)) / 12)
+    ph = np.cumsum(f) / SR; x = 2 * (ph % 1) - 1
+    x = lp(x, 2200) + bp(noise(n), 1500, 4000) * 0.04
+    return x * adsr(n, 0.05, 0.1, 0.85, 0.15) * vel * 0.5
+
+def drum_kick(vel=1.0):
+    n = secs(0.3); t = np.arange(n) / SR
+    return np.sin(2 * np.pi * (45 + 110 * np.exp(-t * 28)) * t) * np.exp(-t * 10) * vel
+def drum_snare(vel=1.0, brush=False):
+    n = secs(0.25 if not brush else 0.4); t = np.arange(n) / SR
+    return (hp(noise(n), 1200 if not brush else 2500) * np.exp(-t * (16 if not brush else 7)) * (0.5 if not brush else 0.15) + np.sin(2 * np.pi * 190 * t) * np.exp(-t * 25) * 0.3 * (not brush)) * vel
+def drum_hat(vel=1.0):
+    n = secs(0.06); t = np.arange(n) / SR
+    return hp(noise(n), 7000) * np.exp(-t * 60) * 0.25 * vel
+
+# ------------------------------------------------------------------ the homage pieces
+def western():
+    """HIGH NOON (Soul Summoner): a lone whistle and a twangy guitar, tension, a bell at noon (7.0 s), silence for the
+    stand-off, then the brass and the choir when it's over (from 9.4 s)."""
+    L = 22.0; buf = np.zeros(secs(L)); A = 57                                    # A minor
+    wind = lp(noise(len(buf)), 700) * 0.04 * (0.6 + 0.4 * np.sin(np.arange(len(buf)) / SR * 0.8)); buf += wind
+    gt = np.zeros(len(buf))
+    prog = [(0, [0, 7, 12]), (1.6, [-2, 5, 10]), (3.2, [-4, 3, 8]), (4.8, [-5, 2, 7])]  # Am  G  F  E
+    for at, ch in prog:
+        for i, m in enumerate(ch): add(gt, twang(A + m, 2.2, 0.7 - i * 0.12), at + 0.3 + i * 0.09)
+        add(gt, twang(A - 12 + ch[0], 2.2, 0.8), at + 0.3)
+    buf += reverb(gt, 2.4, 2.2, 0.5) * 0.6
+    wh = np.zeros(len(buf))
+    for at, m, d, sl in [(0.4, 76, 1.0, 69), (1.5, 74, 0.35, None), (1.9, 72, 0.35, None), (2.3, 69, 1.4, None),
+                         (3.9, 72, 0.4, None), (4.3, 74, 0.4, None), (4.7, 76, 0.5, None), (5.2, 71, 1.6, 64)]:
+        add(wh, whistle(m, d, 0.6, sl), at)
+    buf += reverb(wh, 3.0, 1.8, 0.55) * 0.55
+    add(buf, bowl(45, 6.0, 0.6), 7.0); add(buf, bowl(57, 5.0, 0.25), 7.0)         # the church bell: noon
+    for at in (8.0, 8.6, 9.0): add(buf, lp(noise(secs(0.4)), 300) * np.exp(-np.arange(secs(0.4)) / (SR * 0.1)) * 0.12, at)   # a heartbeat
+    br = np.zeros(len(buf))                                                       # 9.4 s: it's over - the brass sings out
+    for at, m, d in [(9.4, 69, 0.4), (9.8, 76, 1.4), (11.3, 74, 0.3), (11.6, 72, 0.3), (11.9, 71, 0.3), (12.2, 72, 1.6),
+                     (14.0, 69, 0.4), (14.4, 77, 1.2), (15.7, 76, 0.4), (16.1, 74, 0.4), (16.5, 72, 0.4), (16.9, 76, 2.6)]:
+        add(br, brass(m, d + 0.1, 0.55), at)
+    for at, ch in [(9.4, [57, 64, 69]), (12.2, [53, 60, 65]), (14.4, [55, 62, 67]), (16.9, [57, 64, 69])]:
+        add(br, pad([c + 12 for c in ch], 3.2, 0.5, 0.12), at)                   # the choir
+        add(br, twang(ch[0] - 12, 2.6, 0.7), at)
+    buf += reverb(br, 2.8, 1.8, 0.45) * 0.55
+    return finish(buf, 'western')
+
+def monster():
+    """CREATURE FEATURE (Mr Wake): a theremin over low brass and timpani; DUN - DUN - DUNNN at the reveal (5.0 s);
+    then the theremin wails over the city."""
+    L = 20.0; buf = np.zeros(secs(L))
+    for at in np.arange(0, 5, 0.5): add(buf, timpani(38, 0.6, 0.35 + at * 0.05, roll=1), at)   # a timpani roll, building
+    th = theremin([(0, 67), (1.0, 67), (1.8, 70), (2.6, 66), (3.6, 63), (4.6, 62), (5.0, 62)], 0.6)
+    add(buf, reverb(th, 2.2, 2.0, 0.45) * 0.6, 0.2)
+    for at, m in [(5.0, 38), (5.6, 37), (6.3, 36)]:                               # DUN - DUN - DUNNN
+        add(buf, brass(m, 0.5 if at < 6 else 1.6, 1.0, 0.6) + brass(m + 12, 0.5 if at < 6 else 1.6, 0.6, 0.6), at)
+        add(buf, timpani(m, 1.2, 1.0), at)
+    th2 = theremin([(0, 74), (0.8, 79), (1.6, 75), (2.4, 82), (3.4, 78), (4.2, 74), (5.0, 77), (6.0, 73), (7.0, 70), (8.0, 74), (9.0, 69), (10.5, 66), (12.0, 66)], 0.7)
+    add(buf, reverb(th2, 2.6, 1.6, 0.5) * 0.6, 7.2)
+    st = np.zeros(len(buf))
+    for at, ch in [(7.2, [50, 53, 57]), (10.2, [49, 53, 56]), (13.2, [48, 51, 55]), (16.2, [50, 53, 57])]:
+        add(st, pad(ch, 3.4, 0.7, 0.1), at); add(st, timpani(ch[0] - 12, 1.4, 0.6), at)
+    buf += reverb(st, 2.4, 2.0, 0.4) * 0.6
+    proj = np.zeros(len(buf)); clicks = np.arange(0, len(buf), int(SR / 24)); proj[clicks] = 0.06   # the projector, ticking
+    buf += hp(proj, 1500) + lp(noise(len(buf)), 3000) * 0.01
+    return finish(buf, 'monster')
+
+def ragtime():
+    """SILENT FILM (NU): a honky-tonk upright playing a rag (an original one), with the projector clicking along."""
+    L = 22.0; buf = np.zeros(secs(L)); beat = 60 / 112; C = 60
+    bass = [(0, [-24, -12]), (1, [-5, 0, 4]), (2, [-17, -5]), (3, [-5, 0, 4]),          # oom-pah: root, chord, fifth, chord
+            (4, [-19, -7]), (5, [-3, 2, 5]), (6, [-24, -12]), (7, [-5, 0, 4])]
+    bars = [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7], [5, 9, 12], [2, 5, 9], [7, 11, 14], [0, 4, 7]]
+    # the tune: syncopated, in eighths (rests = None)
+    tune = [76, None, 79, 76, 77, None, 76, 72, 74, 76, None, 72, 69, None, 67, None,
+            72, None, 76, 79, 81, 79, None, 77, 76, None, 74, 72, 74, None, None, None,
+            76, None, 79, 76, 77, None, 76, 72, 81, 79, None, 76, 77, 76, 74, 72,
+            79, 81, 79, 76, 74, None, 72, 74, 72, None, None, None, 72, 76, 79, 84]
+    for rep in range(2):
+        t0 = rep * 32 * beat * 0.5 * 2
+        for bar in range(8):
+            ch = bars[bar]
+            for k in range(4):
+                b = t0 + (bar * 4 + k) * beat
+                if k % 2 == 0: add(buf, piano(C - 24 + ch[0], 0.8, 0.9), b); add(buf, piano(C - 12 + ch[0], 0.8, 0.5), b)
+                else:
+                    for m in ch: add(buf, piano(C + m - 12 + 12 * (m < 4), 0.5, 0.45), b)
+        for i, m in enumerate(tune):
+            if m is None: continue
+            b = t0 + i * beat / 2 + (0.03 if i % 2 else 0)                              # a little swing
+            add(buf, piano(m, 0.7, 0.8), b); add(buf, piano(m - 12, 0.7, 0.3), b)
+    proj = np.zeros(len(buf)); proj[np.arange(0, len(buf), int(SR / 18))] = 0.08
+    buf = reverb(buf, 1.0, 4.0, 0.12) + hp(proj, 1800) + bp(noise(len(buf)), 200, 4000) * 0.008
+    buf = lp(hp(buf, 180), 5500)                                                 # thin, like an old recording
+    return finish(buf, 'ragtime')
+
+def victory():
+    """16-BIT HERO (Lacy): a battle loop (0-6.6 s), then an original victory fanfare (6.6 s) and a calm results tune."""
+    L = 22.0; buf = np.zeros(secs(L)); beat = 60 / 150; D = 62
+    bt = np.zeros(len(buf))
+    bass = [0, 0, 12, 0, -2, -2, 10, -2, -4, -4, 8, -4, -5, -5, 7, 7]
+    lead = [12, None, 15, 17, 19, None, 17, 15, 14, None, 10, 12, 14, 15, 17, 19]
+    for rep in range(2):
+        for i in range(16):
+            b = (rep * 16 + i) * beat * 0.5 + 0.0
+            if b >= 6.4: break
+            add(bt, sq(D - 24 + bass[i], beat * 0.45, 0.35, 0.5), b)
+            if lead[i] is not None: add(bt, chip(D + lead[i], beat * 0.9, 0.22, 0.25), b)
+            if i % 4 == 0: add(bt, drum_kick(0.7), b)
+            if i % 4 == 2: add(bt, drum_snare(0.6), b)
+            add(bt, drum_hat(0.6), b)
+    buf += reverb(bt, 1.2, 4, 0.15) * 0.8
+    # the fanfare: a run up, three hits, a held chord
+    F = 6.6; ff = np.zeros(len(buf)); C5 = 72
+    for at, m, d in [(0, 60, 0.12), (0.12, 64, 0.12), (0.24, 67, 0.12), (0.36, 72, 0.5), (0.9, 71, 0.15), (1.08, 72, 0.15), (1.26, 74, 0.15),
+                     (1.44, 76, 0.6), (2.1, 74, 0.2), (2.32, 76, 0.2), (2.54, 79, 1.6)]:
+        add(ff, brass(m, d + 0.08, 0.6, 1.2), F + at); add(ff, chip(m + 12, d, 0.15, 0.125), F + at)
+    for at, ch in [(0.36, [48, 55, 64]), (1.44, [53, 60, 65]), (2.54, [55, 62, 67, 71])]:
+        for m in ch: add(ff, brass(m, 0.5 if at < 2 else 1.7, 0.35, 0.8), F + at)
+        add(ff, drum_kick(0.8) + 0 * 0, F + at); add(ff, drum_snare(0.5), F + at)
+    buf += reverb(ff, 1.6, 3, 0.25)
+    # the results screen: a gentle loop
+    R = 10.4; rs = np.zeros(len(buf)); b2 = 60 / 104
+    prog = [[48, 55, 64], [45, 52, 60], [41, 48, 57], [43, 50, 59]]
+    mel = [76, 74, 72, 74, 76, 79, 76, None, 74, 72, 69, 72, 74, None, 72, None]
+    for rep in range(2):
+        for bar in range(4):
+            t0 = R + (rep * 4 + bar) * 4 * b2 * 0.5
+            for k in range(4):
+                for m in prog[bar]: add(rs, sq(m, b2 * 0.4, 0.08, 0.5), t0 + k * b2 * 0.5)
+            add(rs, sq(prog[bar][0] - 12, b2 * 1.8, 0.25, 0.5), t0)
+            for j in range(4):
+                m = mel[(bar * 4 + j) % 16]
+                if m is not None: add(rs, chip(m, b2 * 0.45, 0.2, 0.25), t0 + j * b2 * 0.5)
+    buf += reverb(rs, 1.4, 3, 0.3) * 0.7
+    return finish(buf, 'victory')
+
+def weather():
+    """FORECAST (AERO): smooth jazz for the local weather - Rhodes, fretless bass, brushes, a soprano sax."""
+    L = 22.0; buf = np.zeros(secs(L)); beat = 60 / 84
+    prog = [([55, 58, 62, 65], 43), ([60, 64, 67, 70, 74], 48), ([53, 57, 60, 64], 41), ([50, 53, 57, 60], 38)]   # Gm7 C9 Fmaj7 Dm7
+    for bar in range(8):
+        ch, root = prog[bar % 4]; t0 = bar * 4 * beat
+        for k, off in enumerate([0, 1.5, 2.5]):
+            for m in ch: add(buf, rhodes(m, beat * (1.4 if k == 0 else 1.0), 0.6), t0 + off * beat)
+        for k, (b, m) in enumerate([(0, root), (1.5, root + 7), (2, root + 12), (3, root + 10)]):           # fretless bass, sliding
+            n = secs(beat * 1.2); tt = np.arange(n) / SR; f = hz(m) * 2 ** ((-0.6 * np.exp(-tt / 0.05)) / 12)
+            add(buf, lp(np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.3 * np.sin(4 * np.pi * np.cumsum(f) / SR), 500) * adsr(n, 0.02, 0.1, 0.7, 0.1) * 0.5, t0 + b * beat)
+        for k in range(4):
+            add(buf, drum_snare(0.8, brush=True), t0 + (k + 0.5) * beat)
+            add(buf, drum_hat(0.5), t0 + k * beat); add(buf, drum_hat(0.3), t0 + (k + 0.66) * beat)
+            if k in (0, 2): add(buf, drum_kick(0.35), t0 + k * beat)
+    sx = np.zeros(len(buf))
+    for at, m, d in [(2.9, 74, 0.6), (3.5, 72, 0.3), (3.8, 70, 1.2), (5.7, 69, 0.4), (6.1, 72, 0.4), (6.5, 76, 1.8),
+                     (9.8, 77, 0.5), (10.3, 76, 0.3), (10.6, 74, 0.3), (10.9, 72, 1.4), (12.8, 74, 0.5), (13.3, 76, 0.5), (13.8, 79, 2.0),
+                     (16.4, 77, 0.4), (16.8, 76, 0.4), (17.2, 74, 0.4), (17.6, 72, 2.4)]:
+        add(sx, sax(m, d + 0.1, 0.6), at)
+    buf += reverb(sx, 2.0, 2.4, 0.4) * 0.6
+    return finish(reverb(buf, 1.4, 3.0, 0.15), 'weather')
+
+PIECES = {'shrine': shrine, 'rosebud': rosebud, 'abyss': abyss, 'dialup': dialup,
+          'western': western, 'monster': monster, 'ragtime': ragtime, 'victory': victory, 'weather': weather}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

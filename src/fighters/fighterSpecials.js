@@ -2,7 +2,10 @@
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
 import { newAttackId } from './attackIds.js';
-import { popBubble } from './entities.js';
+import { popBubble, Fireball, EnergyBolt, SoundWave, AeroBubble, FlyingCD, MissingPoster, VoidOrb } from './entities.js';
+
+// the projectiles Grand Slam can bat back (boomerangs that fly home - the mic, the goldfish, her own sword - can't be)
+const BATTABLE = [Fireball, EnergyBolt, SoundWave, AeroBubble, FlyingCD, MissingPoster, VoidOrb];
 
 export class FighterSpecials {
 
@@ -35,6 +38,35 @@ export class FighterSpecials {
     this.setState('attack');
     this.swingSound(0.7, 0.9); this.quip(k >= 1 ? 'slamFull' : 'slam');
     if (this.grounded) this.vx = this.facing * 1.6;                   // steps into the swing
+  }
+
+  // Grand Slam bats projectiles back: anything an opponent shot that touches the swing (a few frames either
+  // side of the hit) flies straight back the way she's facing - faster, harder, and hers now
+  slamReflect() {
+    const R = this.move.reflect, h = this.move.hits[0];
+    if (!R || this.t < h.from - R.early || this.t > h.to + R.late) return;
+    const [bx, by, bw, bh] = h.box, x1 = this.facing > 0 ? this.x + bx : this.x - bx - bw, x2 = x1 + bw, y1 = this.y + by, y2 = y1 + bh;
+    for (const p of this.match.projectiles) {
+      if (!p.alive || !p.owner || p.owner === this || p.owner.team === this.team || !BATTABLE.some((C) => p instanceof C)) continue;
+      if (p instanceof VoidOrb && p.phase !== 'fly') continue;
+      const hb = p.hitbox(); if (!hb || hb.x2 < x1 || hb.x1 > x2 || hb.y2 < y1 || hb.y1 > y2) continue;
+      const old = p.owner;
+      if (old.voidOrb === p) old.voidOrb = null;
+      if (old.posterOut === p) old.posterOut = null;
+      p.owner = this; p.dir = this.facing; p.id = 'bat' + newAttackId(); p.group = null;
+      if (typeof p.vx === 'number') p.vx = this.facing * Math.max(Math.abs(p.vx), 3) * R.speed;
+      if (typeof p.vy === 'number') p.vy = -Math.abs(p.vy) * 0.3;
+      if (typeof p.life === 'number') p.life = Math.max(p.life, R.life);
+      p.batMult = Math.min(R.maxMult, (p.batMult || 1) * R.dmg);
+      if (!p.batWrapped) {                                                   // its hits get the bonus damage from now on
+        p.batWrapped = true; const base = p.hitbox.bind(p);
+        p.hitbox = () => { const b = base(); if (b && b.h && b.h.dmg) b.h = { ...b.h, dmg: Math.round(b.h.dmg * p.batMult) }; return b; };
+      }
+      this.match.puff(p.x, p.y, 0xffffff, 10); this.match.puff(p.x, p.y, this.fxColor, 8);
+      this.match.popText(this, 'BATTED BACK!', '#ffe08a'); this.match.shake(4, 6);
+      sfx('clang', 0.8, 1.3); sfx('bighit', 0.4, 1.6);
+      this.hitstop = Math.max(this.hitstop || 0, 4);
+    }
   }
 
   // ---- side special (Lacy): Blade Toss - throw the sword, it spins in front of her, then flies back

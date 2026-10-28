@@ -71,6 +71,10 @@ export const SKINS = {
     // a carved-pumpkin knight: orange cape, a candle-yellow flame, eyes like cut-out holes; his hits scatter bats
     { name: "JACK-O'-LANTERN", swatch: 0xf07a1a, fx: 0xffb02a, groups: SS, rules: { cape: { ramp: PUMPKIN_RAMP, lo: 0.08, hi: 0.55 }, flame: { to: 44, sat: 1.1, val: 1.2 }, gold: { to: 28, sat: 1.15, val: 1.05 }, eyes: { to: 50, val: 1.2 }, armor: { sat: 0.4, val: 0.55 } },
       vfx: { hit: { shape: 'bat', colors: [0x16101c, 0x2a1a30, 0xffb02a], n: 6, sparks: [0xffb02a, 0xf07a1a] }, minion: { flame: { to: 40, sat: 1.1 }, eyes: { to: 48 } } } },
+    // HIGH NOON: an outlaw out of an old spaghetti western - a dust-brown duster for a cape, brass trim, and a soul
+    // flame burning lantern-amber. Hits kick up desert dust. (Outro: a high-noon duel, winSkins.js)
+    { name: 'HIGH NOON', swatch: 0x9a6a3a, fx: 0xffb84a, groups: SS, rules: { cape: { to: 26, sat: 0.75, val: 0.85 }, flame: { to: 38, sat: 1.1, val: 1.15 }, gold: { to: 34, sat: 0.9, val: 0.95 }, eyes: { to: 40 }, armor: { to: 30, satAdd: 0.16, val: 0.9 } },
+      vfx: { hit: { shape: 'dust', colors: [0xd8b47a, 0x9a6a3a, 0xfff0c8], n: 9 }, minion: { flame: { to: 38, sat: 1.1 }, eyes: { to: 40 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
@@ -124,6 +128,10 @@ export const SKINS = {
     // STARLIGHT: a night-sky knight - midnight-blue suit, gold sash, silver-white steel; her hits throw stars
     { name: 'STARLIGHT', swatch: 0x22306a, fx: 0xffe08a, groups: HK, rules: { suit: { to: 228, sat: 2.0, val: 0.62 }, sash: { to: 44, sat: 1.1, val: 1.5 }, white: { hue: 50, satAdd: 0.12 }, steel: { hue: 220, satAdd: 0.1, val: 1.2 } },
       vfx: { hit: { shape: 'star', colors: [0xffe08a, 0xffffff, 0x9ab8ff], n: 7, glint: true } } },
+    // 16-BIT HERO: the hero of an old cartridge role-playing game - royal-blue tunic, red sash, gold-trimmed armour.
+    // Her hits pop out in chunky pixels. (Outro: a turn-based battle and a VICTORY screen, winSkins.js)
+    { name: '16-BIT HERO', swatch: 0x2a5ad8, fx: 0xffe08a, groups: HK, rules: { suit: { to: 222, sat: 2.6, val: 1.15 }, sash: { to: 356, sat: 1.3, val: 1.3 }, steel: { hue: 44, satAdd: 0.3, val: 1.15 }, white: { hue: 200, satAdd: 0.1 } },
+      vfx: { hit: { shape: 'pixel2', colors: [0xffe08a, 0xffffff, 0x2a5ad8, 0xe83a3a], n: 9, glint: true } } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,
@@ -193,6 +201,12 @@ export const SKINS = {
       vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xe8f0ff, 0xd8221e], n: 7 }, aura: { school: true } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.12, hi: 0.4 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // SILENT FILM: a vaudeville star off a hand-cranked reel - every colour washed into sepia, with a dark outline
+    // like a printed film frame. Hits burst into film-grain dust. (Outro: a silent comedy with intertitles, winSkins.js)
+    { name: 'SILENT FILM', swatch: 0xb8946a, fx: 0xf0dcb0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x1e140c, 0x3a2a1a, 0x5e4630, 0x86684a, 0xae8e68, 0xd2b88e, 0xf0dcb0], lo: 0.06, hi: 0.9 } },
+      outline: 0x1e140c, edges: { color: 0x1e140c, diff: 0.2 },
+      pal: { outline: 0x1e140c, deep: 0x5e4630, mid: 0xae8e68, light: 0xf0dcb0, core: 0xfff6e0, shade: 0x3a2a1a, void: 0x0e0804 },
+      vfx: { hit: { shape: 'dust', colors: [0xf0dcb0, 0xae8e68, 0xffffff], n: 9 } } },
   ],
   // WHAT ONCE WAS (test fighter): TV static bursts off every hit
   'what-once-was': [
@@ -299,6 +313,11 @@ export const SKINS = {
       vfx: { hit: { shape: 'bubble', colors: [0xffc0a8, 0xffffff], n: 7, ring: 0xff6a4a } } },
     { name: '1-BIT', swatch: 0xf4f4f0, fx: 0xf4f4f0, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0e0e10, 0xf4f4f0], lo: 0.2, hi: 0.6 } }, outline: 0xf4f4f0, edges: { color: 0x0e0e10, diff: 0.16, rim: true }, style: 'onebit',
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
+    // FORECAST: the weather guy on 90s local TV - a navy blazer, a sunny-yellow tie of light, and a forecast that's
+    // always clear. Hits burst into little sun and cloud icons. (Outro: his weather segment, winSkins.js)
+    { name: 'FORECAST', swatch: 0x1a3a8a, fx: 0xffd23a, groups: AEG, rules: { aqua: { to: 226, sat: 1.1, val: 0.62 }, lime: { to: 50, sat: 1.1, val: 1.15 }, fish: { to: 44, sat: 0.9 } },
+      pal: { outline: 0x060c26, deep: 0x1a3a8a, mid: 0x3a6ad8, light: 0xffd23a, core: 0xffffff, shade: 0x0a1640, void: 0x02040e },
+      vfx: { hit: { shape: 'star', colors: [0xffd23a, 0xffffff, 0x8ab8f0], n: 7, glint: true } } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
@@ -317,6 +336,12 @@ export const SKINS = {
     // NEON: straight out of the Neon Arcade - hot pink robe, electric cyan gem, hits that burst into neon pixels
     { name: 'NEON', swatch: 0xff4fd8, fx: 0x4ff0ff, groups: MW, rules: { robe: { to: 318, sat: 1.25, val: 1.6 }, magic: { to: 186, sat: 1.1, val: 1.25 }, cloth: { to: 262, sat: 1.4, val: 1.2 }, wood: { to: 300, sat: 0.9 } },
       vfx: { hit: { shape: 'pixel2', colors: [0xff4fd8, 0x4ff0ff, 0xffffff, 0xb46bff], n: 9, ring: 0x4ff0ff } } },
+    // CREATURE FEATURE: the monster from a 1950s black-and-white picture - every colour turned to silver-screen grey,
+    // black lines where his parts meet. Hits splash grey sea foam. (Outro: he rises out of the harbour, winSkins.js)
+    { name: 'CREATURE FEATURE', swatch: 0x8a8a8a, fx: 0xe8e8e8, groups: { all: { center: 0 } }, rules: { all: { ramp: [0x0a0a0a, 0x262626, 0x444444, 0x666666, 0x8a8a8a, 0xb0b0b0, 0xd4d4d4, 0xf4f4f4], lo: 0.04, hi: 0.75 } },
+      outline: 0x0a0a0a, edges: { color: 0x0a0a0a, diff: 0.18 },
+      pal: { outline: 0x0a0a0a, deep: 0x444444, mid: 0x8a8a8a, light: 0xe8e8e8, core: 0xffffff, shade: 0x262626, void: 0x050505 },
+      vfx: { hit: { shape: 'drop', colors: [0xe8e8e8, 0x8a8a8a, 0xffffff], n: 10 } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.
     { name: 'RIPTIDE', milestone: 1, swatch: 0x2a8ad0, fx: 0x7ad0ff,

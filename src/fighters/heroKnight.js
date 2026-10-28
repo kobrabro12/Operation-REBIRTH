@@ -61,7 +61,10 @@ export const HERO_KNIGHT = {
     neutralB: {
       frames: 34, anim: 'attack2',
       charge: { max: 180, hold: 240, tip: [-49, -50] },   // full at 3 s; swings by itself after 4 s; blade tip in the wind-up pose
-      hits: [{ from: 12, to: 16, box: [4, -66, 68, 66], dmg: 20, angle: 36, base: 4.0, growth: 5.5, maxBase: 9.5, maxGrowth: 12.0, homerun: true }],
+      hits: [{ from: 12, to: 16, box: [4, -66, 68, 66], dmg: 20, angle: 36, base: 4.0, growth: 5.5, maxBase: 9.5, maxGrowth: 12.0, homerun: true }],      // the swing bats enemy projectiles back (fighterSpecials.slamReflect): it catches them from `early` frames before
+      // the hit to `late` after; they fly back `speed` x faster, hit `dmg` x harder (up to `maxMult` if batted back and forth),
+      // and last at least `life` frames
+      reflect: { early: 4, late: 4, speed: 1.35, dmg: 1.3, maxMult: 2, life: 90 },
     },
 
     // ---- tilts and aerials: drawn in her moves sheet (HK_MOVES); `anim` is the old strip, kept as a fallback

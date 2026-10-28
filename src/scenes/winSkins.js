@@ -10,6 +10,12 @@
 //   WHAT ONCE WAS  DIAL-UP          3 AM, 1999: the modem dials, a homepage loads - the beaten are on it, trapped. NO CARRIER
 //   ROSEMARY       DEEP SEA         down into the abyss: a little light in the dark, SEEN's jaws - and her, alone, with the light
 //   ROSEMARY       AFTER HOURS      SEEN's rave - you weren't invited                                  (toxic)
+//   ---- homages (old movies, TV, video games - all original, no real titles or logos):
+//   SOUL SUMMONER  HIGH NOON         a spaghetti-western duel at high noon, then off into the sunset
+//   MR WAKE        CREATURE FEATURE  a 1950s black-and-white monster picture: he rises out of the harbour
+//   NU             SILENT FILM       a 1920s silent comedy: intertitles, THE HOOK, a falling piano
+//   LACY           16-BIT HERO       a turn-based RPG battle, VICTORY! and a level-up screen
+//   AERO           FORECAST          the 90s local TV weather: the beaten are storms blowing out to sea
 // Each entry: like CUTS in WinScene.js, plus fn: the prefix of its shot_<fn>_<shot> methods (below, mixed into
 // WinScene). They use WinScene's helpers (sky, idle, move, closeUp, posLosers, vignette, glow, ...) and its pool of
 // text lines (this.tvLines).
@@ -41,6 +47,17 @@ export const SKIN_CUTS = {
     color: '#8affe8', stroke: '#020a14', shots: [[0, 'descent'], [190, 'lure'], [350, 'jaws'], [470, 'alone']] },
   'last-seen:AFTER HOURS': { fn: 'ls_rave', len: 430, card: 296, name: 'ROSEMARY', sub: 'AFTER HOURS', line: "PARTY'S OVER. YOU WEREN'T INVITED.",
     color: '#ff2ad8', stroke: '#0a0418', shots: [[0, 'floor'], [130, 'drop'], [214, 'party']] },
+  // ---- homages to old movies, TV and video games (all original: no real titles, names or logos)
+  'soul-summoner:HIGH NOON': { fn: 'ss_noon', len: 900, card: 720, name: 'SOUL SUMMONER', sub: 'HIGH NOON', line: 'TOO SLOW, PARTNER.', music: 'bgm_outro_western',
+    color: '#ffb84a', stroke: '#2a1004', shots: [[0, 'town'], [200, 'eyes'], [330, 'clock'], [440, 'draw'], [620, 'sunset']] },
+  'mr-wake:CREATURE FEATURE': { fn: 'wake_monster', len: 900, card: 780, name: 'MR WAKE', sub: 'CREATURE FEATURE', line: '...OR IS IT?', music: 'bgm_outro_monster',
+    color: '#f4f4f4', stroke: '#000000', shots: [[0, 'titles'], [150, 'harbour'], [300, 'reveal'], [420, 'attack'], [600, 'paper'], [760, 'end']] },
+  'nu:SILENT FILM': { fn: 'nu_silent', len: 900, card: 760, name: 'NU', sub: 'SILENT FILM', line: '...AND THE CROWD WENT WILD.', music: 'bgm_outro_ragtime',
+    color: '#f0dcb0', stroke: '#1e140c', shots: [[0, 'card1'], [110, 'stage'], [330, 'card2'], [420, 'piano'], [600, 'bow']] },
+  'hero-knight:16-BIT HERO': { fn: 'hk_rpg', len: 960, card: 820, name: 'LACY', sub: '16-BIT HERO', line: "LEVEL UP. THEY DIDN'T.", music: 'bgm_outro_victory',
+    color: '#ffe08a', stroke: '#0a1a4a', shots: [[0, 'encounter'], [80, 'battle'], [396, 'victory'], [620, 'results']] },
+  'aero:FORECAST': { fn: 'aero_forecast', len: 880, card: 740, name: 'AERO', sub: 'FORECAST', line: 'CLEAR SKIES. NO CHANCE OF YOU.', music: 'bgm_outro_weather',
+    color: '#ffd23a', stroke: '#0a1a4a', shots: [[0, 'bumper'], [110, 'map'], [420, 'radar'], [560, 'fiveday']] },
 };
 
 // spray-paint letters: strokes in a 0.6 x 1 box
@@ -1236,4 +1253,568 @@ export class SkinShots {
     if (t % 24 === 0) sfx('hit', 0.4, 0.45);
     this.vignette(this.over, 0.5);
   }
+
+  // ================================================================ SOUL SUMMONER - HIGH NOON
+  // An old spaghetti western. A dusty main street at high noon: him at one end, the beaten lined up at the other, a
+  // tumbleweed rolling between. Eyes, close - his, theirs. The clock tower creeps to twelve; the bell (music 'western',
+  // 7.0 s) - then a stand-off in dead silence - and he draws (9.3 s): soul-fire, three shots, faster than they can see.
+  // He walks off into the sunset. (Music: whistle, twang, a bell, then brass and a choir.)
+  // the town: mesas, a hard sun, false-front buildings, the clock tower. cam: how far we've pushed in (0..1)
+  westTown(g, t, ground, mins = 58, sunset = 0) {
+    const top = sunset ? 0x3a0a1a : 0xf0a040, bot = sunset ? 0xff7a2a : 0xfff0c0;
+    this.sky(g, top, bot);
+    if (sunset) { this.glow(g, W / 2, ground - 30, 200, 0xffd060, 0.5); g.fillStyle(0xffe08a, 1); g.fillCircle(W / 2, ground - 20, 56); }
+    else { this.glow(g, 520, 50, 120, 0xffffff, 0.5); g.fillStyle(0xfffff0, 1); g.fillCircle(520, 50, 22); }
+    g.fillStyle(sunset ? 0x5a1a20 : 0xc8784a, 1); g.fillRect(30, ground - 92, 120, 92); g.fillRect(60, ground - 110, 60, 20); g.fillRect(470, ground - 84, 150, 84); g.fillRect(510, ground - 100, 70, 18);   // mesas
+    for (let i = 0; i < 6; i++) { const x = (i * 131 + t * 0.2) % (W + 60) - 30; g.fillStyle(0xffffff, 0.25 * (1 - sunset)); g.fillEllipse(x, ground - 130 + Math.sin(i + t * 0.01) * 4, 80, 10); }   // heat haze
+    const wood = sunset ? 0x2a0a10 : 0x6a3a1a, dark = sunset ? 0x14040a : 0x3a1e0c, lite = sunset ? 0x4a1418 : 0x8a5228;
+    const fronts = [[0, 110, 'SALOON'], [118, 90, 'BANK'], [430, 90, 'JAIL'], [528, 112, 'HOTEL']];
+    fronts.forEach(([x, w, name], i) => {
+      const h = 120 + (i % 2) * 18;
+      g.fillStyle(wood, 1); g.fillRect(x, ground - h, w, h); g.fillStyle(lite, 1); for (let k = 0; k < w; k += 8) g.fillRect(x + k, ground - h, 1, h);
+      g.fillStyle(dark, 1); g.fillRect(x + 8, ground - h + 12, w - 16, 18); g.fillRect(x + 14, ground - 54, 22, 54); g.fillRect(x + w - 36, ground - 80, 22, 26);
+      g.fillStyle(dark, 1); g.fillRect(x, ground - 46, w, 4); for (let k = 0; k <= w; k += w / 3) g.fillRect(x + k - 1, ground - 46, 3, 46);   // the porch
+    });
+    // the clock tower, middle of the street
+    g.fillStyle(wood, 1); g.fillRect(286, ground - 190, 68, 190); g.fillTriangle(280, ground - 190, 360, ground - 190, 320, ground - 228);
+    g.fillStyle(sunset ? 0x8a6a5a : 0xf4ecd8, 1); g.fillCircle(320, ground - 156, 20); g.lineStyle(2, 0x1a0a04, 1); g.strokeCircle(320, ground - 156, 20);
+    const ma = (mins / 60) * Math.PI * 2 - Math.PI / 2, ha = ((11 + mins / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+    g.lineBetween(320, ground - 156, 320 + Math.cos(ha) * 11, ground - 156 + Math.sin(ha) * 11); g.lineStyle(1, 0x1a0a04, 1); g.lineBetween(320, ground - 156, 320 + Math.cos(ma) * 17, ground - 156 + Math.sin(ma) * 17);
+    g.fillStyle(sunset ? 0x3a1410 : 0xd8a868, 1); g.fillRect(0, ground, W, H - ground);       // the dirt street
+    g.fillStyle(sunset ? 0x2a0a0c : 0xb88a50, 1); for (let i = 0; i < 20; i++) { const sp = this.spots[i]; g.fillEllipse(sp[0] * W, ground + 10 + sp[1] * 50, 30 + sp[2] * 30, 3); }
+  }
+  tumbleweed(g, x, y, r, t) {
+    for (let i = 0; i < 9; i++) { const a = t * 0.2 + i * 0.7; g.lineStyle(2, 0x8a6a3a, 1); g.strokeEllipse(x + Math.cos(a) * r * 0.2, y + Math.sin(a) * r * 0.2, r * 1.8, r * (0.8 + 0.4 * Math.abs(Math.sin(a)))); }
+    g.fillStyle(0x6a4a2a, 0.5); g.fillCircle(x, y, r * 0.5);
+  }
+  shot_ss_noon_town(t, k, s) {
+    const ground = 292, e = k * k * (3 - 2 * k);
+    this.westTown(this.bg, t, ground, 57 + e);
+    this.idle(110, ground + 10, 3 + e * 0.3, t);                                            // him, at one end...
+    this.posLosers([[460, ground + 10, 2, 0, 1], [530, ground + 10, 2, 0, 1], [600, ground + 10, 2, 0, 1]], 0x3a1a0a);   // ...them at the other
+    for (const l of this.losers) if (l.def) l.s.setFlipX(!l.def.facesLeft);
+    const tx = -40 + ((s * 2.2) % (W + 80)); this.tumbleweed(this.fx, tx, ground + 14 - Math.abs(Math.sin(s * 0.12)) * 14, 12, s);
+    for (let i = 0; i < 18; i++) { const sp = this.spots[i]; this.fx.fillStyle(0xe8c890, 0.5); this.fx.fillRect((sp[0] * W + s * (2 + sp[2] * 2)) % W, ground - sp[1] * 60, 2, 1); }   // dust on the wind
+    if (s === 1) sfx('whoosh', 0.3, 0.4);
+    this.vignette(this.over, 0.5);
+  }
+  // eyes: the classic extreme close-up, cutting between him and them
+  shot_ss_noon_eyes(t, k, s) {
+    const cut = Math.floor(s / 32), mine = cut % 2 === 0, g = this.bg;
+    this.sky(g, 0xc8783a, 0xf0b060); this.hideLosers();
+    if (mine) {
+      this.closeUp(W / 2, 180, 11, t);                                                       // his eyes - the soul flames in them
+      if (s % 32 < 12) { this.fx.fillStyle(0xffd23a, 0.4); this.fx.fillCircle(W / 2 + 20, 180, 30); }
+    } else {
+      const l = this.losers.filter((x) => x.def)[(cut >> 1) % Math.max(1, this.losers.filter((x) => x.def).length)];
+      if (l) {
+        const [hx, hy, ox, oy] = this.headOf(l.def), sc = 11;
+        l.s.setCrop().setTintMode(Phaser.TintModes.FILL).setTint(0x2a1206).setScale(sc).setRotation(0).setAlpha(1).setFlipX(!l.def.facesLeft).setVisible(true);
+        l.s.setPosition(W / 2 - (hx - ox) * sc * (l.s.flipX ? -1 : 1), 180 + (oy - hy) * sc);
+        const sq = Math.min(1, (s % 32) / 20);                                               // eyes narrowing
+        for (const dx of [-26, 26]) { this.fx.fillStyle(0xffffff, 1); this.fx.fillRect(W / 2 + dx - 10, 176 + sq * 3, 20, 8 - sq * 5); }
+        if (s % 32 === 14) { this.fx.fillStyle(0xd8f0ff, 1); this.fx.fillEllipse(W / 2 + 60, 150 + (s % 32), 6, 9); }   // a bead of sweat
+      }
+    }
+    this.over.fillStyle(0x000000, 1); this.over.fillRect(0, 0, W, 136); this.over.fillRect(0, 226, W, H - 226);   // letterboxed right down to the eyes
+    if (s % 32 === 0) sfx('clang', 0.12, 2.4);                                                // a spur
+    this.vignette(this.over, 0.4);
+  }
+  shot_ss_noon_clock(t, k, s) {
+    const g = this.bg, cx = W / 2, cy = 180, R = 110, NOON = 90;
+    this.hero.setVisible(false); this.hideLosers();
+    this.sky(g, 0xf0a040, 0xfff0c0);
+    g.fillStyle(0x6a3a1a, 1); g.fillRect(cx - 160, 0, 320, H); g.fillStyle(0x8a5228, 1); for (let x = cx - 160; x < cx + 160; x += 10) g.fillRect(x, 0, 1, H);
+    g.fillStyle(0xf4ecd8, 1); g.fillCircle(cx, cy, R); g.lineStyle(6, 0x1a0a04, 1); g.strokeCircle(cx, cy, R);
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.lineStyle(i % 3 ? 2 : 4, 0x1a0a04, 1); g.lineBetween(cx + Math.cos(a) * R * 0.82, cy + Math.sin(a) * R * 0.82, cx + Math.cos(a) * R * 0.94, cy + Math.sin(a) * R * 0.94); }
+    const mins = Math.min(60, 59 + Math.floor(s / NOON)), jerk = s === NOON ? 0.04 : 0;     // the minute hand clunks onto twelve
+    const ma = (mins / 60) * Math.PI * 2 - Math.PI / 2 + jerk, ha = (Math.min(12, 11 + mins / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+    g.lineStyle(8, 0x1a0a04, 1); g.lineBetween(cx, cy, cx + Math.cos(ha) * R * 0.5, cy + Math.sin(ha) * R * 0.5);
+    g.lineStyle(5, 0x1a0a04, 1); g.lineBetween(cx, cy, cx + Math.cos(ma) * R * 0.8, cy + Math.sin(ma) * R * 0.8); g.fillStyle(0x1a0a04, 1); g.fillCircle(cx, cy, 8);
+    if (s % 30 === 0 && s < NOON) sfx('menu', 0.25, 0.5);                                     // tick
+    if (s === NOON) { this.cameras.main.shake(200, 0.008); }
+    if (s >= NOON) for (let i = 0; i < 8; i++) {                                              // pigeons, scattering
+      const d = s - NOON, sp = this.spots[i], x = cx + (sp[0] - 0.5) * 200 + (sp[0] - 0.5) * d * 6, y = cy - 100 - d * (2 + sp[1] * 2);
+      const w = (d + i) % 6 < 3 ? 8 : 3; this.fx.fillStyle(0x3a3a40, 1); this.fx.fillTriangle(x - w, y - 2, x, y, x - 2, y + 3); this.fx.fillTriangle(x + w, y - 2, x, y, x + 2, y + 3);
+    }
+    this.vignette(this.over, 0.5);
+  }
+  // the stand-off... and the draw
+  shot_ss_noon_draw(t, k, s) {
+    const ground = 292, DRAW = 124, xs = [460, 530, 600];
+    this.westTown(this.bg, t, ground, 60);
+    const fired = s >= DRAW;
+    this.idle(110, ground + 10, 3.3, fired ? 6 : 0);                                         // frozen still - until
+    const hand = [110 + this.def.handOffset.x * 3.3, ground + 10 + this.def.handOffset.y * 3.3];
+    this.posLosers(xs.map((x) => [x, ground + 10, 2, 0, 1]), 0x3a1a0a);
+    this.losers.forEach((l, i) => {
+      if (!l.def) return;
+      l.s.setFlipX(!l.def.facesLeft);
+      const hitAt = DRAW + i * 7, d = s - hitAt;
+      if (d >= 0) { const p = Math.min(1, d / 14); l.s.setRotation(p * 1.45).setPosition(xs[i] + p * 20, ground + 10 + p * 2); }   // ...they fall
+      if (d >= -3 && d < 3) { this.fx.lineStyle(4, 0x8ad8ff, 1); this.fx.lineBetween(hand[0], hand[1], xs[i], ground - 40); this.fx.lineStyle(2, 0xffffff, 1); this.fx.lineBetween(hand[0], hand[1], xs[i], ground - 40); }   // soul-fire, a streak
+      if (d === 0) { sfx('bighit', 0.9, 1.4 - i * 0.1); sfx('flame', 0.6, 1.2); this.flash = 3; this.cameras.main.shake(80, 0.01); }
+      if (d > 0 && d < 20) for (let j = 0; j < 6; j++) { this.fx.fillStyle(0x8ad8ff, 1 - d / 20); this.fx.fillCircle(xs[i] + Math.cos(j) * d * 2, ground - 40 + Math.sin(j) * d * 2, 3); }
+    });
+    if (fired) { const d = s - DRAW; for (let j = 0; j < 5; j++) { this.fx.fillStyle(0x8ad8ff, Math.max(0, 0.6 - d / 80)); this.fx.fillCircle(hand[0] + Math.sin(d * 0.1 + j) * 4, hand[1] - d * 0.6 - j * 6, 3 + j); } }   // a curl of blue smoke from his hand
+    if (!fired && s > 10) this.tumbleweed(this.fx, -30 + (s - 10) * 3.6, ground + 14 - Math.abs(Math.sin(s * 0.12)) * 10, 10, s);   // one more tumbleweed, between them
+    this.vignette(this.over, 0.5);
+  }
+  shot_ss_noon_sunset(t, k, s) {
+    const ground = 270, e = Math.min(1, s / 260);
+    this.westTown(this.bg, t, ground, 60, 1);
+    // him, walking away up the street into the sun - smaller and smaller
+    this.strip('run', Math.floor(s / 9), W / 2 - 20 + e * 20, 320 - e * 46, 3 - e * 2.2, true);
+    this.hero.setTintMode(Phaser.TintModes.FILL).setTint(0x14040a);
+    this.posLosers([[120, 330, 2, 1.5, 1], [470, 336, 2, -1.5, 1], [560, 326, 2, 1.5, 1]], 0x14040a);   // the beaten, in the dirt
+    this.tumbleweed(this.fx, ((s * 1.6) % (W + 60)) - 30, 330, 10, s);
+    this.vignette(this.over, 0.55);
+  }
+
+  // ================================================================ MR WAKE - CREATURE FEATURE
+  // A 1950s black-and-white monster picture, scratches and all. TERROR FROM THE TIDE! A harbour city at night; the
+  // beaten on the pier, pointing at bubbles in the bay... DUN - DUN - DUNNN (music 'monster', 5.0 s): he rises out of
+  // the water, the size of a skyscraper, searchlights crossing on him. The army fires; he swats the pier flat. The
+  // newspaper spins in: MONSTER SINKS CITY. THE END... or is it? (Music: theremin, brass, timpani, a ticking projector.)
+  // old film: grain, dust, scratches, flicker. tone: the colour of the specks (grey for this one, brown for sepia)
+  film(t, tone = 0xffffff, dark = 0x000000) {
+    const o = this.over;
+    o.fillStyle(dark, 0.05 + 0.05 * ((t * 7) % 3 === 0)); o.fillRect(0, 0, W, H);           // flicker
+    for (let i = 0; i < 26; i++) { o.fillStyle(i % 2 ? tone : dark, 0.5); o.fillRect(Math.random() * W, Math.random() * H, 1 + (i % 4 === 0), 1); }   // grain and dust
+    for (let i = 0; i < 2; i++) { const x = (this.spots[i][0] * W + t * (i ? 13 : 7)) % W; if ((t + i * 20) % 50 < 30) { o.lineStyle(1, tone, 0.35); o.lineBetween(x, 0, x + Math.sin(t * 0.3) * 4, H); } }   // scratches
+    if (t % 37 < 2) { o.fillStyle(tone, 0.6); o.fillCircle(Math.random() * W, Math.random() * H, 2 + Math.random() * 3); }   // a hair, a blob
+  }
+  harbour(g, t, water, lit = 1) {
+    this.sky(g, 0x050505, 0x2a2a2a);
+    g.fillStyle(0xd8d8d8, 0.9); g.fillCircle(520, 64, 18);                                   // the moon
+    for (let i = 0; i < 22; i++) {                                                           // the skyline
+      const sp = this.spots[i], x = i * 31 - 10, h = 50 + sp[0] * 110;
+      g.fillStyle(0x161616 + (i % 3) * 0x080808, 1); g.fillRect(x, water - h, 30, h);
+      for (let wy = water - h + 8; wy < water - 6; wy += 10) for (let wx = x + 4; wx < x + 26; wx += 8) if (((wx * 7 + wy * 3 + i) % 11) < 4 * lit) { g.fillStyle(0xb8b8b8, 1); g.fillRect(wx, wy, 3, 4); }
+    }
+    g.fillStyle(0x1e1e1e, 1); g.fillRect(0, water, W, H - water);                            // the bay
+    for (let i = 0; i < 12; i++) { const y = water + 6 + i * 6; g.fillStyle(0x8a8a8a, 0.15); g.fillRect(((t * (0.5 + i * 0.1) + i * 60) % (W + 80)) - 40, y, 50 + i * 4, 1); }
+  }
+  searchlights(g, t, water, n = 3, aimX = null) {
+    for (let i = 0; i < n; i++) {
+      const bx = 80 + i * 240, a = aimX != null ? Math.atan2(-200, aimX - bx) : -Math.PI / 2 + Math.sin(t * 0.02 + i * 2) * 0.6;
+      g.fillStyle(0xffffff, 0.08); g.fillTriangle(bx, water, bx + Math.cos(a - 0.06) * 500, water + Math.sin(a - 0.06) * 500, bx + Math.cos(a + 0.06) * 500, water + Math.sin(a + 0.06) * 500);
+    }
+  }
+  shot_wake_monster_titles(t, k, s) {
+    const g = this.bg;
+    this.hero.setVisible(false); this.hideLosers();
+    this.sky(g, 0x0a0a0a, 0x3a3a3a);
+    for (let i = 0; i < 9; i++) { const y = 200 + i * 18, ph = t * 0.05 + i; g.fillStyle(i % 2 ? 0x2a2a2a : 0x444444, 1); g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 20) g.lineTo(x, y + Math.sin(ph + x * 0.02) * 10); g.lineTo(W, H); g.closePath(); g.fillPath(); }   // a stormy sea
+    const z = 0.6 + Math.min(1, s / 60) * 0.4, wob = Math.sin(s * 0.3) * 2;
+    for (const [i, txt, y, size] of [[0, 'TERROR', 110, 54], [1, 'FROM THE TIDE!', 174, 26]]) {
+      const L = this.tvLines[i]; L.setFontSize(Math.round(size * z)).setText(txt).setColor('#f4f4f4').setStroke('#000000', 6).setShadow(4, 4, '#000000', 0, true, true).setOrigin(0.5, 0.5).setPosition(W / 2 + wob, y).setVisible(true);
+    }
+    if (s > 70) this.label(2, 'IN TERRIFYING TIDE-O-VISION', W / 2 - 110, 220, 8, '#b8b8b8');
+    if (s === 1) { sfx('rumble', 0.5, 0.6); }
+    this.film(t, 0xffffff);
+    this.vignette(this.over, 0.8);
+  }
+  shot_wake_monster_harbour(t, k, s) {
+    const water = 250;
+    this.harbour(this.bg, t, water);
+    this.searchlights(this.bg, t, water);
+    this.mid.fillStyle(0x2a2a2a, 1); this.mid.fillRect(380, water - 8, 260, 8); for (let x = 390; x < W; x += 30) this.mid.fillRect(x, water, 4, 30);   // the pier
+    this.posLosers([[420, water - 8, 1.2, 0, 1], [470, water - 8, 1.2, 0, 1], [520, water - 8, 1.2, 0, 1]], 0x0a0a0a);   // the beaten, on the pier...
+    for (const l of this.losers) if (l.def) l.s.setFlipX(!!l.def.facesLeft === false ? true : false);
+    for (let i = 0; i < 10 + s / 6; i++) { const sp = this.spots[i % 40]; this.fx.fillStyle(0xd8d8d8, 0.6); this.fx.fillCircle(150 + sp[0] * 140, water + 30 - ((s * (1 + sp[2]) + sp[1] * 60) % 40), 1.5 + sp[2] * 2); }   // ...bubbles, out in the bay
+    if (s > 80) { const r = (s - 80) * 1.4; this.fx.lineStyle(2, 0xd8d8d8, 0.5); this.fx.strokeEllipse(220, water + 26, r * 2, r * 0.4); }
+    if (s % 40 === 10) sfx('rumble', 0.2 + s / 400, 0.5);
+    this.film(t);
+    this.vignette(this.over, 0.6);
+  }
+  // DUN - DUN - DUNNN: he rises, and each stab is a punch-in
+  shot_wake_monster_reveal(t, k, s) {
+    const water = 250, stab = s < 36 ? 0 : s < 78 ? 1 : 2, z = [1, 1.35, 1.8][stab];
+    this.harbour(this.bg, t, water);
+    const rise = Math.min(1, s / 30), sc = 4.6 * z, [hx, hy, ox, oy] = this.headOf(this.def);   // each punch-in keeps his head where it was
+    const fx = W / 2 - 40 - (hx - ox) * sc, fy = 118 + (oy - hy) * sc + (1 - rise) * 320;
+    this.idle(fx, fy, sc, 0);
+    this.searchlights(this.mid, t, water, 3, fx);
+    this.mid.fillStyle(0x1e1e1e, 1); this.mid.fillRect(0, water + 20 * z, W, H);          // the water, up to his waist
+    for (let i = 0; i < 30; i++) { const sp = this.spots[i % 40]; const d = (s * 2 + i * 9) % 60; this.fx.fillStyle(0xe8e8e8, Math.max(0, 0.8 - d / 60)); this.fx.fillCircle(fx - 140 + sp[0] * 280, water + 20 * z - d * 1.5 + d * d * 0.03, 2 + sp[2] * 3); }   // water streaming off him
+    if (s === 0 || s === 36 || s === 78) { this.flash = 3; this.cameras.main.shake(stab === 2 ? 400 : 160, 0.012); }
+    this.hideLosers();
+    this.film(t);
+    this.vignette(this.over, 0.7);
+  }
+  // the army fires; he swats the pier flat - the beaten go flying
+  shot_wake_monster_attack(t, k, s) {
+    const water = 250, SWAT = 90;
+    this.harbour(this.bg, t, water, s > SWAT ? 0.4 : 1);
+    this.searchlights(this.bg, t, water, 3, 300);
+    const A = this.def.moveAnims.fsmash, tick = s - SWAT + 20;
+    if (tick >= 0 && tick < A[1] * A[2]) this.move('fsmash', tick, 300, water + 120, 4.2); else this.idle(300, water + 120, 4.2, 0);
+    this.mid.fillStyle(0x1e1e1e, 1); this.mid.fillRect(0, water + 40, W, H);
+    const pierUp = s < SWAT;
+    if (pierUp) { this.mid.fillStyle(0x2a2a2a, 1); this.mid.fillRect(420, water - 8, 220, 8); }
+    else { for (let i = 0; i < 8; i++) { const d = s - SWAT, sp = this.spots[i]; this.mid.fillStyle(0x2a2a2a, 1); this.mid.fillRect(420 + i * 26 + d * sp[0] * 2, water - 8 + d * (sp[1] - 0.6) * 3 + d * d * 0.05, 22, 6); } }
+    this.losers.forEach((l, i) => {
+      if (!l.def) return;
+      const d = Math.max(0, s - SWAT), x = 450 + i * 50 + d * (2 + i), y = water - 8 - d * (4 - i) + d * d * 0.08;
+      l.s.setCrop().setTintMode(Phaser.TintModes.FILL).setTint(0x0a0a0a).setPosition(x, y).setScale(1.2).setRotation(d * 0.2 * (i % 2 ? 1 : -1)).setAlpha(1).setFlipX(true).setVisible(y < H + 40);
+    });
+    for (let i = 0; i < 3; i++) {                                                           // tanks on the shore, firing
+      const tx = 40 + i * 70, ty = water - 4; this.fx.fillStyle(0x2a2a2a, 1); this.fx.fillRect(tx, ty - 10, 34, 10); this.fx.fillRect(tx + 8, ty - 16, 16, 6); this.fx.fillRect(tx + 22, ty - 14, 18, 2);
+      if ((s + i * 13) % 40 < 4) { this.fx.fillStyle(0xffffff, 1); this.fx.fillCircle(tx + 42, ty - 13, 5); }
+      if ((s + i * 13) % 40 === 0) sfx('hit', 0.3, 0.7);
+      const b = ((s + i * 13) % 40) / 40; this.fx.fillStyle(0xe8e8e8, 1); this.fx.fillCircle(tx + 42 + b * (260 - tx), ty - 13 - b * 100, 2);
+      if (b > 0.9) { this.fx.fillStyle(0xffffff, 0.8); this.fx.fillCircle(300 - 20 + i * 14, water - 110 + i * 10, 8); }   // ...pinging off him
+    }
+    if (s === SWAT) { sfx('bighit', 1, 0.5); sfx('geyser', 0.8, 0.8); this.cameras.main.shake(300, 0.02); this.flash = 3; }
+    this.film(t);
+    this.vignette(this.over, 0.6);
+  }
+  // the newspaper spins in
+  shot_wake_monster_paper(t, k, s) {
+    const g = this.mid, p = Math.min(1, s / 40), ang = (1 - p) * 9, sc = 0.1 + p * 0.9;
+    this.hero.setVisible(false); this.hideLosers();
+    this.bg.fillStyle(0x0a0a0a, 1); this.bg.fillRect(0, 0, W, H);
+    // the page, as a rotated, scaled quad
+    const pw = 440 * sc, ph = 280 * sc, cx = W / 2, cy = 190, c = Math.cos(ang), sn = Math.sin(ang);
+    const pt = (x, y) => ({ x: cx + x * c - y * sn, y: cy + x * sn + y * c });
+    g.fillStyle(0xe8e4d8, 1); g.fillPoints([pt(-pw / 2, -ph / 2), pt(pw / 2, -ph / 2), pt(pw / 2, ph / 2), pt(-pw / 2, ph / 2)], true);
+    if (p >= 1) {
+      const x0 = cx - 220, y0 = cy - 140;
+      g.fillStyle(0x1a1a1a, 1); g.fillRect(x0 + 10, y0 + 46, 420, 2); g.fillRect(x0 + 10, y0 + 104, 420, 2);
+      for (let i = 0; i < 9; i++) { g.fillStyle(0x8a8a8a, 1); g.fillRect(x0 + 240 + (i % 2) * 6, y0 + 118 + i * 16, 170 - (i % 3) * 20, 4); }   // columns of print
+      g.fillStyle(0x3a3a3a, 1); g.fillRect(x0 + 20, y0 + 116, 200, 150); g.fillStyle(0x5a5a5a, 1); g.fillRect(x0 + 24, y0 + 120, 192, 142);   // the photo...
+      this.idle(x0 + 120, y0 + 262, 2.6, 0);                                                 // ...of him
+      this.hero.setTintMode(Phaser.TintModes.MULTIPLY).setTint(0xb0b0b0);
+      this.label(0, 'THE DAILY TIDE', x0 + 140, y0 + 14, 16, '#1a1a1a');
+      this.label(1, 'MONSTER SINKS CITY!', x0 + 40, y0 + 58, 24, '#000000');
+      const names = this.losers.filter((l) => l.def).map((l) => l.name).join(', ');
+      this.label(2, (names || 'THEY') + ' STILL MISSING', x0 + 240, y0 + 108, 6, '#1a1a1a');
+    }
+    if (s === 1) sfx('whoosh', 0.6, 0.5);
+    if (s === 40) sfx('hit', 0.6, 0.4);
+    this.film(t);
+    this.vignette(this.over, 0.6);
+  }
+  shot_wake_monster_end(t, k, s) {
+    this.hero.setVisible(false); this.hideLosers();
+    this.bg.fillStyle(0x050505, 1); this.bg.fillRect(0, 0, W, H);
+    const L = this.label(0, 'THE END', W / 2, 200, 40, '#f4f4f4'); L.setOrigin(0.5, 0.5).setStroke('#000000', 4);
+    if (s > 60) { const q = this.label(1, '?', W / 2 + 120, 196, 40, '#f4f4f4'); q.setOrigin(0.5, 0.5).setAlpha(Math.min(1, (s - 60) / 30)); }
+    if (s > 90) for (const dx of [-14, 14]) { this.glow(this.fx, W / 2 + dx + 200, 120, 10, 0xffffff, 0.4); this.fx.fillStyle(0xffffff, 1); this.fx.fillRect(W / 2 + dx + 196, 118, 8, 4); }   // eyes, in the dark
+    if (s === 91) sfx('laugh', 0.4, 0.5);
+    this.film(t);
+    this.vignette(this.over, 0.8);
+  }
+
+  // ================================================================ NU - SILENT FILM
+  // A silent comedy off a hand-cranked reel: sepia, scratches, jerky at 12 frames a second, intertitles between the
+  // scenes and a honky-tonk piano (music 'ragtime'). The talent show: the rival acts get THE HOOK from the wings, one
+  // after another. One sneaks back on - and a piano drops on them. He takes his bow under a rain of roses, and the
+  // iris closes on him.
+  // a title card: white words in an ornate frame on black
+  intertitle(lines, s) {
+    const g = this.mid, x = 90, y = 70, w = W - 180, h = 220;
+    this.bg.fillStyle(0x0e0804, 1); this.bg.fillRect(0, 0, W, H);
+    g.fillStyle(0x0e0804, 1); g.fillRect(x, y, w, h);
+    g.lineStyle(3, 0xf0dcb0, 1); g.strokeRect(x, y, w, h); g.lineStyle(1, 0xf0dcb0, 1); g.strokeRect(x + 8, y + 8, w - 16, h - 16);
+    for (const [cx, cy] of [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]) { g.fillStyle(0xf0dcb0, 1); g.fillCircle(cx, cy, 5); g.fillStyle(0x0e0804, 1); g.fillCircle(cx, cy, 2); }   // corner flourishes
+    for (const dy of [26, h - 26]) { g.lineStyle(1, 0xf0dcb0, 1); g.lineBetween(x + w / 2 - 60, y + dy, x + w / 2 + 60, y + dy); g.fillStyle(0xf0dcb0, 1); g.fillCircle(x + w / 2, y + dy, 3); }
+    lines.forEach((ln, i) => { const L = this.label(i, ln, W / 2, y + h / 2 - (lines.length - 1) * 16 + i * 32, 14, '#f0dcb0'); L.setOrigin(0.5, 0.5); });
+  }
+  // iris: black everywhere but a circle (r), the old way of opening and closing a scene
+  iris(cx, cy, r) { if (r < 600) this.dark(this.over, cx, cy, Math.max(1, r), 1); }
+  vaudeville(g, t, floor, curtain = 0) {
+    g.fillStyle(0x2a1a0e, 1); g.fillRect(0, 0, W, H);
+    g.fillStyle(0x86684a, 1); g.fillRect(70, 40, W - 140, floor - 40);                         // the painted backdrop: a city of sepia
+    for (let i = 0; i < 9; i++) { g.fillStyle(0x6a503a, 1); g.fillRect(80 + i * 56, floor - 60 - (i * 37 % 70), 44, 60 + (i * 37 % 70)); }
+    g.fillStyle(0xd2b88e, 1); g.fillCircle(470, 90, 22);
+    const cw = 80 + curtain * (W / 2 - 80);                                                  // the curtains (closing: curtain 0..1)
+    for (const side of [0, 1]) for (let i = 0; i < 8; i++) { const x = side ? W - cw + i * cw / 8 : i * cw / 8; g.fillStyle(i % 2 ? 0x5e4630 : 0x3a2a1a, 1); g.fillRect(x, 30, cw / 8 + 1, floor - 30); }
+    g.fillStyle(0x3a2a1a, 1); g.fillRect(0, 0, W, 40); for (let x = 0; x < W; x += 30) { g.fillStyle(0x5e4630, 1); g.fillTriangle(x, 40, x + 30, 40, x + 15, 58); }   // the valance
+    g.fillStyle(0x5e4630, 1); g.fillRect(0, floor, W, H - floor); g.fillStyle(0x86684a, 1); g.fillRect(0, floor, W, 4);   // the stage
+    for (let x = 30; x < W; x += 60) { this.glow(g, x, floor + 2, 30, 0xf0dcb0, 0.25); g.fillStyle(0xf0dcb0, 1); g.fillRect(x - 6, floor + 2, 12, 4); }   // footlights
+  }
+  hook(g, x, y, out) {                                                                       // THE HOOK: a long shepherd's crook out of the wings
+    g.lineStyle(5, 0x3a2a1a, 1); g.lineBetween(W + 10, y - 40, x + 20, y - 40);
+    g.beginPath(); g.arc(x + 20, y - 20, 20, -Math.PI / 2, Math.PI / 2 + 0.6, true); g.strokePath();
+  }
+  jerky(s) { return Math.floor(s / 5) * 5; }                                                // (12 frames a second)
+  shot_nu_silent_card1(t, k, s) {
+    this.hero.setVisible(false); this.hideLosers();
+    this.intertitle(['THE TALENT SHOW.', 'OUR HERO TAKES THE STAGE.'], s);
+    this.film(t, 0xf0dcb0, 0x0e0804);
+    this.iris(W / 2, H / 2, s * 14);
+  }
+  shot_nu_silent_stage(t, k, s) {
+    const floor = 286, j = this.jerky(s), live = this.losers.filter((l) => l.def);
+    this.vaudeville(this.bg, t, floor);
+    this.move('taunt', (j * 0.6) % 84, 230, floor, 3);                                      // him, giving it everything
+    live.forEach((l, i) => {                                                                 // the rival acts... and the hook
+      const at = 50 + i * 45, d = j - at, x0 = 360 + i * 70, y = floor;
+      let x = x0; if (d > 10) x = x0 + (d - 10) * 14;
+      l.s.setCrop().setTintMode(Phaser.TintModes.FILL).setTint(0x3a2a1a).setPosition(x, y).setScale(2.4).setRotation(d > 10 ? -0.4 : 0).setAlpha(1).setFlipX(true).setVisible(x < W + 60);
+      if (d > -12 && d < 40) this.hook(this.fx, d < 0 ? x0 + (-d) * 20 : x, y - 2.4 * 40);
+      if (d === 10) sfx('whoosh', 0.6, 1.6);
+    });
+    this.film(t, 0xf0dcb0, 0x0e0804);
+    this.vignette(this.over, 0.6);
+  }
+  shot_nu_silent_card2(t, k, s) {
+    this.hero.setVisible(false); this.hideLosers();
+    this.intertitle(['THE COMPETITION', 'WAS... REMOVED.'], s);
+    this.film(t, 0xf0dcb0, 0x0e0804);
+  }
+  // one sneaks back on - and the piano comes down
+  shot_nu_silent_piano(t, k, s) {
+    const floor = 286, j = this.jerky(s), DROP = 70, l = this.losers.find((x) => x.def);
+    this.vaudeville(this.bg, t, floor);
+    this.move('taunt', j < DROP ? 0 : Math.min(30, (j - DROP) * 0.5), 200, floor, 3);
+    this.hideLosers();
+    if (l) {
+      const sneak = Math.min(1, j / 50), x = W + 40 - sneak * 230, flat = j >= DROP ? Math.min(1, (j - DROP) / 5) : 0;
+      l.s.setCrop().setTintMode(Phaser.TintModes.FILL).setTint(0x3a2a1a).setPosition(x, floor).setScale(2.4 + flat * 1.2, 2.4 * (1 - flat * 0.82)).setRotation(0).setAlpha(1).setFlipX(true).setVisible(true);
+      if (j < DROP) { const sh = Math.max(0, (j - 30) / 40); this.mid.fillStyle(0x0e0804, 0.5); this.mid.fillEllipse(x, floor + 3, 40 + sh * 60, 10); }   // a shadow, growing
+      const py = j < DROP ? -120 + Math.max(0, j - 40) ** 2 * 0.4 : floor - 70;              // the piano
+      if (j >= 40 || j >= DROP) {
+        const f = this.fx, px = x - 60; f.fillStyle(0x3a2a1a, 1); f.fillRect(px, py, 120, 70); f.fillStyle(0x5e4630, 1); f.fillRect(px + 6, py + 6, 108, 20);
+        f.fillStyle(0xf0dcb0, 1); f.fillRect(px + 10, py + 32, 100, 10); for (let i = 0; i < 12; i++) { f.fillStyle(0x0e0804, 1); f.fillRect(px + 14 + i * 8, py + 32, 3, 6); }
+        f.fillStyle(0x3a2a1a, 1); f.fillRect(px + 6, py + 70, 8, 6); f.fillRect(px + 106, py + 70, 8, 6);
+      }
+      if (j >= DROP) {
+        const d = j - DROP;
+        if (d < 40) for (let i = 0; i < 10; i++) { const a = i * 0.63; this.fx.fillStyle(0xd2b88e, Math.max(0, 0.7 - d / 50)); this.fx.fillCircle(x + Math.cos(a) * d * 3, floor - 20 + Math.sin(a) * d * 1.5, 8 + d * 0.4); }   // a cloud of dust
+        for (let i = 0; i < 4; i++) { const a = d * 0.12 + i * 1.57; this.fx.fillStyle(0xf0dcb0, 1); this.fx.fillCircle(x + Math.cos(a) * 26, floor - 100 + Math.sin(a) * 8, 3); }   // seeing stars
+        for (let i = 0; i < 5; i++) { const sp = this.spots[i]; this.fx.fillStyle(i % 2 ? 0xf0dcb0 : 0x0e0804, 1); this.fx.fillRect(x + (sp[0] - 0.5) * d * 8, floor - 60 - d * 4 * sp[1] + d * d * 0.15, 6, 3); }   // keys flying
+      }
+    }
+    if (s === DROP) { sfx('bighit', 1, 0.6); sfx('clang', 0.8, 0.5); this.cameras.main.shake(300, 0.02); }
+    this.film(t, 0xf0dcb0, 0x0e0804);
+    this.vignette(this.over, 0.6);
+  }
+  // the bow: roses from the crowd, the curtain closes, the iris shuts on him
+  shot_nu_silent_bow(t, k, s) {
+    const floor = 286, j = this.jerky(s), close = Math.max(0, Math.min(1, (s - 150) / 60));
+    this.vaudeville(this.bg, t, floor, close * 0.7);
+    this.move('micdrop', Math.min(59, 30 + j * 0.3), W / 2, floor, 3.2);
+    this.hideLosers();
+    for (let i = 0; i < 14; i++) {                                                           // roses, thrown from the audience
+      const sp = this.spots[i], st = i * 7, d = s - st; if (d < 0) continue;
+      const x = sp[0] * W, y = Math.min(floor - 4, H + 20 - d * 7 + d * d * 0.12);
+      this.fx.fillStyle(0x5e4630, 1); this.fx.fillRect(x - 6, y, 12, 2); this.fx.fillStyle(0x3a2a1a, 1); this.fx.fillCircle(x + 6, y, 4);
+    }
+    if (s % 40 === 5 && s < 140) sfx('petal', 0.3, 1.2);
+    this.iris(W / 2, floor - 100, s < 200 ? 900 : 600 - (s - 200) * 6);
+    this.film(t, 0xf0dcb0, 0x0e0804);
+    this.vignette(this.over, 0.5);
+  }
+
+  // ================================================================ LACY - 16-BIT HERO
+  // An old cartridge role-playing game. A random encounter on the overworld - the screen swirls - and it's a turn-based
+  // battle: the beaten as the enemy party, her on the right with her HP and her ready gauge. FIGHT... SKILL... THOUSAND
+  // CUTS: she dashes in, cuts all three, 9999 each; they flash and dissolve. VICTORY! (fanfare: music 'victory', 6.6 s)
+  // She spins and salutes; EXP and gold. The results screen: LEVEL UP - and every one of their stats, +0.
+  rpgWin(g, x, y, w, h) {                                                                     // a menu window: blue gradient, white border
+    for (let i = 0; i < 8; i++) { g.fillStyle(Phaser.Display.Color.GetColor(16 + i * 4, 24 + i * 8, 120 - i * 8), 1); g.fillRect(x, y + h * i / 8, w, h / 8 + 1); }
+    g.lineStyle(2, 0xf4f4f4, 1); g.strokeRect(x + 2, y + 2, w - 4, h - 4); g.lineStyle(1, 0x8a8aa0, 1); g.strokeRect(x + 5, y + 5, w - 10, h - 10);
+  }
+  rpgField(g, t, horizon = 150) {
+    this.sky(g, 0x4a7ad8, 0xb8e0ff);
+    for (let i = 0; i < 4; i++) { g.fillStyle(0xffffff, 0.8); g.fillEllipse(((i * 190 + t * 0.15) % (W + 120)) - 60, 50 + i * 18, 90, 16); }
+    g.fillStyle(0x5a7ab8, 1); for (let i = 0; i < 6; i++) g.fillTriangle(i * 130 - 40, horizon, i * 130 + 50, horizon - 60 - (i % 2) * 20, i * 130 + 140, horizon);   // far mountains
+    for (let r = 0; r < 14; r++) { const y0 = horizon + r * r * 1.1, y1 = horizon + (r + 1) * (r + 1) * 1.1; g.fillStyle(r % 2 ? 0x3a9a3a : 0x48b048, 1); g.fillRect(0, y0, W, y1 - y0 + 1); }   // the grass, rushing toward us
+  }
+  rpgDamage(i, txt, x, y, d, col = '#ffffff') {                                               // a damage number, bouncing
+    const b = d < 10 ? -Math.sin(d / 10 * Math.PI) * 18 : 0;
+    const L = this.label(i, txt, x, y + b, 14, col); L.setOrigin(0.5, 1).setStroke('#000000', 4); return L;
+  }
+  shot_hk_rpg_encounter(t, k, s) {
+    const g = this.bg;
+    this.hideLosers();
+    g.fillStyle(0x3a8a3a, 1); g.fillRect(0, 0, W, H);                                         // the overworld: grass, trees, a path
+    for (let i = 0; i < 30; i++) { const sp = this.spots[i % 40], x = sp[0] * W, y = sp[1] * H; g.fillStyle(0x1e5a1e, 1); g.fillCircle(x, y, 10); g.fillStyle(0x2a7a2a, 1); g.fillCircle(x - 3, y - 3, 6); }
+    g.fillStyle(0xc8b070, 1); g.fillRect(0, 200, W, 30);
+    this.strip('run', Math.floor(s / 6), 120 + Math.min(30, s) * 4, 230, 2);
+    if (s >= 30 && s < 44) { this.label(0, '!', 120 + 120 + 6, 150, 20, '#ffffff').setStroke('#000000', 4); if (s === 30) sfx('ding', 0.6, 1.6); }
+    if (s >= 44) {                                                                            // the swirl into battle
+      const p = (s - 44) / 36, f = this.front;
+      for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8 + p * 4; f.fillStyle(0x000000, 1); f.fillTriangle(W / 2, H / 2, W / 2 + Math.cos(a) * 900, H / 2 + Math.sin(a) * 900, W / 2 + Math.cos(a + p * 0.4) * 900, H / 2 + Math.sin(a + p * 0.4) * 900); }
+      if (s === 44) { sfx('glass', 0.6, 1.4); sfx('whoosh', 0.6, 0.8); this.flash = 4; }
+    }
+  }
+  shot_hk_rpg_battle(t, k, s) {
+    const live = this.losers.filter((l) => l.def), g = this.mid, LX = 500, LY = 232, MENU = 60, GO = 140, DASH = 10;
+    this.rpgField(this.bg, t);
+    // the enemy party, on the left
+    const ex = (i) => 90 + i * 85, ey = (i) => 168 + (i % 2) * 40;
+    live.forEach((l, i) => {
+      const hitAt = GO + 20 + i * 12, dis = Math.max(0, Math.min(1, (s - (hitAt + 30)) / 24));
+      l.s.setCrop().setTintMode(Phaser.TintModes.MULTIPLY).setTint(s >= hitAt && s < hitAt + 30 && (s >> 2) % 2 ? 0xff8a8a : 0xffffff)
+        .setPosition(ex(i), ey(i) + Math.sin(t * 0.1 + i) * 1.5).setScale(2).setRotation(0).setAlpha(1).setFlipX(!!l.def.facesLeft).setVisible(dis < 1);
+      if (dis > 0) { const f = l.s.frame; l.s.setCrop(0, f.height * dis, f.width, f.height); for (let j = 0; j < 4; j++) { this.fx.fillStyle([0xff4a8a, 0xffffff, 0x8a4aff][j % 3], 1 - dis); this.fx.fillRect(ex(i) - 20 + Math.random() * 40, ey(i) - 50 + dis * 50 + Math.random() * 10, 3, 3); } }   // dissolving, top down
+      if (s >= hitAt && s < hitAt + 6) { this.fx.lineStyle(4, 0xffffff, 1 - (s - hitAt) / 6); this.fx.lineBetween(ex(i) - 40, ey(i) - 80, ex(i) + 40, ey(i)); this.fx.lineBetween(ex(i) + 40, ey(i) - 80, ex(i) - 40, ey(i)); }
+      if (s === hitAt) { sfx('slash', 0.7, 1.2 + i * 0.1); sfx('hit', 0.5, 1.4); this.flash = 2; }
+      if (s === hitAt + 30) sfx('glass', 0.4, 1.8);
+      if (s >= hitAt && s < hitAt + 60) this.rpgDamage(4 + i, '9999', ex(i), ey(i) - 70, s - hitAt);
+    });
+    // her: waiting... then the dash in, the cut, and back
+    const A = this.def.moveAnims.fsmash, at = s - GO;
+    let x = LX; if (at >= 0 && at < DASH) x = LX - (at / DASH) * 260; else if (at >= DASH && at < DASH + A[1] * A[2]) x = LX - 260; else if (at >= DASH + A[1] * A[2] && at < DASH * 2 + A[1] * A[2]) x = LX - 260 + ((at - DASH - A[1] * A[2]) / DASH) * 260;
+    if (at >= DASH && at < DASH + A[1] * A[2]) this.move('fsmash', at - DASH, x, LY, 2.6, this.def, true); else if (at >= 0 && at < DASH * 2 + A[1] * A[2]) this.strip('run', Math.floor(s / 3), x, LY, 2.6, at < DASH); else this.idle(x, LY, 2.6, t, true);
+    // the windows: the enemies' names, her HP and ready gauge, the command menu
+    this.rpgWin(g, 10, 262, 250, 64); this.rpgWin(g, 266, 262, 364, 64);
+    live.forEach((l, i) => { if (s < GO + 50 + i * 12) this.label(i, l.name.slice(0, 16), 26, 270 + i * 16, 9, '#ffffff'); });
+    this.label(3, 'LACY      HP  999/ 999', 282, 278, 9, '#ffffff');
+    const atb = Math.min(1, s / MENU); g.fillStyle(0x2a2a40, 1); g.fillRect(500, 298, 110, 8); g.fillStyle(atb >= 1 ? 0xffe08a : 0x8ab8ff, 1); g.fillRect(500, 298, 110 * atb, 8);
+    this.label(9, 'READY', 282, 296, 8, atb >= 1 ? '#ffe08a' : '#8a8aa0');
+    if (s >= MENU && s < GO) {
+      this.rpgWin(g, 380, 150, 120, 104);
+      const cmds = ['FIGHT', 'SKILL', 'ITEM', 'RUN'], pick = s < 82 ? 0 : 1;
+      cmds.forEach((c, i) => this.label(4 + i, c, 412, 162 + i * 20, 9, '#ffffff'));
+      const cy = 166 + pick * 20; this.fx.fillStyle(0xffffff, 1); this.fx.fillTriangle(392, cy - 4, 392, cy + 6, 402, cy + 1);   // the pointing cursor
+      if (s === 82 || s === 104 || s === 126) sfx('menu', 0.4, 1.2);
+      if (s >= 104) { this.rpgWin(g, 220, 110, 170, 40); this.label(8, 'THOUSAND CUTS', 238, 124, 9, '#ffe08a'); }
+    }
+    if (s >= GO && s < GO + 40) { this.rpgWin(g, 180, 42, 280, 34); this.label(8, 'LACY USES THOUSAND CUTS!', 196, 53, 9, '#ffffff'); }
+    if (s > GO + 110) { this.rpgWin(g, 180, 42, 280, 34); this.label(8, 'THE ENEMIES WERE DEFEATED.', 196, 53, 9, '#ffffff'); }
+    this.vignette(this.over, 0.25);
+  }
+  shot_hk_rpg_victory(t, k, s) {
+    const g = this.mid, T = this.def.moveAnims.taunt;
+    this.rpgField(this.bg, t); this.hideLosers();
+    this.move('taunt', Math.min(T[1] * T[2] - 1, s * 0.8), 420, 236, 3, this.def, true);    // the spin, and the salute
+    for (let i = 0; i < 16; i++) { const sp = this.spots[i], a = s * 0.05 + i; this.fx.fillStyle(i % 2 ? 0xffe08a : 0xffffff, 0.5 + 0.5 * Math.sin(a * 3)); this.fx.fillRect(420 + Math.cos(a) * (60 + sp[2] * 40), 160 + Math.sin(a) * 50, 2, 2); }
+    this.rpgWin(g, 120, 40, 400, 50);
+    const V = this.label(0, 'VICTORY!', W / 2, 65, 22, '#ffe08a'); V.setOrigin(0.5, 0.5).setStroke('#000000', 4).setScale(s < 8 ? 2 - s / 8 : 1);
+    if (s > 50) {
+      this.rpgWin(g, 20, 250, 340, 70);
+      ['GOT 4800 EXP!', 'GOT 1200 G!'].forEach((txt, i) => { const n = Math.floor((s - 56 - i * 26) * 0.8); if (n > 0) this.label(1 + i, txt.slice(0, n), 40, 264 + i * 22, 10, '#ffffff'); if (n > 0 && n <= txt.length && s % 3 === 0) sfx('menu', 0.12, 1.8); });
+    }
+    this.vignette(this.over, 0.2);
+  }
+  shot_hk_rpg_results(t, k, s) {
+    const g = this.mid, live = this.losers.filter((l) => l.def);
+    this.hideLosers();
+    g.fillStyle(0x10184a, 1); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 40; i++) { const sp = this.spots[i]; g.fillStyle(0x3a4a8a, 0.6); g.fillRect(sp[0] * W, (sp[1] * H + t * 0.3) % H, 2, 2); }
+    this.rpgWin(g, 30, 110, 170, 190);                                                        // her portrait
+    this.closeUp(115, 196, 4.4, t);
+    this.rpgWin(g, 210, 110, 400, 190);                                                       // the numbers
+    const lv = s < 30 ? 98 : 99, up = s >= 30;
+    this.label(0, 'LACY', 230, 124, 12, '#ffffff');
+    this.label(1, 'LV ' + lv + (up ? '   LEVEL UP!' : ''), 330, 124, 12, up && (s >> 3) % 2 ? '#ffe08a' : '#ffffff');
+    if (s === 30) { sfx('limitready', 0.6, 1.4); this.flash = 3; }
+    const stats = [['STR', 254, 1], ['SPD', 199, 2], ['MAG', 88, 1]];
+    stats.forEach(([n, v, d], i) => { if (s > 40 + i * 12) this.label(2 + i, n + '  ' + v + ' > ' + (v + d) + '  (+' + d + ')', 232, 156 + i * 18, 9, '#b8e0ff'); });
+    live.forEach((l, i) => { if (s > 90 + i * 16) this.label(5 + i, 'FOUND: ' + l.name.slice(0, 14) + "'S PRIDE  x1", 232, 222 + i * 16, 8, '#ffe08a'); });
+    if (s > 90 && (s - 90) % 16 === 0 && (s - 90) / 16 < live.length) sfx('ding', 0.35, 1.5);
+    if (s > 150) this.label(8, 'ENEMY STATS: +0. +0. +0.', 232, 278, 8, '#ff8a8a');
+    this.vignette(this.over, 0.3);
+  }
+
+  // ================================================================ AERO - FORECAST
+  // The weather on 90s local TV. A spinning chrome AERO 7 WEATHER bumper with a lens flare; then him in front of the
+  // map, smooth jazz playing (music 'weather'): the beaten are storm systems with their names on, blowing off the edge
+  // of the map while the suns come out. Doppler radar sweeps them away. The 5-day: sun, sun, sun, sun, him. The
+  // ticker crawls: 100% CHANCE OF L's.
+  tvChrome(t, s) {                                                                          // the station look: clock, channel bug, scanlines
+    const o = this.front, m = this.mid;
+    for (let y = 0; y < H; y += 3) { o.fillStyle(0x000000, 0.08); o.fillRect(0, y, W, 1); }
+    m.fillStyle(0xffffff, 0.75); m.fillRect(W - 92, 44, 60, 22); m.fillStyle(0x1a3a8a, 1); m.fillRect(W - 90, 46, 56, 18);
+    this.label(9, 'AERO 7', W - 84, 50, 8, '#ffd23a');
+  }
+  ticker(txt, s, y = H - 58) {
+    const g = this.fx; g.fillStyle(0x0a1a4a, 0.95); g.fillRect(0, y, W, 16); g.fillStyle(0xffd23a, 1); g.fillRect(0, y, 70, 16);
+    this.label(8, 'WEATHER', 6, y + 4, 7, '#0a1a4a');
+    const full = txt + '      ' + txt, off = Math.floor(s * 0.5) % (txt.length + 6);
+    this.label(7, full.slice(off, off + 64), 78, y + 4, 7, '#ffffff');
+  }
+  wxIcon(g, kind, x, y, r, t) {                                                               // weather icons: sun / cloud / storm
+    if (kind === 'sun' || kind === 'aero') {
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + t * 0.02; g.fillStyle(0xffd23a, 1); g.fillTriangle(x + Math.cos(a) * r * 1.2, y + Math.sin(a) * r * 1.2, x + Math.cos(a + 0.2) * r * 1.6, y + Math.sin(a + 0.2) * r * 1.6, x + Math.cos(a - 0.2) * r * 1.6, y + Math.sin(a - 0.2) * r * 1.6); }
+      g.fillStyle(0xffd23a, 1); g.fillCircle(x, y, r); g.fillStyle(0xfff4a0, 1); g.fillCircle(x - r * 0.3, y - r * 0.3, r * 0.4);
+      if (kind === 'aero') { g.fillStyle(0x0a0a14, 1); g.fillRect(x - r * 0.75, y - r * 0.2, r * 0.65, r * 0.32); g.fillRect(x + r * 0.1, y - r * 0.2, r * 0.65, r * 0.32); g.fillRect(x - r * 0.2, y - r * 0.15, r * 0.4, r * 0.1); }   // in shades
+      return;
+    }
+    g.fillStyle(kind === 'storm' ? 0x5a6070 : 0xf4f8ff, 1); g.fillCircle(x - r * 0.5, y, r * 0.6); g.fillCircle(x + r * 0.2, y - r * 0.3, r * 0.75); g.fillCircle(x + r * 0.7, y + r * 0.05, r * 0.5); g.fillRect(x - r * 0.9, y, r * 1.8, r * 0.5);
+    if (kind === 'storm') { g.fillStyle(0xffd23a, 1); g.fillTriangle(x, y + r * 0.4, x - r * 0.3, y + r * 1.1, x + r * 0.05, y + r * 0.9); g.fillTriangle(x + r * 0.05, y + r * 0.9, x + r * 0.3, y + r * 0.85, x - r * 0.1, y + r * 1.5);
+      for (let i = 0; i < 4; i++) { g.lineStyle(2, 0x8ab8f0, 1); const rx = x - r * 0.7 + i * r * 0.4, ry = y + r * 0.6 + ((t * 3 + i * 7) % 12); g.lineBetween(rx, ry, rx - 2, ry + 6); } }
+  }
+  map(g, t) {                                                                                // the forecast map: sea, a landmass, borders, temperatures
+    for (let i = 0; i < 10; i++) { g.fillStyle(Phaser.Display.Color.GetColor(20 + i * 3, 60 + i * 6, 150 + i * 6), 1); g.fillRect(0, i * H / 10, W, H / 10 + 1); }
+    const land = [[120, 70], [300, 50], [470, 80], [600, 60], [620, 300], [420, 320], [260, 290], [160, 310], [90, 220], [110, 140]];
+    g.fillStyle(0x3a9a4a, 1); g.fillPoints(land.map(([x, y]) => ({ x, y })), true);
+    g.fillStyle(0x4ab05a, 1); g.fillPoints(land.map(([x, y]) => ({ x: x * 0.9 + 30, y: y * 0.9 + 18 })), true);
+    g.lineStyle(1, 0xd8f0d8, 0.7); for (const [a, b] of [[[250, 60], [280, 310]], [[400, 70], [380, 320]], [[100, 190], [610, 170]]]) g.lineBetween(a[0], a[1], b[0], b[1]);   // borders
+  }
+  shot_aero_forecast_bumper(t, k, s) {
+    const g = this.bg;
+    this.hideLosers(); this.hero.setVisible(false);
+    for (let i = 0; i < 12; i++) { g.fillStyle(Phaser.Display.Color.GetColor(10 + i * 8, 20 + i * 10, 80 + i * 12), 1); g.fillRect(0, i * H / 12, W, H / 12 + 1); }
+    for (let i = 0; i < 12; i++) { const a = t * 0.01 + i * 0.52; g.fillStyle(0xffffff, 0.04); g.fillTriangle(W / 2, H / 2, W / 2 + Math.cos(a) * 800, H / 2 + Math.sin(a) * 800, W / 2 + Math.cos(a + 0.2) * 800, H / 2 + Math.sin(a + 0.2) * 800); }
+    const spin = Math.cos(Math.min(1, s / 50) * Math.PI * 2), z = Math.min(1, s / 40);   // the logo, spinning in like a coin
+    const A = this.label(0, 'AERO 7', W / 2, 150, 46, '#e8f0ff'); A.setOrigin(0.5, 0.5).setStroke('#1a3a8a', 6).setShadow(3, 3, '#000000', 0, true, true).setScale(Math.max(0.05, Math.abs(spin)) * z, z);
+    if (s > 50) { const B = this.label(1, 'W E A T H E R', W / 2, 200, 16, '#ffd23a'); B.setOrigin(0.5, 0.5).setStroke('#0a1a4a', 4); }
+    if (s > 40 && s < 80) { const fx = -100 + (s - 40) * 22; this.glow(this.fx, fx, 150, 50, 0xffffff, 0.6); this.fx.fillStyle(0xffffff, 0.5); this.fx.fillRect(fx - 200, 149, 400, 2); for (const [d, r] of [[60, 8], [130, 5], [200, 12]]) { this.fx.fillStyle(0x9ad8ff, 0.35); this.fx.fillCircle(fx - d, 150 + d * 0.2, r); } }   // a lens flare, sweeping across
+    if (s === 40) sfx('shing', 0.6, 1);
+    if (s === 1) sfx('whoosh', 0.5, 1.4);
+    this.tvChrome(t, s);
+  }
+  shot_aero_forecast_map(t, k, s) {
+    const live = this.losers.filter((l) => l.def);
+    this.map(this.bg, t);
+    this.hideLosers();
+    [[250, 150], [380, 240], [500, 130]].forEach(([x, y], i) => this.label(4 + i, (72 + i * 9) + '°', x, y, 12, '#ffffff').setStroke('#0a1a4a', 3));
+    live.forEach((l, i) => {                                                                   // the beaten: storm systems, blowing out to sea
+      const p = Math.max(0, (s - 20 - i * 40) / 300), x = 280 + i * 90 + p * 380, y = 110 + i * 60 - p * 30, r = 26 * (1 - Math.min(1, p) * 0.5);
+      if (x > W + 60) return;
+      this.wxIcon(this.mid, 'storm', x, y, r, t);
+      this.label(i, l.name.slice(0, 12), x - 34, y + r * 1.6 + 6, 7, '#ffffff').setStroke('#0a1a4a', 3);
+      if (p > 0.2) this.wxIcon(this.mid, 'sun', 280 + i * 90, 110 + i * 60, 14 * Math.min(1, (p - 0.2) * 3), t);   // the sun comes out behind them
+    });
+    this.idle(120, 300, 3.2, t);                                                               // him, in front of the map
+    const lt = this.fx; lt.fillStyle(0x0a1a4a, 0.92); lt.fillRect(30, 240, 300, 30); lt.fillStyle(0xffd23a, 1); lt.fillRect(30, 240, 6, 30);   // the lower third
+    this.label(3, 'AERO  -  CHIEF METEOROLOGIST', 44, 250, 8, '#ffffff');
+    this.ticker('CLEAR SKIES ALL WEEK.   STORMS HAVE MOVED OUT OF THE AREA.   UV INDEX: VERY GLOSSY.', s);
+    this.tvChrome(t, s);
+  }
+  shot_aero_forecast_radar(t, k, s) {
+    const g = this.bg, cx = W / 2, cy = 180, R = 150, live = this.losers.filter((l) => l.def);
+    this.hideLosers(); this.hero.setVisible(false);
+    g.fillStyle(0x020a04, 1); g.fillRect(0, 0, W, H);
+    g.fillStyle(0x0a1e0e, 1); g.fillCircle(cx, cy, R);
+    for (let r = 1; r <= 3; r++) { g.lineStyle(1, 0x2a6a3a, 1); g.strokeCircle(cx, cy, R * r / 3); } g.lineBetween(cx - R, cy, cx + R, cy); g.lineBetween(cx, cy - R, cx, cy + R);
+    const a = s * 0.06;
+    for (let i = 0; i < 14; i++) { g.fillStyle(0x5aff8a, 0.12 * (1 - i / 14)); g.slice(cx, cy, R, a - i * 0.04 - 0.04, a - i * 0.04, false); g.fillPath(); }   // the sweep and its fading trail
+    g.lineStyle(2, 0x9affb8, 1); g.lineBetween(cx, cy, cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+    live.forEach((l, i) => {                                                                   // their storm cells - gone once the sweep passes
+      const ang = 0.8 + i * 1.7, d = R * (0.4 + i * 0.18), bx = cx + Math.cos(ang) * d, by = cy + Math.sin(ang) * d;
+      const passes = Math.floor((a - ang + Math.PI * 2) / (Math.PI * 2)), gone = passes >= 1;
+      if (gone) return;
+      for (const [col, r] of [[0x2ad84a, 22], [0xffd23a, 14], [0xff3a2a, 7]]) { g.fillStyle(col, 0.85); g.fillEllipse(bx, by, r * 2, r * 1.4); }
+      this.label(i, l.name.slice(0, 10), bx - 26, by + 16, 6, '#d8ffd8');
+    });
+    this.label(4, 'DOPPLER 7000', 30, 50, 10, '#9affb8');
+    this.label(5, 'STORM CELLS: ' + live.filter((_, i) => Math.floor((a - (0.8 + i * 1.7) + Math.PI * 2) / (Math.PI * 2)) < 1).length, 30, 68, 8, '#9affb8');
+    if (s % 40 === 10) sfx('ding', 0.15, 2.2);
+    this.tvChrome(t, s);
+  }
+  shot_aero_forecast_fiveday(t, k, s) {
+    const g = this.mid, live = this.losers.filter((l) => l.def), days = ['MON', 'TUE', 'WED', 'THU', 'FRI'], kinds = ['sun', 'sun', 'sun', 'sun', 'aero'];
+    this.map(this.bg, t); this.bg.fillStyle(0x0a1a4a, 0.55); this.bg.fillRect(0, 0, W, H);
+    this.hideLosers();
+    this.label(6, 'THE 5-DAY FORECAST', 40, 104, 12, '#ffd23a').setStroke('#0a1a4a', 3);
+    days.forEach((d, i) => {
+      const x = 40 + i * 82, y = 124, on = s > 10 + i * 10;
+      if (!on) return;
+      g.fillStyle(0x1a3a8a, 0.95); g.fillRect(x, y, 76, 116); g.lineStyle(2, 0x8ab8f0, 1); g.strokeRect(x, y, 76, 116);
+      this.label(i, d + '   ' + (i < 4 ? '88°' : '99°'), x + 8, y + 6, 8, '#ffffff');
+      this.wxIcon(g, kinds[i], x + 38, y + 62, 16, t);
+      if (s === 10 + i * 10) sfx('menu', 0.3, 1.4 + i * 0.1);
+    });
+    this.idle(520, 300, 3.2, t, true);
+    this.ticker('EXTENDED FORECAST: 100% CHANCE OF L\'s FOR ' + (live.map((l) => l.name).join(', ') || 'THEM') + '.   NO RAIN ON MY PARADE.   STAY GLOSSY.', s);
+    this.tvChrome(t, s);
+  }
+
 }

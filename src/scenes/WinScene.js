@@ -107,7 +107,7 @@ export class WinScene extends Phaser.Scene {
       const p = spots[i];
       if (!p || !l.def) { l.s.setVisible(false); return; }
       const kneel = p[5] ? 0.72 : 1;
-      l.s.setCrop().setPosition(p[0], p[1]).setScale(p[2], p[2] * kneel).setRotation(p[3] || 0).setAlpha(p[4] ?? 1).setTint(tint).setVisible(true);
+      l.s.setCrop().setPosition(p[0], p[1]).setScale(p[2], p[2] * kneel).setRotation(p[3] || 0).setAlpha(p[4] ?? 1).setTintMode(Phaser.TintModes.FILL).setTint(tint).setVisible(true);
     });
   }
   hideLosers() { for (const l of this.losers) l.s.setVisible(false); }
@@ -138,7 +138,7 @@ export class WinScene extends Phaser.Scene {
     if (t > 30 && (m.ok || m.back || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start' || p.button === 'b'))) return this.done();
     this.clicked = false;
     if (t >= C.len) return this.done();
-    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1).setOrigin(0, 0).setFontSize(12).setColor('#b8ffb8').setBackgroundColor('rgba(0,0,0,0)');
+    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1).setOrigin(0, 0).setScale(1).setStroke('#000000', 0).setShadow(0, 0, '#000000', 0, false, false).setFontSize(12).setColor('#b8ffb8').setBackgroundColor('rgba(0,0,0,0)');
     // which shot
     let si = 0; while (si + 1 < C.shots.length && t >= C.shots[si + 1][0]) si++;
     const [from, name] = C.shots[si], to = si + 1 < C.shots.length ? C.shots[si + 1][0] : C.len;
