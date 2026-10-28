@@ -1,6 +1,7 @@
-// The Shop (TRINKETS > SHOP): the UI only, for now. Tabs of shelves along the top, a grid of item cards, and a
-// panel on the right with the picked item's preview, name, description, price and a BUY button. The money counter
-// sits top right. What's for sale lives in src/data/shop.js (empty slots read COMING SOON); buying isn't wired up yet.
+// The Shop (TRINKETS > SHOP): the UI only, for now. Tabs of shelves along the top, a grid of item cards, and on the
+// right the SHOPKEEPER - a robot with a TV for a head behind his counter, with Mason's faces on the screen (happy /
+// money / shock, picked by what you do: KEEPER in src/data/shop.js) and a speech bubble - over a panel with the picked
+// item's name, description, price, the money counter and a BUY button. What's for sale lives in src/data/shop.js (empty slots read COMING SOON); buying isn't wired up yet.
 // A/D or arrows move along a shelf (W/S: up and down a row), Q/E (or a pad's X/Y) switch tabs,
 // J / Enter / A buys, K / Esc / B goes back. Mouse: click a tab or a card, BUY.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -9,12 +10,13 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { SHOP, CURRENCY, getCoins } from '../data/shop.js';
+import { SHOP, CURRENCY, getCoins, KEEPER } from '../data/shop.js';
 
 const W = VIEW_W, H = VIEW_H;
 const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gold: 0xf3c358, dim: 0x5a4a70 };
 const GRID = { x: 16, y: 84, cols: 4, rows: 2, w: 94, h: 108, gap: 6 };   // the item cards
-const SIDE = { x: 424, y: 84, w: 200, h: 228 };                           // the details panel
+const SIDE = { x: 424, y: 188, w: 200, h: 124 };                          // the details panel, under the shopkeeper's counter
+const KP = { x: 524, y: 100 };                                            // the middle of the shopkeeper's TV screen
 const TAB = { x: 16, y: 56, w: 98, h: 20, gap: 4 };
 const PER = GRID.cols * GRID.rows;
 
@@ -30,17 +32,23 @@ export class ShopScene extends Phaser.Scene {
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
     this.add.text(W / 2, 28, 'SHOP', { fontFamily: FONT, fontSize: '16px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
     this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc').setOrigin(0.5, 0));
-    this.coinT = txt(W - 24, 64, '', 8, '#f3c358').setOrigin(1, 0);
+    this.coinT = txt(SIDE.x + SIDE.w - 10, SIDE.y + 10, '', 7, '#f3c358').setOrigin(1, 0);
     this.cardName = []; this.cardPrice = [];
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i);
       this.cardName.push(txt(x + GRID.w / 2, y + 70, '', 6, '#e8e4f4', { align: 'center' }).setOrigin(0.5, 0));
       this.cardPrice.push(txt(x + GRID.w / 2, y + 88, '', 6, '#f3c358').setOrigin(0.5, 0));
     }
-    this.nameT = txt(SIDE.x + 12, SIDE.y + 110, '', 9, '#ffffff');
-    this.infoT = txt(SIDE.x + 12, SIDE.y + 128, '', 6, '#c9c4dc', { lineSpacing: 6, wordWrap: { width: SIDE.w - 24 } });
-    this.priceT = txt(SIDE.x + 12, SIDE.y + 180, '', 8, '#f3c358');
-    this.buyT = txt(SIDE.x + SIDE.w / 2, SIDE.y + SIDE.h - 26, 'BUY', 9, '#ffffff').setOrigin(0.5, 0.5);
+    this.nameT = txt(SIDE.x + 10, SIDE.y + 10, '', 8, '#ffffff');
+    this.infoT = txt(SIDE.x + 10, SIDE.y + 28, '', 6, '#c9c4dc', { lineSpacing: 5, wordWrap: { width: SIDE.w - 20 } });
+    this.priceT = txt(SIDE.x + 10, SIDE.y + 70, '', 7, '#f3c358');
+    this.buyT = txt(SIDE.x + SIDE.w / 2, SIDE.y + SIDE.h - 20, 'BUY', 9, '#ffffff').setOrigin(0.5, 0.5);
+    // the shopkeeper's face, on his screen (glowing: the line art is filled with the screen's colour)
+    this.faceImg = this.add.sprite(KP.x, KP.y, 'shop_face_happy', 0).setTintMode(Phaser.TintModes.FILL).setTint(0x9affd8);
+    this.front = this.add.graphics();                // over the face: scanlines, the glass, static
+    this.bubbleT = txt(0, 0, '', 6, '#1a1024', { align: 'center' }).setOrigin(0.5, 0.5);
+    this.face = 'happy'; this.faceT = 0; this.faceStart = 0; this.static = 12; this.saying = ''; this.sayT = 0; this.lastSel = -1;
+    this.react('happy', 'hello', 200);
     this.msgT = txt(W / 2, H - 22, '', 7, '#ff8a8a').setOrigin(0.5, 1);
     this.add.text(W / 2, H - 8, 'A/D W/S PICK   Q/E TAB   J / ENTER / A BUY   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
     makeButton(this, 8, 6, '< BACK', () => this.back());
@@ -56,21 +64,70 @@ export class ShopScene extends Phaser.Scene {
       if (over.length) return;
       for (let i = 0; i < SHOP.length; i++) { const x = TAB.x + i * (TAB.w + TAB.gap); if (p.x >= x && p.x <= x + TAB.w && p.y >= TAB.y && p.y <= TAB.y + TAB.h) { this.setTab(i); return; } }
       for (let i = 0; i < PER; i++) { const [x, y] = this.cardAt(i); if (p.x >= x && p.x <= x + GRID.w && p.y >= y && p.y <= y + GRID.h) { if (this.sel === i) this.clicked = 'buy'; else { this.sel = i; sfx('menu', 0.4); } return; } }
-      if (p.x >= SIDE.x + 20 && p.x <= SIDE.x + SIDE.w - 20 && p.y >= SIDE.y + SIDE.h - 40 && p.y <= SIDE.y + SIDE.h - 12) this.clicked = 'buy';
+      if (p.x >= SIDE.x + 20 && p.x <= SIDE.x + SIDE.w - 20 && p.y >= SIDE.y + SIDE.h - 34 && p.y <= SIDE.y + SIDE.h - 6) this.clicked = 'buy';
+      if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50) this.react('money', 'hello');   // poke the shopkeeper
     });
   }
 
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
-  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; sfx('menu', 0.5, 1.2); } }
+  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; sfx('menu', 0.5, 1.2); this.react('happy', 'tab'); this.static = 8; } }
   item() { return SHOP[this.tab].items[this.sel] || null; }
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
   buy() {
     const it = this.item();
-    if (!it) { this.say('NOTHING HERE YET.'); return; }
-    if (getCoins() < it.price) { this.say('NOT ENOUGH ' + CURRENCY.name + '.'); return; }
-    this.say('BUYING IS NOT SET UP YET.');                  // (to be wired up with the items)
+    if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
+    if (getCoins() < it.price) { this.react('shock', 'broke'); sfx('curse', 0.3, 1.5); return; }
+    this.react('money', 'bought'); this.say('BUYING IS NOT SET UP YET.');   // (to be wired up with the items)
   }
-  say(s) { this.msgT.setText(s); this.msg = 90; sfx('curse', 0.3, 1.5); }
+  say(s) { this.msgT.setText(s); this.msg = 90; }
+  // the shopkeeper reacts: a face (for KEEPER.hold frames, then back to happy) and a line from KEEPER.lines
+  react(face, line, hold = KEEPER.hold) {
+    if (face !== this.face) { this.static = 6; this.faceStart = this.t; sfx('glitch', 0.12, 1.8); }
+    this.face = face; this.faceT = face === 'happy' ? 0 : hold;
+    const L = KEEPER.lines[line]; if (L) { this.saying = L[Math.floor(Math.random() * L.length)]; this.sayT = hold + 40; }
+  }
+  // him: rabbit-ear antennas, a chunky CRT head, a boxy body behind his counter, his hands on it
+  keeper(g, t) {
+    const bob = Math.round(Math.sin(t * 0.05) * 1.5), hx = KP.x, hy = KP.y + bob;
+    g.fillStyle(0x140a20, 1); g.fillRect(SIDE.x, 44, SIDE.w, 144);                      // his nook: a back wall with a shelf of junk
+    g.fillStyle(0x221432, 1); g.fillRect(SIDE.x, 60, SIDE.w, 3); g.fillRect(SIDE.x, 120, SIDE.w, 3);
+    for (const [x, y, w, h, c] of [[434, 46, 14, 14, 0x5a3a8a], [452, 50, 10, 10, 0xc77dff], [588, 44, 16, 16, 0x3a8a6a], [606, 52, 10, 8, 0xf3c358], [432, 104, 18, 16, 0x8a3a5a], [600, 100, 18, 20, 0x3a5a8a]]) { g.fillStyle(c, 0.8); g.fillRect(x, y, w, h); }
+    // the body and shoulders
+    g.fillStyle(0x3a4054, 1); g.fillRect(hx - 44, hy + 50, 88, 40); g.fillStyle(0x4a5068, 1); g.fillRect(hx - 44, hy + 50, 88, 4);
+    g.fillStyle(0x2a2e3e, 1); g.fillRect(hx - 54, hy + 54, 12, 24); g.fillRect(hx + 42, hy + 54, 12, 24);
+    for (let i = 0; i < 3; i++) { g.fillStyle([0xff5a5a, 0x5aff8a, 0xffd23a][i], (t + i * 17) % 50 < 25 ? 1 : 0.25); g.fillRect(hx - 10 + i * 8, hy + 62, 4, 4); }   // lights on his chest
+    g.fillStyle(0x2a2e3e, 1); g.fillRect(hx - 8, hy + 42, 16, 10);                     // the neck
+    // the antennas
+    g.lineStyle(2, 0x8a8a9a, 1); g.lineBetween(hx - 10, hy - 44, hx - 30, hy - 66); g.lineBetween(hx + 10, hy - 44, hx + 28, hy - 68);
+    g.fillStyle((t >> 4) % 2 ? 0xff5a5a : 0x8a2a2a, 1); g.fillCircle(hx - 30, hy - 66, 3); g.fillCircle(hx + 28, hy - 68, 3);
+    // the TV: casing, a screen in a rounded bezel, knobs and a speaker grille
+    g.fillStyle(0x6a6478, 1); g.fillRoundedRect(hx - 56, hy - 46, 112, 92, 10); g.fillStyle(0x837d92, 1); g.fillRoundedRect(hx - 56, hy - 46, 112, 6, 3);
+    g.fillStyle(0x2a2632, 1); g.fillRoundedRect(hx - 48, hy - 38, 80, 74, 8);
+    g.fillStyle(0x061a14, 1); g.fillRoundedRect(hx - 44, hy - 35, 72, 68, 7);
+    this.glow(g, hx - 8, hy - 1, 40, 0x5affb8, 0.18);
+    for (let i = 0; i < 2; i++) { g.fillStyle(0x2a2632, 1); g.fillCircle(hx + 44, hy - 22 + i * 18, 6); g.fillStyle(0x9a94a8, 1); g.fillRect(hx + 43, hy - 28 + i * 18 + ((t >> 5) + i) % 3, 2, 5); }
+    for (let i = 0; i < 4; i++) { g.fillStyle(0x2a2632, 1); g.fillRect(hx + 38, hy + 14 + i * 5, 12, 2); }
+    // the counter in front of him, and his hands resting on it
+    g.fillStyle(0x4a2a1a, 1); g.fillRect(SIDE.x, 170, SIDE.w, 18); g.fillStyle(0x6a3e24, 1); g.fillRect(SIDE.x, 170, SIDE.w, 4);
+    g.fillStyle(0x3a2014, 1); for (let x = SIDE.x + 10; x < SIDE.x + SIDE.w; x += 40) g.fillRect(x, 176, 2, 12);
+    for (const dx of [-40, 40]) { g.fillStyle(0x2a2e3e, 1); g.fillRect(hx + dx - 8, 160, 16, 12); g.fillStyle(0x4a5068, 1); g.fillRect(hx + dx - 8, 160, 16, 3); for (let f = 0; f < 3; f++) g.fillRect(hx + dx - 7 + f * 5, 170, 4, 3); }
+    // the face on the screen: the current face's strip, animated if it has more than one frame
+    const key = 'shop_face_' + this.face, F = KEEPER.faces[this.face], n = Math.max(1, this.textures.get(key).frameTotal - 1);
+    this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(hx - 8, hy - 1).setScale(1).setVisible(this.static <= 0 || this.static % 2 === 0);
+    const f = this.front; f.clear();
+    for (let y = hy - 35; y < hy + 33; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(hx - 44, y, 72, 1); }       // scanlines
+    f.fillStyle(0xffffff, 0.06); f.fillEllipse(hx - 22, hy - 22, 34, 14);                                          // the glass
+    if (this.static > 0) { this.static--; for (let i = 0; i < 70; i++) { f.fillStyle(Math.random() < 0.5 ? 0xd8fff0 : 0x2a4a3a, 1); f.fillRect(hx - 44 + Math.random() * 70, hy - 35 + Math.random() * 66, 2, 1); } }   // static when the channel changes
+    // the speech bubble
+    if (this.sayT > 0 && this.saying) {
+      this.sayT--;
+      this.bubbleT.setText(this.saying).setVisible(true);
+      const bw = Math.max(80, this.bubbleT.width + 16), bh = 20, bx = Math.min(W - bw - 70, hx - 60 - bw / 2), by = 14;
+      f.fillStyle(0xf4f0fa, 1); f.fillRoundedRect(bx, by, bw, bh, 6); f.fillTriangle(bx + bw - 26, by + bh, bx + bw - 12, by + bh, hx - 36, hy - 52);
+      this.bubbleT.setPosition(bx + bw / 2, by + bh / 2);
+    } else this.bubbleT.setVisible(false);
+  }
+  glow(g, x, y, r, col, a) { for (let i = 1; i <= 5; i++) { g.fillStyle(col, a / 5); g.fillCircle(x, y, r * (1.15 - i * 0.17)); } }
 
   // a placeholder icon: a little gift box in the item's colour (or an empty, dashed slot)
   icon(g, cx, cy, s, it, t) {
@@ -105,8 +162,11 @@ export class ShopScene extends Phaser.Scene {
     this.clicked = null;
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     if (this.msg > 0 && --this.msg === 0) this.msgT.setText('');
+    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react('money', 'look'); this.lastSel = this.sel; }   // eyeing something for sale: $ $
+    if (this.faceT > 0 && --this.faceT === 0) this.react('happy');
 
     const g = this.g; g.clear();
+    this.keeper(g, t);
     // the tabs
     SHOP.forEach((tb, i) => {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
@@ -115,7 +175,6 @@ export class ShopScene extends Phaser.Scene {
       this.tabT[i].setColor(on ? '#ffffff' : '#8a87a3');
     });
     // the money
-    this.coin(g, W - 24 - this.coinT.width - 10, 69, t);
     this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
     // the cards
     const shelf = SHOP[this.tab].items;
@@ -132,15 +191,13 @@ export class ShopScene extends Phaser.Scene {
     // the details panel
     const it = this.item();
     g.fillStyle(C.panel, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, SIDE.h); g.fillStyle(C.line, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, 2);
-    g.fillStyle(0x140a20, 1); g.fillRect(SIDE.x + 12, SIDE.y + 12, SIDE.w - 24, 90);       // the big preview
-    for (let i = 0; i < 5; i++) { g.fillStyle(C.line, 0.04); g.fillCircle(SIDE.x + SIDE.w / 2, SIDE.y + 57, 10 + i * 8 + Math.sin(t * 0.05) * 3); }
-    this.icon(g, SIDE.x + SIDE.w / 2, SIDE.y + 57, 28, it, t);
     this.nameT.setText(it ? it.name : 'COMING SOON');
-    this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.\nCHECK BACK LATER.');
+    this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
     this.priceT.setText(it ? it.price + ' ' + CURRENCY.name : '');
     const can = it && getCoins() >= it.price;
-    g.fillStyle(can ? 0x3a8a3a : 0x3a2654, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 40, SIDE.w - 40, 28);
-    g.fillStyle(can ? 0x5ad05a : C.dim, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 40, SIDE.w - 40, 2);
+    g.fillStyle(can ? 0x3a8a3a : 0x3a2654, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 34, SIDE.w - 40, 28);
+    g.fillStyle(can ? 0x5ad05a : C.dim, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 34, SIDE.w - 40, 2);
     this.buyT.setColor(can ? '#ffffff' : '#8a87a3');
+    this.coin(g, SIDE.x + SIDE.w - 18 - this.coinT.width, SIDE.y + 13, t);          // the money, with its little spinning coin
   }
 }

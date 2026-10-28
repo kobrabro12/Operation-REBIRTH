@@ -16,3 +16,23 @@ export const SHOP = [
 
 // how much money the player has (nothing earns any yet)
 export function getCoins() { return 0; }
+
+// THE SHOPKEEPER: a robot with a TV for a head. His faces are Mason's drawings (public/assets/shop/face_<name>.png,
+// originals in tools/sprites/art/shopkeeper/) - each one a strip of 64x64 frames, so a face can be an animation:
+// add frames to the right and they play at `fps`. Which face shows depends on what you're doing:
+//   happy  his usual face        money  you're looking at something for sale, or buying it
+//   shock  you tried to buy nothing, or something you can't afford
+export const KEEPER = {
+  faces: { happy: { fps: 6 }, money: { fps: 8 }, shock: { fps: 8 } },
+  // how long a reaction face stays up before he goes back to happy (frames)
+  hold: 100,
+  // what he says
+  lines: {
+    hello: ['WELCOME, WELCOME!', 'BROWSE ALL YOU LIKE.', 'NEW STOCK... EVENTUALLY.'],
+    look: ['OOH, A FINE PICK.', 'THAT ONE? GOOD EYE.', 'CHA-CHING...'],
+    empty: ['NOTHING THERE YET!', "THAT SHELF'S BARE, FRIEND.", 'COME BACK LATER!'],
+    broke: ["YOU CAN'T AFFORD THAT!", 'NOT ENOUGH ' + 'COINS!', 'NO COIN, NO DEAL.'],
+    bought: ['PLEASURE DOING BUSINESS!', 'SOLD!'],
+    tab: ['RIGHT THIS WAY.', 'HAVE A LOOK.', 'ANOTHER SHELF!'],
+  },
+};
