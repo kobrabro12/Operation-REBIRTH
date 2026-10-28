@@ -25,3 +25,42 @@ export function addKO(id) {
   const tier = MILESTONE_KOS.indexOf(kos[id]);
   return tier > 0 ? tier : 0;
 }
+
+// ---- the SHOP: coins, what you own, what you have switched on. Remembered in this browser.
+// Testing: ?coins=5000 sets the coin count.
+const SHOP_KEY = 'rebirth.shop';
+const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [] };
+try { Object.assign(shop, JSON.parse(localStorage.getItem(SHOP_KEY) || '{}') || {}); } catch (e) { /* keep the defaults */ }
+function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) { /* storage unavailable */ } }
+try {
+  const q = new URLSearchParams(window.location.search).get('coins');
+  if (q !== null && !isNaN(+q)) { shop.coins = Math.max(0, Math.floor(+q)); saveShop(); }
+} catch (e) { /* no URL */ }
+
+export function getCoins() { return shop.coins; }
+export function addCoins(n) { shop.coins = Math.max(0, shop.coins + Math.floor(n)); saveShop(); return shop.coins; }
+export function owns(id) { return shop.owned.includes(id); }
+// pay for an item; false if you can't afford it (or already have it)
+export function buyItem(id, price) {
+  if (owns(id) || shop.coins < price) return false;
+  shop.coins -= price; shop.owned.push(id); saveShop(); return true;
+}
+// what's switched on: one battle track, one stage effect, any number of extras
+export function equippedMusic() { return shop.music && owns(shop.music) ? shop.music : null; }
+export function equippedStageFx() { return shop.stageFx && owns(shop.stageFx) ? shop.stageFx : null; }
+export function extraOn(id) { return shop.extras.includes(id) && owns(id); }
+export function isEquipped(kind, id) { return kind === 'music' ? shop.music === id : kind === 'fx' ? shop.stageFx === id : kind === 'extra' ? shop.extras.includes(id) : false; }
+// switch an owned item on or off; returns whether it's on now
+export function toggleEquip(kind, id) {
+  if (!owns(id)) return false;
+  if (kind === 'music') shop.music = shop.music === id ? null : id;
+  else if (kind === 'fx') shop.stageFx = shop.stageFx === id ? null : id;
+  else if (kind === 'extra') shop.extras = shop.extras.includes(id) ? shop.extras.filter((x) => x !== id) : [...shop.extras, id];
+  saveShop(); return isEquipped(kind, id);
+}
+
+// COINS FROM MATCHES (real matches only - not training, not the title demo), for each human player:
+//   just for playing, per KO they scored, and for where they placed (1st, 2nd, 3rd). A typical match is worth
+//   about 25-85 coins, so the shop fills up over a few hundred matches, not a couple.
+export const COIN_RATES = { play: 15, ko: 10, place: [40, 20, 10, 0] };
+export function matchCoins(place, kos) { return COIN_RATES.play + COIN_RATES.ko * kos + (COIN_RATES.place[place] || 0); }

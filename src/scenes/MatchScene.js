@@ -1,7 +1,8 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { hasWinCutscene } from './WinScene.js';
-import { addKO } from '../progress.js';
+import { addKO, matchCoins, addCoins, getCoins, equippedMusic } from '../progress.js';
+import { MatchExtras } from './matchExtras.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
 const STYLE_HIT = {
@@ -80,8 +81,10 @@ export class MatchScene extends Phaser.Scene {
     this.aeroStage = { k: 0, on: false, t: 0 };
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
+    else if (equippedMusic()) playMusic(this, 'bgm_shop_' + equippedMusic().slice(4), 0.55);   // a track bought in the shop and switched on
     else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
+    this.extras = new MatchExtras(this);              // stage effects and extras bought in the shop (matchExtras.js)
 
     // ---- players: P1 keyboard (+ optional pad), joined pads, then CPUs fill the rest
     this.fighters = [];
@@ -167,7 +170,7 @@ export class MatchScene extends Phaser.Scene {
       if (this.demoTime > 25000 || this.over === 1) { demoRequest.next = true; this.scene.restart(); return; }
     } else if (this.handlePause()) return;
     if (this.training) this.training.input();
-    this.acc += Math.min(delta, 100) * (this.training ? this.training.speed : 1);
+    this.acc += Math.min(delta, 100) * (this.training ? this.training.speed : 1) * this.extras.timeScale();
     let steps = 0;
     while (this.acc >= STEP_MS && steps < 5) { this.tick(); this.acc -= STEP_MS; steps++; }
     this.draw();
@@ -236,6 +239,7 @@ export class MatchScene extends Phaser.Scene {
     const hazard = this.stage.step(this);
     this.resolveHits(hazard);
     this.stepEffects();
+    this.extras.step();
     if (this.training) this.training.step();
 
     // rules
@@ -363,6 +367,7 @@ export class MatchScene extends Phaser.Scene {
     this.puff(c.x, c.y, 0xffffff, 6 + Math.floor(kb));
     this.puff(c.x, c.y, 0xf3c358, 4);
     if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir, dmg);
+    this.extras.onHit(t, dmg, kb);
     if (owner && owner.def.hitSfx && !hb.projectile && !hb.pillar) sfx(owner.def.hitSfx, 0.32, 0.9 + Math.random() * 0.2);   // steel ringing on steel
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
     if (h.homerun && h.full) {                      // a fully charged Grand Slam: crack of the bat
@@ -392,6 +397,7 @@ export class MatchScene extends Phaser.Scene {
       const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 6;
       this.particles.push({ x: bx, y: by, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + Math.random() * 30, color: [f.color, 0xffffff, 0xf3c358][i % 3], size: 3 });
     }
+    this.extras.onKO(f, bx, by);
     if (f.lastHitBy && f.lastHitBy !== f) {
       const k = f.lastHitBy; k.kos++; if (k.quip) k.quip('ko');
       if (!k.isCpu && !this.isTraining) {           // milestone progress: human KOs in real matches
@@ -407,7 +413,7 @@ export class MatchScene extends Phaser.Scene {
     f.ko();
     if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
-      if (left.length <= 1 && !this.over) this.endMatch('GAME!');
+      if (left.length <= 1 && !this.over) { this.endMatch('GAME!'); this.extras.onFinalKO(); }
     }
   }
 
@@ -423,7 +429,10 @@ export class MatchScene extends Phaser.Scene {
     if (this.mode === 'time') order = [...this.fighters].sort((a, b) => (b.kos - b.falls) - (a.kos - a.falls) || a.percent - b.percent);
     else order = [...this.fighters].sort((a, b) => (b.eliminated ? 0 : 1) - (a.eliminated ? 0 : 1) || b.stocks - a.stocks || (b.eliminatedAt || 0) - (a.eliminatedAt || 0));
     const results = order.map((f) => ({ label: f.label, slot: f.slot, fighter: f.def.id, skin: f.skin, kos: f.kos, falls: f.falls, dealt: f.stats.damageDealt, taken: f.stats.damageTaken, cpu: f.isCpu }));
-    const data = { results, mode: this.mode, unlocks: this.unlocks };
+    // coins for the shop: each human player earns some for playing, their KOs and where they placed (progress.js)
+    const coins = this.isTraining || this.demo ? [] : order.map((f, place) => (f.isCpu ? null : { label: f.label, slot: f.slot, coins: matchCoins(place, f.kos) })).filter(Boolean);
+    const earned = coins.reduce((n, c) => n + c.coins, 0); if (earned) addCoins(earned);
+    const data = { results, mode: this.mode, unlocks: this.unlocks, coins, total: getCoins() };
     if (hasWinCutscene(results[0].fighter) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
     this.scene.start('Results', data);
   }
@@ -883,6 +892,7 @@ export class MatchScene extends Phaser.Scene {
   // ------------------------------------------------------------------ drawing
   draw() {
     this.renderAeroStage();
+    this.extras.draw();
     for (const f of this.fighters) f.render(this.frame);
     for (const p of this.projectiles) p.render();
     for (const p of this.pools) p.render();
@@ -1003,6 +1013,7 @@ export class MatchScene extends Phaser.Scene {
 
   cleanup() {
     for (const f of this.fighters || []) f.stopChargeSound();
+    if (this.extras) this.extras.cleanup();              // (MOON GRAVITY puts gravity back)
     if (this.demo) { setSfxMuted(false); return; }    // the title screen keeps its music playing
     this.sound.stopAll(); stopMusic();
   }

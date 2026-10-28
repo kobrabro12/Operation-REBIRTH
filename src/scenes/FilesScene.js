@@ -74,7 +74,7 @@ export class FilesScene extends Phaser.Scene {
     const open = skinUnlocked(f.id, this.si), tier = skinTier(f.id, this.si);
     const story = (MILESTONE_LORE[f.id] || {})[skin.name] || skin.lore || (SKIN_LORE[f.id] || {})[skin.name];
     this.skinName.setText(skin.name);
-    this.skinNote.setText((this.si + 1) + ' / ' + skins.length + (tier ? '\nMILESTONE ' + tier : '') + (open ? '' : '\nLOCKED: REACH ' + MILESTONE_KOS[tier] + ' KOS (' + getKOs(f.id) + ' SO FAR)'));
+    this.skinNote.setText((this.si + 1) + ' / ' + skins.length + (tier ? '\nMILESTONE ' + tier : '') + (open ? '' : skin.shop ? '\nLOCKED: BUY IT IN THE SHOP' : '\nLOCKED: REACH ' + MILESTONE_KOS[tier] + ' KOS (' + getKOs(f.id) + ' SO FAR)'));
     this.skinHead.setText('COSTUME FILE: ' + skin.name + (tier ? '  (MILESTONE ' + tier + (open ? ')' : ' - LOCKED)') : ''));
     this.skinLore.setText(story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
     this.locked = !open;

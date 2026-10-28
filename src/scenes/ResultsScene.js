@@ -33,6 +33,12 @@ export class ResultsScene extends Phaser.Scene {
       for (const [txt, x] of cols) this.add.text(x, y, txt, { fontFamily: FONT, fontSize: '8px', color: x === 116 ? PLAYER_CSS[r.slot] : '#ffffff' });
     });
     this.milestones(data, g);
+    // the coins each human earned (for the shop: Trinkets > SHOP)
+    if (data.coins && data.coins.length) {
+      const txt = data.coins.map((c) => c.label + ' +' + c.coins).join('   ') + '   COINS  (' + data.total + ' IN THE BANK)';
+      this.coinT = this.add.text(VIEW_W / 2, 318, txt, { fontFamily: FONT, fontSize: '7px', color: '#f3c358', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
+      this.time.delayedCall(400, () => sfx('ding', 0.4, 1.6));
+    }
     this.prompt = this.add.text(VIEW_W / 2, 336, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
     sfx('limitready', 0.8);
     this.clicked = false;

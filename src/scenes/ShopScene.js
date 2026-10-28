@@ -1,7 +1,9 @@
-// The Shop (TRINKETS > SHOP): the UI only, for now. Tabs of shelves along the top, a grid of item cards, and on the
-// right the SHOPKEEPER - an old TV sitting on his desk, with Mason's faces on the screen (calm / happy /
-// money / shock, picked by what you do: KEEPER in src/data/shop.js) and a speech bubble - over a panel with the picked
-// item's name, description, price, the money counter and a BUY button. What's for sale lives in src/data/shop.js (empty slots read COMING SOON); buying isn't wired up yet.
+// The Shop (TRINKETS > SHOP). Tabs of shelves along the top, a grid of item cards, and on the right the SHOPKEEPER -
+// an old TV sitting on his desk, with Mason's faces on the screen (calm / happy / money / shock / smug, picked by what
+// you do: KEEPER in src/data/shop.js) and a speech bubble - over a panel with the picked item's name, description and
+// the BUY button. What's for sale lives in src/data/shop.js; coins, what you own and what's switched on live in
+// src/progress.js. Buying a stage effect, track or extra switches it on; press the button again to switch it off
+// (or back on). Costumes are picked on the select screen once bought. Picking a track plays a preview.
 // A/D or arrows move along a shelf (W/S: up and down a row), Q/E (or a pad's X/Y) switch tabs,
 // J / Enter / A buys, K / Esc / B goes back. Mouse: click a tab or a card, BUY.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -10,7 +12,10 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { SHOP, CURRENCY, getCoins, KEEPER } from '../data/shop.js';
+import { SHOP, CURRENCY, KEEPER } from '../data/shop.js';
+import { getCoins, buyItem, owns, toggleEquip, isEquipped } from '../progress.js';
+import { fighterById, showFighter } from '../fighters/roster.js';
+import { skinsFor } from '../fighters/skins.js';
 
 const W = VIEW_W, H = VIEW_H;
 const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gold: 0xf3c358, dim: 0x5a4a70 };
@@ -32,16 +37,16 @@ export class ShopScene extends Phaser.Scene {
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
     this.add.text(W / 2, 28, 'SHOP', { fontFamily: FONT, fontSize: '16px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
     this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc').setOrigin(0.5, 0));
-    this.coinT = txt(SIDE.x + SIDE.w - 10, SIDE.y + 10, '', 7, '#f3c358').setOrigin(1, 0);
-    this.cardName = []; this.cardPrice = [];
+    this.coinT = txt(W - 14, 34, '', 8, '#f3c358', { stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(1, 0.5);
+    this.cardName = []; this.cardPrice = []; this.cardSpr = [];
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i);
       this.cardName.push(txt(x + GRID.w / 2, y + 70, '', 6, '#e8e4f4', { align: 'center' }).setOrigin(0.5, 0));
       this.cardPrice.push(txt(x + GRID.w / 2, y + 88, '', 6, '#f3c358').setOrigin(0.5, 0));
+      this.cardSpr.push(this.add.sprite(x + GRID.w / 2, y + 62, 'ss_idle', 0).setVisible(false));   // a costume, worn by its fighter
     }
     this.nameT = txt(SIDE.x + 10, SIDE.y + 10, '', 8, '#ffffff');
-    this.infoT = txt(SIDE.x + 10, SIDE.y + 28, '', 6, '#c9c4dc', { lineSpacing: 5, wordWrap: { width: SIDE.w - 20 } });
-    this.priceT = txt(SIDE.x + 10, SIDE.y + 50, '', 7, '#f3c358');
+    this.infoT = txt(SIDE.x + 10, SIDE.y + 24, '', 6, '#c9c4dc', { lineSpacing: 4, wordWrap: { width: SIDE.w - 20 } });
     this.buyT = txt(SIDE.x + SIDE.w / 2, SIDE.y + SIDE.h - 20, 'BUY', 9, '#ffffff').setOrigin(0.5, 0.5);
     // the shopkeeper's face, on his screen (glowing: the line art is filled with the screen's colour)
     this.faceImg = this.add.sprite(KP.x, KP.y, 'shop_face_calm', 0).setTintMode(Phaser.TintModes.FILL).setTint(0x9affd8);
@@ -50,7 +55,7 @@ export class ShopScene extends Phaser.Scene {
     this.face = 'calm'; this.faceT = 0; this.jolt = 0; this.faceStart = 0; this.static = 12; this.saying = ''; this.sayT = 0; this.lastSel = -1;
     this.react('happy', 'hello', 200);
     this.msgT = txt(W / 2, H - 22, '', 7, '#ff8a8a').setOrigin(0.5, 1);
-    this.add.text(W / 2, H - 8, 'A/D W/S PICK   Q/E TAB   J / ENTER / A BUY   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.add.text(W / 2, H - 8, 'A/D W/S PICK   Q/E TAB   J / ENTER / A BUY / SWITCH ON   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, W - 8, 6);
     this.msg = 0;
@@ -70,16 +75,38 @@ export class ShopScene extends Phaser.Scene {
   }
 
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
-  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.lastSel = 0; sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
+  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
   item() { return SHOP[this.tab].items[this.sel] || null; }
-  back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  back() { sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
+  // a music card picked: play that track; anything else: the shop goes back to the title music
+  preview() { const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
+  // what the big button says for this item
+  label(it) {
+    if (!it) return '-';
+    if (it.gacha) return 'SPIN';
+    if (!owns(it.id)) return 'BUY';
+    if (it.kind === 'costume') return 'OWNED';
+    return isEquipped(it.kind, it.id) ? 'SWITCH OFF' : 'SWITCH ON';
+  }
   buy() {
     const it = this.item();
     if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
+    if (!it.gacha && owns(it.id)) {                                                   // already yours
+      if (it.kind === 'costume') { this.react('smug', 'owned'); this.say('PICK IT ON THE SELECT SCREEN.', '#c9c4dc'); return; }
+      const on = toggleEquip(it.kind, it.id);
+      if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('happy', 'unequip'); sfx('menu', 0.5, 0.8); }
+      this.say(on ? it.name + ' IS ON' + (it.kind === 'extra' ? '' : ' (ONLY ONE AT A TIME)') : it.name + ' IS OFF', on ? '#7aff8a' : '#c9c4dc');
+      return;
+    }
     if (getCoins() < it.price) { this.react('shock', it.gacha ? 'spin' : 'broke'); sfx('curse', 0.3, 1.5); return; }
-    this.react('money', 'bought'); this.say(it.gacha ? 'THE MACHINES AREN\'T STOCKED YET.' : 'BUYING IS NOT SET UP YET.');   // (to be wired up with the items / GACHA prizes)
+    if (it.gacha) { this.react('money', 'spin'); this.say('THE MACHINES AREN\'T STOCKED YET.'); return; }   // (no prizes in GACHA yet: nothing is charged)
+    buyItem(it.id, it.price);
+    this.react('smug', 'bought', 140); sfx('ding', 0.45, 1.6); this.static = 8;
+    if (it.kind === 'costume') { this.say('NEW COSTUME! PICK IT ON THE SELECT SCREEN.', '#7aff8a'); return; }
+    if (!isEquipped(it.kind, it.id)) toggleEquip(it.kind, it.id);                   // bought it: it's switched on right away
+    this.say(it.name + ' IS ON. PRESS AGAIN TO SWITCH IT OFF.', '#7aff8a');
   }
-  say(s) { this.msgT.setText(s); this.msg = 90; }
+  say(s, color = '#ff8a8a') { this.msgT.setText(s).setColor(color); this.msg = 120; }
   // the shopkeeper reacts: a face (for `hold` frames, then back to his calm face) and a line from KEEPER.lines
   react(face, line, hold = KEEPER.hold) {
     if (face !== this.face) { this.static = 6; this.faceStart = this.t; sfx('glitch', 0.12, 1.8); }
@@ -161,12 +188,14 @@ export class ShopScene extends Phaser.Scene {
   //   happy bobs along to a little beat, swaying side to side
   //   money hops up and down fast, excited, with a jitter
   //   shock shakes, hard at first, then trembling
+//   smug  leans slowly side to side, pleased with itself, with a little lift now and then
   faceMotion(t) {
     const d = t - this.faceStart;
     switch (this.face) {
       case 'happy': { const b = Math.abs(Math.sin(d * 0.12)); return [Math.sin(d * 0.06) * 1.5, -b * 3, 1, 1]; }
       case 'money': { const h = Math.abs(Math.sin(d * 0.22)); return [(d % 6 < 3 ? 1 : -1), -h * 2.5, 1, 1]; }
       case 'shock': { const a = d < 20 ? 3 : 1; return [(Math.random() - 0.5) * 2 * a, (Math.random() - 0.5) * a, 1, 1]; }
+      case 'smug': { const brow = (d % 100) < 10 ? -1.5 : 0; return [Math.sin(d * 0.03) * 2.5, brow, 1, 1]; }      // smug: a slow, knowing sway, now and then a little lift
       default: { const blink = (t % 210) < 6 ? 0.15 : 1; return [Math.sin(t * 0.021) * 1, Math.sin(t * 0.035) * 1.5, 1, blink]; }
     }
   }
@@ -181,11 +210,74 @@ export class ShopScene extends Phaser.Scene {
       g.fillRect(cx - 4, cy - 8, 8, 2); g.fillRect(cx + 3, cy - 7, 2, 5); g.fillRect(cx - 1, cy - 3, 4, 2); g.fillRect(cx - 1, cy - 2, 2, 4); g.fillRect(cx - 1, cy + 4, 2, 2);
       return;
     }
+    if (it.kind === 'costume') return;                                                  // (a sprite: drawn in update)
+    if (it.kind === 'music') return this.vinyl(g, cx, cy, s, it, t);
+    if (it.kind === 'fx') return this.scenery(g, cx, cy, it, t);
+    if (it.kind === 'extra') return this.glyph(g, cx, cy, it, t);
     const col = it.color ?? C.gold, bob = Math.sin(t * 0.06) * 2;
     g.fillStyle(col, 1); g.fillRect(cx - s * 0.7, cy - s * 0.3 + bob, s * 1.4, s);
     g.fillStyle(0xffffff, 0.25); g.fillRect(cx - s * 0.7, cy - s * 0.3 + bob, s * 1.4, 3);
     g.fillStyle(0xffffff, 1); g.fillRect(cx - 2, cy - s * 0.3 + bob, 4, s); g.fillRect(cx - s * 0.8, cy - s * 0.45 + bob, s * 1.6, 5);
     g.fillEllipse(cx - 6, cy - s * 0.55 + bob, 10, 6); g.fillEllipse(cx + 6, cy - s * 0.55 + bob, 10, 6);
+  }
+  // a record spinning on a little turntable, its label in the track's colour
+  vinyl(g, cx, cy, s, it, t) {
+    const col = it.color ?? C.gold, on = owns(it.id) && isEquipped('music', it.id), a = t * (on || it === this.item() ? 0.08 : 0.02);
+    g.fillStyle(0x2a2030, 1); g.fillRect(cx - 26, cy - 22, 52, 46);
+    g.fillStyle(0x0a0810, 1); g.fillCircle(cx - 3, cy + 1, 20);
+    g.lineStyle(1, 0x2a2638, 1); for (const r of [17, 14, 11]) g.strokeCircle(cx - 3, cy + 1, r);
+    g.fillStyle(0xffffff, 0.12); g.fillTriangle(cx - 3, cy + 1, cx - 3 + Math.cos(a) * 20, cy + 1 + Math.sin(a) * 20, cx - 3 + Math.cos(a + 0.5) * 20, cy + 1 + Math.sin(a + 0.5) * 20);   // the shine, going round
+    g.fillStyle(col, 1); g.fillCircle(cx - 3, cy + 1, 7); g.fillStyle(0x0a0810, 1); g.fillCircle(cx - 3, cy + 1, 1.5);
+    g.fillStyle(0xffffff, 0.8); g.fillCircle(cx - 3 + Math.cos(a * 2) * 4, cy + 1 + Math.sin(a * 2) * 4, 1);
+    g.lineStyle(2, 0xb8b4c8, 1); g.lineBetween(cx + 21, cy - 18, cx + 19, cy + 2); g.lineBetween(cx + 19, cy + 2, cx + 9, cy + 8);   // the tone arm
+    g.fillStyle(0xb8b4c8, 1); g.fillCircle(cx + 21, cy - 18, 3);
+    if (on || it === this.item()) for (let i = 0; i < 2; i++) { const p = ((t + i * 30) % 60) / 60; g.fillStyle(col, 1 - p); g.fillRect(cx + 14 + i * 6, cy - 14 - p * 14, 3, 3); g.fillRect(cx + 16 + i * 6, cy - 22 - p * 14, 1, 9); }   // notes floating up
+  }
+  // a little window onto a stage with the effect on it: sky, a floating platform, the weather
+  scenery(g, cx, cy, it, t) {
+    const X = cx - 38, Y = cy - 27, w = 76, h = 54;
+    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830 }[it.id] ?? 0x3a4a8a;
+    g.fillStyle(sky, 1); g.fillRect(X, Y, w, h);
+    const rnd = (i, k) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
+    switch (it.id) {
+      case 'fx-night': for (let i = 0; i < 14; i++) { g.fillStyle(0xffffff, 0.4 + 0.6 * ((Math.sin(t * 0.1 + i * 3) + 1) / 2)); g.fillRect(X + rnd(i, 1) * w, Y + rnd(i, 2) * h * 0.6, 1, 1); }
+        g.fillStyle(0xfff4c8, 1); g.fillCircle(X + 58, Y + 12, 6); g.fillStyle(sky, 1); g.fillCircle(X + 61, Y + 10, 5); break;
+      case 'fx-storm': { if (t % 90 < 4) { g.fillStyle(0xffffff, 0.7); g.fillRect(X, Y, w, h); g.lineStyle(1, 0xffffff, 1); g.lineBetween(X + 50, Y, X + 46, Y + 14); g.lineBetween(X + 46, Y + 14, X + 52, Y + 20); g.lineBetween(X + 52, Y + 20, X + 47, Y + 34); }
+        g.fillStyle(0x1a1e2a, 1); g.fillEllipse(X + 20, Y + 6, 40, 14); g.fillEllipse(X + 54, Y + 4, 44, 12);
+        g.lineStyle(1, 0x8ab0ff, 0.7); for (let i = 0; i < 14; i++) { const x = X + ((rnd(i, 3) * w + t * 0.6) % w), y = Y + ((rnd(i, 4) * h + t * 2.5) % h); g.lineBetween(x, y, x - 2, y + 5); } break; }
+      case 'fx-snow': g.fillStyle(0xffffff, 1); for (let i = 0; i < 18; i++) g.fillRect(X + ((rnd(i, 5) * w + t * 0.5) % w), Y + ((rnd(i, 6) * h + t * 0.4 * (1 + rnd(i, 7))) % h), 2, 2); break;
+      case 'fx-sakura': for (let i = 0; i < 12; i++) { g.fillStyle(i % 2 ? 0xff7aa8 : 0xffd0e0, 1); g.fillRect(X + ((rnd(i, 8) * w + t * 0.3 + Math.sin(t * 0.05 + i) * 4) % w), Y + ((rnd(i, 9) * h + t * 0.3) % h), 3, 2); } break;
+      case 'fx-fireflies': for (let i = 0; i < 10; i++) { const fx = X + 8 + rnd(i, 10) * (w - 16) + Math.sin(t * 0.03 + i * 2) * 5, fy = Y + 8 + rnd(i, 11) * (h - 22) + Math.cos(t * 0.025 + i) * 4, a = (Math.sin(t * 0.08 + i * 1.7) + 1) / 2; g.fillStyle(0xd8ff6a, 0.3 * a); g.fillCircle(fx, fy, 4); g.fillStyle(0xf4ffb0, 0.3 + 0.7 * a); g.fillRect(fx - 1, fy - 1, 2, 2); } break;
+      case 'fx-bloodmoon': g.fillStyle(0xc81a1a, 0.25); g.fillCircle(X + 38, Y + 22, 22); g.fillStyle(0xd8261a, 1); g.fillCircle(X + 38, Y + 22, 15); g.fillStyle(0xa81010, 1); g.fillCircle(X + 32, Y + 18, 3); g.fillCircle(X + 43, Y + 27, 4); break;
+      case 'fx-sand': for (let i = 0; i < 6; i++) { g.fillStyle(0xe8c088, 0.5); const sx = X + ((rnd(i, 12) * w + t * 2) % (w + 20)) - 20; g.fillRect(Math.max(X, sx), Y + rnd(i, 13) * h, Math.min(20, X + w - Math.max(X, sx)), 1); }
+        g.fillStyle(0x6a4a2a, 1); for (let i = 0; i < 20; i++) g.fillRect(X + ((rnd(i, 14) * w + t * 2.2) % w), Y + rnd(i, 15) * h, 1, 1); break;
+      case 'fx-aurora': for (let b = 0; b < 3; b++) for (let i = 0; i < w; i += 2) { const y = Y + 10 + b * 6 + Math.sin(i * 0.1 + t * 0.03 + b) * 4; g.fillStyle([0x3affa8, 0x5ad0ff, 0xb05aff][b], 0.4); g.fillRect(X + i, y, 2, 8); } break;
+    }
+    // the stage: a floating island
+    g.fillStyle(0x4a3a5a, 1); g.fillTriangle(X + 18, Y + 44, X + 58, Y + 44, X + 38, Y + 54); g.fillStyle(it.id === 'fx-snow' ? 0xffffff : it.id === 'fx-sand' ? 0xe8c088 : 0x6ac87a, 1); g.fillRect(X + 16, Y + 41, 44, 4);
+    if (it.id === 'fx-bloodmoon') { g.fillStyle(0xff2020, 0.18); g.fillRect(X, Y, w, h); }
+    g.lineStyle(1, 0x3a2654, 1); g.strokeRect(X, Y, w, h);
+  }
+  // an extra: a little picture of what it does
+  glyph(g, cx, cy, it, t) {
+    const col = it.color ?? C.gold, b = Math.sin(t * 0.08);
+    switch (it.id) {
+      case 'ext-numbers': { const p = (t % 50) / 50; g.fillStyle(0x5a4a70, 1); g.fillRect(cx - 6, cy + 2, 12, 18); g.fillCircle(cx, cy - 2, 6);   // a dummy, and its damage floating up
+        g.fillStyle(0xffffff, 1 - p); g.fillRect(cx + 4 - p * 4, cy - 10 - p * 14, 2, 8); g.fillStyle(0xff5a3a, 1 - p); for (const [x, y, ww, hh] of [[0, 0, 6, 2], [4, 0, 2, 8], [0, 3, 6, 2], [0, 6, 6, 2]]) g.fillRect(cx + 8 + x - p * 4, cy - 10 - p * 14 + y, ww, hh); break; }
+      case 'ext-confetti': for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, p = (t % 70) / 70, r = 4 + p * 24; g.fillStyle([0xff5a6a, 0x5ad0ff, 0xf3c358, 0x7aff8a, 0xc77dff][i % 5], 1 - p * 0.7); g.fillRect(cx + Math.cos(a) * r, cy + Math.sin(a) * r + p * p * 10, 3, 2); } break;
+      case 'ext-finalcam': g.fillStyle(0x000000, 1); g.fillRect(cx - 34, cy - 24, 68, 8); g.fillRect(cx - 34, cy + 16, 68, 8);   // letterbox bars and a clock running slow
+        g.lineStyle(2, 0xffffff, 1); g.strokeCircle(cx, cy - 4, 12); { const a = t * 0.015; g.lineBetween(cx, cy - 4, cx + Math.cos(a) * 9, cy - 4 + Math.sin(a) * 9); g.lineBetween(cx, cy - 4, cx, cy - 11); } break;
+      case 'ext-hats': { const y = cy + 12 + Math.abs(b) * -3; g.fillStyle(0x3a8ad8, 1); g.fillTriangle(cx - 12, y, cx + 12, y, cx, y - 30); g.fillStyle(0xf3c358, 1); for (let i = 0; i < 3; i++) g.fillRect(cx - 8 + i * 5, y - 7 - i * 7, 4, 3); g.fillStyle(0xff5a9a, 1); g.fillCircle(cx, y - 31, 4); g.fillStyle(0xffffff, 1); g.fillRect(cx - 13, y - 1, 26, 3); break; }
+      case 'ext-moon': { g.fillStyle(0xd8d8e8, 1); g.fillCircle(cx - 14, cy - 10, 10); g.fillStyle(0xa8a8b8, 1); g.fillCircle(cx - 17, cy - 12, 2); g.fillCircle(cx - 10, cy - 6, 3);   // the moon, and someone floating up past it
+        const fy = cy + 8 - (Math.sin(t * 0.03) + 1) * 10; g.fillStyle(0xc77dff, 1); g.fillRect(cx + 10, fy, 8, 10); g.fillCircle(cx + 14, fy - 3, 4); g.fillStyle(0xffffff, 0.4); for (let i = 1; i < 4; i++) g.fillRect(cx + 13, fy + 10 + i * 4, 2, 2); break; }
+      case 'ext-airhorn': { const blast = (t % 60) < 20; g.fillStyle(0xd8223a, 1); g.fillRect(cx - 20, cy - 2, 12, 12); g.fillStyle(0xe8e4f4, 1); g.fillRect(cx - 18, cy - 10, 8, 8); g.fillTriangle(cx - 8, cy + 4, cx + 14, cy - 8, cx + 14, cy + 16);
+        if (blast) { g.lineStyle(2, col, 1); for (let i = 0; i < 3; i++) g.strokeCircle(cx + 16, cy + 4, 4 + i * 5 + (t % 20) * 0.25); } break; }
+      case 'ext-rainbow': { const C7 = [0xff4a4a, 0xff9a3a, 0xf3e358, 0x5aff6a, 0x4ac8ff, 0x8a6aff]; for (let i = 0; i < 6; i++) for (let x = 0; x < 44; x += 2) { g.fillStyle(C7[i], x / 44); g.fillRect(cx - 30 + x, cy + 6 - x * 0.4 + i * 2 + Math.sin(x * 0.2 - t * 0.1), 2, 2); }
+        g.fillStyle(0xffffff, 1); g.fillCircle(cx + 16, cy - 12, 5); break; }
+      case 'ext-impact': { const flip = (t % 40) < 6; g.fillStyle(flip ? 0xffffff : 0x000000, 1); g.fillRect(cx - 38, cy - 27, 76, 54); g.fillStyle(flip ? 0x000000 : 0xffffff, 1);
+        for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.fillTriangle(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, cx + Math.cos(a + 0.14) * 25, cy + Math.sin(a + 0.14) * 25, cx + Math.cos(a - 0.14) * 25, cy + Math.sin(a - 0.14) * 25); } break; }
+      default: g.fillStyle(col, 1); g.fillCircle(cx, cy, 10);
+    }
   }
   coin(g, x, y, t) {
     const w = 8 * Math.abs(Math.cos(t * 0.05)) + 2;
@@ -206,7 +298,7 @@ export class ShopScene extends Phaser.Scene {
     this.clicked = null;
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     if (this.msg > 0 && --this.msg === 0) this.msgT.setText('');
-    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react('money', this.item().gacha ? 'gamble' : 'look'); this.lastSel = this.sel; }   // eyeing something for sale: $ $
+    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react(owns(this.item().id) ? 'smug' : 'money', this.item().gacha ? 'gamble' : owns(this.item().id) ? 'owned' : 'look'); this.lastSel = this.sel; this.preview(); }   // eyeing something for sale: $ $
     if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
 
     const g = this.g; g.clear();
@@ -230,7 +322,16 @@ export class ShopScene extends Phaser.Scene {
       g.fillStyle(0x140a20, 1); g.fillRect(x + 8, y + 8, GRID.w - 16, 56);                   // the icon window
       this.icon(g, x + GRID.w / 2, y + 36, 16, it, t + i * 9);
       this.cardName[i].setText(it ? it.name : 'COMING SOON').setColor(it ? '#e8e4f4' : '#5a4a70');
-      this.cardPrice[i].setText(it ? it.price + ' ' + CURRENCY.name : '');
+      const mine = it && !it.gacha && owns(it.id), lit = mine && isEquipped(it.kind, it.id);
+      this.cardPrice[i].setText(!it ? '' : lit ? 'ON' : mine ? 'OWNED' : it.price + ' ' + CURRENCY.name).setColor(lit ? '#7aff8a' : mine ? '#c9c4dc' : '#f3c358');
+      if (lit) { g.fillStyle(0x7aff8a, 1); g.fillCircle(x + GRID.w - 12, y + 13, 3); }                                   // a green light: switched on
+      // a costume: its fighter wearing it, idling (scaled to fit the window)
+      const spr = this.cardSpr[i], fd = it && it.kind === 'costume' ? fighterById(it.fighter) : null;
+      if (fd && fd.def) {
+        const si = skinsFor(fd.def.id).findIndex((k) => k.name === it.skin);
+        showFighter(spr.setVisible(true), fd.def, Math.floor((t + i * 7) / 6), Math.max(0, si));
+        spr.setScale(Math.min(1, 54 / spr.frame.height, 74 / spr.frame.width * 1.3)).setPosition(x + GRID.w / 2, y + 62);
+      } else spr.setVisible(false);
       if (on) { const p = (t % 60) / 60; g.lineStyle(1, 0xffffff, 0.5 * (1 - p)); g.strokeRect(x - 2 - p * 3, y - 2 - p * 3, GRID.w + 4 + p * 6, GRID.h + 4 + p * 6); }   // a soft pulse round the picked card
     }
     // the details panel
@@ -238,11 +339,12 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(C.panel, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, SIDE.h); g.fillStyle(C.line, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, 2);
     this.nameT.setText(it ? it.name : 'COMING SOON');
     this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
-    this.priceT.setText(it ? it.price + ' ' + CURRENCY.name : '');
-    const can = it && getCoins() >= it.price;
+    const lab = this.label(it), mine = it && !it.gacha && owns(it.id);
+    this.buyT.setText(lab === 'BUY' || lab === 'SPIN' ? lab + '  ' + it.price : lab);
+    const can = it && (mine ? it.kind !== 'costume' : getCoins() >= it.price);
     g.fillStyle(can ? 0x3a8a3a : 0x3a2654, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 34, SIDE.w - 40, 28);
     g.fillStyle(can ? 0x5ad05a : C.dim, 1); g.fillRect(SIDE.x + 20, SIDE.y + SIDE.h - 34, SIDE.w - 40, 2);
     this.buyT.setColor(can ? '#ffffff' : '#8a87a3');
-    this.coin(g, SIDE.x + SIDE.w - 18 - this.coinT.width, SIDE.y + 13, t);          // the money, with its little spinning coin
+    this.coin(g, W - 22 - this.coinT.width, 34, t);                                   // the money, with its little spinning coin
   }
 }

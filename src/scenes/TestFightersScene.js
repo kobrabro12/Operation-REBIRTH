@@ -14,7 +14,7 @@ import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { settings } from '../settings.js';
-import { skinsFor } from '../fighters/skins.js';
+import { skinsFor, stepSkin as stepSkinUnlocked, skinUnlocked } from '../fighters/skins.js';
 import { STAGES } from '../stage/stages.js';
 
 const GOLD = '#f3c358', DIM = '#8a87a3', LINE = 0x5ee07a, PANEL = 0x10241a;
@@ -81,7 +81,7 @@ export class TestFightersScene extends Phaser.Scene {
       if (f && Math.abs(p.y - (R.y + 230)) < 7) {                       // a swatch
         const n = skinsFor(f.id).length, x0 = R.x + 80 - (n * 14) / 2;
         const k = Math.floor((p.x - x0) / 14);
-        if (k >= 0 && k < n) { this.skin[f.id] = k; sfx('menu', 0.5, 1.2); return; }
+        if (k >= 0 && k < n && skinUnlocked(f.id, k)) { this.skin[f.id] = k; sfx('menu', 0.5, 1.2); return; }
       }
       if (this.mode === FIGHT_IT && p.x >= this.youText.x && p.x < this.youText.x + this.youText.width && Math.abs(p.y - (this.youText.y + 3)) < 8) { this.stepYou(1); return; }
       this.modeTexts.forEach((m, k) => { if (p.x >= m.x - 6 && p.x < m.x + m.width + 6 && Math.abs(p.y - (m.y + 4)) < 9) { this.mode = k; this.clicked = true; } });
@@ -94,7 +94,7 @@ export class TestFightersScene extends Phaser.Scene {
   stepSkin(d) {
     const f = TEST_ROSTER[this.sel]; if (!f) return;
     const n = skinsFor(f.id).length;
-    this.skin[f.id] = ((this.skin[f.id] || 0) + d + n) % n; sfx('menu', 0.5, 1.2);
+    this.skin[f.id] = stepSkinUnlocked(f.id, (this.skin[f.id] || 0), d); sfx('menu', 0.5, 1.2);   // (shop costumes stay locked until bought)
   }
 
   start() {
@@ -167,6 +167,7 @@ export class TestFightersScene extends Phaser.Scene {
       if (i === si) { sw.fillStyle(0xf3c358, 1); sw.fillRect(x - 2, y - 2, 14, 14); }
       sw.fillStyle(0x0b0a14, 1); sw.fillRect(x - 1, y - 1, 12, 12);
       sw.fillStyle(s.swatch ?? 0xffffff, 1); sw.fillRect(x, y, 10, 10);
+      if (!skinUnlocked(f.id, i)) { sw.fillStyle(0x0b0a14, 0.7); sw.fillRect(x, y, 10, 10); sw.fillStyle(0x8a87a3, 1); sw.fillRect(x + 3, y + 4, 4, 4); sw.fillRect(x + 3, y + 2, 1, 2); sw.fillRect(x + 6, y + 2, 1, 2); sw.fillRect(x + 4, y + 1, 2, 1); }   // a padlock: a shop costume not bought yet
     });
     this.sprite.setPosition(cx, by).setScale(f.def.ownAnims ? 1.4 : 2);
   }

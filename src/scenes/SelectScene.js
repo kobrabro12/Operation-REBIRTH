@@ -269,7 +269,7 @@ export class SelectScene extends Phaser.Scene {
         const hov = pointer && c.swatches.find((w) => pointer.x >= w.x - 1 && pointer.x < w.x + w.w + 1 && pointer.y >= w.y - 1 && pointer.y < w.y + w.h + 1);
         if (hov) {
           const k = list[hov.i];
-          label = hov.locked ? 'LOCKED: ' + MILESTONE_KOS[k.milestone] + ' KOS' : k.name;
+          label = hov.locked ? (k.shop ? 'LOCKED: BUY IT IN THE SHOP' : 'LOCKED: ' + MILESTONE_KOS[k.milestone] + ' KOS') : k.name;
         }
         c.skinName.setText(label).setColor(hov && hov.locked ? '#f3c358' : '#c9c4dc');
         c.kos.setText(getKOs(shown) + ' KOS');
