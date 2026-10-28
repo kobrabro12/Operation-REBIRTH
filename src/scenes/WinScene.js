@@ -14,6 +14,7 @@ import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { skinTexture, skinInfo } from '../fighters/skins.js';
 import { AERO_FULL } from '../fighters/aero.js';
 import { SEEN } from '../fighters/lastSeen.js';
+import { SKIN_CUTS, SkinShots } from './winSkins.js';
 import { sfx } from '../audio/sfx.js';
 import { stopMusic } from '../audio/music.js';
 
@@ -49,16 +50,17 @@ export class WinScene extends Phaser.Scene {
   create(data) {
     this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];
-    this.win = win; this.cut = CUTS[win.fighter];
+    this.win = win;
+    this.cut = SKIN_CUTS[win.fighter + ':' + skinInfo(win.fighter, win.skin || 0).name] || CUTS[win.fighter];   // a costume's own outro (winSkins.js), or the fighter's
     this.def = (ALL().find((r) => r.id === win.fighter) || ROSTER[0]).def;
     stopMusic();
     this.bg = this.add.graphics();                                         // the set
     this.losers = data.results.slice(1).map((r) => {                       // the fighters who lost, as silhouettes
-      const d = (ALL().find((x) => x.id === r.fighter) || {}).def;   // (test fighters can lose too)
+      const e = ALL().find((x) => x.id === r.fighter) || {}, d = e.def;   // (test fighters can lose too)
       const s = this.add.sprite(0, 0, (d || this.def).sheets.idle, 0).setVisible(false);
       if (d) showFighter(s, d, 0, r.skin || 0);
       s.setTint(0x000000).setTintMode(Phaser.TintModes.FILL);
-      return { s, def: d };
+      return { s, def: d, name: e.name || '???' };
     });
     this.mid = this.add.graphics();                                        // between them and the winner
     this.hero = this.add.sprite(W / 2, 300, this.def.sheets.idle, 0);
@@ -104,7 +106,7 @@ export class WinScene extends Phaser.Scene {
       const p = spots[i];
       if (!p || !l.def) { l.s.setVisible(false); return; }
       const kneel = p[5] ? 0.72 : 1;
-      l.s.setPosition(p[0], p[1]).setScale(p[2], p[2] * kneel).setRotation(p[3] || 0).setAlpha(p[4] ?? 1).setTint(tint).setVisible(true);
+      l.s.setCrop().setPosition(p[0], p[1]).setScale(p[2], p[2] * kneel).setRotation(p[3] || 0).setAlpha(p[4] ?? 1).setTint(tint).setVisible(true);
     });
   }
   hideLosers() { for (const l of this.losers) l.s.setVisible(false); }
@@ -124,6 +126,7 @@ export class WinScene extends Phaser.Scene {
   vignette(g, strength = 0.55) {
     for (let i = 0; i < 6; i++) { const m = i * 10; g.fillStyle(0x000000, strength * 0.16); g.fillRect(0, 0, W, m + 8); g.fillRect(0, H - m - 8, W, m + 8); g.fillRect(0, 0, m + 12, H); g.fillRect(W - m - 12, 0, m + 12, H); }
   }
+  headOf(def) { return HEAD[def.sheets.idle] || [32, 12, 32, 59]; }        // where a fighter's head is in its idle frame
   glow(g, x, y, r, col, a) { for (let i = 1; i <= 6; i++) { g.fillStyle(col, a / 6); g.fillCircle(x, y, r * (1.15 - i * 0.15)); } }   // a soft light: rings, brighter in the middle
   cutTo() { this.flash = 6; sfx('whoosh', 0.5, 0.7); this.cameras.main.shake(80, 0.004); }
 
@@ -134,12 +137,12 @@ export class WinScene extends Phaser.Scene {
     if (t > 30 && (m.ok || m.back || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start' || p.button === 'b'))) return this.done();
     this.clicked = false;
     if (t >= C.len) return this.done();
-    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1);
+    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1).setFontSize(12).setColor('#b8ffb8').setBackgroundColor('rgba(0,0,0,0)');
     // which shot
     let si = 0; while (si + 1 < C.shots.length && t >= C.shots[si + 1][0]) si++;
     const [from, name] = C.shots[si], to = si + 1 < C.shots.length ? C.shots[si + 1][0] : C.len;
     if (t === from && si > 0) this.cutTo();
-    this['shot_' + this.def.id.replace(/-/g, '_') + '_' + name](t, (t - from) / (to - from), t - from);
+    this['shot_' + (C.fn || this.def.id.replace(/-/g, '_')) + '_' + name](t, (t - from) / (to - from), t - from);
     // the title card
     if (t >= C.card) {
       const k = t - C.card, slam = Math.max(1, 3 - k * 0.4);
@@ -867,3 +870,6 @@ export class WinScene extends Phaser.Scene {
   }
 
 }
+
+// the costume outros' shots (winSkins.js)
+for (const n of Object.getOwnPropertyNames(SkinShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = SkinShots.prototype[n];
