@@ -16,7 +16,7 @@ import { AERO_FULL } from '../fighters/aero.js';
 import { SEEN } from '../fighters/lastSeen.js';
 import { SKIN_CUTS, SkinShots } from './winSkins.js';
 import { sfx } from '../audio/sfx.js';
-import { stopMusic } from '../audio/music.js';
+import { stopMusic, playMusic } from '../audio/music.js';
 
 const W = VIEW_W, H = VIEW_H;
 // how long each cutscene runs (frames), when its title card comes in, and its words
@@ -54,6 +54,7 @@ export class WinScene extends Phaser.Scene {
     this.cut = SKIN_CUTS[win.fighter + ':' + skinInfo(win.fighter, win.skin || 0).name] || CUTS[win.fighter];   // a costume's own outro (winSkins.js), or the fighter's
     this.def = (ALL().find((r) => r.id === win.fighter) || ROSTER[0]).def;
     stopMusic();
+    if (this.cut.music) playMusic(this, this.cut.music, 0.85);             // (some outros have their own music: winSkins.js)
     this.bg = this.add.graphics();                                         // the set
     this.losers = data.results.slice(1).map((r) => {                       // the fighters who lost, as silhouettes
       const e = ALL().find((x) => x.id === r.fighter) || {}, d = e.def;   // (test fighters can lose too)
@@ -164,6 +165,7 @@ export class WinScene extends Phaser.Scene {
   }
   done() {
     if (this.leaving) return; this.leaving = true;
+    if (this.cut.music) stopMusic();
     if (this.data0.preview) return this.scene.start('TestFighters');     // (TEST FIGHTERS > WIN SCREEN)
     this.scene.start('Results', this.data0);
   }

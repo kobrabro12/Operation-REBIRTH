@@ -78,6 +78,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bp_guest', 'assets/stages/baseplate/guest.png');                 // BASEPLATE 2012's guests: Mason's drawings, half size (tools/sprites/baseplate_guests.py)
     this.load.image('bp_guest_glitch', 'assets/stages/baseplate/guest_glitch.png');   // ...and the one in fifty
     for (const n of [4, 5, 6]) this.load.audio('bgm_baseplate_' + n, ['assets/audio/music/baseplate_' + n + '.ogg', 'assets/audio/music/baseplate_' + n + '.mp3']);   // BASEPLATE 2012's rotating soundtrack: Mason's pixelated_audio 4, 5, 6
+    for (const n of ['shrine', 'rosebud', 'abyss', 'dialup']) this.load.audio('bgm_outro_' + n, ['assets/audio/music/outro_' + n + '.ogg', 'assets/audio/music/outro_' + n + '.mp3']);   // costume outro music (tools/audio/outro_music.py)
     this.load.audio('bgm_infected', ['assets/audio/music/infected.ogg', 'assets/audio/music/infected.mp3']);   // Mason's track, levelled down ~10 dB so it sits under the fight
     this.load.audio('sfx_idiot', ['assets/audio/sfx/idiot.ogg', 'assets/audio/sfx/idiot.mp3']);   // INFECTED.EXE: plays while YOU ARE AN IDIOT's pop-ups are up
     for (let i = 1; i <= 5; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (1-4: tools/audio/amp_songs.py; 5: Mason's own track)
