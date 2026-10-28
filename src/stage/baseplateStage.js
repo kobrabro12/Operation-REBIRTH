@@ -4,7 +4,7 @@
 // Far off, guests (Mason's drawing) spawn in on their own floating plates, wander about, hop, chat in speech
 // bubbles and log off again - and one spawn in fifty is the other one (his glitched drawing), which only stands
 // there and stares. A blimp drifts past. On the plate: two jump pads that fling you up, and the grey brick slides
-// back and forth overhead, carrying whoever's on it. Music: Mason's three tracks on rotation ('bgm_baseplate_4/5/6').
+// back and forth overhead, carrying whoever's on it. Music: Mason's four tracks on rotation ('bgm_baseplate_4/5/6/10').
 //
 // Stage hazards, one at a time every 10-14 s, each announced with a CAUTION banner first:
 //   ROCKET BARRAGE - red crosshairs appear on the plate; rockets fire from the tops of the towers and blow
@@ -59,7 +59,7 @@ export class BaseplateStage {
     this.spawns = [{ x: -150, y: 0 }, { x: 150, y: 0 }, { x: -50, y: 0 }, { x: 50, y: 0 }];
     this.hazardsOn = true;
     this.t = 0;
-    this.musicList = ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6'];   // Mason's three tracks, taking turns (music.js playPlaylist)
+    this.musicList = ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6', 'bgm_baseplate_10'];   // Mason's four tracks, taking turns (music.js playPlaylist)
     this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'griefer'], { color: '#ffffff', stroke: '#1b2a35' });
     const R = (n) => { let s = n; return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff); };
     const r = R(11);
