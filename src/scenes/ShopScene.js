@@ -17,7 +17,7 @@ const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gol
 const GRID = { x: 16, y: 84, cols: 4, rows: 2, w: 94, h: 108, gap: 6 };   // the item cards
 const SIDE = { x: 424, y: 210, w: 200, h: 102 };                          // the details panel, under the shopkeeper's counter
 const KP = { x: 524, y: 126 };                                            // the middle of the shopkeeper's TV (on his desk)
-const TAB = { x: 16, y: 56, w: 98, h: 20, gap: 4 };
+const TAB = { x: 16, y: 56, w: 77, h: 20, gap: 4 };
 const PER = GRID.cols * GRID.rows;
 
 export class ShopScene extends Phaser.Scene {
@@ -70,14 +70,14 @@ export class ShopScene extends Phaser.Scene {
   }
 
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
-  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; sfx('menu', 0.5, 1.2); this.react('happy', 'tab'); this.static = 8; } }
+  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.lastSel = 0; sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
   item() { return SHOP[this.tab].items[this.sel] || null; }
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
   buy() {
     const it = this.item();
     if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
-    if (getCoins() < it.price) { this.react('shock', 'broke'); sfx('curse', 0.3, 1.5); return; }
-    this.react('money', 'bought'); this.say('BUYING IS NOT SET UP YET.');   // (to be wired up with the items)
+    if (getCoins() < it.price) { this.react('shock', it.gacha ? 'spin' : 'broke'); sfx('curse', 0.3, 1.5); return; }
+    this.react('money', 'bought'); this.say(it.gacha ? 'THE MACHINES AREN\'T STOCKED YET.' : 'BUYING IS NOT SET UP YET.');   // (to be wired up with the items / GACHA prizes)
   }
   say(s) { this.msgT.setText(s); this.msg = 90; }
   // the shopkeeper reacts: a face (for `hold` frames, then back to his calm face) and a line from KEEPER.lines
@@ -135,6 +135,27 @@ export class ShopScene extends Phaser.Scene {
       this.bubbleT.setPosition(bx + bw / 2, by + bh / 2);
     } else this.bubbleT.setVisible(false);
   }
+  // a gacha machine: a glass globe of coloured capsules on a base in the machine's colour, a coin slot, a crank that
+  // turns, the prize chute - and a badge for the 10-pull bundles (or a ? for the mystery one)
+  machine(g, cx, cy, s, it, t) {
+    const col = it.color ?? C.gold, k = s / 16, R = 11 * k, gy = cy - 5 * k;
+    g.fillStyle(0x1a1424, 1); g.fillRect(cx - 12 * k, cy + 4 * k, 24 * k, 13 * k);          // the base
+    g.fillStyle(col, 1); g.fillRect(cx - 11 * k, cy + 5 * k, 22 * k, 11 * k);
+    g.fillStyle(0xffffff, 0.3); g.fillRect(cx - 11 * k, cy + 5 * k, 22 * k, 2 * k);
+    g.fillStyle(0x1a1424, 1); g.fillRect(cx - 4 * k, cy + 11 * k, 8 * k, 4 * k); g.fillRect(cx + 5 * k, cy + 7 * k, 3 * k, 1 * k);   // the chute, the coin slot
+    const a = t * 0.05; g.lineStyle(Math.max(1, k * 1.5), 0xe8e4f4, 1); g.lineBetween(cx - 6 * k, cy + 9 * k, cx - 6 * k + Math.cos(a) * 3 * k, cy + 9 * k + Math.sin(a) * 3 * k);   // the crank
+    g.fillStyle(0x1a1424, 1); g.fillCircle(cx, gy, R + 1);                                   // the globe...
+    g.fillStyle(0x2a3a5a, 0.6); g.fillCircle(cx, gy, R);
+    const caps = [0xff5a6a, 0x5ad0ff, 0xf3c358, 0x7aff8a, 0xc77dff, 0xff9a3a, 0xffffff];
+    for (let i = 0; i < 9; i++) {                                                            // ...full of capsules, jostling
+      const px = cx + ((i % 3) - 1) * 6 * k + Math.sin(t * 0.08 + i) * 0.6 * k, py = gy + 4 * k - Math.floor(i / 3) * 5 * k + Math.cos(t * 0.07 + i) * 0.5 * k;
+      g.fillStyle(caps[(i * 3 + (it.gacha.machine === 'golden' ? 2 : 0)) % caps.length], 1); g.fillCircle(px, py, 2.6 * k); g.fillStyle(0xffffff, 0.8); g.fillRect(px - 2.6 * k, py - 0.3 * k, 5.2 * k, 0.8 * k);
+    }
+    g.fillStyle(0xffffff, 0.35); g.fillEllipse(cx - 4 * k, gy - 5 * k, 6 * k, 3 * k);       // the glass shine
+    g.fillStyle(col, 1); g.fillRect(cx - 3 * k, gy - R - 2 * k, 6 * k, 3 * k);               // the cap on top
+    if (it.gacha.pulls > 1) { g.fillStyle(0xd8223a, 1); g.fillCircle(cx + 10 * k, gy - 8 * k, 4.5 * k); g.fillStyle(0xffffff, 1); g.fillRect(cx + 7.5 * k, gy - 9 * k, 1 * k, 3 * k); g.fillCircle(cx + 11.5 * k, gy - 7.5 * k, 1.5 * k); }   // x10 badge (a 1 and a 0)
+    if (it.gacha.machine === 'mystery') { g.fillStyle(0x1a1424, 0.8); g.fillCircle(cx, gy, R); g.fillStyle(0xc77dff, 1); g.fillRect(cx - 3 * k, gy - 6 * k, 6 * k, 2 * k); g.fillRect(cx + 2 * k, gy - 5 * k, 2 * k, 4 * k); g.fillRect(cx - 1 * k, gy - 1 * k, 3 * k, 2 * k); g.fillRect(cx - 1 * k, gy + 3 * k, 2 * k, 2 * k); }   // a ? over a dark globe
+  }
   // how his face moves on the screen: [x, y, x scale, y scale]
   //   calm  drifts slowly up and down, and now and then blinks (the face squashes flat for a moment)
   //   happy bobs along to a little beat, swaying side to side
@@ -153,6 +174,7 @@ export class ShopScene extends Phaser.Scene {
 
   // a placeholder icon: a little gift box in the item's colour (or an empty, dashed slot)
   icon(g, cx, cy, s, it, t) {
+    if (it && it.gacha) return this.machine(g, cx, cy, s, it, t);
     if (!it) {                                                                           // an empty slot: a dashed square and a ?
       g.fillStyle(C.dim, 1);
       for (let d = -s; d < s; d += 6) { g.fillRect(cx + d, cy - s, 3, 1); g.fillRect(cx + d, cy + s, 3, 1); g.fillRect(cx - s, cy + d, 1, 3); g.fillRect(cx + s, cy + d, 1, 3); }
@@ -184,7 +206,7 @@ export class ShopScene extends Phaser.Scene {
     this.clicked = null;
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     if (this.msg > 0 && --this.msg === 0) this.msgT.setText('');
-    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react('money', 'look'); this.lastSel = this.sel; }   // eyeing something for sale: $ $
+    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react('money', this.item().gacha ? 'gamble' : 'look'); this.lastSel = this.sel; }   // eyeing something for sale: $ $
     if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
 
     const g = this.g; g.clear();
@@ -193,8 +215,9 @@ export class ShopScene extends Phaser.Scene {
     SHOP.forEach((tb, i) => {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
       g.fillStyle(on ? C.panel : C.panel2, 1); g.fillRect(x, TAB.y, TAB.w, TAB.h);
-      g.fillStyle(on ? C.line : C.dim, 1); g.fillRect(x, TAB.y, TAB.w, 2);
-      this.tabT[i].setColor(on ? '#ffffff' : '#8a87a3');
+      const lucky = tb.name === 'GAMBLING';                                              // the gambling tab: trimmed in gold, flashing
+      g.fillStyle(lucky ? ((t >> 4) % 2 ? C.gold : 0xd8223a) : on ? C.line : C.dim, 1); g.fillRect(x, TAB.y, TAB.w, 2);
+      this.tabT[i].setColor(on ? '#ffffff' : tb.name === 'GAMBLING' ? '#f3c358' : '#8a87a3');
     });
     // the money
     this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
