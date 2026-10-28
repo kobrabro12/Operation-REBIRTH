@@ -48,7 +48,7 @@ export function hasWinCutscene(id) { return !!CUTS[id]; }
 export class WinScene extends Phaser.Scene {
   constructor() { super('Win'); }
   create(data) {
-    this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
+    this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.koiImg = null; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];
     this.win = win;
     this.cut = SKIN_CUTS[win.fighter + ':' + skinInfo(win.fighter, win.skin || 0).name] || CUTS[win.fighter];   // a costume's own outro (winSkins.js), or the fighter's
@@ -138,7 +138,7 @@ export class WinScene extends Phaser.Scene {
     if (t > 30 && (m.ok || m.back || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start' || p.button === 'b'))) return this.done();
     this.clicked = false;
     if (t >= C.len) return this.done();
-    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1).setOrigin(0, 0).setScale(1).setStroke('#000000', 0).setShadow(0, 0, '#000000', 0, false, false).setFontSize(12).setColor('#b8ffb8').setBackgroundColor('rgba(0,0,0,0)');
+    this.bg.clear(); this.mid.clear(); this.fx.clear(); this.front.clear(); this.over.clear(); this.faceImg.setVisible(false); this.hero2.setVisible(false); if (this.koiImg) this.koiImg.setVisible(false); for (const L of this.tvLines) L.setVisible(false).setAlpha(1).setOrigin(0, 0).setScale(1).setStroke('#000000', 0).setShadow(0, 0, '#000000', 0, false, false).setFontSize(12).setColor('#b8ffb8').setBackgroundColor('rgba(0,0,0,0)');
     // which shot
     let si = 0; while (si + 1 < C.shots.length && t >= C.shots[si + 1][0]) si++;
     const [from, name] = C.shots[si], to = si + 1 < C.shots.length ? C.shots[si + 1][0] : C.len;

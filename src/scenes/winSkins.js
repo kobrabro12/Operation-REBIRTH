@@ -3,7 +3,7 @@
 //   SOUL SUMMONER  JACK-O'-LANTERN  carves the beaten into jack-o'-lanterns
 //   MR WAKE        NEON             an arcade high-score screen, the beaten at the bottom of it      (toxic)
 //   MR WAKE        ROSEBUD          his midnight rose garden grows over the beaten... and it's all inside a music box
-//   LACY           SAMURAI          prays at her master's stone koi shrine, then bows to the beaten  (a good game, shakuhachi music)
+//   LACY           SAMURAI          prays (Mason's animation) at her master's stone koi shrine, bows to the beaten (shakuhachi)
 //   NU             BLOCK BOSS       finds their gig poster in his alley and sprays an X through it    (toxic)
 //   AERO           KOI              a koi pond, very zen, very smug
 //   WHAT ONCE WAS  ROOT ACCESS      a terminal: SKILL ISSUE DETECTED - sudo rm -rf                     (toxic)
@@ -484,6 +484,19 @@ export class SkinShots {
       g.fillStyle(i % 3 ? 0xffb8d0 : 0xffffff, 0.9); g.fillEllipse(x, y + Math.sin(t * 0.1 + i) * 4, 5, 3);
     }
   }
+  // the stone koi, chunky: drawn once at a third of its size into a texture, then shown scaled up with no smoothing,
+  // so it reads as big blocky pixels (PX: the size it's baked at)
+  koiStatue(x, y, sc) {
+    const PX = 0.3, TW = 64, TH = 100, OX = 32, OY = 98;
+    if (!this.textures.exists('koi_statue_px')) {
+      const g = this.make.graphics({ add: false });
+      this.stoneKoi(g, OX, OY, PX);
+      g.generateTexture('koi_statue_px', TW, TH); g.destroy();
+    }
+    if (!this.koiImg) { this.koiImg = this.add.image(0, 0, 'koi_statue_px').setOrigin(0, 0); this.children.moveBelow(this.koiImg, this.losers.length ? this.losers[0].s : this.mid); }   // just over the sky, under everyone
+    const k = sc / PX;
+    this.koiImg.setPosition(Math.round(x - OX * k), Math.round(y - OY * k)).setScale(k).setVisible(true);
+  }
   // the giant stone koi: leaping straight up off a rock, mossy, a sacred rope with paper streamers round its plinth
   stoneKoi(g, x, y, sc) {
     const S = 0x8a8894, D = 0x5a5864, L = 0xb8b6c4, M = 0x4a6a3a;
@@ -550,15 +563,21 @@ export class SkinShots {
     }
   }
   // her, kneeling in the shallows: her death strip's kneel (frame 3) - the sword planted upright before her
+  // Mason's praying animation (hk_sam_pray, 64x64, 9 frames): she lowers the sword, plants it point-down and bows
+  // her head - played once from `from`, then held on the last frame
+  pray(x, y, sc, f, flip = false) {
+    this.hero.setTexture('hk_sam_pray', Math.max(0, Math.min(8, f))).setOrigin(32 / 64, 59 / 64)
+      .setPosition(x, y).setScale(sc).setFlipX(flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
+  }
   kneel(x, y, sc, s, from = 0, flip = false) {
-    this.strip('death', 3, x, y, sc, flip);
+    this.pray(x, y, sc, Math.floor((s - from) / 7), flip);
     this.fx.fillStyle(0x2a5a6a, 0.55); this.fx.fillRect(x - 70 * sc / 3, y - 8, 140 * sc / 3, 12);   // the water round her shins
     for (let r = 0; r < 2; r++) { const d = ((s * 0.6 + r * 30) % 60); this.fx.lineStyle(1, 0xd8fff8, 0.6 * (1 - d / 60)); this.fx.strokeEllipse(x, y, 60 + d * 3, 10 + d * 0.6); }
   }
   shot_hk_samurai_garden(t, k, s) {
     const water = 268;
     this.shrine(this.bg, t, water);
-    this.stoneKoi(this.bg, 470, water + 14, 0.95);
+    this.koiStatue(470, water + 14, 0.95);
     for (const [x, y, r] of [[90, 300, 22], [330, 330, 26], [560, 312, 20], [250, 286, 16]]) this.lily(this.mid, x, y, r);
     this.posLosers([[40, water - 2, 1.3, 0, 0.9, 1], [96, water - 2, 1.3, 0, 0.9, 1], [600, water - 2, 1.3, 0, 0.9, 1]], 0x2a1a3a);   // the beaten, resting on the bank
     for (const l of this.losers) if (l.def) l.s.setFlipX(l.s.x > W / 2 ? !l.def.facesLeft : !!l.def.facesLeft);
@@ -577,7 +596,7 @@ export class SkinShots {
     for (const [cx, c, i] of [[60, 1.3, 0], [600, 1.5, 1]]) this.cherry(this.bg, cx, wl, c, t, i);
     this.bg.fillStyle(0x1a3a4a, 1); this.bg.fillRect(0, wl, W, H - wl);                  // the water, darker under the sky's reflection
     this.bg.fillStyle(0xffb89a, 0.18); this.bg.fillRect(0, wl, W, 50);
-    this.strip('death', 3, x, wl, sc);
+    this.pray(x, wl, sc, 8);
     // her reflection: the same frame, upside down, shivering line by line
     const h = this.hero;
     this.hero2.setTexture(h.texture.key, h.frame.name).setOrigin(h.originX, h.originY).setPosition(x + Math.sin(s * 0.13) * 2, wl + 2)
@@ -604,7 +623,7 @@ export class SkinShots {
     this.hideLosers(); this.hero.setVisible(false);
     this.sky(this.bg, 0x1a1030, 0xe8a08a);
     const e = k * k * (3 - 2 * k);
-    this.stoneKoi(this.bg, 300, 330 + e * 420, 2.1);                                    // tilting up, plinth to head
+    this.koiStatue(300, 330 + e * 420, 2.1);                                    // tilting up, plinth to head
     this.petals(this.fx, t, 18);
     this.fx.fillStyle(0x0a0410, 0.55); this.fx.fillRect(0, 214, W, 112);
     this.typeLines([['MASTER HAD THREE WORDS FOR ALL WHO LOST.', '#ffd8e8'], ['YOU ARE WEAK.', '#e86a7a'],
@@ -616,7 +635,7 @@ export class SkinShots {
     this.hideLosers();
     this.sky(this.bg, 0x2a1a3a, 0xc88a8a);
     this.glow(this.bg, W / 2 + 120, 120, 160, 0xffd8a0, 0.25);
-    this.closeUp(W / 2, 176, 6.2 + k * 0.5, t);
+    const zs = 6.2 + k * 0.5; this.pray(W / 2 - (34 - 32) * zs, 176 + (59 - 14) * zs, zs, 8);   // her bowed head (at 34,14 in the frame)
     this.hero.setTint(0xffe0e8).setTintMode(Phaser.TintModes.MULTIPLY);
     this.over.fillStyle(0x000000, 1); this.over.fillRect(0, 0, W, 104); this.over.fillRect(0, 250, W, H - 250);   // a letterbox down to her eyes
     if (s >= 26 && s < 50) {                                                           // a glint off her helmet's crest
@@ -631,7 +650,7 @@ export class SkinShots {
   shot_hk_samurai_bow(t, k, s) {
     const water = 268, turn = 70;
     this.shrine(this.bg, t, water, s - 110);                                             // after the bows, a koi climbs the falls behind her - and turns gold...
-    this.stoneKoi(this.bg, 470, water + 14, 0.95);
+    this.koiStatue(470, water + 14, 0.95);
     this.dragon(this.mid, s - 110);                                                      // ...and then a dragon
     for (const [x, y, r] of [[90, 300, 22], [330, 330, 26], [560, 312, 20]]) this.lily(this.mid, x, y, r);
     // the beaten get up... and when she turns to them, bow
