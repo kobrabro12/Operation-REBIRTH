@@ -117,7 +117,9 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle((t >> 5) % 2 ? 0x5aff8a : 0x2a8a4a, 1); g.fillRect(tx + 37, hy + 32, 3, 2);                     // the power light
     // the face on the screen: the current face's strip, animated if it has more than one frame
     const key = 'shop_face_' + this.face, F = KEEPER.faces[this.face], n = Math.max(1, this.textures.get(key).frameTotal - 1);
-    this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(tx - 4, hy).setScale(1).setVisible(this.static <= 0 || this.static % 2 === 0);
+    // ...and alive: every face moves a little in its own way (see faceMotion)
+    const [mx, my, msx, msy] = this.faceMotion(t);
+    this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(Math.round(tx - 4 + mx), Math.round(hy + my)).setScale(msx, msy).setVisible(this.static <= 0 || this.static % 2 === 0);
     const f = this.front; f.clear();
     for (let y = hy - 34; y < hy + 34; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(tx - 40, y, 72, 1); }        // scanlines
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
@@ -132,6 +134,20 @@ export class ShopScene extends Phaser.Scene {
       f.fillStyle(0xf4f0fa, 1); f.fillRoundedRect(bx, by, bw, bh, 6); f.fillTriangle(bx + bw - 26, by + bh, bx + bw - 12, by + bh, tx - 30, hy - 44);
       this.bubbleT.setPosition(bx + bw / 2, by + bh / 2);
     } else this.bubbleT.setVisible(false);
+  }
+  // how his face moves on the screen: [x, y, x scale, y scale]
+  //   calm  drifts slowly up and down, and now and then blinks (the face squashes flat for a moment)
+  //   happy bobs along to a little beat, swaying side to side
+  //   money hops up and down fast, excited, with a jitter
+  //   shock shakes, hard at first, then trembling
+  faceMotion(t) {
+    const d = t - this.faceStart;
+    switch (this.face) {
+      case 'happy': { const b = Math.abs(Math.sin(d * 0.12)); return [Math.sin(d * 0.06) * 1.5, -b * 3, 1, 1]; }
+      case 'money': { const h = Math.abs(Math.sin(d * 0.22)); return [(d % 6 < 3 ? 1 : -1), -h * 2.5, 1, 1]; }
+      case 'shock': { const a = d < 20 ? 3 : 1; return [(Math.random() - 0.5) * 2 * a, (Math.random() - 0.5) * a, 1, 1]; }
+      default: { const blink = (t % 210) < 6 ? 0.15 : 1; return [Math.sin(t * 0.021) * 1, Math.sin(t * 0.035) * 1.5, 1, blink]; }
+    }
   }
   glow(g, x, y, r, col, a) { for (let i = 1; i <= 5; i++) { g.fillStyle(col, a / 5); g.fillCircle(x, y, r * (1.15 - i * 0.17)); } }
 
