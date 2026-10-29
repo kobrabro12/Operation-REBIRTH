@@ -32,7 +32,7 @@ export function recordMatch({ fighter, stage, won, flawless }) {
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight'];
 const TESTS = ['nu', 'aero', 'what-once-was', 'last-seen'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
-const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items);
+const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
 const stageCount = () => STAGES.filter((s) => s.available && !s.shop).length;   // (stages bought in the shop don't count)
 

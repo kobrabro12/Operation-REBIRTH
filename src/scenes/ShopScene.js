@@ -22,8 +22,8 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool } from '../data/shop.js';
-import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped } from '../progress.js';
+import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool, shelfItems } from '../data/shop.js';
+import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped, reveal } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
 import { stat, addSecret, checkAchievements, getStats } from '../achievements.js';
@@ -53,6 +53,13 @@ const SECRETS = {
 // NOLI: how glitched his lines come out - chance per letter of a junk character / a stutter, how often the shown line
 // re-scrambles while it's up (frames), his face's tint, and the haze's colour + strength
 const NOLI = { junk: 0.07, stutter: 0.05, rescramble: 9, junkChars: '#%?/_<>*0!', tint: 0xd8a8ff, haze: 0x7a2ad8, hazeA: 0.14 };
+// NOLI's voice: glitchy bits cut from Mason's NOLI clip (public/assets/shop/noli_voice/), played when he reacts - which
+// sound goes with which of his lines (KEEPER.lines). greet = the cleanest, most voice-like swell; blip = a short buzz (for
+// things that happen a lot); tic = a phrase that ends in a stutter; crunch = bit-crushed bursts; snap = a burst cut off into
+// static; loop = a voice stuck in a repeating stutter; dive = a warbling voice sliding down; chop = a run of chopped syllables
+const NOLI_VOICE = { hello: 'greet', tab: 'blip', look: 'blip', owned: 'blip', preview: 'blip', bought: 'tic', equip: 'tic',
+  jackpot: 'chop', gamble: 'chop', broke: 'crunch', spin: 'crunch', empty: 'crunch', poke: 'crunch', wrongcode: 'snap',
+  soldout: 'dive', unequip: 'dive', off: 'dive', dud: 'dive', quiet: 'dive', secret: 'loop', noli: 'loop' };
 // a line as NOLI says it: letters swapped for junk, stuttered words, now and then a trailing-off
 function glitchLine(s) {
   let o = '';
@@ -75,6 +82,7 @@ export class ShopScene extends Phaser.Scene {
 
   create() {
     this.noli = getStats().secrets.includes('NOLI');   // NOLI found: he stays that way
+    if (this.noli) reveal('noli');                    // (and his items are on the shelves)
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
@@ -108,7 +116,7 @@ export class ShopScene extends Phaser.Scene {
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, W - 8, 6);
     this.msg = 0;
-    this.noliClip = null;
+    this.noliClip = null; this.voice = null; this.hushUntil = 0;
     // overlays: the costume PREVIEW and the gacha SPIN, drawn over everything
     this.ov = this.add.graphics().setDepth(50);
     this.ovSpr = this.add.sprite(W / 2, 300, 'ss_idle', 0).setDepth(51).setVisible(false);
@@ -125,7 +133,7 @@ export class ShopScene extends Phaser.Scene {
     // (the scene object is reused on every visit: forget objects made on an earlier visit - they were destroyed with it)
     this.keyT = this.keyHint = this.kg = this.lookG = this.lookBg = this.osd = this.lookFx = null; this.look = null;
     // leaving the shop any way at all: stop the secret's sound and listeners, without touching the scene's (already torn down) display
-    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } });
+    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
     if (this.noli) this.setLook('noli');             // (NOLI found earlier: the haze is already here)
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
@@ -152,9 +160,9 @@ export class ShopScene extends Phaser.Scene {
 
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
   setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.page = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
-  item() { return SHOP[this.tab].items[this.page * PER + this.sel] || null; }
+  item() { return shelfItems(SHOP[this.tab])[this.page * PER + this.sel] || null; }
   // a shelf with more than 8 things has pages: left/right off the end of a page turns it
-  pages() { return Math.max(1, Math.ceil(SHOP[this.tab].items.length / PER)); }
+  pages() { return Math.max(1, Math.ceil(shelfItems(SHOP[this.tab]).length / PER)); }
   flip(d) { const n = this.pages(); if (n < 2) return; this.page = (this.page + d + n) % n; if (!this.item()) this.sel = 0; this.lastSel = -2; sfx('menu', 0.5, 1.1); }
   back() { this.closeSecret(true); this.stopPlaying(true); sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
   // a music card picked: play that track; anything else: the shop goes back to the title music
@@ -172,7 +180,7 @@ export class ShopScene extends Phaser.Scene {
     if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
     if (!it.gacha && owns(it.id)) {                                                   // already yours
       if (it.kind === 'costume') { this.react('smug', 'owned'); this.say('PICK IT ON THE SELECT SCREEN.', '#c9c4dc'); return; }
-      if (it.kind === 'unlock') { this.react('smug', 'owned'); this.say('FRACTURED IS ON THE STAGE SELECT SCREEN.', '#c9c4dc'); return; }
+      if (it.kind === 'unlock') { this.react('smug', 'owned'); this.say((it.stage || 'IT') + ' IS ON THE STAGE SELECT SCREEN.', '#c9c4dc'); return; }
       const on = toggleEquip(it.kind, it.id);
       if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('bow', 'unequip'); sfx('menu', 0.5, 0.8); }
       this.say(on ? it.name + ' IS ON' + (it.kind === 'extra' ? '' : ' (ONLY ONE AT A TIME)') : it.name + ' IS OFF', on ? '#7aff8a' : '#c9c4dc');
@@ -184,7 +192,7 @@ export class ShopScene extends Phaser.Scene {
     buyItem(it.id, it.price); stat('spent', it.price); this.cheevos();
     this.react('smug', 'bought', 140); sfx('ding', 0.45, 1.6); this.static = 8;
     if (it.kind === 'costume') { this.say('NEW COSTUME! PICK IT ON THE SELECT SCREEN.', '#7aff8a'); return; }
-    if (it.kind === 'unlock') { this.react('grin', 'bought', 140); this.say('NEW STAGE UNLOCKED: FRACTURED! PICK IT ON THE STAGE SELECT SCREEN.', '#7aff8a'); return; }
+    if (it.kind === 'unlock') { this.react('grin', 'bought', 140); this.say('NEW STAGE UNLOCKED: ' + (it.stage || '') + '! PICK IT ON THE STAGE SELECT SCREEN.', '#7aff8a'); return; }
     if (!isEquipped(it.kind, it.id)) toggleEquip(it.kind, it.id);                   // bought it: it's switched on right away
     this.say(it.name + ' IS ON. PRESS AGAIN TO SWITCH IT OFF.', '#7aff8a');
   }
@@ -297,6 +305,7 @@ export class ShopScene extends Phaser.Scene {
   openCode() {
     this.secret = { mode: 'code', t: 0, typed: '', cur: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
     const L = KEEPER.lines.secret; this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = 200;
+    if (this.noli) this.noliVoice('loop');
     this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();   // the game's own key handling steps aside
     const onKey = (e) => {
       const S = this.secret; if (!S || S.mode !== 'code') return;
@@ -336,13 +345,14 @@ export class ShopScene extends Phaser.Scene {
   // NOLI: he changes for good (the face, the lines, the haze), and the clip plays
   becomeNoli(S) {
     this.stopPlaying(true);
-    this.noli = true; this.setLook(S.look);
+    this.noli = true; this.setLook(S.look); reveal('noli');   // his own items appear on the shelves (shop.js hidden: 'noli')
     if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } }
     const a = this.noliClip = new Audio(); a.src = S.clip.find((u) => a.canPlayType(u.endsWith('ogg') ? 'audio/ogg; codecs="vorbis"' : 'audio/mpeg')) || S.clip[S.clip.length - 1];
     a.volume = Math.min(1, Math.max(settings.musicVolume, settings.sfxVolume)); a.play().catch(() => {});
     stopMusic(); this.time.delayedCall(5300, () => { if (!this.playing) playMusic(this, 'bgm_title'); });   // the shop's music waits for the clip
-    this.static = 30; this.jolt = 16; this.cameras.main.shake(300, 0.006);
+    this.static = 30; this.jolt = 16; this.cameras.main.shake(300, 0.006); this.hushUntil = this.t + 320;
     this.react('calm', S.line, 260);
+    this.say('SOMETHING NEW IS ON THE SHELVES...', '#c77dff');
   }
   // ---- a secret playing: drawn on his screen every frame (drawPlaying) while the shop carries on as normal
   startPlaying(code) {
@@ -508,6 +518,14 @@ export class ShopScene extends Phaser.Scene {
     this.face = face; this.faceT = face === 'calm' ? 0 : hold;
     if (face !== 'calm') this.jolt = 10;                                                 // the set rocks a little on the desk
     const L = KEEPER.lines[line]; if (L) { this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = hold + 40; }
+    if (this.noli && NOLI_VOICE[line]) this.noliVoice(NOLI_VOICE[line]);
+  }
+  // NOLI talks: one of his glitchy sounds (a new one cuts off the last; the little blip waits its turn)
+  noliVoice(k) {
+    const key = 'noli_v_' + k; if (!this.cache.audio.exists(key) || this.t < (this.hushUntil || 0)) return;   // (quiet while the NOLI clip plays)
+    if (this.voice && this.voice.isPlaying) { if (k === 'blip') return; this.voice.stop(); }
+    if (this.voice) this.voice.destroy();
+    this.voice = this.sound.add(key); this.voice.play({ volume: 0.85 * settings.sfxVolume, rate: 0.96 + Math.random() * 0.08 });
   }
   // him: an old CRT TV with rabbit-ear antennas, sitting on a wooden desk, Mason's faces on the screen
   keeper(g, t) {
@@ -826,7 +844,7 @@ export class ShopScene extends Phaser.Scene {
     // the money
     this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
     // the cards
-    const shelf = SHOP[this.tab].items.slice(this.page * PER, this.page * PER + PER);
+    const shelf = shelfItems(SHOP[this.tab]).slice(this.page * PER, this.page * PER + PER);
     if (this.pages() > 1) { this.pageT.setText('PAGE ' + (this.page + 1) + '/' + this.pages()).setVisible(true); for (const s of [-1, 1]) { const ax = PAGE.x + s * 44, n = Math.sin(t * 0.15) * s; g.fillStyle(C.gold, 1); g.fillTriangle(ax + n - s * 4, PAGE.y - 5, ax + n - s * 4, PAGE.y + 5, ax + n + s * 4, PAGE.y); } } else this.pageT.setVisible(false);
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i), it = shelf[i], on = i === this.sel;

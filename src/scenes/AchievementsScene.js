@@ -156,7 +156,7 @@ export class AchievementsScene extends Phaser.Scene {
     for (const r of this.roster) for (const k of ['spr', 'name', 'line', 'next']) r[k].setVisible(on);
     if (!on) return;
     const s = getStats(), n = ACHIEVEMENTS.length;
-    const items = SHOP.filter((tb) => tb.name !== 'GAMBLING').flatMap((tb) => tb.items), owned = items.filter((i) => owns(i.id)).length;
+    const items = SHOP.filter((tb) => tb.name !== 'GAMBLING').flatMap((tb) => tb.items).filter((i) => !i.hidden), owned = items.filter((i) => owns(i.id)).length;
     const stages = STAGES.filter((x) => x.available).length;
     const mains = ROSTER.filter((r) => r.available), tiers = mains.reduce((k, r) => k + MILESTONE_KOS.filter((m, i) => i > 0 && getKOs(r.id) >= m).length, 0), tierMax = mains.length * (MILESTONE_KOS.length - 1);
     const kosAll = this.roster.reduce((k, r) => k + getKOs(r.r.id), 0);

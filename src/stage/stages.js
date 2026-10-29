@@ -10,6 +10,7 @@ import { InfectedStage, drawInfectedPreview } from './infectedStage.js';
 import { AeroStage, drawAeroPreview } from './aeroStage.js';
 import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
 import { FracturedStage, drawFracturedPreview } from './fracturedStage.js';
+import { MaskedStage, drawMaskedPreview } from './maskedStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -73,6 +74,13 @@ export const STAGES = [
     blurb: ['A giant galaxy-crystal fragment adrift in', 'deep space, its broken shards floating nearby.'],
     hazard: 'SHARD RAIN: GLINTS, THEN CRYSTALS FALL.\nCRYSTAL SURGE: SPIKES BURST FROM THE CRACKS.',
     preview: drawFracturedPreview,
+  },
+  {
+    // locked until the CROWN OF MASKS is bought (EXTRAS - hidden until the shopkeeper's code NOLI); music = Mason's pixelated_audio 14
+    id: 'masked-throne', music: 'bgm_shop_noli', name: 'MASKED THRONE', available: true, shop: 'ext-crown', make: (scene) => new MaskedStage(scene),
+    blurb: ['A dark ruin ruled by a faceless stone king in', 'a crown of masks. You fight by your own light.'],
+    hazard: "THE KING'S SWORD, COMEDY & TRAGEDY\n(HEAL OR WEEP) AND LIGHTS OUT.",
+    preview: drawMaskedPreview,
   },
 ];
 

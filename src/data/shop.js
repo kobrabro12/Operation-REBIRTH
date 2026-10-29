@@ -12,7 +12,10 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 //   music    a battle track (tools/audio/shop_music.py -> bgm_shop_<id minus 'mus-'>): switch one on and it replaces
 //            the stage music. Picking it in the shop plays a preview.
 //   extra    a match extra (matchExtras.js): switch on as many as you like
-//   unlock   unlocks something for good (ext-fragment -> the FRACTURED stage, stages.js `shop:`); `img` = its card picture
+//   unlock   unlocks something for good (ext-fragment -> FRACTURED, ext-crown -> MASKED THRONE: stages.js `shop:`); `img` = its card
+//            picture, `stage` = the stage's name (for the shopkeeper's message)
+// hidden: <tag> = not on the shelf (or in gacha machines) until the tag is revealed (progress.js reveal): 'noli' = after the
+// shopkeeper's code NOLI. Hidden items don't count towards the COLLECTOR / COMPLETIONIST achievements.
 // Prices: a match earns about 25-85 coins (progress.js COIN_RATES), so a cheap item is a few matches away and the
 // whole shop takes a few hundred.
 export const SHOP = [
@@ -58,6 +61,7 @@ export const SHOP = [
     { id: 'mus-rain', kind: 'music', name: 'RAINY WINDOW', price: 350, info: 'SOFT PIANO AND BRUSHES WHILE RAIN TAPS THE GLASS. THUNDER, FAR OFF.', color: 0x6a8ab8 },
     { id: 'mus-sugar', kind: 'music', name: 'SUGAR RUSH', price: 400, info: 'BUBBLEGUM POP: BOUNCY PLUCKS, CLAPS AND A HOOK YOU CAN\'T SHAKE.', color: 0xff8ad8 },
     { id: 'mus-disco', kind: 'music', name: 'MIRRORBALL', price: 450, info: 'DISCO. FOUR ON THE FLOOR, A RESTLESS BASS, STRING STABS. DANCE BETWEEN STOCKS.', color: 0xc8a8ff },
+    { id: 'mus-noli', kind: 'music', hidden: 'noli', name: 'THE MASKED KING', price: 1000, info: 'MASON\'S PIXELATED AUDIO 14 - THE MASKED THRONE\'S OWN THEME. ONLY FOR THOSE WHO KNOW HIS NAME.', color: 0x8a3ad8 },
     { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: 'LIVE ON FOREVER DAFT PUNK...', color: 0xf3c358, rgb: true },   // rgb: its record glows through the rainbow (ShopScene vinyl)
   ] },
   { name: 'EXTRAS', items: [
@@ -68,11 +72,12 @@ export const SHOP = [
     { id: 'ext-moon', kind: 'extra', name: 'MOON GRAVITY', price: 1200, info: 'LOW GRAVITY: FLOATY JUMPS, SLOW FALLS. CHANGES HOW MATCHES PLAY!', color: 0xd8d8e8 },
     { id: 'ext-airhorn', kind: 'extra', name: 'AIRHORN KOS', price: 450, info: 'EVERY KO GETS AN AIRHORN.', color: 0xf3c358 },
     { id: 'ext-rainbow', kind: 'extra', name: 'RAINBOW TRAILS', price: 700, info: 'LAUNCHED FIGHTERS LEAVE A RAINBOW BEHIND THEM.', color: 0x8a6aff },
-    { id: 'ext-fragment', kind: 'unlock', img: 'shop_fragment', name: 'GALAXY FRAGMENT', price: 1500, info: 'A SHARD OF A SHATTERED STAR. UNLOCKS A NEW STAGE: FRACTURED.', color: 0x6888fc },
+    { id: 'ext-fragment', kind: 'unlock', img: 'shop_fragment', stage: 'FRACTURED', name: 'GALAXY FRAGMENT', price: 500, info: 'A SHARD OF A SHATTERED STAR. UNLOCKS A NEW STAGE: FRACTURED.', color: 0x6888fc },
     { id: 'ext-comic', kind: 'extra', name: 'COMIC HITS', price: 650, info: 'BIG HITS BURST INTO COMIC-BOOK WORDS: POW! BAM! WHAM! THE BIGGEST GO KA-BOOM!', color: 0xffe03a },
     { id: 'ext-combo', kind: 'extra', name: 'COMBO COUNTER', price: 550, info: 'COUNTS EVERY HIT YOU LAND BEFORE THEY RECOVER. 5 HITS GLOWS ORANGE, 8 GOES RED.', color: 0xffb84a },
     { id: 'ext-ghosts', kind: 'extra', name: 'GHOST TRAILS', price: 750, info: 'FIGHTERS MOVING FAST LEAVE GLOWING AFTERIMAGES IN THEIR COSTUME\'S COLOUR.', color: 0x8affff },
     { id: 'ext-disco', kind: 'extra', name: 'DISCO FLOOR', price: 850, info: 'EVERY PLATFORM BECOMES A LIGHT-UP DANCE FLOOR. A MIRROR BALL, SWEEPING SPOTLIGHTS.', color: 0xff3ad8 },
+    { id: 'ext-crown', kind: 'unlock', hidden: 'noli', img: 'shop_crown', stage: 'MASKED THRONE', name: 'CROWN OF MASKS', price: 1000, info: 'A BLACK CROWN WITH TWO FACES: ONE LAUGHS, ONE WEEPS. UNLOCKS A NEW STAGE: MASKED THRONE.', color: 0x8a3ad8 },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
   // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks
@@ -95,11 +100,16 @@ export const GACHA_REFUND = 0.25;
 
 // what a machine can give: every item on its shelf (or every shelf but GAMBLING for ANY)
 export function gachaPool(g) {
-  return SHOP.filter((t) => t.name !== 'GAMBLING' && (g.pool === 'ANY' || t.name === g.pool)).flatMap((t) => t.items);
+  return SHOP.filter((t) => t.name !== 'GAMBLING' && (g.pool === 'ANY' || t.name === g.pool)).flatMap((t) => t.items).filter(shown);
 }
+// is an item on the shelf? (hidden ones wait for their reveal)
+export function shown(it) { return !it.hidden || revealed(it.hidden); }
+// a shelf's items as the player sees them
+export function shelfItems(tab) { return tab.items.filter(shown); }
 
 // how much money the player has (earned in matches, saved in progress.js)
 export { getCoins } from '../progress.js';
+import { revealed } from '../progress.js';
 
 // THE SHOPKEEPER: an old TV sitting on a desk (ShopScene.keeper). His faces are Mason's drawings
 // (public/assets/shop/face_<name>.png, originals in tools/sprites/art/shopkeeper/) - each one a strip of 64x64 frames,
