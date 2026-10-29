@@ -5,7 +5,7 @@
 import { playMusic } from '../audio/music.js';
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { settings, MODE_NAMES } from '../settings.js';
-import { STAGES, STAGE_SLOTS, trackList } from '../stage/stages.js';
+import { STAGES, STAGE_SLOTS, trackList, stageLocked } from '../stage/stages.js';
 import { SHOP } from '../data/shop.js';
 import { owns } from '../progress.js';
 import { MenuInput } from './menuInput.js';
@@ -15,7 +15,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { announce } from '../audio/announcer.js';
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
-const COLS = 2, TILE_W = 118, TILE_H = 50, GAP = 4;   // 5 rows of 2 fit between the title bar and the help line
+const COLS = 2, TILE_W = 118, TILE_H = 44, GAP = 4;   // 6 rows of 2 fit between the title bar and the help line
 const GRID_X = 386, GRID_Y = 36;
 const TRACK_Y = 336;                                  // the TRACK row, under the stage's description
 const ARROWS = [PREV.x + 56, PREV.x + 236];             // the < and > of the TRACK row
@@ -49,6 +49,7 @@ export class StageSelectScene extends Phaser.Scene {
       if (t.st.preview) t.st.preview(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
       else if (t.st.id === 'random') this.drawRandom(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
       else this.drawLocked(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
+      if (stageLocked(t.st)) this.drawShopLock(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);   // bought in the shop: dimmed, a padlock
       g.fillStyle(0x0b0a14, 1); g.fillRect(t.x, t.y + TILE_H - 14, TILE_W, 14);
       this.add.text(t.x + TILE_W / 2, t.y + TILE_H - 7, t.st.name, { fontFamily: FONT, fontSize: '6px', color: t.st.available ? '#ffffff' : '#4a4560' }).setOrigin(0.5);
     }
@@ -102,6 +103,12 @@ export class StageSelectScene extends Phaser.Scene {
     const cx = x + w / 2, cy = y + h * 0.35;
     g.fillRect(cx - 4, cy - 8, 8, 2); g.fillRect(cx + 2, cy - 6, 2, 5); g.fillRect(cx - 1, cy - 1, 3, 3); g.fillRect(cx - 1, cy + 4, 3, 2);
   }
+  drawShopLock(g, x, y, w, h) {
+    g.fillStyle(0x0b0a14, 0.6); g.fillRect(x, y, w, h);
+    const cx = x + w / 2, cy = y + h / 2;
+    g.fillStyle(0xf3c358, 1); g.fillRect(cx - 6, cy - 2, 12, 9); g.lineStyle(2, 0xf3c358, 1); g.strokeRect(cx - 4, cy - 7, 8, 6);
+    g.fillStyle(0x0b0a14, 1); g.fillRect(cx - 1, cy + 1, 2, 3);
+  }
   drawRandom(g, x, y, w, h) {
     g.fillStyle(0x241d57, 1); g.fillRect(x, y, w, h);
     const cx = x + w / 2, cy = y + h / 2;
@@ -133,7 +140,8 @@ export class StageSelectScene extends Phaser.Scene {
     const back = m.back || m.pads.some((p) => p.button === 'b');
     this.clicked = false;
     if (confirm) {
-      if (tile.st.available) { settings.stage = tile.st.id; sfx('select', 0.8); announce(this, tile.st.id); this.scene.start('Select'); return; }
+      if (stageLocked(tile.st)) { sfx('curse', 0.4, 1.4); }
+      else if (tile.st.available) { settings.stage = tile.st.id; sfx('select', 0.8); announce(this, tile.st.id); this.scene.start('Select'); return; }
       sfx('curse', 0.4, 1.4);
     }
     if (back) { sfx('menu', 0.6); this.scene.start('Setup'); return; }
@@ -149,11 +157,11 @@ export class StageSelectScene extends Phaser.Scene {
     const g = this.prevG; g.clear();
     g.fillStyle(0xf3c358, 1); g.fillRect(PREV.x - 2, PREV.y - 2, PREV.w + 4, PREV.h + 4);
     const st = tile.st;
-    if (st.preview) st.preview(g, PREV.x, PREV.y, PREV.w, PREV.h);
+    if (st.preview) { st.preview(g, PREV.x, PREV.y, PREV.w, PREV.h); if (stageLocked(st)) this.drawShopLock(g, PREV.x, PREV.y, PREV.w, PREV.h); }
     else if (st.id === 'random') this.drawRandom(g, PREV.x, PREV.y, PREV.w, PREV.h);
     else this.drawLocked(g, PREV.x, PREV.y, PREV.w, PREV.h);
     this.name.setText(st.id === 'random' ? 'RANDOM' : st.available ? st.name : '???  COMING SOON');
     this.blurb.setText(st.blurb ? st.blurb.join('\n') : st.id === 'random' ? 'Picks one of the unlocked stages\nfor you when the match starts.' : 'This stage is still being built.');
-    this.hazard.setText(st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
+    this.hazard.setText(stageLocked(st) ? 'LOCKED: BUY THE GALAXY FRAGMENT IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
   }
 }

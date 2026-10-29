@@ -12,6 +12,7 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 //   music    a battle track (tools/audio/shop_music.py -> bgm_shop_<id minus 'mus-'>): switch one on and it replaces
 //            the stage music. Picking it in the shop plays a preview.
 //   extra    a match extra (matchExtras.js): switch on as many as you like
+//   unlock   unlocks something for good (ext-fragment -> the FRACTURED stage, stages.js `shop:`); `img` = its card picture
 // Prices: a match earns about 25-85 coins (progress.js COIN_RATES), so a cheap item is a few matches away and the
 // whole shop takes a few hundred.
 export const SHOP = [
@@ -54,6 +55,7 @@ export const SHOP = [
     { id: 'ext-moon', kind: 'extra', name: 'MOON GRAVITY', price: 1200, info: 'LOW GRAVITY: FLOATY JUMPS, SLOW FALLS. CHANGES HOW MATCHES PLAY!', color: 0xd8d8e8 },
     { id: 'ext-airhorn', kind: 'extra', name: 'AIRHORN KOS', price: 450, info: 'EVERY KO GETS AN AIRHORN.', color: 0xf3c358 },
     { id: 'ext-rainbow', kind: 'extra', name: 'RAINBOW TRAILS', price: 700, info: 'LAUNCHED FIGHTERS LEAVE A RAINBOW BEHIND THEM.', color: 0x8a6aff },
+    { id: 'ext-fragment', kind: 'unlock', img: 'shop_fragment', name: 'GALAXY FRAGMENT', price: 1500, info: 'A SHARD OF A SHATTERED STAR. UNLOCKS A NEW STAGE: FRACTURED.', color: 0x6888fc },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
   // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks

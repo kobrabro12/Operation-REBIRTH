@@ -143,7 +143,7 @@ export class ShopScene extends Phaser.Scene {
     if (!it) return '-';
     if (it.gacha) return 'SPIN';
     if (!owns(it.id)) return 'BUY';
-    if (it.kind === 'costume') return 'OWNED';
+    if (it.kind === 'costume' || it.kind === 'unlock') return 'OWNED';
     return isEquipped(it.kind, it.id) ? 'SWITCH OFF' : 'SWITCH ON';
   }
   buy() {
@@ -151,6 +151,7 @@ export class ShopScene extends Phaser.Scene {
     if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
     if (!it.gacha && owns(it.id)) {                                                   // already yours
       if (it.kind === 'costume') { this.react('smug', 'owned'); this.say('PICK IT ON THE SELECT SCREEN.', '#c9c4dc'); return; }
+      if (it.kind === 'unlock') { this.react('smug', 'owned'); this.say('FRACTURED IS ON THE STAGE SELECT SCREEN.', '#c9c4dc'); return; }
       const on = toggleEquip(it.kind, it.id);
       if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('bow', 'unequip'); sfx('menu', 0.5, 0.8); }
       this.say(on ? it.name + ' IS ON' + (it.kind === 'extra' ? '' : ' (ONLY ONE AT A TIME)') : it.name + ' IS OFF', on ? '#7aff8a' : '#c9c4dc');
@@ -162,6 +163,7 @@ export class ShopScene extends Phaser.Scene {
     buyItem(it.id, it.price); stat('spent', it.price); this.cheevos();
     this.react('smug', 'bought', 140); sfx('ding', 0.45, 1.6); this.static = 8;
     if (it.kind === 'costume') { this.say('NEW COSTUME! PICK IT ON THE SELECT SCREEN.', '#7aff8a'); return; }
+    if (it.kind === 'unlock') { this.react('grin', 'bought', 140); this.say('NEW STAGE UNLOCKED: FRACTURED! PICK IT ON THE STAGE SELECT SCREEN.', '#7aff8a'); return; }
     if (!isEquipped(it.kind, it.id)) toggleEquip(it.kind, it.id);                   // bought it: it's switched on right away
     this.say(it.name + ' IS ON. PRESS AGAIN TO SWITCH IT OFF.', '#7aff8a');
   }
@@ -249,7 +251,8 @@ export class ShopScene extends Phaser.Scene {
     if (r.prize.kind === 'costume') {
       const fd = fighterById(r.prize.fighter), si = Math.max(0, skinsFor(fd.def.id).findIndex((k) => k.name === r.prize.skin));
       showFighter(this.ovSpr.setVisible(true), fd.def, Math.floor(t / 6), si); this.ovSpr.setScale(Math.min(1.2, 70 / this.ovSpr.frame.height)).setPosition(cx, cy + 34).setFlipX(!!fd.def.facesLeft);
-    } else { this.ovSpr.setVisible(false); this.icon(o, cx, cy, 16, r.prize, t); }
+    } else if (r.prize.img) { this.icon(o, cx, cy, 16, r.prize, t); this.ovSpr.setVisible(true).setTexture(r.prize.img).setOrigin(0.5).setFlipX(false).setScale(1).setPosition(cx, cy); }
+    else { this.ovSpr.setVisible(false); this.icon(o, cx, cy, 16, r.prize, t); }
     this.ovSub.setText((r.dupe ? 'DUPLICATE: ' + r.prize.name + '  +' + r.back + ' ' + CURRENCY.name : 'NEW! ' + r.prize.name) + '\n' + this.shelfOf(r.prize));
   }
   shelfOf(it) { const tb = SHOP.find((x) => x.items.includes(it)); return tb ? 'FROM THE ' + tb.name + ' SHELF' : ''; }
@@ -590,6 +593,7 @@ export class ShopScene extends Phaser.Scene {
       return;
     }
     if (it.kind === 'costume') return;                                                  // (a sprite: drawn in update)
+    if (it.img) { const k = (Math.sin(t * 0.05) + 1) / 2; for (let i = 5; i > 0; i--) { g.fillStyle(it.color ?? C.gold, 0.05 + k * 0.03); g.fillCircle(cx, cy, 10 + i * 5); } return; }   // an image (sprite in update) glowing
     if (it.kind === 'music') return this.vinyl(g, cx, cy, s, it, t);
     if (it.kind === 'fx') return this.scenery(g, cx, cy, it, t);
     if (it.kind === 'extra') return this.glyph(g, cx, cy, it, t);
@@ -770,7 +774,8 @@ export class ShopScene extends Phaser.Scene {
         const si = skinsFor(fd.def.id).findIndex((k) => k.name === it.skin);
         showFighter(spr.setVisible(true), fd.def, Math.floor((t + i * 7) / 6), Math.max(0, si));
         spr.setScale(Math.min(1, 54 / spr.frame.height, 74 / spr.frame.width * 1.3)).setPosition(x + GRID.w / 2, y + 62);
-      } else spr.setVisible(false);
+      } else if (it && it.img) spr.setVisible(true).setTexture(it.img).setOrigin(0.5).setFlipX(false).setScale(0.8).setPosition(x + GRID.w / 2, y + 36 + Math.round(Math.sin((t + i * 9) * 0.05) * 2));   // e.g. the GALAXY FRAGMENT, bobbing
+      else spr.setVisible(false);
       if (on) { const p = (t % 60) / 60; g.lineStyle(1, 0xffffff, 0.5 * (1 - p)); g.strokeRect(x - 2 - p * 3, y - 2 - p * 3, GRID.w + 4 + p * 6, GRID.h + 4 + p * 6); }   // a soft pulse round the picked card
     }
     // the details panel
@@ -780,7 +785,7 @@ export class ShopScene extends Phaser.Scene {
     this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
     const lab = this.label(it), mine = it && !it.gacha && owns(it.id);
     this.buyT.setText(lab === 'BUY' || lab === 'SPIN' ? lab + '  ' + it.price : lab);
-    const can = it && (mine ? it.kind !== 'costume' : getCoins() >= it.price);
+    const can = it && (mine ? it.kind !== 'costume' && it.kind !== 'unlock' : getCoins() >= it.price);
     const cos = it && it.kind === 'costume', bx = SIDE.x + 20 + (cos ? BTN.prevW + 4 : 0), bw = SIDE.w - 40 - (cos ? BTN.prevW + 4 : 0);
     g.fillStyle(can ? 0x3a8a3a : 0x3a2654, 1); g.fillRect(bx, BTN.y, bw, BTN.h);
     g.fillStyle(can ? 0x5ad05a : C.dim, 1); g.fillRect(bx, BTN.y, bw, 2);

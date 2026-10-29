@@ -34,7 +34,7 @@ const TESTS = ['nu', 'aero', 'what-once-was', 'last-seen'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items);
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
-const stageCount = () => STAGES.filter((s) => s.available).length;
+const stageCount = () => STAGES.filter((s) => s.available && !s.shop).length;   // (stages bought in the shop don't count)
 
 // the list. group = which page section it's shown under; secret = name and how-to hidden until it's unlocked
 export const ACHIEVEMENTS = [

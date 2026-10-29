@@ -9,6 +9,8 @@ import { BackroomsStage, drawBackroomsPreview } from './backroomsStage.js';
 import { InfectedStage, drawInfectedPreview } from './infectedStage.js';
 import { AeroStage, drawAeroPreview } from './aeroStage.js';
 import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
+import { FracturedStage, drawFracturedPreview } from './fracturedStage.js';
+import { owns } from '../progress.js';
 
 export const STAGES = [
   {
@@ -65,22 +67,32 @@ export const STAGES = [
     hazard: 'ROCKETS, FALLING BRICKS, LAG SPIKES -\nAND A GRIEFER WHO THROWS HIS GEAR AT YOU.',
     preview: drawBaseplatePreview,
   },
+  {
+    // `shop`: locked until that shop item is bought (the GALAXY FRAGMENT in EXTRAS)
+    id: 'fractured', music: 'bgm_fractured', name: 'FRACTURED', available: true, shop: 'ext-fragment', make: (scene) => new FracturedStage(scene),
+    blurb: ['A giant galaxy-crystal fragment adrift in', 'deep space, its broken shards floating nearby.'],
+    hazard: 'SHARD RAIN: GLINTS, THEN CRYSTALS FALL.\nCRYSTAL SURGE: SPIKES BURST FROM THE CRACKS.',
+    preview: drawFracturedPreview,
+  },
 ];
+
+// a stage you have to buy something in the shop to play (stage.shop) and haven't yet
+export function stageLocked(st) { return !!(st && st.shop && !owns(st.shop)); }
 
 // The tracks you can pick on the stage select screen (settings.track): AUTO (the stage's own music - or the shop track
 // you switched on), any stage's music, the shop's tracks you own, or a random one. Stages above carry `music` / `musicList`
 // (the same keys their stage files play).
 export function trackList(owned = []) {
   return [{ id: 'auto', name: 'AUTO' }, { id: 'random', name: 'RANDOM' },
-    ...STAGES.filter((s) => s.available && (s.music || s.musicList)).map((s) => ({ id: s.id, name: s.name, music: s.music, musicList: s.musicList })),
+    ...STAGES.filter((s) => s.available && !stageLocked(s) && (s.music || s.musicList)).map((s) => ({ id: s.id, name: s.name, music: s.music, musicList: s.musicList })),
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-export const STAGE_SLOTS = 10;  // tiles on the select grid (2 across, 5 down); the last one is Random
+export const STAGE_SLOTS = 12;  // tiles on the select grid (2 across, 6 down); the last one is Random
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);
-  if (id === 'random' || !id) return avail[Math.floor(Math.random() * avail.length)];
+  if (id === 'random' || !id) { const open = avail.filter((s) => !stageLocked(s)); return open[Math.floor(Math.random() * open.length)]; }   // (random never picks a locked one)
   return STAGES.find((s) => s.id === id && s.available) || avail[0];
 }
 
