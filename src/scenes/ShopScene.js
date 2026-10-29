@@ -348,6 +348,7 @@ export class ShopScene extends Phaser.Scene {
   }
   // a record spinning on a little turntable, its label in the track's colour
   vinyl(g, cx, cy, s, it, t) {
+    if (it.rgb) return this.rgbVinyl(g, cx, cy, it, t);
     const col = it.color ?? C.gold, on = owns(it.id) && isEquipped('music', it.id), a = t * (on || it === this.item() ? 0.08 : 0.02);
     g.fillStyle(0x2a2030, 1); g.fillRect(cx - 26, cy - 22, 52, 46);
     g.fillStyle(0x0a0810, 1); g.fillCircle(cx - 3, cy + 1, 20);
@@ -358,6 +359,21 @@ export class ShopScene extends Phaser.Scene {
     g.lineStyle(2, 0xb8b4c8, 1); g.lineBetween(cx + 21, cy - 18, cx + 19, cy + 2); g.lineBetween(cx + 19, cy + 2, cx + 9, cy + 8);   // the tone arm
     g.fillStyle(0xb8b4c8, 1); g.fillCircle(cx + 21, cy - 18, 3);
     if (on || it === this.item()) for (let i = 0; i < 2; i++) { const p = ((t + i * 30) % 60) / 60; g.fillStyle(col, 1 - p); g.fillRect(cx + 14 + i * 6, cy - 14 - p * 14, 3, 3); g.fillRect(cx + 16 + i * 6, cy - 22 - p * 14, 1, 9); }   // notes floating up
+  }
+  // an RGB record (items with `rgb`): a glowing halo and grooves cycling through the rainbow, a light-up label, spinning
+  rgbVinyl(g, cx, cy, it, t) {
+    const hsv = (h, s = 1, v = 1) => Phaser.Display.Color.HSVToRGB(((h % 1) + 1) % 1, s, v).color;
+    const x = cx - 3, y = cy + 1, a = t * 0.09, h0 = t * 0.006;
+    g.fillStyle(0x0a0614, 1); g.fillRect(cx - 26, cy - 22, 52, 46);
+    for (let i = 6; i >= 1; i--) { g.fillStyle(hsv(h0 + i * 0.05), 0.07); g.fillCircle(x, y, 20 + i * 1.15); }      // the glow round it
+    g.fillStyle(0x06040c, 1); g.fillCircle(x, y, 20);
+    for (let k = 0; k < 6; k++) { g.lineStyle(1, hsv(h0 + k * 0.1, 0.9, 0.95), 0.85); g.strokeCircle(x, y, 18.5 - k * 1.7); }   // rainbow grooves
+    for (let k = 0; k < 3; k++) { const b = a + k * 2.09; g.fillStyle(0xffffff, 0.16); g.fillTriangle(x, y, x + Math.cos(b) * 20, y + Math.sin(b) * 20, x + Math.cos(b + 0.35) * 20, y + Math.sin(b + 0.35) * 20); }   // light sweeping round
+    for (let k = 0; k < 8; k++) { g.fillStyle(hsv(h0 + k / 8 + 0.5), 1); g.slice(x, y, 7, a + k * Math.PI / 4, a + (k + 1) * Math.PI / 4, false); g.fillPath(); }   // a spinning colour-wheel label
+    g.fillStyle(0xffffff, 1); g.fillCircle(x, y, 2); g.fillStyle(0x06040c, 1); g.fillCircle(x, y, 1);
+    g.lineStyle(2, 0xd8d4e8, 1); g.lineBetween(cx + 21, cy - 18, cx + 19, cy + 2); g.lineBetween(cx + 19, cy + 2, cx + 9, cy + 8);   // the tone arm
+    g.fillStyle(0xd8d4e8, 1); g.fillCircle(cx + 21, cy - 18, 3);
+    for (let i = 0; i < 2; i++) { const p = ((t + i * 30) % 60) / 60; g.fillStyle(hsv(h0 + i * 0.3), 1 - p); g.fillRect(cx + 14 + i * 6, cy - 14 - p * 14, 3, 3); g.fillRect(cx + 16 + i * 6, cy - 22 - p * 14, 1, 9); }   // notes
   }
   // a little window onto a stage with the effect on it: sky, a floating platform, the weather
   scenery(g, cx, cy, it, t) {

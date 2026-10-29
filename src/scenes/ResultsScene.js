@@ -3,6 +3,7 @@ import { VIEW_W, VIEW_H, FONT, PLAYER_CSS, PLAYER_COLORS, PLAYER_TINTS } from '.
 import { MODE_NAMES, settings } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
+import { voiceLine } from '../audio/voiceLines.js';
 import { sfx } from '../audio/sfx.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -21,6 +22,7 @@ export class ResultsScene extends Phaser.Scene {
     this.add.text(VIEW_W / 2, 18, MODE_NAMES[data.mode] + ' - RESULTS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(0.5);
     this.add.text(VIEW_W / 2 + 40, 62, win.label + ' WINS!', { fontFamily: FONT, fontSize: '22px', color: PLAYER_CSS[win.slot], stroke: '#0b0a14', strokeThickness: 6 }).setOrigin(0.5);
     this.heroDef = (ROSTER.find((r) => r.id === win.fighter) || ROSTER[0]).def;
+    this.time.delayedCall(900, () => voiceLine(this, win.fighter, 'win'));   // Mason's win line, if he made one
     this.hero = showFighter(this.add.sprite(120, 112, this.heroDef.sheets.idle, 0), this.heroDef, 0, win.skin || 0).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
     const unit = data.mode === 'stamina' ? ' HP' : '%';
     for (const [txt, x] of [['PLACE', 60], ['PLAYER', 116], ['KOS', 254], ['FALLS', 310], ['DEALT', 386], ['TAKEN', 486]]) {

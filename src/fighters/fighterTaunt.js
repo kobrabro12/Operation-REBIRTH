@@ -1,6 +1,7 @@
 // Fighter methods: the TAUNT (1 key / a stick click): a little dance or a show of power, with its own line,
 // sounds and particles (def.taunt). Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
+import { voiceLine } from '../audio/voiceLines.js';
 
 export class FighterTaunt {
   // TAUNT (the 1 key): a little dance or a show of power. It can't be cancelled - taunting is a risk.
@@ -9,6 +10,7 @@ export class FighterTaunt {
     if (!this.grounded) { this.setState('air'); return; }
     const lines = (this.vfx && this.vfx.wow && this.vfx.wow.taunt) || T.lines;   // a costume can have its own taunt lines
     if (this.t === 1 && lines) this.say(lines[Math.floor(Math.random() * lines.length)], 70, this.vfx && this.vfx.wow ? null : 'taunt');
+    if (this.t === 1) voiceLine(this.match, this.def.id, 'taunt');   // Mason's voice line for it, if he made one
     for (const [at, name, vol, rate] of T.sounds || []) if (this.t === at) sfx(name, vol, rate);
     for (const f of T.fx || []) if (this.t >= f.from && this.t <= f.to && (this.t - f.from) % f.every === 0) this.tauntFx(f);
     if (this.t >= T.frames) this.setState('idle');

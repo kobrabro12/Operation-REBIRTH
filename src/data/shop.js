@@ -44,7 +44,7 @@ export const SHOP = [
     { id: 'mus-jazz', kind: 'music', name: 'BLUE HOUR', price: 400, info: 'A JAZZ TRIO AND A SAXOPHONE, LATE AT NIGHT.', color: 0x3a6ad8 },
     { id: 'mus-taiko', kind: 'music', name: 'TAIKO THUNDER', price: 450, info: 'WAR DRUMS, A SHAKUHACHI AND A KOTO.', color: 0xe8202a },
     { id: 'mus-dream', kind: 'music', name: 'STARLIGHT', price: 300, info: 'A MUSIC BOX UNDER THE STARS. GENTLE.', color: 0xffe08a },
-    { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: "AN ORIGINAL TRACK BY MASON, WHO DRAWS THIS GAME. THE REAL DEAL.", color: 0xf3c358 },
+    { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: 'LIVE ON FOREVER DAFT PUNK...', color: 0xf3c358, rgb: true },   // rgb: its record glows through the rainbow (ShopScene vinyl)
   ] },
   { name: 'EXTRAS', items: [
     { id: 'ext-numbers', kind: 'extra', name: 'DAMAGE NUMBERS', price: 400, info: 'EVERY HIT POPS UP ITS DAMAGE. BIG ONES IN RED.', color: 0xffb84a },

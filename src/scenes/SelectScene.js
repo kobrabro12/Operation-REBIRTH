@@ -8,6 +8,7 @@ import { settings, MODE_NAMES } from '../settings.js';
 import { ROSTER, GRID_SLOTS, showFighter } from '../fighters/roster.js';
 import { readPad } from '../input/controllers.js';
 import { sfx } from '../audio/sfx.js';
+import { voiceLine } from '../audio/voiceLines.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { announce } from '../audio/announcer.js';
@@ -187,7 +188,7 @@ export class SelectScene extends Phaser.Scene {
         const sw = card && card.swatches.find((w) => p.x >= w.x - 1 && p.x < w.x + w.w + 1 && p.y >= w.y - 1 && p.y < w.y + w.h + 1);
         if (sw && sw.locked) sfx('curse', 0.4, 1.4);
         else if (sw) { card.p.skin = sw.i; sfx('menu', 0.6, 1.1); }
-        else if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); announce(this, tile.f.id); }
+        else if (tile && tile.f.available) { p.pick = tile.f.id; sfx('select', 0.7); if (!voiceLine(this, tile.f.id, 'pick')) announce(this, tile.f.id); }
         else if (tile) sfx('curse', 0.4, 1.4);
         else if (card && card.p.kind === 'cpu') { s.cpuLevels[card.p.slot] = (s.cpuLevels[card.p.slot] + 1) % 3; sfx('menu', 0.6, 1.2); }
       }

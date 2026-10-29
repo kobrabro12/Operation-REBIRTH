@@ -5,6 +5,7 @@ import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../p
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
+import { voiceLine } from '../audio/voiceLines.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
 const STYLE_HIT = {
@@ -399,7 +400,7 @@ export class MatchScene extends Phaser.Scene {
 
   onKO(f) {
     if (!f.alive) return;
-    sfx('ko', 1); this.shake(14, 5);
+    sfx('ko', 1); this.shake(14, 5); voiceLine(this, f.def.id, 'ko');
     // burst on the edge of the screen where they flew out
     const v = this.worldCam.worldView;
     const bx = Phaser.Math.Clamp(f.x, v.x + 10, v.right - 10), by = Phaser.Math.Clamp(f.y - 25, v.y + 10, v.bottom - 10);
