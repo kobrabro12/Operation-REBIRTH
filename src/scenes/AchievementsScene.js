@@ -16,6 +16,9 @@ import { getKOs, getCoins, owns, MILESTONE_KOS } from '../progress.js';
 import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { SHOP } from '../data/shop.js';
 import { STAGES } from '../stage/stages.js';
+import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
+
+const ACC = ARC.sections.achievements;
 
 const W = VIEW_W, H = VIEW_H;
 const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gold: 0xf3c358, dim: 0x5a4a70, ok: 0x7aff8a };
@@ -32,12 +35,12 @@ export class AchievementsScene extends Phaser.Scene {
     this.t = 0; this.tab = 0; this.sel = 0; this.top = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E');
     playMusic(this, 'bgm_title');
-    this.add.graphics().fillStyle(C.bg, 1).fillRect(0, 0, W, H);
+    this.bgFx = new ArcadeBg(this, ACC, { second: ARC.sections.trinkets });
     this.g = this.add.graphics();
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
     this.txt = txt;
-    this.add.text(W / 2, 28, 'ACHIEVEMENTS', { fontFamily: FONT, fontSize: '16px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.tabT = TABS.map((n, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, n, 7, '#c9c4dc').setOrigin(0.5, 0));
+    titleBanner(this, 'ACHIEVEMENTS', ACC, { crumb: 'TRINKETS  >  ACHIEVEMENTS' });
+    this.tabT = TABS.map((n, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, n, 7, '#c9c4dc', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 0));
     this.sumT = txt(W - 16, TAB.y + 6, '', 7, '#f3c358').setOrigin(1, 0);
     // page 1: a pool of text for the cards on screen
     this.cards = Array.from({ length: VIS }, () => ({
@@ -48,12 +51,12 @@ export class AchievementsScene extends Phaser.Scene {
     // page 2: stats, completion, the roster
     this.statT = txt(28, 114, '', 6, '#e8e4f4', { lineSpacing: 6 });
     this.statV = txt(244, 114, '', 6, '#ffffff', { lineSpacing: 6, align: 'right' }).setOrigin(1, 0);
-    this.compT = txt(28, 86, '', 8, '#ffffff');
+    this.compT = txt(28, 86, '', 8, '#ffffff', { stroke: '#07060e', strokeThickness: 3 });
     this.roster = [...ROSTER.filter((r) => r.available), ...TEST_ROSTER].map((r) => ({
       r, spr: this.add.sprite(0, 0, r.def.sheets.idle, 0).setVisible(false),
       name: txt(0, 0, r.name, 6, '#ffffff'), line: txt(0, 0, '', 5, '#c9c4dc'), next: txt(0, 0, '', 5, '#f3c358'),
     }));
-    this.add.text(W / 2, H - 8, 'Q/E PAGE   ARROWS / WASD MOVE   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    hintBar(this, 'Q/E PAGE   ARROWS MOVE   CLICK PICK   K / ESC / B  BACK', ACC);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, W - 8, 6);
     this.input.on('pointerdown', (p, over) => {
@@ -92,12 +95,13 @@ export class AchievementsScene extends Phaser.Scene {
       while (this.sel >= this.top + VIS) this.top += CARD.cols;
     } else if (m.left || m.right) this.setTab(0);
 
-    const g = this.g; g.clear();
+    const g = this.g; g.clear(); this.bgFx.update(t);
     TABS.forEach((name, i) => {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
-      g.fillStyle(on ? C.panel : C.panel2, 1); g.fillRect(x, TAB.y, TAB.w, TAB.h);
-      g.fillStyle(on ? C.line : C.dim, 1); g.fillRect(x, TAB.y, TAB.w, 2);
-      this.tabT[i].setColor(on ? '#ffffff' : '#8a87a3');
+      slant(g, x + 3, TAB.y + 3, TAB.w, TAB.h, 0x000000, 0.5, 6);
+      slant(g, x, TAB.y - (on ? 2 : 0), TAB.w, TAB.h + (on ? 2 : 0), on ? ACC : 0x2a2440, 1, 6);
+      if (on) slant(g, x, TAB.y - 2, TAB.w, 7, 0xffffff, 0.25, 2);
+      this.tabT[i].setColor(on ? '#07060e' : '#c9c4dc').setStroke(on ? '#ffd23f' : '#07060e', on ? 0 : 3);
     });
     const done = unlockedCount();
     this.sumT.setText(done + ' / ' + n + ' UNLOCKED');
@@ -113,22 +117,24 @@ export class AchievementsScene extends Phaser.Scene {
     const n = ACHIEVEMENTS.length, done = unlockedCount();
     const coinsEarned = ACHIEVEMENTS.filter((a) => isUnlocked(a.id)).reduce((s, a) => s + a.coins, 0);
     this.headT.setText(Math.round(done / n * 100) + '% COMPLETE   ·   ' + coinsEarned + ' COINS EARNED FROM ACHIEVEMENTS');
-    g.fillStyle(C.panel2, 1); g.fillRect(16, 92, W - 32, 6); g.fillStyle(C.gold, 1); g.fillRect(16, 92, (W - 32) * done / n, 6);
+    slant(g, 16, 91, W - 32, 8, 0x1c1838, 1, 4); slant(g, 16, 91, Math.max(8, (W - 32) * done / n), 8, ACC, 1, 4); slant(g, 16, 91, Math.max(8, (W - 32) * done / n), 3, 0xffffff, 0.3, 2);
     for (let i = 0; i < VIS; i++) {
       const a = ACHIEVEMENTS[this.top + i], c = this.cards[i];
       if (!a) { for (const k of ['name', 'info', 'num', 'coins']) c[k].setText(''); continue; }
       const [x, y] = this.cardAt(i), got = isUnlocked(a.id), hidden = a.secret && !got, sel = this.top + i === this.sel;
       const [have, goal] = progressOf(a);
-      g.fillStyle(got ? 0x2e2012 : sel ? C.panel : 0x1e1030, 1); g.fillRect(x, y, CARD.w, CARD.h);
-      g.lineStyle(sel ? 2 : 1, sel ? C.line : got ? 0x8a6a2a : 0x3a2654, 1); g.strokeRect(x + 1, y + 1, CARD.w - 2, CARD.h - 2);
+      slant(g, x + 4, y + 4, CARD.w, CARD.h, 0x000000, 0.5, 8);
+      slant(g, x, y, CARD.w, CARD.h, sel ? ARC.white : got ? 0x8a6a2a : 0x2c2650, 1, 8);
+      slant(g, x + 2, y + 2, CARD.w - 4, CARD.h - 4, got ? 0x2e2012 : sel ? 0x241e44 : ARC.panel, 1, 8);
+      if (got) slant(g, x + 2, y + 2, 26, CARD.h - 4, ACC, 0.25, 8);
       this.trophy(g, x + 18, y + 20, got, hidden, t + i * 7);
       c.name.setText(hidden ? '???' : a.name).setPosition(x + 36, y + 6).setColor(got ? '#f3c358' : hidden ? '#8a87a3' : '#ffffff');
       c.info.setText(hidden ? a.hint : a.info).setPosition(x + 36, y + 17);
       c.coins.setText('+' + a.coins).setPosition(x + CARD.w - 8, y + 6).setColor(got ? '#7aff8a' : '#f3c358');
       // the progress bar (a tick once it's done)
       const bx = x + CARD.w - 92, by = y + 28, bw = 84;
-      g.fillStyle(0x0b0a14, 1); g.fillRect(bx, by, bw, 5);
-      g.fillStyle(got ? C.ok : C.line, 1); g.fillRect(bx, by, bw * have / goal, 5);
+      slant(g, bx, by, bw, 5, 0x07060e, 1, 2);
+      if (have > 0) slant(g, bx, by, Math.max(3, bw * have / goal), 5, got ? C.ok : ACC, 1, 2);
       c.num.setText(got ? 'DONE' : goal > 1 ? have + ' / ' + goal : '').setPosition(bx - 4, by - 1).setColor(got ? '#7aff8a' : '#c9c4dc');
     }
     // the scroll bar
@@ -163,9 +169,9 @@ export class AchievementsScene extends Phaser.Scene {
     // overall completion: achievements, the shop, milestone costumes and stages, weighted equally
     const parts = [unlockedCount() / n, owned / items.length, tiers / tierMax, Math.min(1, s.stages.length / stages)];
     const comp = Math.round(parts.reduce((a, b) => a + b, 0) / parts.length * 100);
-    g.fillStyle(C.panel, 1); g.fillRect(16, 80, 240, 236); g.fillStyle(C.line, 1); g.fillRect(16, 80, 240, 2);
+    panel(g, 16, 80, 240, 238, ACC);
     this.compT.setText('COMPLETION  ' + comp + '%');
-    g.fillStyle(0x0b0a14, 1); g.fillRect(28, 100, 216, 6); g.fillStyle(C.gold, 1); g.fillRect(28, 100, 216 * comp / 100, 6);
+    slant(g, 28, 100, 216, 7, 0x07060e, 1, 3); if (comp) slant(g, 28, 100, Math.max(6, 216 * comp / 100), 7, ACC, 1, 3);
     const rows = [
       ['MATCHES PLAYED', s.matches], ['WINS', s.wins], ['WIN RATE', s.matches ? Math.round(s.wins / s.matches * 100) + '%' : '-'],
       ['FLAWLESS WINS', s.flawless], ['KOS', kosAll], ['LIMITS FIRED', s.limits], ['TAUNTS', s.taunts],
@@ -176,7 +182,7 @@ export class AchievementsScene extends Phaser.Scene {
     this.statT.setText(rows.map((r) => r[0]).join('\n')); this.statV.setText(rows.map((r) => String(r[1])).join('\n'));
     // the roster: a row per fighter
     const x0 = 268, w = 356;
-    g.fillStyle(C.panel, 1); g.fillRect(x0, 80, w, 236); g.fillStyle(C.line, 1); g.fillRect(x0, 80, w, 2);
+    panel(g, x0, 80, w, 238, ACC);
     const rowH = Math.min(32, Math.floor(228 / this.roster.length));
     this.roster.forEach((e, i) => {
       const y = 86 + i * rowH, id = e.r.id, kos = getKOs(id), played = s.played[id] || 0, won = s.won[id] || 0;

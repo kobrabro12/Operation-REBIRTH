@@ -11,6 +11,7 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { ArcadeBg, slant, hintBar, ARC, shade } from '../ui/arcade.js';
 
 const SECTORS = [
   { id: 'fight', name: 'FIGHT', sub: 'BATTLE FRIENDS OR CPUS', color: 0xc8283c, dark: 0x3a0a14, lit: 0xff6a72, scene: 'Setup' },
@@ -18,7 +19,7 @@ const SECTORS = [
   { id: 'other', name: 'OTHER', sub: 'TRAINING, HOW TO PLAY, CREDITS', color: 0x2fa070, dark: 0x0c2a1e, lit: 0x6fe3a8, scene: 'Other' },
   { id: 'trinkets', name: 'TRINKETS', sub: 'CHARACTER FILES & EXTRAS', color: 0x8a3fd0, dark: 0x22103a, lit: 0xc77dff, scene: 'Trinkets' },
 ];
-const PAD = 16, TOP = 56, GAP = 10;
+const PAD = 22, TOP = 62, GAP = 12, SK = 16;   // tile layout; SK = how far the tiles lean
 const W = (VIEW_W - PAD * 2 - GAP) / 2, H = (VIEW_H - TOP - 30 - GAP) / 2;
 
 export class MenuScene extends Phaser.Scene {
@@ -28,6 +29,7 @@ export class MenuScene extends Phaser.Scene {
     this.t = 0; this.menu = new MenuInput(this);
     this.sel = this.registry.get('menuSel') || 0;
     playMusic(this, 'bgm_title');
+    this.bgFx = new ArcadeBg(this, SECTORS[this.sel].color);
     this.bg = this.add.graphics();
     // logo
     this.add.text(VIEW_W / 2, 14, 'OPERATION', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(0.5);
@@ -35,12 +37,12 @@ export class MenuScene extends Phaser.Scene {
     this.panelG = this.add.graphics();
     this.tiles = SECTORS.map((s, i) => {
       const x = PAD + (i % 2) * (W + GAP), y = TOP + Math.floor(i / 2) * (H + GAP);
-      const label = this.add.text(x + W / 2 + 26, y + H / 2 - 10, s.name, { fontFamily: FONT, fontSize: s.locked ? '13px' : '18px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
+      const label = this.add.text(x + W / 2 + 26, y + H / 2 - 10, s.name, { fontFamily: FONT, fontSize: s.locked ? '13px' : '20px', color: '#ffffff', stroke: '#07060e', strokeThickness: 6, shadow: { offsetX: 3, offsetY: 3, color: '#07060e', fill: true, stroke: true } }).setOrigin(0.5);
       const sub = this.add.text(x + W / 2 + 26, y + H / 2 + 16, s.sub, { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc' }).setOrigin(0.5);
       return { s, x, y, label, sub, pop: 0 };
     });
     this.toast = this.add.text(VIEW_W / 2, VIEW_H - 40, '', { fontFamily: FONT, fontSize: '8px', color: '#ffd34f', backgroundColor: '#16132a', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(20).setVisible(false);
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'CLICK A SECTOR  OR  MOVE + J / ENTER / A    K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    hintBar(this, 'CLICK PICK   ARROWS MOVE   J / ENTER / A OPEN   K / ESC / B  BACK', 0xffd23f);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
@@ -83,30 +85,31 @@ export class MenuScene extends Phaser.Scene {
   draw() {
     const g = this.bg, t = this.t;
     g.clear();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    for (let i = 0; i < 40; i++) {                     // a slow field of drifting pixel stars
-      const x = (i * 97 + t * (0.2 + (i % 3) * 0.15)) % VIEW_W, y = (i * 53) % VIEW_H;
-      g.fillStyle(i % 4 ? 0x2a2450 : 0x78a0c6, 1); g.fillRect(Math.round(x), y, i % 5 ? 1 : 2, i % 5 ? 1 : 2);
-    }
+    const S = SECTORS[this.sel]; this.bgFx.accent = S.color; this.bgFx.second = S.lit; this.bgFx.update(t);   // the backdrop takes the picked sector's colour
+    g.fillStyle(0x000000, 0.5); g.fillRect(VIEW_W / 2 - 92, 44, 184, 2); g.fillStyle(S.color, 1); g.fillRect(VIEW_W / 2 - 92 + ((t * 3) % 160), 44, 24, 2);   // a light running under the logo
     const p = this.panelG; p.clear();
     this.tiles.forEach((tile, i) => {
       const { s } = tile, on = i === this.sel;
       if (tile.pop > 0) tile.pop--;
-      const shake = tile.pop ? Math.round(Math.sin(tile.pop * 2) * 3) : 0, grow = on ? 2 : 0;
-      const x = tile.x - grow + shake, y = tile.y - grow, w = W + grow * 2, h = H + grow * 2;
-      p.fillStyle(0x05040a, 1); p.fillRect(x + 4, y + 4, w, h);                       // drop shadow
-      p.fillStyle(on ? s.color : s.dark, 1); p.fillRect(x, y, w, h);
-      p.fillStyle(s.dark, on ? 0.55 : 1); p.fillRect(x + 4, y + 4, w - 8, h - 8);
-      for (let yy = y + 4; yy < y + h - 4; yy += 3) {                                    // diagonal stripes sliding by
-        const off = Math.floor(((on ? t : t * 0.3) + yy) % 14);
-        p.fillStyle(s.color, on ? 0.22 : 0.1);
-        for (let xx = x + 4 + ((14 - off) % 14); xx < x + w - 8; xx += 14) p.fillRect(xx, yy, 4, 3);
+      tile.k = (tile.k || 0) + ((on ? 1 : 0) - (tile.k || 0)) * 0.25;                      // eases in and out of being picked
+      const k = tile.k, shake = tile.pop ? Math.round(Math.sin(tile.pop * 2) * 3) : 0, grow = Math.round(k * 4);
+      const x = tile.x - grow + shake - Math.round(k * 4), y = tile.y - grow - Math.round(k * 3), w = W + grow * 2, h = H + grow * 2;
+      slant(p, x + 7, y + 7, w, h, 0x000000, 0.6, SK);                                       // hard shadow
+      slant(p, x, y, w, h, on ? s.color : shade(s.color, 0.55), 1, SK);                      // the frame
+      slant(p, x + 4, y + 4, w - 8, h - 8, s.dark, on ? 0.82 : 0.96, SK - 1);                // the body
+      for (let b = 0; b < 7; b++) {                                                           // slanted stripes sliding through
+        const bx = x + 4 + ((b * 46 + (on ? t * 1.6 : t * 0.4)) % (w + 40)) - 40;
+        if (bx > x - 30 && bx < x + w - 10) slant(p, Math.max(x + 6, bx), y + 4, Math.min(16, x + w - 12 - bx), h - 8, s.color, on ? 0.2 : 0.07, SK - 1);
       }
-      const border = on ? (t % 30 < 15 ? 0xf3c358 : 0xffffff) : s.color;
-      p.lineStyle(2, border, 1); p.strokeRect(x + 1, y + 1, w - 2, h - 2);
-      this.icon(p, s.id, x + 44, y + h / 2 + (on ? Math.round(Math.sin(t * 0.15) * 2) : 0), on ? s.lit : s.color, s);
-      tile.label.setPosition(x + w / 2 + 26, y + h / 2 - 10).setColor(s.locked ? (on ? '#c9c4dc' : '#6a6680') : '#ffffff');
-      tile.sub.setPosition(x + w / 2 + 26, y + h / 2 + 16).setColor(on ? '#ffffff' : '#8a87a3');
+      slant(p, x + 4, y + 4, w - 8, (h - 8) * 0.42, 0xffffff, on ? 0.07 : 0.03, (SK - 1) * 0.42);   // a sheen on the top half
+      if (on) {                                                                               // picked: a white flash edge and corner slashes
+        const fl = t % 30 < 15 ? ARC.white : ARC.gold;
+        p.fillStyle(fl, 1); p.fillRect(x + SK + 2, y, w - SK - 4, 2); p.fillRect(x + 2, y + h - 2, w - SK - 4, 2);
+        for (let q = 0; q < 3; q++) slant(p, x + w - SK - 34 + q * 9, y + h - 14, 6, 8, ARC.white, 0.9 - q * 0.25, 4);
+      }
+      this.icon(p, s.id, x + 50, y + h / 2 + (on ? Math.round(Math.sin(t * 0.15) * 2) : 0), on ? s.lit : s.color, s);
+      tile.label.setPosition(x + w / 2 + 30, y + h / 2 - 10).setColor(s.locked ? (on ? '#c9c4dc' : '#6a6680') : on ? '#ffffff' : '#c9c4dc').setScale(1 + k * 0.08);
+      tile.sub.setPosition(x + w / 2 + 30, y + h / 2 + 17).setColor(on ? '#ffffff' : '#8a87a3');
     });
   }
 

@@ -11,13 +11,15 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { ArcadeBg, titleBanner, hintBar, ARC } from '../ui/arcade.js';
+import { ListScreen } from '../ui/listScreen.js';
 
 const ENTRIES = [
-  { name: 'TRAINING', info: 'PRACTISE AGAINST DUMMIES WITH\nNO STOCKS AND NO TIMER.\n\nSEE YOUR DAMAGE AND COMBOS,\nSHOW HITBOXES, SLOW DOWN TIME\nAND FILL YOUR LIMIT GAUGE.\n\nPRESS ENTER TO SET IT UP.', go: true },
-  { name: 'HOW TO PLAY', info: 'MOVE         WASD\nJUMP         SPACE  (OR W)\nATTACK       J\nSPECIAL      K  (+ A DIRECTION)\nSHIELD       L  (+ DIRECTION: DODGE)\nGRAB         I\nLIMIT        O  (WHEN THE GAUGE IS FULL)\nTAUNT        1  (OR CLICK A STICK)\nPAUSE        ESC\n\nKNOCK RIVALS OFF THE STAGE!\nTHE MORE DAMAGE THEY HAVE,\nTHE FARTHER THEY FLY.' },
-  { name: 'TIPS & ITEMS', info: 'SMASH ATTACK: TAP A DIRECTION AND\n  ATTACK TOGETHER. SLOW, BUT IT KOS.\nHOLDING SOMEONE: J TO PUMMEL,\n  A DIRECTION TO THROW.\nGRABBED? MASH TO BREAK FREE.\nLIMITS CAN BE DODGED - WATCH FOR\n  THE WIND-UP AND JUMP OR ROLL.\n\nSOUL HEART    HEALS 25%\nLIMIT ORB     HALF A LIMIT GAUGE\nSWIFT FEATHER FASTER + EXTRA JUMP\nSTAR CANDY    5 S INVINCIBLE\nCURSED SKULL  SLOW AND WEAK!' },
-  { name: 'CREDITS', info: 'OPERATION REBIRTH\n\nGAME DESIGN, ART DIRECTION\nAND ANNOUNCER:  KOBRABRO12\n\nCODE, PIXEL ART AND MUSIC\nBUILT WITH CLAUDE\n\nLACY BASED ON THE CC0\nHERO KNIGHT SPRITE PACK\n\nTHANKS FOR PLAYING!' },
-  { name: 'BACK', info: '', back: true },
+  { name: 'TRAINING', icon: 'dummy', info: 'PRACTISE AGAINST DUMMIES WITH\nNO STOCKS AND NO TIMER.\n\nSEE YOUR DAMAGE AND COMBOS,\nSHOW HITBOXES, SLOW DOWN TIME\nAND FILL YOUR LIMIT GAUGE.\n\nPRESS ENTER TO SET IT UP.', go: true },
+  { name: 'HOW TO PLAY', icon: 'pad', info: 'MOVE         WASD\nJUMP         SPACE  (OR W)\nATTACK       J\nSPECIAL      K  (+ A DIRECTION)\nSHIELD       L  (+ DIRECTION: DODGE)\nGRAB         I\nLIMIT        O  (WHEN THE GAUGE IS FULL)\nTAUNT        1  (OR CLICK A STICK)\nPAUSE        ESC\n\nKNOCK RIVALS OFF THE STAGE!\nTHE MORE DAMAGE THEY HAVE,\nTHE FARTHER THEY FLY.' },
+  { name: 'TIPS & ITEMS', icon: 'bulb', info: 'SMASH ATTACK: TAP A DIRECTION AND\n  ATTACK TOGETHER. SLOW, BUT IT KOS.\nHOLDING SOMEONE: J TO PUMMEL,\n  A DIRECTION TO THROW.\nGRABBED? MASH TO BREAK FREE.\nLIMITS CAN BE DODGED - WATCH FOR\n  THE WIND-UP AND JUMP OR ROLL.\n\nSOUL HEART    HEALS 25%\nLIMIT ORB     HALF A LIMIT GAUGE\nSWIFT FEATHER FASTER + EXTRA JUMP\nSTAR CANDY    5 S INVINCIBLE\nCURSED SKULL  SLOW AND WEAK!' },
+  { name: 'CREDITS', icon: 'star', info: 'OPERATION REBIRTH\n\nGAME DESIGN, ART DIRECTION\nAND ANNOUNCER:  KOBRABRO12\n\nCODE, PIXEL ART AND MUSIC\nBUILT WITH CLAUDE\n\nLACY BASED ON THE CC0\nHERO KNIGHT SPRITE PACK\n\nTHANKS FOR PLAYING!' },
+  { name: 'BACK', icon: 'back', info: '', back: true },
 ];
 
 export class OtherScene extends Phaser.Scene {
@@ -26,19 +28,14 @@ export class OtherScene extends Phaser.Scene {
   create() {
     this.t = 0; this.sel = 0; this.menu = new MenuInput(this);
     playMusic(this, 'bgm_title');
-    const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    g.fillStyle(0x0c2a1e, 1); g.fillRect(16, 56, 180, 260); g.fillRect(208, 56, 416, 260);
-    g.fillStyle(0x2fa070, 1); g.fillRect(16, 56, 180, 2); g.fillRect(208, 56, 416, 2);
-    this.add.text(VIEW_W / 2, 28, 'OTHER', { fontFamily: FONT, fontSize: '16px', color: '#6fe3a8', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.cursor = this.add.graphics();
-    this.items = ENTRIES.map((e, i) => this.add.text(34, 80 + i * 30, e.name, { fontFamily: FONT, fontSize: '9px', color: '#c9c4dc' }));
-    this.info = this.add.text(226, 76, '', { fontFamily: FONT, fontSize: '7px', color: '#e8e4f4', lineSpacing: 8 });
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S SELECT   J / ENTER / A OPEN   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.bgFx = new ArcadeBg(this, ARC.sections.other);
+    titleBanner(this, 'OTHER', ARC.sections.other, { crumb: 'MAIN MENU  >  OTHER' });
+    this.list = new ListScreen(this, ENTRIES, ARC.sections.other);
+    hintBar(this, 'W/S SELECT   CLICK PICK   J / ENTER / A OPEN   K / ESC / B  BACK', ARC.sections.other);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
-    const rowAt = (x, y) => (x > 20 && x < 192 ? (i => (i >= 0 && i < ENTRIES.length ? i : -1))(Math.floor((y - 72) / 30)) : -1);
+    const rowAt = (x, y) => this.list.rowAt(x, y);
     this.input.on('pointermove', (p) => { const i = rowAt(p.x, p.y); if (i >= 0 && i !== this.sel) { this.sel = i; sfx('menu', 0.3); } });
     this.input.on('pointerdown', (p, over) => { if (over.length) return; const i = rowAt(p.x, p.y); if (i >= 0) { this.sel = i; this.clicked = true; } });
   }
@@ -58,10 +55,6 @@ export class OtherScene extends Phaser.Scene {
       sfx('menu', 0.5, 1.2);
     }
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
-    this.items.forEach((t, i) => t.setColor(i === this.sel ? (ENTRIES[i].back ? '#f3c358' : '#ffffff') : ENTRIES[i].back ? '#6fe3a8' : '#c9c4dc'));
-    this.info.setText(e.info);
-    const c = this.cursor; c.clear();
-    c.fillStyle(0x2fa070, 0.3); c.fillRect(22, 74 + this.sel * 30, 168, 20);
-    c.fillStyle(0x6fe3a8, 1); c.fillRect(22, 74 + this.sel * 30, 3, 20);
+    this.bgFx.update(this.t); this.list.draw(this.sel, this.t);
   }
 }

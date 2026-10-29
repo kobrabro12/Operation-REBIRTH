@@ -11,40 +11,51 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { skinsFor } from '../fighters/skins.js';
 import { getKOs, MILESTONE_KOS } from '../progress.js';
 import { announce } from '../audio/announcer.js';
+import { ArcadeBg, panel, slant, hintBar, ARC, shade } from '../ui/arcade.js';
 
 export class ResultsScene extends Phaser.Scene {
   constructor() { super('Results'); }
   create(data) {
     this.menu = new MenuInput(this); this.t = 0;
     playMusic(this, 'bgm_title');
+    const win = data.results[0], wc = PLAYER_COLORS[win.slot];
+    this.bgFx = new ArcadeBg(this, wc, { second: ARC.gold });
     const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    const win = data.results[0];
-    g.fillStyle(PLAYER_COLORS[win.slot], 0.2); g.fillRect(0, 30, VIEW_W, 90);
-    this.add.text(VIEW_W / 2, 18, MODE_NAMES[data.mode] + ' - RESULTS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(0.5);
-    this.add.text(VIEW_W / 2 + 40, 62, win.label + ' WINS!', { fontFamily: FONT, fontSize: '22px', color: PLAYER_CSS[win.slot], stroke: '#0b0a14', strokeThickness: 6 }).setOrigin(0.5);
+    // the winner's band: a big slanted slab in their colour, hazard slashes, the WINS! title
+    slant(g, -40, 38, VIEW_W + 80, 84, 0x000000, 0.6, 30);
+    slant(g, -40, 32, VIEW_W + 80, 84, wc, 1, 30);
+    slant(g, -40, 38, VIEW_W + 80, 72, shade(wc, 0.3), 1, 26);
+    for (let x = VIEW_W - 170; x < VIEW_W + 40; x += 22) slant(g, x, 32, 9, 84, 0xffffff, 0.12, 30);
+    slant(g, 10, 6, 210, 18, ARC.gold, 1, 6);
+    this.add.text(20, 10, MODE_NAMES[data.mode] + '  -  RESULTS', { fontFamily: FONT, fontSize: '7px', color: '#07060e' });
+    this.winT = this.add.text(VIEW_W / 2 + 60, 74, win.label + ' WINS!', { fontFamily: FONT, fontSize: '26px', color: '#ffffff', stroke: '#07060e', strokeThickness: 7, shadow: { offsetX: 4, offsetY: 4, color: '#07060e', fill: true, stroke: true } }).setOrigin(0.5).setScale(2.4).setAlpha(0);
+    this.tweens.add({ targets: this.winT, scale: 1, alpha: 1, duration: 320, ease: 'Back.Out' });
     this.heroDef = (ROSTER.find((r) => r.id === win.fighter) || ROSTER[0]).def;
     this.time.delayedCall(900, () => voiceLine(this, win.fighter, 'win'));   // Mason's win line, if he made one
     this.hero = showFighter(this.add.sprite(120, 112, this.heroDef.sheets.idle, 0), this.heroDef, 0, win.skin || 0).setScale(1.6).setTint(PLAYER_TINTS[win.slot]);
     const unit = data.mode === 'stamina' ? ' HP' : '%';
     for (const [txt, x] of [['PLACE', 60], ['PLAYER', 116], ['KOS', 254], ['FALLS', 310], ['DEALT', 386], ['TAKEN', 486]]) {
-      this.add.text(x, 144, txt, { fontFamily: FONT, fontSize: '7px', color: '#8a87a3' });
+      this.add.text(x, 140, txt, { fontFamily: FONT, fontSize: '6px', color: '#a8a4c0' });
     }
     data.results.forEach((r, i) => {
-      const y = 164 + i * 26;
-      g.fillStyle(PLAYER_COLORS[r.slot], 0.15); g.fillRect(52, y - 6, 536, 20);
-      const cols = [['#' + (i + 1), 60], [r.label, 116], [String(r.kos), 254], [String(r.falls), 310], [r.dealt + unit, 386], [r.taken + unit, 486]];
-      for (const [txt, x] of cols) this.add.text(x, y, txt, { fontFamily: FONT, fontSize: '8px', color: x === 116 ? PLAYER_CSS[r.slot] : '#ffffff' });
+      const y = 158 + i * 25, c = PLAYER_COLORS[r.slot];
+      slant(g, 50 + 4, y - 6 + 4, 540, 21, 0x000000, 0.5, 8);
+      slant(g, 50, y - 6, 540, 21, i === 0 ? 0x2a2210 : ARC.panel, 1, 8);
+      slant(g, 50, y - 6, 46, 21, i === 0 ? ARC.gold : shade(c, 0.7), 1, 8);                   // the place, in a chip
+      slant(g, 96, y - 6, 4, 21, c, 1, 8);
+      const cols = [['#' + (i + 1), 62], [r.label, 116], [String(r.kos), 254], [String(r.falls), 310], [r.dealt + unit, 386], [r.taken + unit, 486]];
+      for (const [txt, x] of cols) this.add.text(x, y, txt, { fontFamily: FONT, fontSize: '8px', color: x === 62 ? '#07060e' : x === 116 ? PLAYER_CSS[r.slot] : '#ffffff', stroke: x === 62 ? undefined : '#07060e', strokeThickness: x === 62 ? 0 : 3 });
     });
     this.milestones(data, g);
     // the coins each human earned (for the shop: Trinkets > SHOP)
     if (data.coins && data.coins.length) {
       const txt = data.coins.map((c) => c.label + ' +' + c.coins).join('   ') + '   COINS  (' + data.total + ' IN THE BANK)';
-      this.coinT = this.add.text(VIEW_W / 2, 318, txt, { fontFamily: FONT, fontSize: '7px', color: '#f3c358', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
+      this.coinT = this.add.text(VIEW_W / 2, 318, txt, { fontFamily: FONT, fontSize: '7px', color: '#07060e' }).setOrigin(0.5).setDepth(2);
+      slant(g, VIEW_W / 2 - this.coinT.width / 2 - 16, 310, this.coinT.width + 32, 16, ARC.gold, 1, 6);
       this.time.delayedCall(400, () => sfx('ding', 0.4, 1.6));
     }
     achievementToasts(this, checkAchievements(), { delay: 900 });   // anything this match unlocked (achievements.js)
-    this.prompt = this.add.text(VIEW_W / 2, 336, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
+    this.prompt = this.add.text(VIEW_W / 2, 337, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5);
     sfx('limitready', 0.8);
     this.clicked = false;
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });
@@ -58,9 +69,7 @@ export class ResultsScene extends Phaser.Scene {
     });
     this.ui = -1;
     if (this.unlocks.length) {
-      g.fillStyle(0x0b0a14, 1); g.fillRect(50, 262, 540, 66);
-      g.fillStyle(0xf3c358, 1); g.fillRect(50, 262, 540, 2); g.fillRect(50, 326, 540, 2);
-      g.fillStyle(0x1b1640, 1); g.fillRect(52, 264, 536, 62);
+      panel(g, 50, 262, 540, 64, ARC.gold);
       this.ulSprite = this.add.sprite(100, 322, 'ss_idle', 0);
       this.ulHead = this.add.text(170, 270, 'NEW COSTUME UNLOCKED!', { fontFamily: FONT, fontSize: '10px', color: '#f3c358', stroke: '#0b0a14', strokeThickness: 3 });
       this.ulName = this.add.text(170, 287, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' });
@@ -87,7 +96,7 @@ export class ResultsScene extends Phaser.Scene {
   }
 
   update() {
-    this.t++;
+    this.t++; this.bgFx.update(this.t);
     if (this.unlocks.length) {
       const u = this.unlocks[this.ui];
       showFighter(this.ulSprite, u.def, Math.floor(this.t / 6), u.skin);

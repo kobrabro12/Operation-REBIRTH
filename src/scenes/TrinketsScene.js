@@ -7,13 +7,15 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
+import { ArcadeBg, titleBanner, hintBar, ARC } from '../ui/arcade.js';
+import { ListScreen } from '../ui/listScreen.js';
 
 const ENTRIES = [
-  { name: 'CHARACTER FILES', info: 'THE FILES ON EVERY FIGHTER: WHO THEY ARE,\nWHERE THEY COME FROM, THEIR MOVES -\nAND THE STORIES BEHIND THEIR COSTUMES.', scene: 'Files' },
-  { name: 'TEST FIGHTERS', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
-  { name: 'SHOP', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
-  { name: 'ACHIEVEMENTS', info: 'TROPHIES FOR WHAT YOU\'VE DONE - EACH ONE\nPAYS OUT COINS FOR THE SHOP.\n\nPLUS YOUR PROGRESS: MATCHES, WINS, KOS,\nCOMPLETION AND EVERY FIGHTER\'S RECORD.', scene: 'Achievements' },
-  { name: 'BACK', info: '', back: true },
+  { name: 'CHARACTER FILES', icon: 'files', info: 'THE FILES ON EVERY FIGHTER: WHO THEY ARE,\nWHERE THEY COME FROM, THEIR MOVES -\nAND THE STORIES BEHIND THEIR COSTUMES.', scene: 'Files' },
+  { name: 'TEST FIGHTERS', icon: 'flask', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
+  { name: 'SHOP', icon: 'shop', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
+  { name: 'ACHIEVEMENTS', icon: 'trophy', info: 'TROPHIES FOR WHAT YOU\'VE DONE - EACH ONE\nPAYS OUT COINS FOR THE SHOP.\n\nPLUS YOUR PROGRESS: MATCHES, WINS, KOS,\nCOMPLETION AND EVERY FIGHTER\'S RECORD.', scene: 'Achievements' },
+  { name: 'BACK', icon: 'back', info: '', back: true },
 ];
 const C = { panel: 0x2a1640, line: 0xc77dff, text: '#e6c8ff' };
 
@@ -23,19 +25,14 @@ export class TrinketsScene extends Phaser.Scene {
   create() {
     this.t = 0; this.sel = 0; this.menu = new MenuInput(this);
     playMusic(this, 'bgm_title');
-    const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    g.fillStyle(C.panel, 1); g.fillRect(16, 56, 200, 260); g.fillRect(228, 56, 396, 260);
-    g.fillStyle(C.line, 1); g.fillRect(16, 56, 200, 2); g.fillRect(228, 56, 396, 2);
-    this.add.text(VIEW_W / 2, 28, 'TRINKETS', { fontFamily: FONT, fontSize: '16px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.cursor = this.add.graphics();
-    this.items = ENTRIES.map((e, i) => this.add.text(34, 80 + i * 30, e.name, { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' }));
-    this.info = this.add.text(246, 80, '', { fontFamily: FONT, fontSize: '7px', color: '#e8e4f4', lineSpacing: 8 });
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S SELECT   J / ENTER / A OPEN   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.bgFx = new ArcadeBg(this, ARC.sections.trinkets);
+    titleBanner(this, 'TRINKETS', ARC.sections.trinkets, { crumb: 'MAIN MENU  >  TRINKETS' });
+    this.list = new ListScreen(this, ENTRIES, ARC.sections.trinkets);
+    hintBar(this, 'W/S SELECT   CLICK PICK   J / ENTER / A OPEN   K / ESC / B  BACK', ARC.sections.trinkets);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
-    const rowAt = (x, y) => { const i = Math.floor((y - 72) / 30); return x > 20 && x < 212 && i >= 0 && i < ENTRIES.length ? i : -1; };
+    const rowAt = (x, y) => this.list.rowAt(x, y);
     this.input.on('pointermove', (p) => { const i = rowAt(p.x, p.y); if (i >= 0 && i !== this.sel) { this.sel = i; sfx('menu', 0.3); } });
     this.input.on('pointerdown', (p, over) => { if (over.length) return; const i = rowAt(p.x, p.y); if (i >= 0) { this.sel = i; this.clicked = true; } });
   }
@@ -55,10 +52,6 @@ export class TrinketsScene extends Phaser.Scene {
       sfx('curse', 0.3, 1.5);
     }
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
-    this.items.forEach((t, i) => t.setColor(i === this.sel ? (ENTRIES[i].back ? '#f3c358' : '#ffffff') : ENTRIES[i].back ? '#c77dff' : ENTRIES[i].scene ? '#e6c8ff' : '#5a4a70'));
-    this.info.setText(e.info);
-    const c = this.cursor; c.clear();
-    c.fillStyle(C.line, 0.25); c.fillRect(22, 74 + this.sel * 30, 188, 20);
-    c.fillStyle(C.line, 1); c.fillRect(22, 74 + this.sel * 30, 3, 20);
+    this.bgFx.update(this.t); this.list.draw(this.sel, this.t);
   }
 }

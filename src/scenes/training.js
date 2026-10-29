@@ -50,7 +50,7 @@ export class Training {
     const s = match;
 
     // buttons (also the hotkey list)
-    const opt = { size: '6px', depth: 26, bg: '#1b1640', hover: '#3a2f8a' };
+    const opt = { size: '6px', depth: 26, bg: '#1b1640', hover: '#3a2f8a', pad: { x: 7, y: 3 } };
     this.btns = [
       makeButton(s, 8, 22, '', () => this.reset(), opt),
       makeButton(s, 8, 38, '', () => this.fillLimit(), opt),

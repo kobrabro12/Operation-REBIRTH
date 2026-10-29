@@ -2,6 +2,7 @@
 // Call achievementToasts(scene, list) with what checkAchievements() returned; each shows for SHOW frames.
 import { VIEW_W, FONT } from '../config.js';
 import { sfx } from '../audio/sfx.js';
+import { slant } from './arcade.js';
 
 // how long each banner stays up (ms) and the gap before the next one slides in
 const SHOW = 2600, GAP = 250;
@@ -16,12 +17,13 @@ function toast(scene, a, opts) {
   const c = scene.add.container(x, y0).setDepth(200);
   if (opts.addUI) opts.addUI(c);
   const g = scene.add.graphics();
-  g.fillStyle(0x0b0a14, 0.95); g.fillRect(0, 0, w, h);
-  g.fillStyle(0xf3c358, 1); g.fillRect(0, 0, w, 2); g.fillRect(0, h - 2, w, 2);
-  g.fillStyle(0xf3c358, 1); g.fillRect(8, 8, 18, 18); g.fillStyle(0x0b0a14, 1); g.fillRect(12, 12, 10, 3); g.fillRect(15, 15, 4, 6); g.fillRect(12, 21, 10, 2);   // a little trophy
-  const t1 = scene.add.text(34, 6, 'ACHIEVEMENT UNLOCKED', { fontFamily: FONT, fontSize: '6px', color: '#f3c358' });
-  const t2 = scene.add.text(34, 18, a.name, { fontFamily: FONT, fontSize: '8px', color: '#ffffff' });
-  const t3 = scene.add.text(w - 8, 18, '+' + a.coins, { fontFamily: FONT, fontSize: '7px', color: '#f3c358' }).setOrigin(1, 0);
+  slant(g, 4, 4, w, h, 0x000000, 0.6, 10);                                     // a slanted gold plate
+  slant(g, 0, 0, w, h, 0xffd23f, 1, 10); slant(g, 3, 3, w - 6, h - 6, 0x0b0a14, 0.96, 9);
+  slant(g, 3, 3, 30, h - 6, 0xffd23f, 1, 9);
+  g.fillStyle(0xffd23f, 1); g.fillRect(8, 8, 18, 18); g.fillStyle(0x0b0a14, 1); g.fillRect(12, 12, 10, 3); g.fillRect(15, 15, 4, 6); g.fillRect(12, 21, 10, 2);   // a little trophy
+  const t1 = scene.add.text(38, 6, 'ACHIEVEMENT UNLOCKED', { fontFamily: FONT, fontSize: '6px', color: '#ffd23f' });
+  const t2 = scene.add.text(38, 17, a.name, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
+  const t3 = scene.add.text(w - 14, 18, '+' + a.coins, { fontFamily: FONT, fontSize: '7px', color: '#ffd23f' }).setOrigin(1, 0);
   c.add([g, t1, t2, t3]);
   sfx('limitready', 0.6, 1.2);
   scene.tweens.add({ targets: c, y: y1, duration: 260, ease: 'Back.Out' });

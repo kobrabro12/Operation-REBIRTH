@@ -29,6 +29,9 @@ import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
 import { stat, addSecret, checkAchievements } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
+import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
+
+const ACC = ARC.sections.shop;
 
 const W = VIEW_W, H = VIEW_H;
 const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gold: 0xf3c358, dim: 0x5a4a70 };
@@ -91,11 +94,12 @@ export class ShopScene extends Phaser.Scene {
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
+    this.bgFx = new ArcadeBg(this, ACC, { second: ARC.sections.trinkets });
     this.bg = this.add.graphics();
     this.g = this.add.graphics();                    // redrawn every frame: tabs, cards, the cursor, the panel
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
-    this.add.text(W / 2, 28, 'SHOP', { fontFamily: FONT, fontSize: '16px', color: '#c77dff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc').setOrigin(0.5, 0));
+    titleBanner(this, 'SHOP', ACC, { crumb: 'TRINKETS  >  SHOP' });
+    this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 0));
     this.coinT = txt(W - 14, 34, '', 8, '#f3c358', { stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(1, 0.5);
     this.cardName = []; this.cardPrice = []; this.cardSpr = [];
     this.pageT = this.add.text(PAGE.x, PAGE.y, '', { fontFamily: FONT, fontSize: '6px', color: '#f3c358' }).setOrigin(0.5).setVisible(false);
@@ -105,9 +109,9 @@ export class ShopScene extends Phaser.Scene {
       this.cardPrice.push(txt(x + GRID.w / 2, y + 88, '', 6, '#f3c358').setOrigin(0.5, 0));
       this.cardSpr.push(this.add.sprite(x + GRID.w / 2, y + 62, 'ss_idle', 0).setVisible(false));   // a costume, worn by its fighter
     }
-    this.nameT = txt(SIDE.x + 10, SIDE.y + 10, '', 8, '#ffffff');
+    this.nameT = txt(SIDE.x + 12, SIDE.y + 10, '', 8, '#ffffff', { stroke: '#07060e', strokeThickness: 3 });
     this.infoT = txt(SIDE.x + 10, SIDE.y + 24, '', 6, '#c9c4dc', { lineSpacing: 4, wordWrap: { width: SIDE.w - 20 } });
-    this.buyT = txt(SIDE.x + SIDE.w / 2, SIDE.y + SIDE.h - 20, 'BUY', 9, '#ffffff').setOrigin(0.5, 0.5);
+    this.buyT = txt(SIDE.x + SIDE.w / 2, SIDE.y + SIDE.h - 20, 'BUY', 9, '#ffffff', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 0.5);
     this.prevT = txt(SIDE.x + 20 + BTN.prevW / 2, SIDE.y + SIDE.h - 20, 'PREVIEW', 6, '#ffffff').setOrigin(0.5, 0.5);
     // the shopkeeper's face, on his screen (glowing: the line art is filled with the screen's colour)
     this.faceImg = this.add.sprite(KP.x, KP.y, 'shop_face_calm', 0).setTintMode(Phaser.TintModes.FILL).setTint(0x9affd8);
@@ -117,7 +121,7 @@ export class ShopScene extends Phaser.Scene {
     this.face = 'calm'; this.faceT = 0; this.jolt = 0; this.faceStart = 0; this.static = 12; this.saying = ''; this.sayT = 0; this.lastSel = -1;
     this.react('happy', 'hello', 200);
     this.msgT = txt(W / 2, H - 22, '', 7, '#ff8a8a').setOrigin(0.5, 1);
-    this.add.text(W / 2, H - 8, 'A/D W/S PICK   Q/E TAB   J / ENTER / A BUY / SWITCH ON / SPIN   P PREVIEW   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    hintBar(this, 'ARROWS PICK   Q/E TAB   J / ENTER / A BUY / SWITCH ON / SPIN   P PREVIEW   K / ESC / B  BACK', ACC);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, W - 8, 6);
     this.msg = 0;
@@ -141,9 +145,7 @@ export class ShopScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.noli = false; unreveal('noli'); this.dropLook(); this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
-    b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
-    for (let i = 0; i < 6; i++) { b.fillStyle(0x140c20, 1); b.fillRect(0, 44 + i * 56, W, 3); }
-    b.fillStyle(C.panel2, 1); b.fillRect(GRID.x - 6, GRID.y - 6, GRID.cols * (GRID.w + GRID.gap) + 6, GRID.rows * (GRID.h + GRID.gap) + 6);
+    panel(b, GRID.x - 8, GRID.y - 8, GRID.cols * (GRID.w + GRID.gap) + 12, GRID.rows * (GRID.h + GRID.gap) + 10, ACC, { sk: 6 });
     // mouse: tabs, cards, BUY
     this.input.on('pointerdown', (p, over) => {
       this.idle = 0;
@@ -840,15 +842,17 @@ export class ShopScene extends Phaser.Scene {
     if (here !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react(owns(this.item().id) ? 'smug' : 'money', this.item().gacha ? 'gamble' : owns(this.item().id) ? 'owned' : 'look'); this.lastSel = here; this.preview(); }   // eyeing something for sale: $ $
     if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
 
-    const g = this.g; g.clear();
+    const g = this.g; g.clear(); this.bgFx.update(t);
     this.keeper(g, t);
     // the tabs
     SHOP.forEach((tb, i) => {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
-      g.fillStyle(on ? C.panel : C.panel2, 1); g.fillRect(x, TAB.y, TAB.w, TAB.h);
       const lucky = tb.name === 'GAMBLING';                                              // the gambling tab: trimmed in gold, flashing
-      g.fillStyle(lucky ? ((t >> 4) % 2 ? C.gold : 0xd8223a) : on ? C.line : C.dim, 1); g.fillRect(x, TAB.y, TAB.w, 2);
-      this.tabT[i].setColor(on ? '#ffffff' : tb.name === 'GAMBLING' ? '#f3c358' : '#8a87a3');
+      slant(g, x + 3, TAB.y + 3, TAB.w, TAB.h, 0x000000, 0.5, 6);
+      slant(g, x, TAB.y - (on ? 2 : 0), TAB.w, TAB.h + (on ? 2 : 0), on ? ACC : 0x241e3e, 1, 6);
+      if (on) slant(g, x, TAB.y - 2, TAB.w, 7, 0xffffff, 0.25, 2);
+      if (lucky && !on) { g.fillStyle((t >> 4) % 2 ? C.gold : 0xd8223a, 1); g.fillRect(x + 6, TAB.y + TAB.h - 2, TAB.w - 8, 2); }
+      this.tabT[i].setColor(on ? '#ffffff' : lucky ? '#ffd23f' : '#a8a4c0');
     });
     // the money
     this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
@@ -857,9 +861,12 @@ export class ShopScene extends Phaser.Scene {
     if (this.pages() > 1) { this.pageT.setText('PAGE ' + (this.page + 1) + '/' + this.pages()).setVisible(true); for (const s of [-1, 1]) { const ax = PAGE.x + s * 44, n = Math.sin(t * 0.15) * s; g.fillStyle(C.gold, 1); g.fillTriangle(ax + n - s * 4, PAGE.y - 5, ax + n - s * 4, PAGE.y + 5, ax + n + s * 4, PAGE.y); } } else this.pageT.setVisible(false);
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i), it = shelf[i], on = i === this.sel;
-      g.fillStyle(on ? C.panel : 0x1e1030, 1); g.fillRect(x, y, GRID.w, GRID.h);
-      g.lineStyle(on ? 2 : 1, on ? C.line : 0x3a2654, 1); g.strokeRect(x + 1, y + 1, GRID.w - 2, GRID.h - 2);
-      g.fillStyle(0x140a20, 1); g.fillRect(x + 8, y + 8, GRID.w - 16, 56);                   // the icon window
+      g.fillStyle(0x000000, 0.5); g.fillRect(x + 3, y + 3, GRID.w, GRID.h);
+      g.fillStyle(on ? ACC : 0x2c2650, 1); g.fillRect(x, y, GRID.w, GRID.h);
+      g.fillStyle(on ? 0x2a2048 : ARC.panel, 1); g.fillRect(x + 2, y + 2, GRID.w - 4, GRID.h - 4);
+      slant(g, x + 2, y + GRID.h - 24, GRID.w - 4, 22, on ? shade(ACC, 0.35) : 0x0d0b1a, 1, 6);   // the name plate
+      g.fillStyle(0x0d0a18, 1); g.fillRect(x + 8, y + 8, GRID.w - 16, 56);                   // the icon window
+      if (on) for (let k = 0; k < 2; k++) slant(g, x + 8 + ((t * 1.5 + k * 50) % (GRID.w + 20)) - 20, y + 8, 10, 56, 0xffffff, 0.05, 20);   // light sweeping the picked card's window
       this.icon(g, x + GRID.w / 2, y + 36, 16, it, t + i * 9);
       this.cardName[i].setText(it ? it.name : 'COMING SOON').setColor(it ? '#e8e4f4' : '#5a4a70');
       const mine = it && !it.gacha && owns(it.id), lit = mine && isEquipped(it.kind, it.id);
@@ -873,22 +880,23 @@ export class ShopScene extends Phaser.Scene {
         spr.setScale(Math.min(1, 54 / spr.frame.height, 74 / spr.frame.width * 1.3)).setPosition(x + GRID.w / 2, y + 62);
       } else if (it && it.img) spr.setVisible(true).setTexture(it.img).setOrigin(0.5).setFlipX(false).setScale(0.8).setPosition(x + GRID.w / 2, y + 36 + Math.round(Math.sin((t + i * 9) * 0.05) * 2));   // e.g. the GALAXY FRAGMENT, bobbing
       else spr.setVisible(false);
-      if (on) { const p = (t % 60) / 60; g.lineStyle(1, 0xffffff, 0.5 * (1 - p)); g.strokeRect(x - 2 - p * 3, y - 2 - p * 3, GRID.w + 4 + p * 6, GRID.h + 4 + p * 6); }   // a soft pulse round the picked card
+      if (on) { const p = (t % 60) / 60; g.lineStyle(2, ACC, 0.6 * (1 - p)); g.strokeRect(x - 2 - p * 4, y - 2 - p * 4, GRID.w + 4 + p * 8, GRID.h + 4 + p * 8); }   // a pulse round the picked card
     }
     // the details panel
     const it = this.item();
-    g.fillStyle(C.panel, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, SIDE.h); g.fillStyle(C.line, 1); g.fillRect(SIDE.x, SIDE.y, SIDE.w, 2);
+    panel(g, SIDE.x, SIDE.y, SIDE.w, SIDE.h, ACC, { sk: 6 });
     this.nameT.setText(it ? it.name : 'COMING SOON');
     this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
     const lab = this.label(it), mine = it && !it.gacha && owns(it.id);
     this.buyT.setText(lab === 'BUY' || lab === 'SPIN' ? lab + '  ' + it.price : lab);
     const can = it && (mine ? it.kind !== 'costume' && it.kind !== 'unlock' : getCoins() >= it.price);
     const cos = it && it.kind === 'costume', bx = SIDE.x + 20 + (cos ? BTN.prevW + 4 : 0), bw = SIDE.w - 40 - (cos ? BTN.prevW + 4 : 0);
-    g.fillStyle(can ? 0x3a8a3a : 0x3a2654, 1); g.fillRect(bx, BTN.y, bw, BTN.h);
-    g.fillStyle(can ? 0x5ad05a : C.dim, 1); g.fillRect(bx, BTN.y, bw, 2);
+    slant(g, bx + 3, BTN.y + 3, bw, BTN.h, 0x000000, 0.5, 8);
+    slant(g, bx, BTN.y, bw, BTN.h, can ? 0x2fae4a : 0x2c2650, 1, 8);
+    slant(g, bx, BTN.y, bw, 10, 0xffffff, can ? 0.2 + 0.08 * Math.sin(t * 0.15) : 0.05, 3);
     this.buyT.setColor(can ? '#ffffff' : '#8a87a3').setX(bx + bw / 2).setFontSize(cos ? 8 : 9);
     this.prevT.setVisible(!!cos);
-    if (cos) { g.fillStyle(0x3a4a8a, 1); g.fillRect(SIDE.x + 20, BTN.y, BTN.prevW, BTN.h); g.fillStyle(0x6a8ae8, 1); g.fillRect(SIDE.x + 20, BTN.y, BTN.prevW, 2); }
+    if (cos) { slant(g, SIDE.x + 23, BTN.y + 3, BTN.prevW, BTN.h, 0x000000, 0.5, 8); slant(g, SIDE.x + 20, BTN.y, BTN.prevW, BTN.h, 0x3b6bd8, 1, 8); slant(g, SIDE.x + 20, BTN.y, BTN.prevW, 10, 0xffffff, 0.15, 3); }
     this.coin(g, W - 22 - this.coinT.width, 34, t);                                   // the money, with its little spinning coin
   }
 }

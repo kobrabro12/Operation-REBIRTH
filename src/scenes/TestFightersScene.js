@@ -16,8 +16,9 @@ import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { settings } from '../settings.js';
 import { skinsFor, stepSkin as stepSkinUnlocked, skinUnlocked } from '../fighters/skins.js';
 import { STAGES } from '../stage/stages.js';
+import { ArcadeBg, titleBanner, hintBar, panel, slant, rowBar, ARC, shade } from '../ui/arcade.js';
 
-const GOLD = '#f3c358', DIM = '#8a87a3', LINE = 0x5ee07a, PANEL = 0x10241a;
+const GOLD = '#ffd23f', DIM = '#8a87a3', LINE = ARC.sections.test, PANEL = 0x10241a;
 const L = { x: 16, y: 56, w: 200, h: 262 }, R = { x: 228, y: 56, w: 396, h: 262 };
 const MODES = ['TRAINING', 'VS CPU', 'FIGHT IT', 'WIN SCREEN'];
 const FIGHT_IT = 2, WIN_SCREEN = 3;
@@ -37,24 +38,22 @@ export class TestFightersScene extends Phaser.Scene {
     this.skin = {};                                  // the costume picked for each test fighter
     this.qKey = this.input.keyboard.addKey('Q');
     playMusic(this, 'bgm_title');
-    const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    for (let y = 0; y < VIEW_H; y += 4) { g.fillStyle(0x0e1712, 1); g.fillRect(0, y, VIEW_W, 1); }   // lab scanlines
-    g.fillStyle(PANEL, 1); g.fillRect(L.x, L.y, L.w, L.h); g.fillRect(R.x, R.y, R.w, R.h);
-    g.fillStyle(LINE, 1); g.fillRect(L.x, L.y, L.w, 2); g.fillRect(R.x, R.y, R.w, 2);
-    this.add.text(VIEW_W / 2, 28, 'TEST FIGHTERS', { fontFamily: FONT, fontSize: '14px', color: '#5ee07a', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.add.text(L.x + 10, L.y + 10, 'IN THE LAB', { fontFamily: FONT, fontSize: '6px', color: DIM });
-    this.cursor = this.add.graphics();
-    this.names = TEST_ROSTER.map((f, i) => this.add.text(L.x + 18, L.y + 32 + i * 24, f.name, { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' }));
+    this.bgFx = new ArcadeBg(this, LINE, { second: ARC.sections.other });
+    const g = this.add.graphics().setDepth(-10);
+    panel(g, L.x, L.y, L.w, L.h, LINE); panel(g, R.x, R.y, R.w, R.h, LINE);
+    titleBanner(this, 'TEST FIGHTERS', LINE, { crumb: 'TRINKETS  >  THE LAB' });
+    this.add.text(L.x + 14, L.y + 10, 'IN THE LAB', { fontFamily: FONT, fontSize: '6px', color: '#a8ff8a', stroke: '#07060e', strokeThickness: 3 });
+    this.cursor = this.add.graphics().setDepth(-5);
+    this.names = TEST_ROSTER.map((f, i) => this.add.text(L.x + 22, L.y + 32 + i * 24, f.name, { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc', stroke: '#07060e', strokeThickness: 3 }));
     if (!TEST_ROSTER.length) this.add.text(L.x + 18, L.y + 32, 'NOTHING HERE YET.', { fontFamily: FONT, fontSize: '7px', color: DIM });
     // right: the fighter, its notes, and how to try it
     this.stageG = this.add.graphics();
     this.sprite = this.add.sprite(R.x + 80, R.y + 190, ROSTER[0].def.sheets.idle, 0).setVisible(false);
     const tx = R.x + 160;
-    this.head = this.add.text(tx, R.y + 14, '', { fontFamily: FONT, fontSize: '9px', color: GOLD });
+    this.head = this.add.text(tx, R.y + 12, '', { fontFamily: FONT, fontSize: '11px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 });
     this.tag = this.add.text(tx, R.y + 30, '', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14', backgroundColor: '#5ee07a', padding: { x: 3, y: 2 } });
     this.notes = this.add.text(tx, R.y + 50, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 172 } });
-    this.modeTexts = MODES.map((m, i) => this.add.text(tx + (i % 2) * 120, R.y + R.h - 40 + Math.floor(i / 2) * 18, m, { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }));
+    this.modeTexts = MODES.map((m, i) => this.add.text(tx + 6 + (i % 2) * 112, R.y + R.h - 42 + Math.floor(i / 2) * 19, m, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }));
     this.youText = this.add.text(tx, R.y + R.h - 58, '', { fontFamily: FONT, fontSize: '6px', color: GOLD });   // FIGHT IT: who you play
     // the map: a little picture of it, its name, arrows
     this.mapG = this.add.graphics();
@@ -69,7 +68,7 @@ export class TestFightersScene extends Phaser.Scene {
     this.skinCount = this.add.text(cx, R.y + 246, '', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5);
     this.swatchG = this.add.graphics();
     this.arrows = [-1, 1].map((d) => makeButton(this, cx + d * 66, R.y + 214, d < 0 ? '<' : '>', () => this.stepSkin(d), { originX: 0.5, originY: 0.5, size: '8px' }));
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S FIGHTER   A/D COSTUME (FIGHT IT: YOU)   E MAP   Q MODE   J / ENTER / A START   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5, 1);
+    hintBar(this, 'W/S FIGHTER   A/D COSTUME   E MAP   Q MODE   J / ENTER / A START   K / ESC / B  BACK', LINE);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
@@ -79,8 +78,8 @@ export class TestFightersScene extends Phaser.Scene {
       if (p.x < L.x + L.w && i >= 0 && i < TEST_ROSTER.length) { this.sel = i; sfx('menu', 0.5); return; }
       const f = TEST_ROSTER[this.sel];
       if (f && Math.abs(p.y - (R.y + 230)) < 7) {                       // a swatch
-        const n = skinsFor(f.id).length, x0 = R.x + 80 - (n * 14) / 2;
-        const k = Math.floor((p.x - x0) / 14);
+        const n = skinsFor(f.id).length, step = Math.min(14, Math.floor(150 / n)), x0 = R.x + 80 - (n * step) / 2;
+        const k = Math.floor((p.x - x0) / step);
         if (k >= 0 && k < n && skinUnlocked(f.id, k)) { this.skin[f.id] = k; sfx('menu', 0.5, 1.2); return; }
       }
       if (this.mode === FIGHT_IT && p.x >= this.youText.x && p.x < this.youText.x + this.youText.width && Math.abs(p.y - (this.youText.y + 3)) < 8) { this.stepYou(1); return; }
@@ -128,15 +127,18 @@ export class TestFightersScene extends Phaser.Scene {
     if (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start')) { this.clicked = false; return this.start(); }
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     const f = TEST_ROSTER[this.sel], c = this.cursor; c.clear();
-    this.names.forEach((t, i) => t.setColor(i === this.sel ? '#ffffff' : '#8fbfa0'));
+    this.names.forEach((t, i) => t.setColor(i === this.sel ? '#ffffff' : '#a8d8b0')); this.bgFx.update(this.t);
     this.tag.setVisible(!!f); this.skinName.setVisible(!!f); this.skinCount.setVisible(!!f); this.arrows.forEach((a) => a.setVisible(!!f));
     this.mapLabel.setVisible(!!f); this.mapName.setVisible(!!f); this.mapArrows.forEach((a) => a.setVisible(!!f)); this.mapG.clear();
-    this.modeTexts.forEach((t, i) => t.setVisible(!!f).setColor(i === this.mode ? (this.t % 30 < 15 ? GOLD : '#ffffff') : '#5a6a60'));
+    this.modeTexts.forEach((t, i) => t.setVisible(!!f).setColor(i === this.mode ? '#ffffff' : '#8aa898'));
     this.youText.setVisible(!!f && this.mode === FIGHT_IT).setText('YOU PLAY:  < ' + (this.real[this.you] ? this.real[this.you].name : '') + ' >   (A/D)');
     if (!f) return;
-    c.fillStyle(LINE, 0.22); c.fillRect(L.x + 8, L.y + 26 + this.sel * 24, L.w - 16, 20);
-    c.fillStyle(LINE, 1); c.fillRect(L.x + 8, L.y + 26 + this.sel * 24, 3, 20);
-    const mt = this.modeTexts[this.mode]; c.fillStyle(LINE, 0.25); c.fillRect(mt.x - 6, mt.y - 6, mt.width + 12, 20);
+    if (this.sel !== this.lastSel) { this.selK = 0; this.lastSel = this.sel; } this.selK = Math.min(1, (this.selK || 0) + 0.15);
+    rowBar(c, L.x + 14, L.y + 26 + this.sel * 24, L.w - 34, 20, LINE, this.t, 0.3 + this.selK * 0.7);
+    this.modeTexts.forEach((mt, k) => {                                   // the four modes as slanted buttons; the picked one lit
+      const on = k === this.mode; slant(c, mt.x - 7 + 2, mt.y - 5 + 2, 104, 17, 0x000000, 0.5, 5);
+      slant(c, mt.x - 7, mt.y - 5, 104, 17, on ? LINE : 0x1c2a22, 1, 5); if (on) slant(c, mt.x - 7, mt.y - 5, 104, 7, 0xffffff, 0.2, 2);
+    });
     const mp = this.maps[this.map], mw = 128, mh = 68, mx = L.x + (L.w - mw) / 2, my = L.y + 150, mg = this.mapG;   // the map picker
     mg.fillStyle(LINE, 1); mg.fillRect(mx - 2, my - 2, mw + 4, mh + 4); mg.fillStyle(0x0b0a14, 1); mg.fillRect(mx - 1, my - 1, mw + 2, mh + 2);
     if (mp.preview) mp.preview(mg, mx, my, mw, mh);
@@ -161,13 +163,14 @@ export class TestFightersScene extends Phaser.Scene {
     showFighter(this.sprite.setVisible(true), f.def, Math.floor(this.t / 6), si);
     this.skinName.setText(skins[si].name); this.skinCount.setText((si + 1) + ' / ' + skins.length);
     const sw = this.swatchG; sw.clear();
-    const x0 = cx - (skins.length * 14) / 2;
+    const step = Math.min(14, Math.floor(150 / skins.length)), x0 = cx - (skins.length * step) / 2;   // (lots of costumes: smaller swatches, so they stay on this side)
     skins.forEach((s, i) => {
-      const x = x0 + i * 14 + 2, y = R.y + 225;
-      if (i === si) { sw.fillStyle(0xf3c358, 1); sw.fillRect(x - 2, y - 2, 14, 14); }
-      sw.fillStyle(0x0b0a14, 1); sw.fillRect(x - 1, y - 1, 12, 12);
-      sw.fillStyle(s.swatch ?? 0xffffff, 1); sw.fillRect(x, y, 10, 10);
-      if (!skinUnlocked(f.id, i)) { sw.fillStyle(0x0b0a14, 0.7); sw.fillRect(x, y, 10, 10); sw.fillStyle(0x8a87a3, 1); sw.fillRect(x + 3, y + 4, 4, 4); sw.fillRect(x + 3, y + 2, 1, 2); sw.fillRect(x + 6, y + 2, 1, 2); sw.fillRect(x + 4, y + 1, 2, 1); }   // a padlock: a shop costume not bought yet
+      const x = x0 + i * step + 2, y = R.y + 225;
+      const q = step - 4;
+      if (i === si) { sw.fillStyle(0xffd23f, 1); sw.fillRect(x - 2, y - 2, q + 4, q + 4); }
+      sw.fillStyle(0x0b0a14, 1); sw.fillRect(x - 1, y - 1, q + 2, q + 2);
+      sw.fillStyle(s.swatch ?? 0xffffff, 1); sw.fillRect(x, y, q, q);
+      if (!skinUnlocked(f.id, i)) { sw.fillStyle(0x0b0a14, 0.7); sw.fillRect(x, y, q, q); sw.fillStyle(0x8a87a3, 1); sw.fillRect(x + 3, y + 4, 4, 4); sw.fillRect(x + 3, y + 2, 1, 2); sw.fillRect(x + 6, y + 2, 1, 2); sw.fillRect(x + 4, y + 1, 2, 1); }   // a padlock: a shop costume not bought yet
     });
     this.sprite.setPosition(cx, by).setScale(f.def.ownAnims ? 1.4 : 2);
   }

@@ -7,6 +7,7 @@ import { MenuInput } from './menuInput.js';
 import { sfx, setSfxMuted } from '../audio/sfx.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { demoRequest } from '../settings.js';
+import { slant, hintBar, ARC } from '../ui/arcade.js';
 
 const WORD = 'REBIRTH';
 
@@ -25,7 +26,11 @@ export class TitleScene extends Phaser.Scene {
     for (let i = 0; i < 8; i++) { g.fillStyle(0x0b0a14, 0.2 + i * 0.07); g.fillRect(0, 266 + i * 12, VIEW_W, 12); }
     g.fillStyle(0x0b0a14, 0.25); g.fillRect(0, 144, VIEW_W, 122);
 
-    this.add.text(VIEW_W / 2, 50, 'OPERATION', { fontFamily: FONT, fontSize: '14px', color: '#78a0c6', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
+    const op = this.add.text(VIEW_W / 2, 50, 'OPERATION', { fontFamily: FONT, fontSize: '12px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 }).setOrigin(0.5).setDepth(2);
+    slant(g, VIEW_W / 2 - op.width / 2 - 20 + 4, 38 + 4, op.width + 40, 24, 0x000000, 0.6, 10);   // a slanted plate behind OPERATION
+    slant(g, VIEW_W / 2 - op.width / 2 - 20, 38, op.width + 40, 24, ARC.sections.title, 1, 10);
+    slant(g, VIEW_W / 2 - op.width / 2 - 16, 41, op.width + 32, 18, 0x0d1830, 1, 8);
+    this.promptG = this.add.graphics();
     // REBIRTH: one text per letter so each can cycle through the rainbow on its own
     const style = { fontFamily: FONT, fontSize: '40px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 8 };
     this.letters = WORD.split('').map((ch) => this.add.text(0, 86, ch, style).setOrigin(0.5));
@@ -33,8 +38,8 @@ export class TitleScene extends Phaser.Scene {
     let x = VIEW_W / 2 - total / 2;
     this.letters.forEach((l, i) => { l.x = Math.round(x + widths[i] / 2); x += widths[i] - 6; });
 
-    this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5);
-    this.add.text(VIEW_W / 2, 340, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT   1 TAUNT   (TOUCH ON PHONES)', { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
+    this.prompt = this.add.text(VIEW_W / 2, 300, 'CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 }).setOrigin(0.5).setDepth(2);
+    hintBar(this, 'WASD MOVE   SPACE JUMP   J ATTACK   K SPECIAL   L SHIELD   I GRAB   O LIMIT   1 TAUNT', ARC.sections.title);
     this.menu = new MenuInput(this);
     this.clicked = false;
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });
@@ -50,6 +55,8 @@ export class TitleScene extends Phaser.Scene {
       l.y = 86 + Math.round(Math.sin(this.t / 10 + i * 0.7) * 3);          // a little wave through the word
     });
     this.prompt.setVisible(this.t % 60 < 40);
+    const pg = this.promptG; pg.clear(); const w = this.prompt.width + 50, k = 1 + 0.04 * Math.sin(this.t * 0.12);   // a slanted band behind the prompt, breathing
+    slant(pg, VIEW_W / 2 - w * k / 2 + 4, 289 + 4, w * k, 22, 0x000000, 0.55, 10); slant(pg, VIEW_W / 2 - w * k / 2, 289, w * k, 22, ARC.sections.fight, this.t % 60 < 40 ? 1 : 0.6, 10);
     const m = this.menu.poll();
     if (m.ok || this.clicked || m.pads.some((p) => p.button === 'start' || p.button === 'a')) {
       this.scene.stop('Match');                                                 // end the demo

@@ -5,6 +5,7 @@ import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../p
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
+import { slant, ARC } from '../ui/arcade.js';
 import { FighterIntros } from './fighterIntros.js';
 import { recordMatch } from '../achievements.js';
 import { voiceLine } from '../audio/voiceLines.js';
@@ -27,7 +28,7 @@ function demoSettings() {
   const picks = Array.from({ length: n }, () => pick(fighters).id);
   return {
     mode: 'stock', stocks: 2, hp: 150, minutes: 3, items: true, hazards: true, crt: false,
-    stage: pick(STAGES.filter((st) => st.available)).id, picks,
+    stage: pick(STAGES.filter((st) => st.available && !stageLocked(st))).id, picks,   // (never a stage you haven't unlocked)
     skins: picks.map((id) => Math.floor(Math.random() * skinsFor(id).length)),
     cpuCount: n, difficulty: 2, cpuLevels: picks.map(() => 1 + Math.floor(Math.random() * 2)), p1Pad: null, extraPads: [],
   };
@@ -42,7 +43,7 @@ import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
 import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
-import { stageById, STAGES, trackList } from '../stage/stages.js';
+import { stageById, STAGES, trackList, stageLocked } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
 import { setSfxMuted } from '../audio/sfx.js';
@@ -132,7 +133,8 @@ export class MatchScene extends Phaser.Scene {
     this.overlay = this.add.graphics().setDepth(5); this.addUI(this.overlay);
     this.bigText = this.add.text(VIEW_W / 2, VIEW_H / 2 - 30, '', { fontFamily: FONT, fontSize: '28px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 6, align: 'center' }).setOrigin(0.5);
     this.smallText = this.add.text(VIEW_W / 2, VIEW_H / 2 + 10, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 4, align: 'center', lineSpacing: 6 }).setOrigin(0.5);
-    this.modeText = this.add.text(8, 8, MODE_NAMES[this.mode], { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 });
+    this.modeText = this.add.text(12, 8, MODE_NAMES[this.mode], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setDepth(6);
+    this.modeChip = this.add.graphics().setDepth(5.5); slant(this.modeChip, 4, 5, this.modeText.width + 18, 14, 0x000000, 0.55, 5); slant(this.modeChip, 4, 5, 4, 14, ARC.sections.title, 1, 5); this.addUI(this.modeChip);
     this.bigText.setDepth(20); this.smallText.setDepth(20); this.addUI(this.bigText, this.smallText, this.modeText);
     if (S.crt) this.makeCrt();
 
@@ -158,7 +160,7 @@ export class MatchScene extends Phaser.Scene {
   // ---- camera bookkeeping: every object belongs to exactly one camera
   addBg(...objs) { for (const o of objs) { this.worldCam.ignore(o); this.uiCam.ignore(o); this.bgList.push(o); } }
   addWorld(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.uiCam.ignore(o); } }
-  addUI(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.worldCam.ignore(o); } }
+  addUI(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.worldCam.ignore(o); if (o.plate) { this.bgCam.ignore(o.plate); this.worldCam.ignore(o.plate); } } }   // (a button's plate goes with it)
   sfxVol() { return this.demo ? 0 : settings.sfxVolume; }
   // the track picked on the stage select screen (null = AUTO: the stage's own, or the shop track switched on)
   pickedTrack() {
@@ -984,7 +986,14 @@ export class MatchScene extends Phaser.Scene {
 
     // Limit banner and darkening
     this.overlay.clear();
-    if (this.paused) { this.overlay.fillStyle(0x0b0a14, 0.6); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H); }
+    if (this.paused) {                                 // PAUSED: dim, then a slanted band across the middle with slashes drifting through
+      const o = this.overlay, y = VIEW_H / 2 - 58, t = this.pauseT = (this.pauseT || 0) + 1;
+      o.fillStyle(0x07060e, 0.62); o.fillRect(0, 0, VIEW_W, VIEW_H);
+      slant(o, -40, y + 6, VIEW_W + 80, 58, 0x000000, 0.6, 24);
+      slant(o, -40, y, VIEW_W + 80, 58, ARC.sections.title, 1, 24);
+      slant(o, -40, y + 5, VIEW_W + 80, 48, 0x0d1830, 1, 20);
+      for (let x = -60 + (t * 0.8) % 36; x < VIEW_W + 40; x += 36) slant(o, x, y + 5, 10, 48, 0xffffff, 0.04, 20);
+    } else this.pauseT = 0;
     if (this.cutscene) {                               // Limit cutscene: darken and letterbox
       this.overlay.fillStyle(0x0b0a14, 0.35); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
       this.overlay.fillStyle(0x000000, 1); this.overlay.fillRect(0, 0, VIEW_W, 34); this.overlay.fillRect(0, VIEW_H - 34, VIEW_W, 34);
@@ -993,8 +1002,10 @@ export class MatchScene extends Phaser.Scene {
       const b = this.limitBanner, a = b.t < 34 ? 1 : 1 - (b.t - 34) / 14;
       this.overlay.fillStyle(0x0b0a14, 0.45 * a); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
       const slide = Math.min(1, b.t / 10);
-      this.overlay.fillStyle(b.color, 0.9 * a); this.overlay.fillRect(0, 42, VIEW_W * slide, 34);
-      this.overlay.fillStyle(0x0b0a14, 0.9 * a); this.overlay.fillRect(0, 46, VIEW_W * slide, 26);
+      slant(this.overlay, -30, 45, (VIEW_W + 60) * slide, 34, 0x000000, 0.5 * a, 16);
+      slant(this.overlay, -30, 42, (VIEW_W + 60) * slide, 34, b.color, 0.95 * a, 16);
+      slant(this.overlay, -30, 46, (VIEW_W + 60) * slide, 26, 0x0b0a14, 0.9 * a, 12);
+      for (let k = 0; k < 3; k++) slant(this.overlay, (VIEW_W + 60) * slide - 70 + k * 16, 42, 7, 34, b.color, 0.9 * a, 16);
       if (!this.paused && this.over === 0) { this.bigText.setText(b.name); this.bigText.setFontSize(16); this.bigText.setAlpha(a); this.bigText.y = 59; }
     } else if (this.bigText.style.fontSize === '16px' && this.over === 0) { this.bigText.setText(''); this.bigText.setFontSize(28); this.bigText.setAlpha(1); this.bigText.y = VIEW_H / 2 - 30; }
 

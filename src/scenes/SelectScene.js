@@ -14,6 +14,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { announce } from '../audio/announcer.js';
 import { skinsFor, skinInfo, resolveSkins, skinTier, skinUnlocked, stepSkin } from '../fighters/skins.js';
 import { getKOs, MILESTONE_KOS } from '../progress.js';
+import { ArcadeBg, titleBanner, hintBar, slant, ARC, shade } from '../ui/arcade.js';
 
 const COLS = 6, TILE_W = 72, TILE_H = 50, GAP = 4;
 const GRID_X = Math.round((VIEW_W - (COLS * TILE_W + (COLS - 1) * GAP)) / 2), GRID_Y = 30;
@@ -47,13 +48,11 @@ export class SelectScene extends Phaser.Scene {
     });
 
     // ---- static layout
+    this.bgFx = new ArcadeBg(this, ARC.sections.fight, { second: ARC.gold });
     const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    for (let y = 0; y < VIEW_H; y += 4) { g.fillStyle(0x131029, 1); g.fillRect(0, y, VIEW_W, 1); }
-    g.fillStyle(0x1b1640, 1); g.fillRect(0, 0, VIEW_W, 22);
-    g.fillStyle(0xf3c358, 1); g.fillRect(0, 22, VIEW_W, 2);
-    this.add.text(10, 7, 'FIGHTER SELECT', { fontFamily: FONT, fontSize: '10px', color: '#f3c358' });
-    this.add.text(VIEW_W - 10, 8, MODE_NAMES[s.mode], { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(1, 0);
+    titleBanner(this, 'FIGHTER SELECT', ARC.sections.fight, { x: 6, y: 2, size: 9 });
+    const mode = this.add.text(VIEW_W - 12, 9, MODE_NAMES[s.mode], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(1, 0);
+    slant(g, mode.x - mode.width - 14, 4, mode.width + 22, 17, ARC.sections.fight, 1, 6);
 
     // grid tiles
     this.tiles = [];
@@ -63,13 +62,16 @@ export class SelectScene extends Phaser.Scene {
       const isRandom = i === GRID_SLOTS - 1;
       const f = isRandom ? { id: 'random', name: 'RANDOM', available: true } : ROSTER[i] || { id: null, name: '???', available: false };
       this.tiles.push({ x, y, f });
-      g.fillStyle(f.available ? 0x241d57 : 0x15122a, 1); g.fillRect(x, y, TILE_W, TILE_H);
-      g.fillStyle(0x0b0a14, 1); g.fillRect(x, y + TILE_H - 12, TILE_W, 12);
+      g.fillStyle(0x000000, 0.6); g.fillRect(x + 3, y + 3, TILE_W, TILE_H);                    // hard shadow
+      g.fillStyle(f.available ? 0x2a1f5e : 0x120f24, 1); g.fillRect(x, y, TILE_W, TILE_H);
+      if (f.available) for (let k = 0; k < 4; k++) slant(g, x + 6 + k * 18, y, 8, TILE_H - 12, 0xffffff, 0.03, 6);   // faint slashes behind the art
+      slant(g, x, y + TILE_H - 12, TILE_W, 12, f.available ? 0x07060e : 0x0b0918, 1, 4);
+      g.fillStyle(f.available ? ARC.sections.fight : 0x2a2440, 1); g.fillRect(x, y + TILE_H - 13, TILE_W, 1);
       if (f.def && this.hasIcon(f.id)) this.add.image(x, y, 'icon_' + f.id).setOrigin(0);         // close-up icon art (tools/sprites/fighter_icons.py)
       else if (f.def) this.add.image(x + TILE_W / 2, y + 20, f.def.sheets.idle, 'portrait').setFlipX(!!f.def.facesLeft);
       else if (isRandom) this.drawDie(g, x + TILE_W / 2, y + 19);
       else this.drawLocked(g, x + TILE_W / 2, y + 19, false);
-      this.add.text(x + TILE_W / 2, y + TILE_H - 6, f.name, { fontFamily: FONT, fontSize: f.name.length > 10 ? '5px' : '6px', color: f.available ? '#ffffff' : '#4a4560' }).setOrigin(0.5);
+      this.add.text(x + TILE_W / 2, y + TILE_H - 6, f.name, { fontFamily: FONT, fontSize: f.name.length > 10 ? '5px' : '6px', color: f.available ? '#ffffff' : '#4a4560', stroke: '#07060e', strokeThickness: 2 }).setOrigin(0.5);
       if (!f.available && f.id === 'mr-wake') this.add.text(x + TILE_W - 3, y + 3, 'SOON', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14', backgroundColor: '#f3c358', padding: { x: 2, y: 1 } }).setOrigin(1, 0);
     }
     this.hoverG = this.add.graphics();
@@ -83,13 +85,13 @@ export class SelectScene extends Phaser.Scene {
       card.bg = this.add.graphics();
       card.sprite = this.add.sprite(x + cardW / 2, CARD_Y + 150, 'ss_idle', 0).setOrigin(0.5, 59 / 64).setScale(2).setTint(PLAYER_TINTS[i]);
       card.unknown = this.add.text(x + cardW / 2, CARD_Y + 90, '?', { fontFamily: FONT, fontSize: '48px', color: '#3a3360' }).setOrigin(0.5);
-      card.tag = this.add.text(x + 8, CARD_Y + 7, p.label, { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' });
-      card.input = this.add.text(x + cardW - 8, CARD_Y + 9, p.input, { fontFamily: FONT, fontSize: '6px', color: '#0b0a14' }).setOrigin(1, 0);
-      card.name = this.add.text(x + cardW / 2, CARD_Y + 162, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
+      card.tag = this.add.text(x + 10, CARD_Y + 6, p.label, { fontFamily: FONT, fontSize: '11px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 });
+      card.input = this.add.text(x + cardW - 10, CARD_Y + 9, p.input, { fontFamily: FONT, fontSize: '5px', color: '#ffffff' }).setOrigin(1, 0);
+      card.name = this.add.text(x + cardW / 2, CARD_Y + 162, '', { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 }).setOrigin(0.5);
       card.status = this.add.text(x + cardW / 2, CARD_Y + 184, '', { fontFamily: FONT, fontSize: '7px', color: '#c9c4dc' }).setOrigin(0.5);
       card.skinName = this.add.text(x + cardW / 2, CARD_Y + 170, '', { fontFamily: FONT, fontSize: '5px', color: '#c9c4dc' }).setOrigin(0.5, 0).setDepth(2);
       card.swatchG = this.add.graphics().setDepth(2); card.swatches = [];
-      card.kos = this.add.text(x + cardW - 8, CARD_Y + 16, '', { fontFamily: FONT, fontSize: '5px', color: '#0b0a14' }).setOrigin(1, 0).setDepth(2);
+      card.kos = this.add.text(x + cardW - 10, CARD_Y + 16, '', { fontFamily: FONT, fontSize: '5px', color: '#ffffff' }).setOrigin(1, 0).setDepth(2);
       return card;
     });
 
@@ -97,14 +99,14 @@ export class SelectScene extends Phaser.Scene {
     this.cursorTags = this.players.map((p) => p.kind === 'cpu' ? null : this.add.text(0, 0, p.label, { fontFamily: FONT, fontSize: '6px', color: '#ffffff', backgroundColor: PLAYER_CSS[p.slot], padding: { x: 2, y: 1 } }).setDepth(21));
 
     this.banner = this.add.graphics().setDepth(30);
-    this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!  CLICK HERE OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '10px', color: '#0b0a14' }).setOrigin(0.5).setDepth(31);
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'CLICK / J / A PICK   RIGHT CLICK / K / B UNDO   Q E / X Y / CLICK SWATCH: COLOUR', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.bannerText = this.add.text(VIEW_W / 2, CARD_Y - 6, 'READY TO FIGHT!   CLICK OR PRESS ENTER / START', { fontFamily: FONT, fontSize: '11px', color: '#ffffff', stroke: '#07060e', strokeThickness: 5 }).setOrigin(0.5).setDepth(31);
+    hintBar(this, 'CLICK / J / A PICK   RIGHT / K / B UNDO   Q E / X Y COLOUR   ENTER START   ESC BACK', ARC.sections.fight, { depth: 40 });
 
     const K = Phaser.Input.Keyboard.KeyCodes;
     // mouse drives player 1's cursor: left click picks, right click undoes, click the yellow bar to start
     this.input.mouse.disableContextMenu();
-    addFullscreenButton(this, 520, 5);
-    makeButton(this, 180, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
+    addFullscreenButton(this, 532, 3);
+    makeButton(this, 196, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
     this.mouse = { moved: false, left: false, right: false, x: 0, y: 0 };
     this.input.on('pointermove', (p) => { this.mouse.moved = true; this.mouse.x = p.x; this.mouse.y = p.y; });
     this.input.on('pointerdown', (p) => {
@@ -224,7 +226,12 @@ export class SelectScene extends Phaser.Scene {
     for (const p of this.players) {
       if (p.kind === 'cpu') continue;
       const tile = this.tileAt(p.x, p.y);
-      if (tile) { hg.lineStyle(2, PLAYER_COLORS[p.slot], 1); hg.strokeRect(tile.x + 1, tile.y + 1, TILE_W - 2, TILE_H - 2); }
+      if (tile) {                                          // the hovering player's colour: a thick frame and corner brackets that pulse
+        const c = PLAYER_COLORS[p.slot], o = 2 + Math.round(Math.sin(this.t * 0.2) * 1.5);
+        hg.lineStyle(3, c, 1); hg.strokeRect(tile.x, tile.y, TILE_W, TILE_H);
+        hg.fillStyle(c, 1);
+        for (const [cx, cy, dx, dy] of [[tile.x - o, tile.y - o, 1, 1], [tile.x + TILE_W + o, tile.y - o, -1, 1], [tile.x - o, tile.y + TILE_H + o, 1, -1], [tile.x + TILE_W + o, tile.y + TILE_H + o, -1, -1]]) { hg.fillRect(Math.min(cx, cx + dx * 9), cy - (dy < 0 ? 2 : 0), 9, 2); hg.fillRect(cx - (dx < 0 ? 2 : 0), Math.min(cy, cy + dy * 9), 2, 9); }
+      }
     }
     // cards
     for (const c of this.cards) {
@@ -232,14 +239,20 @@ export class SelectScene extends Phaser.Scene {
       const hover = this.players.find((h) => h.kind !== 'cpu' && !h.pick && h.slot === p.slot && this.tileAt(h.x, h.y));
       const shown = p.pick || (hover && this.tileAt(hover.x, hover.y).f.available ? this.tileAt(hover.x, hover.y).f.id : null);
       g.clear();
-      g.fillStyle(0x161230, 1); g.fillRect(c.x, c.y, c.w, c.h);
-      g.fillStyle(col, p.kind === 'cpu' ? 0.12 : 0.22); g.fillRect(c.x, c.y + 24, c.w, c.h - 24);
-      // diagonal pixel stripes for texture
-      g.fillStyle(col, 0.08);
-      for (let k = -c.h; k < c.w; k += 14) for (let yy = 0; yy < c.h - 24; yy += 2) { const xx = k + yy; if (xx >= 0 && xx < c.w - 2) g.fillRect(c.x + xx, c.y + 24 + yy, 2, 2); }
-      g.fillStyle(p.kind === 'cpu' ? 0x8a87a3 : col, 1); g.fillRect(c.x, c.y, c.w, 22);
-      g.fillStyle(0x0b0a14, 1); g.fillRect(c.x, c.y + c.h - 30, c.w, 30);
-      if (p.pick) { g.lineStyle(2, col, 1); g.strokeRect(c.x + 1, c.y + 1, c.w - 2, c.h - 2); }
+      const cc = p.kind === 'cpu' ? 0x8a87a3 : col;
+      g.fillStyle(0x000000, 0.6); g.fillRect(c.x + 5, c.y + 5, c.w, c.h);                      // hard shadow
+      g.fillStyle(ARC.panel, 1); g.fillRect(c.x, c.y, c.w, c.h);
+      g.fillStyle(col, p.kind === 'cpu' ? 0.1 : 0.18); g.fillRect(c.x, c.y + 24, c.w, c.h - 24);
+      for (let k = 0; k < 6; k++) {                                                            // big slashes sliding behind the fighter
+        const bx = ((k * 38 + this.t * (p.pick ? 1.2 : 0.4)) % (c.w + 60)) - 40;
+        if (bx < c.w - 14) slant(g, c.x + Math.max(0, bx), c.y + 24, Math.min(14, c.w - Math.max(0, bx)), c.h - 54, col, 0.07, 40);
+      }
+      slant(g, c.x, c.y, c.w, 22, cc, 1, 8);                                                   // the header: the player's colour
+      slant(g, c.x, c.y, c.w, 9, 0xffffff, 0.18, 4);
+      slant(g, c.x + c.w - 60, c.y, 52, 22, shade(cc, 0.6), 1, 8);
+      g.fillStyle(0x07060e, 1); g.fillRect(c.x, c.y + c.h - 30, c.w, 30);
+      g.fillStyle(cc, 1); g.fillRect(c.x, c.y + c.h - 31, c.w, 2);
+      if (p.pick) { g.lineStyle(3, col, 1); g.strokeRect(c.x, c.y, c.w, c.h); if (p.kind !== 'cpu') { g.fillStyle(col, 0.2 + 0.1 * Math.sin(this.t * 0.15)); g.fillRect(c.x, c.y + 24, c.w, c.h - 54); } }
       const hasFighter = shown && shown !== 'random';
       const fdef = hasFighter && ROSTER.find((r) => r.id === shown).def;
       c.sprite.setVisible(!!fdef).setAlpha(p.pick ? 1 : 0.55);
@@ -296,12 +309,15 @@ export class SelectScene extends Phaser.Scene {
       this.cursorTags[p.slot].setPosition(x + 8, y + 10);
     }
     // ready banner
-    this.banner.clear();
+    this.banner.clear(); this.bgFx.update(this.t);
     this.bannerText.setVisible(ready);
-    if (ready) {
-      const pulse = this.t % 40 < 20 ? 0xf3c358 : 0xffe08a;
-      this.banner.fillStyle(0x0b0a14, 1); this.banner.fillRect(0, CARD_Y - 18, VIEW_W, 24);
-      this.banner.fillStyle(pulse, 1); this.banner.fillRect(0, CARD_Y - 16, VIEW_W, 20);
+    if (ready) {                                           // READY: a slanted gold banner with black hazard stripes racing through
+      const b = this.banner, y = CARD_Y - 19;
+      slant(b, -20, y + 4, VIEW_W + 40, 26, 0x000000, 0.6, 10);
+      slant(b, -20, y, VIEW_W + 40, 26, ARC.gold, 1, 10);
+      for (let x = -40 + (this.t * 3) % 30; x < VIEW_W + 20; x += 30) slant(b, x, y, 12, 26, 0x07060e, 0.85, 14);
+      slant(b, VIEW_W / 2 - this.bannerText.width / 2 - 20, y + 2, this.bannerText.width + 40, 22, ARC.sections.fight, 1, 10);
+      this.bannerText.setScale(1 + 0.04 * Math.sin(this.t * 0.2));
     }
   }
 }

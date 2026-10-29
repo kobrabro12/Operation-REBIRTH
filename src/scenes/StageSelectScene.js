@@ -13,6 +13,9 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { announce } from '../audio/announcer.js';
+import { ArcadeBg, titleBanner, hintBar, slant, ARC, shade } from '../ui/arcade.js';
+
+const ACC = ARC.sections.stage;
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
 const COLS = 2, TILE_W = 118, TILE_H = 44, GAP = 4;   // 6 rows of 2 fit between the title bar and the help line
@@ -35,44 +38,48 @@ export class StageSelectScene extends Phaser.Scene {
     }
     this.sel = Math.max(0, this.tiles.findIndex((t) => t.st.id === settings.stage));
 
+    this.bgFx = new ArcadeBg(this, ACC, { second: ARC.gold });
     const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    for (let y = 0; y < VIEW_H; y += 4) { g.fillStyle(0x131029, 1); g.fillRect(0, y, VIEW_W, 1); }
-    g.fillStyle(0x1b1640, 1); g.fillRect(0, 0, VIEW_W, 22);
-    g.fillStyle(0xf3c358, 1); g.fillRect(0, 22, VIEW_W, 2);
-    this.add.text(10, 7, 'STAGE SELECT', { fontFamily: FONT, fontSize: '10px', color: '#f3c358' });
-    this.add.text(VIEW_W - 10, 8, MODE_NAMES[settings.mode], { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' }).setOrigin(1, 0);
+    titleBanner(this, 'STAGE SELECT', ACC, { x: 6, y: 2, size: 9 });
+    const mode = this.add.text(VIEW_W - 12, 9, MODE_NAMES[settings.mode], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(1, 0);
+    slant(g, mode.x - mode.width - 14, 4, mode.width + 22, 17, ACC, 1, 6);
+    g.fillStyle(0x000000, 0.6); g.fillRect(PREV.x + 5, PREV.y + 5, PREV.w, PREV.h);            // the preview's shadow
+    slant(g, PREV.x - 6, PREV.y + PREV.h + 4, 360, 26, 0x000000, 0.5, 10);                     // the name plate
+    slant(g, PREV.x - 10, PREV.y + PREV.h + 1, 360, 26, ACC, 1, 10);
+    slant(g, PREV.x - 6, PREV.y + PREV.h + 4, 352, 20, shade(ACC, 0.25), 1, 8);
 
     // tiles (thumbnails drawn once)
     for (const t of this.tiles) {
+      g.fillStyle(0x000000, 0.6); g.fillRect(t.x + 3, t.y + 3, TILE_W, TILE_H);
       g.fillStyle(0x15122a, 1); g.fillRect(t.x, t.y, TILE_W, TILE_H);
       if (t.st.preview) t.st.preview(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
       else if (t.st.id === 'random') this.drawRandom(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
       else this.drawLocked(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);
       if (stageLocked(t.st)) this.drawShopLock(g, t.x + 2, t.y + 2, TILE_W - 4, TILE_H - 16);   // bought in the shop: dimmed, a padlock
-      g.fillStyle(0x0b0a14, 1); g.fillRect(t.x, t.y + TILE_H - 14, TILE_W, 14);
-      this.add.text(t.x + TILE_W / 2, t.y + TILE_H - 7, t.st.name, { fontFamily: FONT, fontSize: '6px', color: t.st.available ? '#ffffff' : '#4a4560' }).setOrigin(0.5);
+      slant(g, t.x, t.y + TILE_H - 14, TILE_W, 14, 0x07060e, 1, 5); g.fillStyle(t.st.available ? ACC : 0x2a2440, 1); g.fillRect(t.x, t.y + TILE_H - 15, TILE_W, 1);
+      this.add.text(t.x + TILE_W / 2, t.y + TILE_H - 7, t.st.name, { fontFamily: FONT, fontSize: '6px', color: t.st.available ? '#ffffff' : '#4a4560', stroke: '#07060e', strokeThickness: 2 }).setOrigin(0.5);
     }
     this.selG = this.add.graphics();
     this.prevG = this.add.graphics();
-    this.name = this.add.text(PREV.x, PREV.y + PREV.h + 12, '', { fontFamily: FONT, fontSize: '14px', color: '#f3c358', stroke: '#4a280b', strokeThickness: 4 });
-    this.blurb = this.add.text(PREV.x, PREV.y + PREV.h + 36, '', { fontFamily: FONT, fontSize: '7px', color: '#c9c4dc', lineSpacing: 6 });
-    this.hazard = this.add.text(PREV.x, PREV.y + PREV.h + 70, '', { fontFamily: FONT, fontSize: '6px', color: '#ffd34f', lineSpacing: 5 });
-    this.add.text(VIEW_W / 2, VIEW_H - 4, 'CLICK A STAGE  OR  MOVE + J / ENTER / A    Q / E  TRACK    K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    this.name = this.add.text(PREV.x + 10, PREV.y + PREV.h + 7, '', { fontFamily: FONT, fontSize: '13px', color: '#ffffff', stroke: '#07060e', strokeThickness: 5 });
+    this.blurb = this.add.text(PREV.x, PREV.y + PREV.h + 36, '', { fontFamily: FONT, fontSize: '7px', color: '#e8e4f4', lineSpacing: 6 });
+    this.hazard = this.add.text(PREV.x + 14, PREV.y + PREV.h + 70, '', { fontFamily: FONT, fontSize: '6px', color: '#ffd23f', lineSpacing: 5 });
+    slant(g, PREV.x, PREV.y + PREV.h + 66, 8, 24, ARC.gold, 1, 4);                              // a caution mark beside the hazards
+    hintBar(this, 'CLICK PICK   ARROWS MOVE   J / ENTER / A CHOOSE   Q / E TRACK   K / ESC / B  BACK', ACC);
     this.lastSel = -1;
     // the match's track
     this.tracks = trackList(SHOP.find((t) => t.name === 'MUSIC').items.filter((it) => owns(it.id)));
     this.ti = Math.max(0, this.tracks.findIndex((x) => x.id === settings.track));
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E');
     this.trackG = this.add.graphics();
-    this.add.text(PREV.x, TRACK_Y, 'TRACK', { fontFamily: FONT, fontSize: '7px', color: '#78a0c6' }).setOrigin(0, 0.5);
+    this.add.text(PREV.x, TRACK_Y, 'TRACK', { fontFamily: FONT, fontSize: '7px', color: '#ffb07a', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0, 0.5);
     this.trackT = this.add.text(PREV.x + 152, TRACK_Y, '', { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setOrigin(0.5);
     this.add.text(PREV.x + 258, TRACK_Y, 'Q / E', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0, 0.5);
 
     // mouse: hover a tile to preview it, click a tile (or the big preview) to choose it
     this.input.mouse.disableContextMenu();
-    addFullscreenButton(this, 520, 5);
-    this.backBtn = makeButton(this, 170, 5, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
+    addFullscreenButton(this, 532, 3);
+    this.backBtn = makeButton(this, 186, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
     this.clicked = false;
     const tileAt = (x, y) => this.tiles.findIndex((t) => x >= t.x && x < t.x + TILE_W && y >= t.y && y < t.y + TILE_H);
     this.input.on('pointermove', (p) => {
@@ -131,8 +138,8 @@ export class StageSelectScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.eKey) || m.pads.some((p) => p.button === 'rb')) this.stepTrack(1);
     { const tr = this.tracks[this.ti], tg = this.trackG; tg.clear();
       this.trackT.setText(tr.id === 'auto' ? "AUTO (THE STAGE'S OWN)" : tr.name + (tr.shop ? '  (SHOP)' : '')).setColor(tr.shop ? '#f3c358' : '#ffffff');
-      tg.fillStyle(0x1b1640, 1); tg.fillRect(PREV.x + 44, TRACK_Y - 8, 204, 16);
-      tg.fillStyle(0xf3c358, 1);
+      slant(tg, PREV.x + 44, TRACK_Y - 8, 204, 16, 0x1c1838, 1, 6); tg.fillStyle(ACC, 1); tg.fillRect(PREV.x + 44, TRACK_Y + 7, 198, 1);
+      tg.fillStyle(ARC.gold, 1);
       for (const [k, ax] of ARROWS.entries()) { const s = k ? 1 : -1; tg.fillTriangle(ax - 3 * s, TRACK_Y - 4, ax - 3 * s, TRACK_Y + 4, ax + 3 * s, TRACK_Y); }
       tg.fillStyle(0x78a0c6, 1); tg.fillRect(PREV.x + 34, TRACK_Y - 4, 2, 7); tg.fillRect(PREV.x + 34, TRACK_Y - 4, 5, 2); tg.fillCircle(PREV.x + 33, TRACK_Y + 3, 2); }   // a little note
     const tile = this.tiles[this.sel];
@@ -149,19 +156,23 @@ export class StageSelectScene extends Phaser.Scene {
   }
 
   draw(tile) {
-    const sg = this.selG; sg.clear();
-    const pulse = this.t % 30 < 15 ? 0xf3c358 : 0xffffff;
-    sg.lineStyle(2, pulse, 1); sg.strokeRect(tile.x - 1, tile.y - 1, TILE_W + 2, TILE_H + 2);
+    const sg = this.selG; sg.clear(); this.bgFx.update(this.t);
+    const pulse = this.t % 30 < 15 ? ARC.gold : 0xffffff, o = 2 + Math.round(Math.sin(this.t * 0.2) * 1.5);
+    sg.lineStyle(3, pulse, 1); sg.strokeRect(tile.x - 1, tile.y - 1, TILE_W + 2, TILE_H + 2);
+    sg.fillStyle(pulse, 1);
+    for (const [cx, cy, dx, dy] of [[tile.x - o, tile.y - o, 1, 1], [tile.x + TILE_W + o, tile.y - o, -1, 1], [tile.x - o, tile.y + TILE_H + o, 1, -1], [tile.x + TILE_W + o, tile.y + TILE_H + o, -1, -1]]) { sg.fillRect(Math.min(cx, cx + dx * 10), cy - (dy < 0 ? 2 : 0), 10, 2); sg.fillRect(cx - (dx < 0 ? 2 : 0), Math.min(cy, cy + dy * 10), 2, 10); }
+    const ff = this.t % 120; if (ff < 30) { sg.fillStyle(0xffffff, 0.12); slant(sg, PREV.x + (ff / 30) * (PREV.w + 60) - 40, PREV.y, 26, PREV.h, 0xffffff, 0.1, 40); }   // a glint sweeping the preview
     if (this.sel === this.lastSel && this.t % 10) return;   // preview only changes with the selection
     this.lastSel = this.sel;
     const g = this.prevG; g.clear();
-    g.fillStyle(0xf3c358, 1); g.fillRect(PREV.x - 2, PREV.y - 2, PREV.w + 4, PREV.h + 4);
+    g.fillStyle(ACC, 1); g.fillRect(PREV.x - 3, PREV.y - 3, PREV.w + 6, PREV.h + 6); g.fillStyle(0x07060e, 1); g.fillRect(PREV.x - 1, PREV.y - 1, PREV.w + 2, PREV.h + 2);
     const st = tile.st;
     if (st.preview) { st.preview(g, PREV.x, PREV.y, PREV.w, PREV.h); if (stageLocked(st)) this.drawShopLock(g, PREV.x, PREV.y, PREV.w, PREV.h); }
     else if (st.id === 'random') this.drawRandom(g, PREV.x, PREV.y, PREV.w, PREV.h);
     else this.drawLocked(g, PREV.x, PREV.y, PREV.w, PREV.h);
     this.name.setText(st.id === 'random' ? 'RANDOM' : st.available ? st.name : '???  COMING SOON');
     this.blurb.setText(st.blurb ? st.blurb.join('\n') : st.id === 'random' ? 'Picks one of the unlocked stages\nfor you when the match starts.' : 'This stage is still being built.');
-    this.hazard.setText(stageLocked(st) ? 'LOCKED: BUY THE GALAXY FRAGMENT IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
+    const key = st.shop && SHOP.flatMap((t) => t.items).find((it) => it.id === st.shop);
+    this.hazard.setText(stageLocked(st) ? 'LOCKED: BUY THE ' + (key ? key.name : 'KEY') + ' IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
   }
 }

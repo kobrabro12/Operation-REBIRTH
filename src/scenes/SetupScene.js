@@ -9,6 +9,9 @@ import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { DUMMY_MODES, DUMMY_NAMES } from './training.js';
+import { ArcadeBg, titleBanner, panel, tab, rowBar, hintBar, slant, ARC } from '../ui/arcade.js';
+
+const ACC = ARC.sections.fight;
 
 const MODES = ['stock', 'time', 'stamina', 'training'];
 const HPS = [100, 150, 200, 300];
@@ -19,28 +22,28 @@ export class SetupScene extends Phaser.Scene {
   create() {
     this.menu = new MenuInput(this);
     this.sel = 0; this.t = 0;
-    const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    g.fillStyle(0x161230, 1); g.fillRect(16, 40, 330, 300); g.fillRect(362, 40, 262, 300);
-    g.fillStyle(0x78a0c6, 1); g.fillRect(16, 40, 330, 2); g.fillRect(362, 40, 262, 2);
-    this.add.text(VIEW_W / 2, 18, 'BATTLE SETUP', { fontFamily: FONT, fontSize: '14px', color: '#f3c358', stroke: '#4a280b', strokeThickness: 4 }).setOrigin(0.5);
-    this.add.text(30, 52, 'RULES', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' });
-    this.add.text(376, 52, 'PLAYERS', { fontFamily: FONT, fontSize: '8px', color: '#78a0c6' });
+    this.bgFx = new ArcadeBg(this, ACC, { second: ARC.gold });
+    const g = this.add.graphics().setDepth(-10);   // (panels under the cursor and the slot plates, under the text)
+    panel(g, 14, 50, 334, 282, ACC); panel(g, 360, 50, 266, 282, ACC);
+    tab(g, 24, 42, 70, ACC); tab(g, 370, 42, 84, ACC);
+    titleBanner(this, 'BATTLE SETUP', ACC, { crumb: 'MAIN MENU  >  FIGHT' });
+    this.add.text(36, 46, 'RULES', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
+    this.add.text(382, 46, 'PLAYERS', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
     this.rows = [];
     for (let i = 0; i < 12; i++) {
       const label = this.add.text(30, 74 + i * 22, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' });
       const value = this.add.text(334, 74 + i * 22, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(1, 0);
       this.rows.push({ label, value });
     }
-    this.cursor = this.add.graphics();
-    this.bars = this.add.graphics();
+    this.cursor = this.add.graphics().setDepth(-5);
+    this.bars = this.add.graphics().setDepth(-5);
     playMusic(this, 'bgm_title');
-    this.slotTexts = [0, 1, 2, 3].map((i) => this.add.text(376, 76 + i * 40, '', { fontFamily: FONT, fontSize: '8px', color: PLAYER_CSS[i], lineSpacing: 6 }));
-    this.portraits = [0, 1, 2, 3].map((i) => this.add.sprite(596, 92 + i * 40, 'ss_idle', 0).setScale(0.6));
-    this.add.text(376, 248, 'CONTROLLERS', { fontFamily: FONT, fontSize: '7px', color: '#78a0c6' });
+    this.slotTexts = [0, 1, 2, 3].map((i) => this.add.text(384, 77 + i * 40, '', { fontFamily: FONT, fontSize: '8px', color: PLAYER_CSS[i], lineSpacing: 6 }));
+    this.portraits = [0, 1, 2, 3].map((i) => this.add.sprite(592, 92 + i * 40, 'ss_idle', 0).setScale(0.6));
+    this.add.text(376, 248, 'CONTROLLERS', { fontFamily: FONT, fontSize: '7px', color: '#ff8a96', stroke: '#07060e', strokeThickness: 3 });
     this.add.text(376, 262, 'A  JOIN AS NEW PLAYER\nY  CONTROL PLAYER 1\nB  LEAVE', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3', lineSpacing: 6 });
     this.padStatus = this.add.text(376, 306, '', { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc', lineSpacing: 5 });
-    this.hint = this.add.text(VIEW_W / 2, 350, 'CLICK OR W/S SELECT   CLICK  <  >  OR A/D CHANGE   ENTER CONFIRM', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(0.5);
+    hintBar(this, 'W/S SELECT   A/D CHANGE   CLICK PICK   J / ENTER CONFIRM   K / ESC BACK', ACC);
 
     // mouse: hover picks a row, left click changes it (left half of the value = back one step),
     // right click steps back, clicking CHOOSE STAGE continues
@@ -129,7 +132,8 @@ export class SetupScene extends Phaser.Scene {
 
     // draw rows
     const fresh = this.items();
-    this.cursor.clear(); this.bars.clear();
+    this.cursor.clear(); this.bars.clear(); this.bgFx.update(this.t);
+    for (let i = 0; i < 4; i++) slant(this.bars, 370, 72 + i * 40, 248, 34, i < (1 + s.extraPads.length + s.cpuCount) ? 0x1c1838 : 0x100d20, 0.9, 6);   // the player slots' plates
     this.rows.forEach((r, i) => {
       const it = fresh[i];
       r.label.setText(it ? it.label : ''); r.value.setText(it ? (it.change && it.value && fresh[i] !== undefined ? '< ' + it.value + ' >' : it.value) : '');
@@ -144,7 +148,9 @@ export class SetupScene extends Phaser.Scene {
           this.bars.fillRect(x0 + k * 7, y + 13 - h, 5, h);
         }
       }
-      if (on) { this.cursor.fillStyle(0x78a0c6, 0.25); this.cursor.fillRect(22, 70 + i * 22, 318, 16); this.cursor.fillStyle(0x78a0c6, 1); this.cursor.fillRect(22, 70 + i * 22, 3, 16); }
+      if (on) { this.selK = this.selI === i ? Math.min(1, (this.selK || 0) + 0.2) : 0.2; this.selI = i; rowBar(this.cursor, 24, 70 + i * 22, 314, 16, it && it.start ? ARC.gold : ACC, this.t, this.selK); }
+      r.value.setColor(on ? '#ffffff' : '#ffd23f');
+      if (on && it && it.start) r.label.setColor('#07060e');
     });
     // player slots
     const humans = ['P1  KEYBOARD' + (s.p1Pad !== null ? ' + PAD ' + (s.p1Pad + 1) : ''), ...s.extraPads.map((p, i) => 'P' + (i + 2) + '  PAD ' + (p + 1))];
@@ -157,6 +163,7 @@ export class SetupScene extends Phaser.Scene {
       else if (i < total) txt = 'CPU ' + (i + 1) + '  ' + DIFFICULTY[s.difficulty].name + '\n' + fname;
       else txt = '---  EMPTY';
       this.slotTexts[i].setText(txt).setColor(i < total ? PLAYER_CSS[i] : '#4a4560');
+      if (i < total) { const c = parseInt(PLAYER_CSS[i].slice(1), 16); slant(this.bars, 370, 72 + i * 40, 6, 34, c, 1, 6); }
       const pick2 = ROSTER.find((r) => r.id === s.picks[i] && r.available);
       this.portraits[i].setVisible(i < total && !!pick2);
       if (pick2) showFighter(this.portraits[i], pick2.def, Math.floor((this.t + i * 9) / 6) % 32).setOrigin(0.5);

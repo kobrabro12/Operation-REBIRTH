@@ -1,5 +1,6 @@
 // Bottom-of-screen player panels: damage % (or HP), stocks, Limit gauge. Plus timer and off-screen arrows.
 import { VIEW_W, VIEW_H, FONT, PLAYER_COLORS, PLAYER_CSS, LIMIT_MAX } from '../config.js';
+import { slant } from './arcade.js';
 
 const PANEL_W = 136, PANEL_H = 46;
 
@@ -14,8 +15,8 @@ export class Hud {
     const x0 = Math.round((VIEW_W - total) / 2);
     match.fighters.forEach((f, i) => {
       const x = x0 + i * (PANEL_W + 10), y = VIEW_H - PANEL_H - 6;
-      const name = s.add.text(x + 8, y + 6, f.label, { fontFamily: FONT, fontSize: '8px', color: PLAYER_CSS[f.slot] });
-      const pct = s.add.text(x + PANEL_W - 8, y + 6, '0%', { fontFamily: FONT, fontSize: '16px', color: '#ffffff', stroke: '#000000', strokeThickness: 4 }).setOrigin(1, 0);
+      const name = s.add.text(x + 10, y + 3, f.label, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
+      const pct = s.add.text(x + PANEL_W - 10, y + 10, '0%', { fontFamily: FONT, fontSize: '17px', color: '#ffffff', stroke: '#07060e', strokeThickness: 5, shadow: { offsetX: 2, offsetY: 2, color: '#07060e', fill: true, stroke: true } }).setOrigin(1, 0);
       const sub = s.add.text(x + 8, y + 18, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' });
       this.panels.push({ f, x, y, name, pct, sub, last: '' });
       for (const o of [name, pct, sub]) o.setDepth(11);
@@ -32,9 +33,12 @@ export class Hud {
     for (const p of this.panels) {
       const f = p.f;
       // panel
-      g.fillStyle(0x0b0a14, 0.78); g.fillRect(p.x, p.y, PANEL_W, PANEL_H);
-      g.fillStyle(PLAYER_COLORS[f.slot], 1);
-      g.fillRect(p.x, p.y, PANEL_W, 2); g.fillRect(p.x, p.y + PANEL_H - 2, PANEL_W, 2); g.fillRect(p.x, p.y, 2, PANEL_H); g.fillRect(p.x + PANEL_W - 2, p.y, 2, PANEL_H);
+      const pc = PLAYER_COLORS[f.slot], dim = f.eliminated ? 0.35 : 1;
+      slant(g, p.x + 4, p.y + 4, PANEL_W, PANEL_H, 0x000000, 0.55, 10);                       // a slanted plate: shadow, frame, dark body
+      slant(g, p.x, p.y, PANEL_W, PANEL_H, pc, dim, 10);
+      slant(g, p.x + 2, p.y + 2, PANEL_W - 4, PANEL_H - 4, 0x0b0a14, 0.9, 9);
+      slant(g, p.x + 2, p.y + 2, 46, 11, pc, dim, 3);                                          // the name tab
+      g.fillStyle(pc, 0.12 * dim); g.fillRect(p.x + 10, p.y + 14, PANEL_W - 22, 16);
       // damage readout
       let txt;
       if (f.eliminated) txt = 'OUT';
@@ -44,26 +48,27 @@ export class Hud {
       const heat = m.mode === 'stamina' ? 1 - f.hp / f.maxHp : Math.min(1, f.percent / 150);
       const col = f.eliminated ? '#6b5b73' : heat > 0.66 ? '#ff4a4a' : heat > 0.33 ? '#ffb347' : '#ffffff';
       p.pct.setColor(col);
-      if (f.hitstop > 0 && f.flash > 0) p.pct.setPosition(p.x + PANEL_W - 8 + (frame % 2 ? 2 : -2), p.y + 6); else p.pct.setPosition(p.x + PANEL_W - 8, p.y + 6);
+      if (f.hitstop > 0 && f.flash > 0) p.pct.setPosition(p.x + PANEL_W - 12 + (frame % 2 ? 3 : -3), p.y + 10 + (frame % 3) - 1); else p.pct.setPosition(p.x + PANEL_W - 12, p.y + 10);
       // stocks or score
       let sub = '';
       if (m.mode === 'time') sub = 'SCORE ' + (f.kos - f.falls);
       p.sub.setText(sub);
       if (m.mode !== 'time' && m.mode !== 'training') {
         for (let i = 0; i < Math.min(f.stocks, 6); i++) {
-          const sx = p.x + 8 + i * 10, sy = p.y + 20;
-          g.fillStyle(PLAYER_COLORS[f.slot], 1); g.fillRect(sx, sy, 7, 7);
-          g.fillStyle(0xffffff, 1); g.fillRect(sx + 1, sy + 1, 2, 2);
+          const sx = p.x + 10 + i * 10, sy = p.y + 18;
+          slant(g, sx + 1, sy + 1, 8, 8, 0x000000, 0.6, 3); slant(g, sx, sy, 8, 8, PLAYER_COLORS[f.slot], 1, 3);
+          g.fillStyle(0xffffff, 0.9); g.fillRect(sx + 3, sy + 1, 2, 2);
         }
       }
       // Limit gauge
-      const gx = p.x + 8, gy = p.y + PANEL_H - 12, gw = PANEL_W - 16;
-      g.fillStyle(0x1a1020, 1); g.fillRect(gx, gy, gw, 6);
+      const gx = p.x + 6, gy = p.y + PANEL_H - 12, gw = PANEL_W - 18;                          // the Limit gauge: a slanted bar
       const k = Math.min(1, f.limit / LIMIT_MAX);
       const full = k >= 1;
-      g.fillStyle(full ? (frame % 20 < 10 ? 0xf0f2f3 : 0x78a0c6) : 0x076cc2, 1);
-      g.fillRect(gx + 1, gy + 1, Math.round((gw - 2) * k), 4);
-      if (full) { g.fillStyle(0x78a0c6, 0.4); g.fillRect(gx - 2, gy - 2, gw + 4, 10); }
+      if (full) slant(g, gx - 3, gy - 3, gw + 6, 13, 0x5ad0ff, 0.25 + 0.15 * Math.sin(frame * 0.3), 5);
+      slant(g, gx, gy, gw, 7, 0x1a1020, 1, 4);
+      if (k > 0) slant(g, gx + 1, gy + 1, Math.max(5, Math.round((gw - 2) * k)), 5, full ? (frame % 20 < 10 ? 0xf0f2f3 : 0x5ad0ff) : 0x1a7ae8, 1, 3);
+      if (k > 0 && !full) slant(g, gx + 1, gy + 1, Math.max(5, Math.round((gw - 2) * k)), 2, 0xffffff, 0.25, 1);
+      for (let q = 1; q < 4; q++) { g.fillStyle(0x0b0a14, 1); g.fillRect(gx + (gw * q) / 4, gy, 1, 7); }   // quarter ticks
       if (f.curse > 0) { g.fillStyle(0xb07ad0, 1); g.fillRect(p.x + PANEL_W - 14, p.y + 22, 6, 6); }
     }
     // timer

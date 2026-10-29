@@ -8,8 +8,12 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton, toggleFullscreen } from '../ui/fullscreen.js';
+import { ArcadeBg, titleBanner, hintBar, panel, rowBar, slant, pixIcon, ARC, shade } from '../ui/arcade.js';
 
-const ROW_Y = 84, ROW_H = 30, X0 = 120, X1 = 520;
+const ACC = ARC.sections.options;
+const ICON = ['speaker', 'speaker', 'crt', 'touch', 'screen', 'back'];
+
+const ROW_Y = 78, ROW_H = 38, X0 = 128, X1 = 528;
 
 export class OptionsScene extends Phaser.Scene {
   constructor() { super('Options'); }
@@ -17,17 +21,16 @@ export class OptionsScene extends Phaser.Scene {
   create() {
     this.t = 0; this.sel = 0; this.menu = new MenuInput(this);
     playMusic(this, 'bgm_title');
-    const g = this.add.graphics();
-    g.fillStyle(0x0b0a14, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
-    g.fillStyle(0x0e1e3e, 1); g.fillRect(X0 - 24, 56, X1 - X0 + 48, 260);
-    g.fillStyle(0x2f6fd0, 1); g.fillRect(X0 - 24, 56, X1 - X0 + 48, 2);
-    this.add.text(VIEW_W / 2, 28, 'OPTIONS', { fontFamily: FONT, fontSize: '16px', color: '#78a0ff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5);
-    this.cursor = this.add.graphics(); this.bars = this.add.graphics();
+    this.bgFx = new ArcadeBg(this, ACC);
+    const g = this.add.graphics().setDepth(-10);
+    panel(g, X0 - 66, 54, X1 - X0 + 120, 276, ACC);
+    titleBanner(this, 'OPTIONS', ACC, { crumb: 'MAIN MENU  >  OPTIONS' });
+    this.cursor = this.add.graphics().setDepth(-5); this.bars = this.add.graphics().setDepth(-4);
     this.rows = this.items().map((_, i) => ({
-      label: this.add.text(X0, ROW_Y + i * ROW_H, '', { fontFamily: FONT, fontSize: '9px', color: '#c9c4dc' }),
-      value: this.add.text(X1, ROW_Y + i * ROW_H, '', { fontFamily: FONT, fontSize: '9px', color: '#ffffff' }).setOrigin(1, 0),
+      label: this.add.text(X0, ROW_Y + i * ROW_H, '', { fontFamily: FONT, fontSize: '9px', color: '#c9c4dc', stroke: '#07060e', strokeThickness: 3 }),
+      value: this.add.text(X1, ROW_Y + i * ROW_H, '', { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(1, 0),
     }));
-    this.add.text(VIEW_W / 2, VIEW_H - 8, 'W/S SELECT   A/D OR CLICK CHANGE   K / ESC / B  BACK', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0.5, 1);
+    hintBar(this, 'W/S SELECT   A/D CHANGE   CLICK CHANGE   K / ESC / B  BACK', ACC);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.click = null;
@@ -73,17 +76,19 @@ export class OptionsScene extends Phaser.Scene {
     }
     // draw
     const fresh = this.items();
-    this.cursor.clear(); this.bars.clear();
+    this.cursor.clear(); this.bars.clear(); this.bgFx.update(this.t);
+    if (this.sel !== this.lastSel) { this.selK = 0; this.lastSel = this.sel; } this.selK = Math.min(1, (this.selK || 0) + 0.15);
     this.rows.forEach((r, i) => {
       const it = fresh[i], on = i === this.sel, y = ROW_Y + i * ROW_H;
-      r.label.setText(it.label).setColor(it.back ? (on ? '#f3c358' : '#78a0ff') : on ? '#ffffff' : '#c9c4dc');
-      r.value.setText(it.value ? '< ' + it.value + ' >' : '');
-      if (it.bar !== undefined) for (let k = 0; k < 10; k++) {
+      r.label.setText(it.label).setColor(it.back ? (on ? '#ffffff' : '#ffd23f') : on ? '#ffffff' : '#c9c4dc');
+      r.value.setText(it.value ? '< ' + it.value + ' >' : '').setColor(on ? '#ffffff' : '#ffd23f');
+      if (on) rowBar(this.cursor, X0 - 40, y - 9, X1 - X0 + 56, 26, it.back ? ARC.gold : ACC, this.t, 0.3 + this.selK * 0.7);
+      else slant(this.cursor, X0 - 40, y - 9, X1 - X0 + 56, 26, ARC.panel2, 0.8, 6);
+      pixIcon(this.bars, ICON[i], X0 - 20, y + 4, 2, on ? ARC.white : shade(ACC, 0.9), 1, on ? ACC : ARC.white);
+      if (it.bar !== undefined) for (let k = 0; k < 10; k++) {          // the volume: slanted segments getting taller
         const h = 4 + Math.round(k * 0.9), lit = k < it.bar;
-        this.bars.fillStyle(lit ? (k < 7 ? 0x78a0ff : 0xf3c358) : 0x22305a, 1);
-        this.bars.fillRect(X1 - 150 + k * 8, y + 11 - h, 6, h);
+        slant(this.bars, X1 - 150 + k * 8, y + 11 - h, 6, h, lit ? (k < 7 ? (on ? ARC.white : 0x78a0ff) : ARC.gold) : 0x22305a, 1, 2);
       }
-      if (on) { this.cursor.fillStyle(0x2f6fd0, 0.3); this.cursor.fillRect(X0 - 12, y - 6, X1 - X0 + 24, 22); this.cursor.fillStyle(0x78a0ff, 1); this.cursor.fillRect(X0 - 12, y - 6, 3, 22); }
     });
   }
 }
