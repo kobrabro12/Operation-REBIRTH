@@ -5,6 +5,7 @@ import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../p
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
+import { FighterIntros } from './fighterIntros.js';
 import { recordMatch } from '../achievements.js';
 import { voiceLine } from '../audio/voiceLines.js';
 
@@ -136,6 +137,7 @@ export class MatchScene extends Phaser.Scene {
     if (S.crt) this.makeCrt();
 
     this.countdown = this.isTraining || this.demo ? 0 : 200;   // "3, 2, 1, GO!" (training starts right away)
+    this.intros = this.countdown > 0 ? new FighterIntros(this) : null;   // everyone arrives on the stage during it (fighterIntros.js)
     this.escKey = this.input.keyboard.addKey('ESC');
     // mouse: a pause button in the corner, and Resume / Quit buttons on the pause screen
     this.input.mouse.disableContextMenu();
@@ -227,6 +229,7 @@ export class MatchScene extends Phaser.Scene {
       else if (this.countdown === 20) { this.bigText.setText('GO!'); sfx('go', 0.9); }
       if (this.countdown === 0) this.bigText.setText('');
       for (const f of this.fighters) { f.ctrl.beginFrame(); f.ctrl.poll(); f.render(this.frame); }
+      if (this.intros) this.intros.step();
       return;
     }
 
@@ -907,6 +910,7 @@ export class MatchScene extends Phaser.Scene {
     this.renderAeroStage();
     this.extras.draw();
     for (const f of this.fighters) f.render(this.frame);
+    if (this.intros) { if (this.countdown > 0 || !this.intros.done) this.intros.draw(); if (this.countdown <= 0 && !this.intros.done) this.intros.finish(); }   // arrivals (fighterIntros.js)
     for (const p of this.projectiles) p.render();
     for (const p of this.pools) p.render();
     for (const s of this.souls) s.render();
@@ -1026,7 +1030,7 @@ export class MatchScene extends Phaser.Scene {
 
   cleanup() {
     for (const f of this.fighters || []) f.stopChargeSound();
-    if (this.extras) this.extras.cleanup();              // (MOON GRAVITY puts gravity back)
+    if (this.extras) this.extras.cleanup(); if (this.intros) this.intros.cleanup();              // (MOON GRAVITY puts gravity back)
     if (this.demo) { setSfxMuted(false); return; }    // the title screen keeps its music playing
     this.sound.stopAll(); stopMusic();
   }

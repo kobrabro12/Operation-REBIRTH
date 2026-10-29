@@ -16,6 +16,8 @@
 //   THE GRIEFER    - a blocky troublemaker joins the game on top of one of the towers and throws a load of
 //                    classic gear at you: a spinning sword, a bouncing superball, a ticking timebomb, a shaken-up
 //                    soda can and a rocket. Then he logs off.
+//   THE HACKER     - a hooded exploiter flies in over the plate, FLINGs himself across it (anyone he touches goes
+//                    flying), SWAPs two players with a glitch beam - then the server BANS him.
 import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
 import { HazardCycle } from './hazardCycle.js';
@@ -44,6 +46,10 @@ const PAD = { xs: [-120, 120], reach: 11, launch: -11.5, states: ['idle', 'run',
 // THE GRIEFER: how many things he throws, the frames between throws, and what he can throw (each one's
 // damage/launch is in its own section of step_griefer below)
 const GRIEFER = { throws: 6, firstAt: 60, every: 32, items: ['sword', 'ball', 'bomb', 'soda', 'rocket'] };
+// THE HACKER: joins after flying in, FLINGs (spins across the plate - anyone touched goes flying), SWAPs two players'
+// places with a glitch beam, then gets BANNED. Tunables: how hard the fling hits, how many passes, how long each part takes.
+const HACKER = { passes: 2, passFrames: 70, fling: { dmg: 9, angle: 50, base: 7.2, growth: 4.4 }, swapAt: 40 };
+const HACK_CHAT = ['ez', 'fling time', 'admin abuse lol', 'u cant ban me', 'teleport go brrr', 'get flung', 'noclip on'];
 const GRIEF_CHAT = ['lol', 'ez', 'catch!!', 'free gear', 'get noobed', 'ur bad', 'hehehe', 'incoming', 'rekt'];
 const CHAT = ['lol', 'brb', 'who wants to sword fight', 'free admin??', 'can someone build me a house', 'lag...', 'noob', 'oof', 'follow me', 'gg', 'how do u jump', 'tix 4 trade', 'im a guest', 'meet at spawn'];
 
@@ -60,7 +66,7 @@ export class BaseplateStage {
     this.hazardsOn = true;
     this.t = 0;
     this.musicList = ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6', 'bgm_baseplate_10'];   // Mason's four tracks, taking turns (music.js playPlaylist)
-    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'griefer'], { color: '#ffffff', stroke: '#1b2a35' });
+    this.cycle = new HazardCycle(this, ['rockets', 'bricks', 'lag', 'griefer', 'hacker'], { color: '#ffffff', stroke: '#1b2a35' });
     const R = (n) => { let s = n; return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff); };
     const r = R(11);
     this.rnd = r;
@@ -151,7 +157,9 @@ export class BaseplateStage {
     worldLayer.push(w);
     this.fxG = s.add.graphics(); this.hzG = s.add.graphics(); worldLayer.push(this.fxG, this.hzG);
     this.grText = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#1b2a35' }).setOrigin(0.5, 1).setVisible(false);   // the griefer's chat
-    worldLayer.push(this.grText);
+    this.hkText = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#0a3a12' }).setOrigin(0.5, 1).setVisible(false);   // the hacker's chat
+    this.hkTag = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#5aff6a' }).setOrigin(0.5, 1).setVisible(false);   // his name tag
+    worldLayer.push(this.grText, this.hkText, this.hkTag);
     this.cycle.makeBanner(this.scene);
   }
   drawPlate(g) {
@@ -209,6 +217,7 @@ export class BaseplateStage {
   step(match) {
     this.t++;
     const t = this.t, P = BPAL, f = this.fxG, bg = this.bgFx;
+    if (!this.cycle.hz || this.cycle.hz.kind !== 'hacker') { this.hkText.setVisible(false); this.hkTag.setVisible(false); }   // (the hacker's name tag and chat only while he's here)
     // where everyone has been (LAG SPIKE snaps them back here)
     for (const fi of match.fighters) {
       let h = this.hist.get(fi); if (!h) { h = []; this.hist.set(fi, h); }
@@ -443,22 +452,41 @@ export class BaseplateStage {
     h.queue = Array.from({ length: GRIEFER.throws }, (_, i) => pool[i % pool.length]);
     h.items = []; h.thrown = 0; h.leaveAt = 0; h.say = null;
   }
-  // a classic blocky player, but a troublemaker: a backwards red cap, shades, a black shirt with a skull, a smirk
+  // a classic blocky player, but a troublemaker: a backwards red cap, shades, a black shirt with a skull, a smirk.
+  // Drawn clean: every block snapped to whole pixels, each part with its own outline, the throwing arm a rotated block.
   drawGriefer(g, x, y, dir, armA, alpha) {
-    const P = BPAL, u = 2;
-    g.fillStyle(P.outline, alpha); g.fillRect(x - 5 * u, y - 22 * u, 10 * u, 22 * u);
-    g.fillStyle(0x3a3a44, alpha); g.fillRect(x - 4 * u, y - 9 * u, 4 * u, 9 * u); g.fillRect(x, y - 9 * u, 4 * u, 9 * u);   // dark jeans
-    g.fillStyle(0x16161c, alpha); g.fillRect(x - 4 * u, y - 17 * u, 8 * u, 8 * u);                 // black shirt...
-    g.fillStyle(0xf2f3f3, alpha); g.fillRect(x - 1 * u, y - 15 * u, 2 * u, 2 * u); g.fillRect(x - 1 * u, y - 13 * u, u, u); g.fillRect(x, y - 13 * u, u, u);   // ...with a little skull
-    g.fillStyle(P.skin, alpha); g.fillRect(x - 3 * u, y - 22 * u, 6 * u, 5 * u);                     // head
-    g.fillStyle(0x101014, alpha); g.fillRect(x - 3 * u + (dir > 0 ? u : 0), y - 21 * u, 5 * u, u);    // shades
-    g.fillStyle(0x6a3a10, alpha); g.fillRect(x + dir * u - u, y - 19 * u, 3 * u, u * 0.5 + 1); g.fillRect(x + dir * 2 * u, y - 19.5 * u, u, u * 0.5 + 1);   // a smirk
-    g.fillStyle(P.red, alpha); g.fillRect(x - 3 * u, y - 24 * u, 6 * u, 2 * u); g.fillRect(x - dir * 5 * u, y - 23 * u, 2 * u, u);   // backwards cap, brim behind
-    g.fillStyle(P.redLight, alpha); g.fillRect(x - 3 * u, y - 24 * u, 6 * u, u * 0.5 + 1);
-    g.fillStyle(P.skin, alpha); g.fillRect(x - dir * 6 * u, y - 17 * u, 2 * u, 8 * u);                // the other arm, by his side
-    const sx = x + dir * 5 * u, sy = y - 16 * u, ex = sx + Math.cos(armA) * 8 * u * dir, ey = sy + Math.sin(armA) * 8 * u;   // the throwing arm, swinging
-    g.lineStyle(2 * u, P.outline, alpha); g.lineBetween(sx, sy, ex, ey);
-    g.lineStyle(2 * u - 2, P.skin, alpha); g.lineBetween(sx, sy, ex, ey);
+    const P = BPAL; x = Math.round(x); y = Math.round(y);
+    this.avatar(g, x, y, dir, armA, alpha, {
+      legs: [0x2e3440, 0x3c4452], torso: [0x16161c, 0x24242c], skin: P.skin, skinShade: 0xd8b028,
+      chest: (cx, cy) => { g.fillStyle(0xf2f3f3, alpha); g.fillRect(cx - 2, cy + 2, 4, 3); g.fillRect(cx - 2, cy + 5, 1, 1); g.fillRect(cx + 1, cy + 5, 1, 1); g.fillStyle(0x16161c, alpha); g.fillRect(cx - 1, cy + 3, 1, 1); g.fillRect(cx + 1, cy + 3, 1, 1); },   // a little skull
+      head: (hx, hy) => {
+        g.fillStyle(0x101014, alpha); g.fillRect(hx - 5 + (dir > 0 ? 1 : 0), hy + 3, 9, 2);                      // shades
+        g.fillStyle(0x4a5aa8, alpha); g.fillRect(hx - 4 + (dir > 0 ? 1 : 0), hy + 3, 2, 1);                      // (a glint)
+        g.fillStyle(0x6a3a10, alpha); g.fillRect(hx - 1 + dir, hy + 8, 3, 1); g.fillRect(hx + dir * 2 + (dir > 0 ? 1 : -1), hy + 7, 1, 1);   // a smirk
+        g.fillStyle(P.outline, alpha); g.fillRect(hx - 7, hy - 4, 14, 4); g.fillRect(hx - dir * 9 - 2, hy - 2, 5, 3);   // backwards cap + brim behind
+        g.fillStyle(P.red, alpha); g.fillRect(hx - 6, hy - 3, 12, 3); g.fillRect(hx - dir * 9 - 1, hy - 1, 4, 1);
+        g.fillStyle(P.redLight, alpha); g.fillRect(hx - 6, hy - 3, 12, 1);
+      },
+    });
+  }
+  // a blocky avatar (the GRIEFER, the HACKER): legs, torso, head, a resting arm and a swinging one (armA radians,
+  // 0 = straight out in front, + = down). Parts are crisp rectangles with 1px outlines; look = colours + extra details.
+  avatar(g, x, y, dir, armA, alpha, look) {
+    const P = BPAL, O = (rx, ry, w, h, c, shade) => { g.fillStyle(P.outline, alpha); g.fillRect(rx - 1, ry - 1, w + 2, h + 2); g.fillStyle(c, alpha); g.fillRect(rx, ry, w, h); if (shade != null) { g.fillStyle(shade, alpha); g.fillRect(rx, ry, Math.max(1, Math.round(w / 3)), h); } };
+    O(x - 8, y - 18, 7, 18, look.legs[0], look.legs[1]); O(x + 1, y - 18, 7, 18, look.legs[0], look.legs[1]);    // legs
+    const back = x - dir * 12 - 3;
+    O(back, y - 34, 6, 15, look.arm || look.skin, look.arm ? look.torso[1] : look.skinShade);                   // the arm at his side
+    O(x - 9, y - 35, 18, 17, look.torso[0], look.torso[1]);                                                     // torso
+    if (look.chest) look.chest(x, y - 33);
+    O(x - 6, y - 47, 12, 12, look.skin, look.skinShade);                                                        // head
+    if (look.head) look.head(x, y - 47);
+    // the throwing arm: a 6x15 block pivoting at the shoulder
+    const sx = x + dir * 10, sy = y - 32, c = Math.cos(armA), sn = Math.sin(armA), L = 15, half = 3;
+    const ax = c * dir, ay = sn, px = -ay, py = ax;                                                             // along the arm, across it
+    const quad = (o) => [{ x: sx - px * (half + o) - ax * o, y: sy - py * (half + o) - ay * o }, { x: sx + px * (half + o) - ax * o, y: sy + py * (half + o) - ay * o },
+      { x: sx + px * (half + o) + ax * (L + o), y: sy + py * (half + o) + ay * (L + o) }, { x: sx - px * (half + o) + ax * (L + o), y: sy - py * (half + o) + ay * (L + o) }];
+    g.fillStyle(P.outline, alpha); g.fillPoints(quad(1), true);
+    g.fillStyle(look.arm || look.skin, alpha); g.fillPoints(quad(0), true);
   }
   // one piece of gear, drawn where it is (spinning things use it.rot)
   drawGear(g, it) {
@@ -499,6 +527,85 @@ export class BaseplateStage {
     const P = BPAL, k = it.bt / 26, R = 14 + 34 * Math.min(1, it.bt / 8);
     for (let i = 3; i >= 0; i--) { g.fillStyle(P.fire[i], (1 - k) * (i ? 0.9 : 1)); g.fillCircle(it.x, it.y - 6, R * (0.35 + i * 0.22)); }
   }
+  // ---- THE HACKER
+  start_hacker(match, h) {
+    h.title = 'A HACKER JOINED THE GAME!';
+    h.x = (Math.random() < 0.5 ? -1 : 1) * 200; h.y = -150; h.phase = 'fly'; h.pt = 0; h.pass = 0; h.dir = h.x > 0 ? -1 : 1; h.say = null;
+    h.name = ['xX_n0clip_Xx', 'h4x0r_2013', 'ExploitKing', 'flingbot99'][Math.floor(Math.random() * 4)];
+  }
+  // a hooded exploiter: a black hoodie with a green glowing trim, a dark face with green eyes, a little floating code
+  drawHacker(g, x, y, dir, armA, alpha, t) {
+    x = Math.round(x); y = Math.round(y);
+    this.avatar(g, x, y, dir, armA, alpha, {
+      legs: [0x1a1e24, 0x262c34], torso: [0x15181c, 0x22272e], skin: 0xb8c0c8, skinShade: 0x8a929c, arm: 0x15181c,
+      chest: (cx, cy) => { g.fillStyle(0x5aff6a, alpha); g.fillRect(cx - 8, cy + 13, 16, 1); g.fillRect(cx - 1, cy + 1, 2, 9); },   // a glowing zip and hem
+      head: (hx, hy) => {
+        g.fillStyle(BPAL.outline, alpha); g.fillRect(hx - 8, hy - 3, 16, 15);                                    // the hood
+        g.fillStyle(0x15181c, alpha); g.fillRect(hx - 7, hy - 2, 14, 13);
+        g.fillStyle(0x06080a, alpha); g.fillRect(hx - 4, hy + 2, 9, 8);                                          // a face in shadow
+        const blink = (t % 90) < 4 ? 0 : 1;
+        g.fillStyle(0x5aff6a, alpha * blink); g.fillRect(hx - 3 + (dir > 0 ? 1 : 0), hy + 5, 2, 1); g.fillRect(hx + 1 + (dir > 0 ? 1 : 0), hy + 5, 2, 1);   // green eyes
+        g.fillStyle(0x5aff6a, alpha); g.fillRect(hx - 8, hy - 3, 16, 1);
+      },
+    });
+    for (let i = 0; i < 4; i++) { const k = ((t + i * 11) % 44) / 44; g.fillStyle(0x5aff6a, alpha * (1 - k)); g.fillRect(x - 14 + i * 9, y - 40 - k * 26, 2, 3); g.fillRect(x - 13 + i * 9, y - 44 - k * 26, 1, 2); }   // code drifting off him
+  }
+  step_hacker(match, h, out) {
+    const g = this.hzG, R = Math.random, H = HACKER; h.pt++;
+    const alive = match.fighters.filter((f) => f.alive && !['respawn', 'dying', 'grabbed', 'seized', 'limit', 'ledge', 'ledgeclimb'].includes(f.state));
+    let armA = Math.PI / 2 - 0.3, alpha = 1, spinning = false;
+    if (h.t === 1) sfx('ding', 0.5, 1.2);
+    if (h.phase === 'fly') {                                               // flyhacks in over the plate, bobbing
+      alpha = Math.min(1, h.pt / 16);
+      h.x += (h.dir * 40 - h.x) * 0.03; h.y = -150 + h.pt * 1.2 + Math.sin(h.pt * 0.1) * 3;
+      armA = -0.4;
+      if (h.pt === 30) h.say = { text: HACK_CHAT[Math.floor(R() * HACK_CHAT.length)], until: h.t + 50 };
+      if (h.y >= -2 || h.pt > 130) { h.y = -2; h.phase = 'fling'; h.pt = 0; sfx('glitch', 0.6, 0.7); h.say = { text: 'fling time', until: h.t + 40 }; }
+    } else if (h.phase === 'fling') {                                     // FLING: a blur spinning across the plate and back
+      const k = h.pt / H.passFrames, from = -h.dir * 250, to = h.dir * 250;
+      h.x = from + (to - from) * (h.pass % 2 ? 1 - k : k); h.y = -2;
+      spinning = true; if (h.pt % 6 === 0) sfx('whoosh', 0.35, 0.8 + R() * 0.4);
+      out.push({ x1: h.x - 20, x2: h.x + 20, y1: -52, y2: 0, dmg: H.fling.dmg, angle: H.fling.angle, base: H.fling.base, growth: H.fling.growth, dirX: (h.pass % 2 ? -1 : 1) * h.dir, id: 'hack' + h.id + ':' + h.pass, hazard: true });
+      if (h.pt % 2 === 0) match.particles.push({ shape: 'pixel2', x: h.x + (R() - 0.5) * 20, y: -R() * 46, vx: (R() - 0.5) * 2, vy: -R() * 2, life: 14, color: R() < 0.5 ? 0x5aff6a : 0x1a1e24, grav: 0 });
+      if (h.pt >= H.passFrames) { h.pt = 0; if (++h.pass >= H.passes) { h.phase = 'swap'; sfx('glitch', 0.5, 1.4); h.say = { text: 'teleport go brrr', until: h.t + 50 }; } }
+    } else if (h.phase === 'swap') {                                      // SWAP: two players trade places in a glitch beam
+      armA = -0.9;
+      if (h.pt === 1) { const pick = alive.slice().sort(() => R() - 0.5); h.pair = pick.slice(0, 2); }
+      const pair = h.pair || [];
+      if (h.pt < H.swapAt) for (const f of pair) { g.lineStyle(2, 0x5aff6a, (h.pt >> 2) % 2 ? 0.9 : 0.4); g.lineBetween(h.x + h.dir * 10, -34, f.x, f.y - 30); g.fillStyle(0x5aff6a, 0.25); g.fillRect(f.x - 14, f.y - 56, 28, 56); }
+      if (h.pt === H.swapAt && pair.length === 2 && pair.every((f) => f.alive && f.state !== 'respawn')) {
+        const [a, b] = pair, ax = a.x, ay = a.y;
+        for (const [f, x, y] of [[a, b.x, b.y], [b, ax, ay]]) { f.x = x; f.y = y; f.vx = 0; f.vy = 0; f.grounded = false; f.platform = null; if (['idle', 'run'].includes(f.state)) f.setState('air'); match.puff(x, y - 24, 0x5aff6a, 6); }
+        sfx('laser', 0.5, 1.6); match.shake(4, 6);
+      }
+      if (h.pt > H.swapAt + 30) { h.phase = 'ban'; h.pt = 0; sfx('curse', 0.6, 0.8); h.say = null; }
+    } else if (h.phase === 'ban') {                                       // BANNED: a red stamp, he glitches out of the game
+      alpha = h.pt < 30 ? 1 : Math.max(0, 1 - (h.pt - 30) / 20);
+      const sy = -90, wob = h.pt < 8 ? (8 - h.pt) * 0.06 : 0;
+      g.fillStyle(0xe8202a, Math.min(1, h.pt / 4)); g.fillRect(h.x - 46, sy - 10, 92, 20); g.fillStyle(0xffffff, Math.min(1, h.pt / 4)); g.fillRect(h.x - 44, sy - 8, 88, 16); g.fillStyle(0xe8202a, 1); g.fillRect(h.x - 42, sy - 6, 84, 12);
+      this.hkText.setVisible(false);
+      this.hkTag.setText('BANNED').setColor('#ffffff').setStroke('#8a1010', 3).setPosition(h.x, sy + 5).setRotation(wob - 0.06).setVisible(true);
+      if (h.pt > 30 && h.pt % 3 === 0) match.particles.push({ shape: 'pixel2', x: h.x + (R() - 0.5) * 24, y: -R() * 50, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 18, color: R() < 0.5 ? 0x5aff6a : 0xe8202a, grav: 0 });
+      if (h.pt > 56) { this.hkTag.setVisible(false).setRotation(0); this.hkText.setVisible(false); return true; }
+    }
+    // him (a spinning blur while flinging: drawn three times, offset, fading)
+    if (alpha > 0) {
+      if (spinning) { for (let i = 2; i >= 0; i--) this.drawHacker(g, h.x - i * 7 * (h.pass % 2 ? -h.dir : h.dir), h.y, ((h.pt >> 1) % 2 ? 1 : -1), (h.pt * 0.9) % 6.28, alpha * (1 - i * 0.3), h.t); }
+      else { g.fillStyle(0x5aff6a, 0.12 * alpha); g.fillEllipse(h.x, h.y + 1, 30, 5); this.drawHacker(g, h.x, h.y, h.dir, armA, alpha, h.t); }
+    }
+    if (h.phase !== 'ban') {
+      this.hkTag.setText(h.name).setColor('#5aff6a').setStroke('#06140a', 0).setRotation(0).setPosition(h.x, h.y - 52).setVisible(alpha > 0.3);
+      if (alpha > 0.3) { const tw = h.name.length * 6 + 6; g.fillStyle(0x06140a, 0.75 * alpha); g.fillRect(h.x - tw / 2, h.y - 61, tw, 10); }   // a dark plate behind his name
+      if (h.say && h.t < h.say.until) {
+        const x = h.x, y = h.y - 62, wpx = h.say.text.length * 6 + 8;
+        g.fillStyle(0x0a140c, 0.9); g.fillRect(x - wpx / 2, y - 12, wpx, 12); g.fillTriangle(x - 3, y, x + 3, y, x, y + 4);
+        g.lineStyle(1, 0x5aff6a, 0.8); g.strokeRect(x - wpx / 2, y - 12, wpx, 12);
+        this.hkText.setText(h.say.text).setColor('#5aff6a').setPosition(x, y - 2).setVisible(true);
+      } else this.hkText.setVisible(false);
+    }
+    return false;
+  }
+
   step_griefer(match, h, out) {
     const g = this.hzG, P = BPAL, G = GRIEFER, R = Math.random;
     const foes = match.fighters.filter((f) => f.alive && f.state !== 'respawn' && f.state !== 'dying');
