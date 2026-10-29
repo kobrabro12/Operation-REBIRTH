@@ -4,6 +4,8 @@ import { MODE_NAMES, settings } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { ROSTER, showFighter } from '../fighters/roster.js';
 import { voiceLine } from '../audio/voiceLines.js';
+import { checkAchievements } from '../achievements.js';
+import { achievementToasts } from '../ui/toast.js';
 import { sfx } from '../audio/sfx.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -41,6 +43,7 @@ export class ResultsScene extends Phaser.Scene {
       this.coinT = this.add.text(VIEW_W / 2, 318, txt, { fontFamily: FONT, fontSize: '7px', color: '#f3c358', stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5);
       this.time.delayedCall(400, () => sfx('ding', 0.4, 1.6));
     }
+    achievementToasts(this, checkAchievements(), { delay: 900 });   // anything this match unlocked (achievements.js)
     this.prompt = this.add.text(VIEW_W / 2, 336, 'CLICK / ENTER / A  CONTINUE', { fontFamily: FONT, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5);
     sfx('limitready', 0.8);
     this.clicked = false;

@@ -5,6 +5,7 @@ import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../p
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
+import { recordMatch } from '../achievements.js';
 import { voiceLine } from '../audio/voiceLines.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
@@ -73,7 +74,7 @@ export class MatchScene extends Phaser.Scene {
     this.uiCam = this.cameras.add(0, 0, VIEW_W, VIEW_H);
     this.worldCam.setZoom(1); this.worldCam.centerOn(0, -80);
 
-    this.stage = stageById(S.stage).make(this);
+    this.stageId = stageById(S.stage).id; this.stage = stageById(S.stage).make(this);
     this.stage.hazardsOn = S.hazards;
     const bg = [], world = [];
     this.stage.draw(world, bg);
@@ -443,6 +444,7 @@ export class MatchScene extends Phaser.Scene {
     // coins for the shop: each human player earns some for playing, their KOs and where they placed (progress.js)
     const coins = this.isTraining || this.demo ? [] : order.map((f, place) => (f.isCpu ? null : { label: f.label, slot: f.slot, coins: matchCoins(place, f.kos) })).filter(Boolean);
     const earned = coins.reduce((n, c) => n + c.coins, 0); if (earned) addCoins(earned);
+    if (!this.isTraining && !this.demo) for (const f of order) if (!f.isCpu) recordMatch({ fighter: f.baseDef ? f.baseDef.id : f.def.id, stage: this.stageId, won: f === order[0], flawless: this.mode === 'stock' && !f.falls });   // lifetime stats (achievements.js)
     const data = { results, mode: this.mode, unlocks: this.unlocks, coins, total: getCoins() };
     if (hasWinCutscene(results[0].fighter) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
     this.scene.start('Results', data);

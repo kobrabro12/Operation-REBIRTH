@@ -22,6 +22,8 @@ import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool } from '../data/shop.js
 import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
+import { stat, addSecret, checkAchievements } from '../achievements.js';
+import { achievementToasts } from '../ui/toast.js';
 
 const W = VIEW_W, H = VIEW_H;
 const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gold: 0xf3c358, dim: 0x5a4a70 };
@@ -32,6 +34,8 @@ const TAB = { x: 16, y: 56, w: 77, h: 20, gap: 4 };
 const PER = GRID.cols * GRID.rows;
 // the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
 const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
+// the on-screen keypad for typing a code (over the shelves): 8 x 4 keys
+const KEYPAD = { x: 30, y: 108, w: 42, h: 36, gap: 6, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'DEL', 'OK', 'CANCEL'] };
 // secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
 const SECRETS = { STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife' } };   // (webm first; mp4 for Safari)
 const PAGE = { x: 362, y: 46 };                                           // PAGE 1/2 and its arrows, over the cards' top right
@@ -97,7 +101,11 @@ export class ShopScene extends Phaser.Scene {
     b.fillStyle(C.panel2, 1); b.fillRect(GRID.x - 6, GRID.y - 6, GRID.cols * (GRID.w + GRID.gap) + 6, GRID.rows * (GRID.h + GRID.gap) + 6);
     // mouse: tabs, cards, BUY
     this.input.on('pointerdown', (p, over) => {
-      if (this.secret) { if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50 || (this.secret.mode === 'video' && over.length === 0)) this.closeSecret(); else if (this.secret.mode === 'code') this.codeBox.focus(); return; }
+      if (this.secret) {
+        if (this.secret.mode === 'video') { if (over.length === 0) this.closeSecret(); return; }
+        for (let i = 0; i < KEYPAD.keys.length; i++) { const [x, y] = this.keyAt(i); if (p.x >= x && p.x <= x + KEYPAD.w && p.y >= y && p.y <= y + KEYPAD.h) { this.secret.cur = i; this.secret.press = 6; return this.typeKey(KEYPAD.keys[i]); } }
+        return;
+      }
       if (this.pv || this.spin) { this.clicked = this.pv && p.x < W / 3 ? 'pvprev' : this.pv && p.x > W * 2 / 3 ? 'pvnext' : 'ovok'; return; }
       if (Math.hypot(p.x - BELL.x, p.y - BELL.y) < BELL.r) return this.ringBell();
       if (over.length) return;
@@ -139,7 +147,7 @@ export class ShopScene extends Phaser.Scene {
     if (it.gacha && !gachaPool(it.gacha).some((x) => !owns(x.id))) { this.react('happy', 'soldout'); this.say('SOLD OUT: YOU OWN EVERYTHING THIS MACHINE GIVES.', '#c9c4dc'); return; }
     if (getCoins() < it.price) { this.react('shock', it.gacha ? 'spin' : 'broke'); sfx('curse', 0.3, 1.5); return; }
     if (it.gacha) return this.startSpin(it);
-    buyItem(it.id, it.price);
+    buyItem(it.id, it.price); stat('spent', it.price); this.cheevos();
     this.react('smug', 'bought', 140); sfx('ding', 0.45, 1.6); this.static = 8;
     if (it.kind === 'costume') { this.say('NEW COSTUME! PICK IT ON THE SELECT SCREEN.', '#7aff8a'); return; }
     if (!isEquipped(it.kind, it.id)) toggleEquip(it.kind, it.id);                   // bought it: it's switched on right away
@@ -147,6 +155,7 @@ export class ShopScene extends Phaser.Scene {
   }
   // ---------------------------------------------------------------- costume PREVIEW
   openPreview(it) {
+    stat('previews'); this.cheevos();
     const fd = fighterById(it.fighter); if (!fd || !fd.def) return;
     const def = fd.def, si = Math.max(0, skinsFor(def.id).findIndex((k) => k.name === it.skin)), sh = skinSheets(this, def, si);
     const n = (key) => Math.max(1, this.textures.get(key).frameTotal - 1);
@@ -159,7 +168,7 @@ export class ShopScene extends Phaser.Scene {
     this.pv = { it, def, seq, i: 0, t: 0 }; sfx('select', 0.5, 1.3); this.react('glasses', 'preview');
   }
   stepPreview(d) { const pv = this.pv; pv.i = (pv.i + d + pv.seq.length) % pv.seq.length; pv.t = 0; sfx('menu', 0.4); }
-  closeOverlay() { this.pv = null; this.spin = null; this.ov.clear(); this.ovSpr.setVisible(false); for (const x of [this.ovT, this.ovSub, this.ovHelp, this.ovList]) x.setText(''); }
+  closeOverlay() { if (this.spin) this.cheevos(); this.pv = null; this.spin = null; this.ov.clear(); this.ovSpr.setVisible(false); for (const x of [this.ovT, this.ovSub, this.ovHelp, this.ovList]) x.setText(''); }
   drawPreview(t) {
     const pv = this.pv, A = pv.seq[pv.i], o = this.ov; o.clear();
     pv.t++;
@@ -180,7 +189,7 @@ export class ShopScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- GACHA
   startSpin(it) {
-    addCoins(-it.price);
+    addCoins(-it.price); stat('spent', it.price); stat('spins', it.gacha.pulls);
     const res = [];
     for (let i = 0; i < it.gacha.pulls; i++) {
       let pool = gachaPool(it.gacha);
@@ -243,30 +252,48 @@ export class ShopScene extends Phaser.Scene {
   }
   // ---------------------------------------------------------------- SECRETS: the bell, the code screen, the video
   ringBell() {
-    sfx('ding', 0.5, 2.2); this.bellWobble = 14;
+    sfx('ding', 0.5, 2.2); this.bellWobble = 14; stat('bells'); this.cheevos();
     this.bellRings = this.bellRings.filter((r) => this.t - r < BELL.window); this.bellRings.push(this.t);
     if (this.bellRings.length >= BELL.rings) { this.bellRings = []; this.openCode(); }
   }
-  // his screen asks for a code. Typing goes into a hidden text box, so phones get their keyboard too.
+  // his screen asks for a code. Type it on your keyboard (read straight from the page, no clicking into anything first),
+  // or tap / pick the letters on the on-screen keypad that covers the shelves (phones, gamepads).
   openCode() {
-    this.secret = { mode: 'code', t: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
+    this.secret = { mode: 'code', t: 0, typed: '', cur: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
     const L = KEEPER.lines.secret; this.saying = L[Math.floor(Math.random() * L.length)]; this.sayT = 200;
-    if (!this.codeBox) {
-      const el = this.codeBox = document.createElement('input');
-      Object.assign(el.style, { position: 'fixed', left: '-200px', top: '0', width: '100px', opacity: '0' });
-      el.autocapitalize = 'characters'; el.autocomplete = 'off'; el.spellcheck = false; el.maxLength = 12;
-      el.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') this.submitCode(); if (e.key === 'Escape') this.closeSecret(); });
-      el.addEventListener('input', () => { el.value = el.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); sfx('menu', 0.3, 1.6); });
-      document.body.append(el);
-    }
-    this.codeBox.value = ''; this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();
-    this.codeBox.focus();
+    this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();   // the game's own key handling steps aside
+    const onKey = (e) => {
+      const S = this.secret; if (!S || S.mode !== 'code') return;
+      const k = e.key, mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -KEYPAD.cols, ArrowDown: KEYPAD.cols }[k];
+      if (/^[a-zA-Z0-9]$/.test(k)) this.typeKey(k.toUpperCase());
+      else if (k === 'Backspace') this.typeKey('DEL');
+      else if (k === 'Enter') this.typeKey(S.typed ? 'OK' : KEYPAD.keys[S.cur]);
+      else if (k === 'Escape') this.closeSecret();
+      else if (mv) { S.cur = Math.min(KEYPAD.keys.length - 1, (S.cur + mv + KEYPAD.cols * 8) % (KEYPAD.cols * 4)); sfx('menu', 0.25, 1.4); }
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey); this.secret.onKey = onKey;
+    if (!this.keyT) this.keyT = KEYPAD.keys.map((k) => this.add.text(0, 0, k, { fontFamily: FONT, fontSize: k.length > 1 ? '7px' : '10px', color: '#d8fff0' }).setOrigin(0.5).setDepth(41).setVisible(false));
+    this.keyT.forEach((t, i) => { const [x, y] = this.keyAt(i); t.setPosition(x + KEYPAD.w / 2, y + KEYPAD.h / 2).setVisible(true); });
+    this.keyHint = this.keyHint || this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#9affd8', align: 'center' }).setOrigin(0.5).setDepth(41);
+    this.keyHint.setText('TYPE THE CODE ON YOUR KEYBOARD, OR TAP THE KEYS\nBACKSPACE / DEL ERASES   ENTER / OK SENDS   ESC / CANCEL QUITS').setPosition(KEYPAD.x + KEYPAD.cols * (KEYPAD.w + KEYPAD.gap) / 2, KEYPAD.y - 16).setVisible(true);
   }
+  keyAt(i) { const c = i % KEYPAD.cols, r = Math.floor(i / KEYPAD.cols); return [KEYPAD.x + c * (KEYPAD.w + KEYPAD.gap), KEYPAD.y + r * (KEYPAD.h + KEYPAD.gap)]; }
+  typeKey(k) {
+    const S = this.secret; if (!S || S.mode !== 'code') return;
+    if (k === 'OK') return this.submitCode();
+    if (k === 'CANCEL') return this.closeSecret();
+    if (k === 'DEL') { S.typed = S.typed.slice(0, -1); sfx('menu', 0.3, 0.9); return; }
+    if (S.typed.length < 12) { S.typed += k; sfx('menu', 0.3, 1.6); S.cur = Math.max(0, KEYPAD.keys.indexOf(k)); }
+  }
+  hideKeypad() { if (this.kg) this.kg.clear(); if (this.keyT) this.keyT.forEach((t) => t.setVisible(false)); if (this.keyHint) this.keyHint.setVisible(false); }
   submitCode() {
-    const code = this.codeBox.value, S = SECRETS[code];
-    if (!S) { this.codeBox.value = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
-    this.codeBox.blur(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
+    const code = this.secret.typed, S = SECRETS[code];
+    if (!S) { this.secret.typed = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
+    window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     // the video: a hidden <video>, drawn every frame into a tiny canvas texture shown big (chunky pixels) on his screen
+    addSecret(code); this.cheevos();
     const v = document.createElement('video');
     v.src = S.video.find((u) => v.canPlayType(u.endsWith('webm') ? 'video/webm; codecs="vp9, opus"' : 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) || S.video[S.video.length - 1]; v.playsInline = true; v.preload = 'auto'; v.volume = Math.min(1, settings.musicVolume);
     const key = 'secret_tv';
@@ -286,9 +313,22 @@ export class ShopScene extends Phaser.Scene {
     this.secret = null;
     if (S.stopKey) window.removeEventListener('keydown', S.stopKey);
     if (S.v) { try { S.v.pause(); S.v.removeAttribute('src'); S.v.load(); } catch (e) { /* gone */ } if (!quiet) playMusic(this, 'bgm_title'); }
-    if (this.codeBox) { this.codeBox.blur(); if (quiet) { this.codeBox.remove(); this.codeBox = null; } }
+    if (S.onKey) window.removeEventListener('keydown', S.onKey);
+    this.hideKeypad();
     this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();   // (always: the keyboard plugin outlives this visit)
     if (!quiet) { this.static = 10; this.tvT.setText(''); this.tvCode.setText(''); this.vidImg.setVisible(false); }
+  }
+  // the keypad over the shelves: green-screen keys like his display, the picked one lit
+  drawKeypad(g, t) {
+    const S = this.secret, x0 = KEYPAD.x - 14, y0 = KEYPAD.y - 32, w = KEYPAD.cols * (KEYPAD.w + KEYPAD.gap) - KEYPAD.gap + 28, h = 4 * (KEYPAD.h + KEYPAD.gap) - KEYPAD.gap + 46;
+    g.fillStyle(0x0b0a14, 0.92); g.fillRect(x0, y0, w, h); g.lineStyle(2, 0x5affb8, 0.7); g.strokeRect(x0, y0, w, h);
+    if (S.press > 0) S.press--;
+    KEYPAD.keys.forEach((k, i) => {
+      const [x, y] = this.keyAt(i), on = i === S.cur, down = on && S.press > 0;
+      g.fillStyle(down ? 0x5affb8 : on ? 0x123a2c : 0x061a14, 1); g.fillRect(x, y + (down ? 2 : 0), KEYPAD.w, KEYPAD.h);
+      g.lineStyle(1, on ? 0x9affd8 : 0x2a6a50, 1); g.strokeRect(x + 0.5, y + 0.5 + (down ? 2 : 0), KEYPAD.w - 1, KEYPAD.h - 1);
+      this.keyT[i].setColor(down ? '#061a14' : k === 'OK' ? '#7aff8a' : k === 'CANCEL' ? '#ff8a8a' : '#d8fff0').setY(y + KEYPAD.h / 2 + (down ? 2 : 0));
+    });
   }
   // draws the code screen / video frame onto his screen (called from keeper with the screen's middle)
   drawSecret(f, cx, cy, t) {
@@ -299,7 +339,7 @@ export class ShopScene extends Phaser.Scene {
       f.fillStyle(0x061a14, 1); f.fillRect(cx - 36, cy - 34, 72, 68);
       const wrong = this.face === 'shock' && S.t < 60;
       this.tvT.setText(wrong ? 'WRONG\nCODE' : 'INSERT\nCODE').setColor(wrong ? '#ff8a8a' : '#9affd8').setPosition(cx, cy - 16);
-      const typed = this.codeBox ? this.codeBox.value : '';
+      const typed = S.typed;
       this.tvCode.setText(typed + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
       f.lineStyle(1, 0x9affd8, 0.6); f.strokeRect(cx - 32, cy + 1, 64, 14);
     } else {
@@ -309,6 +349,8 @@ export class ShopScene extends Phaser.Scene {
       this.vidImg.setPosition(cx, cy);
     }
   }
+  // newly earned achievements: their banners slide in (achievements.js, ui/toast.js)
+  cheevos() { const a = checkAchievements(); if (a.length) achievementToasts(this, a, { delay: 600 }); }
   say(s, color = '#ff8a8a') { this.msgT.setText(s).setColor(color); this.msg = 120; }
   // the shopkeeper reacts: a face (for `hold` frames, then back to his calm face) and a line from KEEPER.lines
   react(face, line, hold = KEEPER.hold) {
@@ -515,9 +557,19 @@ export class ShopScene extends Phaser.Scene {
     this.t++;
     const m = this.menu.poll(), t = this.t;
     if (this.secret) {                                                              // the code screen / the video: nothing else moves
-      if (this.secret.mode === 'video' && (m.back || m.ok || m.pads.some((p) => p.button === 'b' || p.button === 'a'))) this.closeSecret();
+      const S = this.secret;
+      if (S.mode === 'video' && (m.back || m.ok || m.pads.some((p) => p.button === 'b' || p.button === 'a'))) this.closeSecret();
+      else if (S.mode === 'code') {                                               // a gamepad works the keypad too
+        const n = KEYPAD.keys.length;
+        if (m.left) S.cur = (S.cur + n - 1) % n; if (m.right) S.cur = (S.cur + 1) % n;
+        if (m.up) S.cur = (S.cur + n - KEYPAD.cols) % n; if (m.down) S.cur = Math.min(n - 1, S.cur + KEYPAD.cols);
+        for (const p of m.pads) { if (p.button === 'a') { S.press = 6; this.typeKey(KEYPAD.keys[S.cur]); } if (p.button === 'b') { this.closeSecret(); break; } }
+      }
       if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
       const g = this.g; g.clear(); this.keeper(g, t); this.clicked = null;
+      this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
+      if (!this.kg) this.kg = this.add.graphics().setDepth(40);           // the keypad sits over the cards
+      this.kg.clear(); if (this.secret && this.secret.mode === 'code') this.drawKeypad(this.kg, t);
       return;
     }
     if (this.pv || this.spin) {                                                     // an overlay is up: it takes the input

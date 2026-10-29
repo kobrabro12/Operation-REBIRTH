@@ -1,12 +1,13 @@
 // Fighter methods: Limit supers (O): starting one and the beam Limit. Fighter-specific cutscenes are in limit*.js.
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { voiceLine } from '../audio/voiceLines.js';
+import { stat } from '../achievements.js';
 
 export class FighterLimit {
 
   // ---- Limit
   startLimit() {
-    this.limit = 0; this.limitReadyShown = false; this.quip('limit'); voiceLine(this.match, this.def.id, 'limit');
+    this.limit = 0; this.limitReadyShown = false; this.quip('limit'); voiceLine(this.match, this.def.id, 'limit'); if (!this.isCpu && !this.match.isTraining && !this.match.demo) stat('limits');
     // AERO with two computers out: FULL AERO instead of his usual Limit
     this.altLimit = !!(this.def.altLimit && !(this.fullAero > 0) && this.match.pcsOf(this).length >= 2);
     this.limitName = this.altLimit ? this.def.altLimit.name : null;

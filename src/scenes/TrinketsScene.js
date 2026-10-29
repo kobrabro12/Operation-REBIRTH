@@ -1,5 +1,5 @@
-// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS and the SHOP; the other slot is
-// empty, waiting for whatever gets added next.
+// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP and ACHIEVEMENTS (with
+// the PROGRESS page: lifetime stats and each fighter's record).
 // W/S or arrows pick, J / Enter / A opens, K / Esc / B goes back; or use the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic } from '../audio/music.js';
@@ -11,8 +11,8 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 const ENTRIES = [
   { name: 'CHARACTER FILES', info: 'THE FILES ON EVERY FIGHTER: WHO THEY ARE,\nWHERE THEY COME FROM, THEIR MOVES -\nAND THE STORIES BEHIND THEIR COSTUMES.', scene: 'Files' },
   { name: 'TEST FIGHTERS', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
-  { name: 'SHOP', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS.\n\nTHE SHELVES ARE STILL BEING STOCKED.', scene: 'Shop' },
-  { name: '- EMPTY -', info: 'AN EMPTY SLOT.\nSOMETHING WILL TURN UP HERE.' },
+  { name: 'SHOP', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
+  { name: 'ACHIEVEMENTS', info: 'TROPHIES FOR WHAT YOU\'VE DONE - EACH ONE\nPAYS OUT COINS FOR THE SHOP.\n\nPLUS YOUR PROGRESS: MATCHES, WINS, KOS,\nCOMPLETION AND EVERY FIGHTER\'S RECORD.', scene: 'Achievements' },
   { name: 'BACK', info: '', back: true },
 ];
 const C = { panel: 0x2a1640, line: 0xc77dff, text: '#e6c8ff' };
