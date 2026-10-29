@@ -13,7 +13,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 - Plain ES modules, no TypeScript, no framework.
 - `npm run dev` → http://localhost:5173. `npm run build` → `dist/`.
 - Every push to `main` auto-deploys to GitHub Pages (`.github/workflows/deploy-pages.yml`). Treat `main` as live.
-- The claude.ai playable copy (an artifact built from `dist/`) holds at most 511 files, so it leaves out the `.mp3` copies of the music (`assets/audio/music/*.mp3`) and of new clips - browsers there play the `.ogg`.
+- The claude.ai playable copy (an artifact built from `dist/`) holds at most 511 files, so it leaves out the `.mp3` copies of the music (`assets/audio/music/*.mp3`), the announcer (`assets/audio/voice/*.mp3`), the sfx (`assets/audio/sfx/*.mp3`) and of new clips - browsers there play the `.ogg`.
 
 ## Core rules (from `src/config.js`)
 - 640×360 view, fixed 60 fps step. **All speeds are pixels per frame**, all timings are frames.
