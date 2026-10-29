@@ -27,6 +27,7 @@ const SIDE = { x: 424, y: 210, w: 200, h: 102 };                          // the
 const KP = { x: 524, y: 126 };                                            // the middle of the shopkeeper's TV (on his desk)
 const TAB = { x: 16, y: 56, w: 77, h: 20, gap: 4 };
 const PER = GRID.cols * GRID.rows;
+const PAGE = { x: 362, y: 46 };                                           // PAGE 1/2 and its arrows, over the cards' top right
 const BTN = { y: SIDE.y + SIDE.h - 34, h: 28, prevW: 56 };                 // the panel's buttons (PREVIEW sits left of BUY on a costume)
 // the moves a costume preview plays, in this order (whichever the fighter has)
 const SHOW = [['jab', 'JAB'], ['ftilt', 'FORWARD TILT'], ['fsmash', 'FORWARD SMASH'], ['usmash', 'UP SMASH'], ['nair', 'NEUTRAL AIR'], ['fair', 'FORWARD AIR'],
@@ -36,7 +37,7 @@ export class ShopScene extends Phaser.Scene {
   constructor() { super('Shop'); }
 
   create() {
-    this.t = 0; this.tab = 0; this.sel = 0; this.menu = new MenuInput(this); this.clicked = null;
+    this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
     this.bg = this.add.graphics();
@@ -46,6 +47,7 @@ export class ShopScene extends Phaser.Scene {
     this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc').setOrigin(0.5, 0));
     this.coinT = txt(W - 14, 34, '', 8, '#f3c358', { stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(1, 0.5);
     this.cardName = []; this.cardPrice = []; this.cardSpr = [];
+    this.pageT = this.add.text(PAGE.x, PAGE.y, '', { fontFamily: FONT, fontSize: '6px', color: '#f3c358' }).setOrigin(0.5).setVisible(false);
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i);
       this.cardName.push(txt(x + GRID.w / 2, y + 70, '', 6, '#e8e4f4', { align: 'center' }).setOrigin(0.5, 0));
@@ -86,14 +88,18 @@ export class ShopScene extends Phaser.Scene {
       if (over.length) return;
       for (let i = 0; i < SHOP.length; i++) { const x = TAB.x + i * (TAB.w + TAB.gap); if (p.x >= x && p.x <= x + TAB.w && p.y >= TAB.y && p.y <= TAB.y + TAB.h) { this.setTab(i); return; } }
       for (let i = 0; i < PER; i++) { const [x, y] = this.cardAt(i); if (p.x >= x && p.x <= x + GRID.w && p.y >= y && p.y <= y + GRID.h) { if (this.sel === i) this.clicked = 'buy'; else { this.sel = i; sfx('menu', 0.4); } return; } }
+      if (this.pages() > 1 && p.y >= PAGE.y - 8 && p.y <= PAGE.y + 8) { if (Math.abs(p.x - PAGE.x + 44) < 10) return this.flip(-1); if (Math.abs(p.x - PAGE.x - 44) < 10) return this.flip(1); }   // the page arrows
       if (p.x >= SIDE.x + 20 && p.x <= SIDE.x + SIDE.w - 20 && p.y >= BTN.y && p.y <= BTN.y + BTN.h) this.clicked = this.item() && this.item().kind === 'costume' && p.x < SIDE.x + 20 + BTN.prevW ? 'preview' : 'buy';
       if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50) this.react('shock', 'poke');   // poke the shopkeeper
     });
   }
 
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
-  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
-  item() { return SHOP[this.tab].items[this.sel] || null; }
+  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.page = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
+  item() { return SHOP[this.tab].items[this.page * PER + this.sel] || null; }
+  // a shelf with more than 8 things has pages: left/right off the end of a page turns it
+  pages() { return Math.max(1, Math.ceil(SHOP[this.tab].items.length / PER)); }
+  flip(d) { const n = this.pages(); if (n < 2) return; this.page = (this.page + d + n) % n; if (!this.item()) this.sel = 0; this.lastSel = -2; sfx('menu', 0.5, 1.1); }
   back() { sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
   // a music card picked: play that track; anything else: the shop goes back to the title music
   preview() { const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
@@ -435,14 +441,15 @@ export class ShopScene extends Phaser.Scene {
     const tabNext = Phaser.Input.Keyboard.JustDown(this.eKey) || m.pads.some((p) => p.button === 'rb' || p.button === 'y');
     if (tabPrev) this.setTab((this.tab - 1 + SHOP.length) % SHOP.length);
     if (tabNext) this.setTab((this.tab + 1) % SHOP.length);
-    if (m.left) { this.sel = (this.sel - 1 + PER) % PER; sfx('menu', 0.4); }
-    if (m.right) { this.sel = (this.sel + 1) % PER; sfx('menu', 0.4); }
+    const all = this.pages() * PER, at = this.page * PER + this.sel;   // left/right run through every page
+    if (m.left || m.right) { const g = (at + (m.left ? -1 : 1) + all) % all; this.page = Math.floor(g / PER); this.sel = g % PER; sfx('menu', 0.4); }
     if (m.up || m.down) { this.sel = (this.sel + GRID.cols) % PER; sfx('menu', 0.4); }
     if (m.ok || this.clicked === 'buy' || m.pads.some((p) => p.button === 'a')) this.buy();
     this.clicked = null;
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     if (this.msg > 0 && --this.msg === 0) this.msgT.setText('');
-    if (this.sel !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react(owns(this.item().id) ? 'smug' : 'money', this.item().gacha ? 'gamble' : owns(this.item().id) ? 'owned' : 'look'); this.lastSel = this.sel; this.preview(); }   // eyeing something for sale: $ $
+    const here = this.page * PER + this.sel;
+    if (here !== this.lastSel) { if (this.lastSel >= 0 && this.item()) this.react(owns(this.item().id) ? 'smug' : 'money', this.item().gacha ? 'gamble' : owns(this.item().id) ? 'owned' : 'look'); this.lastSel = here; this.preview(); }   // eyeing something for sale: $ $
     if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
 
     const g = this.g; g.clear();
@@ -458,7 +465,8 @@ export class ShopScene extends Phaser.Scene {
     // the money
     this.coinT.setText(getCoins() + ' ' + CURRENCY.name);
     // the cards
-    const shelf = SHOP[this.tab].items;
+    const shelf = SHOP[this.tab].items.slice(this.page * PER, this.page * PER + PER);
+    if (this.pages() > 1) { this.pageT.setText('PAGE ' + (this.page + 1) + '/' + this.pages()).setVisible(true); for (const s of [-1, 1]) { const ax = PAGE.x + s * 44, n = Math.sin(t * 0.15) * s; g.fillStyle(C.gold, 1); g.fillTriangle(ax + n - s * 4, PAGE.y - 5, ax + n - s * 4, PAGE.y + 5, ax + n + s * 4, PAGE.y); } } else this.pageT.setVisible(false);
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i), it = shelf[i], on = i === this.sel;
       g.fillStyle(on ? C.panel : 0x1e1030, 1); g.fillRect(x, y, GRID.w, GRID.h);
