@@ -102,7 +102,10 @@ export class ShopScene extends Phaser.Scene {
     this.tvT = txt(KP.x - 4, KP.y - 16, '', 5, '#9affd8', { align: 'center' }).setOrigin(0.5).setDepth(1);
     this.tvCode = txt(KP.x - 4, KP.y + 6, '', 6, '#d8fff0').setOrigin(0.5).setDepth(1);
     this.playing = null; this.idle = 0;
-    this.events.once('shutdown', () => { this.closeSecret(true); this.stopPlaying(true); });
+    // (the scene object is reused on every visit: forget objects made on an earlier visit - they were destroyed with it)
+    this.keyT = this.keyHint = this.kg = this.lookG = this.lookBg = this.osd = this.lookFx = null; this.look = null;
+    // leaving the shop any way at all: stop the secret's sound and listeners, without touching the scene's (already torn down) display
+    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); });
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
     b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
@@ -132,7 +135,7 @@ export class ShopScene extends Phaser.Scene {
   // a shelf with more than 8 things has pages: left/right off the end of a page turns it
   pages() { return Math.max(1, Math.ceil(SHOP[this.tab].items.length / PER)); }
   flip(d) { const n = this.pages(); if (n < 2) return; this.page = (this.page + d + n) % n; if (!this.item()) this.sel = 0; this.lastSel = -2; sfx('menu', 0.5, 1.1); }
-  back() { sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
+  back() { this.closeSecret(true); this.stopPlaying(true); sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
   // a music card picked: play that track; anything else: the shop goes back to the title music
   preview() { if (this.playing) return; const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
   // what the big button says for this item
@@ -329,10 +332,12 @@ export class ShopScene extends Phaser.Scene {
     this.static = 14; this.react('calm', S.line, 260);
     this.say(S.look === 'vhs' ? 'CLICK HIS SCREEN TO MAKE IT STOP.' : 'CLICK HIS SCREEN TO SWITCH IT OFF. KEEP SHOPPING IF YOU LIKE.', '#c9c4dc');
   }
-  stopPlaying(quiet) {
+  // quiet: no reaction or music change; dying: the scene is shutting down, so only the sound, filters and references go
+  stopPlaying(quiet, dying) {
     const P = this.playing; if (!P) return;
     this.playing = null;
     for (const m of [P.v, P.a]) if (m) { try { m.pause(); m.removeAttribute('src'); m.load(); } catch (e) { /* gone */ } }
+    if (dying) { this.dropLook(); return; }
     this.setLook(null);
     if (!quiet) { this.vidImg.setVisible(false); this.static = 14; this.react('happy', 'off'); playMusic(this, 'bgm_title'); this.preview(); }
   }
@@ -355,6 +360,13 @@ export class ShopScene extends Phaser.Scene {
     if (S.scream && this.cache.audio.exists('sfx_seen_scream') && P.t % Math.round(S.scream * 60) === 30) this.sound.play('sfx_seen_scream', { volume: 0.3 * settings.sfxVolume, rate: 0.9 + Math.random() * 0.15 });   // her scream, now and then
   }
   // the whole shop's look while a secret plays: 'backrooms', 'vhs' or null (normal)
+  // take the camera filters off (if the camera's still there) and forget the look's objects - safe while shutting down
+  dropLook() {
+    const cam = this.cameras && this.cameras.main;
+    if (this.lookFx) { for (const f of this.lookFx) { try { cam.filters.external.remove(f); } catch (e) { /* no filters / no camera */ } } this.lookFx = null; }
+    if (cam) cam.setScroll(0, 0);
+    this.lookG = this.lookBg = this.osd = null; this.look = null;
+  }
   setLook(look) {
     const cam = this.cameras.main;
     if (this.lookFx) { for (const f of this.lookFx) { try { cam.filters.external.remove(f); } catch (e) { /* no filters */ } } this.lookFx = null; }
@@ -406,12 +418,13 @@ export class ShopScene extends Phaser.Scene {
       this.osd[2].setText('OCT 29 1994  ' + cnt);
     }
   }
-  closeSecret(quiet) {
+  closeSecret(quiet, dying) {
     const S = this.secret; if (!S) return;
     this.secret = null;
     if (S.onKey) window.removeEventListener('keydown', S.onKey);
+    try { this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture(); } catch (e) { /* plugin gone */ }   // (always: the keyboard plugin outlives this visit)
+    if (dying) return;
     this.hideKeypad();
-    this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();   // (always: the keyboard plugin outlives this visit)
     if (!quiet) { this.static = 10; this.tvT.setText(''); this.tvCode.setText(''); }
   }
   // the keypad over the shelves: green-screen keys like his display, the picked one lit
