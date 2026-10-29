@@ -338,6 +338,59 @@ const THEMES = {
       }
     },
   },
+  // THE FRONT (hidden: on the shelf after the shopkeeper's code RIPHOOD): a WW2-era battlefield at dusk - a smoky sky,
+  // a ruined town on the skyline, searchlights; sandbag walls, coils of barbed wire, supply crates and a field
+  // telephone on the stage. (No flags or insignia anywhere.) Its weather - ash, drifting smoke, far-off flashes - is
+  // in matchExtras.js.
+  'fx-front': {
+    grade: 0xd8ccaa,
+    backdrop(g, mid) {
+      bands(g, [0x2a2620, 0x3a3428, 0x4e4430, 0x66553a, 0x806a44, 0x9a7e50]);
+      for (let i = 0; i < 7; i++) { g.fillStyle(0x1a1814, 0.18); g.fillEllipse(60 + i * 95, 40 + (i % 3) * 22, 220, 50); }        // smoke hanging low over everything
+      g.fillStyle(0xff8a3a, 0.12); g.fillEllipse(470, 268, 260, 40); g.fillStyle(0xffb860, 0.1); g.fillEllipse(150, 274, 200, 30);   // fires glowing on the horizon
+      hills(g, 286, 0, 18, 0x2a2418, 40);
+      for (let i = 0; i < 24; i++) {                                                          // the ruined town: broken walls, empty windows
+        const x = -130 + i * 38 + (i * 17) % 13, h = 20 + (i * 41) % 46, y = 292 - Math.abs(Math.sin((x + 40) * 0.012)) * 18;
+        mid.fillStyle(0x1e1a14, 1); mid.fillRect(x, y - h, 28, h + 40);
+        mid.fillStyle(0x2a2418, 1); mid.fillTriangle(x + 28, y - h, x + 28, y - h + 12, x + 14 + (i % 3) * 4, y - h);        // a jagged, broken top
+        mid.fillStyle(0x9a7e50, 1); mid.fillTriangle(x + 6 + (i % 4) * 3, y - h, x + 18 + (i % 3) * 3, y - h, x + 12 + (i % 4) * 3, y - h + 6 + (i % 2) * 5);
+        for (let k = 0; k < 4; k++) if ((i + k) % 3) { mid.fillStyle(k % 3 ? 0x0e0c0a : 0xff9a4a, k % 3 ? 1 : 0.6); mid.fillRect(x + 4 + (k % 2) * 12, y - h + 8 + Math.floor(k / 2) * 11, 5, 6); }
+      }
+      const sx = 330, sy = 236;                                                                // a church spire with a shell hole through it
+      mid.fillStyle(0x1e1a14, 1); mid.fillRect(sx - 9, sy - 40, 18, 90); mid.fillTriangle(sx - 11, sy - 40, sx + 11, sy - 40, sx, sy - 76);
+      mid.fillStyle(0x806a44, 1); mid.fillCircle(sx + 4, sy - 18, 5); mid.fillRect(sx - 1, sy - 92, 2, 16);
+    },
+    props(g, P, t) {
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        if (!p.solid) {                                                                        // floating ledges: a strand of barbed wire along them
+          g.lineStyle(1, 0x5a5448, 1); g.lineBetween(p.x1 + 4, p.y - 6, p.x2 - 4, p.y - 6);
+          for (let x = p.x1 + 6; x < p.x2 - 6; x += 7) { g.lineBetween(x - 2, p.y - 8, x + 2, p.y - 4); g.lineBetween(x + 2, p.y - 8, x - 2, p.y - 4); }
+          for (const x of [p.x1 + 5, p.x2 - 5]) { g.fillStyle(0x4a3a24, 1); g.fillRect(x - 1, p.y - 10, 2, 10); }
+          continue;
+        }
+        for (const [x0, n] of [[p.x1 + 6, 4], [p.x2 - 6 - 4 * 13, 4]]) {                      // sandbag walls at each end: two rows, staggered
+          for (let r = 0; r < 2; r++) for (let k = 0; k < n - r; k++) {
+            const bx = x0 + k * 13 + r * 6, by = p.y - 7 - r * 7;
+            g.fillStyle(0x6a5a3a, 1); g.fillEllipse(bx + 6, by + 3, 14, 8); g.fillStyle(0x8a7a52, 1); g.fillEllipse(bx + 5, by + 2, 10, 4); g.fillStyle(0x4a3e26, 1); g.fillRect(bx + 1, by + 6, 11, 1);
+          }
+        }
+        const cx = p.x1 + w * 0.3;                                                             // supply crates, stencilled with a plain number
+        for (const [dx, dy, s] of [[0, 0, 18], [19, 0, 14], [5, -16, 14]]) {
+          const x = cx + dx, y = p.y - s + dy;
+          g.fillStyle(0x4a4a26, 1); g.fillRect(x, y, s, s); g.fillStyle(0x5e5e30, 1); g.fillRect(x + 1, y + 1, s - 2, 2); g.fillStyle(0x2e2e16, 1); g.fillRect(x, y + s / 2, s, 1); g.fillRect(x + s / 2, y, 1, s);
+          g.fillStyle(0xd8d0a8, 0.8); g.fillRect(x + 3, y + s / 2 + 2, 2, 3); g.fillRect(x + 6, y + s / 2 + 2, 2, 3);
+        }
+        const dx = p.x1 + w * 0.62;                                                            // an oil drum and a field telephone on it
+        g.fillStyle(0x3a4a2a, 1); g.fillRect(dx - 7, p.y - 18, 14, 18); g.fillStyle(0x4e6038, 1); g.fillRect(dx - 7, p.y - 18, 3, 18); g.fillStyle(0x2a3420, 1); g.fillRect(dx - 7, p.y - 12, 14, 1); g.fillRect(dx - 7, p.y - 5, 14, 1);
+        g.fillStyle(0x3a2a1a, 1); g.fillRect(dx - 6, p.y - 25, 12, 7); g.fillStyle(0x1a1410, 1); g.fillRect(dx - 5, p.y - 28, 10, 3); g.fillStyle(0xc8a040, 1); g.fillCircle(dx + 3, p.y - 22, 1.5);
+        const ring = (t % 300) < 30 && (t % 10) < 5; if (ring) { g.lineStyle(1, 0xffe8a0, 1); g.lineBetween(dx + 8, p.y - 30, dx + 12, p.y - 34); g.lineBetween(dx - 8, p.y - 30, dx - 12, p.y - 34); }   // it rings now and then
+        const wx = p.x1 + w * 0.82;                                                            // a coil of barbed wire on stakes
+        g.fillStyle(0x4a3a24, 1); g.fillRect(wx - 14, p.y - 14, 2, 14); g.fillRect(wx + 14, p.y - 14, 2, 14);
+        g.lineStyle(1, 0x6a6458, 1); for (let k = 0; k < 7; k++) g.strokeEllipse(wx - 12 + k * 4.4, p.y - 7, 9, 12);
+      }
+    },
+  },
 };
 
 export function makeTheme(m, fx) {

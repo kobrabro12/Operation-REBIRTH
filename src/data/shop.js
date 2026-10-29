@@ -15,8 +15,9 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 //   unlock   unlocks something for good (ext-fragment -> FRACTURED, ext-crown -> MASKED THRONE: stages.js `shop:`); `img` = its card
 //            picture, `stage` = the stage's name (for the shopkeeper's message)
 // hidden: <tag> = not on the shelf (or in gacha machines) unless the tag is revealed (progress.js reveal) or you own it: 'noli' =
-// while the shopkeeper is NOLI (until you leave the shop), after the
-// shopkeeper's code NOLI. Hidden items don't count towards the COLLECTOR / COMPLETIONIST achievements.
+// while the shopkeeper is NOLI (until you leave the shop), after the shopkeeper's code NOLI; 'riphood' = after the code
+// RIPHOOD (the WW2 shop: OLIVE DRAB, THE FRONT, the RIPHOOD track, NEWSREEL and the SUPPLY DROP machine, which only
+// gives those four). Hidden items don't count towards the COLLECTOR / COMPLETIONIST achievements.
 // Prices: a match earns about 25-85 coins (progress.js COIN_RATES), so a cheap item is a few matches away and the
 // whole shop takes a few hundred.
 export const SHOP = [
@@ -33,6 +34,7 @@ export const SHOP = [
     { id: 'cos-glam', kind: 'costume', fighter: 'nu', skin: 'GLAM', name: 'GLAM', price: 1000, info: 'NU (TEST FIGHTER). PLATINUM HAIR DIPPED IN PINK, A LIGHTNING BOLT, A GLITTERING GOLD JACKET. EVERY NOTE A STAR.' },
     { id: 'cos-midnight', kind: 'costume', fighter: 'aero', skin: 'MIDNIGHT', name: 'MIDNIGHT', price: 1000, info: 'AERO (TEST FIGHTER). HIS DOME HOLDS THE NIGHT SKY AND A CRESCENT MOON. THE GOLDFISH WEARS A NIGHTCAP.' },
     { id: 'cos-vapor', kind: 'costume', fighter: 'nu', skin: 'VAPORWAVE', name: 'VAPORWAVE', price: 900, info: 'NU (TEST FIGHTER). PASTEL PINK AND TEAL, STRAIGHT OFF A 90S MALL.' },
+    { id: 'cos-olive', kind: 'costume', hidden: 'riphood', fighter: 'soul-summoner', skin: 'OLIVE DRAB', name: 'OLIVE DRAB', price: 1200, info: 'SOUL SUMMONER. A STEEL HELMET, OLIVE ARMOUR, A KHAKI GREATCOAT, A FLARE FOR A FLAME.' },
     { id: 'cos-sunset', kind: 'costume', fighter: 'aero', skin: 'SUNSET', name: 'SUNSET', price: 900, info: 'AERO (TEST FIGHTER). GLASS GONE ORANGE AND MAGENTA. GOLDEN BUBBLES.' },
   ] },
   { name: 'STAGES', items: [
@@ -47,6 +49,7 @@ export const SHOP = [
     { id: 'fx-candy', kind: 'fx', name: 'CANDY LAND', price: 650, info: 'RE-THEMES ANY STAGE: GUMDROP HILLS, A CANDY CASTLE, FROSTED PLATFORMS, CANDY CANES, LOLLIPOPS, SPRINKLES.', color: 0xff9ac8 },
     { id: 'fx-sunken', kind: 'fx', name: 'SUNKEN RUINS', price: 800, info: 'RE-THEMES ANY STAGE: THE SEA FLOOR - LIGHT SHAFTS, A DROWNED COLONNADE, KELP, CORAL, BUBBLES.', color: 0x2a7ab0 },
     { id: 'fx-harvest', kind: 'fx', name: 'HARVEST MOON', price: 600, info: 'RE-THEMES ANY STAGE: AN AUTUMN EVENING - RED AND GOLD WOODS, PUMPKINS, HAY BALES, A SCARECROW, FALLING LEAVES.', color: 0xe8822a },
+    { id: 'fx-front', kind: 'fx', hidden: 'riphood', name: 'THE FRONT', price: 900, info: 'RE-THEMES ANY STAGE: A RUINED TOWN AT DUSK, SEARCHLIGHTS, SANDBAGS, BARBED WIRE, CRATES. ASH FALLS.', color: 0x806a44 },
     { id: 'fx-aurora', kind: 'fx', name: 'AURORA', price: 900, info: 'RE-THEMES ANY STAGE: A POLAR NIGHT, ICY MOUNTAINS, ICE CRYSTALS AND RIBBONS OF LIGHT.', color: 0x3affa8 },
   ] },
   { name: 'MUSIC', items: [
@@ -63,6 +66,7 @@ export const SHOP = [
     { id: 'mus-sugar', kind: 'music', name: 'SUGAR RUSH', price: 400, info: 'BUBBLEGUM POP: BOUNCY PLUCKS, CLAPS AND A HOOK YOU CAN\'T SHAKE.', color: 0xff8ad8 },
     { id: 'mus-disco', kind: 'music', name: 'MIRRORBALL', price: 450, info: 'DISCO. FOUR ON THE FLOOR, A RESTLESS BASS, STRING STABS. DANCE BETWEEN STOCKS.', color: 0xc8a8ff },
     { id: 'mus-noli', kind: 'music', hidden: 'noli', name: 'THE MASKED KING', price: 1000, info: 'MASON\'S PIXELATED AUDIO 14 - THE MASKED THRONE\'S OWN THEME. ONLY FOR THOSE WHO KNOW HIS NAME.', color: 0x8a3ad8 },
+    { id: 'mus-riphood', kind: 'music', hidden: 'riphood', name: 'RIPHOOD', price: 1000, info: 'MASON\'S PIXELATED AUDIO 15 - THE SONG THAT PLAYS WHEN YOU TYPE RIPHOOD.', color: 0x8a9a4a },
     { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: 'LIVE ON FOREVER DAFT PUNK...', color: 0xf3c358, rgb: true },   // rgb: its record glows through the rainbow (ShopScene vinyl)
   ] },
   { name: 'EXTRAS', items: [
@@ -79,6 +83,7 @@ export const SHOP = [
     { id: 'ext-ghosts', kind: 'extra', name: 'GHOST TRAILS', price: 750, info: 'FIGHTERS MOVING FAST LEAVE GLOWING AFTERIMAGES IN THEIR COSTUME\'S COLOUR.', color: 0x8affff },
     { id: 'ext-disco', kind: 'extra', name: 'DISCO FLOOR', price: 850, info: 'EVERY PLATFORM BECOMES A LIGHT-UP DANCE FLOOR. A MIRROR BALL, SWEEPING SPOTLIGHTS.', color: 0xff3ad8 },
     { id: 'ext-crown', kind: 'unlock', hidden: 'noli', img: 'shop_crown', stage: 'MASKED THRONE', name: 'CROWN OF MASKS', price: 1000, info: 'A BLACK CROWN WITH TWO FACES: ONE LAUGHS, ONE WEEPS. UNLOCKS A NEW STAGE: MASKED THRONE.', color: 0x8a3ad8 },
+    { id: 'ext-newsreel', kind: 'extra', hidden: 'riphood', name: 'NEWSREEL', price: 700, info: 'MATCHES PLAY LIKE A 1940S NEWSREEL: SEPIA, FILM GRAIN, SCRATCHES AND A FLICKERING PROJECTOR.', color: 0xd8c8a0 },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
   // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks
@@ -92,6 +97,7 @@ export const SHOP = [
     { id: 'gacha-mystery', name: 'MYSTERY CAPSULE', price: 450, info: 'ONE PRIZE FROM ANY SHELF. ANYTHING COULD BE INSIDE.', gacha: { machine: 'mystery', pool: 'ANY', pulls: 1 }, color: 0x8a6aff },
     { id: 'gacha-costume5', name: '5 COSTUME PULLS', price: 2900, info: 'FIVE COSTUME PULLS FOR THE PRICE OF ABOUT FOUR AND A HALF.', gacha: { machine: 'costume', pool: 'COSTUMES', pulls: 5 }, color: 0xc77dff },
     { id: 'gacha-mystery5', name: '5 MYSTERY PULLS', price: 2000, info: 'FIVE PRIZES FROM ANY SHELF.', gacha: { machine: 'mystery', pool: 'ANY', pulls: 5 }, color: 0x8a6aff },
+    { id: 'gacha-supply', hidden: 'riphood', name: 'SUPPLY DROP', price: 800, info: 'A CRATE ON A PARACHUTE. INSIDE: ONE OF THE FOUR RIPHOOD ITEMS.', gacha: { machine: 'supply', pool: 'riphood', pulls: 1 }, color: 0x6a7232 },
     { id: 'gacha-golden', name: 'GOLDEN CAPSULE', price: 1100, info: 'ONE PRIZE FROM ANY SHELF - ALWAYS ONE YOU DO NOT OWN YET.', gacha: { machine: 'golden', pool: 'ANY', pulls: 1, fresh: true }, color: 0xf3c358 },
   ] },
 ];
@@ -101,12 +107,17 @@ export const GACHA_REFUND = 0.25;
 
 // what a machine can give: every item on its shelf (or every shelf but GAMBLING for ANY)
 export function gachaPool(g) {
+  const all = SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items);
+  if (g.pool === 'riphood') return all.filter((it) => it.hidden === 'riphood');   // the SUPPLY DROP: only the RIPHOOD things
   return SHOP.filter((t) => t.name !== 'GAMBLING' && (g.pool === 'ANY' || t.name === g.pool)).flatMap((t) => t.items).filter(shown);
 }
 // is an item on the shelf? (hidden ones wait for their reveal)
 export function shown(it) { return !it.hidden || revealed(it.hidden) || owns(it.id); }   // (bought ones stay, so they can be switched on and off)
 // a shelf's items as the player sees them
-export function shelfItems(tab) { return tab.items.filter(shown); }
+export function shelfItems(tab) {
+  const v = tab.items.filter(shown), fresh = (it) => it.hidden && revealed(it.hidden);   // (a secret's items go first while it's on)
+  return [...v.filter(fresh), ...v.filter((it) => !fresh(it))];
+}
 
 // how much money the player has (earned in matches, saved in progress.js)
 export { getCoins } from '../progress.js';
@@ -156,5 +167,30 @@ export const KEEPER = {
     off: ['BACK TO BUSINESS.', 'CHANNEL CHANGED.', 'WHERE WERE WE?'],
     quiet: ['...', 'STILL THERE?', 'TAKE YOUR TIME.'],
     poke: ['HEY! NO TOUCHING THE SCREEN.', 'PLEASE DO NOT TAP THE GLASS.', 'OW. FINGERPRINTS.'],
+  },
+  // what he says while the shop is a supply depot (the code RIPHOOD): a radio operator. Any line missing here falls
+  // back to his normal one.
+  riphood: {
+    riphood: ['RIPHOOD. MOVE OUT!', 'CODEWORD ACCEPTED. OVER.', 'SUPPLY LINES ARE OPEN.'],
+    hello: ['REPORTING FOR DUTY.', 'SUPPLIES ARE IN, SOLDIER.', 'KEEP YOUR HEAD DOWN.'],
+    look: ['STANDARD ISSUE. MOSTLY.', 'A FINE PIECE OF KIT.', 'ROGER THAT.'],
+    empty: ['NOTHING IN THIS CRATE.', 'SUPPLIES ARE LATE.'],
+    broke: ['NOT ENOUGH COINS, PRIVATE.', 'RATIONS ONLY, I\'M AFRAID.', 'NEGATIVE. NO FUNDS.'],
+    bought: ['ISSUED! OVER.', 'SIGNED AND DELIVERED.'],
+    tab: ['NEXT CRATE.', 'MOVING OUT.', 'THIS WAY, SOLDIER.'],
+    gamble: ['A SUPPLY DROP? COULD BE ANYTHING.', 'LUCK OF THE DRAW.'],
+    jackpot: ['NOW THAT\'S A HAUL!', 'MISSION SUCCESS!'],
+    dud: ['DOUBLE ISSUE. HAVE SOME COINS BACK.', 'ALREADY IN YOUR KIT BAG.'],
+    soldout: ['NOTHING LEFT IN THAT DROP.', 'ALL SUPPLIES ISSUED.'],
+    preview: ['LOOKING SHARP, SOLDIER.', 'FALL IN!', 'ATTEN-TION!'],
+    spin: ['NOT ENOUGH COINS FOR A DROP.'],
+    equip: ['LOCKED AND LOADED.', 'GOOD CALL. OVER.'],
+    unequip: ['BACK TO THE QUARTERMASTER.', 'STOWED.'],
+    owned: ['ALREADY ISSUED TO YOU.', 'THAT\'S IN YOUR KIT ALREADY.'],
+    secret: ['...CODEWORD?', 'GO AHEAD. OVER.'],
+    wrongcode: ['WRONG CODEWORD.', 'NEGATIVE.'],
+    off: ['BACK ON THE AIR.', 'SIGNAL RESTORED.'],
+    quiet: ['STILL THERE? OVER.', 'COME IN, SOLDIER...'],
+    poke: ['HANDS OFF THE SET, PRIVATE.', 'EASY! THAT\'S ARMY PROPERTY.'],
   },
 };

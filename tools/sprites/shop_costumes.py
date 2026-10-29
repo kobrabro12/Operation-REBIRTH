@@ -1,7 +1,7 @@
 """The shop costumes (Trinkets > SHOP): each one is its own drawing, not just a recolour - new parts (crowns,
 halos, collars, horns, visors, shades...), reshaped capes and robes, new weapons - on top of the costume's colours.
 
-  python3 tools/sprites/shop_costumes.py [eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
+  python3 tools/sprites/shop_costumes.py [olive eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
                                            sunset midnight] [--preview DIR]
 
 How each fighter is done:
@@ -133,7 +133,39 @@ def starfield_paint(cape, mask=None):
         if k == 0: cape[y, x, :3] = (255, 255, 255)
         elif k in (7, 29): cape[y, x, :3] = (170, 200, 255)
 
+def ss_olive(N, L):
+    """OLIVE DRAB (the RIPHOOD code's costume): a steel helmet with netting instead of his crown, a chinstrap,
+    a canvas belt of pouches across the chest - a WW2-era infantry look with no flags or insignia"""
+    OL = [0x15180a, 0x2e3516, 0x4a5424, 0x667232, 0x86924a, 0xaab46a]
+    hd = N['head']
+    hd[:11] = 0                                                            # the crown comes off
+    hel = blank()
+    for y in range(3, 12):
+        for x in range(22, 45):
+            dy = (y - 10.5) / 7.0; dx = (x - 33) / (9.2 if y >= 10 else 7.6)
+            if dx * dx + dy * dy > 1 or y > 11: continue
+            lit = 1 - (dx + 1) * 0.35 - (y - 3) * 0.06                        # the light from the upper left
+            c = OL[5] if lit > 0.62 else OL[4] if lit > 0.42 else OL[3] if lit > 0.22 else OL[2]
+            if y >= 10: c = OL[2] if y == 10 else OL[1]                       # the brim
+            if y < 10 and (x + y) % 4 == 0 and (x - y) % 4 == 0: c = OL[1]   # the netting
+            hel[y, x] = (*K.hexrgb(c), 255)
+    outline(hel, OL[0])
+    for y in range(12, 18): K.put(hd, 27 + (y - 12) // 3, y, 0x5a4424)     # the chinstrap, down the side of his face
+    for y in range(12, 18): K.put(hd, 39 - (y - 12) // 3, y, 0x3a2a14)
+    # a canvas webbing belt across the chest, with ammo pouches
+    t = N['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+    if len(ys):
+        top, bot = ys.min(), ys.max()
+        for x, y in zip(xs, ys):
+            d = (x - xs.min()) - (y - top) * 0.9
+            if 6 <= d <= 8: t[y, x, :3] = K.hexrgb(0x8a7a4a if d < 8 else 0x5a4c2a)
+            if top + (bot - top) * 0.62 <= y <= top + (bot - top) * 0.62 + 1: t[y, x, :3] = K.hexrgb(0x7a6a3a)
+        my = int(top + (bot - top) * 0.62) + 2
+        for px in range(xs.min() + 3, xs.max() - 2, 4): K.stamp(t, px, my, ["ooo", "o1o", "ooo"], {'o': 0x4a3e22, '1': 0x8a7a4a}, only_full=True)
+    return [('helmet', hel, 'head', (33, 16), 1.5)], set(), None
+
 SS_LOOKS = {
+    'olive': (ss_olive, {'armor': {'hue': 70, 'satAdd': 0.2, 'val': 0.85}, 'cape': {'to': 42, 'sat': 0.95, 'val': 1.75}, 'gold': {'to': 40, 'sat': 0.55, 'val': 0.9}, 'flame': {'to': 32, 'sat': 1.0, 'val': 1.2}, 'eyes': {'to': 18, 'sat': 1.0, 'val': 1.2}}, (200, 186, 120)),
     'eclipse': (ss_eclipse, {'armor': {'sat': 0.2, 'val': 0.32}, 'cape': {'sat': 0.15, 'val': 0.35}, 'gold': {'to': 44, 'sat': 1.1, 'val': 1.25}, 'flame': {'to': 46, 'sat': 0.35, 'val': 1.35}, 'eyes': {'to': 48, 'sat': 0.3, 'val': 1.3}}, (255, 220, 128)),
     'celestial': (ss_celestial, {'armor': {'to': 222, 'sat': 0.25, 'val': 1.35}, 'gold': {'to': 210, 'sat': 0.35, 'val': 1.3}, 'flame': {'to': 196, 'sat': 0.55, 'val': 1.3}, 'eyes': {'to': 188, 'sat': 0.9, 'val': 1.3}, 'cape': {'to': 230, 'sat': 0.8, 'val': 0.5}}, (180, 210, 255)),
     'aurora': (ss_aurora, {'cape': {'to': 172, 'sat': 1.4, 'val': 0.9}, 'flame': {'to': 312, 'sat': 1.1, 'val': 1.15}, 'gold': {'sat': 0.12, 'val': 1.2}, 'eyes': {'to': 160, 'val': 1.2}, 'armor': {'to': 200, 'satAdd': 0.12, 'val': 0.8}}, (90, 224, 248)),
@@ -544,7 +576,7 @@ def build_parts(name):
     return A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
 
 # ====================================================================== run
-LOOKS = {'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
+LOOKS = {'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
          'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts}
 
 if __name__ == '__main__':

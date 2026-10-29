@@ -1,10 +1,12 @@
 // SHOP EXTRAS IN MATCHES: what you bought in the shop (Trinkets > SHOP) and switched on shows up here.
 //  - STAGE EFFECTS (one at a time, on every stage): each re-themes the stage - a new backdrop, props on the platforms
 //    and a colour wash (stageThemes.js) - plus its weather and animated sky (here): NIGHTFALL, THUNDERSTORM,
-//    BLIZZARD, CHERRY BLOSSOM, FIREFLIES, BLOOD MOON, SANDSTORM, AURORA, NEON CITY, CANDY LAND, SUNKEN RUINS, HARVEST MOON.
+//    BLIZZARD, CHERRY BLOSSOM, FIREFLIES, BLOOD MOON, SANDSTORM, AURORA, NEON CITY, CANDY LAND, SUNKEN RUINS, HARVEST MOON,
+//    THE FRONT (hidden until the shopkeeper's code RIPHOOD).
 //  - EXTRAS (any number): DAMAGE NUMBERS, CONFETTI KOS, FINAL KO CAM (slow motion on the match-winning KO), PARTY HATS,
 //    MOON GRAVITY, AIRHORN KOS, RAINBOW TRAILS, IMPACT FRAMES, COMIC HITS (POW! BAM! bursts), COMBO COUNTER,
-//    GHOST TRAILS (afterimages in the costume's colour), DISCO FLOOR (light-up platforms, a mirror ball, spotlights).
+//    GHOST TRAILS (afterimages in the costume's colour), DISCO FLOOR (light-up platforms, a mirror ball, spotlights),
+//    NEWSREEL (hidden until RIPHOOD: sepia, film grain and scratches - the match as a 1940s newsreel).
 // MatchScene calls: onHit (every hit), onKO (every KO), onFinalKO, step (every tick), draw (every frame), timeScale
 // (slow motion), cleanup. Not used in the title demo. Effects are visual only, except MOON GRAVITY.
 import { VIEW_W, VIEW_H, FONT, PHYS } from '../config.js';
@@ -25,6 +27,12 @@ const COMIC = { kb: 6, bigKb: 10, words: ['POW!', 'BAM!', 'WHAM!', 'THWACK!', 'S
 const COMBO = { from: 2, life: 70 };
 // GHOST TRAILS: an afterimage every `every` ticks while a fighter moves faster than `speed`, fading over `life` ticks
 const GHOST = { every: 3, speed: 2.6, life: 16, alpha: 0.5, max: 40 };
+// NEWSREEL: the match plays like a 1940s newsreel - sepia on the stage and fighters (not the HUD), film grain,
+// scratches, flicker, dust, dark corners. grain = specks a frame, scratch = chance a frame of a new scratch,
+// flicker = how much the brightness wobbles
+const NEWSREEL = { grain: 70, scratch: 0.06, flicker: 0.05, tone: 0xe8d4a8 };
+// THE FRONT (stage effect): how often the far-off guns flash on the horizon (1 in this many ticks), and the rumble after
+const FRONT = { flash: 240, rumbleDelay: 40 };
 // DISCO FLOOR: tile width, how many ticks a beat lasts, the tile colours
 const DISCO = { tile: 12, beat: 30, colors: [0xff3ad8, 0x3ad8ff, 0xffe03a, 0x7aff5a, 0xb05aff, 0xff7a3a] };
 
@@ -35,7 +43,7 @@ export class MatchExtras {
     const on = (id) => !m.demo && extraOn(id);
     this.on = { numbers: on('ext-numbers'), confetti: on('ext-confetti'), finalcam: on('ext-finalcam'), hats: on('ext-hats'),
       moon: on('ext-moon'), airhorn: on('ext-airhorn'), rainbow: on('ext-rainbow'), impact: on('ext-impact'),
-      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco') };
+      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel') };
     this.comics = []; this.combos = new Map(); this.ghosts = [];
     this.floor = this.on.disco ? m.add.graphics() : null; if (this.floor) m.addWorld(this.floor);   // (made before the fighters: under them)
     this.slow = 0; this.impact = 0; this.flash = 0; this.bolt = null;
@@ -46,6 +54,14 @@ export class MatchExtras {
     this.weather = m.add.graphics().setDepth(4); m.addUI(this.weather);
     this.world = m.add.graphics().setDepth(6); m.addWorld(this.world);
     this.spots = Array.from({ length: 80 }, (_, i) => [((i * 7919) % 997) / 997, ((i * 104729) % 991) / 991, ((i * 31) % 97) / 97]);
+    if (this.on.newsreel) {                                        // NEWSREEL: sepia over the stage and fighters (the HUD keeps its colour)
+      this.reel = [];
+      for (const cam of [m.bgCam, m.worldCam]) { try { const cm = cam.filters.external.addColorMatrix(); cm.colorMatrix.sepia(); this.reel.push(cm); } catch (e) { /* no WebGL filters: the tone wash still does it */ } }
+      this.reelTone = m.add.graphics().setScrollFactor(0).setDepth(3).setBlendMode(Phaser.BlendModes.MULTIPLY); m.addUI(this.reelTone);
+      this.reelTone.fillStyle(NEWSREEL.tone, 1); this.reelTone.fillRect(0, 0, W, H);
+      this.scratches = [];
+    }
+    this.flashes = [];
     if (this.on.moon) { this.saved = { g: PHYS.gravity, f: PHYS.maxFall, ff: PHYS.fastFall }; PHYS.gravity *= MOON.gravity; PHYS.maxFall *= MOON.fall; PHYS.fastFall *= MOON.fall; }
   }
   cleanup() { for (const g of this.ghosts) g.img.destroy(); this.ghosts = []; for (const c of this.comics) c.txt.destroy(); this.comics = [];
@@ -103,6 +119,9 @@ export class MatchExtras {
     // weather that makes sounds: thunder
     if (this.fx === 'fx-storm' && !this.bolt && Math.random() < 1 / 420) { this.bolt = { t: 0, x: 60 + Math.random() * (W - 120) }; sfx('thunder', 0.5, 0.8 + Math.random() * 0.3); }
     if (this.bolt && ++this.bolt.t > 18) this.bolt = null;
+    // THE FRONT: the guns far off - a flash on the horizon, then a low rumble a moment later
+    if (this.fx === 'fx-front' && Math.random() < 1 / FRONT.flash) this.flashes.push({ x: 40 + Math.random() * (W - 80), t: 0 });
+    this.flashes = this.flashes.filter((f) => { if (++f.t === FRONT.rumbleDelay) sfx('thunder', 0.25, 0.45 + Math.random() * 0.15); return f.t < 60; });
     if (this.on.combo) for (const [f, e] of this.combos) {         // a combo ends once they're free (and the count fades)
       if (f.state !== 'hitstun' && !(f.hitstop > 0)) e.free++;
       if (e.txt) { const c = f.center(); e.txt.setPosition(c.x, c.y - 52 - (COMBO.life - e.life) * 0.15); if (e.free > 0) e.txt.setAlpha(Math.max(0, e.life / 30)); }
@@ -180,6 +199,22 @@ export class MatchExtras {
         for (let i = 0; i < 40; i++) { const s = spot(i), x = (s[0] * W + t * (0.8 + s[2]) + Math.sin(t * 0.04 + i) * 16) % W, y = (s[1] * H + t * (0.6 + s[2] * 0.5)) % H, a = t * 0.08 + i;
           w.fillStyle([0xc83a1a, 0xe8822a, 0xf4b83a, 0x9a2a1a][i % 4], 0.95); w.fillEllipse(x, y, 5 * Math.abs(Math.cos(a)) + 1, 3); }
         break;
+      case 'fx-front':                                            // THE FRONT: ash falling, smoke drifting, searchlights, far-off flashes
+        for (const f of this.flashes) if (f.t < 14) { const a = (1 - f.t / 14) * 0.5; sk.fillStyle(0xffd090, a); sk.fillEllipse(f.x, 250, 120, 40); sk.fillStyle(0xfff0c8, a); sk.fillEllipse(f.x, 254, 40, 14); }
+        for (let i = 0; i < 2; i++) { const a = -Math.PI / 2 + Math.sin(t * 0.008 + i * 2.4) * 0.6, x0 = 140 + i * 360;   // two searchlights sweeping the sky
+          sk.fillStyle(0xfff4d0, 0.06); sk.fillTriangle(x0, 290, x0 + Math.cos(a - 0.05) * 400, 290 + Math.sin(a - 0.05) * 400, x0 + Math.cos(a + 0.05) * 400, 290 + Math.sin(a + 0.05) * 400); }
+        for (let i = 0; i < 5; i++) { w.fillStyle(0x2a2620, 0.07); w.fillEllipse(((t * (0.25 + i * 0.08) + i * 170) % (W + 300)) - 150, 60 + i * 50, 280, 46); }
+        for (let i = 0; i < 50; i++) { const s = spot(i), x = (s[0] * W + t * (0.3 + s[2] * 0.5) + Math.sin(t * 0.03 + i) * 10) % W, y = (s[1] * H + t * (0.4 + s[2] * 0.4)) % H; w.fillStyle(i % 4 ? 0x8a8478 : 0xff9a4a, i % 4 ? 0.7 : 0.8); w.fillRect(x, y, 1 + (i % 5 === 0), 1); }   // ash (and a few embers)
+        break;
+    }
+    // NEWSREEL: film grain, scratches running down the frame, a flicker, dust specks, dark corners
+    if (this.on.newsreel) {
+      const fl = (Math.random() - 0.5) * NEWSREEL.flicker * 2; w.fillStyle(fl > 0 ? 0xffffff : 0x000000, Math.abs(fl)); w.fillRect(0, 0, W, H);
+      for (let i = 0; i < NEWSREEL.grain; i++) { w.fillStyle(Math.random() < 0.5 ? 0xffffff : 0x000000, 0.12 + Math.random() * 0.15); w.fillRect(Math.random() * W, Math.random() * H, 1, 1); }
+      if (Math.random() < NEWSREEL.scratch) this.scratches.push({ x: Math.random() * W, life: 6 + Math.floor(Math.random() * 20), drift: (Math.random() - 0.5) * 0.6 });
+      this.scratches = this.scratches.filter((s) => { s.x += s.drift; w.fillStyle(0xf4ecd8, 0.35); w.fillRect(s.x, 0, 1, H); return --s.life > 0; });
+      if (Math.random() < 0.08) { w.fillStyle(0x1a1410, 0.6); w.fillCircle(Math.random() * W, Math.random() * H, 1 + Math.random() * 2); }   // a hair of dust on the lens
+      for (let i = 0; i < 6; i++) { w.fillStyle(0x000000, 0.07); w.fillRect(0, 0, 10 + i * 6, H); w.fillRect(W - 10 - i * 6, 0, 10 + i * 6, H); w.fillRect(0, 0, W, 4 + i * 4); w.fillRect(0, H - 4 - i * 4, W, 4 + i * 4); }
     }
     // COMIC HITS: the starbursts behind the words
     for (const c of this.comics) {

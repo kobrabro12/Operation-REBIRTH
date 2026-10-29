@@ -87,6 +87,10 @@ export const SKINS = {
     // rising behind his silver crown; hits scatter stars and two little moons orbit him
     { name: 'CELESTIAL', sheetSet: 'celestial', shop: 'cos-celestial', swatch: 0x162458, fx: 0xb4d2ff, groups: SS, rules: { armor: { to: 222, sat: 0.25, val: 1.35 }, gold: { to: 210, sat: 0.35, val: 1.3 }, flame: { to: 196, sat: 0.55, val: 1.3 }, eyes: { to: 188, sat: 0.9, val: 1.3 }, cape: { to: 230, sat: 0.8, val: 0.5 } },
       vfx: { hit: { shape: 'star', colors: [0xb4d2ff, 0xffffff, 0xb07ae0], n: 9, ring: 0xb4d2ff, glint: true }, aura: { orbit: { n: 2, colors: [0xfff4c8, 0xb4d2ff], r: 22 } }, minion: { flame: { to: 196, sat: 0.55 }, eyes: { to: 188 } } } },
+    // OLIVE DRAB (hidden: only on the shelf after the shopkeeper's code RIPHOOD): a WW2-era infantry look - a steel
+    // helmet with netting, olive armour, a khaki greatcoat for a cape, brass trim, a flare-amber flame. No insignia.
+    { name: 'OLIVE DRAB', sheetSet: 'olive', shop: 'cos-olive', swatch: 0x4a5424, fx: 0xffb84a, groups: SS, rules: { armor: { hue: 70, satAdd: 0.2, val: 0.85 }, cape: { to: 42, sat: 0.95, val: 1.75 }, gold: { to: 40, sat: 0.55, val: 0.9 }, flame: { to: 32, sat: 1.0, val: 1.2 }, eyes: { to: 18, sat: 1.0, val: 1.2 } },
+      vfx: { hit: { shape: 'dust', colors: [0xc8b478, 0x6a6a3a, 0xffb84a], n: 9, ring: 0xffd88a }, minion: { flame: { to: 32, sat: 1.0 }, eyes: { to: 18 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,

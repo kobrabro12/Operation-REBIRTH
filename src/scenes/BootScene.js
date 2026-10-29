@@ -60,7 +60,7 @@ export class BootScene extends Phaser.Scene {
     for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
       ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
       ['nu_vapor_', 'nu/vapor/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_sunset_', 'aero/sunset/', ['idle', 'run', 'jump', 'fall'], 112, 104],
-      ['ss_celestial_', 'soul-summoner/celestial/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_plague_', 'mr-wake/plague/', ['idle', 'run', 'jump', 'fall'], 176, 120],
+      ['ss_celestial_', 'soul-summoner/celestial/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_olive_', 'soul-summoner/olive/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_plague_', 'mr-wake/plague/', ['idle', 'run', 'jump', 'fall'], 176, 120],
       ['nu_glam_', 'nu/glam/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_midnight_', 'aero/midnight/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
       for (const k of ks) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: mw, frameHeight: mh });
@@ -88,7 +88,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
     this.load.audio('bgm_backrooms', ['assets/audio/music/backrooms.ogg', 'assets/audio/music/backrooms.mp3']);   // tools/audio/backrooms_music.py
     this.load.audio('bgm_aero', ['assets/audio/music/aero.ogg', 'assets/audio/music/aero.mp3']);   // tools/audio/aero_music.py
-    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason', 'noli']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
+    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason', 'noli', 'riphood']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');
     this.load.image('shop_crown', 'assets/shop/crown.png');   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED

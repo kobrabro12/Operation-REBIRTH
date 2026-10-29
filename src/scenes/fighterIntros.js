@@ -39,6 +39,7 @@ export const SKIN_INTROS = {
   "soul-summoner:JACK-O'-LANTERN": { kind: 'rise', color: 0xff8a1a, color2: 0x5aff5a, shape: 'ember', sfx: ['laugh', 0.4, 1.2] },
   'soul-summoner:HIGH NOON': { kind: 'swarm', shape: 'leaf', colors: [0xc8a060, 0x8a6a3a, 0xe8d0a0], n: 22, pre: ['whoosh', 0.4, 0.6], sfx: ['clang', 0.5, 0.6] },
   'soul-summoner:ECLIPSE': { kind: 'portal', color: 0x0a0806, color2: 0xf3c358, sfx: ['limitready', 0.5, 0.8] },
+  'soul-summoner:OLIVE DRAB': { kind: 'drop', color: 0x6a7232, trail: 0xffb84a, sfx: ['bighit', 0.6, 0.7] },
   'soul-summoner:CELESTIAL': { kind: 'swarm', shape: 'star', colors: [0xb4d2ff, 0xffffff, 0xb07ae0], n: 22, sfx: ['glass', 0.5, 1.3] },
   'soul-summoner:AURORA': { kind: 'swarm', shape: 'ring', colors: [0x3affa8, 0x5ad0ff, 0xd85aff], n: 18, sfx: ['glass', 0.5, 0.9] },
   'soul-summoner:THE HOLLOW KING': { kind: 'rise', color: 0x3a1a5a, color2: 0xf3c358, shape: 'star', sfx: ['roar', 0.4, 1.3] },

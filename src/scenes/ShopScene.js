@@ -16,6 +16,10 @@
 //   NOLI       until you leave the shop: his face becomes Mason's NOLI drawing, he talks in glitchy bits of the NOLI
 //              video, everything he says comes out scrambled, a purple haze hangs over the shop, his hidden items appear,
 //              and the first 5 seconds of the NOLI clip play every time it's typed
+//   RIPHOOD    until you leave the shop: Mason's pixelated_audio 15 plays, the whole shop turns into a WW2 supply depot
+//              (look 'ww2': a canvas tent, sandbags, a swinging lamp, khaki shelves, a distant rumble now and then), he
+//              becomes an olive-drab field set with a helmet on top and talks like a radio operator (KEEPER.riphood),
+//              and the RIPHOOD items appear - one on every shelf (shop.js hidden: 'riphood')
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic, stopMusic } from '../audio/music.js';
 import { settings } from '../settings.js';
@@ -53,7 +57,14 @@ const SECRETS = {
   RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
   // forever (saved: the code is in the player's found secrets): nothing plays on his screen - he IS it now. `clip` plays once.
   NOLI: { takeover: true, clip: ['assets/shop/noli.ogg', 'assets/shop/noli.mp3'], line: 'noli', look: 'noli' },
+  // until you leave: the WW2 shop. `music` loops in place of the shop's own music
+  RIPHOOD: { takeover: 'riphood', music: 'bgm_shop_riphood', line: 'riphood', look: 'ww2' },
 };
+// RIPHOOD: the shop's colours while it's a supply depot (khaki trim, olive shelves), his screen's amber glow, and how
+// often the far-off guns shake the tent (frames, random between)
+const WW2 = { acc: 0xc8b466, pal: { card: 0x3a3a22, cardIn: 0x24241a, cardOn: 0x3e3e24, tabOff: 0x2e2e1c, plate: 0x16160e, window: 0x12120a },
+  amber: 0xffc070, rumble: [480, 900] };
+const PAL = { card: 0x2c2650, cardIn: ARC.panel, cardOn: 0x2a2048, tabOff: 0x241e3e, plate: 0x0d0b1a, window: 0x0d0a18 };
 // NOLI: how glitched his lines come out - chance per letter of a junk character / a stutter, how often the shown line
 // re-scrambles while it's up (frames), his face's tint, and the haze's colour + strength
 const NOLI = { junk: 0.07, stutter: 0.05, rescramble: 9, junkChars: '#%?/_<>*0!', tint: 0xd8a8ff, haze: 0x7a2ad8, hazeA: 0.14 };
@@ -91,6 +102,8 @@ export class ShopScene extends Phaser.Scene {
 
   create() {
     this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
+    this.riphood = false; unreveal('riphood');        // ...and so does RIPHOOD
+    this.acc = ACC; this.pal = PAL; this.banner2 = null;
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
@@ -98,7 +111,7 @@ export class ShopScene extends Phaser.Scene {
     this.bg = this.add.graphics();
     this.g = this.add.graphics();                    // redrawn every frame: tabs, cards, the cursor, the panel
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
-    titleBanner(this, 'SHOP', ACC, { crumb: 'TRINKETS  >  SHOP' });
+    this.banner = titleBanner(this, 'SHOP', ACC, { crumb: 'TRINKETS  >  SHOP' });
     this.tabT = SHOP.map((tb, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, tb.name, 7, '#c9c4dc', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 0));
     this.coinT = txt(W - 14, 34, '', 8, '#f3c358', { stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(1, 0.5);
     this.cardName = []; this.cardPrice = []; this.cardSpr = [];
@@ -142,10 +155,9 @@ export class ShopScene extends Phaser.Scene {
     // (the scene object is reused on every visit: forget objects made on an earlier visit - they were destroyed with it)
     this.keyT = this.keyHint = this.kg = this.lookG = this.lookBg = this.osd = this.lookFx = null; this.look = null;
     // leaving the shop any way at all: stop the secret's sound and listeners, without touching the scene's (already torn down) display
-    this.events.once('shutdown', () => { this.noli = false; unreveal('noli'); this.dropLook(); this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
+    this.events.once('shutdown', () => { this.noli = false; unreveal('noli'); this.riphood = false; unreveal('riphood'); this.dropLook(); this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
     // the room behind it all: a dark shop, shelves, a hanging lamp
-    const b = this.bg;
-    panel(b, GRID.x - 8, GRID.y - 8, GRID.cols * (GRID.w + GRID.gap) + 12, GRID.rows * (GRID.h + GRID.gap) + 10, ACC, { sk: 6 });
+    this.drawShelfBack();
     // mouse: tabs, cards, BUY
     this.input.on('pointerdown', (p, over) => {
       this.idle = 0;
@@ -164,6 +176,12 @@ export class ShopScene extends Phaser.Scene {
     });
   }
 
+  // the panel behind the cards (redrawn when the shop changes colour)
+  drawShelfBack() { const b = this.bg; b.clear(); panel(b, GRID.x - 8, GRID.y - 8, GRID.cols * (GRID.w + GRID.gap) + 12, GRID.rows * (GRID.h + GRID.gap) + 10, this.acc, { sk: 6, fill: this.pal.cardIn }); }
+  // the shop's own music: the title theme, or RIPHOOD's song while it's a supply depot
+  homeMusic() { return this.riphood ? 'bgm_shop_riphood' : 'bgm_title'; }
+  // a line he says: RIPHOOD's radio-operator version when there is one
+  lines(k) { return (this.riphood && KEEPER.riphood[k]) || KEEPER.lines[k]; }
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
   setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.page = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
   item() { return shelfItems(SHOP[this.tab])[this.page * PER + this.sel] || null; }
@@ -172,7 +190,7 @@ export class ShopScene extends Phaser.Scene {
   flip(d) { const n = this.pages(); if (n < 2) return; this.page = (this.page + d + n) % n; if (!this.item()) this.sel = 0; this.lastSel = -2; sfx('menu', 0.5, 1.1); }
   back() { this.closeSecret(true); this.stopPlaying(true); sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
   // a music card picked: play that track; anything else: the shop goes back to the title music
-  preview() { if (this.playing) return; const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
+  preview() { if (this.playing) return; const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : this.homeMusic(), it && it.kind === 'music' ? 0.55 : 0.6); }
   // what the big button says for this item
   label(it) {
     if (!it) return '-';
@@ -268,7 +286,7 @@ export class ShopScene extends Phaser.Scene {
     this.ovList.setText(''); this.ovHelp.setText('J / ENTER / A  ' + (S.i + 1 < S.res.length ? 'NEXT CAPSULE' : 'DONE') + '    (' + (S.i + 1) + '/' + S.res.length + ')');
     const T = S.t;
     if (T < 70) {                                                           // the machine, crank turning, a capsule rolling out
-      this.ovSub.setText('TURNING THE CRANK...'); this.ovSpr.setVisible(false);
+      this.ovSub.setText(S.it.gacha.machine === 'supply' ? 'INCOMING SUPPLY DROP...' : 'TURNING THE CRANK...'); this.ovSpr.setVisible(false);
       this.machine(o, cx, cy - 20 + (T < 50 ? Math.sin(T * 0.8) * (T > 30 ? 2 : 0) : 0), 64, S.it, t * (T < 50 ? 6 : 1));
       if (T === 20 || T === 35) sfx('menu', 0.5, 0.6);
       if (T >= 50) { const p = (T - 50) / 20, y = cy + 50 + Math.abs(Math.sin(p * Math.PI * 2)) * -20 * (1 - p); this.capsule(o, cx + p * 40, y, r, 0); }
@@ -310,7 +328,7 @@ export class ShopScene extends Phaser.Scene {
   // or tap / pick the letters on the on-screen keypad that covers the shelves (phones, gamepads).
   openCode() {
     this.secret = { mode: 'code', t: 0, typed: '', cur: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
-    const L = KEEPER.lines.secret; this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = 200;
+    const L = this.lines('secret'); this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = 200;
     if (this.noli) this.noliVoice('loop');
     this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();   // the game's own key handling steps aside
     const onKey = (e) => {
@@ -345,20 +363,43 @@ export class ShopScene extends Phaser.Scene {
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
+    if (S.takeover === 'riphood') return this.becomeRiphood(S);
     if (S.takeover) return this.becomeNoli(S);
     this.startPlaying(code);
   }
   // NOLI: he changes for good (the face, the lines, the haze), and the clip plays
   becomeNoli(S) {
-    this.stopPlaying(true);
+    this.stopPlaying(true); this.endRiphood();
     this.noli = true; this.setLook(S.look); reveal('noli');   // his own items appear on the shelves (shop.js hidden: 'noli')
     if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } }
     const a = this.noliClip = new Audio(); a.src = S.clip.find((u) => a.canPlayType(u.endsWith('ogg') ? 'audio/ogg; codecs="vorbis"' : 'audio/mpeg')) || S.clip[S.clip.length - 1];
     a.volume = Math.min(1, Math.max(settings.musicVolume, settings.sfxVolume)); a.play().catch(() => {});
-    stopMusic(); this.time.delayedCall(5300, () => { if (!this.playing) playMusic(this, 'bgm_title'); });   // the shop's music waits for the clip
+    stopMusic(); this.time.delayedCall(5300, () => { if (!this.playing) playMusic(this, this.homeMusic()); });   // the shop's music waits for the clip
     this.static = 30; this.jolt = 16; this.cameras.main.shake(300, 0.006); this.hushUntil = this.t + 320;
     this.react('calm', S.line, 260);
     this.say('SOMETHING NEW IS ON THE SHELVES...', '#c77dff');
+  }
+  // RIPHOOD: the shop becomes a WW2 supply depot until you leave - the song, the look, his field set, khaki shelves, the items
+  becomeRiphood(S) {
+    this.stopPlaying(true);
+    this.noli = false;                                       // (NOLI steps aside - his things stay on the shelves this visit)
+    this.riphood = true; reveal('riphood');
+    this.acc = WW2.acc; this.pal = WW2.pal; this.drawShelfBack();
+    for (const o of [this.banner.g, this.banner.text, this.banner.crumb]) if (o) o.setVisible(false);
+    if (!this.banner2) this.banner2 = titleBanner(this, 'SUPPLY DEPOT', WW2.acc);
+    this.setLook(S.look);
+    stopMusic(); playMusic(this, S.music, 0.6);
+    this.nextRumble = this.t + 200;
+    this.static = 26; this.jolt = 16; this.cameras.main.shake(380, 0.008); sfx('thunder', 0.5, 0.5);
+    this.react('smug', S.line, 240);
+    this.say('NEW SUPPLIES ON EVERY SHELF. LOOK FOR THE KHAKI ONES.', '#d8c88a');
+  }
+  // back to the normal shop (NOLI typed while it's a depot)
+  endRiphood() {
+    if (!this.riphood) return;
+    this.riphood = false; this.acc = ACC; this.pal = PAL; this.drawShelfBack();
+    for (const o of [this.banner.g, this.banner.text, this.banner.crumb]) if (o) o.setVisible(true);
+    if (this.banner2) { for (const o of [this.banner2.g, this.banner2.text, this.banner2.crumb]) if (o) o.destroy(); this.banner2 = null; }
   }
   // ---- a secret playing: drawn on his screen every frame (drawPlaying) while the shop carries on as normal
   startPlaying(code) {
@@ -390,8 +431,8 @@ export class ShopScene extends Phaser.Scene {
     this.playing = null;
     for (const m of [P.v, P.a]) if (m) { try { m.pause(); m.removeAttribute('src'); m.load(); } catch (e) { /* gone */ } }
     if (dying) { this.dropLook(); return; }
-    this.setLook(this.noli ? 'noli' : null);
-    if (!quiet) { this.vidImg.setVisible(false); this.static = 14; this.react('happy', 'off'); playMusic(this, 'bgm_title'); this.preview(); }
+    this.setLook(this.noli ? 'noli' : this.riphood ? 'ww2' : null);
+    if (!quiet) { this.vidImg.setVisible(false); this.static = 14; this.react('happy', 'off'); playMusic(this, this.homeMusic()); this.preview(); }
   }
   // draw the playing secret into his screen's texture
   drawPlaying(t) {
@@ -431,6 +472,7 @@ export class ShopScene extends Phaser.Scene {
       const cm = cam.filters.external.addColorMatrix();
       if (look === 'backrooms') { cm.colorMatrix.sepia(); this.lookFx = [cm]; }
       else if (look === 'noli') { cm.colorMatrix.saturate(-0.25); this.lookFx = [cm, cam.filters.external.addVignette(0.5, 0.5, 0.95, 0.2)]; }
+      else if (look === 'ww2') { cm.colorMatrix.saturate(-0.28); this.lookFx = [cm, cam.filters.external.addVignette(0.5, 0.5, 0.92, 0.25)]; }   // WW2: drained colour, dark corners
       else { cm.colorMatrix.saturate(-0.55); this.lookFx = [cm, cam.filters.external.addBarrel(1.03), cam.filters.external.addVignette(0.5, 0.5, 0.9, 0.3)]; }   // VHS: washed out, a curved old screen, dark corners
     } catch (e) { this.lookFx = null; }                                             // (no WebGL filters: the overlays still do the job)
     if (look === 'backrooms') {                                                     // the Backrooms: yellow wallpaper, damp carpet, a ceiling of buzzing lights
@@ -441,6 +483,18 @@ export class ShopScene extends Phaser.Scene {
       b.fillStyle(0xe0d8b0, 1); b.fillRect(0, 0, W, 44);
       for (let x = 0; x < W; x += 80) { b.lineStyle(1, 0xb8b090, 1); b.strokeRect(x, 0, 80, 44); }
       b.fillStyle(0x7a6a34, 1); b.fillRect(0, H - 30, W, 30); for (let i = 0; i < 300; i++) { b.fillStyle(Math.random() < 0.5 ? 0x6a5a2a : 0x8a7a44, 1); b.fillRect(Math.random() * W, H - 30 + Math.random() * 30, 2, 1); }
+    } else if (look === 'ww2') {                                                    // WW2: inside a canvas supply tent - the roof, sandbags, duckboards
+      const b = this.lookBg = this.add.graphics(); this.children.moveBelow(b, this.g);
+      b.fillStyle(0x3e3e26, 1); b.fillRect(0, 0, W, H);                                             // canvas walls
+      for (let x = 0; x < W; x += 64) { b.fillStyle(0x34341e, 1); b.fillRect(x, 0, 3, H); b.fillStyle(0x4a4a2e, 0.7); b.fillRect(x + 3, 0, 1, H); }
+      for (let i = 0; i < 400; i++) { b.fillStyle((i * 7) % 3 ? 0x36361f : 0x484830, 0.6); b.fillRect((i * 7919) % W, (i * 104729) % H, 2, 1); }   // the weave
+      for (let x = -40; x < W + 40; x += 32) { b.fillStyle(0x4a4a30, 1); b.fillTriangle(x, 0, x + 32, 0, x + 16, 30); b.fillStyle(0x2e2e1a, 1); b.fillRect(x + 15, 0, 2, 30); }   // the roof sagging between its poles
+      b.fillStyle(0x5a4228, 1); b.fillRect(0, 0, W, 4);                                             // the ridge pole
+      b.fillStyle(0x3a2c1a, 1); b.fillRect(0, H - 22, W, 22); for (let x = 0; x < W; x += 18) { b.fillStyle(0x4e3c24, 1); b.fillRect(x, H - 22, 16, 22); b.fillStyle(0x2a2012, 1); b.fillRect(x + 16, H - 22, 2, 22); }   // duckboards
+      for (const [x0, n] of [[-6, 4], [W - 64, 4]]) for (let r = 0; r < 3; r++) for (let k = 0; k < n - r; k++) {   // sandbags piled in the corners
+        const bx = x0 + k * 17 + r * 8, by = H - 34 - r * 10;
+        b.fillStyle(0x6a5a3a, 1); b.fillEllipse(bx + 8, by + 5, 18, 11); b.fillStyle(0x8a7a52, 1); b.fillEllipse(bx + 7, by + 3, 12, 5); b.fillStyle(0x4a3e26, 1); b.fillRect(bx + 2, by + 9, 13, 1);
+      }
     } else if (look === 'noli') {                                                   // NOLI: nothing extra to build - the haze is drawn live (drawLook)
     } else {                                                                        // VHS: on-screen display text
       const o = (x, y, ox, oy) => this.add.text(x, y, '', { fontFamily: FONT, fontSize: '8px', color: '#f4f4f4', shadow: { offsetX: 1, offsetY: 1, color: '#000', fill: true } }).setOrigin(ox, oy).setDepth(96);
@@ -454,6 +508,17 @@ export class ShopScene extends Phaser.Scene {
       for (let x = 40; x < W; x += 160) { const flick = (Math.sin(t * 0.7 + x) > 0.97) || ((t + x) % 233 < 3); g.fillStyle(0xfff8d8, flick ? 0.25 : 0.9); g.fillRect(x, 2, 60, 6); g.fillStyle(0xfff4c0, flick ? 0.02 : 0.07); g.fillRect(x - 30, 8, 120, 40); }
       if ((t % 400) < 4) { g.fillStyle(0x000000, 0.35); g.fillRect(0, 0, W, H); }   // the power dips for a moment
       g.fillStyle(0xffe890, 0.06); g.fillRect(0, 0, W, H);
+      return;
+    }
+    if (this.look === 'ww2') {                                                     // a lamp swinging from the ridge pole, dust in its light, a khaki wash
+      const sw = Math.sin(t * 0.025) * 0.18, lx = W / 2 - 120 + Math.sin(sw) * 26, ly = 30;
+      g.lineStyle(1, 0x1a1a10, 1); g.lineBetween(W / 2 - 120, 0, lx, ly - 4);
+      g.fillStyle(0x2e3016, 1); g.fillTriangle(lx - 7, ly + 2, lx + 7, ly + 2, lx, ly - 5); g.fillStyle(0xffe8a0, 1); g.fillCircle(lx, ly + 3, 2.5);
+      g.fillStyle(0xffe0a0, 0.045); g.fillTriangle(lx, ly, lx - 150 + sw * 200, H, lx + 150 + sw * 200, H);
+      for (let i = 0; i < 18; i++) { const p = (t * 0.3 + i * 41) % H, dx = Math.sin(t * 0.02 + i) * 30 + (i - 9) * 7 * (p / H); g.fillStyle(0xfff0c8, 0.35 * (1 - p / H)); g.fillRect(lx + dx + sw * 200 * (p / H), ly + p, 1, 1); }
+      g.fillStyle(0x6a5a2a, 0.06); g.fillRect(0, 0, W, H);
+      if (this.rumble > 0) { this.rumble--; for (let i = 0; i < 6; i++) { g.fillStyle(0xc8b890, 0.6); g.fillRect((i * 97 + t * 3) % W, (40 - this.rumble) * 6 + (i * 31) % 30, 1, 2); } }   // dust shaken off the roof
+      for (let i = 0; i < 40; i++) { g.fillStyle(Math.random() < 0.5 ? 0xffffff : 0x000000, 0.06); g.fillRect(Math.random() * W, Math.random() * H, 1, 1); }   // a little film grain
       return;
     }
     if (this.look === 'noli') {                                                    // a purple haze: a wash, slow drifting fog, purple corners, motes
@@ -523,7 +588,7 @@ export class ShopScene extends Phaser.Scene {
     if (face !== this.face) { this.static = 6; this.faceStart = this.t; sfx('glitch', 0.12, 1.8); }
     this.face = face; this.faceT = face === 'calm' ? 0 : hold;
     if (face !== 'calm') this.jolt = 10;                                                 // the set rocks a little on the desk
-    const L = KEEPER.lines[line]; if (L) { this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = hold + 40; }
+    const L = this.lines(line); if (L) { this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = hold + 40; }
     if (this.noli && NOLI_VOICE[line]) this.noliVoice(NOLI_VOICE[line]);
   }
   // NOLI talks: one of his glitchy sounds (a new one cuts off the last; the little blip waits its turn)
@@ -541,10 +606,14 @@ export class ShopScene extends Phaser.Scene {
     const jolt = this.jolt > 0 ? this.jolt-- : 0, rock = jolt ? Math.round(Math.sin(jolt * 1.4) * jolt * 0.25) : 0;
     const hop = this.face === 'shock' && jolt > 4 ? -2 : 0, hy = KP.y + hop;
     // his nook: a back wall, a shelf of junk, the floor
-    g.fillStyle(0x140a20, 1); g.fillRect(SIDE.x, 44, SIDE.w, floor - 42);
-    g.fillStyle(0x221432, 1); g.fillRect(SIDE.x, 64, SIDE.w, 3); g.fillRect(SIDE.x, 118, SIDE.w, 3);
-    for (const [x, y, w, h, c] of [[432, 50, 14, 14, 0x5a3a8a], [450, 54, 10, 10, 0xc77dff], [590, 48, 16, 16, 0x3a8a6a], [608, 56, 10, 8, 0xf3c358], [432, 102, 18, 16, 0x8a3a5a], [600, 98, 18, 20, 0x3a5a8a]]) { g.fillStyle(c, 0.8); g.fillRect(x, y, w, h); }
-    g.fillStyle(0x221432, 1); g.fillRect(SIDE.x, floor, SIDE.w, 2);
+    const rh = this.riphood;
+    g.fillStyle(rh ? 0x26261a : 0x140a20, 1); g.fillRect(SIDE.x, 44, SIDE.w, floor - 42);
+    g.fillStyle(rh ? 0x4a3a24 : 0x221432, 1); g.fillRect(SIDE.x, 64, SIDE.w, 3); g.fillRect(SIDE.x, 118, SIDE.w, 3);
+    // the shelves behind him: junk - or, in the depot, ammo boxes, a jerrycan, a canteen, a spare helmet
+    for (const [x, y, w, h, c] of rh ? [[432, 52, 16, 12, 0x4a5424], [450, 56, 10, 8, 0x5e6a2e], [590, 46, 12, 18, 0x5a6a2a], [606, 54, 12, 10, 0x6a5a3a], [432, 104, 18, 14, 0x4a5424], [600, 100, 18, 18, 0x3a4220]] : [[432, 50, 14, 14, 0x5a3a8a], [450, 54, 10, 10, 0xc77dff], [590, 48, 16, 16, 0x3a8a6a], [608, 56, 10, 8, 0xf3c358], [432, 102, 18, 16, 0x8a3a5a], [600, 98, 18, 20, 0x3a5a8a]]) { g.fillStyle(c, rh ? 1 : 0.8); g.fillRect(x, y, w, h); if (rh) { g.fillStyle(0x000000, 0.25); g.fillRect(x, y + h / 2, w, 1); } }
+    if (rh) { g.fillStyle(0x4a5424, 1); g.fillEllipse(456, 116, 22, 12); g.fillStyle(0x5e6a2e, 1); g.fillEllipse(454, 113, 14, 6); g.fillStyle(0x2e3516, 1); g.fillRect(444, 116, 24, 2);   // a spare helmet on the shelf
+      g.fillStyle(0xd8d0a8, 0.8); g.fillRect(435, 108, 2, 3); g.fillRect(438, 108, 2, 3); g.fillRect(603, 106, 2, 3); g.fillRect(606, 106, 2, 3); }   // stencilled numbers
+    g.fillStyle(rh ? 0x4a3a24 : 0x221432, 1); g.fillRect(SIDE.x, floor, SIDE.w, 2);
     // the desk: a wooden top, a drawer with a brass handle, two legs - and a little bell
     g.fillStyle(0x000000, 0.35); g.fillEllipse(hx, floor, 150, 6);
     g.fillStyle(0x4a2a1a, 1); g.fillRect(hx - 72, desk, 144, 10); g.fillStyle(0x6a3e24, 1); g.fillRect(hx - 72, desk, 144, 3);
@@ -554,7 +623,7 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(0xc8a040, 1); g.fillEllipse(hx + 58 + bw, desk - 4, 14, 8); g.fillStyle(0xe8c060, 1); g.fillRect(hx + 57 + bw * 2, desk - 11, 2, 4); g.fillRect(hx + 52, desk - 1, 12, 2);
     // the TV: casing, a screen in a rounded bezel, knobs, a grille, little feet, rabbit-ear antennas
     const tx = hx + rock;
-    if (this.playing && this.playing.S.tv === '90s') this.tv90s(g, tx, hy, t, rock, desk); else {
+    if (this.playing && this.playing.S.tv === '90s') this.tv90s(g, tx, hy, t, rock, desk); else if (this.riphood) this.fieldSet(g, tx, hy, t, rock, desk); else {
     g.fillStyle(0x2a2632, 1); g.fillRect(tx - 36, desk - 4, 10, 4); g.fillRect(tx + 26, desk - 4, 10, 4);
     g.lineStyle(2, 0x8a8a9a, 1); g.lineBetween(tx - 10, hy - 40, tx - 28 - rock, hy - 62); g.lineBetween(tx + 10, hy - 40, tx + 26 - rock, hy - 64);
     g.fillStyle((t >> 4) % 2 ? 0xff5a5a : 0x8a2a2a, 1); g.fillCircle(tx - 28 - rock, hy - 62, 3); g.fillCircle(tx + 26 - rock, hy - 64, 3);
@@ -572,7 +641,7 @@ export class ShopScene extends Phaser.Scene {
     const [mx, my, msx, msy] = this.faceMotion(t);
     const gx = this.noli && Math.random() < 0.03 ? Math.round((Math.random() - 0.5) * 6) : 0;                 // NOLI: his face skips sideways now and then
     this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(Math.round(tx - 4 + mx + gx), Math.round(hy + my)).setScale(msx, msy).setVisible(this.static <= 0 || this.static % 2 === 0)
-      .setTint(this.noli ? NOLI.tint : 0x9affd8);
+      .setTint(this.noli ? NOLI.tint : this.riphood ? WW2.amber : 0x9affd8);
     const f = this.front; f.clear();
     for (let y = hy - 34; y < hy + 34; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(tx - 40, y, 72, 1); }        // scanlines
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
@@ -590,6 +659,34 @@ export class ShopScene extends Phaser.Scene {
       f.fillStyle(0xf4f0fa, 1); f.fillRoundedRect(bx, by, bw, bh, 6); f.fillTriangle(bx + bw - 26, by + bh, bx + bw - 12, by + bh, tx - 30, hy - 44);
       this.bubbleT.setPosition(bx + bw / 2, by + bh / 2);
     } else this.bubbleT.setVisible(false);
+  }
+  // RIPHOOD: an olive-drab field set - a riveted steel case with a canvas strap, big tuning dials and a toggle, a handset
+  // hanging off the side on its coiled cord, a whip antenna swaying, a steel helmet tipped on top, a stencilled number,
+  // and an amber screen (the screen stays in the same spot, so his face fits)
+  fieldSet(g, tx, hy, t, rock, desk) {
+    g.fillStyle(0x1e2010, 1); g.fillRect(tx - 44, desk - 4, 12, 4); g.fillRect(tx + 30, desk - 4, 12, 4);   // feet
+    const wa = Math.sin(t * 0.05) * 3 - rock; g.lineStyle(1, 0x2a2a1a, 1); g.lineBetween(tx + 34, hy - 40, tx + 44 + wa, hy - 92); g.fillStyle(0x2a2a1a, 1); g.fillCircle(tx + 44 + wa, hy - 92, 1.5);   // the whip antenna
+    g.fillStyle(0x3a4220, 1); g.fillRoundedRect(tx - 50, hy - 42, 96, desk - hy + 40, 5);                  // the steel case
+    g.fillStyle(0x4e5a2c, 1); g.fillRoundedRect(tx - 50, hy - 42, 96, 5, 3);
+    g.fillStyle(0x2a3016, 1); g.fillRect(tx - 50, hy + 38, 96, 2);
+    for (const [x, y] of [[-47, -39], [43, -39], [-47, 36], [43, 36], [-47, 0], [43, 0]]) { g.fillStyle(0x6a7438, 1); g.fillCircle(tx + x, hy + y, 1.3); }   // rivets
+    g.fillStyle(0x6a5a3a, 1); g.fillRect(tx - 30, hy - 46, 4, 6); g.fillRect(tx + 22, hy - 46, 4, 6); g.fillRect(tx - 30, hy - 48, 56, 3);   // the canvas carrying strap
+    g.fillStyle(0x1c1e0e, 1); g.fillRoundedRect(tx - 43, hy - 37, 78, 74, 6);                              // the bezel
+    g.fillStyle(0x1a1206, 1); g.fillRoundedRect(tx - 40, hy - 34, 72, 68, 6);                              // the amber screen
+    this.glow(g, tx - 4, hy, 38, WW2.amber, 0.14);
+    for (let i = 0; i < 2; i++) { const a = t * 0.01 * (i ? -1 : 1) + i; g.fillStyle(0x1c1e0e, 1); g.fillCircle(tx + 40, hy - 20 + i * 18, 5); g.fillStyle(0x8a8a6a, 1); g.fillCircle(tx + 40, hy - 20 + i * 18, 3.5); g.lineStyle(1, 0x1c1e0e, 1); g.lineBetween(tx + 40, hy - 20 + i * 18, tx + 40 + Math.cos(a) * 3, hy - 20 + i * 18 + Math.sin(a) * 3); }   // tuning dials
+    g.fillStyle(0x8a8a6a, 1); g.fillRect(tx + 38, hy + 12, 4, 6); g.fillStyle(0x1c1e0e, 1); g.fillRect(tx + 39, hy + (((t >> 6) % 2) ? 12 : 15), 2, 3);   // a toggle switch
+    g.fillStyle((t >> 5) % 2 ? 0xffb040 : 0x6a4010, 1); g.fillRect(tx + 38, hy + 28, 4, 3);                // the power lamp
+    g.fillStyle(0xd8d0a8, 0.85); for (const [x, y, w, h] of [[-40, 40, 2, 4], [-37, 40, 3, 1], [-37, 42, 3, 1], [-37, 44, 3, 1], [-32, 40, 3, 4]]) g.fillRect(tx + x, hy + y, w, h);   // a stencilled 15
+    // the handset, hanging on the left on its coiled cord
+    g.lineStyle(1, 0x1a1a10, 1); for (let i = 0; i < 6; i++) g.strokeCircle(tx - 54, hy - 4 + i * 4, 2);
+    g.fillStyle(0x1e1e14, 1); g.fillRoundedRect(tx - 60, hy + 18, 10, 26, 3); g.fillRect(tx - 62, hy + 18, 14, 5); g.fillRect(tx - 62, hy + 39, 14, 5);
+    // a steel helmet tipped on the top corner
+    const hx2 = tx - 22 - rock, hy2 = hy - 46;
+    g.fillStyle(0x1e2210, 1); g.fillEllipse(hx2, hy2 + 1, 34, 8);
+    g.fillStyle(0x4a5424, 1); g.slice(hx2, hy2, 14, Math.PI, 0, false); g.fillPath(); g.fillStyle(0x667232, 1); g.slice(hx2 - 3, hy2 - 2, 8, Math.PI, Math.PI * 1.6, false); g.fillPath();
+    g.fillStyle(0x2e3516, 1); for (let i = 0; i < 5; i++) g.fillRect(hx2 - 10 + i * 5, hy2 - 8 + Math.abs(i - 2) * 2, 1, 1);   // netting
+    g.fillStyle(0x3a4a1c, 1); g.fillRect(hx2 - 16, hy2, 32, 2);
   }
   // the Backrooms secret turns him into a chunky 90s set: charcoal plastic, a speaker grille and buttons under the screen,
   // and a separate rabbit-ear antenna on top - long telescopic rods and a UHF loop (the screen stays in the same spot)
@@ -613,6 +710,7 @@ export class ShopScene extends Phaser.Scene {
   // a gacha machine: a glass globe of coloured capsules on a base in the machine's colour, a coin slot, a crank that
   // turns, the prize chute - and a badge for the 10-pull bundles (or a ? for the mystery one)
   machine(g, cx, cy, s, it, t) {
+    if (it.gacha.machine === 'supply') return this.supplyDrop(g, cx, cy, s, it, t);
     const col = it.color ?? C.gold, k = s / 16, R = 11 * k, gy = cy - 5 * k;
     g.fillStyle(0x1a1424, 1); g.fillRect(cx - 12 * k, cy + 4 * k, 24 * k, 13 * k);          // the base
     g.fillStyle(col, 1); g.fillRect(cx - 11 * k, cy + 5 * k, 22 * k, 11 * k);
@@ -630,6 +728,19 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(col, 1); g.fillRect(cx - 3 * k, gy - R - 2 * k, 6 * k, 3 * k);               // the cap on top
     if (it.gacha.pulls > 1) { g.fillStyle(0xd8223a, 1); g.fillCircle(cx + 10 * k, gy - 8 * k, 4.5 * k); this.digits(g, cx + 10 * k, gy - 8 * k, String(it.gacha.pulls), Math.max(1, k * 0.8)); }   // a badge: how many pulls
     if (it.gacha.machine === 'mystery') { g.fillStyle(0x1a1424, 0.8); g.fillCircle(cx, gy, R); g.fillStyle(0xc77dff, 1); g.fillRect(cx - 3 * k, gy - 6 * k, 6 * k, 2 * k); g.fillRect(cx + 2 * k, gy - 5 * k, 2 * k, 4 * k); g.fillRect(cx - 1 * k, gy - 1 * k, 3 * k, 2 * k); g.fillRect(cx - 1 * k, gy + 3 * k, 2 * k, 2 * k); }   // a ? over a dark globe
+  }
+  // the SUPPLY DROP: an olive crate floating down under a khaki parachute, swaying
+  supplyDrop(g, cx, cy, s, it, t) {
+    const k = s / 16, sw = Math.sin(t * 0.05) * 2 * k, y0 = cy - 14 * k + Math.sin(t * 0.03) * k;
+    g.fillStyle(0x8a7a4a, 1); g.slice(cx + sw, y0, 12 * k, Math.PI, 0, false); g.fillPath();             // the canopy
+    g.fillStyle(0xa8986a, 1); g.slice(cx + sw - 3 * k, y0 - k, 6 * k, Math.PI, Math.PI * 1.7, false); g.fillPath();
+    g.fillStyle(0x5a4c2a, 1); for (let i = -2; i <= 2; i++) g.fillRect(cx + sw + i * 4.5 * k - 0.5 * k, y0 - (2 - Math.abs(i)) * 2.5 * k - 2 * k, Math.max(1, k), 2 * k);   // its seams
+    g.lineStyle(1, 0xd8d0a8, 0.8); for (const d of [-11, -4, 4, 11]) g.lineBetween(cx + sw + d * k, y0, cx + d * 0.3 * k, cy + 4 * k);   // the lines
+    const by = cy + 4 * k;
+    g.fillStyle(0x2e3516, 1); g.fillRect(cx - 8 * k, by, 16 * k, 12 * k);                                // the crate
+    g.fillStyle(0x4a5424, 1); g.fillRect(cx - 7 * k, by + k, 14 * k, 10 * k);
+    g.fillStyle(0x2e3516, 1); g.fillRect(cx - 7 * k, by + 5.5 * k, 14 * k, k); g.fillRect(cx - 0.5 * k, by + k, k, 10 * k);
+    g.fillStyle(0xd8d0a8, 0.85); g.fillRect(cx - 5 * k, by + 2 * k, 3 * k, Math.max(1, 0.7 * k)); g.fillRect(cx + 2 * k, by + 7 * k, 3 * k, Math.max(1, 0.7 * k));   // stencil marks
   }
   // little 3x5 pixel digits, centred on x, y
   digits(g, x, y, str, s) {
@@ -707,7 +818,7 @@ export class ShopScene extends Phaser.Scene {
   // a little window onto a stage with the effect on it: sky, a floating platform, the weather
   scenery(g, cx, cy, it, t) {
     const X = cx - 38, Y = cy - 27, w = 76, h = 54;
-    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830, 'fx-neon': 0x1a0830, 'fx-candy': 0xd8e0ff, 'fx-sunken': 0x1a5a90, 'fx-harvest': 0xd05a32 }[it.id] ?? 0x3a4a8a;
+    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830, 'fx-neon': 0x1a0830, 'fx-candy': 0xd8e0ff, 'fx-sunken': 0x1a5a90, 'fx-harvest': 0xd05a32, 'fx-front': 0x6a5a3a }[it.id] ?? 0x3a4a8a;
     g.fillStyle(sky, 1); g.fillRect(X, Y, w, h);
     const rnd = (i, k) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
     switch (it.id) {
@@ -733,10 +844,15 @@ export class ShopScene extends Phaser.Scene {
       case 'fx-harvest': g.fillStyle(0xffd070, 1); g.fillCircle(X + 20, Y + 16, 9); g.fillStyle(0x5a2a1a, 1); g.fillRect(X, Y + 36, w, h - 36);
         for (let i = 0; i < 9; i++) { g.fillStyle([0xc83a1a, 0xe8822a, 0xf4b83a][i % 3], 1); g.fillRect(X + ((rnd(i, 20) * w + t * 0.5 + Math.sin(t * 0.06 + i) * 4) % w), Y + ((rnd(i, 21) * h + t * 0.35) % h), 3, 2); }
         g.fillStyle(0xd86a1a, 1); g.fillEllipse(X + 54, Y + 38, 12, 9); g.fillStyle(0x3a6a2a, 1); g.fillRect(X + 53, Y + 32, 2, 3); break;
+      case 'fx-front': { const a = -Math.PI / 2 + Math.sin(t * 0.02) * 0.5; g.fillStyle(0xfff4d0, 0.15); g.fillTriangle(X + 20, Y + h, X + 20 + Math.cos(a - 0.08) * 60, Y + h + Math.sin(a - 0.08) * 60, X + 20 + Math.cos(a + 0.08) * 60, Y + h + Math.sin(a + 0.08) * 60);   // a searchlight, ruins, ash
+        g.fillStyle(0x2a2418, 1); for (const [x, hh] of [[0, 14], [10, 20], [22, 10], [34, 24], [48, 12], [58, 18], [68, 9]]) g.fillRect(X + x, Y + 40 - hh, 9, hh);
+        if (t % 140 < 8) { g.fillStyle(0xffd090, 0.5); g.fillEllipse(X + 50, Y + 36, 30, 8); }
+        for (let i = 0; i < 12; i++) { g.fillStyle(i % 4 ? 0x8a8478 : 0xff9a4a, 1); g.fillRect(X + ((rnd(i, 22) * w + t * 0.3) % w), Y + ((rnd(i, 23) * h + t * 0.4) % h), 1, 1); } break; }
       case 'fx-aurora': for (let b = 0; b < 3; b++) for (let i = 0; i < w; i += 2) { const y = Y + 10 + b * 6 + Math.sin(i * 0.1 + t * 0.03 + b) * 4; g.fillStyle([0x3affa8, 0x5ad0ff, 0xb05aff][b], 0.4); g.fillRect(X + i, y, 2, 8); } break;
     }
     // the stage: a floating island
-    g.fillStyle(0x4a3a5a, 1); g.fillTriangle(X + 18, Y + 44, X + 58, Y + 44, X + 38, Y + 54); g.fillStyle({ 'fx-snow': 0xffffff, 'fx-sand': 0xe8c088, 'fx-neon': 0xff7ae8, 'fx-candy': 0xfff4fa, 'fx-sunken': 0x3aa86a, 'fx-harvest': 0xe8822a }[it.id] ?? 0x6ac87a, 1); g.fillRect(X + 16, Y + 41, 44, 4);
+    g.fillStyle(0x4a3a5a, 1); g.fillTriangle(X + 18, Y + 44, X + 58, Y + 44, X + 38, Y + 54); g.fillStyle({ 'fx-snow': 0xffffff, 'fx-sand': 0xe8c088, 'fx-neon': 0xff7ae8, 'fx-candy': 0xfff4fa, 'fx-sunken': 0x3aa86a, 'fx-harvest': 0xe8822a, 'fx-front': 0x6a7232 }[it.id] ?? 0x6ac87a, 1); g.fillRect(X + 16, Y + 41, 44, 4);
+    if (it.id === 'fx-front') { for (let k = 0; k < 3; k++) { g.fillStyle(0x8a7a52, 1); g.fillEllipse(X + 20 + k * 5, Y + 39, 6, 4); } g.lineStyle(1, 0x5a5448, 1); g.lineBetween(X + 40, Y + 38, X + 58, Y + 38); }   // sandbags, wire
     if (it.id === 'fx-bloodmoon') { g.fillStyle(0xff2020, 0.18); g.fillRect(X, Y, w, h); }
     g.lineStyle(1, 0x3a2654, 1); g.strokeRect(X, Y, w, h);
   }
@@ -771,6 +887,11 @@ export class ShopScene extends Phaser.Scene {
         g.lineStyle(1, 0x8a87a3, 1); g.lineBetween(cx, cy - 27, cx, cy - 16); g.fillStyle(0x8a8aa8, 1); g.fillCircle(cx, cy - 8, 8);
         for (let y = -6; y <= 6; y += 3) for (let x = -6; x <= 6; x += 3) if (x * x + y * y < 50) { g.fillStyle(((x + y + (t >> 3)) / 3 & 3) === 0 ? 0xffffff : 0xc8c8e0, 1); g.fillRect(cx + x, cy - 8 + y, 2, 2); }
         for (let i = 0; i < 3; i++) { const a = Math.PI / 2 + Math.sin(t * 0.03 + i * 2) * 0.8; g.fillStyle([0xff3ad8, 0x3ad8ff, 0xffe03a][i], 0.18); g.fillTriangle(cx, cy - 8, cx + Math.cos(a - 0.15) * 34, cy - 8 + Math.sin(a - 0.15) * 34, cx + Math.cos(a + 0.15) * 34, cy - 8 + Math.sin(a + 0.15) * 34); } break; }
+      case 'ext-newsreel': { g.fillStyle(0x1a1410, 1); g.fillRect(cx - 34, cy - 24, 68, 48);                   // a strip of film: sprocket holes, a sepia frame
+        for (let i = 0; i < 8; i++) { g.fillStyle(0xd8c8a0, 0.7); g.fillRect(cx - 32 + i * 9, cy - 22, 4, 3); g.fillRect(cx - 32 + i * 9, cy + 19, 4, 3); }
+        g.fillStyle(0xc8b088, 1); g.fillRect(cx - 28, cy - 16, 56, 32); g.fillStyle(0x8a7450, 1); g.fillCircle(cx, cy, 12); g.fillStyle(0xc8b088, 1); g.fillCircle(cx, cy, 10);   // the countdown leader
+        g.lineStyle(1, 0x3a2e1e, 1); g.lineBetween(cx - 28, cy, cx + 28, cy); g.lineBetween(cx, cy - 16, cx, cy + 16); const a = t * 0.1; g.lineStyle(2, 0x3a2e1e, 1); g.lineBetween(cx, cy, cx + Math.cos(a) * 10, cy + Math.sin(a) * 10);
+        if ((t % 30) < 3) { g.fillStyle(0xffffff, 0.5); g.fillRect(cx - 10 + (t % 17), cy - 16, 1, 32); } break; }
       default: g.fillStyle(col, 1); g.fillCircle(cx, cy, 10);
     }
   }
@@ -786,6 +907,10 @@ export class ShopScene extends Phaser.Scene {
     if (++this.idle === 60 * 25 && !this.secret && !this.playing) this.react('stare', 'quiet', 160);   // you've gone quiet: he stares
     if (this.noli && !this.secret && !this.pv && !this.spin && this.t >= (this.nextMutter || 0)) {   // NOLI mutters to himself
       const moods = Object.keys(NOLI_MOODS); this.noliVoice(moods[Math.floor(Math.random() * moods.length)]); this.static = Math.max(this.static, 6);
+    }
+    if (this.riphood && this.t >= (this.nextRumble || 0)) {                         // RIPHOOD: the guns, far off - the tent shakes, dust falls
+      this.nextRumble = this.t + WW2.rumble[0] + Math.floor(Math.random() * (WW2.rumble[1] - WW2.rumble[0]));
+      if (this.look === 'ww2') { this.cameras.main.shake(260, 0.003); sfx('thunder', 0.22, 0.45); this.rumble = 40; }
     }
     this.drawLook(t);
     if (this.secret) {                                                              // the code screen / the video: nothing else moves
@@ -849,7 +974,7 @@ export class ShopScene extends Phaser.Scene {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
       const lucky = tb.name === 'GAMBLING';                                              // the gambling tab: trimmed in gold, flashing
       slant(g, x + 3, TAB.y + 3, TAB.w, TAB.h, 0x000000, 0.5, 6);
-      slant(g, x, TAB.y - (on ? 2 : 0), TAB.w, TAB.h + (on ? 2 : 0), on ? ACC : 0x241e3e, 1, 6);
+      slant(g, x, TAB.y - (on ? 2 : 0), TAB.w, TAB.h + (on ? 2 : 0), on ? this.acc : this.pal.tabOff, 1, 6);
       if (on) slant(g, x, TAB.y - 2, TAB.w, 7, 0xffffff, 0.25, 2);
       if (lucky && !on) { g.fillStyle((t >> 4) % 2 ? C.gold : 0xd8223a, 1); g.fillRect(x + 6, TAB.y + TAB.h - 2, TAB.w - 8, 2); }
       this.tabT[i].setColor(on ? '#ffffff' : lucky ? '#ffd23f' : '#a8a4c0');
@@ -862,10 +987,10 @@ export class ShopScene extends Phaser.Scene {
     for (let i = 0; i < PER; i++) {
       const [x, y] = this.cardAt(i), it = shelf[i], on = i === this.sel;
       g.fillStyle(0x000000, 0.5); g.fillRect(x + 3, y + 3, GRID.w, GRID.h);
-      g.fillStyle(on ? ACC : 0x2c2650, 1); g.fillRect(x, y, GRID.w, GRID.h);
-      g.fillStyle(on ? 0x2a2048 : ARC.panel, 1); g.fillRect(x + 2, y + 2, GRID.w - 4, GRID.h - 4);
-      slant(g, x + 2, y + GRID.h - 24, GRID.w - 4, 22, on ? shade(ACC, 0.35) : 0x0d0b1a, 1, 6);   // the name plate
-      g.fillStyle(0x0d0a18, 1); g.fillRect(x + 8, y + 8, GRID.w - 16, 56);                   // the icon window
+      g.fillStyle(on ? this.acc : this.pal.card, 1); g.fillRect(x, y, GRID.w, GRID.h);
+      g.fillStyle(on ? this.pal.cardOn : this.pal.cardIn, 1); g.fillRect(x + 2, y + 2, GRID.w - 4, GRID.h - 4);
+      slant(g, x + 2, y + GRID.h - 24, GRID.w - 4, 22, on ? shade(this.acc, 0.35) : this.pal.plate, 1, 6);   // the name plate
+      g.fillStyle(this.pal.window, 1); g.fillRect(x + 8, y + 8, GRID.w - 16, 56);                   // the icon window
       if (on) for (let k = 0; k < 2; k++) slant(g, x + 8 + ((t * 1.5 + k * 50) % (GRID.w + 20)) - 20, y + 8, 10, 56, 0xffffff, 0.05, 20);   // light sweeping the picked card's window
       this.icon(g, x + GRID.w / 2, y + 36, 16, it, t + i * 9);
       this.cardName[i].setText(it ? it.name : 'COMING SOON').setColor(it ? '#e8e4f4' : '#5a4a70');
@@ -880,11 +1005,11 @@ export class ShopScene extends Phaser.Scene {
         spr.setScale(Math.min(1, 54 / spr.frame.height, 74 / spr.frame.width * 1.3)).setPosition(x + GRID.w / 2, y + 62);
       } else if (it && it.img) spr.setVisible(true).setTexture(it.img).setOrigin(0.5).setFlipX(false).setScale(0.8).setPosition(x + GRID.w / 2, y + 36 + Math.round(Math.sin((t + i * 9) * 0.05) * 2));   // e.g. the GALAXY FRAGMENT, bobbing
       else spr.setVisible(false);
-      if (on) { const p = (t % 60) / 60; g.lineStyle(2, ACC, 0.6 * (1 - p)); g.strokeRect(x - 2 - p * 4, y - 2 - p * 4, GRID.w + 4 + p * 8, GRID.h + 4 + p * 8); }   // a pulse round the picked card
+      if (on) { const p = (t % 60) / 60; g.lineStyle(2, this.acc, 0.6 * (1 - p)); g.strokeRect(x - 2 - p * 4, y - 2 - p * 4, GRID.w + 4 + p * 8, GRID.h + 4 + p * 8); }   // a pulse round the picked card
     }
     // the details panel
     const it = this.item();
-    panel(g, SIDE.x, SIDE.y, SIDE.w, SIDE.h, ACC, { sk: 6 });
+    panel(g, SIDE.x, SIDE.y, SIDE.w, SIDE.h, this.acc, { sk: 6, fill: this.pal.cardIn });
     this.nameT.setText(it ? it.name : 'COMING SOON');
     this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
     const lab = this.label(it), mine = it && !it.gacha && owns(it.id);
