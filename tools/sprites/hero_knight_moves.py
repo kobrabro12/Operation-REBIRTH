@@ -30,7 +30,7 @@ from puppet import Part, Rig, EASE, save_atlas, contact
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
 HK = os.path.join(ROOT, 'public/assets/fighters/hero-knight')
 JS = os.path.join(ROOT, 'src/fighters/hkMoves.js')
-COSTUMES = ['', 'worn1', 'worn2', 'worn3', 'samurai', 'akatsuki', 'obsidian', 'cyber']   # (obsidian, cyber: shop costumes, tools/sprites/shop_costumes.py)
+COSTUMES = ['', 'worn1', 'worn2', 'worn3', 'samurai', 'akatsuki', 'obsidian', 'cyber', 'verdant']   # (obsidian, cyber, verdant: shop costumes, tools/sprites/shop_costumes.py)
 FW, FH, FEET, MID = 150, 90, (66, 86), (66, 62)      # her strips' frames (feet, body centre)
 CW, CH, OX, OY = 180, 140, 15, 25                       # move frames: bigger, so spins and plunges never clip
 STEP = 2

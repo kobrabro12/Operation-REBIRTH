@@ -67,6 +67,7 @@ export const ACHIEVEMENTS = [
   { id: 'hoard', group: 'WORLD', name: 'COIN HOARDER', info: 'HAVE 3000 COINS AT ONCE.', goal: 3000, have: (s) => Math.max(s.bestCoins, getCoins()), coins: 150 },
   // ---- SECRETS
   { id: 'still-life', group: 'SECRETS', secret: true, name: 'STILL LIFE', info: 'FOUND THE SHOPKEEPER\'S SECRET.', hint: 'THE SHOPKEEPER HIDES SOMETHING. RING TWICE MORE THAN ONCE.', goal: 1, have: (s) => +s.secrets.includes('STILLLIFE'), coins: 200 },
+  { id: 'noli', group: 'SECRETS', secret: true, name: 'NOLI', info: 'CHANGED THE SHOPKEEPER FOR GOOD.', hint: 'SOME CODES CAN\'T BE UNDONE.', goal: 1, have: (s) => +s.secrets.includes('NOLI'), coins: 200 },
   { id: 'bell', group: 'SECRETS', secret: true, name: 'DING DING DING', info: 'RANG THE SHOP BELL 30 TIMES.', hint: 'SOMEONE ON THE COUNTER WANTS ATTENTION.', goal: 30, have: (s) => s.bells, coins: 50 },
   { id: 'window', group: 'SECRETS', secret: true, name: 'WINDOW SHOPPER', info: 'PREVIEWED 15 COSTUMES.', hint: 'LOOK, DON\'T TOUCH.', goal: 15, have: (s) => s.previews, coins: 50 },
 ];

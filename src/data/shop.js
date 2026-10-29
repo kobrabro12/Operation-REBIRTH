@@ -23,6 +23,11 @@ export const SHOP = [
     { id: 'cos-sakura', kind: 'costume', fighter: 'mr-wake', skin: 'SAKURA', name: 'SAKURA', price: 1000, info: 'MR WAKE. CHERRY-BLOSSOM ROBES. PETALS FALL WHEREVER HE HITS.' },
     { id: 'cos-obsidian', kind: 'costume', fighter: 'hero-knight', skin: 'OBSIDIAN', name: 'OBSIDIAN', price: 1300, info: 'LACY. VOLCANIC GLASS ARMOUR WITH LAVA IN THE CRACKS. HITS BURST INTO FLAME.' },
     { id: 'cos-cyber', kind: 'costume', fighter: 'hero-knight', skin: 'CYBERBLADE', name: 'CYBERBLADE', price: 1400, info: 'LACY. CHROME AND NEON. HER HITS GLITCH INTO PIXELS.' },
+    { id: 'cos-celestial', kind: 'costume', fighter: 'soul-summoner', skin: 'CELESTIAL', name: 'CELESTIAL', price: 1600, info: 'SOUL SUMMONER. A CAPE FULL OF STARS, SILVER ARMOUR, A CRESCENT MOON RISING BEHIND HIS CROWN. TWO LITTLE MOONS ORBIT HIM.' },
+    { id: 'cos-plague', kind: 'costume', fighter: 'mr-wake', skin: 'PLAGUE DOCTOR', name: 'PLAGUE DOCTOR', price: 1400, info: 'MR WAKE. A BEAKED MASK, GREEN-GLASS GOGGLES, A LANTERN OF SICKLY FIRE ON HIS STAFF. HITS PUFF OUT MIASMA.' },
+    { id: 'cos-verdant', kind: 'costume', fighter: 'hero-knight', skin: 'WILDWOOD', name: 'WILDWOOD', price: 1300, info: 'LACY. ARMOUR OF LIVING BARK AND MOSS, LEAVES GROWING FROM HER HELMET, A BLADE OF GLOWING GREEN WOOD.' },
+    { id: 'cos-glam', kind: 'costume', fighter: 'nu', skin: 'GLAM', name: 'GLAM', price: 1000, info: 'NU (TEST FIGHTER). PLATINUM HAIR DIPPED IN PINK, A LIGHTNING BOLT, A GLITTERING GOLD JACKET. EVERY NOTE A STAR.' },
+    { id: 'cos-midnight', kind: 'costume', fighter: 'aero', skin: 'MIDNIGHT', name: 'MIDNIGHT', price: 1000, info: 'AERO (TEST FIGHTER). HIS DOME HOLDS THE NIGHT SKY AND A CRESCENT MOON. THE GOLDFISH WEARS A NIGHTCAP.' },
     { id: 'cos-vapor', kind: 'costume', fighter: 'nu', skin: 'VAPORWAVE', name: 'VAPORWAVE', price: 900, info: 'NU (TEST FIGHTER). PASTEL PINK AND TEAL, STRAIGHT OFF A 90S MALL.' },
     { id: 'cos-sunset', kind: 'costume', fighter: 'aero', skin: 'SUNSET', name: 'SUNSET', price: 900, info: 'AERO (TEST FIGHTER). GLASS GONE ORANGE AND MAGENTA. GOLDEN BUBBLES.' },
   ] },
@@ -34,6 +39,10 @@ export const SHOP = [
     { id: 'fx-fireflies', kind: 'fx', name: 'FIREFLIES', price: 550, info: 'RE-THEMES ANY STAGE: A VIOLET DUSK FOREST, GLOWING MUSHROOMS, PAPER LANTERNS, FIREFLIES.', color: 0xd8ff6a },
     { id: 'fx-bloodmoon', kind: 'fx', name: 'BLOOD MOON', price: 800, info: 'RE-THEMES ANY STAGE: A GRAVEYARD UNDER A HUGE RED MOON - GRAVESTONES, A DEAD TREE, CANDLES.', color: 0xc81a1a },
     { id: 'fx-sand', kind: 'fx', name: 'SANDSTORM', price: 500, info: 'RE-THEMES ANY STAGE: DUNES AND PYRAMIDS, SAND DRIFTS, CACTI, AND DUST STREAMING PAST.', color: 0xc89a5a },
+    { id: 'fx-neon', kind: 'fx', name: 'NEON CITY', price: 850, info: 'RE-THEMES ANY STAGE: A SYNTHWAVE NIGHT - STRIPED SUN, WIREFRAME GRID, NEON TUBES AND SIGNS, NEON RAIN.', color: 0xff3ad8 },
+    { id: 'fx-candy', kind: 'fx', name: 'CANDY LAND', price: 650, info: 'RE-THEMES ANY STAGE: GUMDROP HILLS, A CANDY CASTLE, FROSTED PLATFORMS, CANDY CANES, LOLLIPOPS, SPRINKLES.', color: 0xff9ac8 },
+    { id: 'fx-sunken', kind: 'fx', name: 'SUNKEN RUINS', price: 800, info: 'RE-THEMES ANY STAGE: THE SEA FLOOR - LIGHT SHAFTS, A DROWNED COLONNADE, KELP, CORAL, BUBBLES.', color: 0x2a7ab0 },
+    { id: 'fx-harvest', kind: 'fx', name: 'HARVEST MOON', price: 600, info: 'RE-THEMES ANY STAGE: AN AUTUMN EVENING - RED AND GOLD WOODS, PUMPKINS, HAY BALES, A SCARECROW, FALLING LEAVES.', color: 0xe8822a },
     { id: 'fx-aurora', kind: 'fx', name: 'AURORA', price: 900, info: 'RE-THEMES ANY STAGE: A POLAR NIGHT, ICY MOUNTAINS, ICE CRYSTALS AND RIBBONS OF LIGHT.', color: 0x3affa8 },
   ] },
   { name: 'MUSIC', items: [
@@ -45,6 +54,10 @@ export const SHOP = [
     { id: 'mus-jazz', kind: 'music', name: 'BLUE HOUR', price: 400, info: 'A JAZZ TRIO AND A SAXOPHONE, LATE AT NIGHT.', color: 0x3a6ad8 },
     { id: 'mus-taiko', kind: 'music', name: 'TAIKO THUNDER', price: 450, info: 'WAR DRUMS, A SHAKUHACHI AND A KOTO.', color: 0xe8202a },
     { id: 'mus-dream', kind: 'music', name: 'STARLIGHT', price: 300, info: 'A MUSIC BOX UNDER THE STARS. GENTLE.', color: 0xffe08a },
+    { id: 'mus-boss', kind: 'music', name: 'FINAL BOSS', price: 500, info: 'CHUGGING GUITARS, DOUBLE KICKS, A SCREAMING LEAD AND A CHURCH ORGAN. FOR THE LAST STOCK.', color: 0xd8202a },
+    { id: 'mus-rain', kind: 'music', name: 'RAINY WINDOW', price: 350, info: 'SOFT PIANO AND BRUSHES WHILE RAIN TAPS THE GLASS. THUNDER, FAR OFF.', color: 0x6a8ab8 },
+    { id: 'mus-sugar', kind: 'music', name: 'SUGAR RUSH', price: 400, info: 'BUBBLEGUM POP: BOUNCY PLUCKS, CLAPS AND A HOOK YOU CAN\'T SHAKE.', color: 0xff8ad8 },
+    { id: 'mus-disco', kind: 'music', name: 'MIRRORBALL', price: 450, info: 'DISCO. FOUR ON THE FLOOR, A RESTLESS BASS, STRING STABS. DANCE BETWEEN STOCKS.', color: 0xc8a8ff },
     { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: 'LIVE ON FOREVER DAFT PUNK...', color: 0xf3c358, rgb: true },   // rgb: its record glows through the rainbow (ShopScene vinyl)
   ] },
   { name: 'EXTRAS', items: [
@@ -56,6 +69,10 @@ export const SHOP = [
     { id: 'ext-airhorn', kind: 'extra', name: 'AIRHORN KOS', price: 450, info: 'EVERY KO GETS AN AIRHORN.', color: 0xf3c358 },
     { id: 'ext-rainbow', kind: 'extra', name: 'RAINBOW TRAILS', price: 700, info: 'LAUNCHED FIGHTERS LEAVE A RAINBOW BEHIND THEM.', color: 0x8a6aff },
     { id: 'ext-fragment', kind: 'unlock', img: 'shop_fragment', name: 'GALAXY FRAGMENT', price: 1500, info: 'A SHARD OF A SHATTERED STAR. UNLOCKS A NEW STAGE: FRACTURED.', color: 0x6888fc },
+    { id: 'ext-comic', kind: 'extra', name: 'COMIC HITS', price: 650, info: 'BIG HITS BURST INTO COMIC-BOOK WORDS: POW! BAM! WHAM! THE BIGGEST GO KA-BOOM!', color: 0xffe03a },
+    { id: 'ext-combo', kind: 'extra', name: 'COMBO COUNTER', price: 550, info: 'COUNTS EVERY HIT YOU LAND BEFORE THEY RECOVER. 5 HITS GLOWS ORANGE, 8 GOES RED.', color: 0xffb84a },
+    { id: 'ext-ghosts', kind: 'extra', name: 'GHOST TRAILS', price: 750, info: 'FIGHTERS MOVING FAST LEAVE GLOWING AFTERIMAGES IN THEIR COSTUME\'S COLOUR.', color: 0x8affff },
+    { id: 'ext-disco', kind: 'extra', name: 'DISCO FLOOR', price: 850, info: 'EVERY PLATFORM BECOMES A LIGHT-UP DANCE FLOOR. A MIRROR BALL, SWEEPING SPOTLIGHTS.', color: 0xff3ad8 },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
   // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks
@@ -98,7 +115,9 @@ export const KEEPER = {
   faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 10 }, shock: { fps: 8 }, smug: { fps: 6 }, glasses: { fps: 6 },
     // grin: an achievement / a new gacha prize; melt: a duplicate prize; bow: switching something off, a sold-out machine;
     // stare: the bell rung, or you've gone quiet for a while
-    grin: { fps: 6 }, melt: { fps: 6 }, bow: { fps: 6 }, stare: { fps: 6 } },
+    grin: { fps: 6 }, melt: { fps: 6 }, bow: { fps: 6 }, stare: { fps: 6 },
+    // noli: Mason's NOLI drawing - his only face for good once the code NOLI is typed (it jumps now and then: glitched frames)
+    noli: { fps: 8 } },
   // how long a reaction face stays up before he goes back to happy (frames)
   hold: 100,
   // what he says
@@ -121,6 +140,7 @@ export const KEEPER = {
     secret: ['...THREE RINGS. YOU KNOW THE DRILL.', 'A CUSTOMER WITH A SECRET?', 'TYPE IT IN. I WON\'T TELL.'],
     wrongcode: ['NOPE.', 'THAT\'S NOT A CODE.', 'NICE TRY.'],
     stilllife: ['NOW PLAYING: STILL LIFE.', 'SHH. THIS ONE\'S SPECIAL.'],
+    noli: ['...NOLI.', 'I FEEL DIFFERENT.', 'THIS IS MY FACE NOW.', 'YOU CAN\'T UNDO IT.'],
     rtd: ['...REMEMBER THAT DAY?', 'I TOLD YOU NOT TO ASK.', 'SHE NEVER STOPS.'],
     off: ['BACK TO BUSINESS.', 'CHANNEL CHANGED.', 'WHERE WERE WE?'],
     quiet: ['...', 'STILL THERE?', 'TAKE YOUR TIME.'],

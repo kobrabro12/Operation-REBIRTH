@@ -58,7 +58,9 @@ export class BootScene extends Phaser.Scene {
     // shop costumes with their own drawing (tools/sprites/shop_costumes.py): sheets in <fighter>/<costume>/
     for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
       ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
-      ['nu_vapor_', 'nu/vapor/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_sunset_', 'aero/sunset/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
+      ['nu_vapor_', 'nu/vapor/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_sunset_', 'aero/sunset/', ['idle', 'run', 'jump', 'fall'], 112, 104],
+      ['ss_celestial_', 'soul-summoner/celestial/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_plague_', 'mr-wake/plague/', ['idle', 'run', 'jump', 'fall'], 176, 120],
+      ['nu_glam_', 'nu/glam/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_midnight_', 'aero/midnight/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
       for (const k of ks) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: mw, frameHeight: mh });
     }
@@ -67,9 +69,9 @@ export class BootScene extends Phaser.Scene {
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
       this.load.spritesheet('hk_aka_' + k, 'assets/fighters/hero-knight/akatsuki/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Akatsuki costume
       this.load.spritesheet('hk_sam_' + k, 'assets/fighters/hero-knight/samurai/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Samurai costume
-      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
+      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
     }
-    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/']]) {
+    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
@@ -85,12 +87,12 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
     this.load.audio('bgm_backrooms', ['assets/audio/music/backrooms.ogg', 'assets/audio/music/backrooms.mp3']);   // tools/audio/backrooms_music.py
     this.load.audio('bgm_aero', ['assets/audio/music/aero.ogg', 'assets/audio/music/aero.mp3']);   // tools/audio/aero_music.py
-    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'mason']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
+    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
     this.load.audio('bgm_fractured', ['assets/audio/music/fractured.ogg', 'assets/audio/music/fractured.mp3']);   // FRACTURED's music (tools/audio/fractured_music.py)
     this.load.spritesheet('shop_rtd', 'assets/shop/rtd_scream.png', { frameWidth: 68, frameHeight: 68 });   // the shop's RTD secret: Rosemary screaming (tools/sprites/rosemary_scream.py)
-    for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
+    for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare', 'noli']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
     this.load.image('bp_guest', 'assets/stages/baseplate/guest.png');                 // BASEPLATE 2012's guests: Mason's drawings, half size (tools/sprites/baseplate_guests.py)
     this.load.image('bp_guest_glitch', 'assets/stages/baseplate/guest_glitch.png');   // ...and the one in fifty
     for (const n of [4, 5, 6, 10]) this.load.audio('bgm_baseplate_' + n, ['assets/audio/music/baseplate_' + n + '.ogg', 'assets/audio/music/baseplate_' + n + '.mp3']);   // BASEPLATE 2012's rotating soundtrack: Mason's pixelated_audio 4, 5, 6, 10

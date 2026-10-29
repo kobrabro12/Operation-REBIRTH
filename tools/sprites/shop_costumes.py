@@ -1,7 +1,8 @@
 """The shop costumes (Trinkets > SHOP): each one is its own drawing, not just a recolour - new parts (crowns,
 halos, collars, horns, visors, shades...), reshaped capes and robes, new weapons - on top of the costume's colours.
 
-  python3 tools/sprites/shop_costumes.py [eclipse aurora vampire sakura obsidian cyber vapor sunset] [--preview DIR]
+  python3 tools/sprites/shop_costumes.py [eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
+                                           sunset midnight] [--preview DIR]
 
 How each fighter is done:
   Soul Summoner, Mr Wake  their puppets (ss_rig.py / mw_rig.py, cut from Mason's idle drawing) get the costume's
@@ -103,8 +104,38 @@ def aurora_paint(cape, mask=None):
         else: cape[y, x, :3] = K.hexrgb(K.ramp_pick([0x0c3a5a, 0x16608a, 0x2a90c0, 0x6ad0f0], v, 0.0, 0.42))
         if (x * 13 + y * 7) % 41 == 0: cape[y, x, :3] = (255, 255, 255)
 
+def ss_celestial(N, L):
+    MOON = {'o': 0x1a2040, '1': 0x8a9ac8, '2': 0xc8d4f0, '3': 0xf4f8ff, 'c': 0x7ae8ff}
+    # a silver crown with a star-shaped gem
+    K.stamp(N['head'], 27, 0, ["......c......",
+                               "..2..ccc..2..",
+                               "..3...c...3..",
+                               "2.21.121.12.2",
+                               "3.21.121.12.3"], MOON)
+    # a crescent moon rising behind his head
+    m = blank(); r, _ = rad(33, 9); r2, _ = rad(37, 6)
+    cres = (r <= 10.5) & (r2 > 9)
+    m[cres] = (*K.hexrgb(MOON['2']), 255); m[cres & (r <= 9.5) & (r2 > 10.2)] = (*K.hexrgb(MOON['3']), 255)
+    outline(m, MOON['o'])
+    # the cape becomes the night sky
+    for n in N: starfield_paint(N[n], mask=ss_cape_mask(L[n]))
+    return [('moon', m, 'head', (34, 17), -1)], {'moon'}, lambda orig, out: starfield_paint(out, mask=ss_cape_mask(orig))
+
+def starfield_paint(cape, mask=None):
+    """the night sky: deep blue, a violet nebula drifting across, stars (some with a cross-shaped glint)"""
+    ys, xs = np.nonzero(mask if mask is not None else cape[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        v = K.shade_of(cape[y, x])
+        neb = math.sin(x * 0.35 - y * 0.28)
+        ramp = [0x2a1060, 0x4a1a8a, 0x7a3ab8, 0xb07ae0] if neb > 0.55 else [0x06081c, 0x0c1438, 0x162458, 0x24387a]
+        cape[y, x, :3] = K.hexrgb(K.ramp_pick(ramp, v, 0.0, 0.42))
+        k = (x * 31 + y * 17) % 53
+        if k == 0: cape[y, x, :3] = (255, 255, 255)
+        elif k in (7, 29): cape[y, x, :3] = (170, 200, 255)
+
 SS_LOOKS = {
     'eclipse': (ss_eclipse, {'armor': {'sat': 0.2, 'val': 0.32}, 'cape': {'sat': 0.15, 'val': 0.35}, 'gold': {'to': 44, 'sat': 1.1, 'val': 1.25}, 'flame': {'to': 46, 'sat': 0.35, 'val': 1.35}, 'eyes': {'to': 48, 'sat': 0.3, 'val': 1.3}}, (255, 220, 128)),
+    'celestial': (ss_celestial, {'armor': {'to': 222, 'sat': 0.25, 'val': 1.35}, 'gold': {'to': 210, 'sat': 0.35, 'val': 1.3}, 'flame': {'to': 196, 'sat': 0.55, 'val': 1.3}, 'eyes': {'to': 188, 'sat': 0.9, 'val': 1.3}, 'cape': {'to': 230, 'sat': 0.8, 'val': 0.5}}, (180, 210, 255)),
     'aurora': (ss_aurora, {'cape': {'to': 172, 'sat': 1.4, 'val': 0.9}, 'flame': {'to': 312, 'sat': 1.1, 'val': 1.15}, 'gold': {'sat': 0.12, 'val': 1.2}, 'eyes': {'to': 160, 'val': 1.2}, 'armor': {'to': 200, 'satAdd': 0.12, 'val': 0.8}}, (90, 224, 248)),
 }
 
@@ -206,8 +237,43 @@ def mw_sakura(N, L):
                 spots.append((x, y)); K.stamp(lay, x, y, FLOWER, P, only_full=True)
     return [], set(), None
 
+def mw_plague(N, L):
+    B = {'o': 0x1a120a, '1': 0x5a3a1e, '2': 0x8a6438, '3': 0xb8925a, '4': 0xe0c890}
+    # the long beaked mask, out from his face
+    K.stamp(N['head'], 42, 14, ["oooo.....",
+                                "3442oo...",
+                                "23332ooo.",
+                                "1222233oo",
+                                ".oo11122o",
+                                "....oooo."], B)
+    # the white mask becomes leather like the beak; its dark eye holes become green glass goggles
+    hd = N['head']; mask = []
+    for y in range(8, 22):
+        for x in range(32, 46):
+            if hd[y, x, 3]:
+                r, g_, b = (int(c) for c in hd[y, x, :3]); h_, s_, v = K._rgb2hsv(r, g_, b)
+                if v > 0.7 and s_ < 0.2: mask.append((x, y)); hd[y, x, :3] = K.hexrgb(0xd8bc84 if v > 0.9 else 0xb8925a)
+    near = {(x + dx, y + dy) for x, y in mask for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+    for x, y in near:
+        if (x, y) not in mask and hd[y, x, 3] and K.shade_of(hd[y, x]) < 0.2 and 34 <= x <= 44: K.put(hd, x, y, 0x123a22)
+    # the gem becomes a lantern: an iron cage round it, a hook on top
+    K.stamp(N['staff'], 10, 10, ["...oo...",
+                                 "..o..o..",
+                                 "oooooooo",
+                                 "o......o",
+                                 "o......o",
+                                 "o......o",
+                                 "o......o",
+                                 "o......o",
+                                 "o......o",
+                                 "o......o",
+                                 "oooooooo",
+                                 "..oooo.."], {'o': 0x2a2a2a}, only_empty=True)
+    return [], set(), None
+
 MW_LOOKS = {
     'vampire': (mw_vampire, {'robe': {'to': 350, 'sat': 1.15, 'val': 0.55}, 'magic': {'to': 356, 'sat': 1.2, 'val': 1.15}, 'cloth': {'to': 330, 'sat': 0.6, 'val': 0.45}, 'wood': {'sat': 0.1, 'val': 1.3}}),
+    'plague': (mw_plague, {'robe': {'to': 150, 'sat': 0.25, 'val': 0.42}, 'magic': {'to': 118, 'sat': 1.1, 'val': 1.15}, 'cloth': {'to': 28, 'sat': 0.9, 'val': 1.1}, 'wood': {'to': 20, 'sat': 0.3, 'val': 0.6}}),
     'sakura': (mw_sakura, {'robe': {'to': 334, 'sat': 0.55, 'val': 1.9}, 'magic': {'to': 340, 'sat': 0.4, 'val': 1.3}, 'cloth': {'to': 300, 'sat': 0.9, 'val': 1.3}, 'wood': {'to': 18, 'sat': 0.7, 'val': 0.8}}),
 }
 
@@ -315,10 +381,32 @@ def cyber_plate(dx, dy, v, inside):
 
 def cyber_blade(p, v): return (255, 255, 255) if v > 0.77 else (255, 90, 220)
 
+def leaf_crown(px, src, pts, FW, FH):
+    """leaves sprouting from the top of her helmet"""
+    top = min(y for x, y in pts); xs = sorted(x for x, y in pts if y <= top + 1)
+    for i, x in enumerate(range(xs[0] - 1, xs[-1] + 2, 2)):
+        h = 2 + (i % 2)
+        for d in range(h):
+            Y = top - 1 - d
+            if 0 <= x < FW and 0 <= Y < FH and src[x, Y][3] < 255: px[x, Y] = ((90, 190, 70) if d < h - 1 else (180, 240, 110)) + (255,)
+
+def verdant_plate(dx, dy, v, inside):
+    bark = [(40, 26, 16), (70, 46, 26), (104, 72, 40), (140, 104, 60), (176, 140, 90)]
+    if inside and ((dx * 2 + dy * 3) % 11 == 0 or (dx - dy) % 9 == 0): return (70, 140, 50) if v < 0.6 else (110, 180, 70)   # moss in the grain
+    if inside and dy % 5 == 0: return (52, 34, 20)                                                     # bark ridges
+    return bark[min(4, int(max(0, v - 0.2) / 0.55 * 5))]
+
+def verdant_blade(p, v):
+    x, y = p
+    return (230, 255, 170) if (x + y) % 5 == 0 else (120, 240, 120) if v > 0.6 else (40, 150, 70)
+
 HK_LOOKS = {
     'obsidian': dict(plate=obsidian_plate, cloth=[(10, 8, 12), (22, 18, 26)], scarf=[(200, 60, 10), (255, 140, 30), (255, 220, 120)],
                      helm=[(14, 10, 20), (30, 20, 40), (54, 38, 66), (90, 66, 106)], glove=[(14, 10, 20), (30, 20, 40), (54, 38, 66), (90, 66, 106)],
                      blade=obsidian_blade, swipe=(255, 160, 90), crown=horns, hair=lambda v: (int(232 * v), int(214 * v), int(200 * v)), glow=(255, 110, 30, 110)),
+    'verdant': dict(plate=verdant_plate, cloth=[(14, 30, 18), (28, 52, 30)], scarf=[(40, 110, 40), (90, 170, 60), (190, 230, 110)],
+                    helm=[(20, 40, 20), (40, 80, 36), (70, 120, 50), (110, 160, 80)], glove=[(40, 26, 16), (70, 46, 26), (104, 72, 40), (140, 104, 60)],
+                    blade=verdant_blade, swipe=(170, 255, 150), crown=leaf_crown, hair=lambda v: (int(240 * v), int(200 * v), int(120 * v)), glow=(120, 255, 120, 100)),
     'cyber': dict(plate=cyber_plate, cloth=[(10, 12, 26), (22, 26, 48)], scarf=[(150, 10, 120), (255, 42, 216), (255, 160, 240)],
                   helm=[(10, 12, 22), (24, 28, 44), (46, 52, 76), (80, 90, 120)], glove=[(10, 12, 22), (24, 28, 44), (46, 52, 76), (80, 90, 120)],
                   blade=cyber_blade, swipe=(255, 150, 240), crown=visor, hair=lambda v: (int(140 * v), int(250 * v), 255), glow=(255, 60, 210, 120)),
@@ -387,8 +475,52 @@ def aero_sunset(N):
     for y, x in zip(*np.nonzero(edge)):
         if x % 3 == 0 and x < 26: sc[y, x] = 0
 
+def nu_glam(N):
+    # platinum hair with hot-pink tips
+    h = N['hair']; ys, xs = np.nonzero(h[..., 3] > 0); top = ys.min() if len(ys) else 0
+    for x, y in zip(xs, ys):
+        v = K.shade_of(h[y, x])
+        h[y, x, :3] = K.hexrgb(K.ramp_pick([0xb02a8a, 0xff4ab8, 0xff9ad8, 0xffe0f4] if y >= top + 9 else [0x8a8aa8, 0xc8c8e0, 0xececf8, 0xffffff], v, 0.3, 1.0))
+    # a lightning bolt painted down his cheek, and star-shaped lens glints
+    hd = N['head']
+    for (x, y, c) in ((37, 15, 0x3ad8ff), (36, 16, 0x3ad8ff), (37, 16, 0xffffff), (36, 17, 0x3ad8ff), (35, 18, 0x3ad8ff)):
+        if hd[y, x, 3]: K.put(hd, x, y, c)
+    for y in range(11, 15):
+        for x in range(30, 42):
+            if hd[y, x, 3] and K.shade_of(hd[y, x]) < 0.25: hd[y, x, :3] = K.hexrgb(0xff4ab8 if (x + y) % 3 else 0xffd8f0)
+    # a glittering gold jacket: sparkles over the cloth
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore'):
+        lay = N.get(n)
+        if lay is None: continue
+        ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if 30 <= hh <= 60 and ss > 0.35 and (x * 7 + y * 3) % 9 == 0: lay[y, x, :3] = (255, 250, 210)
+
+def aero_midnight(N):
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    SKY = [0x060820, 0x0a1030, 0x101a44, 0x182658, 0x22346c, 0x2a427a]
+    glass = (hd[..., 3] > 0) & (yy >= 3) & (yy < 13) & (hd[..., :3].max(-1) > 80)
+    for y, x in zip(*np.nonzero(glass)):
+        hd[y, x, :3] = K.hexrgb(SKY[min(5, max(0, (y - 3) * 6 // 10))])
+        if (x * 13 + y * 7) % 23 == 0: hd[y, x, :3] = (255, 255, 255)                 # stars inside the dome
+    r, _ = rad(36, 7); r2, _ = rad(38, 6)                                             # a crescent moon
+    moon = (r <= 3) & (r2 > 2.6) & (hd[..., 3] > 0)
+    hd[moon, :3] = K.hexrgb(0xfff4c8)
+    sea = (hd[..., 3] > 0) & (yy >= 13) & (yy <= 22) & (hd[..., :3].max(-1) > 60)
+    for y, x in zip(*np.nonzero(sea)):
+        if abs(x - 36) <= 1 and (y % 2 == 0): hd[y, x, :3] = K.hexrgb(0xfff4c8)     # the moon's path on the water
+    # the goldfish in a nightcap (drawn on the dome, just over where the fish swims)
+    K.stamp(hd, 33, 9, [".....w", "...bb.", ".bbbbb"], {'b': 0xe84a5a, 'w': 0xffffff})
+    # the scarf: midnight blue, little stars
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        if (x * 5 + y * 11) % 17 == 0: sc[y, x, :3] = (255, 244, 200)
+
 PART_LOOKS = {
     'vapor': ('nu', 'nu_draw', NUG, {'acid': {'to': 318, 'sat': 0.8, 'val': 1.1}, 'hair': {'hue': 184, 'sat': 0.9, 'val': 1.05}, 'cloth': {'to': 270, 'sat': 1.6, 'val': 1.3}}, nu_vapor, (255, 122, 208)),
+    'glam': ('nu', 'nu_draw', NUG, {'acid': {'to': 322, 'sat': 1.1, 'val': 1.15}, 'hair': {'sat': 0.2, 'val': 1.2}, 'cloth': {'to': 44, 'sat': 2.4, 'val': 2.2}}, nu_glam, (255, 74, 184)),
+    'midnight': ('aero', 'aero_draw', AEG, {'aqua': {'to': 232, 'sat': 1.0, 'val': 0.6}, 'lime': {'to': 268, 'sat': 0.5, 'val': 1.1}, 'fish': {'to': 44, 'sat': 0.9, 'val': 1.15}}, aero_midnight, (122, 150, 255)),
     'sunset': ('aero', 'aero_draw', AEG, {'aqua': {'to': 24, 'sat': 1.0, 'val': 1.05}, 'lime': {'to': 322, 'sat': 0.9}, 'fish': {'to': 2, 'sat': 1.1, 'val': 1.0}}, aero_sunset, (255, 154, 90)),
 }
 
@@ -412,7 +544,8 @@ def build_parts(name):
     return A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
 
 # ====================================================================== run
-LOOKS = {'eclipse': build_ss, 'aurora': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'obsidian': build_hk, 'cyber': build_hk, 'vapor': build_parts, 'sunset': build_parts}
+LOOKS = {'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
+         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts}
 
 if __name__ == '__main__':
     names = [a for a in sys.argv[1:] if a in LOOKS] or list(LOOKS)

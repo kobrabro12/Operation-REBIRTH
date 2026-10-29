@@ -382,7 +382,7 @@ export class MatchScene extends Phaser.Scene {
     this.puff(c.x, c.y, 0xffffff, 6 + Math.floor(kb));
     this.puff(c.x, c.y, 0xf3c358, 4);
     if (owner) this.skinHitFx(owner, c.x, c.y, kb, dir, dmg);
-    this.extras.onHit(t, dmg, kb);
+    this.extras.onHit(t, dmg, kb, owner);
     if (owner && owner.def.hitSfx && !hb.projectile && !hb.pillar) sfx(owner.def.hitSfx, 0.32, 0.9 + Math.random() * 0.2);   // steel ringing on steel
     if (kb > 8) { sfx('bighit', 0.9); this.shake(Math.min(12, kb), 3); } else sfx('hit', 0.7, 1 + Math.random() * 0.2);
     if (h.homerun && h.full) {                      // a fully charged Grand Slam: crack of the bat

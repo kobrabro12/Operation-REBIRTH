@@ -39,6 +39,7 @@ export const SKIN_INTROS = {
   "soul-summoner:JACK-O'-LANTERN": { kind: 'rise', color: 0xff8a1a, color2: 0x5aff5a, shape: 'ember', sfx: ['laugh', 0.4, 1.2] },
   'soul-summoner:HIGH NOON': { kind: 'swarm', shape: 'leaf', colors: [0xc8a060, 0x8a6a3a, 0xe8d0a0], n: 22, pre: ['whoosh', 0.4, 0.6], sfx: ['clang', 0.5, 0.6] },
   'soul-summoner:ECLIPSE': { kind: 'portal', color: 0x0a0806, color2: 0xf3c358, sfx: ['limitready', 0.5, 0.8] },
+  'soul-summoner:CELESTIAL': { kind: 'swarm', shape: 'star', colors: [0xb4d2ff, 0xffffff, 0xb07ae0], n: 22, sfx: ['glass', 0.5, 1.3] },
   'soul-summoner:AURORA': { kind: 'swarm', shape: 'ring', colors: [0x3affa8, 0x5ad0ff, 0xd85aff], n: 18, sfx: ['glass', 0.5, 0.9] },
   'soul-summoner:THE HOLLOW KING': { kind: 'rise', color: 0x3a1a5a, color2: 0xf3c358, shape: 'star', sfx: ['roar', 0.4, 1.3] },
   'soul-summoner:1-BIT': { kind: 'warp', color: 0xffffff },
@@ -47,6 +48,7 @@ export const SKIN_INTROS = {
   'mr-wake:NEON': { kind: 'warp', color: 0xff4fd8, sfx: ['laser', 0.4, 1.4] },
   'mr-wake:CREATURE FEATURE': { kind: 'bolt', color: 0xffffff, sfx: ['thunder', 0.6, 1] },
   'mr-wake:VAMPIRE': { kind: 'swarm', shape: 'bat', colors: [0x1a0a14, 0x5a0a1a, 0x2a1a2a], n: 20, pre: ['bats', 0.5, 1], sfx: ['curse', 0.4, 1.2] },
+  'mr-wake:PLAGUE DOCTOR': { kind: 'portal', color: 0x1a2a1e, color2: 0x5aff6a, sfx: ['curse', 0.4, 0.7] },
   'mr-wake:SAKURA': { kind: 'swarm', shape: 'petal', colors: [0xffb8d0, 0xffd8e8, 0xff8ab0], n: 26, sfx: ['petal', 0.6, 1.2] },
   'mr-wake:TIDEFATHER': { kind: 'portal', color: 0x0a2a4a, color2: 0x5ae8ff, sfx: ['geyser', 0.6, 0.7] },
   // Lacy
@@ -54,6 +56,7 @@ export const SKIN_INTROS = {
   'hero-knight:AKATSUKI': { kind: 'swarm', shape: 'leaf', colors: [0xe8202a, 0x1a1414, 0xffffff], n: 20, sfx: ['smoke', 0.5, 1] },
   'hero-knight:16-BIT HERO': { kind: 'warp', color: 0x5aff8a, pre: ['menu', 0.6, 1.4], sfx: ['ding', 0.5, 1] },
   'hero-knight:OBSIDIAN': { kind: 'rise', color: 0xff5a1a, color2: 0x2a1a1a, shape: 'ember', sfx: ['rumble', 0.6, 0.9] },
+  'hero-knight:WILDWOOD': { kind: 'swarm', shape: 'leaf', colors: [0x8aff6a, 0x3aa84a, 0xe8ff9a], n: 24, sfx: ['petal', 0.6, 0.8] },
   'hero-knight:CYBERBLADE': { kind: 'warp', color: 0x3affff, pre: ['glitch', 0.4, 1.2], sfx: ['laser', 0.4, 1.8] },
   'hero-knight:SERAPH': { kind: 'drop', color: 0xfff4c0, trail: 0xffffff, feathers: true, sfx: ['limitready', 0.5, 1.2] },
   'hero-knight:SOLID GOLD': { kind: 'swarm', shape: 'coin', colors: [0xf3c358, 0xffe48a, 0xc8962a], n: 18, sfx: ['ding', 0.6, 1.2] },
@@ -63,10 +66,12 @@ export const SKIN_INTROS = {
   'nu:BONEZ': { kind: 'rise', color: 0x5aff5a, color2: 0xe8e8d8, shape: 'wisp', sfx: ['laugh', 0.4, 0.8] },
   'nu:HOMEROOM': { kind: 'swarm', shape: 'note', colors: [0xffffff, 0xf3c358, 0x5ad0ff], n: 16, sfx: ['ding', 0.5, 0.9] },
   'nu:SILENT FILM': { kind: 'iris', color: 0xf4efe0, sfx: ['menu', 0.5, 0.6] },
+  'nu:GLAM': { kind: 'drop', color: 0xff4ab8, trail: 0xffd23a, notes: true, sfx: ['ding', 0.5, 1.4] },
   'nu:VAPORWAVE': { kind: 'warp', color: 0xff8ad8, sfx: ['glitch', 0.4, 1.6] },
   // AERO
   'aero:KOI': { kind: 'bubble', color: 0xff8a2a, sfx: ['glass', 0.5, 1.2] },
   'aero:FORECAST': { kind: 'bolt', color: 0xfff4a8, sfx: ['thunder', 0.5, 1.3] },
+  'aero:MIDNIGHT': { kind: 'bubble', color: 0x7a96ff, sfx: ['glass', 0.5, 0.7] },
   'aero:SUNSET': { kind: 'bubble', color: 0xffb84a, sfx: ['glass', 0.5, 1] },
   // WHAT ONCE WAS
   'what-once-was:FRUTIGER': { kind: 'bubble', color: 0x7ad8f0, sfx: ['glass', 0.5, 1.2] },

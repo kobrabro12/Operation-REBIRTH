@@ -9,6 +9,10 @@ match instead of the stage's own music. All original, all synthesised; each one 
   jazz    BLUE HOUR         a jazz trio: walking bass, Rhodes comping, brushes and a saxophone
   taiko   TAIKO THUNDER     war drums under a shakuhachi and koto
   dream   STARLIGHT         a music box, a slow pad and glass bells - gentle
+  boss    FINAL BOSS        a boss fight: chugging distorted power chords, double kicks, a screaming lead, an organ
+  rain    RAINY WINDOW      a rainy afternoon: soft piano, a brushed beat, rain on the glass, distant thunder
+  sugar   SUGAR RUSH        bubblegum pop: bouncy plucks, claps, a sing-song lead, sparkles
+  disco   MIRRORBALL        disco: four on the floor, an octave bass that won't sit still, string stabs, a clavinet
 
 Run:  python3 tools/audio/shop_music.py [names...]
 Writes public/assets/audio/music/shop_<name>.ogg and .mp3. Loaded in BootScene as bgm_shop_<name>.
@@ -200,6 +204,98 @@ def dream():
         if bar % 2 == 0: add(buf, glass(G + 24 + ch[2], 3.0, 0.3, wobble=0.15), t0 + b)
     return write(wrap_reverb(buf, 3.0, 1.4, 0.45), 'dream')
 
-PIECES = {'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream}
+def dist_saw(m, dur, vel=1.0, cut=2400):
+    """a distorted guitar: two detuned saws through a soft clipper"""
+    x = saw(m, dur, 1.0, 5000, 0.12, 0.003, 0.05) + saw(m + 7, dur, 0.7, 5000, 0.1, 0.003, 0.05)
+    return lp(np.tanh(x * 6), cut) * 0.32 * vel
+def strings(midis, dur, vel=1.0):
+    return sum(saw(m, dur, 1.0, 2600, 0.15, 0.01, 0.12) for m in midis) * 0.2 * vel
+def clav(m, dur, vel=1.0):
+    n = secs(dur); t = np.arange(n) / SR; ph = (t * hz(m)) % 1
+    x = np.where(ph < 0.3, 1.0, -0.4) * np.exp(-t * 9)
+    return bp(x, 300, 4000) * 0.4 * vel
+def clap(vel=1.0):
+    n = secs(0.18); t = np.arange(n) / SR; e = np.zeros(n)
+    for d in (0, 0.011, 0.022): e += np.exp(-np.clip(t - d, 0, None) * 60) * (t >= d)
+    return bp(noise(n), 900, 3500) * e * 0.35 * vel
+
+def boss():
+    bpm, bars = 168, 24; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); E = 40
+    prog = [0, 0, 1, 0, 0, 0, 3, 1]                                                       # E phrygian, menacing
+    lead = [24, 23, 24, 26, 27, 26, 24, 22, 24, None, 19, 20, 22, 20, 19, 17]
+    for bar in range(bars):
+        r = prog[bar % 8]; t0 = bar * 4 * b
+        for k in range(8):                                                               # chugging power chords (palm-muted 8ths)
+            add(buf, dist_saw(E + 12 + r, b * (0.42 if k % 4 != 3 else 0.9), 0.9 if k % 4 == 0 else 0.6, 1600 if k % 4 else 2600), t0 + k * b / 2)
+        for k in range(8): add(buf, drum_kick(0.85), t0 + k * b / 2)                      # double kicks
+        for k in range(4):
+            if k % 2: add(buf, drum_snare(1.0), t0 + k * b)
+            add(buf, drum_hat(0.45), t0 + k * b + b / 2)
+        if bar % 8 == 0: add(buf, lp(noise(secs(1.5)) * np.exp(-np.arange(secs(1.5)) / SR * 3), 7000) * 0.25, t0)   # a crash
+        if bar >= 8:                                                                      # the screaming lead
+            for k in range(4):
+                m = lead[(bar * 4 + k) % 16]
+                if m is not None: add(buf, lp(np.tanh(sq(E + 12 + m, b * 0.95, 1.0, 0.3, vib=0.35) * 3), 5000) * 0.16, t0 + k * b)
+        if bar % 4 == 0: add(buf, organ(E + 24 + r, 4 * b, 0.8) + organ(E + 27 + r, 4 * b, 0.6) + organ(E + 31 + r, 4 * b, 0.5), t0)
+    return write(wrap_reverb(buf, 1.4, 3, 0.18), 'boss')
+
+def rain():
+    bpm, bars = 74, 12; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); C = 48
+    chords = [[0, 4, 7, 11, 14], [-3, 0, 4, 7, 12], [5, 9, 12, 16], [7, 11, 14, 17]]
+    mel = [19, None, 16, 14, 16, None, 12, None, 14, 16, 19, 21, 19, None, None, None]
+    for bar in range(bars):
+        ch = chords[bar % 4]; t0 = bar * 4 * b
+        for k, m in enumerate(ch): add(buf, piano(C + 12 + m, 2.6, 0.32, honky=0.0), t0 + k * 0.09)   # a rolled chord
+        add(buf, piano(C - 12 + ch[0], 3.0, 0.4, honky=0.0), t0)
+        for k in range(4): add(buf, lp(drum_snare(0.35, brush=True), 3000), t0 + k * b + (b * 0.5 if k % 2 else 0))   # brushes
+        for at in (0, 2.5 * b): add(buf, lp(drum_kick(0.4), 1500), t0 + at)                 # a soft kick
+        if bar >= 2:
+            for k in range(4):
+                m = mel[(bar * 4 + k) % 16]
+                if m is not None: add(buf, piano(C + 24 + m, 1.6, 0.38, honky=0.0), t0 + k * b)
+    rainn = lp(hp(noise(N), 1500), 7000) * 0.05                                           # rain on the glass
+    drops = np.zeros(N); idx = rng.integers(0, N, N // 2500); drops[idx] = rng.random(len(idx)) * 0.5
+    rainn += bp(drops, 2000, 6000) * 0.6
+    tn = secs(4.0); tt = np.arange(tn) / SR
+    add(buf, lp(noise(tn), 160) * np.exp(-tt * 1.2) * (1 - np.exp(-tt * 8)) * 0.8, L * 0.55)   # far-off thunder
+    buf = buf + rainn
+    return write(wrap_reverb(buf, 2.2, 2.2, 0.3), 'rain')
+
+def sugar():
+    bpm, bars = 128, 16; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); G = 55
+    prog = [[0, 4, 7], [7, 11, 14], [9, 12, 16], [5, 9, 12]]                               # I V vi IV
+    hook = [12, 14, 16, 19, 16, 14, 12, None, 12, 14, 16, 21, 19, 16, 14, None]
+    for bar in range(bars):
+        ch = prog[bar % 4]; t0 = bar * 4 * b
+        for k in range(8): add(buf, sq(G - 12 + ch[0] + (12 if k % 2 else 0), b * 0.4, 0.3, 0.5), t0 + k * b / 2)   # bouncy bass
+        for k in range(8): add(buf, musicbox(G + 12 + ch[k % 3], 0.6, 0.35), t0 + k * b / 2 + (b / 4 if k % 2 else 0) * 0)   # plucks
+        for k in range(4):
+            add(buf, drum_kick(0.9), t0 + k * b)
+            if k % 2: add(buf, clap(1.0), t0 + k * b); add(buf, drum_snare(0.4), t0 + k * b)
+            add(buf, drum_hat(0.5), t0 + k * b + b / 2)
+        if bar >= 4:
+            for k in range(4):
+                m = hook[(bar * 4 + k) % 16]
+                if m is not None: add(buf, sq(G + 12 + m, b * 0.8, 0.16, 0.25, vib=0.15) + glass(G + 24 + m, b * 0.8, 0.1), t0 + k * b)
+        if bar % 2 == 1: add(buf, glass(G + 36 + ch[1], 1.2, 0.18), t0 + 3.5 * b)        # sparkles
+    return write(wrap_reverb(buf, 1.4, 3, 0.2), 'sugar')
+
+def disco():
+    bpm, bars = 118, 16; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); A = 45
+    prog = [(0, [12, 15, 19, 22]), (5, [17, 21, 24, 27]), (3, [15, 19, 22, 26]), (-2, [10, 14, 17, 21])]   # Am7 Dm7 Cmaj7 G7-ish
+    for bar in range(bars):
+        root, ch = prog[bar % 4]; t0 = bar * 4 * b
+        for k in range(8): add(buf, lp(saw(A - 12 + root + (12 if k % 2 else 0), b * 0.42, 0.7, 1200), 1400), t0 + k * b / 2)   # octave bass
+        for k in range(4):
+            add(buf, drum_kick(1.0), t0 + k * b)                                            # four on the floor
+            if k % 2: add(buf, drum_snare(0.7), t0 + k * b); add(buf, clap(0.6), t0 + k * b)
+            add(buf, drum_hat(0.7), t0 + k * b + b / 2)                                     # open hats on the off-beat
+        for k in (1, 3): add(buf, clav(A + 12 + ch[0], b * 0.3, 0.8) + clav(A + 12 + ch[1], b * 0.3, 0.6), t0 + k * b + b / 4)
+        if bar % 2 == 0: add(buf, strings([A + 12 + c for c in ch], b * 0.5, 1.0), t0 + 0.5 * b); add(buf, strings([A + 12 + c for c in ch], b * 1.5, 0.8), t0 + 2.5 * b)
+        if bar >= 8 and bar % 4 == 3:                                                       # a string run up into the next phrase
+            for i in range(8): add(buf, strings([A + 24 + [0, 2, 3, 5, 7, 8, 10, 12][i]], b * 0.2, 0.9), t0 + 2 * b + i * b / 4)
+    return write(wrap_reverb(buf, 1.6, 2.6, 0.2), 'disco')
+
+PIECES = {'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

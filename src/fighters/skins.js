@@ -83,6 +83,10 @@ export const SKINS = {
     // AURORA: northern lights - a deep teal cape, a flame that burns magenta, silver trim; wisps of light trail him
     { name: 'AURORA', sheetSet: 'aurora', shop: 'cos-aurora', swatch: 0x1ad0b0, fx: 0xff6ad8, groups: SS, rules: { cape: { to: 172, sat: 1.4, val: 0.9 }, flame: { to: 312, sat: 1.1, val: 1.15 }, gold: { sat: 0.12, val: 1.2 }, eyes: { to: 160, val: 1.2 }, armor: { to: 200, satAdd: 0.12, val: 0.8 } },
       vfx: { hit: { shape: 'wisp', colors: [0x5affd8, 0xff6ad8, 0xffffff], n: 7, ring: 0x5affd8 }, aura: { orbit: { n: 3, colors: [0x5affd8, 0xff6ad8], r: 24 } }, minion: { flame: { to: 312, sat: 1.1 }, eyes: { to: 160 } } } },
+    // CELESTIAL: the night sky - a cape full of stars and a violet nebula, silver armour, a moonlight flame, a crescent moon
+    // rising behind his silver crown; hits scatter stars and two little moons orbit him
+    { name: 'CELESTIAL', sheetSet: 'celestial', shop: 'cos-celestial', swatch: 0x162458, fx: 0xb4d2ff, groups: SS, rules: { armor: { to: 222, sat: 0.25, val: 1.35 }, gold: { to: 210, sat: 0.35, val: 1.3 }, flame: { to: 196, sat: 0.55, val: 1.3 }, eyes: { to: 188, sat: 0.9, val: 1.3 }, cape: { to: 230, sat: 0.8, val: 0.5 } },
+      vfx: { hit: { shape: 'star', colors: [0xb4d2ff, 0xffffff, 0xb07ae0], n: 9, ring: 0xb4d2ff, glint: true }, aura: { orbit: { n: 2, colors: [0xfff4c8, 0xb4d2ff], r: 22 } }, minion: { flame: { to: 196, sat: 0.55 }, eyes: { to: 188 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
     { name: 'GRAVEKEEPER', milestone: 1, swatch: 0x6f7d4a, fx: 0x9bbf6a,
@@ -147,6 +151,10 @@ export const SKINS = {
     // CYBERBLADE: chrome and neon - an electric-cyan suit, hot-magenta sash, mirror-bright steel; her hits glitch into pixels
     { name: 'CYBERBLADE', sheetSet: 'cyber', shop: 'cos-cyber', swatch: 0x2af0ff, fx: 0xff2ad8, groups: HK, rules: { suit: { to: 188, sat: 2.6, val: 1.2 }, sash: { to: 312, sat: 1.4, val: 1.5 }, steel: { hue: 200, satAdd: 0.06, val: 1.4 }, white: { hue: 300, satAdd: 0.3 } },
       vfx: { hit: { shape: 'pixel2', colors: [0x2af0ff, 0xff2ad8, 0xffffff], n: 10, ring: 0x2af0ff, sound: 'glitch' }, trail: 0x2af0ff } },
+    // WILDWOOD: armour of living bark with moss in the grain, leaves sprouting from her helmet, a sword of glowing green wood;
+    // her hits scatter leaves
+    { name: 'WILDWOOD', sheetSet: 'verdant', shop: 'cos-verdant', swatch: 0x4a7a2a, fx: 0x8aff6a, groups: HK, rules: { suit: { to: 30, sat: 0.7, val: 0.6 }, sash: { to: 100, sat: 1.1, val: 1.2 }, steel: { hue: 34, satAdd: 0.25, val: 0.7 }, white: { hue: 90, satAdd: 0.3 } },
+      vfx: { hit: { shape: 'sakura', colors: [0x8aff6a, 0x3aa84a, 0xe8ff9a], n: 9, ring: 0x8aff6a }, trail: 0x8aff6a } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
     { name: 'SQUIRE', milestone: 1, swatch: 0xa86a32, fx: 0xe0a060,
@@ -226,6 +234,11 @@ export const SKINS = {
     { name: 'VAPORWAVE', sheetSet: 'vapor', shop: 'cos-vapor', swatch: 0xff7ad8, fx: 0x5af0f0, groups: NUG, rules: { acid: { to: 318, sat: 0.8, val: 1.1 }, hair: { hue: 184, sat: 0.9, val: 1.05 }, cloth: { to: 270, sat: 1.6, val: 1.3 } },
       pal: { outline: 0x1a0a2a, deep: 0x8a3ab0, mid: 0xff7ad8, light: 0x5af0f0, core: 0xffffff, shade: 0x2a1040, void: 0x0a0414 },
       vfx: { hit: { shape: 'note', colors: [0xff7ad8, 0x5af0f0, 0xffffff], n: 7, glint: true } } },
+    // GLAM (SHOP): platinum hair dipped in hot pink, a lightning bolt down his cheek, pink lenses, a glittering gold jacket.
+    // Every note comes out a star
+    { name: 'GLAM', sheetSet: 'glam', shop: 'cos-glam', swatch: 0xffd23a, fx: 0xff4ab8, groups: NUG, rules: { acid: { to: 322, sat: 1.1, val: 1.15 }, hair: { sat: 0.2, val: 1.2 }, cloth: { to: 44, sat: 2.4, val: 2.2 } },
+      pal: { outline: 0x2a0a20, deep: 0xb02a8a, mid: 0xff4ab8, light: 0xffd23a, core: 0xffffff, shade: 0x3a1030, void: 0x10040c },
+      vfx: { hit: { shape: 'star', colors: [0xff4ab8, 0xffd23a, 0x3ad8ff, 0xffffff], n: 9, glint: true }, aura: { motes: { colors: [0xffd23a, 0xff4ab8], rate: 5 } } } },
   ],
   // WHAT ONCE WAS (test fighter): TV static bursts off every hit
   'what-once-was': [
@@ -341,6 +354,11 @@ export const SKINS = {
     { name: 'SUNSET', sheetSet: 'sunset', shop: 'cos-sunset', swatch: 0xff8a3a, fx: 0xff5ab0, groups: AEG, rules: { aqua: { to: 24, sat: 1.0, val: 1.05 }, lime: { to: 322, sat: 0.9 }, fish: { to: 48, sat: 1.0, val: 1.1 } },
       pal: { outline: 0x3a0a14, deep: 0xc0401a, mid: 0xff8a3a, light: 0xffc87a, core: 0xffffff, shade: 0x4a1a1a, void: 0x140404 },
       vfx: { hit: { shape: 'bubble', colors: [0xffc87a, 0xff5ab0, 0xffffff], n: 8, ring: 0xff8a3a, glint: true } } },
+    // MIDNIGHT (SHOP): his dome holds the night - stars, a crescent moon, its path on the water; navy glass, silver trim,
+    // a starry scarf, and the goldfish has put on a nightcap
+    { name: 'MIDNIGHT', sheetSet: 'midnight', shop: 'cos-midnight', swatch: 0x101a44, fx: 0x7a96ff, groups: AEG, rules: { aqua: { to: 232, sat: 1.0, val: 0.6 }, lime: { to: 268, sat: 0.5, val: 1.1 }, fish: { to: 44, sat: 0.9, val: 1.15 } },
+      pal: { outline: 0x02040e, deep: 0x101a44, mid: 0x2a427a, light: 0x7a96ff, core: 0xfff4c8, shade: 0x060820, void: 0x010208 },
+      vfx: { hit: { shape: 'star', colors: [0xfff4c8, 0x7a96ff, 0xffffff], n: 8, ring: 0x7a96ff, glint: true }, aura: { motes: { colors: [0xfff4c8, 0x7a96ff], rate: 7 } } } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
@@ -372,6 +390,10 @@ export const SKINS = {
     // SAKURA: cherry-blossom pink robes, a white-pink gem; petals fall wherever he hits
     { name: 'SAKURA', sheetSet: 'sakura', shop: 'cos-sakura', swatch: 0xffa8c8, fx: 0xffd0e0, groups: MW, rules: { robe: { to: 334, sat: 0.55, val: 1.9 }, magic: { to: 340, sat: 0.4, val: 1.3 }, cloth: { to: 300, sat: 0.9, val: 1.3 }, wood: { to: 18, sat: 0.7, val: 0.8 } },
       vfx: { hit: { shape: 'sakura', colors: [0xffc8dc, 0xffffff, 0xff8ab0], n: 8 } } },
+    // PLAGUE DOCTOR: a black coat, leather hat and gloves, a long beaked mask with green-glass goggles; the staff carries
+    // a caged lantern of sickly green fire. Hits puff out green miasma
+    { name: 'PLAGUE DOCTOR', sheetSet: 'plague', shop: 'cos-plague', swatch: 0x1a2a1e, fx: 0x5aff6a, groups: MW, rules: { robe: { to: 150, sat: 0.25, val: 0.42 }, magic: { to: 118, sat: 1.1, val: 1.15 }, cloth: { to: 28, sat: 0.9, val: 1.1 }, wood: { to: 20, sat: 0.3, val: 0.6 } },
+      vfx: { hit: { shape: 'smoke', colors: [0x5aff6a, 0x2a8a3a, 0xc8ffb0], n: 9, sparks: [0x5aff6a, 0xe0c890] } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.
     { name: 'RIPTIDE', milestone: 1, swatch: 0x2a8ad0, fx: 0x7ad0ff,

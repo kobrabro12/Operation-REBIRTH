@@ -13,6 +13,8 @@
 // while you carry on shopping; click his screen (or leave the shop) to switch it off.
 //   STILLLIFE  the shop phases into the Backrooms, he becomes a 90s antenna TV playing Mason's Still Life video
 //   RTD        (REMEMBER THAT DAY) Rosemary screams on his screen and the whole shop turns into a VHS tape
+//   NOLI       for good: his face becomes Mason's NOLI drawing, everything he says comes out glitched, a purple haze
+//              hangs over the shop from then on, and the first 5 seconds of the NOLI clip play every time it's typed
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic, stopMusic } from '../audio/music.js';
 import { settings } from '../settings.js';
@@ -24,7 +26,7 @@ import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool } from '../data/shop.js
 import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
-import { stat, addSecret, checkAchievements } from '../achievements.js';
+import { stat, addSecret, checkAchievements, getStats } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -45,7 +47,23 @@ const KEYPAD = { x: 30, y: 108, w: 42, h: 36, gap: 6, cols: 8, keys: [...'ABCDEF
 const SECRETS = {
   STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife', look: 'backrooms', tv: '90s' },
   RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
+  // forever (saved: the code is in the player's found secrets): nothing plays on his screen - he IS it now. `clip` plays once.
+  NOLI: { forever: true, clip: ['assets/shop/noli.ogg', 'assets/shop/noli.mp3'], line: 'noli', look: 'noli' },
 };
+// NOLI: how glitched his lines come out - chance per letter of a junk character / a stutter, how often the shown line
+// re-scrambles while it's up (frames), his face's tint, and the haze's colour + strength
+const NOLI = { junk: 0.07, stutter: 0.05, rescramble: 9, junkChars: '#%?/_<>*0!', tint: 0xd8a8ff, haze: 0x7a2ad8, hazeA: 0.14 };
+// a line as NOLI says it: letters swapped for junk, stuttered words, now and then a trailing-off
+function glitchLine(s) {
+  let o = '';
+  for (const w of s.split(' ')) {
+    let x = '';
+    if (w.length > 2 && Math.random() < NOLI.stutter * 3) x += w[0] + '-';
+    for (const ch of w) { if (/[A-Z]/.test(ch) && Math.random() < NOLI.junk) x += NOLI.junkChars[Math.floor(Math.random() * NOLI.junkChars.length)]; else x += ch; if (/[A-Z]/.test(ch) && Math.random() < NOLI.stutter) x += ch; }
+    o += (o ? ' ' : '') + x;
+  }
+  return Math.random() < 0.2 ? o + '...' : o;
+}
 const PAGE = { x: 362, y: 46 };                                           // PAGE 1/2 and its arrows, over the cards' top right
 const BTN = { y: SIDE.y + SIDE.h - 34, h: 28, prevW: 56 };                 // the panel's buttons (PREVIEW sits left of BUY on a costume)
 // the moves a costume preview plays, in this order (whichever the fighter has)
@@ -56,6 +74,7 @@ export class ShopScene extends Phaser.Scene {
   constructor() { super('Shop'); }
 
   create() {
+    this.noli = getStats().secrets.includes('NOLI');   // NOLI found: he stays that way
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
@@ -89,6 +108,7 @@ export class ShopScene extends Phaser.Scene {
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, W - 8, 6);
     this.msg = 0;
+    this.noliClip = null;
     // overlays: the costume PREVIEW and the gacha SPIN, drawn over everything
     this.ov = this.add.graphics().setDepth(50);
     this.ovSpr = this.add.sprite(W / 2, 300, 'ss_idle', 0).setDepth(51).setVisible(false);
@@ -105,7 +125,8 @@ export class ShopScene extends Phaser.Scene {
     // (the scene object is reused on every visit: forget objects made on an earlier visit - they were destroyed with it)
     this.keyT = this.keyHint = this.kg = this.lookG = this.lookBg = this.osd = this.lookFx = null; this.look = null;
     // leaving the shop any way at all: stop the secret's sound and listeners, without touching the scene's (already torn down) display
-    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); });
+    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } });
+    if (this.noli) this.setLook('noli');             // (NOLI found earlier: the haze is already here)
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
     b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
@@ -275,7 +296,7 @@ export class ShopScene extends Phaser.Scene {
   // or tap / pick the letters on the on-screen keypad that covers the shelves (phones, gamepads).
   openCode() {
     this.secret = { mode: 'code', t: 0, typed: '', cur: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
-    const L = KEEPER.lines.secret; this.saying = L[Math.floor(Math.random() * L.length)]; this.sayT = 200;
+    const L = KEEPER.lines.secret; this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = 200;
     this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();   // the game's own key handling steps aside
     const onKey = (e) => {
       const S = this.secret; if (!S || S.mode !== 'code') return;
@@ -309,7 +330,19 @@ export class ShopScene extends Phaser.Scene {
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
+    if (S.forever) return this.becomeNoli(S);
     this.startPlaying(code);
+  }
+  // NOLI: he changes for good (the face, the lines, the haze), and the clip plays
+  becomeNoli(S) {
+    this.stopPlaying(true);
+    this.noli = true; this.setLook(S.look);
+    if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } }
+    const a = this.noliClip = new Audio(); a.src = S.clip.find((u) => a.canPlayType(u.endsWith('ogg') ? 'audio/ogg; codecs="vorbis"' : 'audio/mpeg')) || S.clip[S.clip.length - 1];
+    a.volume = Math.min(1, Math.max(settings.musicVolume, settings.sfxVolume)); a.play().catch(() => {});
+    stopMusic(); this.time.delayedCall(5300, () => { if (!this.playing) playMusic(this, 'bgm_title'); });   // the shop's music waits for the clip
+    this.static = 30; this.jolt = 16; this.cameras.main.shake(300, 0.006);
+    this.react('calm', S.line, 260);
   }
   // ---- a secret playing: drawn on his screen every frame (drawPlaying) while the shop carries on as normal
   startPlaying(code) {
@@ -341,7 +374,7 @@ export class ShopScene extends Phaser.Scene {
     this.playing = null;
     for (const m of [P.v, P.a]) if (m) { try { m.pause(); m.removeAttribute('src'); m.load(); } catch (e) { /* gone */ } }
     if (dying) { this.dropLook(); return; }
-    this.setLook(null);
+    this.setLook(this.noli ? 'noli' : null);
     if (!quiet) { this.vidImg.setVisible(false); this.static = 14; this.react('happy', 'off'); playMusic(this, 'bgm_title'); this.preview(); }
   }
   // draw the playing secret into his screen's texture
@@ -381,6 +414,7 @@ export class ShopScene extends Phaser.Scene {
     try {
       const cm = cam.filters.external.addColorMatrix();
       if (look === 'backrooms') { cm.colorMatrix.sepia(); this.lookFx = [cm]; }
+      else if (look === 'noli') { cm.colorMatrix.saturate(-0.25); this.lookFx = [cm, cam.filters.external.addVignette(0.5, 0.5, 0.95, 0.2)]; }
       else { cm.colorMatrix.saturate(-0.55); this.lookFx = [cm, cam.filters.external.addBarrel(1.03), cam.filters.external.addVignette(0.5, 0.5, 0.9, 0.3)]; }   // VHS: washed out, a curved old screen, dark corners
     } catch (e) { this.lookFx = null; }                                             // (no WebGL filters: the overlays still do the job)
     if (look === 'backrooms') {                                                     // the Backrooms: yellow wallpaper, damp carpet, a ceiling of buzzing lights
@@ -391,6 +425,7 @@ export class ShopScene extends Phaser.Scene {
       b.fillStyle(0xe0d8b0, 1); b.fillRect(0, 0, W, 44);
       for (let x = 0; x < W; x += 80) { b.lineStyle(1, 0xb8b090, 1); b.strokeRect(x, 0, 80, 44); }
       b.fillStyle(0x7a6a34, 1); b.fillRect(0, H - 30, W, 30); for (let i = 0; i < 300; i++) { b.fillStyle(Math.random() < 0.5 ? 0x6a5a2a : 0x8a7a44, 1); b.fillRect(Math.random() * W, H - 30 + Math.random() * 30, 2, 1); }
+    } else if (look === 'noli') {                                                   // NOLI: nothing extra to build - the haze is drawn live (drawLook)
     } else {                                                                        // VHS: on-screen display text
       const o = (x, y, ox, oy) => this.add.text(x, y, '', { fontFamily: FONT, fontSize: '8px', color: '#f4f4f4', shadow: { offsetX: 1, offsetY: 1, color: '#000', fill: true } }).setOrigin(ox, oy).setDepth(96);
       this.osd = [o(110, 14, 0, 0), o(16, H - 12, 0, 1), o(W - 16, H - 12, 1, 1)];   // PLAY (top, beside BACK), the title, the date + tape counter
@@ -403,6 +438,14 @@ export class ShopScene extends Phaser.Scene {
       for (let x = 40; x < W; x += 160) { const flick = (Math.sin(t * 0.7 + x) > 0.97) || ((t + x) % 233 < 3); g.fillStyle(0xfff8d8, flick ? 0.25 : 0.9); g.fillRect(x, 2, 60, 6); g.fillStyle(0xfff4c0, flick ? 0.02 : 0.07); g.fillRect(x - 30, 8, 120, 40); }
       if ((t % 400) < 4) { g.fillStyle(0x000000, 0.35); g.fillRect(0, 0, W, H); }   // the power dips for a moment
       g.fillStyle(0xffe890, 0.06); g.fillRect(0, 0, W, H);
+      return;
+    }
+    if (this.look === 'noli') {                                                    // a purple haze: a wash, slow drifting fog, purple corners, motes
+      g.fillStyle(NOLI.haze, NOLI.hazeA + 0.03 * Math.sin(t * 0.02)); g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 7; i++) { const x = ((i * 137 + t * (0.15 + i * 0.03)) % (W + 240)) - 120, y = 60 + ((i * 71) % 260) + Math.sin(t * 0.01 + i) * 14; g.fillStyle(0xb06aff, 0.05); g.fillEllipse(x, y, 220, 70); g.fillStyle(0xd8a8ff, 0.035); g.fillEllipse(x + 20, y - 6, 130, 36); }
+      for (let i = 0; i < 4; i++) { g.fillStyle(0x2a0848, 0.06); g.fillRect(i * 6, 0, 6, H); g.fillRect(W - (i + 1) * 6, 0, 6, H); g.fillRect(0, i * 5, W, 5); g.fillRect(0, H - (i + 1) * 5, W, 5); }
+      for (let i = 0; i < 16; i++) { const p = ((t * 0.4 + i * 53) % (H + 20)); g.fillStyle(0xe8c8ff, 0.35 * Math.abs(Math.sin(t * 0.03 + i))); g.fillRect((i * 97 + Math.sin(t * 0.02 + i) * 10) % W, H - p, 2, 2); }
+      if (Math.random() < 0.012) { g.fillStyle(0x000000, 0.25); g.fillRect(0, 0, W, H); this.static = Math.max(this.static, 4); }   // a hiccup now and then
       return;
     }
     // VHS: scanlines, a rolling tracking band, snow, a tear now and then, the tape's on-screen display
@@ -464,7 +507,7 @@ export class ShopScene extends Phaser.Scene {
     if (face !== this.face) { this.static = 6; this.faceStart = this.t; sfx('glitch', 0.12, 1.8); }
     this.face = face; this.faceT = face === 'calm' ? 0 : hold;
     if (face !== 'calm') this.jolt = 10;                                                 // the set rocks a little on the desk
-    const L = KEEPER.lines[line]; if (L) { this.saying = L[Math.floor(Math.random() * L.length)]; this.sayT = hold + 40; }
+    const L = KEEPER.lines[line]; if (L) { this.sayClean = L[Math.floor(Math.random() * L.length)]; this.saying = this.noli ? glitchLine(this.sayClean) : this.sayClean; this.sayT = hold + 40; }
   }
   // him: an old CRT TV with rabbit-ear antennas, sitting on a wooden desk, Mason's faces on the screen
   keeper(g, t) {
@@ -492,16 +535,18 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(0x6a6478, 1); g.fillRoundedRect(tx - 46, hy - 40, 92, 80, 10); g.fillStyle(0x837d92, 1); g.fillRoundedRect(tx - 46, hy - 40, 92, 6, 3);
     g.fillStyle(0x2a2632, 1); g.fillRoundedRect(tx - 42, hy - 36, 76, 72, 8);
     g.fillStyle(0x061a14, 1); g.fillRoundedRect(tx - 40, hy - 34, 72, 68, 7);
-    this.glow(g, tx - 4, hy, 38, 0x5affb8, 0.18);
+    this.glow(g, tx - 4, hy, 38, this.noli ? 0xb06aff : 0x5affb8, 0.18);
     for (let i = 0; i < 2; i++) { g.fillStyle(0x2a2632, 1); g.fillCircle(tx + 39, hy - 22 + i * 16, 4); g.fillStyle(0x9a94a8, 1); g.fillRect(tx + 38, hy - 26 + i * 16 + ((t >> 5) + i) % 3, 2, 4); }
     for (let i = 0; i < 4; i++) { g.fillStyle(0x2a2632, 1); g.fillRect(tx + 35, hy + 10 + i * 5, 8, 2); }
     g.fillStyle((t >> 5) % 2 ? 0x5aff8a : 0x2a8a4a, 1); g.fillRect(tx + 37, hy + 32, 3, 2);                     // the power light
     }
     // the face on the screen: the current face's strip, animated if it has more than one frame
-    const key = 'shop_face_' + this.face, F = KEEPER.faces[this.face], n = Math.max(1, this.textures.get(key).frameTotal - 1);
+    const fc = this.noli ? 'noli' : this.face, key = 'shop_face_' + fc, F = KEEPER.faces[fc], n = Math.max(1, this.textures.get(key).frameTotal - 1);
     // ...and alive: every face moves a little in its own way (see faceMotion)
     const [mx, my, msx, msy] = this.faceMotion(t);
-    this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(Math.round(tx - 4 + mx), Math.round(hy + my)).setScale(msx, msy).setVisible(this.static <= 0 || this.static % 2 === 0);
+    const gx = this.noli && Math.random() < 0.03 ? Math.round((Math.random() - 0.5) * 6) : 0;                 // NOLI: his face skips sideways now and then
+    this.faceImg.setTexture(key, Math.floor((t - this.faceStart) * F.fps / 60) % n).setPosition(Math.round(tx - 4 + mx + gx), Math.round(hy + my)).setScale(msx, msy).setVisible(this.static <= 0 || this.static % 2 === 0)
+      .setTint(this.noli ? NOLI.tint : 0x9affd8);
     const f = this.front; f.clear();
     for (let y = hy - 34; y < hy + 34; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(tx - 40, y, 72, 1); }        // scanlines
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
@@ -513,6 +558,7 @@ export class ShopScene extends Phaser.Scene {
     // the speech bubble
     if (this.sayT > 0 && this.saying) {
       this.sayT--;
+      if (this.noli && this.sayClean && this.sayT % NOLI.rescramble === 0) this.saying = glitchLine(this.sayClean);   // NOLI: the words won't hold still
       this.bubbleT.setText(this.saying).setVisible(true);
       const bw = Math.max(80, this.bubbleT.width + 16), bh = 20, bx = Math.min(W - bw - 70, hx - 64 - bw / 2), by = 14;
       f.fillStyle(0xf4f0fa, 1); f.fillRoundedRect(bx, by, bw, bh, 6); f.fillTriangle(bx + bw - 26, by + bh, bx + bw - 12, by + bh, tx - 30, hy - 44);
@@ -635,7 +681,7 @@ export class ShopScene extends Phaser.Scene {
   // a little window onto a stage with the effect on it: sky, a floating platform, the weather
   scenery(g, cx, cy, it, t) {
     const X = cx - 38, Y = cy - 27, w = 76, h = 54;
-    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830 }[it.id] ?? 0x3a4a8a;
+    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830, 'fx-neon': 0x1a0830, 'fx-candy': 0xd8e0ff, 'fx-sunken': 0x1a5a90, 'fx-harvest': 0xd05a32 }[it.id] ?? 0x3a4a8a;
     g.fillStyle(sky, 1); g.fillRect(X, Y, w, h);
     const rnd = (i, k) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
     switch (it.id) {
@@ -650,10 +696,21 @@ export class ShopScene extends Phaser.Scene {
       case 'fx-bloodmoon': g.fillStyle(0xc81a1a, 0.25); g.fillCircle(X + 38, Y + 22, 22); g.fillStyle(0xd8261a, 1); g.fillCircle(X + 38, Y + 22, 15); g.fillStyle(0xa81010, 1); g.fillCircle(X + 32, Y + 18, 3); g.fillCircle(X + 43, Y + 27, 4); break;
       case 'fx-sand': for (let i = 0; i < 6; i++) { g.fillStyle(0xe8c088, 0.5); const sx = X + ((rnd(i, 12) * w + t * 2) % (w + 20)) - 20; g.fillRect(Math.max(X, sx), Y + rnd(i, 13) * h, Math.min(20, X + w - Math.max(X, sx)), 1); }
         g.fillStyle(0x6a4a2a, 1); for (let i = 0; i < 20; i++) g.fillRect(X + ((rnd(i, 14) * w + t * 2.2) % w), Y + rnd(i, 15) * h, 1, 1); break;
+      case 'fx-neon': for (let i = 0; i < 6; i++) { g.fillStyle([0xffe05a, 0xffa05a, 0xff5a8a, 0xe02ac0, 0xb02ad0, 0x8a2ad8][i], 1); const hw = 14 - Math.abs(i - 1.5) * 2; g.fillRect(X + 38 - hw, Y + 10 + i * 4, hw * 2, 3); }   // striped sun over a grid
+        g.fillStyle(0x0a0218, 1); g.fillRect(X, Y + 34, w, h - 34); g.lineStyle(1, 0xff3ad8, 0.8); for (let i = -4; i <= 4; i++) g.lineBetween(X + 38 + i * 5, Y + 34, X + 38 + i * 16, Y + h); g.lineBetween(X, Y + 34, X + w, Y + 34); g.lineBetween(X, Y + 38 + ((t >> 2) % 6), X + w, Y + 38 + ((t >> 2) % 6)); break;
+      case 'fx-candy': for (const [x, c] of [[X + 12, 0xff8ab8], [X + 34, 0x8ae8c8], [X + 58, 0xb88aff]]) { g.fillStyle(c, 1); g.fillCircle(x, Y + 44, 12); }
+        for (let i = 0; i < 10; i++) { g.fillStyle([0xff5a9a, 0x5ad8ff, 0xffe05a, 0x7aff8a][i % 4], 1); g.fillRect(X + ((rnd(i, 16) * w + Math.sin(t * 0.05 + i) * 3) % w), Y + ((rnd(i, 17) * h + t * 0.4) % h), 1, 3); }
+        g.fillStyle(0xffffff, 1); g.fillEllipse(X + 20, Y + 10, 22, 7); for (let i = 0; i < 5; i++) { g.fillStyle(i % 2 ? 0xffffff : 0xe8203a, 1); g.fillRect(X + 64, Y + 22 + i * 4, 3, 4); } break;
+      case 'fx-sunken': for (let i = 0; i < 3; i++) { g.fillStyle(0xd8f8ff, 0.12); g.fillTriangle(X + 6 + i * 24, Y, X + 16 + i * 24, Y, X + 30 + i * 24, Y + h); }
+        g.fillStyle(0x0a2244, 1); g.fillRect(X + 10, Y + 18, 6, 26); g.fillRect(X + 56, Y + 24, 6, 20);
+        for (let i = 0; i < 8; i++) { g.lineStyle(1, 0xd8f8ff, 0.8); g.strokeCircle(X + rnd(i, 18) * w, Y + h - ((rnd(i, 19) * h + t * 0.5) % h), 1 + (i % 2)); } break;
+      case 'fx-harvest': g.fillStyle(0xffd070, 1); g.fillCircle(X + 20, Y + 16, 9); g.fillStyle(0x5a2a1a, 1); g.fillRect(X, Y + 36, w, h - 36);
+        for (let i = 0; i < 9; i++) { g.fillStyle([0xc83a1a, 0xe8822a, 0xf4b83a][i % 3], 1); g.fillRect(X + ((rnd(i, 20) * w + t * 0.5 + Math.sin(t * 0.06 + i) * 4) % w), Y + ((rnd(i, 21) * h + t * 0.35) % h), 3, 2); }
+        g.fillStyle(0xd86a1a, 1); g.fillEllipse(X + 54, Y + 38, 12, 9); g.fillStyle(0x3a6a2a, 1); g.fillRect(X + 53, Y + 32, 2, 3); break;
       case 'fx-aurora': for (let b = 0; b < 3; b++) for (let i = 0; i < w; i += 2) { const y = Y + 10 + b * 6 + Math.sin(i * 0.1 + t * 0.03 + b) * 4; g.fillStyle([0x3affa8, 0x5ad0ff, 0xb05aff][b], 0.4); g.fillRect(X + i, y, 2, 8); } break;
     }
     // the stage: a floating island
-    g.fillStyle(0x4a3a5a, 1); g.fillTriangle(X + 18, Y + 44, X + 58, Y + 44, X + 38, Y + 54); g.fillStyle(it.id === 'fx-snow' ? 0xffffff : it.id === 'fx-sand' ? 0xe8c088 : 0x6ac87a, 1); g.fillRect(X + 16, Y + 41, 44, 4);
+    g.fillStyle(0x4a3a5a, 1); g.fillTriangle(X + 18, Y + 44, X + 58, Y + 44, X + 38, Y + 54); g.fillStyle({ 'fx-snow': 0xffffff, 'fx-sand': 0xe8c088, 'fx-neon': 0xff7ae8, 'fx-candy': 0xfff4fa, 'fx-sunken': 0x3aa86a, 'fx-harvest': 0xe8822a }[it.id] ?? 0x6ac87a, 1); g.fillRect(X + 16, Y + 41, 44, 4);
     if (it.id === 'fx-bloodmoon') { g.fillStyle(0xff2020, 0.18); g.fillRect(X, Y, w, h); }
     g.lineStyle(1, 0x3a2654, 1); g.strokeRect(X, Y, w, h);
   }
@@ -675,6 +732,19 @@ export class ShopScene extends Phaser.Scene {
         g.fillStyle(0xffffff, 1); g.fillCircle(cx + 16, cy - 12, 5); break; }
       case 'ext-impact': { const flip = (t % 40) < 6; g.fillStyle(flip ? 0xffffff : 0x000000, 1); g.fillRect(cx - 38, cy - 27, 76, 54); g.fillStyle(flip ? 0x000000 : 0xffffff, 1);
         for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.fillTriangle(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, cx + Math.cos(a + 0.14) * 25, cy + Math.sin(a + 0.14) * 25, cx + Math.cos(a - 0.14) * 25, cy + Math.sin(a - 0.14) * 25); } break; }
+      case 'ext-comic': { const k = (t % 60) < 8 ? 1.15 : 1, pts = [];                       // a POW! starburst, popping
+        for (let i = 0; i < 20; i++) { const r = (i % 2 ? 15 : 26) * k, a = i / 20 * Math.PI * 2; pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.7 }); }
+        g.fillStyle(0x1a1024, 1); g.fillPoints(pts.map((p) => ({ x: cx + (p.x - cx) * 1.12, y: cy + (p.y - cy) * 1.12 })), true); g.fillStyle(0xffe03a, 1); g.fillPoints(pts, true);
+        g.fillStyle(0xff3a2a, 1); for (const [x, y, ww, hh] of [[-14, -5, 2, 10], [-14, -5, 6, 2], [-10, -5, 2, 5], [-14, -1, 6, 2], [-6, -5, 6, 2], [-6, 3, 6, 2], [-6, -5, 2, 10], [-2, -5, 2, 10], [2, -5, 2, 10], [4, 1, 2, 4], [6, -5, 2, 10], [10, -5, 2, 7], [10, 4, 2, 2]]) g.fillRect(cx + x, cy + y, ww, hh); break; }   // P O W !
+      case 'ext-combo': { const n = 1 + Math.floor((t % 120) / 20); g.fillStyle(0x5a4a70, 1); g.fillRect(cx - 4, cy + 4, 10, 16); g.fillCircle(cx + 1, cy, 6);   // a dummy taking hit after hit
+        for (let i = 0; i < n; i++) { g.fillStyle([0xffe8a0, 0xffe8a0, 0xffe8a0, 0xffb84a, 0xffb84a, 0xff3a3a][i], 1); g.fillRect(cx - 30 + i * 4, cy - 22 + (i % 2) * 2, 3, 3); }
+        g.fillStyle(n >= 5 ? 0xff3a3a : 0xffb84a, 1); g.fillRect(cx + 14, cy - 20, 3, 14); g.fillRect(cx + 14, cy - 3, 3, 3);
+        if ((t % 20) < 4) { g.fillStyle(0xffffff, 1); g.fillCircle(cx - 6, cy + 2, 4); } break; }
+      case 'ext-ghosts': for (let i = 4; i >= 0; i--) { const x = cx - 22 + i * 10 + ((t * 0.6) % 10); g.fillStyle(i === 4 ? 0xe8e4f4 : col, i === 4 ? 1 : 0.15 + i * 0.15); g.fillRect(x - 4, cy - 4, 9, 16); g.fillCircle(x, cy - 9, 5); } break;   // afterimages behind a runner
+      case 'ext-disco': { for (let i = 0; i < 6; i++) { g.fillStyle([0xff3ad8, 0x3ad8ff, 0xffe03a, 0x7aff5a, 0xb05aff, 0xff7a3a][(i + (t >> 4)) % 6], 0.9); g.fillRect(cx - 30 + i * 10, cy + 16, 9, 5); }   // a dance floor and a mirror ball
+        g.lineStyle(1, 0x8a87a3, 1); g.lineBetween(cx, cy - 27, cx, cy - 16); g.fillStyle(0x8a8aa8, 1); g.fillCircle(cx, cy - 8, 8);
+        for (let y = -6; y <= 6; y += 3) for (let x = -6; x <= 6; x += 3) if (x * x + y * y < 50) { g.fillStyle(((x + y + (t >> 3)) / 3 & 3) === 0 ? 0xffffff : 0xc8c8e0, 1); g.fillRect(cx + x, cy - 8 + y, 2, 2); }
+        for (let i = 0; i < 3; i++) { const a = Math.PI / 2 + Math.sin(t * 0.03 + i * 2) * 0.8; g.fillStyle([0xff3ad8, 0x3ad8ff, 0xffe03a][i], 0.18); g.fillTriangle(cx, cy - 8, cx + Math.cos(a - 0.15) * 34, cy - 8 + Math.sin(a - 0.15) * 34, cx + Math.cos(a + 0.15) * 34, cy - 8 + Math.sin(a + 0.15) * 34); } break; }
       default: g.fillStyle(col, 1); g.fillCircle(cx, cy, 10);
     }
   }
