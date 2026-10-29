@@ -93,7 +93,10 @@ export { getCoins } from '../progress.js';
 export const KEEPER = {
   // money: Mason's 9-frame animation (strip from tools/sprites/art/shopkeeper/face_money_anim.png); glasses: putting on
   // his specs to inspect a costume PREVIEW
-  faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 10 }, shock: { fps: 8 }, smug: { fps: 6 }, glasses: { fps: 6 } },
+  faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 10 }, shock: { fps: 8 }, smug: { fps: 6 }, glasses: { fps: 6 },
+    // grin: an achievement / a new gacha prize; melt: a duplicate prize; bow: switching something off, a sold-out machine;
+    // stare: the bell rung, or you've gone quiet for a while
+    grin: { fps: 6 }, melt: { fps: 6 }, bow: { fps: 6 }, stare: { fps: 6 } },
   // how long a reaction face stays up before he goes back to happy (frames)
   hold: 100,
   // what he says
@@ -116,6 +119,9 @@ export const KEEPER = {
     secret: ['...THREE RINGS. YOU KNOW THE DRILL.', 'A CUSTOMER WITH A SECRET?', 'TYPE IT IN. I WON\'T TELL.'],
     wrongcode: ['NOPE.', 'THAT\'S NOT A CODE.', 'NICE TRY.'],
     stilllife: ['NOW PLAYING: STILL LIFE.', 'SHH. THIS ONE\'S SPECIAL.'],
+    rtd: ['...REMEMBER THAT DAY?', 'I TOLD YOU NOT TO ASK.', 'SHE NEVER STOPS.'],
+    off: ['BACK TO BUSINESS.', 'CHANNEL CHANGED.', 'WHERE WERE WE?'],
+    quiet: ['...', 'STILL THERE?', 'TAKE YOUR TIME.'],
     poke: ['HEY! NO TOUCHING THE SCREEN.', 'PLEASE DO NOT TAP THE GLASS.', 'OW. FINGERPRINTS.'],
   },
 };

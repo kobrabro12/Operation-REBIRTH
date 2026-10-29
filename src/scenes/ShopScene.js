@@ -9,8 +9,10 @@
 // the machine plays out each pull (the `spin` overlay): crank, capsule, the prize. Duplicates pay back some coins.
 // A/D or arrows move along a shelf (W/S: up and down a row), Q/E (or a pad's X/Y) switch tabs,
 // J / Enter / A buys, K / Esc / B goes back. Mouse: click a tab or a card, BUY.
-// SECRETS: ring the bell on his desk 3 times and his screen asks for a code (SECRETS below); STILLLIFE plays
-// Mason's Still Life video on his screen, pixelated (public/assets/shop/still_life.mp4).
+// SECRETS: ring the bell on his desk 3 times and his screen asks for a code (SECRETS below). A secret keeps playing
+// while you carry on shopping; click his screen (or leave the shop) to switch it off.
+//   STILLLIFE  the shop phases into the Backrooms, he becomes a 90s antenna TV playing Mason's Still Life video
+//   RTD        (REMEMBER THAT DAY) Rosemary screams on his screen and the whole shop turns into a VHS tape
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic, stopMusic } from '../audio/music.js';
 import { settings } from '../settings.js';
@@ -37,7 +39,13 @@ const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
 // the on-screen keypad for typing a code (over the shelves): 8 x 4 keys
 const KEYPAD = { x: 30, y: 108, w: 42, h: 36, gap: 6, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'DEL', 'OK', 'CANCEL'] };
 // secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
-const SECRETS = { STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife' } };   // (webm first; mp4 for Safari)
+//   video  a clip drawn on his screen at `px` pixels square (webm first; mp4 for Safari) - plays once
+//   anim   a spritesheet looped on his screen (`fps`), with `audio` looping under it
+//   look   'backrooms' (sepia, wallpaper, buzzing lights, the 90s TV) or 'vhs' (washed-out tape, tracking, OSD)
+const SECRETS = {
+  STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife', look: 'backrooms', tv: '90s' },
+  RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
+};
 const PAGE = { x: 362, y: 46 };                                           // PAGE 1/2 and its arrows, over the cards' top right
 const BTN = { y: SIDE.y + SIDE.h - 34, h: 28, prevW: 56 };                 // the panel's buttons (PREVIEW sits left of BUY on a costume)
 // the moves a costume preview plays, in this order (whichever the fighter has)
@@ -93,7 +101,8 @@ export class ShopScene extends Phaser.Scene {
     this.secret = null; this.bellRings = []; this.bellWobble = 0;
     this.tvT = txt(KP.x - 4, KP.y - 16, '', 5, '#9affd8', { align: 'center' }).setOrigin(0.5).setDepth(1);
     this.tvCode = txt(KP.x - 4, KP.y + 6, '', 6, '#d8fff0').setOrigin(0.5).setDepth(1);
-    this.events.once('shutdown', () => this.closeSecret(true));
+    this.playing = null; this.idle = 0;
+    this.events.once('shutdown', () => { this.closeSecret(true); this.stopPlaying(true); });
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
     b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
@@ -101,8 +110,8 @@ export class ShopScene extends Phaser.Scene {
     b.fillStyle(C.panel2, 1); b.fillRect(GRID.x - 6, GRID.y - 6, GRID.cols * (GRID.w + GRID.gap) + 6, GRID.rows * (GRID.h + GRID.gap) + 6);
     // mouse: tabs, cards, BUY
     this.input.on('pointerdown', (p, over) => {
+      this.idle = 0;
       if (this.secret) {
-        if (this.secret.mode === 'video') { if (over.length === 0) this.closeSecret(); return; }
         for (let i = 0; i < KEYPAD.keys.length; i++) { const [x, y] = this.keyAt(i); if (p.x >= x && p.x <= x + KEYPAD.w && p.y >= y && p.y <= y + KEYPAD.h) { this.secret.cur = i; this.secret.press = 6; return this.typeKey(KEYPAD.keys[i]); } }
         return;
       }
@@ -113,7 +122,7 @@ export class ShopScene extends Phaser.Scene {
       for (let i = 0; i < PER; i++) { const [x, y] = this.cardAt(i); if (p.x >= x && p.x <= x + GRID.w && p.y >= y && p.y <= y + GRID.h) { if (this.sel === i) this.clicked = 'buy'; else { this.sel = i; sfx('menu', 0.4); } return; } }
       if (this.pages() > 1 && p.y >= PAGE.y - 8 && p.y <= PAGE.y + 8) { if (Math.abs(p.x - PAGE.x + 44) < 10) return this.flip(-1); if (Math.abs(p.x - PAGE.x - 44) < 10) return this.flip(1); }   // the page arrows
       if (p.x >= SIDE.x + 20 && p.x <= SIDE.x + SIDE.w - 20 && p.y >= BTN.y && p.y <= BTN.y + BTN.h) this.clicked = this.item() && this.item().kind === 'costume' && p.x < SIDE.x + 20 + BTN.prevW ? 'preview' : 'buy';
-      if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50) this.react('shock', 'poke');   // poke the shopkeeper
+      if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50) { if (this.playing) this.stopPlaying(); else this.react('shock', 'poke'); }   // poke the shopkeeper (or switch his secret off)
     });
   }
 
@@ -125,7 +134,7 @@ export class ShopScene extends Phaser.Scene {
   flip(d) { const n = this.pages(); if (n < 2) return; this.page = (this.page + d + n) % n; if (!this.item()) this.sel = 0; this.lastSel = -2; sfx('menu', 0.5, 1.1); }
   back() { sfx('menu', 0.6); playMusic(this, 'bgm_title'); this.scene.start('Trinkets'); }
   // a music card picked: play that track; anything else: the shop goes back to the title music
-  preview() { const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
+  preview() { if (this.playing) return; const it = this.item(); playMusic(this, it && it.kind === 'music' ? 'bgm_shop_' + it.id.slice(4) : 'bgm_title', it && it.kind === 'music' ? 0.55 : 0.6); }
   // what the big button says for this item
   label(it) {
     if (!it) return '-';
@@ -140,11 +149,11 @@ export class ShopScene extends Phaser.Scene {
     if (!it.gacha && owns(it.id)) {                                                   // already yours
       if (it.kind === 'costume') { this.react('smug', 'owned'); this.say('PICK IT ON THE SELECT SCREEN.', '#c9c4dc'); return; }
       const on = toggleEquip(it.kind, it.id);
-      if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('happy', 'unequip'); sfx('menu', 0.5, 0.8); }
+      if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('bow', 'unequip'); sfx('menu', 0.5, 0.8); }
       this.say(on ? it.name + ' IS ON' + (it.kind === 'extra' ? '' : ' (ONLY ONE AT A TIME)') : it.name + ' IS OFF', on ? '#7aff8a' : '#c9c4dc');
       return;
     }
-    if (it.gacha && !gachaPool(it.gacha).some((x) => !owns(x.id))) { this.react('happy', 'soldout'); this.say('SOLD OUT: YOU OWN EVERYTHING THIS MACHINE GIVES.', '#c9c4dc'); return; }
+    if (it.gacha && !gachaPool(it.gacha).some((x) => !owns(x.id))) { this.react('bow', 'soldout'); this.say('SOLD OUT: YOU OWN EVERYTHING THIS MACHINE GIVES.', '#c9c4dc'); return; }
     if (getCoins() < it.price) { this.react('shock', it.gacha ? 'spin' : 'broke'); sfx('curse', 0.3, 1.5); return; }
     if (it.gacha) return this.startSpin(it);
     buyItem(it.id, it.price); stat('spent', it.price); this.cheevos();
@@ -228,7 +237,7 @@ export class ShopScene extends Phaser.Scene {
     }
     if (T < 90) { const k = (T - 70) / 20; this.capsule(o, cx, cy, r, k); this.ovSpr.setVisible(false); if (T === 89) sfx(r.dupe ? 'menu' : 'select', 0.6, r.dupe ? 0.7 : 1.4); return; }   // it wobbles, then pops
     // the prize
-    if (T === 90) { if (r.dupe) this.react('happy', 'dud'); else { this.react('smug', 'jackpot'); this.static = 8; } }
+    if (T === 90) { if (r.dupe) this.react('melt', 'dud'); else { this.react('grin', 'jackpot'); this.static = 8; } }
     const glow = r.dupe ? 0x5a4a70 : r.prize.color ?? C.gold;
     for (let i = 5; i > 0; i--) { o.fillStyle(glow, 0.08); o.fillCircle(cx, cy, 30 + i * 14 + Math.sin(t * 0.1) * 3); }
     if (T < 96) { o.fillStyle(0xffffff, 1 - (T - 90) / 6); o.fillRect(0, 0, W, H); }
@@ -254,7 +263,7 @@ export class ShopScene extends Phaser.Scene {
   ringBell() {
     sfx('ding', 0.5, 2.2); this.bellWobble = 14; stat('bells'); this.cheevos();
     this.bellRings = this.bellRings.filter((r) => this.t - r < BELL.window); this.bellRings.push(this.t);
-    if (this.bellRings.length >= BELL.rings) { this.bellRings = []; this.openCode(); }
+    if (this.bellRings.length >= BELL.rings) { this.bellRings = []; this.openCode(); } else if (!this.secret) this.react('stare');
   }
   // his screen asks for a code. Type it on your keyboard (read straight from the page, no clicking into anything first),
   // or tap / pick the letters on the on-screen keypad that covers the shelves (phones, gamepads).
@@ -292,31 +301,118 @@ export class ShopScene extends Phaser.Scene {
     const code = this.secret.typed, S = SECRETS[code];
     if (!S) { this.secret.typed = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
-    // the video: a hidden <video>, drawn every frame into a tiny canvas texture shown big (chunky pixels) on his screen
+    this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
-    const v = document.createElement('video');
-    v.src = S.video.find((u) => v.canPlayType(u.endsWith('webm') ? 'video/webm; codecs="vp9, opus"' : 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) || S.video[S.video.length - 1]; v.playsInline = true; v.preload = 'auto'; v.volume = Math.min(1, settings.musicVolume);
-    const key = 'secret_tv';
-    if (!this.textures.exists(key)) this.textures.createCanvas(key, S.px, S.px);
-    const tex = this.textures.get(key); tex.context.fillStyle = '#000'; tex.context.fillRect(0, 0, S.px, S.px); tex.refresh();
+    this.startPlaying(code);
+  }
+  // ---- a secret playing: drawn on his screen every frame (drawPlaying) while the shop carries on as normal
+  startPlaying(code) {
+    this.stopPlaying(true);
+    const S = SECRETS[code], key = 'secret_tv', vol = Math.min(1, settings.musicVolume);
+    if (this.textures.exists(key)) this.textures.remove(key);
+    const tex = this.textures.createCanvas(key, S.px, S.px); tex.context.fillStyle = '#000'; tex.context.fillRect(0, 0, S.px, S.px); tex.refresh();
     this.vidImg.setTexture(key).setScale(68 / S.px).setVisible(true);
     stopMusic();
-    v.addEventListener('ended', () => this.closeSecret());
-    v.play().catch(() => {});
-    const stopKey = (e) => { if (['Escape', 'Enter', ' ', 'k', 'K', 'j', 'J'].includes(e.key)) this.closeSecret(); };   // any of the usual keys stops it
-    setTimeout(() => window.addEventListener('keydown', stopKey), 300);
-    this.secret = { mode: 'video', t: 0, v, tex, px: S.px, stopKey };
+    const P = this.playing = { code, S, tex, t: 0 };
+    if (S.video) {   // a hidden <video>, drawn every frame into the little canvas texture (chunky pixels)
+      const v = P.v = document.createElement('video');
+      v.src = S.video.find((u) => v.canPlayType(u.endsWith('webm') ? 'video/webm; codecs="vp9, opus"' : 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) || S.video[S.video.length - 1];
+      v.playsInline = true; v.preload = 'auto'; v.volume = vol;
+      v.addEventListener('ended', () => { if (this.playing === P) this.stopPlaying(); });
+      v.play().catch(() => {});
+    }
+    if (S.audio) {
+      const a = P.a = new Audio(); a.src = S.audio.find((u) => a.canPlayType(u.endsWith('ogg') ? 'audio/ogg; codecs="vorbis"' : 'audio/mpeg')) || S.audio[S.audio.length - 1];
+      a.loop = true; a.volume = vol; a.play().catch(() => {});
+    }
+    this.setLook(S.look);
     this.static = 14; this.react('calm', S.line, 260);
+    this.say(S.look === 'vhs' ? 'CLICK HIS SCREEN TO MAKE IT STOP.' : 'CLICK HIS SCREEN TO SWITCH IT OFF. KEEP SHOPPING IF YOU LIKE.', '#c9c4dc');
+  }
+  stopPlaying(quiet) {
+    const P = this.playing; if (!P) return;
+    this.playing = null;
+    for (const m of [P.v, P.a]) if (m) { try { m.pause(); m.removeAttribute('src'); m.load(); } catch (e) { /* gone */ } }
+    this.setLook(null);
+    if (!quiet) { this.vidImg.setVisible(false); this.static = 14; this.react('happy', 'off'); playMusic(this, 'bgm_title'); this.preview(); }
+  }
+  // draw the playing secret into his screen's texture
+  drawPlaying(t) {
+    const P = this.playing, S = P.S, c = P.tex.context, px = S.px; P.t++;
+    if (S.video) { if (P.v.readyState >= 2) { c.drawImage(P.v, 0, 0, px, px); P.tex.refresh(); } return; }
+    // an animation, worn out like an old tape: rows slip sideways, a tracking band rolls down, snow
+    const src = this.textures.get(S.anim), n = src.frameTotal - 1, fr = src.get(Math.floor(P.t * S.fps / 60) % n);
+    c.fillStyle = '#050304'; c.fillRect(0, 0, px, px);
+    const img = fr.source.image, band = (P.t * 0.6) % (px + 20) - 10;
+    for (let y = 0; y < px; y++) {
+      const tear = Math.abs(y - band) < 4 ? Math.round((Math.random() - 0.5) * 8) : (Math.random() < 0.015 ? Math.round((Math.random() - 0.5) * 6) : 0);
+      c.drawImage(img, fr.cutX, fr.cutY + y, px, 1, tear, y, px, 1);
+    }
+    c.globalAlpha = 0.25; c.fillStyle = '#ff2030'; c.fillRect(0, 0, 1, px); c.globalAlpha = 1;
+    for (let i = 0; i < 40; i++) { c.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.6)'; c.fillRect(Math.random() * px, Math.random() * px, 1, 1); }
+    if (Math.abs(band) < px) { c.fillStyle = 'rgba(255,255,255,0.12)'; c.fillRect(0, band - 2, px, 4); }
+    P.tex.refresh();
+    if (S.scream && this.cache.audio.exists('sfx_seen_scream') && P.t % Math.round(S.scream * 60) === 30) this.sound.play('sfx_seen_scream', { volume: 0.3 * settings.sfxVolume, rate: 0.9 + Math.random() * 0.15 });   // her scream, now and then
+  }
+  // the whole shop's look while a secret plays: 'backrooms', 'vhs' or null (normal)
+  setLook(look) {
+    const cam = this.cameras.main;
+    if (this.lookFx) { for (const f of this.lookFx) { try { cam.filters.external.remove(f); } catch (e) { /* no filters */ } } this.lookFx = null; }
+    if (this.lookG) { this.lookG.destroy(); this.lookG = null; } if (this.lookBg) { this.lookBg.destroy(); this.lookBg = null; }
+    if (this.osd) { this.osd.forEach((x) => x.destroy()); this.osd = null; }
+    cam.setScroll(0, 0);
+    this.look = look; if (!look) return;
+    this.lookG = this.add.graphics().setDepth(95);                                  // over everything (but the achievement banners)
+    try {
+      const cm = cam.filters.external.addColorMatrix();
+      if (look === 'backrooms') { cm.colorMatrix.sepia(); this.lookFx = [cm]; }
+      else { cm.colorMatrix.saturate(-0.55); this.lookFx = [cm, cam.filters.external.addBarrel(1.03), cam.filters.external.addVignette(0.5, 0.5, 0.9, 0.3)]; }   // VHS: washed out, a curved old screen, dark corners
+    } catch (e) { this.lookFx = null; }                                             // (no WebGL filters: the overlays still do the job)
+    if (look === 'backrooms') {                                                     // the Backrooms: yellow wallpaper, damp carpet, a ceiling of buzzing lights
+      const b = this.lookBg = this.add.graphics(); this.children.moveBelow(b, this.g);   // just over the shop's own backdrop
+      b.fillStyle(0xc9b260, 1); b.fillRect(0, 0, W, H);
+      for (let x = 0; x < W; x += 8) { b.fillStyle(0xb8a050, 1); b.fillRect(x, 44, 2, H - 44); b.fillStyle(0xd8c478, 0.6); b.fillRect(x + 4, 44, 1, H - 44); }
+      for (let y = 60; y < H - 30; y += 22) for (let x = (y / 22 % 2) * 11; x < W; x += 22) { b.fillStyle(0xa8904a, 0.7); b.fillRect(x, y, 3, 3); }
+      b.fillStyle(0xe0d8b0, 1); b.fillRect(0, 0, W, 44);
+      for (let x = 0; x < W; x += 80) { b.lineStyle(1, 0xb8b090, 1); b.strokeRect(x, 0, 80, 44); }
+      b.fillStyle(0x7a6a34, 1); b.fillRect(0, H - 30, W, 30); for (let i = 0; i < 300; i++) { b.fillStyle(Math.random() < 0.5 ? 0x6a5a2a : 0x8a7a44, 1); b.fillRect(Math.random() * W, H - 30 + Math.random() * 30, 2, 1); }
+    } else {                                                                        // VHS: on-screen display text
+      const o = (x, y, ox, oy) => this.add.text(x, y, '', { fontFamily: FONT, fontSize: '8px', color: '#f4f4f4', shadow: { offsetX: 1, offsetY: 1, color: '#000', fill: true } }).setOrigin(ox, oy).setDepth(96);
+      this.osd = [o(110, 14, 0, 0), o(16, H - 12, 0, 1), o(W - 16, H - 12, 1, 1)];   // PLAY (top, beside BACK), the title, the date + tape counter
+    }
+  }
+  // drawn every frame over the whole shop while a look is on
+  drawLook(t) {
+    const g = this.lookG; if (!g) return; g.clear();
+    if (this.look === 'backrooms') {
+      for (let x = 40; x < W; x += 160) { const flick = (Math.sin(t * 0.7 + x) > 0.97) || ((t + x) % 233 < 3); g.fillStyle(0xfff8d8, flick ? 0.25 : 0.9); g.fillRect(x, 2, 60, 6); g.fillStyle(0xfff4c0, flick ? 0.02 : 0.07); g.fillRect(x - 30, 8, 120, 40); }
+      if ((t % 400) < 4) { g.fillStyle(0x000000, 0.35); g.fillRect(0, 0, W, H); }   // the power dips for a moment
+      g.fillStyle(0xffe890, 0.06); g.fillRect(0, 0, W, H);
+      return;
+    }
+    // VHS: scanlines, a rolling tracking band, snow, a tear now and then, the tape's on-screen display
+    for (let y = 0; y < H; y += 2) { g.fillStyle(0x000000, 0.16); g.fillRect(0, y, W, 1); }
+    const band = (t * 1.3) % (H + 60) - 30;
+    g.fillStyle(0xffffff, 0.05); g.fillRect(0, band, W, 18);
+    for (let i = 0; i < 60; i++) { g.fillStyle(0xffffff, 0.25 + Math.random() * 0.4); g.fillRect(Math.random() * W, band + Math.random() * 18, 2 + Math.random() * 10, 1); }
+    for (let i = 0; i < 90; i++) { g.fillStyle(Math.random() < 0.5 ? 0xffffff : 0x000000, 0.2); g.fillRect(Math.random() * W, Math.random() * H, 1, 1); }
+    if (Math.random() < 0.04) { const y = Math.random() * H; g.fillStyle(0xffffff, 0.25); g.fillRect(0, y, W, 1 + Math.random() * 2); this.cameras.main.setScroll(Math.round((Math.random() - 0.5) * 4), 0); }
+    else this.cameras.main.setScroll(0, 0);
+    g.fillStyle(0xff2040, 0.05); g.fillRect(0, 0, 3, H); g.fillStyle(0x2040ff, 0.05); g.fillRect(W - 3, 0, 3, H);
+    if (this.osd) {
+      const secs = Math.floor(t / 60), cnt = '0:' + String(Math.floor(secs / 60) % 60).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+      this.osd[0].setText((t >> 5) % 2 ? 'PLAY  >' : 'PLAY');
+      this.osd[1].setText('REMEMBER THAT DAY');
+      this.osd[2].setText('OCT 29 1994  ' + cnt);
+    }
   }
   closeSecret(quiet) {
     const S = this.secret; if (!S) return;
     this.secret = null;
-    if (S.stopKey) window.removeEventListener('keydown', S.stopKey);
-    if (S.v) { try { S.v.pause(); S.v.removeAttribute('src'); S.v.load(); } catch (e) { /* gone */ } if (!quiet) playMusic(this, 'bgm_title'); }
     if (S.onKey) window.removeEventListener('keydown', S.onKey);
     this.hideKeypad();
     this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();   // (always: the keyboard plugin outlives this visit)
-    if (!quiet) { this.static = 10; this.tvT.setText(''); this.tvCode.setText(''); this.vidImg.setVisible(false); }
+    if (!quiet) { this.static = 10; this.tvT.setText(''); this.tvCode.setText(''); }
   }
   // the keypad over the shelves: green-screen keys like his display, the picked one lit
   drawKeypad(g, t) {
@@ -333,7 +429,7 @@ export class ShopScene extends Phaser.Scene {
   // draws the code screen / video frame onto his screen (called from keeper with the screen's middle)
   drawSecret(f, cx, cy, t) {
     const S = this.secret;
-    this.faceImg.setVisible(false);
+    this.faceImg.setVisible(false); this.vidImg.setVisible(false);
     if (S.mode === 'code') {
       S.t++;
       f.fillStyle(0x061a14, 1); f.fillRect(cx - 36, cy - 34, 72, 68);
@@ -342,15 +438,10 @@ export class ShopScene extends Phaser.Scene {
       const typed = S.typed;
       this.tvCode.setText(typed + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
       f.lineStyle(1, 0x9affd8, 0.6); f.strokeRect(cx - 32, cy + 1, 64, 14);
-    } else {
-      this.tvT.setText(''); this.tvCode.setText('');
-      const { v, tex, px } = S, c = tex.context;
-      if (v.readyState >= 2) { c.drawImage(v, 0, 0, px, px); tex.refresh(); }
-      this.vidImg.setPosition(cx, cy);
     }
   }
   // newly earned achievements: their banners slide in (achievements.js, ui/toast.js)
-  cheevos() { const a = checkAchievements(); if (a.length) achievementToasts(this, a, { delay: 600 }); }
+  cheevos() { const a = checkAchievements(); if (a.length) { achievementToasts(this, a, { delay: 600 }); if (!this.secret) this.react('grin'); } }
   say(s, color = '#ff8a8a') { this.msgT.setText(s).setColor(color); this.msg = 120; }
   // the shopkeeper reacts: a face (for `hold` frames, then back to his calm face) and a line from KEEPER.lines
   react(face, line, hold = KEEPER.hold) {
@@ -378,6 +469,7 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(0xc8a040, 1); g.fillEllipse(hx + 58 + bw, desk - 4, 14, 8); g.fillStyle(0xe8c060, 1); g.fillRect(hx + 57 + bw * 2, desk - 11, 2, 4); g.fillRect(hx + 52, desk - 1, 12, 2);
     // the TV: casing, a screen in a rounded bezel, knobs, a grille, little feet, rabbit-ear antennas
     const tx = hx + rock;
+    if (this.playing && this.playing.S.tv === '90s') this.tv90s(g, tx, hy, t, rock, desk); else {
     g.fillStyle(0x2a2632, 1); g.fillRect(tx - 36, desk - 4, 10, 4); g.fillRect(tx + 26, desk - 4, 10, 4);
     g.lineStyle(2, 0x8a8a9a, 1); g.lineBetween(tx - 10, hy - 40, tx - 28 - rock, hy - 62); g.lineBetween(tx + 10, hy - 40, tx + 26 - rock, hy - 64);
     g.fillStyle((t >> 4) % 2 ? 0xff5a5a : 0x8a2a2a, 1); g.fillCircle(tx - 28 - rock, hy - 62, 3); g.fillCircle(tx + 26 - rock, hy - 64, 3);
@@ -388,6 +480,7 @@ export class ShopScene extends Phaser.Scene {
     for (let i = 0; i < 2; i++) { g.fillStyle(0x2a2632, 1); g.fillCircle(tx + 39, hy - 22 + i * 16, 4); g.fillStyle(0x9a94a8, 1); g.fillRect(tx + 38, hy - 26 + i * 16 + ((t >> 5) + i) % 3, 2, 4); }
     for (let i = 0; i < 4; i++) { g.fillStyle(0x2a2632, 1); g.fillRect(tx + 35, hy + 10 + i * 5, 8, 2); }
     g.fillStyle((t >> 5) % 2 ? 0x5aff8a : 0x2a8a4a, 1); g.fillRect(tx + 37, hy + 32, 3, 2);                     // the power light
+    }
     // the face on the screen: the current face's strip, animated if it has more than one frame
     const key = 'shop_face_' + this.face, F = KEEPER.faces[this.face], n = Math.max(1, this.textures.get(key).frameTotal - 1);
     // ...and alive: every face moves a little in its own way (see faceMotion)
@@ -396,6 +489,7 @@ export class ShopScene extends Phaser.Scene {
     const f = this.front; f.clear();
     for (let y = hy - 34; y < hy + 34; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(tx - 40, y, 72, 1); }        // scanlines
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
+    if (this.playing && !this.secret) { this.faceImg.setVisible(false); this.vidImg.setVisible(true).setPosition(tx - 4, hy); this.drawPlaying(t); }
     if (this.secret) this.drawSecret(f, tx - 4, hy, t);
     if (this.static > 0) { this.static--; for (let i = 0; i < 70; i++) { f.fillStyle(Math.random() < 0.5 ? 0xd8fff0 : 0x2a4a3a, 1); f.fillRect(tx - 40 + Math.random() * 70, hy - 34 + Math.random() * 66, 2, 1); } }   // static when the channel changes
     if (this.face === 'shock' && this.faceT > KEEPER.hold - 24) { const d = KEEPER.hold - this.faceT; f.lineStyle(2, 0xffffff, 1 - d / 24); for (const s of [-1, 1]) { f.lineBetween(tx + s * 52, hy - 30, tx + s * 60, hy - 38); f.lineBetween(tx + s * 54, hy - 18, tx + s * 64, hy - 20); } }   // !! lines
@@ -408,6 +502,25 @@ export class ShopScene extends Phaser.Scene {
       f.fillStyle(0xf4f0fa, 1); f.fillRoundedRect(bx, by, bw, bh, 6); f.fillTriangle(bx + bw - 26, by + bh, bx + bw - 12, by + bh, tx - 30, hy - 44);
       this.bubbleT.setPosition(bx + bw / 2, by + bh / 2);
     } else this.bubbleT.setVisible(false);
+  }
+  // the Backrooms secret turns him into a chunky 90s set: charcoal plastic, a speaker grille and buttons under the screen,
+  // and a separate rabbit-ear antenna on top - long telescopic rods and a UHF loop (the screen stays in the same spot)
+  tv90s(g, tx, hy, t, rock, desk) {
+    g.fillStyle(0x16151a, 1); g.fillRect(tx - 44, desk - 4, 84, 4);                                  // the base
+    g.fillStyle(0x2c2b32, 1); g.fillRoundedRect(tx - 50, hy - 42, 96, desk - hy + 40, 6);           // the cabinet
+    g.fillStyle(0x3a3942, 1); g.fillRoundedRect(tx - 50, hy - 42, 96, 5, 3);
+    g.fillStyle(0x1a191e, 1); g.fillRoundedRect(tx - 44, hy - 38, 80, 76, 10);                      // the bezel
+    g.fillStyle(0x061a14, 1); g.fillRoundedRect(tx - 40, hy - 34, 72, 68, 9);
+    for (let i = 0; i < 9; i++) { g.fillStyle(0x16151a, 1); g.fillRect(tx - 40 + i * 6, desk - 14, 4, 1); g.fillRect(tx - 40 + i * 6, desk - 11, 4, 1); }   // speaker grille
+    for (let i = 0; i < 4; i++) { g.fillStyle(0x4a4954, 1); g.fillRect(tx + 18 + i * 6, desk - 14, 4, 3); }   // buttons
+    g.fillStyle((t >> 5) % 2 ? 0xff3a3a : 0x8a1a1a, 1); g.fillRect(tx + 40, desk - 13, 2, 2);         // power light
+    // the antenna on top: a little dome, two long rods (with joints), a loop
+    const ax = tx - 2 - rock, ay = hy - 42;
+    g.fillStyle(0x1a191e, 1); g.fillEllipse(ax, ay - 2, 26, 8);
+    g.lineStyle(1, 0xc8c8d0, 1); g.lineBetween(ax - 4, ay - 4, ax - 34, ay - 54); g.lineBetween(ax + 4, ay - 4, ax + 30, ay - 58);
+    for (const [x, y] of [[ax - 14, ay - 21], [ax - 24, ay - 37], [ax + 13, ay - 23], [ax + 22, ay - 41]]) { g.fillStyle(0xe8e8f0, 1); g.fillRect(x - 1, y - 1, 2, 2); }
+    g.fillStyle(0xe8e8f0, 1); g.fillCircle(ax - 34, ay - 54, 1.5); g.fillCircle(ax + 30, ay - 58, 1.5);
+    g.lineStyle(2, 0x9a9aa6, 1); g.strokeCircle(ax, ay - 12, 8);
   }
   // a gacha machine: a glass globe of coloured capsules on a base in the machine's colour, a coin slot, a crank that
   // turns, the prize chute - and a badge for the 10-pull bundles (or a ? for the mystery one)
@@ -556,10 +669,12 @@ export class ShopScene extends Phaser.Scene {
   update() {
     this.t++;
     const m = this.menu.poll(), t = this.t;
+    if (m.up || m.down || m.left || m.right || m.ok || m.back || m.pads.length) this.idle = 0;
+    if (++this.idle === 60 * 25 && !this.secret && !this.playing) this.react('stare', 'quiet', 160);   // you've gone quiet: he stares
+    this.drawLook(t);
     if (this.secret) {                                                              // the code screen / the video: nothing else moves
       const S = this.secret;
-      if (S.mode === 'video' && (m.back || m.ok || m.pads.some((p) => p.button === 'b' || p.button === 'a'))) this.closeSecret();
-      else if (S.mode === 'code') {                                               // a gamepad works the keypad too
+      if (S.mode === 'code') {                                               // a gamepad works the keypad too
         const n = KEYPAD.keys.length;
         if (m.left) S.cur = (S.cur + n - 1) % n; if (m.right) S.cur = (S.cur + 1) % n;
         if (m.up) S.cur = (S.cur + n - KEYPAD.cols) % n; if (m.down) S.cur = Math.min(n - 1, S.cur + KEYPAD.cols);
