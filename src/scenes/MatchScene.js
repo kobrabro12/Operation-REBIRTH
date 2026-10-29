@@ -208,7 +208,7 @@ export class MatchScene extends Phaser.Scene {
       this.paused = !this.paused;
       sfx('menu', 0.6);
       this.bigText.setText(this.paused ? 'PAUSED' : '');
-      this.smallText.setText(this.paused ? 'ESC / START  RESUME     Q / SELECT  QUIT' : '');
+      this.smallText.setText(this.paused ? 'ESC / START  RESUME     Q / SELECT  QUIT' : '').setY(VIEW_H / 2 + (this.paused ? 14 : 10));   // (just under the PAUSED band)
       this.resumeBtn.setVisible(this.paused); this.quitBtn.setVisible(this.paused); this.pauseBtn.setVisible(!this.paused);
       if (this.paused) this.sound.pauseAll(); else this.sound.resumeAll();
     }
@@ -987,7 +987,7 @@ export class MatchScene extends Phaser.Scene {
     // Limit banner and darkening
     this.overlay.clear();
     if (this.paused) {                                 // PAUSED: dim, then a slanted band across the middle with slashes drifting through
-      const o = this.overlay, y = VIEW_H / 2 - 58, t = this.pauseT = (this.pauseT || 0) + 1;
+      const o = this.overlay, y = VIEW_H / 2 - 62, t = this.pauseT = (this.pauseT || 0) + 1;
       o.fillStyle(0x07060e, 0.62); o.fillRect(0, 0, VIEW_W, VIEW_H);
       slant(o, -40, y + 6, VIEW_W + 80, 58, 0x000000, 0.6, 24);
       slant(o, -40, y, VIEW_W + 80, 58, ARC.sections.title, 1, 24);

@@ -21,7 +21,7 @@ const PREV = { x: 16, y: 36, w: 352, h: 198 };
 const COLS = 2, TILE_W = 118, TILE_H = 44, GAP = 4;   // 6 rows of 2 fit between the title bar and the help line
 const GRID_X = 386, GRID_Y = 36;
 const TRACK_Y = 336;                                  // the TRACK row, under the stage's description
-const ARROWS = [PREV.x + 56, PREV.x + 236];             // the < and > of the TRACK row
+const ARROWS = [PREV.x + 56, PREV.x + 256];             // the < and > of the TRACK row
 
 export class StageSelectScene extends Phaser.Scene {
   constructor() { super('StageSelect'); }
@@ -72,14 +72,14 @@ export class StageSelectScene extends Phaser.Scene {
     this.ti = Math.max(0, this.tracks.findIndex((x) => x.id === settings.track));
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E');
     this.trackG = this.add.graphics();
-    this.add.text(PREV.x, TRACK_Y, 'TRACK', { fontFamily: FONT, fontSize: '7px', color: '#ffb07a', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0, 0.5);
-    this.trackT = this.add.text(PREV.x + 152, TRACK_Y, '', { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setOrigin(0.5);
-    this.add.text(PREV.x + 258, TRACK_Y, 'Q / E', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0, 0.5);
+    this.add.text(PREV.x, TRACK_Y, 'TRACK', { fontFamily: FONT, fontSize: '6px', color: '#ffb07a', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0, 0.5);
+    this.trackT = this.add.text(PREV.x + 156, TRACK_Y, '', { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setOrigin(0.5);
+    this.add.text(PREV.x + 274, TRACK_Y, 'Q / E', { fontFamily: FONT, fontSize: '5px', color: '#8a87a3' }).setOrigin(0, 0.5);
 
     // mouse: hover a tile to preview it, click a tile (or the big preview) to choose it
     this.input.mouse.disableContextMenu();
     addFullscreenButton(this, 532, 3);
-    this.backBtn = makeButton(this, 186, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
+    this.backBtn = makeButton(this, 198, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('Setup'); });
     this.clicked = false;
     const tileAt = (x, y) => this.tiles.findIndex((t) => x >= t.x && x < t.x + TILE_W && y >= t.y && y < t.y + TILE_H);
     this.input.on('pointermove', (p) => {
@@ -138,10 +138,11 @@ export class StageSelectScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.eKey) || m.pads.some((p) => p.button === 'rb')) this.stepTrack(1);
     { const tr = this.tracks[this.ti], tg = this.trackG; tg.clear();
       this.trackT.setText(tr.id === 'auto' ? "AUTO (THE STAGE'S OWN)" : tr.name + (tr.shop ? '  (SHOP)' : '')).setColor(tr.shop ? '#f3c358' : '#ffffff');
-      slant(tg, PREV.x + 44, TRACK_Y - 8, 204, 16, 0x1c1838, 1, 6); tg.fillStyle(ACC, 1); tg.fillRect(PREV.x + 44, TRACK_Y + 7, 198, 1);
+      for (const fs of [7, 6, 5]) { this.trackT.setFontSize(fs + 'px'); if (this.trackT.width <= 184) break; }   // long names shrink to fit between the arrows
+      slant(tg, PREV.x + 44, TRACK_Y - 8, 224, 16, 0x1c1838, 1, 6); tg.fillStyle(ACC, 1); tg.fillRect(PREV.x + 44, TRACK_Y + 7, 218, 1);
       tg.fillStyle(ARC.gold, 1);
       for (const [k, ax] of ARROWS.entries()) { const s = k ? 1 : -1; tg.fillTriangle(ax - 3 * s, TRACK_Y - 4, ax - 3 * s, TRACK_Y + 4, ax + 3 * s, TRACK_Y); }
-      tg.fillStyle(0x78a0c6, 1); tg.fillRect(PREV.x + 34, TRACK_Y - 4, 2, 7); tg.fillRect(PREV.x + 34, TRACK_Y - 4, 5, 2); tg.fillCircle(PREV.x + 33, TRACK_Y + 3, 2); }   // a little note
+      tg.fillStyle(0x78a0c6, 1); tg.fillRect(PREV.x + 37, TRACK_Y - 4, 2, 7); tg.fillRect(PREV.x + 37, TRACK_Y - 4, 4, 2); tg.fillCircle(PREV.x + 36, TRACK_Y + 3, 2); }   // a little note
     const tile = this.tiles[this.sel];
     const confirm = m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start');
     const back = m.back || m.pads.some((p) => p.button === 'b');

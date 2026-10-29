@@ -106,7 +106,7 @@ export class SelectScene extends Phaser.Scene {
     // mouse drives player 1's cursor: left click picks, right click undoes, click the yellow bar to start
     this.input.mouse.disableContextMenu();
     addFullscreenButton(this, 532, 3);
-    makeButton(this, 196, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
+    makeButton(this, 214, 3, '< BACK', () => { sfx('menu', 0.6); this.scene.start('StageSelect'); });
     this.mouse = { moved: false, left: false, right: false, x: 0, y: 0 };
     this.input.on('pointermove', (p) => { this.mouse.moved = true; this.mouse.x = p.x; this.mouse.y = p.y; });
     this.input.on('pointerdown', (p) => {

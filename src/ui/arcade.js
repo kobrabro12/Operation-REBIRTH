@@ -89,7 +89,7 @@ export function titleBanner(scene, text, accent, { crumb = '', x = 70, y = 5, si
   const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: size + 'px', color: '#ffffff', stroke: '#07060e', strokeThickness: 5,
     shadow: { offsetX: 3, offsetY: 3, color: '#07060e', fill: true, stroke: true } }).setDepth(26);
   const c = crumb ? scene.add.text(0, 0, crumb, { fontFamily: FONT, fontSize: '5px', color: hex(shade(accent, 0.9)) }).setDepth(26) : null;
-  const w = t.width + 34, h = size + 16;
+  const w = t.width + 50, h = size + 16;   // (room for the two stripes after the text)
   const draw = (ox) => {
     g.clear();
     slant(g, x + ox + 6, y + 6, w, h, 0x000000, 0.6, 12);

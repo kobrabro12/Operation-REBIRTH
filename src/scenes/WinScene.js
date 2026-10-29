@@ -74,7 +74,7 @@ export class WinScene extends Phaser.Scene {
     this.title = this.add.text(W / 2, 74, '', { fontFamily: FONT, fontSize: '30px', color: this.cut.color, stroke: this.cut.stroke, strokeThickness: 8 }).setOrigin(0.5).setVisible(false);
     this.subT = this.add.text(W / 2, 50, this.cut.sub, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setVisible(false);
     this.lineT = this.add.text(W / 2, H - 52, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setVisible(false);
-    this.skipT = this.add.text(W - 10, H - 12, 'PRESS TO SKIP', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(1, 1).setAlpha(0.7);
+    this.skipT = this.add.text(W - 10, H - 12, 'PRESS ANY BUTTON TO SKIP', { fontFamily: FONT, fontSize: '6px', color: '#8a87a3' }).setOrigin(1, 1).setAlpha(0.7);
     this.flash = 0; this.clicked = false;
     this.input.on('pointerdown', () => { this.clicked = true; });
     // a fixed scatter for things that shouldn't jump about between frames (graves, eyes, villagers...)
