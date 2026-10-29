@@ -29,7 +29,7 @@ export function addKO(id) {
 // ---- the SHOP: coins, what you own, what you have switched on. Remembered in this browser.
 // Testing: ?coins=5000 sets the coin count.
 const SHOP_KEY = 'rebirth.shop';
-const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [], revealed: [] };
+const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [] };
 try { Object.assign(shop, JSON.parse(localStorage.getItem(SHOP_KEY) || '{}') || {}); } catch (e) { /* keep the defaults */ }
 function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) { /* storage unavailable */ } }
 try {
@@ -38,9 +38,19 @@ try {
 } catch (e) { /* no URL */ }
 
 export function getCoins() { return shop.coins; }
-// hidden shop items (shop.js `hidden: <tag>`) show up once their tag is revealed - e.g. 'noli' by the shopkeeper's code
-export function revealed(tag) { return (shop.revealed || []).includes(tag); }
-export function reveal(tag) { if (!revealed(tag)) { shop.revealed = [...(shop.revealed || []), tag]; saveShop(); } }
+// hidden shop items (shop.js `hidden: <tag>`) show up while their tag is revealed - e.g. 'noli' by the shopkeeper's code.
+// Not saved: it only lasts until you leave the shop (ShopScene hides it again on the way out)
+const shown = new Set();
+export function revealed(tag) { return shown.has(tag); }
+export function reveal(tag) { shown.add(tag); }
+export function unreveal(tag) { shown.delete(tag); }
+// a one-time gift of coins, given once per browser the next time the game loads (GIFTS: id -> coins)
+const GIFTS = { 'mason-2000': 2000 };
+try {
+  const got = JSON.parse(localStorage.getItem('rebirth.gifts') || '[]') || [];
+  for (const [id, n] of Object.entries(GIFTS)) if (!got.includes(id)) { shop.coins += n; got.push(id); saveShop(); }
+  localStorage.setItem('rebirth.gifts', JSON.stringify(got));
+} catch (e) { /* storage unavailable */ }
 export function addCoins(n) { shop.coins = Math.max(0, shop.coins + Math.floor(n)); saveShop(); return shop.coins; }
 export function owns(id) { return shop.owned.includes(id); }
 // pay for an item; false if you can't afford it (or already have it)

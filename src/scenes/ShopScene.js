@@ -13,8 +13,9 @@
 // while you carry on shopping; click his screen (or leave the shop) to switch it off.
 //   STILLLIFE  the shop phases into the Backrooms, he becomes a 90s antenna TV playing Mason's Still Life video
 //   RTD        (REMEMBER THAT DAY) Rosemary screams on his screen and the whole shop turns into a VHS tape
-//   NOLI       for good: his face becomes Mason's NOLI drawing, everything he says comes out glitched, a purple haze
-//              hangs over the shop from then on, and the first 5 seconds of the NOLI clip play every time it's typed
+//   NOLI       until you leave the shop: his face becomes Mason's NOLI drawing, he talks in glitchy bits of the NOLI
+//              video, everything he says comes out scrambled, a purple haze hangs over the shop, his hidden items appear,
+//              and the first 5 seconds of the NOLI clip play every time it's typed
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic, stopMusic } from '../audio/music.js';
 import { settings } from '../settings.js';
@@ -23,10 +24,10 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool, shelfItems } from '../data/shop.js';
-import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped, reveal } from '../progress.js';
+import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped, reveal, unreveal } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
-import { stat, addSecret, checkAchievements, getStats } from '../achievements.js';
+import { stat, addSecret, checkAchievements } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -48,18 +49,23 @@ const SECRETS = {
   STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife', look: 'backrooms', tv: '90s' },
   RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
   // forever (saved: the code is in the player's found secrets): nothing plays on his screen - he IS it now. `clip` plays once.
-  NOLI: { forever: true, clip: ['assets/shop/noli.ogg', 'assets/shop/noli.mp3'], line: 'noli', look: 'noli' },
+  NOLI: { takeover: true, clip: ['assets/shop/noli.ogg', 'assets/shop/noli.mp3'], line: 'noli', look: 'noli' },
 };
 // NOLI: how glitched his lines come out - chance per letter of a junk character / a stutter, how often the shown line
 // re-scrambles while it's up (frames), his face's tint, and the haze's colour + strength
 const NOLI = { junk: 0.07, stutter: 0.05, rescramble: 9, junkChars: '#%?/_<>*0!', tint: 0xd8a8ff, haze: 0x7a2ad8, hazeA: 0.14 };
-// NOLI's voice: glitchy bits cut from Mason's NOLI clip (public/assets/shop/noli_voice/), played when he reacts - which
-// sound goes with which of his lines (KEEPER.lines). greet = the cleanest, most voice-like swell; blip = a short buzz (for
-// things that happen a lot); tic = a phrase that ends in a stutter; crunch = bit-crushed bursts; snap = a burst cut off into
-// static; loop = a voice stuck in a repeating stutter; dive = a warbling voice sliding down; chop = a run of chopped syllables
-const NOLI_VOICE = { hello: 'greet', tab: 'blip', look: 'blip', owned: 'blip', preview: 'blip', bought: 'tic', equip: 'tic',
+// NOLI's voice: glitchy bits of Mason's NOLI video, cut and broken up further by tools/audio/noli_voice.py (files
+// public/assets/shop/noli_voice/<mood>_<n>). Each mood is a pool of clips from different parts of the video; he plays a
+// random one from the pool that fits his line (KEEPER.lines key -> mood). greet = the most voice-like bits; blip = tiny
+// crushed bursts (things that happen a lot); tic = a phrase whose last syllable sticks; crunch = the noisiest bits crushed
+// to pieces; snap = cut off into static; loop = stuck in a stutter that climbs; dive = reversed, then the tape stops;
+// chop = shuffled, gated babble
+export const NOLI_MOODS = { greet: 3, blip: 5, tic: 3, crunch: 4, snap: 3, loop: 3, dive: 3, chop: 3 };
+const NOLI_VOICE = { hello: 'greet', tab: 'blip', look: 'blip', owned: 'tic', preview: 'blip', bought: 'tic', equip: 'tic',
   jackpot: 'chop', gamble: 'chop', broke: 'crunch', spin: 'crunch', empty: 'crunch', poke: 'crunch', wrongcode: 'snap',
   soldout: 'dive', unequip: 'dive', off: 'dive', dud: 'dive', quiet: 'dive', secret: 'loop', noli: 'loop' };
+// and every so often (frames, random between) he mutters something on his own
+const NOLI_MUTTER = [300, 620];
 // a line as NOLI says it: letters swapped for junk, stuttered words, now and then a trailing-off
 function glitchLine(s) {
   let o = '';
@@ -81,8 +87,7 @@ export class ShopScene extends Phaser.Scene {
   constructor() { super('Shop'); }
 
   create() {
-    this.noli = getStats().secrets.includes('NOLI');   // NOLI found: he stays that way
-    if (this.noli) reveal('noli');                    // (and his items are on the shelves)
+    this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
     playMusic(this, 'bgm_title');
@@ -133,8 +138,7 @@ export class ShopScene extends Phaser.Scene {
     // (the scene object is reused on every visit: forget objects made on an earlier visit - they were destroyed with it)
     this.keyT = this.keyHint = this.kg = this.lookG = this.lookBg = this.osd = this.lookFx = null; this.look = null;
     // leaving the shop any way at all: stop the secret's sound and listeners, without touching the scene's (already torn down) display
-    this.events.once('shutdown', () => { this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
-    if (this.noli) this.setLook('noli');             // (NOLI found earlier: the haze is already here)
+    this.events.once('shutdown', () => { this.noli = false; unreveal('noli'); this.dropLook(); this.closeSecret(true, true); this.stopPlaying(true, true); if (this.noliClip) { try { this.noliClip.pause(); } catch (e) { /* gone */ } this.noliClip = null; } if (this.voice) { try { this.voice.destroy(); } catch (e) { /* gone */ } this.voice = null; } });
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
     b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
@@ -339,7 +343,7 @@ export class ShopScene extends Phaser.Scene {
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
-    if (S.forever) return this.becomeNoli(S);
+    if (S.takeover) return this.becomeNoli(S);
     this.startPlaying(code);
   }
   // NOLI: he changes for good (the face, the lines, the haze), and the clip plays
@@ -522,7 +526,9 @@ export class ShopScene extends Phaser.Scene {
   }
   // NOLI talks: one of his glitchy sounds (a new one cuts off the last; the little blip waits its turn)
   noliVoice(k) {
-    const key = 'noli_v_' + k; if (!this.cache.audio.exists(key) || this.t < (this.hushUntil || 0)) return;   // (quiet while the NOLI clip plays)
+    const key = 'noli_v_' + k + '_' + Math.floor(Math.random() * (NOLI_MOODS[k] || 1));
+    if (!this.cache.audio.exists(key) || this.t < (this.hushUntil || 0)) return;   // (quiet while the NOLI clip plays)
+    this.nextMutter = this.t + NOLI_MUTTER[0] + Math.floor(Math.random() * (NOLI_MUTTER[1] - NOLI_MUTTER[0]));
     if (this.voice && this.voice.isPlaying) { if (k === 'blip') return; this.voice.stop(); }
     if (this.voice) this.voice.destroy();
     this.voice = this.sound.add(key); this.voice.play({ volume: 0.85 * settings.sfxVolume, rate: 0.96 + Math.random() * 0.08 });
@@ -776,6 +782,9 @@ export class ShopScene extends Phaser.Scene {
     const m = this.menu.poll(), t = this.t;
     if (m.up || m.down || m.left || m.right || m.ok || m.back || m.pads.length) this.idle = 0;
     if (++this.idle === 60 * 25 && !this.secret && !this.playing) this.react('stare', 'quiet', 160);   // you've gone quiet: he stares
+    if (this.noli && !this.secret && !this.pv && !this.spin && this.t >= (this.nextMutter || 0)) {   // NOLI mutters to himself
+      const moods = Object.keys(NOLI_MOODS); this.noliVoice(moods[Math.floor(Math.random() * moods.length)]); this.static = Math.max(this.static, 6);
+    }
     this.drawLook(t);
     if (this.secret) {                                                              // the code screen / the video: nothing else moves
       const S = this.secret;

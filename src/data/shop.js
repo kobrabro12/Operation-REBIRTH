@@ -14,7 +14,8 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 //   extra    a match extra (matchExtras.js): switch on as many as you like
 //   unlock   unlocks something for good (ext-fragment -> FRACTURED, ext-crown -> MASKED THRONE: stages.js `shop:`); `img` = its card
 //            picture, `stage` = the stage's name (for the shopkeeper's message)
-// hidden: <tag> = not on the shelf (or in gacha machines) until the tag is revealed (progress.js reveal): 'noli' = after the
+// hidden: <tag> = not on the shelf (or in gacha machines) unless the tag is revealed (progress.js reveal) or you own it: 'noli' =
+// while the shopkeeper is NOLI (until you leave the shop), after the
 // shopkeeper's code NOLI. Hidden items don't count towards the COLLECTOR / COMPLETIONIST achievements.
 // Prices: a match earns about 25-85 coins (progress.js COIN_RATES), so a cheap item is a few matches away and the
 // whole shop takes a few hundred.
@@ -103,13 +104,13 @@ export function gachaPool(g) {
   return SHOP.filter((t) => t.name !== 'GAMBLING' && (g.pool === 'ANY' || t.name === g.pool)).flatMap((t) => t.items).filter(shown);
 }
 // is an item on the shelf? (hidden ones wait for their reveal)
-export function shown(it) { return !it.hidden || revealed(it.hidden); }
+export function shown(it) { return !it.hidden || revealed(it.hidden) || owns(it.id); }   // (bought ones stay, so they can be switched on and off)
 // a shelf's items as the player sees them
 export function shelfItems(tab) { return tab.items.filter(shown); }
 
 // how much money the player has (earned in matches, saved in progress.js)
 export { getCoins } from '../progress.js';
-import { revealed } from '../progress.js';
+import { revealed, owns } from '../progress.js';
 
 // THE SHOPKEEPER: an old TV sitting on a desk (ShopScene.keeper). His faces are Mason's drawings
 // (public/assets/shop/face_<name>.png, originals in tools/sprites/art/shopkeeper/) - each one a strip of 64x64 frames,
