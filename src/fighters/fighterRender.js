@@ -174,6 +174,11 @@ export class FighterRender {
       sheet = this.sheets.moves; frame = from + (loop ? i % n : Math.min(n - 1, i));
       spr.setRotation(0); spr.setScale(1, 1);
     }
+    if (s === 'taunt' && this.sheets.taunt && d.taunt && d.taunt.anim) {   // a taunt with its own drawn strip (def.taunt.anim)
+      const [n, step] = d.taunt.anim;
+      sheet = this.sheets.taunt; frame = Math.min(n - 1, Math.floor(this.t / step));
+      spr.setRotation(0); spr.setScale(1, 1);
+    }
     if (d.ownAnims) {                          // fighters drawn from their own animation strips
       const a = this.animFrame(s);
       sheet = a.sheet; frame = a.frame;

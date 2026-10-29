@@ -91,7 +91,9 @@ export { getCoins } from '../progress.js';
 //   shock  you tried to buy nothing, or something you can't afford - or you poked his screen
 //   smug   you bought something, or switched something on
 export const KEEPER = {
-  faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 8 }, shock: { fps: 8 }, smug: { fps: 6 } },
+  // money: Mason's 9-frame animation (strip from tools/sprites/art/shopkeeper/face_money_anim.png); glasses: putting on
+  // his specs to inspect a costume PREVIEW
+  faces: { calm: { fps: 6 }, happy: { fps: 6 }, money: { fps: 10 }, shock: { fps: 8 }, smug: { fps: 6 }, glasses: { fps: 6 } },
   // how long a reaction face stays up before he goes back to happy (frames)
   hold: 100,
   // what he says
@@ -111,6 +113,9 @@ export const KEEPER = {
     equip: ['GOOD CHOICE.', 'LOOKS GOOD ON YOU.', "NOW WE'RE TALKING."],
     unequip: ['TAKING IT OFF? SURE.', 'BACK IN THE BOX IT GOES.'],
     owned: ['YOU ALREADY OWN THAT ONE.', 'ALREADY YOURS, FRIEND.'],
+    secret: ['...THREE RINGS. YOU KNOW THE DRILL.', 'A CUSTOMER WITH A SECRET?', 'TYPE IT IN. I WON\'T TELL.'],
+    wrongcode: ['NOPE.', 'THAT\'S NOT A CODE.', 'NICE TRY.'],
+    stilllife: ['NOW PLAYING: STILL LIFE.', 'SHH. THIS ONE\'S SPECIAL.'],
     poke: ['HEY! NO TOUCHING THE SCREEN.', 'PLEASE DO NOT TAP THE GLASS.', 'OW. FINGERPRINTS.'],
   },
 };

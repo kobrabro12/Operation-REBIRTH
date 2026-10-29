@@ -9,8 +9,11 @@
 // the machine plays out each pull (the `spin` overlay): crank, capsule, the prize. Duplicates pay back some coins.
 // A/D or arrows move along a shelf (W/S: up and down a row), Q/E (or a pad's X/Y) switch tabs,
 // J / Enter / A buys, K / Esc / B goes back. Mouse: click a tab or a card, BUY.
+// SECRETS: ring the bell on his desk 3 times and his screen asks for a code (SECRETS below); STILLLIFE plays
+// Mason's Still Life video on his screen, pixelated (public/assets/shop/still_life.mp4).
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
-import { playMusic } from '../audio/music.js';
+import { playMusic, stopMusic } from '../audio/music.js';
+import { settings } from '../settings.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
@@ -27,6 +30,10 @@ const SIDE = { x: 424, y: 210, w: 200, h: 102 };                          // the
 const KP = { x: 524, y: 126 };                                            // the middle of the shopkeeper's TV (on his desk)
 const TAB = { x: 16, y: 56, w: 77, h: 20, gap: 4 };
 const PER = GRID.cols * GRID.rows;
+// the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
+const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
+// secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
+const SECRETS = { STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife' } };   // (webm first; mp4 for Safari)
 const PAGE = { x: 362, y: 46 };                                           // PAGE 1/2 and its arrows, over the cards' top right
 const BTN = { y: SIDE.y + SIDE.h - 34, h: 28, prevW: 56 };                 // the panel's buttons (PREVIEW sits left of BUY on a costume)
 // the moves a costume preview plays, in this order (whichever the fighter has)
@@ -60,6 +67,7 @@ export class ShopScene extends Phaser.Scene {
     this.prevT = txt(SIDE.x + 20 + BTN.prevW / 2, SIDE.y + SIDE.h - 20, 'PREVIEW', 6, '#ffffff').setOrigin(0.5, 0.5);
     // the shopkeeper's face, on his screen (glowing: the line art is filled with the screen's colour)
     this.faceImg = this.add.sprite(KP.x, KP.y, 'shop_face_calm', 0).setTintMode(Phaser.TintModes.FILL).setTint(0x9affd8);
+    this.vidImg = this.add.image(KP.x, KP.y, 'shop_face_calm').setVisible(false);   // a secret's video, on his screen (under the scanlines)
     this.front = this.add.graphics();                // over the face: scanlines, the glass, static
     this.bubbleT = txt(0, 0, '', 6, '#1a1024', { align: 'center' }).setOrigin(0.5, 0.5);
     this.face = 'calm'; this.faceT = 0; this.jolt = 0; this.faceStart = 0; this.static = 12; this.saying = ''; this.sayT = 0; this.lastSel = -1;
@@ -77,6 +85,11 @@ export class ShopScene extends Phaser.Scene {
     this.ovHelp = txt(W / 2, H - 8, '', 5, '#8a87a3').setOrigin(0.5, 1).setDepth(52);
     this.ovList = txt(W / 2, 100, '', 7, '#ffffff', { align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setDepth(52);
     this.pv = null; this.spin = null;
+    // secrets: the code screen and the video on his screen
+    this.secret = null; this.bellRings = []; this.bellWobble = 0;
+    this.tvT = txt(KP.x - 4, KP.y - 16, '', 5, '#9affd8', { align: 'center' }).setOrigin(0.5).setDepth(1);
+    this.tvCode = txt(KP.x - 4, KP.y + 6, '', 6, '#d8fff0').setOrigin(0.5).setDepth(1);
+    this.events.once('shutdown', () => this.closeSecret(true));
     // the room behind it all: a dark shop, shelves, a hanging lamp
     const b = this.bg;
     b.fillStyle(C.bg, 1); b.fillRect(0, 0, W, H);
@@ -84,7 +97,9 @@ export class ShopScene extends Phaser.Scene {
     b.fillStyle(C.panel2, 1); b.fillRect(GRID.x - 6, GRID.y - 6, GRID.cols * (GRID.w + GRID.gap) + 6, GRID.rows * (GRID.h + GRID.gap) + 6);
     // mouse: tabs, cards, BUY
     this.input.on('pointerdown', (p, over) => {
+      if (this.secret) { if (Math.hypot(p.x - KP.x, p.y - KP.y) < 50 || (this.secret.mode === 'video' && over.length === 0)) this.closeSecret(); else if (this.secret.mode === 'code') this.codeBox.focus(); return; }
       if (this.pv || this.spin) { this.clicked = this.pv && p.x < W / 3 ? 'pvprev' : this.pv && p.x > W * 2 / 3 ? 'pvnext' : 'ovok'; return; }
+      if (Math.hypot(p.x - BELL.x, p.y - BELL.y) < BELL.r) return this.ringBell();
       if (over.length) return;
       for (let i = 0; i < SHOP.length; i++) { const x = TAB.x + i * (TAB.w + TAB.gap); if (p.x >= x && p.x <= x + TAB.w && p.y >= TAB.y && p.y <= TAB.y + TAB.h) { this.setTab(i); return; } }
       for (let i = 0; i < PER; i++) { const [x, y] = this.cardAt(i); if (p.x >= x && p.x <= x + GRID.w && p.y >= y && p.y <= y + GRID.h) { if (this.sel === i) this.clicked = 'buy'; else { this.sel = i; sfx('menu', 0.4); } return; } }
@@ -141,7 +156,7 @@ export class ShopScene extends Phaser.Scene {
     for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: (def.frameCounts && def.frameCounts[k]) || n(sh[k]), step: 8, o, loops: 2 });
     if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: def.frameCounts[k] || n(sh[k]), step: 5, o, loops: 1 });
     if (def.moveAnims && sh.moves) for (const [k, l] of SHOW) { const A = def.moveAnims[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
-    this.pv = { it, def, seq, i: 0, t: 0 }; sfx('select', 0.5, 1.3); this.react('smug', 'preview');
+    this.pv = { it, def, seq, i: 0, t: 0 }; sfx('select', 0.5, 1.3); this.react('glasses', 'preview');
   }
   stepPreview(d) { const pv = this.pv; pv.i = (pv.i + d + pv.seq.length) % pv.seq.length; pv.t = 0; sfx('menu', 0.4); }
   closeOverlay() { this.pv = null; this.spin = null; this.ov.clear(); this.ovSpr.setVisible(false); for (const x of [this.ovT, this.ovSub, this.ovHelp, this.ovList]) x.setText(''); }
@@ -226,6 +241,74 @@ export class ShopScene extends Phaser.Scene {
     o.fillStyle(0xffffff, 0.6); o.fillEllipse(x + w - 5, y - 7, 6, 3);
     o.fillStyle(0x1a1424, 1); o.fillRect(x + w - 14, y - 1, 28, 2);
   }
+  // ---------------------------------------------------------------- SECRETS: the bell, the code screen, the video
+  ringBell() {
+    sfx('ding', 0.5, 2.2); this.bellWobble = 14;
+    this.bellRings = this.bellRings.filter((r) => this.t - r < BELL.window); this.bellRings.push(this.t);
+    if (this.bellRings.length >= BELL.rings) { this.bellRings = []; this.openCode(); }
+  }
+  // his screen asks for a code. Typing goes into a hidden text box, so phones get their keyboard too.
+  openCode() {
+    this.secret = { mode: 'code', t: 0 }; this.static = 10; this.jolt = 10; sfx('glitch', 0.4, 0.8);
+    const L = KEEPER.lines.secret; this.saying = L[Math.floor(Math.random() * L.length)]; this.sayT = 200;
+    if (!this.codeBox) {
+      const el = this.codeBox = document.createElement('input');
+      Object.assign(el.style, { position: 'fixed', left: '-200px', top: '0', width: '100px', opacity: '0' });
+      el.autocapitalize = 'characters'; el.autocomplete = 'off'; el.spellcheck = false; el.maxLength = 12;
+      el.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') this.submitCode(); if (e.key === 'Escape') this.closeSecret(); });
+      el.addEventListener('input', () => { el.value = el.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); sfx('menu', 0.3, 1.6); });
+      document.body.append(el);
+    }
+    this.codeBox.value = ''; this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();
+    this.codeBox.focus();
+  }
+  submitCode() {
+    const code = this.codeBox.value, S = SECRETS[code];
+    if (!S) { this.codeBox.value = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
+    this.codeBox.blur(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
+    // the video: a hidden <video>, drawn every frame into a tiny canvas texture shown big (chunky pixels) on his screen
+    const v = document.createElement('video');
+    v.src = S.video.find((u) => v.canPlayType(u.endsWith('webm') ? 'video/webm; codecs="vp9, opus"' : 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) || S.video[S.video.length - 1]; v.playsInline = true; v.preload = 'auto'; v.volume = Math.min(1, settings.musicVolume);
+    const key = 'secret_tv';
+    if (!this.textures.exists(key)) this.textures.createCanvas(key, S.px, S.px);
+    const tex = this.textures.get(key); tex.context.fillStyle = '#000'; tex.context.fillRect(0, 0, S.px, S.px); tex.refresh();
+    this.vidImg.setTexture(key).setScale(68 / S.px).setVisible(true);
+    stopMusic();
+    v.addEventListener('ended', () => this.closeSecret());
+    v.play().catch(() => {});
+    const stopKey = (e) => { if (['Escape', 'Enter', ' ', 'k', 'K', 'j', 'J'].includes(e.key)) this.closeSecret(); };   // any of the usual keys stops it
+    setTimeout(() => window.addEventListener('keydown', stopKey), 300);
+    this.secret = { mode: 'video', t: 0, v, tex, px: S.px, stopKey };
+    this.static = 14; this.react('calm', S.line, 260);
+  }
+  closeSecret(quiet) {
+    const S = this.secret; if (!S) return;
+    this.secret = null;
+    if (S.stopKey) window.removeEventListener('keydown', S.stopKey);
+    if (S.v) { try { S.v.pause(); S.v.removeAttribute('src'); S.v.load(); } catch (e) { /* gone */ } if (!quiet) playMusic(this, 'bgm_title'); }
+    if (this.codeBox) { this.codeBox.blur(); if (quiet) { this.codeBox.remove(); this.codeBox = null; } }
+    this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();   // (always: the keyboard plugin outlives this visit)
+    if (!quiet) { this.static = 10; this.tvT.setText(''); this.tvCode.setText(''); this.vidImg.setVisible(false); }
+  }
+  // draws the code screen / video frame onto his screen (called from keeper with the screen's middle)
+  drawSecret(f, cx, cy, t) {
+    const S = this.secret;
+    this.faceImg.setVisible(false);
+    if (S.mode === 'code') {
+      S.t++;
+      f.fillStyle(0x061a14, 1); f.fillRect(cx - 36, cy - 34, 72, 68);
+      const wrong = this.face === 'shock' && S.t < 60;
+      this.tvT.setText(wrong ? 'WRONG\nCODE' : 'INSERT\nCODE').setColor(wrong ? '#ff8a8a' : '#9affd8').setPosition(cx, cy - 16);
+      const typed = this.codeBox ? this.codeBox.value : '';
+      this.tvCode.setText(typed + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
+      f.lineStyle(1, 0x9affd8, 0.6); f.strokeRect(cx - 32, cy + 1, 64, 14);
+    } else {
+      this.tvT.setText(''); this.tvCode.setText('');
+      const { v, tex, px } = S, c = tex.context;
+      if (v.readyState >= 2) { c.drawImage(v, 0, 0, px, px); tex.refresh(); }
+      this.vidImg.setPosition(cx, cy);
+    }
+  }
   say(s, color = '#ff8a8a') { this.msgT.setText(s).setColor(color); this.msg = 120; }
   // the shopkeeper reacts: a face (for `hold` frames, then back to his calm face) and a line from KEEPER.lines
   react(face, line, hold = KEEPER.hold) {
@@ -249,7 +332,8 @@ export class ShopScene extends Phaser.Scene {
     g.fillStyle(0x4a2a1a, 1); g.fillRect(hx - 72, desk, 144, 10); g.fillStyle(0x6a3e24, 1); g.fillRect(hx - 72, desk, 144, 3);
     g.fillStyle(0x3a2014, 1); g.fillRect(hx - 66, desk + 10, 8, floor - desk - 10); g.fillRect(hx + 58, desk + 10, 8, floor - desk - 10);
     g.fillStyle(0x4a2a1a, 1); g.fillRect(hx - 40, desk + 10, 80, 14); g.fillStyle(0xc8a040, 1); g.fillRect(hx - 6, desk + 16, 12, 2);
-    g.fillStyle(0xc8a040, 1); g.fillEllipse(hx + 58, desk - 4, 14, 8); g.fillStyle(0xe8c060, 1); g.fillRect(hx + 57, desk - 11, 2, 4); g.fillRect(hx + 52, desk - 1, 12, 2);
+    const bw = this.bellWobble > 0 ? Math.round(Math.sin(this.bellWobble-- * 1.3) * this.bellWobble * 0.15) : 0;   // the bell: rocks when rung (ring it 3 times...)
+    g.fillStyle(0xc8a040, 1); g.fillEllipse(hx + 58 + bw, desk - 4, 14, 8); g.fillStyle(0xe8c060, 1); g.fillRect(hx + 57 + bw * 2, desk - 11, 2, 4); g.fillRect(hx + 52, desk - 1, 12, 2);
     // the TV: casing, a screen in a rounded bezel, knobs, a grille, little feet, rabbit-ear antennas
     const tx = hx + rock;
     g.fillStyle(0x2a2632, 1); g.fillRect(tx - 36, desk - 4, 10, 4); g.fillRect(tx + 26, desk - 4, 10, 4);
@@ -270,6 +354,7 @@ export class ShopScene extends Phaser.Scene {
     const f = this.front; f.clear();
     for (let y = hy - 34; y < hy + 34; y += 2) { f.fillStyle(0x000000, 0.22); f.fillRect(tx - 40, y, 72, 1); }        // scanlines
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
+    if (this.secret) this.drawSecret(f, tx - 4, hy, t);
     if (this.static > 0) { this.static--; for (let i = 0; i < 70; i++) { f.fillStyle(Math.random() < 0.5 ? 0xd8fff0 : 0x2a4a3a, 1); f.fillRect(tx - 40 + Math.random() * 70, hy - 34 + Math.random() * 66, 2, 1); } }   // static when the channel changes
     if (this.face === 'shock' && this.faceT > KEEPER.hold - 24) { const d = KEEPER.hold - this.faceT; f.lineStyle(2, 0xffffff, 1 - d / 24); for (const s of [-1, 1]) { f.lineBetween(tx + s * 52, hy - 30, tx + s * 60, hy - 38); f.lineBetween(tx + s * 54, hy - 18, tx + s * 64, hy - 20); } }   // !! lines
     if (this.face === 'money' && this.faceT > 0) for (let i = 0; i < 4; i++) { const p = ((t + i * 15) % 60) / 60; f.fillStyle(0xf3c358, 1 - p); f.fillRect(tx - 30 + i * 20, hy - 44 - p * 24, 3, 3); }   // coins of light, floating up
@@ -429,6 +514,12 @@ export class ShopScene extends Phaser.Scene {
   update() {
     this.t++;
     const m = this.menu.poll(), t = this.t;
+    if (this.secret) {                                                              // the code screen / the video: nothing else moves
+      if (this.secret.mode === 'video' && (m.back || m.ok || m.pads.some((p) => p.button === 'b' || p.button === 'a'))) this.closeSecret();
+      if (this.faceT > 0 && --this.faceT === 0) this.react('calm');
+      const g = this.g; g.clear(); this.keeper(g, t); this.clicked = null;
+      return;
+    }
     if (this.pv || this.spin) {                                                     // an overlay is up: it takes the input
       const ok = m.ok || this.clicked === 'ovok' || m.pads.some((p) => p.button === 'a'), back = m.back || m.pads.some((p) => p.button === 'b') || Phaser.Input.Keyboard.JustDown(this.pKey);
       const cl = this.clicked; this.clicked = null;

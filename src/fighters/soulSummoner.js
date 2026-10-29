@@ -10,7 +10,7 @@ export const SOUL_SUMMONER = {
   name: 'SOUL SUMMONER',
   // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py). The stride (frames 3-7) loops from
   // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
-  sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall', moves: 'ss_moves' },
+  sheets: { idle: 'ss_idle', taunt: 'ss_taunt', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall', moves: 'ss_moves' },
   // shop costumes with their own drawing (skins.js sheetSet): ECLIPSE, AURORA - tools/sprites/shop_costumes.py
   costumeSheets: Object.fromEntries(['eclipse', 'aurora'].map((s) => [s, Object.fromEntries(['idle', 'juggle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'ss_' + s + '_' + k]))])),
   // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/soul_summoner_moves.py).
@@ -29,10 +29,10 @@ export const SOUL_SUMMONER = {
   airSpeed: 2.7, airAccel: 0.24, airFriction: 0.04,
   jumpV: -9.0, shortHopV: -6.2, doubleJumpV: -8.6,
 
-  // TAUNT (1): SOUL FLARE - thrusts his flame overhead, it swells and roars, then he beckons them in
-  taunt: { name: 'SOUL FLARE', frames: 80, lines: ['COME, THEN.', 'YOUR SOUL IS MINE.', 'BURN BRIGHTLY.'],
-    sounds: [[12, 'flame', 0.6, 1], [16, 'summon', 0.35, 1.4], [42, 'flame', 0.5, 1.2]],
-    fx: [{ kind: 'wisp', from: 14, to: 46, every: 3, x: 6, y: -78, n: 2 }] },
+  // TAUNT (1): SOUL JUGGLE - Mason's animation (taunt_sheet.png, 16 frames from tools/sprites/art/ss_taunt_mason.png):
+  // he tosses his blue soul flame from hand to hand. `anim`: [frames in the strip, game frames per drawing]
+  taunt: { name: 'SOUL JUGGLE', frames: 80, anim: [16, 5], lines: ['COME, THEN.', 'YOUR SOUL IS MINE.', 'BURN BRIGHTLY.'],
+    sounds: [[8, 'flame', 0.45, 1.3], [30, 'flame', 0.45, 1.15], [52, 'flame', 0.45, 1.3], [66, 'summon', 0.3, 1.5]] },
 
   moves: {
     // ---- ground attacks (J + direction)
