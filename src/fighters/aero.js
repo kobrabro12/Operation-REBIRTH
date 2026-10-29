@@ -10,6 +10,8 @@ export const AERO = {
   id: 'aero',
   name: 'AERO',
   sheets: { idle: 'aero_idle', run: 'aero_run', jump: 'aero_jump', fall: 'aero_fall', moves: 'aero_moves' },
+  // shop costume with its own drawing (skins.js sheetSet): SUNSET - tools/sprites/shop_costumes.py
+  costumeSheets: { sunset: Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_sunset_' + k])) },
   runCycle: [0, 8],
   moveAnims: AERO_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,

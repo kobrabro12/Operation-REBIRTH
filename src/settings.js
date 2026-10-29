@@ -18,6 +18,7 @@ export const settings = {
   extraPads: [],      // pad indexes for players 2-4
   // Chosen on the fighter select screen, one entry per player slot.
   stage: 'sky-sanctum', // stage id or 'random'
+  track: 'auto',      // the music for the match (stage select): 'auto', 'random', a stage id or a shop track id (stages.js trackList)
   picks: [],          // fighter id or 'random'
   skins: [],          // colour variation per slot (index into SKINS[fighter])
   cpuLevels: [],      // per-CPU difficulty (falls back to `difficulty`)

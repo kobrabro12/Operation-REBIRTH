@@ -77,11 +77,11 @@ export const SKINS = {
       vfx: { hit: { shape: 'dust', colors: [0xd8b47a, 0x9a6a3a, 0xfff0c8], n: 9 }, minion: { flame: { to: 38, sat: 1.1 }, eyes: { to: 40 } } } },
     // ---- SHOP costumes (Trinkets > SHOP > COSTUMES): locked until bought (`shop`: the shop item's id)
     // ECLIPSE: armour gone black as a dead sun, the flame burning white-gold like a corona; his hits throw stars
-    { name: 'ECLIPSE', shop: 'cos-eclipse', swatch: 0x14101a, fx: 0xffe08a, groups: SS, rules: { armor: { sat: 0.2, val: 0.32 }, cape: { sat: 0.15, val: 0.35 }, gold: { to: 44, sat: 1.1, val: 1.25 }, flame: { to: 46, sat: 0.35, val: 1.35 }, eyes: { to: 48, sat: 0.3, val: 1.3 } },
+    { name: 'ECLIPSE', sheetSet: 'eclipse', shop: 'cos-eclipse', swatch: 0x14101a, fx: 0xffe08a, groups: SS, rules: { armor: { sat: 0.2, val: 0.32 }, cape: { sat: 0.15, val: 0.35 }, gold: { to: 44, sat: 1.1, val: 1.25 }, flame: { to: 46, sat: 0.35, val: 1.35 }, eyes: { to: 48, sat: 0.3, val: 1.3 } },
       outline: 0x6a4a10,
       vfx: { hit: { shape: 'star', colors: [0xffe08a, 0xffffff, 0xf3c358], n: 9, ring: 0xffe08a, glint: true }, aura: { motes: { colors: [0xffe08a, 0xffffff], rate: 6 } }, minion: { flame: { to: 46, sat: 0.35, val: 1.3 }, eyes: { to: 48 } } } },
     // AURORA: northern lights - a deep teal cape, a flame that burns magenta, silver trim; wisps of light trail him
-    { name: 'AURORA', shop: 'cos-aurora', swatch: 0x1ad0b0, fx: 0xff6ad8, groups: SS, rules: { cape: { to: 172, sat: 1.4, val: 0.9 }, flame: { to: 312, sat: 1.1, val: 1.15 }, gold: { sat: 0.12, val: 1.2 }, eyes: { to: 160, val: 1.2 }, armor: { to: 200, satAdd: 0.12, val: 0.8 } },
+    { name: 'AURORA', sheetSet: 'aurora', shop: 'cos-aurora', swatch: 0x1ad0b0, fx: 0xff6ad8, groups: SS, rules: { cape: { to: 172, sat: 1.4, val: 0.9 }, flame: { to: 312, sat: 1.1, val: 1.15 }, gold: { sat: 0.12, val: 1.2 }, eyes: { to: 160, val: 1.2 }, armor: { to: 200, satAdd: 0.12, val: 0.8 } },
       vfx: { hit: { shape: 'wisp', colors: [0x5affd8, 0xff6ad8, 0xffffff], n: 7, ring: 0x5affd8 }, aura: { orbit: { n: 3, colors: [0x5affd8, 0xff6ad8], r: 24 } }, minion: { flame: { to: 312, sat: 1.1 }, eyes: { to: 160 } } } },
     // ---- MILESTONES: "The Hollow Crown". A gravekeeper hears the dead whisper, binds them, becomes
     // a lich, and finally takes the throne of every soul he has ever raised.
@@ -142,10 +142,10 @@ export const SKINS = {
       vfx: { hit: { shape: 'pixel2', colors: [0xffe08a, 0xffffff, 0x2a5ad8, 0xe83a3a], n: 9, glint: true } } },
     // ---- SHOP costumes
     // OBSIDIAN: volcanic glass armour, black as night, with lava glowing through the cracks; her hits burst into flame
-    { name: 'OBSIDIAN', shop: 'cos-obsidian', swatch: 0x1a1018, fx: 0xff6a1a, groups: HK, rules: { suit: { to: 280, sat: 0.6, val: 0.32 }, sash: { to: 18, sat: 1.4, val: 1.6 }, steel: { hue: 270, satAdd: 0.08, val: 0.42 }, white: { hue: 22, satAdd: 0.55 } },
+    { name: 'OBSIDIAN', sheetSet: 'obsidian', shop: 'cos-obsidian', swatch: 0x1a1018, fx: 0xff6a1a, groups: HK, rules: { suit: { to: 280, sat: 0.6, val: 0.32 }, sash: { to: 18, sat: 1.4, val: 1.6 }, steel: { hue: 270, satAdd: 0.08, val: 0.42 }, white: { hue: 22, satAdd: 0.55 } },
       vfx: { hit: { shape: 'flame', colors: [0xffd060, 0xff6a1a, 0xff3a1a], n: 8, ring: 0xff6a1a }, trail: 0xff6a1a } },
     // CYBERBLADE: chrome and neon - an electric-cyan suit, hot-magenta sash, mirror-bright steel; her hits glitch into pixels
-    { name: 'CYBERBLADE', shop: 'cos-cyber', swatch: 0x2af0ff, fx: 0xff2ad8, groups: HK, rules: { suit: { to: 188, sat: 2.6, val: 1.2 }, sash: { to: 312, sat: 1.4, val: 1.5 }, steel: { hue: 200, satAdd: 0.06, val: 1.4 }, white: { hue: 300, satAdd: 0.3 } },
+    { name: 'CYBERBLADE', sheetSet: 'cyber', shop: 'cos-cyber', swatch: 0x2af0ff, fx: 0xff2ad8, groups: HK, rules: { suit: { to: 188, sat: 2.6, val: 1.2 }, sash: { to: 312, sat: 1.4, val: 1.5 }, steel: { hue: 200, satAdd: 0.06, val: 1.4 }, white: { hue: 300, satAdd: 0.3 } },
       vfx: { hit: { shape: 'pixel2', colors: [0x2af0ff, 0xff2ad8, 0xffffff], n: 10, ring: 0x2af0ff, sound: 'glitch' }, trail: 0x2af0ff } },
     // ---- MILESTONES: "The Oath". A squire in hand-me-down bronze swears an oath, earns her
     // knighthood, is blessed as a paladin, and finally rises as a seraph of the blade.
@@ -223,7 +223,7 @@ export const SKINS = {
       pal: { outline: 0x1e140c, deep: 0x5e4630, mid: 0xae8e68, light: 0xf0dcb0, core: 0xfff6e0, shade: 0x3a2a1a, void: 0x0e0804 },
       vfx: { hit: { shape: 'dust', colors: [0xf0dcb0, 0xae8e68, 0xffffff], n: 9 } } },
     // VAPORWAVE (SHOP): pastel pink, cyan hair, a purple fit - an aesthetic straight off a 90s mall; his notes come out pink and teal
-    { name: 'VAPORWAVE', shop: 'cos-vapor', swatch: 0xff7ad8, fx: 0x5af0f0, groups: NUG, rules: { acid: { to: 318, sat: 0.8, val: 1.1 }, hair: { hue: 184, sat: 0.9, val: 1.05 }, cloth: { to: 270, sat: 1.6, val: 1.3 } },
+    { name: 'VAPORWAVE', sheetSet: 'vapor', shop: 'cos-vapor', swatch: 0xff7ad8, fx: 0x5af0f0, groups: NUG, rules: { acid: { to: 318, sat: 0.8, val: 1.1 }, hair: { hue: 184, sat: 0.9, val: 1.05 }, cloth: { to: 270, sat: 1.6, val: 1.3 } },
       pal: { outline: 0x1a0a2a, deep: 0x8a3ab0, mid: 0xff7ad8, light: 0x5af0f0, core: 0xffffff, shade: 0x2a1040, void: 0x0a0414 },
       vfx: { hit: { shape: 'note', colors: [0xff7ad8, 0x5af0f0, 0xffffff], n: 7, glint: true } } },
   ],
@@ -338,7 +338,7 @@ export const SKINS = {
       pal: { outline: 0x060c26, deep: 0x1a3a8a, mid: 0x3a6ad8, light: 0xffd23a, core: 0xffffff, shade: 0x0a1640, void: 0x02040e },
       vfx: { hit: { shape: 'star', colors: [0xffd23a, 0xffffff, 0x8ab8f0], n: 7, glint: true } } },
     // SUNSET (SHOP): glass gone orange and magenta like the last hour of a summer day; his bubbles glow gold
-    { name: 'SUNSET', shop: 'cos-sunset', swatch: 0xff8a3a, fx: 0xff5ab0, groups: AEG, rules: { aqua: { to: 24, sat: 1.0, val: 1.05 }, lime: { to: 322, sat: 0.9 }, fish: { to: 48, sat: 1.0, val: 1.1 } },
+    { name: 'SUNSET', sheetSet: 'sunset', shop: 'cos-sunset', swatch: 0xff8a3a, fx: 0xff5ab0, groups: AEG, rules: { aqua: { to: 24, sat: 1.0, val: 1.05 }, lime: { to: 322, sat: 0.9 }, fish: { to: 48, sat: 1.0, val: 1.1 } },
       pal: { outline: 0x3a0a14, deep: 0xc0401a, mid: 0xff8a3a, light: 0xffc87a, core: 0xffffff, shade: 0x4a1a1a, void: 0x140404 },
       vfx: { hit: { shape: 'bubble', colors: [0xffc87a, 0xff5ab0, 0xffffff], n: 8, ring: 0xff8a3a, glint: true } } },
   ],
@@ -367,10 +367,10 @@ export const SKINS = {
       vfx: { hit: { shape: 'drop', colors: [0xe8e8e8, 0x8a8a8a, 0xffffff], n: 10 } } },
     // ---- SHOP costumes
     // VAMPIRE: a midnight count - black-crimson robe, a blood-red gem, silver where the wood was; his hits scatter bats
-    { name: 'VAMPIRE', shop: 'cos-vampire', swatch: 0x5a0a1a, fx: 0xe0283a, groups: MW, rules: { robe: { to: 350, sat: 1.15, val: 0.55 }, magic: { to: 356, sat: 1.2, val: 1.15 }, cloth: { to: 330, sat: 0.6, val: 0.45 }, wood: { sat: 0.1, val: 1.3 } },
+    { name: 'VAMPIRE', sheetSet: 'vampire', shop: 'cos-vampire', swatch: 0x5a0a1a, fx: 0xe0283a, groups: MW, rules: { robe: { to: 350, sat: 1.15, val: 0.55 }, magic: { to: 356, sat: 1.2, val: 1.15 }, cloth: { to: 330, sat: 0.6, val: 0.45 }, wood: { sat: 0.1, val: 1.3 } },
       vfx: { hit: { shape: 'bat', colors: [0x16101c, 0x5a0a1a, 0xe0283a], n: 6, sparks: [0xe0283a, 0xffffff] } } },
     // SAKURA: cherry-blossom pink robes, a white-pink gem; petals fall wherever he hits
-    { name: 'SAKURA', shop: 'cos-sakura', swatch: 0xffa8c8, fx: 0xffd0e0, groups: MW, rules: { robe: { to: 334, sat: 0.55, val: 1.9 }, magic: { to: 340, sat: 0.4, val: 1.3 }, cloth: { to: 300, sat: 0.9, val: 1.3 }, wood: { to: 18, sat: 0.7, val: 0.8 } },
+    { name: 'SAKURA', sheetSet: 'sakura', shop: 'cos-sakura', swatch: 0xffa8c8, fx: 0xffd0e0, groups: MW, rules: { robe: { to: 334, sat: 0.55, val: 1.9 }, magic: { to: 340, sat: 0.4, val: 1.3 }, cloth: { to: 300, sat: 0.9, val: 1.3 }, wood: { to: 18, sat: 0.7, val: 0.8 } },
       vfx: { hit: { shape: 'sakura', colors: [0xffc8dc, 0xffffff, 0xff8ab0], n: 8 } } },
     // ---- MILESTONES: "The Abyss Answers". Every KO drags him deeper into the sea, until the
     // ocean itself crowns him.

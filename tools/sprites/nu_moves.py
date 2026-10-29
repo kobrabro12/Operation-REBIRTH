@@ -47,7 +47,7 @@ def build_rig(draw, follow, order=None):
         pivot, parent = draw.RIG[name]
         dr, sw = follow.get(name, (0, 0))
         parts.append(Part(name, layers[name][..., 3] > 0, pivot, parent, z=z, variants=[layers[name]], drag=dr, sway=sw))
-    parts.append(fcan_part(layers, draw.ORDER))
+    if 'can' in layers: parts.append(fcan_part(layers, draw.ORDER))      # (NU's spray can; AERO has none)
     return Rig(base, parts, (64, 64), (0, 0), FEET), Rig(base, parts, (112, 104), (24, 36), FEET)
 
 SMALL, BIG = build_rig(nu_draw, FOLLOW)

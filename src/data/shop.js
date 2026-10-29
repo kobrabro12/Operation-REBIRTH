@@ -26,14 +26,14 @@ export const SHOP = [
     { id: 'cos-sunset', kind: 'costume', fighter: 'aero', skin: 'SUNSET', name: 'SUNSET', price: 900, info: 'AERO (TEST FIGHTER). GLASS GONE ORANGE AND MAGENTA. GOLDEN BUBBLES.' },
   ] },
   { name: 'STAGES', items: [
-    { id: 'fx-night', kind: 'fx', name: 'NIGHTFALL', price: 500, info: 'EVERY STAGE AFTER DARK: A DEEP BLUE SKY, STARS AND A CRESCENT MOON.', color: 0x1a2a6a },
-    { id: 'fx-storm', kind: 'fx', name: 'THUNDERSTORM', price: 750, info: 'POURING RAIN, AND LIGHTNING THAT LIGHTS UP THE WHOLE STAGE.', color: 0x3a4a6a },
-    { id: 'fx-snow', kind: 'fx', name: 'BLIZZARD', price: 600, info: 'SNOW DRIVING SIDEWAYS THROUGH EVERY FIGHT.', color: 0xd8e8ff },
-    { id: 'fx-sakura', kind: 'fx', name: 'CHERRY BLOSSOM', price: 600, info: 'PINK PETALS DRIFTING DOWN OVER EVERYTHING.', color: 0xffb8d0 },
-    { id: 'fx-fireflies', kind: 'fx', name: 'FIREFLIES', price: 550, info: 'A VIOLET DUSK, AND LITTLE LIGHTS WANDERING THE STAGE.', color: 0xd8ff6a },
-    { id: 'fx-bloodmoon', kind: 'fx', name: 'BLOOD MOON', price: 800, info: 'A HUGE RED MOON, AND EVERYTHING UNDER IT RED.', color: 0xc81a1a },
-    { id: 'fx-sand', kind: 'fx', name: 'SANDSTORM', price: 500, info: 'A HOT TAN HAZE, DUST STREAMING PAST.', color: 0xc89a5a },
-    { id: 'fx-aurora', kind: 'fx', name: 'AURORA', price: 900, info: 'RIBBONS OF GREEN AND VIOLET LIGHT ACROSS THE SKY.', color: 0x3affa8 },
+    { id: 'fx-night', kind: 'fx', name: 'NIGHTFALL', price: 500, info: 'RE-THEMES ANY STAGE: A MOONLIT TOWN ON THE HILLS, STARS, AND LAMP POSTS ON THE STAGE.', color: 0x1a2a6a },
+    { id: 'fx-storm', kind: 'fx', name: 'THUNDERSTORM', price: 750, info: 'RE-THEMES ANY STAGE: BLACK CLOUDS, A LIGHTHOUSE ON THE CLIFFS, POURING RAIN, LIGHTNING, PUDDLES.', color: 0x3a4a6a },
+    { id: 'fx-snow', kind: 'fx', name: 'BLIZZARD', price: 600, info: 'RE-THEMES ANY STAGE: SNOWY PEAKS AND PINES, SNOW PILED ON EVERY PLATFORM, ICICLES, A BLIZZARD.', color: 0xd8e8ff },
+    { id: 'fx-sakura', kind: 'fx', name: 'CHERRY BLOSSOM', price: 600, info: 'RE-THEMES ANY STAGE: A PINK EVENING, A PAGODA, CHERRY TREES ON THE STAGE, PETALS EVERYWHERE.', color: 0xffb8d0 },
+    { id: 'fx-fireflies', kind: 'fx', name: 'FIREFLIES', price: 550, info: 'RE-THEMES ANY STAGE: A VIOLET DUSK FOREST, GLOWING MUSHROOMS, PAPER LANTERNS, FIREFLIES.', color: 0xd8ff6a },
+    { id: 'fx-bloodmoon', kind: 'fx', name: 'BLOOD MOON', price: 800, info: 'RE-THEMES ANY STAGE: A GRAVEYARD UNDER A HUGE RED MOON - GRAVESTONES, A DEAD TREE, CANDLES.', color: 0xc81a1a },
+    { id: 'fx-sand', kind: 'fx', name: 'SANDSTORM', price: 500, info: 'RE-THEMES ANY STAGE: DUNES AND PYRAMIDS, SAND DRIFTS, CACTI, AND DUST STREAMING PAST.', color: 0xc89a5a },
+    { id: 'fx-aurora', kind: 'fx', name: 'AURORA', price: 900, info: 'RE-THEMES ANY STAGE: A POLAR NIGHT, ICY MOUNTAINS, ICE CRYSTALS AND RIBBONS OF LIGHT.', color: 0x3affa8 },
   ] },
   { name: 'MUSIC', items: [
     { id: 'mus-neon', kind: 'music', name: 'NEON DRIVE', price: 400, info: 'SYNTHWAVE. PULSING BASS, BIG DRUMS, A NIGHT DRIVE.', color: 0xff4fd8 },
@@ -55,23 +55,28 @@ export const SHOP = [
     { id: 'ext-rainbow', kind: 'extra', name: 'RAINBOW TRAILS', price: 700, info: 'LAUNCHED FIGHTERS LEAVE A RAINBOW BEHIND THEM.', color: 0x8a6aff },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
-  // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from its pool (GACHA below)
+  // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks
+  // (gacha.pool: a shelf name, or ANY for every shelf). A prize you already own is a dud: you get some coins back
+  // (GACHA_REFUND). The GOLDEN machine only gives things you don't own yet. A machine with nothing new left is SOLD OUT.
   { name: 'GAMBLING', items: [
-    { name: 'BASIC CAPSULE', price: 100, info: 'ONE PULL FROM THE BASIC MACHINE.\nANYTHING COULD BE INSIDE.', gacha: { machine: 'basic', pulls: 1 }, color: 0x4ac8ff },
-    { name: '10 BASIC PULLS', price: 900, info: 'TEN PULLS FROM THE BASIC MACHINE.\nONE FREE, BECAUSE WE LIKE YOU.', gacha: { machine: 'basic', pulls: 10 }, color: 0x4ac8ff },
-    { name: 'GOLDEN CAPSULE', price: 500, info: 'ONE PULL FROM THE GOLDEN MACHINE.\nRARER PRIZES. PROBABLY.', gacha: { machine: 'golden', pulls: 1 }, color: 0xf3c358 },
-    { name: '10 GOLDEN PULLS', price: 4500, info: 'TEN PULLS FROM THE GOLDEN MACHINE.\nFOR THE TRULY LUCKY.', gacha: { machine: 'golden', pulls: 10 }, color: 0xf3c358 },
-    { name: 'MYSTERY CAPSULE', price: 250, info: 'NOBODY KNOWS WHICH MACHINE\nTHIS ONE CAME FROM.', gacha: { machine: 'mystery', pulls: 1 }, color: 0xc77dff },
+    { id: 'gacha-costume', name: 'COSTUME CAPSULE', price: 650, info: 'ONE RANDOM COSTUME.', gacha: { machine: 'costume', pool: 'COSTUMES', pulls: 1 }, color: 0xc77dff },
+    { id: 'gacha-stage', name: 'WEATHER CAPSULE', price: 380, info: 'ONE RANDOM STAGE EFFECT.', gacha: { machine: 'stage', pool: 'STAGES', pulls: 1 }, color: 0x4ac8ff },
+    { id: 'gacha-music', name: 'MIXTAPE CAPSULE', price: 200, info: 'ONE RANDOM BATTLE TRACK.', gacha: { machine: 'music', pool: 'MUSIC', pulls: 1 }, color: 0xff6ad8 },
+    { id: 'gacha-extra', name: 'PARTY CAPSULE', price: 400, info: 'ONE RANDOM MATCH EXTRA.', gacha: { machine: 'extra', pool: 'EXTRAS', pulls: 1 }, color: 0x7aff8a },
+    { id: 'gacha-mystery', name: 'MYSTERY CAPSULE', price: 450, info: 'ONE PRIZE FROM ANY SHELF. ANYTHING COULD BE INSIDE.', gacha: { machine: 'mystery', pool: 'ANY', pulls: 1 }, color: 0x8a6aff },
+    { id: 'gacha-costume5', name: '5 COSTUME PULLS', price: 2900, info: 'FIVE COSTUME PULLS FOR THE PRICE OF ABOUT FOUR AND A HALF.', gacha: { machine: 'costume', pool: 'COSTUMES', pulls: 5 }, color: 0xc77dff },
+    { id: 'gacha-mystery5', name: '5 MYSTERY PULLS', price: 2000, info: 'FIVE PRIZES FROM ANY SHELF.', gacha: { machine: 'mystery', pool: 'ANY', pulls: 5 }, color: 0x8a6aff },
+    { id: 'gacha-golden', name: 'GOLDEN CAPSULE', price: 1100, info: 'ONE PRIZE FROM ANY SHELF - ALWAYS ONE YOU DO NOT OWN YET.', gacha: { machine: 'golden', pool: 'ANY', pulls: 1, fresh: true }, color: 0xf3c358 },
   ] },
 ];
 
-// the gacha machines: what each one can give you. Each prize: { name, weight } (a bigger weight = more likely).
-// Empty for now - Mason decides the prizes.
-export const GACHA = {
-  basic: { name: 'BASIC MACHINE', prizes: [] },
-  golden: { name: 'GOLDEN MACHINE', prizes: [] },
-  mystery: { name: 'MYSTERY MACHINE', prizes: [] },
-};
+// a prize you already own pays back this share of its shop price
+export const GACHA_REFUND = 0.25;
+
+// what a machine can give: every item on its shelf (or every shelf but GAMBLING for ANY)
+export function gachaPool(g) {
+  return SHOP.filter((t) => t.name !== 'GAMBLING' && (g.pool === 'ANY' || t.name === g.pool)).flatMap((t) => t.items);
+}
 
 // how much money the player has (earned in matches, saved in progress.js)
 export { getCoins } from '../progress.js';
@@ -97,6 +102,10 @@ export const KEEPER = {
     bought: ['PLEASURE DOING BUSINESS!', 'SOLD!'],
     tab: ['RIGHT THIS WAY.', 'HAVE A LOOK.', 'ANOTHER SHELF!'],
     gamble: ['FEELING LUCKY?', 'ONE MORE PULL...', 'THE HOUSE ALWAYS WINS. JUST SAYING.'],
+    jackpot: ['WOW! A NEW ONE!', 'LUCKY YOU!', 'JACKPOT!'],
+    dud: ['A DUPLICATE. HERE, HAVE SOME COINS.', 'ALREADY HAD IT? TOUGH LUCK.', 'BETTER LUCK NEXT TIME!'],
+    soldout: ['SOLD OUT! YOU OWN EVERYTHING IN THERE.', 'THAT MACHINE IS EMPTY FOR YOU.'],
+    preview: ['TRY IT ON!', 'LOOKING SHARP.', 'IT SUITS YOU.'],
     spin: ['NOT ENOUGH COINS TO SPIN!', 'THE CRANK NEEDS COINS, PAL.'],
     equip: ['GOOD CHOICE.', 'LOOKS GOOD ON YOU.', "NOW WE'RE TALKING."],
     unequip: ['TAKING IT OFF? SURE.', 'BACK IN THE BOX IT GOES.'],

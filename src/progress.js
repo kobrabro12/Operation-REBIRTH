@@ -46,6 +46,8 @@ export function buyItem(id, price) {
   shop.coins -= price; shop.owned.push(id); saveShop(); return true;
 }
 // what's switched on: one battle track, one stage effect, any number of extras
+// a prize from a gacha machine (already paid for): yours, free
+export function grantItem(id) { if (!owns(id)) { shop.owned.push(id); saveShop(); } }
 export function equippedMusic() { return shop.music && owns(shop.music) ? shop.music : null; }
 export function equippedStageFx() { return shop.stageFx && owns(shop.stageFx) ? shop.stageFx : null; }
 export function extraOn(id) { return shop.extras.includes(id) && owns(id); }

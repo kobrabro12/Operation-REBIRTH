@@ -12,60 +12,69 @@ import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
 
 export const STAGES = [
   {
-    id: 'sky-sanctum', name: 'SKY SANCTUM', available: true, make: (scene) => new SkyStage(scene),
+    id: 'sky-sanctum', music: 'bgm_sky', name: 'SKY SANCTUM', available: true, make: (scene) => new SkyStage(scene),
     blurb: ['A flat island floating above the clouds,', 'with three cloud ledges to jump through.'],
     hazard: 'LIGHTNING STORM: A WARNING FLASHES,\nTHEN LIGHTNING STRIKES THAT SPOT.',
     preview: drawSkyPreview,
   },
   {
-    id: 'verdant-spires', name: 'VERDANT SPIRES', available: true, make: (scene) => new SpireStage(scene),
+    id: 'verdant-spires', music: 'bgm_spires', name: 'VERDANT SPIRES', available: true, make: (scene) => new SpireStage(scene),
     blurb: ['A jungle island of rock spires above the sea,', 'with a shelf, a temple roof and a high crag.'],
     hazard: 'GEYSERS BLAST UP FROM BUBBLING GROUND;\nBOULDERS ROLL ACROSS THE ISLAND.',
     preview: drawSpirePreview,
   },
   {
-    id: 'gravemoon-bridge', name: 'GRAVEMOON BRIDGE', available: true, make: (scene) => new MoonStage(scene),
+    id: 'gravemoon-bridge', music: 'bgm_gravemoon', name: 'GRAVEMOON BRIDGE', available: true, make: (scene) => new MoonStage(scene),
     blurb: ['A stone bridge over a misty chasm, held up', 'by horned gargoyles under a giant moon.'],
     hazard: 'GARGOYLE GAZE AND BAT SWARMS.\nBREAK THE LANTERN: THE BRIDGE BURNS!',
     preview: drawMoonPreview,
   },
   {
-    id: 'neon-arcade', name: 'NEON ARCADE', available: true, make: (scene) => new ArcadeStage(scene),
+    id: 'neon-arcade', music: 'bgm_arcade', name: 'NEON ARCADE', available: true, make: (scene) => new ArcadeStage(scene),
     blurb: ['The control panel of a giant arcade cabinet,', 'under a synthwave sunset. Insert coin!'],
     hazard: 'RETRO MOVES: PIXEL WAVE, SPIN DASH,\nBLOCK DROP AND INVADER RAID.',
     preview: drawArcadePreview,
   },
   {
-    id: 'elderwood-hollow', name: 'ELDERWOOD HOLLOW', available: true, make: (scene) => new ForestStage(scene),
+    id: 'elderwood-hollow', music: 'bgm_forest', name: 'ELDERWOOD HOLLOW', available: true, make: (scene) => new ForestStage(scene),
     blurb: ['A mossy root at a glowing world tree, deep in', 'a mythical forest. Day slowly turns to night.'],
     hazard: 'BRAMBLE SNARE: THORNS BURST FROM THE MOSS;\nSPIRIT STAG: A GLOWING STAG CHARGES ACROSS.',
     preview: drawForestPreview,
   },
   {
-    id: 'backrooms', name: 'THE BACKROOMS', available: true, make: (scene) => new BackroomsStage(scene),
+    id: 'backrooms', music: 'bgm_backrooms', name: 'THE BACKROOMS', available: true, make: (scene) => new BackroomsStage(scene),
     blurb: ['A scrap of floor adrift in the back rooms of', 'reality. Every minute: NOCLIP to a new level.'],
     hazard: 'LIGHTS OUT, FALLING CRATES, STEAM VENTS,\nTHE SURGE - ONE FOR EACH OF ITS 4 LEVELS.',
     preview: drawBackroomsPreview,
   },
   {
-    id: 'infected', name: 'INFECTED.EXE', available: true, make: (scene) => new InfectedStage(scene),
+    id: 'infected', music: 'bgm_infected', name: 'INFECTED.EXE', available: true, make: (scene) => new InfectedStage(scene),
     blurb: ['The taskbar of a giant old PC that opened', 'every attachment it was ever sent.'],
     hazard: 'YOU ARE AN IDIOT, ILOVEYOU AND\nTHE RED ROOM TAKE TURNS WITH THE PC.',
     preview: drawInfectedPreview,
   },
   {
-    id: 'aero-meadow', name: 'AERO MEADOW', available: true, make: (scene) => new AeroStage(scene),
+    id: 'aero-meadow', music: 'bgm_aero', name: 'AERO MEADOW', available: true, make: (scene) => new AeroStage(scene),
     blurb: ['A glossy Frutiger Aero dream where old gadgets', 'were left in the grass and nature took them back.'],
     hazard: 'CD SHOWER: GLINTS IN THE SKY, THEN\nSPINNING CDS STREAK DOWN AT AN ANGLE.',
     preview: drawAeroPreview,
   },
   {
-    id: 'baseplate', name: 'BASEPLATE 2012', available: true, make: (scene) => new BaseplateStage(scene),
+    id: 'baseplate', musicList: ['bgm_baseplate_4', 'bgm_baseplate_5', 'bgm_baseplate_6', 'bgm_baseplate_10'], name: 'BASEPLATE 2012', available: true, make: (scene) => new BaseplateStage(scene),
     blurb: ['A studded green baseplate from the old block', 'games, between two sword-fight towers.'],
     hazard: 'ROCKETS, FALLING BRICKS, LAG SPIKES -\nAND A GRIEFER WHO THROWS HIS GEAR AT YOU.',
     preview: drawBaseplatePreview,
   },
 ];
+
+// The tracks you can pick on the stage select screen (settings.track): AUTO (the stage's own music - or the shop track
+// you switched on), any stage's music, the shop's tracks you own, or a random one. Stages above carry `music` / `musicList`
+// (the same keys their stage files play).
+export function trackList(owned = []) {
+  return [{ id: 'auto', name: 'AUTO' }, { id: 'random', name: 'RANDOM' },
+    ...STAGES.filter((s) => s.available && (s.music || s.musicList)).map((s) => ({ id: s.id, name: s.name, music: s.music, musicList: s.musicList })),
+    ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
+}
 
 export const STAGE_SLOTS = 10;  // tiles on the select grid (2 across, 5 down); the last one is Random
 

@@ -54,13 +54,21 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
     this.load.spritesheet('wow_faces', 'assets/fighters/what-once-was/faces.png', { frameWidth: 11, frameHeight: 9 });   // Mason's three faces for its screen (tools/sprites/wow_faces.py)
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    // shop costumes with their own drawing (tools/sprites/shop_costumes.py): sheets in <fighter>/<costume>/
+    for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
+      ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
+      ['nu_vapor_', 'nu/vapor/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_sunset_', 'aero/sunset/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
+      for (const k of ks) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: mw, frameHeight: mh });
+    }
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {
       this.load.spritesheet('hk_' + k, 'assets/fighters/hero-knight/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
       this.load.spritesheet('hk_aka_' + k, 'assets/fighters/hero-knight/akatsuki/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Akatsuki costume
       this.load.spritesheet('hk_sam_' + k, 'assets/fighters/hero-knight/samurai/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Samurai costume
+      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
     }
-    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/']]) {
+    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons

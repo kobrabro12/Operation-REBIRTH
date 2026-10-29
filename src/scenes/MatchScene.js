@@ -1,7 +1,9 @@
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { hasWinCutscene } from './WinScene.js';
-import { addKO, matchCoins, addCoins, getCoins, equippedMusic } from '../progress.js';
+import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../progress.js';
+import { SHOP } from '../data/shop.js';
+const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
@@ -37,7 +39,7 @@ import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
 import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
-import { stageById, STAGES } from '../stage/stages.js';
+import { stageById, STAGES, trackList } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
 import { setSfxMuted } from '../audio/sfx.js';
@@ -81,6 +83,7 @@ export class MatchScene extends Phaser.Scene {
     this.aeroStage = { k: 0, on: false, t: 0 };
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
+    else if (this.pickedTrack()) { const tr = this.pickedTrack(); if (tr.musicList) playPlaylist(this, tr.musicList, 0.55); else playMusic(this, tr.music, 0.55); }   // picked on the stage select screen
     else if (equippedMusic()) playMusic(this, 'bgm_shop_' + equippedMusic().slice(4), 0.55);   // a track bought in the shop and switched on
     else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
@@ -153,6 +156,13 @@ export class MatchScene extends Phaser.Scene {
   addWorld(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.uiCam.ignore(o); } }
   addUI(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.worldCam.ignore(o); } }
   sfxVol() { return this.demo ? 0 : settings.sfxVolume; }
+  // the track picked on the stage select screen (null = AUTO: the stage's own, or the shop track switched on)
+  pickedTrack() {
+    if (this._track !== undefined) return this._track;
+    const list = trackList(SHOP_MUSIC.filter((it) => owns(it.id))), id = settings.track;
+    let tr = id === 'random' ? list.slice(2)[Math.floor(Math.random() * (list.length - 2))] : list.find((x) => x.id === id && x.id !== 'auto');
+    return (this._track = tr || null);
+  }
 
   makeCrt() {
     const g = this.add.graphics();

@@ -25,8 +25,9 @@ export const HERO_KNIGHT = {
   wornSheets: [0, 1, 2, 3].map((w) => Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves']
     .map((k) => [k, w ? 'hk_w' + w + '_' + k : 'hk_' + k]))),
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
+  // OBSIDIAN / CYBERBLADE (shop costumes): tools/sprites/shop_costumes.py
   // AKATSUKI costume: crimson tunic, leather belt, cloth boots and a crystal sword (tools/sprites/hero_knight_akatsuki.py)
-  costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_']].map(([set, pre]) => [set,
+  costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_'], ['obsidian', 'hk_obs_'], ['cyber', 'hk_cyb_']].map(([set, pre]) => [set,
     Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves'].map((k) => [k, pre + k]))])),
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, grab: 10, idle_u: 11, run_u: 8, jump_u: 3, fall_u: 3, hit_u: 4 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)

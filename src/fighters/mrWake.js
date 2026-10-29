@@ -72,7 +72,8 @@ export const MR_WAKE = {
   moveAnims: MW_MOVES, movesOrigin: [92 / 176, 110 / 120],
   runCycle: [0, 8],                // run frames used: all 8, from the first
   // ROSEBUD costume: covered in roses, with a giant tulip for a staff (tools/sprites/mr_wake_roses.py)
-  costumeSheets: { roses: { idle: 'wake_roses_idle', run: 'wake_roses_run', jump: 'wake_roses_jump', fall: 'wake_roses_fall', moves: 'wake_roses_moves' } },
+  // (+ the shop costumes VAMPIRE and SAKURA: tools/sprites/shop_costumes.py)
+  costumeSheets: Object.fromEntries(['roses', 'vampire', 'sakura'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'wake_' + s + '_' + k]))])),
   facesLeft: false,                // he looks right in the sprite (his face and hat brim point right;
                                    // the gem end of the staff trails behind him on the left)
   originX: 36 / 64,                // body centre column

@@ -11,6 +11,8 @@ export const SOUL_SUMMONER = {
   // run: the designer's 8-frame run (tools/sprites/soul_summoner_run.py). The stride (frames 3-7) loops from
   // the first step; frames 0-2 (easing in from standing) are kept in the strip but not played. It replaced the older walk cycle (walk_sheet.png, still in the repo).
   sheets: { idle: 'ss_idle', juggle: 'ss_juggle', run: 'ss_run', jump: 'ss_jump', fall: 'ss_fall', moves: 'ss_moves' },
+  // shop costumes with their own drawing (skins.js sheetSet): ECLIPSE, AURORA - tools/sprites/shop_costumes.py
+  costumeSheets: Object.fromEntries(['eclipse', 'aurora'].map((s) => [s, Object.fromEntries(['idle', 'juggle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'ss_' + s + '_' + k]))])),
   // moves: every attack, special, grab, throw and reaction, animated (tools/sprites/soul_summoner_moves.py).
   // Bigger 112x104 frames so swings and steps can reach outside the body; his feet stand at (56, 94) in them.
   moveAnims: SS_MOVES, movesOrigin: [56 / 112, 95 / 104],
