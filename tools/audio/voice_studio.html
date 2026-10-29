@@ -20,6 +20,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { background: var(--night); color: var(--ink); }
 body { font-family: var(--body); font-size: 15px; line-height: 1.5; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
 .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
@@ -52,6 +53,10 @@ button.primary, .btn.pick { background: var(--gold); color: var(--night); border
 button.go { background: var(--violet); color: var(--night); border-color: var(--violet); }
 button.danger { border-color: var(--warn); color: var(--warn); }
 .btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+a.btn { text-decoration: none; }
+.rec { background: #3a0f1c; border-color: var(--warn); color: #ffd0d8; }
+.rec.on { background: var(--warn); color: var(--night); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .65; } }
 .btn { position: relative; display: inline-block; }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; }
 .presets button[aria-pressed="true"] { background: var(--violet); color: var(--night); border-color: var(--violet); }
@@ -104,11 +109,13 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
         <h2 id="h-in"><b>1</b> VOICE IN</h2>
         <div class="drop" id="drop">
           <div class="src"><span class="hint">Now loaded</span><strong id="srcName">Sample: the announcer saying "Soul Summoner"</strong><span class="hint" id="srcInfo"></span></div>
+          <button class="rec" id="rec" type="button" hidden>● Record</button>
+          <a class="btn rec" id="recLink" href="https://kobrabro12.github.io/Operation-REBIRTH/voice-studio/" target="_blank" rel="noopener" hidden>● Record my voice</a>
           <label class="btn pick">Choose a recording<input type="file" id="file" accept="audio/*,video/*"></label>
           <button id="playIn" type="button">▶ Play original</button>
         </div>
         <canvas class="wave" id="waveIn" width="900" height="72" aria-label="Waveform of the original recording"></canvas>
-        <p class="hint">Record on your phone or computer (any voice memo works: m4a, mp3, wav, ogg), then drop it here. Short and punchy is best: one shout or phrase, under 4 seconds. The page can't use a microphone directly.</p>
+        <p class="hint" id="inHint">Press <b>Record</b>, say your line, press <b>Stop</b>. Or drop in any recording (m4a, mp3, wav, ogg). Short and punchy is best: one shout or phrase, under 4 seconds.</p>
       </section>
 
       <section class="mod" aria-labelledby="h-robot">
@@ -161,6 +168,7 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
           <button id="download" type="button">Download WAV</button>
         </div>
         <p class="msg" id="sendMsg" role="status"></p>
+        <p class="hint" id="hostedHow" hidden>On this site, <b>Save for the game</b> downloads the line with who-says-it and when in its file name. Attach the saved files in your Claude chat and say <b>"add my voice lines"</b>.</p>
       </section>
     </div>
 
@@ -179,6 +187,8 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
 <script>
 (() => {
   const SR = 44100, BANDS = 28;
+  // true on the game's own site (or local testing): there the microphone works and lines are saved as downloads
+  const HOSTED = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) || location.protocol === 'file:';
   const $ = (id) => document.getElementById(id);
   const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const FIGHTERS = [['any', 'Anyone'], ['soul-summoner', 'Soul Summoner'], ['mr-wake', 'Mr Wake'], ['hero-knight', 'Lacy'], ['nu', 'NU'], ['aero', 'AERO'], ['what-once-was', 'What Once Was'], ['last-seen', 'Rosemary']];
@@ -418,7 +428,10 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
   const level = new Float32Array(BANDS);
   function frame() {
     const w = bandsCv.width, h = bandsCv.height; bg.clearRect(0, 0, w, h);
-    if (analyser && playing) {
+    if (meter) {
+      fdata = fdata || new Uint8Array(meter.frequencyBinCount); meter.getByteFrequencyData(fdata);
+      for (let b = 0; b < BANDS; b++) { const f = 110 * Math.pow(7600 / 110, b / (BANDS - 1)), bin = Math.round(f / (actx.sampleRate / 2) * fdata.length); level[b] = Math.max((fdata[bin] || 0) / 255, level[b] * 0.86); }
+    } else if (analyser && playing) {
       fdata = fdata || new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(fdata);
       for (let b = 0; b < BANDS; b++) { const f = 110 * Math.pow(7600 / 110, b / (BANDS - 1)), bin = Math.round(f / (actx.sampleRate / 2) * fdata.length); const v = (fdata[bin] || 0) / 255; level[b] = Math.max(v, level[b] * 0.86); }
     } else { idle += 0.03; for (let b = 0; b < BANDS; b++) level[b] = level[b] * 0.9 + 0.1 * (reduce ? 0.12 : 0.1 + 0.08 * Math.sin(idle + b * 0.5)); }
@@ -468,6 +481,11 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
     if (!output) return say('Load a recording first.', 'bad');
     const name = $('name').value.trim().toUpperCase();
     if (!name) { $('name').focus(); return say('Give the line a name first, so you can find it in the queue.', 'bad'); }
+    if (HOSTED) {   // the game's site: a normal download, named fighter__event__name.wav so the importer knows where it goes
+      const fn = $('fighter').value + '__' + $('event').value + '__' + name.replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-').toLowerCase() + '.wav';
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([wavBytes(output)], { type: 'audio/wav' })); a.download = fn; document.body.append(a); a.click(); a.remove();
+      return say('Saved ' + fn + '. Attach it in your Claude chat and say "add my voice lines".', 'ok');
+    }
     if (!db || !assets) return say('Sending needs you signed in to claude.ai as the page\'s owner. You can still download the WAV.', 'bad');
     $('send').disabled = true; say('Sending...');
     try {
@@ -510,12 +528,44 @@ select, input[type=text] { width: 100%; font-family: var(--body); font-size: 14p
 
   (async () => {
     const c = window.claude;
+    if (HOSTED) return;
     if (!c || !c.use) { say('Open this page on claude.ai to send lines to the game. Downloading works only there too.', ''); return; }
     [db, assets, downloads] = await Promise.all([c.use('db'), c.use('assets'), c.use('downloads')]);
     $('send').disabled = !(db && assets);
     if (!(db && assets)) say('Sending to the game is for the page\'s owner, signed in. You can still try the voices.', '');
     if (db) db.collection('lines').orderBy('created', 'desc').onSnapshot((snap) => { rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })); renderQueue(); }, () => {});
   })();
+
+  // ---------- recording. Microphones only work on the game's own site (claude.ai pages can't use one), so the
+  // claude.ai copy of this page shows a button that opens the site's copy, and the site's copy records right here.
+  const MAX_REC = 10;   // seconds: recording stops by itself after this
+  let rec = null, recChunks = [], recStream = null, recTimer = null, recStart = 0, meter = null;
+  if (HOSTED && navigator.mediaDevices && window.MediaRecorder) $('rec').hidden = false; else $('recLink').hidden = false;
+  if (HOSTED) {
+    $('send').textContent = 'Save for the game'; $('send').disabled = false; $('download').hidden = true; $('hostedHow').hidden = false;
+    $('h-q').closest('aside').hidden = true; $('lineCount').hidden = true; document.querySelector('.cols').style.gridTemplateColumns = 'minmax(0, 1fr)';
+  } else $('inHint').innerHTML = 'Press <b>Record my voice</b>: it opens this studio on the game\'s website, where your microphone works (claude.ai pages can\'t use one). Or drop in any recording (m4a, mp3, wav, ogg). Short and punchy is best: one shout or phrase, under 4 seconds.';
+  $('rec').onclick = async () => {
+    if (rec) { rec.stop(); return; }
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) { say('The microphone is blocked. Allow it in the browser (the icon by the address bar) and press Record again.', 'bad'); return; }
+    stop();
+    const c = ctx(); const srcNode = c.createMediaStreamSource(recStream); meter = c.createAnalyser(); meter.fftSize = 2048; srcNode.connect(meter);
+    recChunks = []; rec = new MediaRecorder(recStream);
+    rec.ondataavailable = (e) => e.data.size && recChunks.push(e.data);
+    rec.onstop = async () => {
+      clearInterval(recTimer); recStream.getTracks().forEach((t) => t.stop()); meter = null;
+      $('rec').classList.remove('on'); $('rec').textContent = '● Record'; rec = null;
+      const blob = new Blob(recChunks, { type: recChunks[0] ? recChunks[0].type : 'audio/webm' });
+      const n = (window.__takes = (window.__takes || 0) + 1);
+      try { await loadArrayBuffer(await blob.arrayBuffer(), 'Your recording (take ' + n + ')'); say('Got it. Press Play robot voice to hear it.', 'ok'); }
+      catch (e) { say('That recording came out empty. Try again a little closer to the mic.', 'bad'); }
+    };
+    rec.start(); recStart = performance.now();
+    $('rec').classList.add('on'); $('state').textContent = 'RECORDING 0.0 S';
+    recTimer = setInterval(() => { const s = (performance.now() - recStart) / 1000; $('rec').textContent = '■ Stop  ' + s.toFixed(1) + ' s'; $('state').textContent = 'RECORDING ' + s.toFixed(1) + ' S'; if (s >= MAX_REC && rec) rec.stop(); }, 100);
+  };
 
   // ---------- start: the sample loaded and ready to play
   syncUI();
