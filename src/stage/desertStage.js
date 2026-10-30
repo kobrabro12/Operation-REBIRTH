@@ -21,14 +21,15 @@ export const DPAL = {
 };
 
 // the highway: how fast the road drags you backwards when you're standing on it, and how fast the scenery goes by
-const ROAD = { y: 104, drag: 5.2, scroll: 7 };
+const ROAD = { y: 104, drag: 8.5, scroll: 12 };
 // the bumper: a hit for anyone stuck in front of the motorhome on the road
-const BUMPER = { dmg: 10, angle: 75, base: 6.0, growth: 3.4 };   // (thrown up and back over the roof)
+// how far in front of the motorhome's nose counts as under its wheels (anyone there is run over: an instant KO, like the DEA van's front)
+const BUMPER = { reach: 24 };
 // THE DEA VAN's size and where its parts are (from its front bumper): the cab, the sliding door, the roof hatch
 const VAN = { w: 236, h: 96, cab: 46, doorX: 104, doorW: 52, hatch: 72 };
 // THE DEA VAN: how long it takes to pull up, the volleys (laser sights first, then a burst), the grenades, and the hits
 const DEA = { arrive: 90, volleys: 3, aim: 46, burst: 3, gap: 7, bulletSpeed: 14, shot: { dmg: 3, angle: 30, base: 2.4, growth: 1.4 },
-  grenades: 2, fuse: 70, radius: 38, boom: { dmg: 13, angle: 70, base: 5.0, growth: 4.4 }, ram: { dmg: 12, angle: 150, base: 6.0, growth: 3.4 } };
+  grenades: 2, fuse: 70, radius: 38, boom: { dmg: 13, angle: 70, base: 5.0, growth: 4.4 }, ram: { reach: 30 } };
 // the ROCKET: after the gunfire one officer shoulders a launcher - a long aim with a red sight, then one rocket
 const ROCKET = { aim: 75, speed: 8.5, radius: 44, hit: { dmg: 20, angle: 60, base: 7.0, growth: 5.2 } };
 
@@ -71,7 +72,7 @@ export class DesertStage {
 
   // the far mesas and buttes: two bands of flat-topped red rock, scrolling slowly to the left
   far(g, t) {
-    const P = DPAL, o = (t * 0.25) % 640;
+    const P = DPAL, o = (t * 0.4) % 640;
     g.clear();
     for (let k = -1; k < 3; k++) {
       const ox = k * 640 - o;
@@ -87,10 +88,10 @@ export class DesertStage {
   }
   // the near desert: sand with scrub, cacti and telephone poles (wire swooping between them) flying past
   mid(g, t) {
-    const P = DPAL, o = (t * 3) % 300;
+    const P = DPAL, o = (t * 5) % 300;
     g.clear();
     g.fillStyle(P.sandDark, 1); g.fillRect(-500, 200, 2000, 300);
-    for (let i = 0; i < 40; i++) { const x = ((i * 97 - t * 3.6) % 1400 + 1400) % 1400 - 400; g.fillStyle(P.sandLit, 0.7); g.fillRect(x, 210 + (i * 23) % 60, 10 + (i % 4) * 6, 2); }
+    for (let i = 0; i < 40; i++) { const x = ((i * 97 - t * 6) % 1400 + 1400) % 1400 - 400; g.fillStyle(P.sandLit, 0.7); g.fillRect(x, 210 + (i * 23) % 60, 10 + (i % 4) * 6, 2); }
     for (let k = -2; k < 6; k++) {
       const x = k * 300 - o;
       g.fillStyle(P.pole, 1); g.fillRect(x, 60, 4, 150); g.fillRect(x - 12, 72, 28, 3);                  // a telephone pole
@@ -219,10 +220,17 @@ export class DesertStage {
         f.x -= ROAD.drag;
         if (t % 4 === 0) match.particles.push({ x: f.x + 6, y: ROAD.y - 2, vx: -2, vy: -0.6, life: 14, color: DPAL.dust, size: 2, grav: 0.05 });
       }
-      if (f.y > roof.y + 6 && f.y <= ROAD.y + 2 && f.x > roof.x2 && f.x < roof.x2 + 22)    // caught in front of it: the bumper
-        out.push({ x1: roof.x2, x2: roof.x2 + 24, y1: ROAD.y - 60, y2: ROAD.y + 2, dmg: BUMPER.dmg, angle: BUMPER.angle, base: BUMPER.base, growth: BUMPER.growth, id: 'bumper' + Math.floor(t / 40), hazard: true, dirX: -1 });
+      if (f.y > ROAD.y - 40 && f.y <= ROAD.y + 2 && f.x > roof.x2 && f.x < roof.x2 + BUMPER.reach) this.runOver(match, f, roof.x2);   // in front of it: run over
     }
     return this.cycle.run(match, out);
+  }
+
+  // run over by a vehicle: an instant KO, whatever your % (only the respawn platform saves you)
+  runOver(match, f, x) {
+    if (!f.alive || f.state === 'respawn') return;
+    sfx('bighit', 1, 0.5); sfx('clang', 0.7, 0.7); match.shake(10, 10);
+    for (let i = 0; i < 24; i++) match.particles.push({ x: x + (Math.random() - 0.5) * 20, y: ROAD.y - 10 - Math.random() * 30, vx: -2 - Math.random() * 6, vy: -1 - Math.random() * 4, life: 24 + Math.random() * 16, color: i % 2 ? DPAL.dust : 0xffffff, size: 3, grav: 0.2 });
+    match.onKO(f);
   }
 
   // ---------------------------------------------------------------- THE DEA VAN
@@ -411,7 +419,8 @@ export class DesertStage {
       this.agent(g, h.x - VAN.hatch, T, 1, h.rocket && h.rocket.boom >= 0 ? 'stand' : 'launcher', ang, roofUp, 0);
       g.fillStyle(0x0a0a0c, 1); g.fillRect(h.x - VAN.hatch - 12, T - 2, 24, 3);                         // (the hatch rim, in front of his legs)
     }
-    out.push({ x1: h.x - 4, x2: h.x + 10, y1: ROAD.y - 40, y2: ROAD.y + 2, dmg: DEA.ram.dmg, angle: DEA.ram.angle, base: DEA.ram.base, growth: DEA.ram.growth, id: 'ram' + h.id + ':' + Math.floor(h.t / 40), hazard: true, dirX: -1 });
+    for (const f of match.fighters)                                                                    // anyone on the road in front of it is run over
+      if (f.alive && f.x > h.x - DEA.ram.reach && f.x < h.x + 10 && f.y > ROAD.y - 40 && f.y <= ROAD.y + 2) this.runOver(match, f, h.x);
     // bullets: little bright tracers
     for (const b of h.bullets) {
       if (b.life <= 0) continue;
