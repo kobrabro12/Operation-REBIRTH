@@ -12,6 +12,7 @@ import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
 import { FracturedStage, drawFracturedPreview } from './fracturedStage.js';
 import { MaskedStage, drawMaskedPreview } from './maskedStage.js';
 import { StalingradStage, drawStalingradPreview } from './stalingradStage.js';
+import { WillowStage, drawWillowPreview } from './willowStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -90,10 +91,21 @@ export const STAGES = [
     hazard: 'ARTILLERY, A SNIPER IN THE TOWER\nAND COLLAPSING WALLS.',
     preview: drawStalingradPreview,
   },
+  {
+    // locked until you type the shopkeeper's code 13 (`secret`); a 90s slasher homage (original - no real film or killer)
+    id: 'willow-lane', music: 'bgm_slasher', name: '13 WILLOW LANE', available: true, secret: '13', make: (scene) => new WillowStage(scene),
+    blurb: ['A stormy night in 1996. The party is over,', 'the phone keeps ringing - and he is in the house.'],
+    hazard: 'THE CALL, BEHIND YOU AND THE STALK:\nA MASKED KILLER WHO CAN\'T BE STOPPED.',
+    preview: drawWillowPreview,
+  },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
-export function stageLocked(st) { return !!(st && st.shop && !owns(st.shop)); }
+// which secret codes have been found - achievements.js hands its check over on load (it imports this file, so this file
+// can't import it back)
+let foundSecret = () => false;
+export function setSecretCheck(fn) { foundSecret = fn; }
+export function stageLocked(st) { return !!(st && ((st.shop && !owns(st.shop)) || (st.secret && !foundSecret(st.secret)))); }   // (or a code you haven't found: `secret`)
 
 // The tracks you can pick on the stage select screen (settings.track): AUTO (the stage's own music - or the shop track
 // you switched on), any stage's music, the shop's tracks you own, or a random one. Stages above carry `music` / `musicList`

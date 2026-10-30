@@ -3,7 +3,7 @@
   tools/sprites/art/baseplate_guest_glitch.png  - the one in fifty that isn't right
 They stand on the far plates, so they're drawn half size: each 2x2 block of the drawing becomes one pixel, and a
 block with any of the black outline in it stays black (so the 1 px lines don't vanish).
-Writes public/assets/stages/baseplate/guest.png and guest_glitch.png (32x32).
+Writes public/assets/stages/baseplate/guests.png: two 32x32 frames side by side (0 = the guest, 1 = the glitched one).
 
   python3 tools/sprites/baseplate_guests.py
 """
@@ -31,7 +31,9 @@ def half(a, need=1):
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     # (the glitched one's cracks are finer: a block needs three black pixels to go black, or it'd be all black)
-    for src, dst, need in (('baseplate_guest.png', 'guest.png', 1), ('baseplate_guest_glitch.png', 'guest_glitch.png', 3)):
+    frames = []
+    for src, need in (('baseplate_guest.png', 1), ('baseplate_guest_glitch.png', 3)):
         a = np.array(Image.open(os.path.join(os.path.dirname(__file__), 'art', src)).convert('RGBA'))
-        Image.fromarray(half(a, need)).save(os.path.join(OUT, dst))
+        frames.append(half(a, need))
+    Image.fromarray(np.concatenate(frames, 1)).save(os.path.join(OUT, 'guests.png'))   # (one file: the playable copy on claude.ai is short of files)
     print('guests written')

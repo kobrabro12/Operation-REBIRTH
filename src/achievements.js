@@ -5,7 +5,7 @@
 // Testing: ?ach=reset clears achievements and stats.
 import { getKOs, getCoins, addCoins, owns } from './progress.js';
 import { SHOP } from './data/shop.js';
-import { STAGES } from './stage/stages.js';
+import { STAGES, setSecretCheck } from './stage/stages.js';
 
 const STATS_KEY = 'rebirth.stats', ACH_KEY = 'rebirth.ach';
 const blank = () => ({ matches: 0, wins: 0, flawless: 0, limits: 0, taunts: 0, spins: 0, spent: 0, bells: 0, previews: 0, played: {}, won: {}, stages: [], secrets: [], bestCoins: 0 });
@@ -18,6 +18,8 @@ function save() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); 
 export function getStats() { return stats; }
 // count something: stat('taunts'), stat('spins', 10)
 export function stat(name, n = 1) { stats[name] = (stats[name] || 0) + n; save(); }
+export function foundSecret(code) { return stats.secrets.includes(code); }
+setSecretCheck(foundSecret);   // (stages.js: a stage with `secret` stays locked until its code is found)
 export function addSecret(code) { if (!stats.secrets.includes(code)) { stats.secrets.push(code); save(); } }
 
 // one human player's finished match: who they played, where on, whether they won, and if they never fell
@@ -34,7 +36,7 @@ const TESTS = ['nu', 'aero', 'what-once-was', 'last-seen'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
-const stageCount = () => STAGES.filter((s) => s.available && !s.shop).length;   // (stages bought in the shop don't count)
+const stageCount = () => STAGES.filter((s) => s.available && !s.shop && !s.secret).length;   // (stages bought in the shop or opened by a code don't count)
 
 // the list. group = which page section it's shown under; secret = name and how-to hidden until it's unlocked
 export const ACHIEVEMENTS = [
@@ -71,6 +73,7 @@ export const ACHIEVEMENTS = [
   // OUR VICTORY: the shopkeeper's code PAPERSPLEASE. Its reward (besides the coins) is a poster - shown on its card, and
   // hung on the wall of the PEOPLE'S STORE (ShopScene.sovietNook)
   { id: 'our-victory', group: 'SECRETS', secret: true, name: 'OUR VICTORY', info: 'TYPED PAPERSPLEASE. YOUR REWARD: THE WORKERS\' POSTER.', hint: 'YOUR PAPERS, PLEASE.', goal: 1, have: (s) => +s.secrets.includes('PAPERSPLEASE'), coins: 300, poster: 'shop_poster' },
+  { id: 'thirteen', group: 'SECRETS', secret: true, name: 'DON\'T ANSWER IT', info: 'TYPED 13. 13 WILLOW LANE IS OPEN.', hint: 'WHAT NUMBER IS THE HOUSE?', goal: 1, have: (s) => +s.secrets.includes('13'), coins: 130 },
   { id: 'bell', group: 'SECRETS', secret: true, name: 'DING DING DING', info: 'RANG THE SHOP BELL 30 TIMES.', hint: 'SOMEONE ON THE COUNTER WANTS ATTENTION.', goal: 30, have: (s) => s.bells, coins: 50 },
   { id: 'window', group: 'SECRETS', secret: true, name: 'WINDOW SHOPPER', info: 'PREVIEWED 15 COSTUMES.', hint: 'LOOK, DON\'T TOUCH.', goal: 15, have: (s) => s.previews, coins: 50 },
 ];

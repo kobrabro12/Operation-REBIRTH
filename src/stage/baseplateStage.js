@@ -142,7 +142,7 @@ export class BaseplateStage {
     // the guests: Mason's drawings, a pool of sprites (half size: tools/sprites/baseplate_guests.py)
     this.guestSpr = [];
     for (let i = 0; i < 8; i++) {
-      const sp = s.add.image(0, 0, 'bp_guest').setOrigin(0.5, 1).setScrollFactor(0.3).setVisible(false);
+      const sp = s.add.image(0, 0, 'bp_guests', 0).setOrigin(0.5, 1).setScrollFactor(0.3).setVisible(false);
       bgLayer.push(sp); this.guestSpr.push(sp);
     }
     this.bgFx = s.add.graphics().setScrollFactor(0.3); bgLayer.push(this.bgFx);      // spawn sparkles, poofs, static, chat bubbles
@@ -266,7 +266,7 @@ export class BaseplateStage {
     const x = glitch ? px + 14 + Math.random() * (pw - 28) : px + pw / 2;
     const g = { spr: free[0], plate: pi, x, y: py, vy: 0, h: 0, t: 0, glitch, state: 'spawn', dir: Math.random() < 0.5 ? -1 : 1,
       life: glitch ? GUEST.glitchLife[0] + Math.random() * (GUEST.glitchLife[1] - GUEST.glitchLife[0]) : GUEST.life[0] + Math.random() * (GUEST.life[1] - GUEST.life[0]), walk: 0 };
-    g.spr.setTexture(glitch ? 'bp_guest_glitch' : 'bp_guest').setVisible(true).setAlpha(glitch ? 1 : 0);
+    g.spr.setTexture('bp_guests', glitch ? 1 : 0).setVisible(true).setAlpha(glitch ? 1 : 0);
     this.guests.push(g);
     if (glitch) {
       for (const o of this.guests) if (o !== g && o.plate === pi && o.state !== 'leave') { o.state = 'leave'; o.t = 0; }   // everyone near it logs off

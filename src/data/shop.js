@@ -197,6 +197,8 @@ export const KEEPER = {
     stilllife: ['NOW PLAYING: STILL LIFE.', 'SHH. THIS ONE\'S SPECIAL.'],
     noli: ['...NOLI.', 'I FEEL DIFFERENT.', 'THIS IS MY FACE NOW.', 'YOU CAN\'T UNDO IT.'],
     rtd: ['...REMEMBER THAT DAY?', 'I TOLD YOU NOT TO ASK.', 'SHE NEVER STOPS.'],
+    thirteen: ['...HELLO?', 'WHO IS THIS?', 'IT\'S FOR YOU.'],
+    thirteen2: ['THE CALL IS COMING FROM INSIDE THE HOUSE.', 'DON\'T GO IN THERE.', 'NEVER SAY "I\'LL BE RIGHT BACK."'],
     off: ['BACK TO BUSINESS.', 'CHANNEL CHANGED.', 'WHERE WERE WE?'],
     quiet: ['...', 'STILL THERE?', 'TAKE YOUR TIME.'],
     poke: ['HEY! NO TOUCHING THE SCREEN.', 'PLEASE DO NOT TAP THE GLASS.', 'OW. FINGERPRINTS.'],

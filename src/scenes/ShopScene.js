@@ -47,7 +47,8 @@ const PER = GRID.cols * GRID.rows;
 // the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
 const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
 // the on-screen keypad for typing a code (over the shelves): 8 x 4 keys
-const KEYPAD = { x: 30, y: 108, w: 42, h: 36, gap: 6, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'DEL', 'OK', 'CANCEL'] };
+const KEYPAD = { x: 30, y: 104, w: 42, h: 30, gap: 5, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'DEL', 'OK', 'CANCEL'] };
+const KEY_ROWS = Math.ceil(KEYPAD.keys.length / KEYPAD.cols);   // (5 rows: the letters, the digits, then DEL / OK / CANCEL)
 // secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
 //   video  a clip drawn on his screen at `px` pixels square (webm first; mp4 for Safari) - plays once
 //   anim   a spritesheet looped on his screen (`fps`), with `audio` looping under it
@@ -61,6 +62,9 @@ const SECRETS = {
   RIPHOOD: { takeover: 'riphood', line: 'riphood' },
   // until you leave: the Soviet shop (TAKEOVERS.soviet). Typing it also earns OUR VICTORY (achievements.js)
   PAPERSPLEASE: { takeover: 'soviet', line: 'soviet' },
+  // the house number: unlocks 13 WILLOW LANE (stages.js `secret: '13'` - found codes are saved). His screen goes dark, the
+  // phone rings, a cracked doll's face looks out of it for a moment (`call`)
+  13: { call: true, stage: '13 WILLOW LANE', line: 'thirteen' },
 };
 // RIPHOOD: the shop's colours while it's a supply depot (khaki trim, olive shelves), his screen's amber glow, and how
 // often the far-off guns shake the tent (frames, random between)
@@ -120,6 +124,7 @@ export class ShopScene extends Phaser.Scene {
   create() {
     this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
     this.riphood = this.soviet = false; this.mode = null; unreveal('riphood'); unreveal('papers');   // ...and so do RIPHOOD and PAPERSPLEASE
+    this.call = 0;
     this.acc = ACC; this.pal = PAL; this.banner2 = null;
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
@@ -389,7 +394,7 @@ export class ShopScene extends Phaser.Scene {
       else if (k === 'Backspace') this.typeKey('DEL');
       else if (k === 'Enter') this.typeKey(S.typed ? 'OK' : KEYPAD.keys[S.cur]);
       else if (k === 'Escape') this.closeSecret();
-      else if (mv) { S.cur = Math.min(KEYPAD.keys.length - 1, (S.cur + mv + KEYPAD.cols * 8) % (KEYPAD.cols * 4)); sfx('menu', 0.25, 1.4); }
+      else if (mv) { S.cur = Math.min(KEYPAD.keys.length - 1, (S.cur + mv + KEYPAD.cols * KEY_ROWS * 2) % (KEYPAD.cols * KEY_ROWS)); sfx('menu', 0.25, 1.4); }
       else return;
       e.preventDefault();
     };
@@ -415,8 +420,16 @@ export class ShopScene extends Phaser.Scene {
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
     if (TAKEOVERS[S.takeover]) return this.becomeTakeover(S);
+    if (S.call) return this.takeCall(S);
     if (S.takeover) return this.becomeNoli(S);
     this.startPlaying(code);
+  }
+  // 13: the lights in his screen go out, a phone rings, and a doll's face looks out at you - then a new stage is open
+  takeCall(S) {
+    this.stopPlaying(true);
+    this.call = 150; this.static = 20; this.jolt = 12; sfx('phone', 0.6); this.time.delayedCall(1150, () => sfx('phone', 0.6));
+    this.react('stare', S.line, 220);
+    this.time.delayedCall(2600, () => { this.react('shock', 'thirteen2', 160); sfx('scream', 0.25, 0.9); this.cameras.main.shake(250, 0.006); this.say('NEW STAGE UNLOCKED: ' + S.stage + '! PICK IT ON THE STAGE SELECT SCREEN.', '#ff5a6a'); });
   }
   // NOLI: he changes for good (the face, the lines, the haze), and the clip plays
   becomeNoli(S) {
@@ -636,7 +649,7 @@ export class ShopScene extends Phaser.Scene {
   }
   // the keypad over the shelves: green-screen keys like his display, the picked one lit
   drawKeypad(g, t) {
-    const S = this.secret, x0 = KEYPAD.x - 14, y0 = KEYPAD.y - 32, w = KEYPAD.cols * (KEYPAD.w + KEYPAD.gap) - KEYPAD.gap + 28, h = 4 * (KEYPAD.h + KEYPAD.gap) - KEYPAD.gap + 46;
+    const S = this.secret, x0 = KEYPAD.x - 14, y0 = KEYPAD.y - 32, w = KEYPAD.cols * (KEYPAD.w + KEYPAD.gap) - KEYPAD.gap + 28, h = KEY_ROWS * (KEYPAD.h + KEYPAD.gap) - KEYPAD.gap + 46;
     g.fillStyle(0x0b0a14, 0.92); g.fillRect(x0, y0, w, h); g.lineStyle(2, 0x5affb8, 0.7); g.strokeRect(x0, y0, w, h);
     if (S.press > 0) S.press--;
     KEYPAD.keys.forEach((k, i) => {
@@ -729,6 +742,23 @@ export class ShopScene extends Phaser.Scene {
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
     if (this.playing && !this.secret) { this.faceImg.setVisible(false); this.vidImg.setVisible(true).setPosition(tx - 4, hy); this.drawPlaying(t); }
     if (this.secret) this.drawSecret(f, tx - 4, hy, t);
+    if (this.call > 0) {                                                                                       // 13: his screen goes black; a doll's face looks out; a red 13
+      this.call--; this.faceImg.setVisible(false);
+      const cx = tx - 4, k = this.call;
+      f.fillStyle(0x020204, 1); f.fillRect(cx - 36, hy - 32, 72, 64);
+      const a = k > 120 ? (150 - k) / 30 : k < 30 ? k / 30 : 1, wob = Math.sin(t * 0.07) * 2;
+      if (k < 140) {
+        f.fillStyle(0x1e2a1a, a); f.fillRect(cx - 18 + wob, hy + 14, 36, 18);                                  // the slicker's collar
+        f.fillStyle(0xf0e8e0, a); f.fillEllipse(cx + wob, hy + 2, 22, 26);                                     // the doll's face
+        f.fillStyle(0xe88a9a, a * 0.85); f.fillCircle(cx - 6 + wob, hy + 5, 2.5); f.fillCircle(cx + 6 + wob, hy + 5, 2.5);   // rosy cheeks
+        f.fillStyle(0x020204, a); f.fillCircle(cx - 4 + wob, hy - 1, 2.2); f.fillCircle(cx + 4 + wob, hy - 1, 2.2);
+        f.fillStyle(0xc8202a, a); f.fillRect(cx - 2 + wob, hy + 9, 4, 1);                                      // the painted smile
+        f.lineStyle(1, 0xc0b4a8, a); f.lineBetween(cx + 3 + wob, hy - 11, cx + wob, hy - 1); f.lineBetween(cx + wob, hy - 1, cx + 2 + wob, hy + 4);   // the crack
+        f.fillStyle(0x161e12, a); f.fillRect(cx - 20 + wob, hy - 12, 40, 4); f.fillEllipse(cx + wob, hy - 15, 24, 10);   // the rain hat
+      }
+      if (k < 60 && t % 20 < 14) this.digits(f, cx + 24, hy - 24, '13', 2);
+      if (k < 60) { f.fillStyle(0xd8202a, 0.35); f.fillRect(cx - 36, hy - 32, 72, 64); }
+    }
     if (this.static > 0) { this.static--; for (let i = 0; i < 70; i++) { f.fillStyle(Math.random() < 0.5 ? 0xd8fff0 : 0x2a4a3a, 1); f.fillRect(tx - 40 + Math.random() * 70, hy - 34 + Math.random() * 66, 2, 1); } }   // static when the channel changes
     if (this.face === 'shock' && this.faceT > KEEPER.hold - 24) { const d = KEEPER.hold - this.faceT; f.lineStyle(2, 0xffffff, 1 - d / 24); for (const s of [-1, 1]) { f.lineBetween(tx + s * 52, hy - 30, tx + s * 60, hy - 38); f.lineBetween(tx + s * 54, hy - 18, tx + s * 64, hy - 20); } }   // !! lines
     if (this.face === 'money' && this.faceT > 0) for (let i = 0; i < 4; i++) { const p = ((t + i * 15) % 60) / 60; f.fillStyle(0xf3c358, 1 - p); f.fillRect(tx - 30 + i * 20, hy - 44 - p * 24, 3, 3); }   // coins of light, floating up

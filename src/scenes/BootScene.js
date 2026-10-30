@@ -104,12 +104,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image('shop_vodka', 'assets/shop/vodka.png');
     this.load.image('shop_flag_emblem', 'assets/shop/flag_emblem.png');
     this.load.spritesheet('shop_dolls', 'assets/shop/dolls.png', { frameWidth: 40, frameHeight: 56 });   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
+    this.load.audio('bgm_slasher', ['assets/audio/music/slasher.ogg', 'assets/audio/music/slasher.mp3']);   // 13 WILLOW LANE's music (tools/audio/slasher_music.py)
     this.load.audio('bgm_fractured', ['assets/audio/music/fractured.ogg', 'assets/audio/music/fractured.mp3']);   // FRACTURED's music (tools/audio/fractured_music.py)
     this.load.spritesheet('shop_rtd', 'assets/shop/rtd_scream.png', { frameWidth: 68, frameHeight: 68 });   // the shop's RTD secret: Rosemary screaming (tools/sprites/rosemary_scream.py)
     for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare', 'noli', 'sickle']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
     for (const [k, n] of Object.entries(NOLI_MOODS)) for (let i = 0; i < n; i++) this.load.audio('noli_v_' + k + '_' + i, ['assets/shop/noli_voice/' + k + '_' + i + '.ogg', 'assets/shop/noli_voice/' + k + '_' + i + '.mp3']);   // NOLI's glitchy voice (tools/audio/noli_voice.py)
-    this.load.image('bp_guest', 'assets/stages/baseplate/guest.png');                 // BASEPLATE 2012's guests: Mason's drawings, half size (tools/sprites/baseplate_guests.py)
-    this.load.image('bp_guest_glitch', 'assets/stages/baseplate/guest_glitch.png');   // ...and the one in fifty
+    this.load.spritesheet('bp_guests', 'assets/stages/baseplate/guests.png', { frameWidth: 32, frameHeight: 32 });   // BASEPLATE 2012's guests: Mason's drawings, half size - frame 0, and 1 = the one in fifty (tools/sprites/baseplate_guests.py)
     for (const n of [4, 5, 6, 10]) this.load.audio('bgm_baseplate_' + n, ['assets/audio/music/baseplate_' + n + '.ogg', 'assets/audio/music/baseplate_' + n + '.mp3']);   // BASEPLATE 2012's rotating soundtrack: Mason's pixelated_audio 4, 5, 6, 10
     for (const n of ['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather']) this.load.audio('bgm_outro_' + n, ['assets/audio/music/outro_' + n + '.ogg', 'assets/audio/music/outro_' + n + '.mp3']);   // costume outro music (tools/audio/outro_music.py)
     this.load.spritesheet('hk_sam_pray', 'assets/fighters/hero-knight/samurai/pray_sheet.png', { frameWidth: 64, frameHeight: 64 });   // Mason's praying animation for Samurai Lacy's outro (9 frames, a 3x3 grid; feet at 32,58)

@@ -103,6 +103,8 @@ export function initSfx(scene) {
   build('buzz', 0.7, (t) => { ph += 120 / SR; return (sq(ph, 0.5) * 0.35 + n1() * 0.12) * Math.min(1, t * 20) * (1 - t / 0.7) * (Math.floor(t * 90) % 7 ? 1 : 0.25); });
   ph = 0; ph2 = 0;
   build('ding', 0.8, (t) => { ph += 1318 / SR; ph2 += 1046 / SR; return (t < 0.3 ? sq(ph, 0.5) : sq(ph2, 0.5)) * 0.4 * Math.exp(-(t < 0.3 ? t : t - 0.3) * 6); });
+  // 13 WILLOW LANE: an old landline phone's double trill (two tones, warbling 20 times a second, ring-ring-pause)
+  { let a = 0, b = 0; build('phone', 1.1, (t) => { a += 440 / SR; b += 480 / SR; const on = (t % 0.55) < 0.42 ? 1 : 0; return (Math.sin(a * 6.283) + Math.sin(b * 6.283)) * 0.3 * on * (Math.sin(t * 125.6) > 0 ? 1 : 0.35) * Math.min(1, t * 40); }); }
   ph = 0; n1 = noiseStep(1);
   build('glass', 0.3, (t) => { ph += (3200 + 900 * Math.sin(t * 300)) / SR; return n1() * 0.6 * Math.exp(-t * 14) + sq(ph, 0.25) * 0.2 * Math.exp(-t * 18); });
   // INFECTED.EXE: a tinny 'ha-ha-ha-ha', the pop-up error bonk, a new-mail chime
