@@ -6,6 +6,11 @@
 //   Star Candy  - 5 s of invincibility: hits pass straight through, and you glow every colour
 import { sfx } from '../audio/sfx.js';
 import { LIMIT_MAX } from '../config.js';
+import soulHeartUrl from './soul_heart_sheet.png?inline';
+
+// the SOUL HEART pickup is Mason's animated drawing (tools/sprites/soul_heart.py): its sheet, frame size, how fast it plays
+// (frames per second) and how big it's drawn
+export const SOUL_HEART = { url: soulHeartUrl, frame: 56, frames: 16, fps: 12, scale: 1 };
 
 const MAPS = {
   heart: ['.oo..oo.', 'orrooRro', 'orrrrRro', 'orrrrrro', '.orrrro.', '..orro..', '...oo...', '........'],
@@ -27,13 +32,17 @@ export function makeItemTextures(scene) {
     g.generateTexture('item_' + k, 8, 8);
     g.destroy();
   }
+  if (scene.textures.exists('item_heart_anim') && !scene.anims.exists('item_heart_anim'))
+    scene.anims.create({ key: 'item_heart_anim', frames: scene.anims.generateFrameNumbers('item_heart_anim', { start: 0, end: SOUL_HEART.frames - 1 }), frameRate: SOUL_HEART.fps, repeat: -1 });
 }
 
 class Item {
   constructor(match, type, x) {
     this.match = match; this.type = type; this.x = x; this.y = -320; this.vy = 0;
     this.alive = true; this.t = 0; this.life = 900; this.grounded = false;
-    this.sprite = match.add.sprite(x, this.y, 'item_' + type).setScale(2).setOrigin(0.5, 1);
+    if (type === 'heart' && match.anims.exists('item_heart_anim'))   // (the old 8x8 heart stays as a fallback)
+      this.sprite = match.add.sprite(x, this.y, 'item_heart_anim').setScale(SOUL_HEART.scale).setOrigin(0.5, 0.86).play('item_heart_anim');
+    else this.sprite = match.add.sprite(x, this.y, 'item_' + type).setScale(2).setOrigin(0.5, 1);
     match.addWorld(this.sprite);
   }
   step() {

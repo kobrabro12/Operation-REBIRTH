@@ -1,7 +1,7 @@
 import { NOLI_MOODS } from './ShopScene.js';
 import { loadVoiceLines } from '../audio/voiceLines.js';
 import { initSfx } from '../audio/sfx.js';
-import { makeItemTextures } from '../items/items.js';
+import { makeItemTextures, SOUL_HEART } from '../items/items.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
@@ -118,6 +118,7 @@ export class BootScene extends Phaser.Scene {
     for (let i = 1; i <= 5; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (1-4: tools/audio/amp_songs.py; 5: Mason's own track)
     this.load.audio('sfx_seen_scream', ['assets/audio/sfx/seen_scream.ogg', 'assets/audio/sfx/seen_scream.mp3']);   // LAST SEEN as SEEN: its SCREAM (cut from Mason's pixelated_audio_3)
     this.load.audio('sfx_mail_voice', ['assets/audio/sfx/mail_voice.ogg', 'assets/audio/sfx/mail_voice.mp3']);   // INFECTED.EXE: "You've got mail!" (tools/audio/mail_voice.py)
+    this.load.spritesheet('item_heart_anim', SOUL_HEART.url, { frameWidth: SOUL_HEART.frame, frameHeight: SOUL_HEART.frame });   // the SOUL HEART pickup: Mason's 16-frame drawing (tools/sprites/soul_heart.py; inlined in the JS)
     this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
     this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');
   }
