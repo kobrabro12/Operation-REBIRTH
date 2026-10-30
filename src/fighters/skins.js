@@ -394,6 +394,14 @@ export const SKINS = {
       pal: { outline: 0x2a1404, deep: 0x8a4a10, mid: 0xe8a03a, light: 0xffd890, core: 0xfff4dc, shade: 0x2a1a0a, void: 0x0a0602 },
       vfx: { hit: { shape: 'shard', colors: [0xe8a03a, 0xffd890, 0xfff4dc], n: 10, ring: 0xffd890, glint: true },
              aura: { motes: { colors: [0xffd890, 0xe8a03a], rate: 6 } }, trail: 0xe8a03a } },
+    // SCORCHED EARTH (Mason's drawing): a charcoal devil cooled out of lava - rock plates with molten cracks, curled lava
+    // horns, a burning face-plate, lava soles, and a whip of a tail with an arrowhead that curls and cracks with every
+    // swing (drawn: tools/sprites/aero_scorched.py). Heat glows off him, he stands in a little molten pool, embers rise,
+    // lava drips off his tail, his footprints burn, and his hits burst into fire.
+    { name: 'SCORCHED EARTH', sheetSet: 'scorched', swatch: 0xff6a1a, fx: 0xff8a1a,
+      pal: { outline: 0x140808, deep: 0xb8320a, mid: 0xff7a1a, light: 0xffd23a, core: 0xfff4b0, shade: 0x2a0a06, void: 0x0a0202 },
+      vfx: { hit: { shape: 'flame', colors: [0xffd23a, 0xff7a1a, 0xd8401a, 0xfff4b0], n: 10, ring: 0xff7a1a, sound: 'whoosh' },
+             aura: { scorched: true }, trail: 0xff6a1a } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },

@@ -193,6 +193,25 @@ export class FighterCostumeFx {
         }
       }
     }
+    if (a.scorched) {                                // AERO's SCORCHED EARTH: heat off his rock plates, a molten pool where he stands, embers,
+      const heat = 0.11 + 0.05 * Math.sin(t * 0.13) + 0.03 * Math.sin(t * 0.71);   // lava dripping off his tail, burnt footprints
+      back.fillStyle(0xff4a12, heat); back.fillEllipse(cx, mid, d.body.w * 2.3, d.body.h * 1.45);
+      back.fillStyle(0xffa030, heat * 0.7); back.fillEllipse(cx, mid, d.body.w * 1.4, d.body.h * 1.0);
+      if (this.grounded) {
+        const glow = 0.3 + 0.12 * Math.sin(t * 0.2);
+        g.fillStyle(0xd8401a, glow); g.fillEllipse(cx, this.y + 1, 32, 5);
+        g.fillStyle(0xffd23a, glow * 0.9); g.fillEllipse(cx + Math.sin(t * 0.05) * 3, this.y + 1, 14, 2);
+      }
+      if (!this.match.frozen) {
+        if (t % 4 === 0) P.push({ x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h, vx: (R() - 0.5) * 0.4, vy: -0.6 - R() * 0.9, life: 22 + R() * 26, color: [0xffd23a, 0xff8a1a, 0xd8401a][t % 3], size: 1 + (R() < 0.25), grav: -0.012, sway: R() * 5 });
+        if ((this.state === 'idle' || this.state === 'run') && t % 29 === 0)   // a drop of lava off the end of his tail
+          P.push({ x: cx - f * (24 + R() * 3), y: this.y - 16 - R() * 4, vx: -f * 0.2, vy: 0.4, life: 30, color: R() < 0.5 ? 0xffd23a : 0xff7a1a, size: 2, grav: 0.18 });
+        if (this.grounded && Math.abs(this.vx) > 1.5 && t % 7 === 0) {         // footprints that glow, then cool to smoke
+          P.push({ x: cx - f * 4, y: this.y - 1, vx: 0, vy: 0, life: 40, color: 0xff7a1a, size: 2, grav: 0 });
+          P.push({ shape: 'smoke', x: cx - f * 6, y: this.y - 3, vx: -f * 0.2, vy: -0.35, life: 26, maxLife: 26, r: 2, color: 0x2a2226, grav: -0.01 });
+        }
+      }
+    }
     if (a.rave) {                                    // LAST SEEN's AFTER HOURS: a black-light glow pulsing on the beat, lasers sweeping over her, glow sparks
       const NEON = [0xff2ad8, 0x2af0ff, 0x39ff6a, 0xfff03a], c = NEON[(t >> 4) % 4], c2 = NEON[((t >> 4) + 2) % 4], beat = t % 20 < 4 ? 1 : 0.55;
       back.fillStyle(c, 0.16 * beat); back.fillEllipse(cx, mid, d.body.w * 2.8, d.body.h * 1.7);

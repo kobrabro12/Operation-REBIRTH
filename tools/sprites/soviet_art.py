@@ -5,7 +5,8 @@
   poster.png        the OUR VICTORY achievement's poster: a red sunburst, a gold hammer and sickle, an industrial
                     worker and a farmer holding hands, factories and a wheat field behind them, and the words
                     WORKERS OF THE WORLD UNITE! underneath (128x176)
-  flag_emblem.png   the gold hammer, sickle and star in the corner of the shop's red flags (16x16)
+  flag_emblem.png   the gold hammer, sickle and star in the corner of the shop's red flags (16x16) - written to
+                    src/scenes/flag_emblem.png: the game inlines it into its code (one file fewer for the 511-file artifact)
   dolls.png         the nesting dolls of the MATRYOSHKA machines: three paint jobs (red, blue, gold) x whole / top half /
                     bottom half, 40x56 each, in one row - and frame 9 is the VODKA bottle (EXTRAS, unlocks STALINGRAD)
 
@@ -249,7 +250,7 @@ def flag_emblem():
     a = np.zeros((16, 16, 4), np.uint8)
     blit(a, emblem(12, out=0x5a0a0a), 0, 4)
     blit(a, star_img(6, cols=(0xfff0a0, 0xffd040, 0xc89a20), out=0x5a0a0a), 2, 0)
-    Image.fromarray(a).save(os.path.join(OUT, 'flag_emblem.png'))
+    Image.fromarray(a).save(os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'scenes', 'flag_emblem.png'))
 
 if __name__ == '__main__':
     face_sickle(); poster(); dolls(); flag_emblem()

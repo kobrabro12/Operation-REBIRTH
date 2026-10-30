@@ -2,6 +2,12 @@ import { NOLI_MOODS } from './ShopScene.js';
 import { loadVoiceLines } from '../audio/voiceLines.js';
 import { initSfx } from '../audio/sfx.js';
 import { makeItemTextures, SOUL_HEART } from '../items/items.js';
+import flagEmblemUrl from './flag_emblem.png?inline';
+// AERO's SCORCHED EARTH costume: its small strips are inlined (tools/sprites/aero_scorched.py), its moves sheet is a file
+import scIdle from '../fighters/aero_scorched/idle_sheet.png?inline';
+import scRun from '../fighters/aero_scorched/run_sheet.png?inline';
+import scJump from '../fighters/aero_scorched/jump_sheet.png?inline';
+import scFall from '../fighters/aero_scorched/fall_sheet.png?inline';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
@@ -72,6 +78,8 @@ export class BootScene extends Phaser.Scene {
       for (const k of ks) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: mw, frameHeight: mh });
     }
+    for (const [k, url] of [['idle', scIdle], ['run', scRun], ['jump', scJump], ['fall', scFall]]) this.load.spritesheet('aero_scorched_' + k, url, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('aero_scorched_moves', 'assets/fighters/aero/scorched/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {
       this.load.spritesheet('hk_' + k, 'assets/fighters/hero-knight/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
@@ -101,7 +109,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('shop_crown', 'assets/shop/crown.png');
     // the code PAPERSPLEASE (tools/sprites/soviet_art.py): the OUR VICTORY poster, the VODKA bottle (unlocks STALINGRAD), the nesting dolls
     this.load.image('shop_poster', 'assets/shop/poster.png');
-    this.load.image('shop_flag_emblem', 'assets/shop/flag_emblem.png');
+    this.load.image('shop_flag_emblem', flagEmblemUrl);   // (inlined: tools/sprites/soviet_art.py writes it into src/scenes)
     this.load.spritesheet('shop_dolls', 'assets/shop/dolls.png', { frameWidth: 40, frameHeight: 56 });   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
     this.load.audio('bgm_desert', ['assets/audio/music/desert.ogg', 'assets/audio/music/desert.mp3']);   // DUST RUNNER's music (tools/audio/desert_music.py)
     this.load.audio('bgm_slasher', ['assets/audio/music/slasher.ogg', 'assets/audio/music/slasher.mp3']);   // 13 WILLOW LANE's music (tools/audio/slasher_music.py)

@@ -81,6 +81,7 @@ export const SKIN_INTROS = {
   'aero:FORECAST': { kind: 'bolt', color: 0xfff4a8, sfx: ['thunder', 0.5, 1.3] },
   'aero:MIDNIGHT': { kind: 'bubble', color: 0x7a96ff, sfx: ['glass', 0.5, 0.7] },
   'aero:SUNSET': { kind: 'bubble', color: 0xffb84a, sfx: ['glass', 0.5, 1] },
+  'aero:SCORCHED EARTH': { kind: 'rise', color: 0xd8401a, color2: 0xffd23a, shape: 'ember', pre: ['rumble', 0.6, 0.8], sfx: ['flame', 0.7, 0.7] },   // he rises out of a pool of lava
   // WHAT ONCE WAS
   'what-once-was:FRUTIGER': { kind: 'bubble', color: 0x7ad8f0, sfx: ['glass', 0.5, 1.2] },
   'what-once-was:ROOT ACCESS': { kind: 'warp', color: 0x5aff6a, pre: ['glitch', 0.5, 1], sfx: ['laser', 0.3, 0.8] },
