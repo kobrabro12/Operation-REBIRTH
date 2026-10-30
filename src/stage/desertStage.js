@@ -1,11 +1,11 @@
-// DUST RUNNER: an old motorhome barrelling down a desert highway at full speed - and you're fighting on its roof.
+// DUST RUNNER: an old 1980s motorhome (cream, brown and gold stripes) barrelling down a desert highway at full speed - and you're fighting on its roof.
 // The whole world rushes past: the road, the dust, the telephone poles, the cacti, the mesas far off. The roof is the
 // stage (plus the luggage rack at the back and the air-con box). Fall off and you land on the road, which drags you
 // away backwards at highway speed - you get one good jump to make it back up (or a grab at the roof's edge) before
 // you're left behind. Get caught in front of it and the bumper hits you.
-// The only hazard: THE SWAT VAN - a black armoured van pulls up behind, two officers climb out of its roof hatch, red
-// laser sights sweep the roof, bursts of gunfire follow, and they lob grenades that bounce and blink before they go
-// off. Last, one of them shoulders a rocket launcher, takes a long aim and fires once (20%). Then it falls back.
+// The only hazard: THE DEA VAN - a big dark-navy van with strobes and DEA on the side pulls up behind; its side door
+// slides open and two agents lean out, red laser sights sweep the roof, bursts of gunfire follow, and they lob grenades
+// that bounce and blink before they go off. Last, a third agent climbs up through the roof hatch with a rocket launcher, takes a long aim and fires once (20%). Then it falls back.
 // Original - no real show, people or vehicles. Locked until the shopkeeper's code HEISENBERG (stage entry `secret`).
 // Music: 'bgm_desert' (tools/audio/desert_music.py).
 import { sfx } from '../audio/sfx.js';
@@ -24,8 +24,10 @@ export const DPAL = {
 const ROAD = { y: 104, drag: 5.2, scroll: 7 };
 // the bumper: a hit for anyone stuck in front of the motorhome on the road
 const BUMPER = { dmg: 10, angle: 75, base: 6.0, growth: 3.4 };   // (thrown up and back over the roof)
-// THE SWAT VAN: how long it takes to pull up, the volleys (laser sights first, then a burst), the grenades, and the hits
-const SWAT = { arrive: 90, volleys: 3, aim: 46, burst: 3, gap: 7, bulletSpeed: 14, shot: { dmg: 3, angle: 30, base: 2.4, growth: 1.4 },
+// THE DEA VAN's size and where its parts are (from its front bumper): the cab, the sliding door, the roof hatch
+const VAN = { w: 236, h: 96, cab: 46, doorX: 104, doorW: 52, hatch: 72 };
+// THE DEA VAN: how long it takes to pull up, the volleys (laser sights first, then a burst), the grenades, and the hits
+const DEA = { arrive: 90, volleys: 3, aim: 46, burst: 3, gap: 7, bulletSpeed: 14, shot: { dmg: 3, angle: 30, base: 2.4, growth: 1.4 },
   grenades: 2, fuse: 70, radius: 38, boom: { dmg: 13, angle: 70, base: 5.0, growth: 4.4 }, ram: { dmg: 12, angle: 150, base: 6.0, growth: 3.4 } };
 // the ROCKET: after the gunfire one officer shoulders a launcher - a long aim with a red sight, then one rocket
 const ROCKET = { aim: 75, speed: 8.5, radius: 44, hit: { dmg: 20, angle: 60, base: 7.0, growth: 5.2 } };
@@ -43,7 +45,7 @@ export class DesertStage {
     this.hazardsOn = true;
     this.music = 'bgm_desert';
     this.t = 0;
-    this.cycle = new HazardCycle(this, ['swat'], { color: '#ff3a3a', stroke: '#06080e', gap: 1000, jitter: 400, first: 700 });   // (it doesn't come round too often)
+    this.cycle = new HazardCycle(this, ['dea'], { color: '#ff3a3a', stroke: '#06080e', gap: 1000, jitter: 400, first: 700 });   // (it doesn't come round too often)
   }
 
   // ---------------------------------------------------------------- drawing
@@ -59,7 +61,7 @@ export class DesertStage {
     this.farG = s.add.graphics().setScrollFactor(0.1); bgLayer.push(this.farG);
     this.midG = s.add.graphics().setScrollFactor(0.4); bgLayer.push(this.midG);
     this.roadG = s.add.graphics(); worldLayer.push(this.roadG);     // the road surface, its lines rushing by
-    this.vanG = s.add.graphics(); worldLayer.push(this.vanG);       // the SWAT van (behind the motorhome)
+    this.vanG = s.add.graphics(); worldLayer.push(this.vanG);       // the DEA van (behind the motorhome)
     this.rvBodyG = s.add.graphics(); this.rvBody(this.rvBodyG); worldLayer.push(this.rvBodyG);   // the motorhome itself (drawn once)
     this.rvG = s.add.graphics(); worldLayer.push(this.rvG);         // its wheels, exhaust, dust (redrawn every tick)
     this.puffs = [];
@@ -110,118 +112,87 @@ export class DesertStage {
     g.fillStyle(P.sandDark, 1); g.fillRect(-1300, y + 60, 2600, 300);
     g.fillStyle(0x000000, 0.25); g.fillEllipse(0, y + 4, 330, 12);
   }
-  // the motorhome, drawn once (rvBody): a long 1980s camper in cream and white with a teal-and-orange swoosh along its side,
-  // an over-cab bunk with a little window, a cab with a raked windscreen, chrome grille, round headlights and a plate,
-  // aluminium-framed windows with curtains, a rolled-up awning, an entry door with a fold-down step, storage hatches
-  // along the skirt, marker lights, panel seams and rivets, a crank-up TV aerial and a roof vent, a ladder and a spare
-  // tyre in a cover at the back, mud flaps, road grime and a little rust
+  // the motorhome, drawn once (rvBody), after Mason's reference photo: a boxy 1980s Class A motorhome - cream ribbed
+  // siding, brown / tan / gold stripes along the top and the middle (wrapping round the front), a rounded front cap with
+  // amber marker lights, a big raked windscreen, a black two-part grille with square headlights, a yellow plate (no
+  // real number), dark-framed windows (one tall, one with grid panes), beige storage hatches along the skirt, flared
+  // white wheel arches, roof air-con units, a satellite dish and a rail rack, a rubber mud-flap fringe at the back,
+  // road grime
   rvBody(g) {
-    const P = DPAL, top = 0, bot = ROAD.y - 14, x1 = -150, x2 = 150, cab = 112;
-    const C = { cream: 0xf4eedc, creamShade: 0xd8d0b8, white: 0xfafaf6, trim: 0xb8c0c4, trimDark: 0x7a8288, teal: 0x2a9aa8, tealDark: 0x1a6a78,
-      orange: 0xe8782a, curtain: 0xc8963a, curtainShade: 0x9a6a24, grime: 0xa89070, plate: 0xf0e8c0 };
-    // the box: outline, cream lower half, white upper, the cab cut in under the over-cab bunk
-    g.fillStyle(P.outline, 1); g.fillRect(x1 - 2, top - 2, cab - x1 + 2, bot - top + 4); g.fillRect(x1 - 2, top - 2, x2 - x1 + 4, 26);
-    g.fillCircle(x2 - 6, top + 8, 9);                                                                                    // (the bunk's rounded nose, outlined)
-    g.fillStyle(C.white, 1); g.fillRect(x1, top, cab - x1, 46); g.fillRect(x1, top, x2 - x1, 22);
-    g.fillStyle(C.cream, 1); g.fillRect(x1, top + 46, cab - x1, bot - top - 46);
-    g.fillStyle(C.creamShade, 1); g.fillRect(x1, bot - 16, cab - x1, 16);
-    // the over-cab bunk's rounded nose and its little window
-    g.fillStyle(C.white, 1); g.fillRect(cab, top, x2 - cab - 4, 22); g.fillCircle(x2 - 6, top + 8, 7); g.fillRect(x2 - 10, top + 8, 10, 14);
-    g.fillStyle(C.trimDark, 1); g.fillRect(cab + 6, top + 6, 16, 9); g.fillStyle(P.glass, 1); g.fillRect(cab + 7, top + 7, 14, 7); g.fillStyle(P.glassLit, 1); g.fillRect(cab + 8, top + 7, 4, 1);
-    // the cab: a raked windscreen, a side window with the driver's dark shape, the door, the hood and grille
-    const cy = top + 22;
-    g.fillStyle(P.outline, 1); g.fillRect(cab - 2, cy - 2, 48, bot - cy + 4);
-    g.fillStyle(C.white, 1); g.fillRect(cab, cy, 40, bot - cy); g.fillStyle(C.cream, 1); g.fillRect(cab, cy + 26, 40, bot - cy - 26);
-    g.fillStyle(P.glass, 1); g.fillRect(cab + 4, cy + 3, 18, 16); g.fillStyle(0x10161c, 1); g.fillCircle(cab + 12, cy + 12, 5); g.fillRect(cab + 7, cy + 15, 10, 4);   // the driver (just a shape)
-    g.fillStyle(P.glassLit, 1); g.fillRect(cab + 5, cy + 4, 3, 1);
-    g.fillStyle(P.glass, 1); g.fillTriangle(cab + 26, cy + 2, cab + 38, cy + 2, cab + 44, cy + 22); g.fillRect(cab + 26, cy + 2, 12, 20);   // the windscreen, raked
-    g.fillStyle(P.glassLit, 1); g.fillTriangle(cab + 28, cy + 3, cab + 33, cy + 3, cab + 28, cy + 12);
-    g.lineStyle(1, 0x1a1a1a, 1); g.lineBetween(cab + 30, cy + 21, cab + 40, cy + 12);                                       // a wiper
-    g.lineStyle(1, C.trimDark, 1); g.strokeRect(cab + 2, cy + 1, 22, bot - cy - 6); g.fillStyle(C.trim, 1); g.fillRect(cab + 18, cy + 30, 4, 2);   // the cab door + handle
-    g.fillStyle(P.outline, 1); g.fillRect(x2 - 4, cy + 20, 14, bot - cy - 20);                                               // the hood front
-    g.fillStyle(C.white, 1); g.fillRect(x2 - 2, cy + 22, 10, bot - cy - 24);
-    g.fillStyle(P.chrome, 1); g.fillRect(x2 + 2, cy + 30, 6, 22); for (let y = cy + 31; y < cy + 52; y += 3) { g.fillStyle(0x5a6064, 1); g.fillRect(x2 + 3, y, 4, 1); }   // the grille
-    g.fillStyle(P.chrome, 1); g.fillCircle(x2 + 5, cy + 26, 3); g.fillStyle(0xfff8d8, 1); g.fillCircle(x2 + 5, cy + 26, 2);     // a round headlight
-    g.fillStyle(0xffa020, 1); g.fillRect(x2 + 2, cy + 54, 4, 3);                                                             // the indicator
-    g.fillStyle(P.chrome, 1); g.fillRect(x2 - 4, bot - 10, 16, 6); g.fillStyle(0xffffff, 0.7); g.fillRect(x2 - 4, bot - 10, 16, 1);   // the chrome bumper
-    g.fillStyle(C.plate, 1); g.fillRect(x2 + 2, bot - 18, 9, 6); g.fillStyle(0x2a3a6a, 1); g.fillRect(x2 + 3, bot - 16, 7, 1); g.fillRect(x2 + 3, bot - 14, 5, 1);   // a plate (no real number)
-    g.fillStyle(P.chrome, 1); g.fillRect(cab + 24, cy - 4, 2, 10); g.fillRect(cab + 22, cy - 6, 6, 5);                     // the side mirror
-    // the swoosh: teal, dark teal and orange bands running the length, sweeping up over the bunk at the front
-    for (const [dy, h, c] of [[44, 5, C.teal], [50, 3, C.tealDark], [54, 2, C.orange]]) {
-      g.fillStyle(c, 1); g.fillRect(x1, top + dy, cab - x1 - 30, h);
-      g.fillPoints([{ x: cab - 30, y: top + dy }, { x: cab + 8, y: top + dy - 30 }, { x: cab + 8, y: top + dy - 30 + h }, { x: cab - 30, y: top + dy + h }], true);
-      g.fillRect(cab + 8, top + dy - 30, x2 - cab - 12, h);
-    }
-    // the roof edge: an aluminium drip rail with rivets, marker lights (red at the back, amber further forward)
-    g.fillStyle(C.trim, 1); g.fillRect(x1, top, x2 - x1, 3); g.fillStyle(C.trimDark, 1); g.fillRect(x1, top + 3, x2 - x1, 1);
-    for (let x = x1 + 6; x < x2 - 4; x += 10) { g.fillStyle(C.trimDark, 1); g.fillRect(x, top + 1, 1, 1); }
-    g.fillStyle(0xd82020, 1); g.fillRect(x1 + 1, top + 5, 3, 4); g.fillStyle(0xffa020, 1); g.fillRect(x1 + 100, top + 5, 3, 2); g.fillRect(cab - 8, top + 5, 3, 2);
-    // panel seams down the side
-    for (const x of [x1 + 40, x1 + 100, x1 + 180, x1 + 230]) { g.fillStyle(C.creamShade, 0.8); g.fillRect(x, top + 4, 1, bot - top - 20); }
-    // the rolled-up awning under the roof edge: an aluminium tube, its striped fabric peeking out, two arms
-    g.fillStyle(C.trimDark, 1); g.fillRect(x1 + 46, top + 5, 150, 6); g.fillStyle(C.trim, 1); g.fillRect(x1 + 46, top + 5, 150, 2);
-    for (let x = x1 + 46; x < x1 + 196; x += 6) { g.fillStyle(x % 12 ? C.teal : C.white, 1); g.fillRect(x, top + 11, 6, 2); }
-    for (const x of [x1 + 48, x1 + 192]) { g.fillStyle(C.trimDark, 1); g.fillRect(x, top + 11, 2, 34); }
-    // the windows: aluminium frames, glass, curtains half drawn (tie-backs), a plant in one
-    for (const [wx, ww] of [[x1 + 16, 34], [x1 + 64, 34], [x1 + 190, 30]]) {
-      g.fillStyle(C.trim, 1); g.fillRect(wx - 2, top + 14, ww + 4, 26); g.fillStyle(P.glass, 1); g.fillRect(wx, top + 16, ww, 22);
-      g.fillStyle(C.curtain, 1); g.fillRect(wx, top + 16, 7, 22); g.fillRect(wx + ww - 7, top + 16, 7, 22);
-      g.fillStyle(C.curtainShade, 1); g.fillRect(wx + 2, top + 16, 1, 22); g.fillRect(wx + ww - 4, top + 16, 1, 22); g.fillRect(wx, top + 26, 7, 2); g.fillRect(wx + ww - 7, top + 26, 7, 2);
-      g.fillStyle(C.curtain, 1); g.fillRect(wx, top + 16, ww, 3);                                                          // the valance
-      g.fillStyle(P.glassLit, 1); g.fillRect(wx + 9, top + 20, 6, 1); g.fillRect(wx + 9, top + 21, 3, 1);
-      g.fillStyle(C.trimDark, 1); g.fillRect(wx + ww / 2, top + 16, 1, 22);                                                // the sliding pane's frame
-    }
-    g.fillStyle(0x3a7a3a, 1); g.fillCircle(x1 + 81, top + 33, 4); g.fillCircle(x1 + 78, top + 31, 3); g.fillStyle(0xb8643a, 1); g.fillRect(x1 + 77, top + 35, 7, 3);   // a potted plant on the sill
-    // the entry door: a window, a handle, a grab rail, a porch light, the fold-down step
-    const dx = x1 + 122;
-    g.fillStyle(P.outline, 1); g.fillRect(dx - 1, top + 9, 28, bot - top - 9); g.fillStyle(C.white, 1); g.fillRect(dx, top + 10, 26, bot - top - 26); g.fillStyle(C.cream, 1); g.fillRect(dx, top + 46, 26, bot - top - 46);
-    for (const [dy, h, c] of [[44, 5, C.teal], [50, 3, C.tealDark], [54, 2, C.orange]]) { g.fillStyle(c, 1); g.fillRect(dx, top + dy, 26, h); }
-    g.fillStyle(C.trim, 1); g.fillRect(dx + 4, top + 13, 18, 14); g.fillStyle(P.glass, 1); g.fillRect(dx + 5, top + 14, 16, 12); g.fillStyle(C.curtain, 1); g.fillRect(dx + 5, top + 14, 16, 3);
-    g.fillStyle(P.chrome, 1); g.fillRect(dx + 21, top + 40, 3, 3); g.fillRect(dx - 4, top + 24, 2, 26);
-    g.fillStyle(0xfff4c0, 1); g.fillRect(dx + 8, top + 6, 8, 3); g.fillStyle(C.trimDark, 1); g.fillRect(dx + 8, top + 9, 8, 1);
-    g.fillStyle(C.trimDark, 1); g.fillRect(dx - 2, bot - 2, 30, 3); g.fillStyle(C.trim, 1); g.fillRect(dx, bot - 2, 26, 1);  // the step
-    // the skirt: storage hatches with latches, the propane cover, the fuel cap
-    for (const [hx, hw] of [[x1 + 6, 22], [x1 + 64, 40], [x1 + 156, 30], [x1 + 192, 26]]) { g.lineStyle(1, C.trimDark, 1); g.strokeRect(hx, bot - 30, hw, 14); g.fillStyle(C.trimDark, 1); g.fillRect(hx + hw / 2 - 2, bot - 24, 4, 2); }
-    g.fillStyle(C.trim, 1); g.fillRect(x1 + 108, bot - 30, 10, 12); for (let y = bot - 28; y < bot - 19; y += 2) { g.fillStyle(C.trimDark, 1); g.fillRect(x1 + 109, y, 8, 1); }   // propane vents
-    g.fillStyle(C.trimDark, 1); g.fillCircle(x1 + 226, bot - 34, 3); g.fillStyle(C.trim, 1); g.fillCircle(x1 + 226, bot - 34, 2);   // fuel cap
-    // road grime along the bottom, a few rust spots
-    for (let x = x1; x < cab + 40; x += 3) { g.fillStyle(C.grime, 0.35 + ((x * 7) % 5) * 0.06); g.fillRect(x, bot - 6 - ((x * 13) % 4), 3, 6 + ((x * 13) % 4)); }
-    g.fillStyle(P.rust, 0.85); g.fillRect(x1 + 30, bot - 10, 6, 3); g.fillRect(x1 + 34, bot - 12, 3, 2); g.fillRect(cab - 20, bot - 9, 4, 4); g.fillRect(x1 + 2, top + 30, 2, 7);
-    // the back: the ladder, the tail lights, the spare tyre in a teal cover with a sun on it
-    g.fillStyle(0xd82020, 1); g.fillRect(x1 - 1, bot - 26, 3, 10); g.fillStyle(0xffa020, 1); g.fillRect(x1 - 1, bot - 15, 3, 3);
-    g.fillStyle(P.outline, 1); g.fillCircle(x1 - 6, top + 52, 13); g.fillStyle(C.teal, 1); g.fillCircle(x1 - 6, top + 52, 12); g.fillStyle(C.tealDark, 1); g.fillCircle(x1 - 6, top + 52, 7);
-    g.fillStyle(C.orange, 1); g.fillCircle(x1 - 6, top + 52, 4); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; g.fillRect(x1 - 6 + Math.cos(a) * 6 - 0.5, top + 52 + Math.sin(a) * 6 - 0.5, 1.5, 1.5); }
-    g.lineStyle(2, P.chrome, 1); g.lineBetween(x1 + 4, top - 42, x1 + 4, bot - 34); g.lineBetween(x1 + 12, top - 42, x1 + 12, bot - 34); for (let y = top - 36; y < bot - 34; y += 9) g.lineBetween(x1 + 4, y, x1 + 12, y);
-    g.lineStyle(1, 0xffffff, 0.5); g.lineBetween(x1 + 4, top - 42, x1 + 4, top - 10);
-    // up on the roof: a crank-up TV aerial (folded) and a translucent roof vent dome
-    g.fillStyle(C.trimDark, 1); g.fillRect(-20, top - 4, 4, 4); g.lineStyle(1, C.trim, 1); g.lineBetween(-18, top - 4, -2, top - 8); g.lineBetween(-2, top - 8, 8, top - 6); g.lineBetween(-6, top - 10, 2, top - 6);
-    g.fillStyle(C.trimDark, 1); g.fillRect(84, top - 4, 18, 4); g.fillStyle(0xd8e4e8, 1); g.fillEllipse(93, top - 4, 14, 6); g.fillStyle(0xffffff, 0.8); g.fillRect(89, top - 6, 3, 1);
-    // the luggage rack at the back of the roof (a ledge): chrome rails, a strapped-down tarp, a bicycle wheel poking out
-    const R = this.platforms[1];
-    g.fillStyle(0x6a5a3a, 1); g.fillRect(R.x1 + 4, R.y + 4, R.x2 - R.x1 - 8, -R.y - 6); g.fillStyle(0x8a7a52, 1); g.fillRect(R.x1 + 4, R.y + 4, R.x2 - R.x1 - 8, 4);
-    for (let x = R.x1 + 8; x < R.x2 - 6; x += 9) { g.fillStyle(0x5a4a2e, 1); g.fillRect(x, R.y + 9, 1, -R.y - 12); }            // its folds
-    g.lineStyle(2, 0x2a2a2a, 1); g.strokeCircle(R.x2 - 12, R.y + 12, 7); g.lineStyle(1, 0x8a8a8a, 1); g.lineBetween(R.x2 - 12, R.y + 5, R.x2 - 12, R.y + 19);
-    g.lineStyle(2, 0xc8401e, 1); g.lineBetween(R.x1 + 16, R.y + 3, R.x1 + 16, -2); g.lineBetween(R.x2 - 24, R.y + 3, R.x2 - 24, -2);   // straps
-    g.lineStyle(2, P.chrome, 1); g.strokeRect(R.x1, R.y, R.x2 - R.x1, -R.y); for (let x = R.x1 + 10; x < R.x2; x += 10) g.lineBetween(x, R.y, x, R.y + 3);
-    // the air-con box (a ledge): a white shroud with louvres and a little shine
+    const P = DPAL, top = 0, bot = ROAD.y - 14, x1 = -150, x2 = 146;
+    const C = { cream: 0xeee6d2, rib: 0xd8ceb6, shade: 0xc8bc9e, brown: 0x8a4a28, tan: 0xd8a070, gold: 0xe8b830, rust: 0xb8642e,
+      frame: 0x4a2c1a, glass: 0x141a20, glassLit: 0x4a5a6a, grime: 0x9a8a6a, hatch: 0xe0d4b4, hatchEdge: 0x8a7a5a, black: 0x14120e, amber: 0xffa020 };
+    // the box and the front: outline, cream, the rounded front cap and the raked nose
+    const nose = [{ x: x2 - 10, y: top }, { x: x2, y: top + 6 }, { x: x2 + 4, y: top + 16 }, { x: x2 + 14, y: top + 46 }, { x: x2 + 16, y: bot - 2 }, { x: x2 + 16, y: bot + 2 }, { x: x2 - 10, y: bot + 2 }];
+    g.fillStyle(P.outline, 1); g.fillRect(x1 - 2, top - 2, x2 - x1 - 6, bot - top + 4); g.fillPoints(nose.map((p) => ({ x: p.x + 2, y: p.y + (p.y === top ? -2 : 0) })), true);
+    g.fillStyle(C.cream, 1); g.fillRect(x1, top, x2 - x1 - 8, bot - top); g.fillPoints(nose, true);
+    for (let y = top + 3; y < bot - 4; y += 3) { g.fillStyle(C.rib, 1); g.fillRect(x1, y, x2 - x1 - 10, 1); }               // the ribbed siding
+    g.fillStyle(C.shade, 1); g.fillRect(x1, bot - 10, x2 - x1 + 10, 10); g.fillStyle(0xffffff, 0.35); g.fillRect(x1, top, x2 - x1 - 10, 2);
+    // the stripes: brown, gold, tan along the top; tan, gold, orange-brown, brown along the middle - round the nose too
+    const band = (y0, list) => { let y = y0; for (const [h, c] of list) { g.fillStyle(c, 1); g.fillRect(x1, y, x2 - x1 + 12, h); y += h; } };
+    band(top + 7, [[5, C.brown], [1, C.gold], [3, C.tan]]);
+    band(top + 52, [[2, C.tan], [1, C.gold], [4, C.rust], [3, C.brown]]);
+    g.fillStyle(P.outline, 1); g.fillRect(x2 + 15, top + 46, 3, bot - top - 44);                                            // (the stripes stop at the nose's edge)
+    // the windscreen: big, raked, a wiper, a mirror on an arm
+    g.fillStyle(C.black, 1); g.fillPoints([{ x: x2 - 8, y: top + 19 }, { x: x2 + 3, y: top + 18 }, { x: x2 + 12, y: top + 46 }, { x: x2 - 8, y: top + 46 }], true);
+    g.fillStyle(C.glass, 1); g.fillPoints([{ x: x2 - 6, y: top + 21 }, { x: x2 + 2, y: top + 20 }, { x: x2 + 10, y: top + 44 }, { x: x2 - 6, y: top + 44 }], true);
+    g.fillStyle(C.glassLit, 1); g.fillTriangle(x2 - 4, top + 22, x2, top + 22, x2 - 4, top + 32);
+    g.lineStyle(1, 0x0a0a0a, 1); g.lineBetween(x2 - 2, top + 43, x2 + 6, top + 30);
+    g.fillStyle(0x9aa2a8, 1); g.fillRect(x2 - 18, top + 22, 2, 8); g.fillRect(x2 - 22, top + 26, 6, 2); g.fillStyle(0xd8dce0, 1); g.fillRect(x2 - 24, top + 20, 4, 9);   // the side mirror
+    // the grille and lights: two black grille halves, square headlights stacked, amber corners, the bumper, a blank yellow plate
+    g.fillStyle(C.black, 1); g.fillRect(x2 + 12, top + 58, 5, 18); g.fillStyle(0x2a2620, 1); for (let y = top + 60; y < top + 75; y += 3) g.fillRect(x2 + 13, y, 3, 1);
+    g.fillStyle(0xd8dce0, 1); g.fillRect(x2 + 12, top + 50, 5, 3); g.fillRect(x2 + 12, top + 54, 5, 3); g.fillStyle(0xfff8d8, 1); g.fillRect(x2 + 13, top + 51, 3, 1); g.fillRect(x2 + 13, top + 55, 3, 1);
+    g.fillStyle(C.amber, 1); g.fillRect(x2 + 11, top + 77, 6, 3);
+    g.fillStyle(0xe8e0cc, 1); g.fillRect(x2 + 8, bot - 6, 12, 7); g.fillStyle(C.grime, 1); g.fillRect(x2 + 8, bot - 1, 12, 2);   // the bumper
+    g.fillStyle(0xf0d040, 1); g.fillRect(x2 + 14, bot - 5, 6, 4); g.fillStyle(0xb02020, 1); g.fillRect(x2 + 15, bot - 4, 4, 1);
+    // amber marker lights along the top of the front cap
+    for (const x of [x2 - 30, x2 - 22, x2 - 14]) { g.fillStyle(C.amber, 1); g.fillRect(x, top + 2, 4, 2); }
+    g.fillStyle(0xd82020, 1); g.fillRect(x2 - 6, top + 4, 3, 2);
+    // the side windows: dark brown frames, tinted glass with a glint; the cab window, two wide two-pane windows, a tall
+    // narrow one and one with little grid panes
+    const win = (x, y, w, h, grid) => {
+      g.fillStyle(C.frame, 1); g.fillRect(x - 2, y - 2, w + 4, h + 4); g.fillStyle(C.glass, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(C.glassLit, 1); g.fillRect(x + 2, y + 2, Math.min(8, w / 3), 1); g.fillRect(x + 2, y + 3, Math.min(4, w / 5), 1);
+      g.fillStyle(C.frame, 1); if (grid) { for (let gx = x + w / grid; gx < x + w - 1; gx += w / grid) g.fillRect(Math.round(gx), y, 1, h); for (let gy = y + h / 3; gy < y + h - 1; gy += h / 3) g.fillRect(x, Math.round(gy), w, 1); } else if (w > 24) g.fillRect(x + Math.round(w / 2), y, 1, h);
+    };
+    win(x2 - 40, top + 20, 22, 26);                                     // the cab window
+    win(x2 - 96, top + 21, 42, 22); win(x1 + 126, top + 21, 40, 22);
+    win(x1 + 92, top + 21, 12, 26, 1);                                  // the tall narrow one
+    win(x1 + 40, top + 21, 30, 22, 3);                                  // the one with grid panes
+    g.fillStyle(0x3a3a3a, 1); g.fillRect(x1 + 20, top + 22, 6, 4); g.fillStyle(0xfff4c0, 1); g.fillRect(x1 + 21, top + 23, 4, 2);   // a porch light
+    // the skirt: beige storage hatches with brown edges and latches, a dark vented one, a fuel door, rivets
+    const hatch = (x, w, dark) => { g.fillStyle(C.hatchEdge, 1); g.fillRect(x - 1, top + 63, w + 2, 18); g.fillStyle(dark ? 0x3a3428 : C.hatch, 1); g.fillRect(x, top + 64, w, 16); g.fillStyle(C.hatchEdge, 1); g.fillRect(x + w / 2 - 2, top + 66, 4, 2); if (dark) for (let y = top + 67; y < top + 79; y += 3) { g.fillStyle(0x1a1610, 1); g.fillRect(x + 2, y, w - 4, 1); } };
+    hatch(x1 + 4, 24); hatch(x1 + 32, 26); hatch(x1 + 84, 30); hatch(x1 + 158, 30, true); hatch(x1 + 194, 30); hatch(x1 + 230, 22);
+    g.fillStyle(C.hatchEdge, 1); g.fillRect(x1 + 122, top + 66, 6, 6); g.fillStyle(C.amber, 1); g.fillRect(x1 + 8, top + 60, 3, 2); g.fillRect(x1 + 150, top + 60, 3, 2);
+    // the wheel arches: flared and white, dark inside; grime and a few rust streaks along the bottom
+    for (const wx of [x1 + 54, x2 - 34]) { g.fillStyle(P.outline, 1); g.fillCircle(wx, bot + 2, 19); g.fillStyle(0xf4eee0, 1); g.fillCircle(wx, bot + 2, 18); g.fillStyle(0x1a1612, 1); g.fillCircle(wx, bot + 3, 15); g.fillRect(wx - 15, bot + 3, 30, 12); }
+    for (let x = x1; x < x2 + 8; x += 3) { g.fillStyle(C.grime, 0.3 + ((x * 7) % 5) * 0.06); g.fillRect(x, bot - 4 - ((x * 13) % 3), 3, 4 + ((x * 13) % 3)); }
+    g.fillStyle(C.rust, 0.6); g.fillRect(x1 + 70, bot - 8, 2, 6); g.fillRect(x2 - 70, bot - 7, 2, 5); g.fillRect(x1 + 2, top + 30, 2, 8);
+    // the back: tail lights, a ladder, the mud-flap fringe hanging behind the rear wheel
+    g.fillStyle(0xd82020, 1); g.fillRect(x1 - 1, bot - 24, 3, 10); g.fillStyle(C.amber, 1); g.fillRect(x1 - 1, bot - 13, 3, 3);
+    g.lineStyle(2, 0xc8ccd0, 1); g.lineBetween(x1 + 4, top - 42, x1 + 4, top + 50); g.lineBetween(x1 + 12, top - 42, x1 + 12, top + 50); for (let y = top - 36; y < top + 50; y += 9) g.lineBetween(x1 + 4, y, x1 + 12, y);
+    g.fillStyle(0x0e0c0a, 1); for (let x = x1 + 2; x < x1 + 30; x += 3) g.fillRect(x, bot - 2, 2, 12 + ((x * 5) % 3));
+    // up on the roof: a satellite dish at the front, the air-con units (the middle one is a ledge), the rail rack (a ledge)
+    g.fillStyle(0xc8ccd0, 1); g.fillRect(x2 - 52, top - 4, 4, 4); g.fillStyle(0xf4f4f0, 1); g.fillEllipse(x2 - 50, top - 6, 22, 6); g.fillStyle(0xd8d8d4, 1); g.fillEllipse(x2 - 50, top - 5, 18, 3);
+    g.fillStyle(P.outline, 1); g.fillRect(x1 + 58, top - 13, 28, 13); g.fillStyle(0xf0f0ec, 1); g.fillRect(x1 + 59, top - 12, 26, 12); for (let x = x1 + 62; x < x1 + 84; x += 3) { g.fillStyle(0xb8bcbc, 1); g.fillRect(x, top - 9, 1, 7); }
     const A = this.platforms[2];
-    g.fillStyle(P.outline, 1); g.fillRect(A.x1 - 1, A.y - 1, A.x2 - A.x1 + 2, -A.y + 1); g.fillStyle(C.trim, 1); g.fillRect(A.x1, A.y, A.x2 - A.x1, -A.y); g.fillStyle(C.white, 1); g.fillRect(A.x1, A.y, A.x2 - A.x1, 4);
-    for (let x = A.x1 + 4; x < A.x2 - 2; x += 4) { g.fillStyle(C.trimDark, 1); g.fillRect(x, A.y + 7, 2, -A.y - 10); }
-    g.fillStyle(0xffffff, 0.8); g.fillRect(A.x1 + 3, A.y + 1, 10, 1);
-    // the wheel arches (dark, shaded) and mud flaps behind each wheel
-    for (const wx of [x1 + 40, x2 - 60]) {
-      g.fillStyle(P.outline, 1); g.fillCircle(wx, bot + 2, 17); g.fillRect(wx - 17, bot - 2, 34, 6);
-      g.fillStyle(0x1a1a1a, 1); g.fillRect(wx - 22, bot - 2, 4, 14); g.fillStyle(0x3a3a3a, 1); g.fillRect(wx - 22, bot - 2, 4, 2);
-    }
-    g.fillStyle(0x2a2a2a, 1); g.fillRect(x1 - 6, bot - 4, 10, 3);                                                          // the exhaust pipe at the back
+    g.fillStyle(P.outline, 1); g.fillRect(A.x1 - 1, A.y - 1, A.x2 - A.x1 + 2, -A.y + 1); g.fillStyle(0xf0f0ec, 1); g.fillRect(A.x1, A.y, A.x2 - A.x1, -A.y);
+    g.fillStyle(0xffffff, 1); g.fillRect(A.x1, A.y, A.x2 - A.x1, 3); for (let x = A.x1 + 4; x < A.x2 - 2; x += 3) { g.fillStyle(0xb8bcbc, 1); g.fillRect(x, A.y + 6, 1, -A.y - 9); }
+    const R = this.platforms[1];
+    g.lineStyle(2, 0xc8ccd0, 1); g.lineBetween(R.x1, R.y, R.x2, R.y); for (let x = R.x1; x <= R.x2; x += 12) g.lineBetween(x, R.y, x, -1);
+    g.lineStyle(1, 0x9aa2a8, 1); g.lineBetween(R.x1, R.y + 14, R.x2, R.y + 14); g.lineBetween(R.x1, R.y + 28, R.x2, R.y + 28);
+    g.fillStyle(0x6a5a3a, 1); g.fillRect(R.x1 + 8, -10, 20, 10); g.fillStyle(0x8a7a52, 1); g.fillRect(R.x1 + 8, -10, 20, 2);   // a cooler strapped to the roof
+    g.fillStyle(0x3a5a8a, 1); g.fillRect(R.x1 + 32, -7, 14, 7); g.fillStyle(0x5a7aaa, 1); g.fillRect(R.x1 + 32, -7, 14, 2);   // and a jerry can
+    // the exhaust pipe
+    g.fillStyle(0x2a2a2a, 1); g.fillRect(x1 - 6, bot - 2, 10, 3);
   }
   // the parts that move: wheels turning (chrome hubcaps, lug nuts, a tread that blurs), exhaust puffs, a blinking marker,
   // the dust cloud behind it
   rv(g, t) {
-    const P = DPAL, bot = ROAD.y - 14, x1 = -150, x2 = 150;
+    const P = DPAL, bot = ROAD.y - 14, x1 = -150, x2 = 146;
     const bob = Math.round(Math.sin(t * 0.5) * 0.6);
     g.clear();
-    for (const wx of [x1 + 40, x2 - 60]) {
+    for (const wx of [x1 + 54, x2 - 34]) {
       const wy = bot + 2 + bob, a = -t * 0.6;
       g.fillStyle(P.tyre, 1); g.fillCircle(wx, wy, 13);
       g.lineStyle(1, 0x2a2a2a, 1); for (let k = 0; k < 8; k++) { const b = a + k * Math.PI / 4; g.lineBetween(wx + Math.cos(b) * 10, wy + Math.sin(b) * 10, wx + Math.cos(b) * 13, wy + Math.sin(b) * 13); }   // the tread
@@ -231,7 +202,7 @@ export class DesertStage {
     }
     if (t % 5 === 0) this.puffs.push({ x: x1 - 6, y: bot - 3, k: 0 });                                                     // exhaust
     this.puffs = this.puffs.filter((p) => { p.k++; p.x -= 3.2; p.y -= 0.35; g.fillStyle(0x6a6460, 0.4 * (1 - p.k / 26)); g.fillCircle(p.x, p.y, 2 + p.k * 0.25); return p.k < 26; });
-    if (t % 40 < 20) { g.fillStyle(0xffa020, 1); g.fillRect(x2 + 2, bot - 14, 4, 3); }                   // the indicator blinks (always about to change lanes)
+    if (t % 40 < 20) { g.fillStyle(0xffd060, 1); g.fillRect(x2 + 7, bot - 13, 6, 3); }                   // the indicator blinks (always about to change lanes)
     for (let i = 0; i < 6; i++) { const k = ((t * 0.08 + i / 6) % 1); g.fillStyle(P.dust, 0.45 * (1 - k)); g.fillCircle(x1 - 20 - k * 160, bot + 4 - k * 20, 8 + k * 24); }   // the dust cloud
   }
 
@@ -254,84 +225,154 @@ export class DesertStage {
     return this.cycle.run(match, out);
   }
 
-  // ---------------------------------------------------------------- THE SWAT VAN
-  // a black armoured van with a light bar flashing red and blue, a ram bar on the front, SWAT in white on the side, and
-  // a roof hatch the officers stand up out of (`up` 0..1). Its front bumper is at x.
-  van(g, x, t, up, aimA) {
-    const P = DPAL, y = ROAD.y, w = 150, top = y - 74, bob = Math.round(Math.sin(t * 0.6) * 0.6);
-    g.fillStyle(P.outline, 1); g.fillRect(x - w - 2, top - 2 + bob, w + 4, 64);
-    g.fillStyle(P.van, 1); g.fillRect(x - w, top + bob, w, 60); g.fillStyle(P.vanLit, 1); g.fillRect(x - w, top + bob, w, 3); g.fillRect(x - w + 4, top + 30 + bob, w - 30, 2);
-    g.fillStyle(P.glass, 1); g.fillRect(x - 30, top + 6 + bob, 26, 20); g.fillStyle(P.glassLit, 0.6); g.fillRect(x - 28, top + 7 + bob, 6, 2);   // the windscreen
-    g.fillStyle(0x0a0a0c, 1); g.fillRect(x - 2, top + 32 + bob, 8, 26); for (let k = 0; k < 4; k++) { g.fillStyle(0x4a4a4a, 1); g.fillRect(x, top + 34 + k * 6 + bob, 6, 2); }   // the ram bar
-    // "SWAT" in white blocky letters along the side
-    const L = { S: ['111', '100', '111', '001', '111'], W: ['101', '101', '101', '111', '101'], A: ['010', '101', '111', '101', '101'], T: ['111', '010', '010', '010', '010'] };
-    [...'SWAT'].forEach((c, i) => L[c].forEach((row, r) => [...row].forEach((b, k) => { if (b === '1') { g.fillStyle(0xffffff, 1); g.fillRect(x - w + 26 + i * 18 + k * 4, top + 36 + r * 3 + bob, 4, 3); } })));
-    const flash = Math.floor(t / 5) % 2;                                                                       // the light bar
-    g.fillStyle(flash ? P.red : 0x5a0a0a, 1); g.fillRect(x - 60, top - 6 + bob, 12, 5); g.fillStyle(flash ? 0x0a1a5a : P.blue, 1); g.fillRect(x - 46, top - 6 + bob, 12, 5);
-    g.fillStyle(flash ? P.red : P.blue, 0.15); g.fillCircle(x - 47, top - 4 + bob, 26);
-    for (const wx of [x - w + 30, x - 30]) { g.fillStyle(P.tyre, 1); g.fillCircle(wx, y - 12, 12); g.fillStyle(P.hub, 1); g.fillCircle(wx, y - 12, 4); }
-    // the officers in the roof hatch: helmets, visors, dark armour, rifles pointing at the roof
-    if (up > 0) for (const [ox, k] of [[x - 110, 0], [x - 84, 1]]) {
-      const hy = top - 22 * up + bob;
-      g.fillStyle(P.swat, 1); g.fillRect(ox - 7, hy, 14, 22 * up); g.fillStyle(0x2e343c, 1); g.fillRect(ox - 7, hy + 4, 14, 2);
-      g.fillStyle(P.swat, 1); g.fillCircle(ox, hy - 4, 7); g.fillStyle(P.visor, 1); g.fillRect(ox - 1, hy - 6, 8, 4); g.fillStyle(0x4a6a8a, 1); g.fillRect(ox + 2, hy - 6, 3, 1);
-      const a = aimA != null ? aimA[k] : -0.4;
-      if (this.launcher && k === 0) {                                                       // the rocket launcher: a long olive tube on his shoulder
-        g.lineStyle(6, 0x3a4a2a, 1); g.lineBetween(ox - Math.cos(a) * 12, hy - 2 - Math.sin(a) * 12, ox + Math.cos(a) * 22, hy - 2 + Math.sin(a) * 22);
-        g.fillStyle(0x1a1a14, 1); g.fillCircle(ox + Math.cos(a) * 22, hy - 2 + Math.sin(a) * 22, 3);
-      } else { g.lineStyle(3, 0x0a0a0c, 1); g.lineBetween(ox + 2, hy + 6, ox + 2 + Math.cos(a) * 18, hy + 6 + Math.sin(a) * 18); }
+  // ---------------------------------------------------------------- THE DEA VAN
+  // a big dark-navy box van: a cab with a windscreen and mirror, a push bar with strobes in the grille flashing red and
+  // blue, a light bar on the roof, tinted windows, DEA in big yellow letters on the side, a wide sliding door (it slides
+  // back to let the agents out: `door` 0..1), a roof hatch at the back, rear doors and tail lights, big wheels.
+  // Its front bumper is at x. The agents are drawn by agent().
+  van(g, x, t, door) {
+    const P = DPAL, y = ROAD.y - 14, w = VAN.w, h = VAN.h, top = y - h, bob = Math.round(Math.sin(t * 0.6) * 0.6);
+    const N = { body: 0x161c2e, lit: 0x26304a, dark: 0x0a0e1a, trim: 0x3a4460, glass: 0x0c1018, glassLit: 0x3a4a64, yellow: 0xf0c020, yellowDark: 0xa07a10 };
+    const T = top + bob, cab = x - VAN.cab;
+    g.fillStyle(P.outline, 1); g.fillRect(x - w - 2, T - 2, w - VAN.cab + 4, h + 4); g.fillRect(cab - 2, T + 14, VAN.cab + 6, h - 10);   // the box, the lower cab
+    g.fillStyle(N.body, 1); g.fillRect(x - w, T, w - VAN.cab, h); g.fillRect(cab, T + 16, VAN.cab + 2, h - 16);
+    g.fillStyle(P.outline, 1); g.fillTriangle(cab - 2, T - 2, cab + 30, T + 14, cab - 2, T + 14); g.fillStyle(N.body, 1); g.fillTriangle(cab, T, cab + 28, T + 16, cab, T + 16);   // the cab's sloped roof
+    g.fillStyle(N.lit, 1); g.fillRect(x - w, T, w - VAN.cab, 3); g.fillRect(x - w, T + h - 16, w, 2);                     // highlights, the waist line
+    g.fillStyle(N.dark, 1); g.fillRect(x - w, T + h - 12, w + 2, 12);                                                   // the dark skirt
+    for (const px of [x - w + 60, x - w + 120]) { g.fillStyle(N.dark, 1); g.fillRect(px, T + 2, 1, h - 16); }          // panel seams
+    // the windscreen and the cab door, a mirror on an arm
+    g.fillStyle(N.glass, 1); g.fillPoints([{ x: cab + 2, y: T + 18 }, { x: cab + 26, y: T + 18 }, { x: cab + 36, y: T + 40 }, { x: cab + 2, y: T + 40 }], true);
+    g.fillStyle(N.glassLit, 1); g.fillTriangle(cab + 6, T + 20, cab + 14, T + 20, cab + 6, T + 32);
+    g.lineStyle(1, N.trim, 1); g.strokeRect(cab + 2, T + 18, 24, h - 32); g.fillStyle(N.trim, 1); g.fillRect(cab + 20, T + 50, 4, 2);
+    g.fillStyle(0x0a0a0a, 1); g.fillRect(cab - 6, T + 24, 2, 10); g.fillRect(cab - 10, T + 22, 6, 9);
+    // the front: grille, strobes flashing red / blue, headlights, the push bar
+    const flash = Math.floor(t / 4) % 2;
+    g.fillStyle(0x08080c, 1); g.fillRect(x - 2, T + 42, 6, 26); for (let k = 0; k < 6; k++) { g.fillStyle(0x2a2e3a, 1); g.fillRect(x - 1, T + 44 + k * 4, 4, 2); }
+    g.fillStyle(flash ? P.red : P.blue, 1); g.fillRect(x - 1, T + 46, 4, 3); g.fillStyle(flash ? P.blue : P.red, 1); g.fillRect(x - 1, T + 62, 4, 3);
+    g.fillStyle(0xfff8d8, 1); g.fillRect(x, T + 38, 3, 4);
+    g.fillStyle(0x1a1a1a, 1); g.fillRect(x + 2, T + 40, 6, 36); for (let k = 0; k < 5; k++) { g.fillStyle(0x4a4a4a, 1); g.fillRect(x + 3, T + 42 + k * 7, 4, 2); }
+    // the light bar on the roof, glowing
+    g.fillStyle(0x0a0a0a, 1); g.fillRect(x - w + 40, T - 6, 40, 6);
+    g.fillStyle(flash ? P.red : 0x4a0a0a, 1); g.fillRect(x - w + 41, T - 5, 18, 4); g.fillStyle(flash ? 0x0a1a4a : P.blue, 1); g.fillRect(x - w + 61, T - 5, 18, 4);
+    g.fillStyle(flash ? P.red : P.blue, 0.18); g.fillCircle(x - w + 60, T - 3, 34);
+    g.lineStyle(1, 0x5a5a5a, 1); g.lineBetween(x - w + 100, T, x - w + 100, T - 22); g.lineBetween(x - w + 106, T, x - w + 108, T - 16);   // antennas
+    // tinted windows along the box (behind the door)
+    for (const wx of [x - w + 10]) { g.fillStyle(N.trim, 1); g.fillRect(wx - 1, T + 13, 34, 20); g.fillStyle(N.glass, 1); g.fillRect(wx, T + 14, 32, 18); g.fillStyle(N.glassLit, 1); g.fillRect(wx + 3, T + 16, 8, 1); }
+    // DEA in big yellow block letters, and a thin yellow stripe
+    const L = { D: ['110', '101', '101', '101', '110'], E: ['111', '100', '110', '100', '111'], A: ['010', '101', '111', '101', '101'] };
+    const dea = (x0, y0, px) => [...'DEA'].forEach((c, i) => L[c].forEach((row, r) => [...row].forEach((b, k) => { if (b === '1') { const lx = x0 + i * px * 4 + k * px, ly = y0 + r * px; g.fillStyle(N.yellowDark, 1); g.fillRect(lx + 1, ly + 1, px, px); g.fillStyle(N.yellow, 1); g.fillRect(lx, ly, px, px); } })));
+    dea(x - w + 54, T + 18, 5);                                                                                        // big, along the back half
+    dea(cab + 3, T + 44, 2);                                                                                           // small, on the cab door
+    g.fillStyle(N.yellow, 1); g.fillRect(x - w, T + h - 20, w - VAN.cab, 2);
+    // the sliding door: an opening behind the cab, the door slid back over the side
+    const dx = x - VAN.doorX, dw = VAN.doorW, slid = Math.round(door * (dw - 4));
+    g.fillStyle(0x050608, 1); g.fillRect(dx, T + 8, dw, h - 20);                                                     // the dark inside
+    if (door > 0) { g.fillStyle(0x1a1e26, 1); g.fillRect(dx + 4, T + h - 30, dw - 8, 6); g.fillStyle(0xfff0c0, 0.25); g.fillRect(dx + 2, T + 9, dw - 4, 2); }   // a bench, a dome light
+    g.fillStyle(P.outline, 1); g.fillRect(dx - slid - 1, T + 7, dw + 2, h - 18); g.fillStyle(N.body, 1); g.fillRect(dx - slid, T + 8, dw, h - 20);
+    g.fillStyle(N.lit, 1); g.fillRect(dx - slid, T + 8, dw, 2); g.fillStyle(N.trim, 1); g.fillRect(dx - slid + 4, T + 40, 6, 2);
+    dea(dx - slid + 6, T + 46, 3);                                                                                     // and on the sliding door (it slides back with it)
+    g.fillStyle(N.dark, 1); g.fillRect(dx - 10, T + 6, dw + 12, 2);                                                    // the door's track
+    // the roof hatch (open while an agent's up there), the rear doors and tail lights
+    g.fillStyle(0x0a0a0c, 1); g.fillRect(x - VAN.hatch - 12, T - 2, 24, 3);
+    g.fillStyle(N.dark, 1); g.fillRect(x - w + 1, T + 4, 1, h - 18); g.fillStyle(0xd82020, 1); g.fillRect(x - w - 1, T + h - 30, 3, 10);
+    // the wheels: big, chrome-centred, turning
+    for (const wx of [x - w + 34, x - 36]) {
+      const wy = y + 2, a = -t * 0.6;
+      g.fillStyle(P.outline, 1); g.fillCircle(wx, wy - 2, 18); g.fillStyle(P.tyre, 1); g.fillCircle(wx, wy, 15);
+      g.lineStyle(1, 0x2a2a2a, 1); for (let k = 0; k < 8; k++) { const b = a + k * Math.PI / 4; g.lineBetween(wx + Math.cos(b) * 11, wy + Math.sin(b) * 11, wx + Math.cos(b) * 15, wy + Math.sin(b) * 15); }
+      g.fillStyle(0x6a6e74, 1); g.fillCircle(wx, wy, 7); g.fillStyle(0x9aa0a6, 1); g.fillCircle(wx - 1, wy - 1, 3);
     }
-    g.fillStyle(0x0a0a0c, 1); g.fillRect(x - 124, top - 2 + bob, 54, 3);                                     // the hatch
   }
-  start_swat(match, h) {
-    h.title = 'SWAT VAN - TAKE COVER!';
-    h.x = -760; h.volley = 0; h.vt = 0; h.bullets = []; h.nades = []; h.phase = 'arrive'; h.n = 0; h.aims = null;
+  // a DEA agent, feet at (x, y), facing dir: boots, khaki cargo trousers, a navy windbreaker, a black vest with a yellow
+  // DEA panel, a navy ball cap and dark glasses. pose: 'aim' (carbine along angle a), 'throw' (arm back over the head),
+  // 'launcher' (a launcher tube on the shoulder along a), 'stand'. show = how much of them is out (0..1, for the hatch)
+  agent(g, x, y, dir, pose, a = 0, show = 1, skin = 0) {
+    const d = dir, S = [0xe0b090, 0xb07850, 0x7a4e30][skin % 3], H = 46;
+    const cut = y - H * show;                                                                                          // (only the part above the hatch shows)
+    const R = (rx, ry, rw, rh, c) => { const y0 = Math.max(ry, cut), y1 = ry + rh; if (y1 > y0) { g.fillStyle(c, 1); g.fillRect(rx, y0, rw, y1 - y0); } };
+    R(x - 5, y - 4, 5, 4, 0x1a1a1a); R(x + 1, y - 4, 5, 4, 0x1a1a1a);                                                 // boots
+    R(x - 5, y - 18, 5, 14, 0x9a8a5a); R(x + 1, y - 18, 5, 14, 0x8a7a4a);                                             // khaki trousers
+    R(x - 1 - 4 * d, y - 12, 2, 4, 0x7a6a3a);                                                                          // a cargo pocket
+    R(x - 7, y - 36, 14, 19, 0x1a2244);                                                                                // the windbreaker
+    R(x - 6, y - 34, 12, 12, 0x14140e);                                                                                // the vest
+    R(x - 4 + d, y - 31, 9, 5, 0xf0c020);                                                                              // its DEA panel
+    if (y - 30 > cut) { g.fillStyle(0x14140e, 1); for (const [lx, ly] of [[0, 0], [3, 0], [6, 0]]) g.fillRect(x - 3 + d + lx, y - 30 + ly, 2, 3); }   // (the letters, tiny)
+    R(x - 3, y - 39, 6, 3, S);                                                                                         // neck
+    if (y - 46 >= cut - 2) {                                                                                           // the head: face, glasses, cap and brim
+      g.fillStyle(S, 1); g.fillRect(x - 4, y - 45, 9, 7); g.fillStyle(0x0a0a0a, 1); g.fillRect(x - 1 + d * 2, y - 43, 5, 2);
+      g.fillStyle(0x1a2244, 1); g.fillRect(x - 5, y - 48, 10, 4); g.fillRect(x + (d > 0 ? 3 : -8), y - 45, 5, 1);
+      g.fillStyle(0xf0c020, 1); g.fillRect(x - 2, y - 47, 3, 1);
+    }
+    const sx = x + d * 3, sy = y - 33;                                                                                 // the shoulder
+    if (pose === 'throw') { g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx - d * 6, sy - 12); g.fillStyle(S, 1); g.fillCircle(sx - d * 6, sy - 13, 2); return; }
+    if (pose === 'launcher') {
+      const ex = Math.cos(a), ey = Math.sin(a);
+      g.lineStyle(7, 0x2a2a20, 1); g.lineBetween(sx - ex * 16, sy - 4 - ey * 16, sx + ex * 26, sy - 4 + ey * 26);
+      g.lineStyle(5, 0x4a5a32, 1); g.lineBetween(sx - ex * 15, sy - 4 - ey * 15, sx + ex * 25, sy - 4 + ey * 25);
+      g.fillStyle(0x14140e, 1); g.fillCircle(sx + ex * 26, sy - 4 + ey * 26, 3); g.fillRect(sx + ex * 2 - 1, sy - 4 + ey * 2, 3, 6);   // the muzzle, the grip
+      g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + ex * 6, sy - 1 + ey * 6); return;
+    }
+    if (pose === 'aim') {
+      const ex = Math.cos(a), ey = Math.sin(a);
+      g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + ex * 9, sy + ey * 9);                                     // arms out
+      g.lineStyle(3, 0x14140e, 1); g.lineBetween(sx + ex * 2, sy + ey * 2, sx + ex * 22, sy + ey * 22);                 // the carbine
+      g.fillStyle(0x14140e, 1); g.fillRect(sx + ex * 8 - 1, sy + ey * 8 + 1, 3, 4);
+      return;
+    }
+    g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + d * 2, sy + 12);
+  }
+  start_dea(match, h) {
+    h.title = 'DEA - TAKE COVER!';
+    h.x = -760; h.door = 0; h.throwT = [0, 0]; h.volley = 0; h.vt = 0; h.bullets = []; h.nades = []; h.phase = 'arrive'; h.n = 0; h.aims = null;
     sfx('buzz', 0.3, 1.6);
   }
-  step_swat(match, h, out) {
+  step_dea(match, h, out) {
     const g = this.vanG, hz = this.hzG, P = DPAL, roof = this.platforms[0];
-    const targetX = roof.x1 - 40;
+    const targetX = roof.x1 + 4;                                                       // (its nose tucked in right behind the motorhome)
     if (h.phase === 'arrive') {
-      h.x += (targetX - h.x) * 0.06 + 1; if (h.x >= targetX - 1 || h.t > SWAT.arrive) { h.x = targetX; h.phase = 'fire'; h.vt = 0; }
+      h.x += (targetX - h.x) * 0.06 + 1; if (h.x >= targetX - 1 || h.t > DEA.arrive) { h.x = targetX; h.phase = 'fire'; h.vt = 0; }
       if (h.t % 24 === 0) sfx('warn', 0.35, 1.6);                                                             // the siren
     }
-    const gunX = [h.x - 108, h.x - 82], gunY = ROAD.y - 74 - 16;
-    if (h.phase === 'fire') {
+    const vy = ROAD.y - 14, T = vy - VAN.h, dx0 = h.x - VAN.doorX;
+    const agents = [{ x: dx0 + 14, y: vy - 12 }, { x: dx0 + 36, y: vy - 12 }];          // the two agents in the open side door
+    const gunX = agents.map((a) => a.x + 3), gunY = vy - 12 - 33;
+    h.throwT = h.throwT || [0, 0]; h.throwT = h.throwT.map((v) => Math.max(0, v - 1));
+    if (h.phase === 'fire' && (h.door = Math.min(1, (h.door || 0) + 0.04)) >= 1) {        // (the side door slides open first)
       h.vt++;
       const live = match.fighters.filter((f) => f.alive);
       if (h.vt === 1) h.targets = gunX.map((gx, k) => { const f = live[(h.volley + k) % Math.max(1, live.length)]; return f ? { x: f.x, y: f.y - 24 } : { x: 0, y: -30 }; });
-      if (h.vt <= SWAT.aim) {                                                                                 // the laser sights follow their targets
+      if (h.vt <= DEA.aim) {                                                                                 // the laser sights follow their targets
         h.targets.forEach((tg, k) => { const f = live[(h.volley + k) % Math.max(1, live.length)]; if (f) { tg.x += (f.x - tg.x) * 0.15; tg.y += (f.y - 24 - tg.y) * 0.15; } });
         h.targets.forEach((tg, k) => { hz.lineStyle(1, P.red, 0.6 + 0.3 * Math.sin(h.t * 0.8)); hz.lineBetween(gunX[k] + 14, gunY + 4, tg.x, tg.y); hz.fillStyle(P.red, 1); hz.fillCircle(tg.x, tg.y, 2); });
       } else {
-        const st = h.vt - SWAT.aim;
-        if (st % SWAT.gap === 0 && st < SWAT.burst * SWAT.gap) {                                              // a burst down each sight-line
-          h.targets.forEach((tg, k) => { const dx = tg.x - gunX[k], dy = tg.y - gunY, l = Math.hypot(dx, dy) || 1; h.bullets.push({ x: gunX[k] + 14, y: gunY + 4, vx: dx / l * SWAT.bulletSpeed, vy: dy / l * SWAT.bulletSpeed, life: 70, id: h.n++ }); });
+        const st = h.vt - DEA.aim;
+        if (st % DEA.gap === 0 && st < DEA.burst * DEA.gap) {                                              // a burst down each sight-line
+          h.targets.forEach((tg, k) => { const dx = tg.x - gunX[k], dy = tg.y - gunY, l = Math.hypot(dx, dy) || 1; h.bullets.push({ x: gunX[k] + 14, y: gunY + 4, vx: dx / l * DEA.bulletSpeed, vy: dy / l * DEA.bulletSpeed, life: 70, id: h.n++ }); });
           sfx('hit', 0.5, 1.8); match.shake(2, 2);
         }
-        if (st > SWAT.burst * SWAT.gap + 20) {
+        if (st > DEA.burst * DEA.gap + 20) {
           h.volley++; h.vt = 0;
-          if (h.volley === 1 || h.volley === SWAT.volleys) for (let i = 0; i < SWAT.grenades / 2 + (h.volley === SWAT.volleys ? 1 : 0); i++) {   // a grenade (or two) lobbed onto the roof
-            const tx = roof.x1 + 30 + Math.random() * (roof.x2 - roof.x1 - 60), gx = gunX[i % 2] + 10, T = 46;
-            h.nades.push({ x: gx, y: gunY, vx: (tx - gx) / T, vy: -7, fuse: SWAT.fuse, id: h.n++, boom: -1 }); sfx('swing', 0.5, 0.8);
+          if (h.volley === 1 || h.volley === DEA.volleys) for (let i = 0; i < DEA.grenades / 2 + (h.volley === DEA.volleys ? 1 : 0); i++) {   // a grenade (or two) lobbed onto the roof
+            const tx = roof.x1 + 30 + Math.random() * (roof.x2 - roof.x1 - 60), gx = gunX[i % 2] + 4, Tn = 46;
+            h.nades.push({ x: gx, y: gunY - 10, vx: (tx - gx) / Tn, vy: -7, fuse: DEA.fuse, id: h.n++, boom: -1 }); h.throwT[i % 2] = 16; sfx('swing', 0.5, 0.8);
           }
-          if (h.volley >= SWAT.volleys) { h.phase = 'rocket'; h.rt = 0; }
+          if (h.volley >= DEA.volleys) { h.phase = 'rocket'; h.rt = 0; }
         }
       }
     }
     if (h.phase === 'rocket') {                                                         // the launcher: aim... aim... FIRE
       h.rt++;
-      const live = match.fighters.filter((f) => f.alive), gx = gunX[0] + 4, gy = gunY - 2;
+      const live = match.fighters.filter((f) => f.alive), gx = h.x - VAN.hatch + 3, gy = T - 37;   // (the third agent, up through the roof hatch)
       if (h.rt === 1) { const f = live[Math.floor(Math.random() * live.length)]; h.rtarget = f || null; h.raim = f ? { x: f.x, y: f.y - 24 } : { x: 0, y: -24 }; sfx('clang', 0.4, 0.6); }
       if (h.rt <= ROCKET.aim) {
         if (h.rtarget && h.rtarget.alive && h.rt < ROCKET.aim - 15) { h.raim.x += (h.rtarget.x - h.raim.x) * 0.1; h.raim.y += (h.rtarget.y - 24 - h.raim.y) * 0.1; }   // (it stops following just before it fires)
         const on = h.rt > ROCKET.aim - 15 ? h.rt % 4 < 2 : true;
-        if (on) { hz.lineStyle(2, P.red, 0.8); hz.lineBetween(gx + 20, gy, h.raim.x, h.raim.y); hz.lineStyle(1, P.red, 1); hz.strokeCircle(h.raim.x, h.raim.y, 6 + (h.rt % 20) * 0.2); }
+        if (on) { hz.lineStyle(2, P.red, 0.8); hz.lineBetween(gx + 26, gy, h.raim.x, h.raim.y); hz.lineStyle(1, P.red, 1); hz.strokeCircle(h.raim.x, h.raim.y, 6 + (h.rt % 20) * 0.2); }
         if (h.rt % 15 === 0) sfx('warn', 0.4, 2);
       }
       if (h.rt === ROCKET.aim) {
         const dx = h.raim.x - gx, dy = h.raim.y - gy, l = Math.hypot(dx, dy) || 1;
-        h.rocket = { x: gx + 20, y: gy, vx: dx / l * ROCKET.speed, vy: dy / l * ROCKET.speed, life: 75, boom: -1 };
+        h.rocket = { x: gx + 26, y: gy, vx: dx / l * ROCKET.speed, vy: dy / l * ROCKET.speed, life: 75, boom: -1 };
         sfx('bighit', 0.8, 1.3); sfx('whoosh', 0.6, 0.6); match.shake(4, 4);
       }
       const R = h.rocket;
@@ -356,17 +397,27 @@ export class DesertStage {
         if (R.boom > 24) h.phase = 'leave';
       }
     }
-    h.aims = h.rocket || h.phase === 'rocket' ? [Math.atan2((h.raim ? h.raim.y : 0) - gunY, (h.raim ? h.raim.x : 0) - gunX[0]), -0.4] : h.targets ? h.targets.map((tg, k) => Math.atan2(tg.y - gunY, tg.x - gunX[k])) : null;
-    const up = h.phase === 'arrive' ? Math.min(1, Math.max(0, (h.t - 50) / 30)) : h.phase === 'leave' ? Math.max(0, 1 - h.lt / 20) : 1;
-    if (h.phase === 'leave') { h.lt = (h.lt || 0) + 1; if (h.lt > 30) h.x -= (h.lt - 30) * 0.4; }
-    this.launcher = h.phase === 'rocket' && !(h.rocket && h.rocket.boom >= 0); this.van(g, h.x, h.t, up, h.aims);
-    out.push({ x1: h.x - 4, x2: h.x + 10, y1: ROAD.y - 40, y2: ROAD.y + 2, dmg: SWAT.ram.dmg, angle: SWAT.ram.angle, base: SWAT.ram.base, growth: SWAT.ram.growth, id: 'ram' + h.id + ':' + Math.floor(h.t / 40), hazard: true, dirX: -1 });
+    if (h.phase === 'leave') { h.lt = (h.lt || 0) + 1; h.door = Math.max(0, (h.door || 0) - 0.05); if (h.lt > 30) h.x -= (h.lt - 30) * 0.4; }
+    // the van, then its agents: two in the side door (aiming their carbines, or throwing), one up through the roof hatch
+    // with the launcher
+    this.van(g, h.x, h.t, h.door || 0);
+    if ((h.door || 0) > 0.6) agents.forEach((a, k) => {
+      const tg = h.targets && h.targets[k], ang = tg ? Math.atan2(tg.y - gunY, tg.x - gunX[k]) : -0.5;
+      this.agent(g, a.x, a.y, 1, h.throwT[k] > 0 ? 'throw' : h.phase === 'fire' ? 'aim' : 'stand', ang, 1, k + 1);
+    });
+    const roofUp = h.phase === 'rocket' ? Math.min(1, h.rt / 25) : h.phase === 'leave' ? Math.max(0, 1 - h.lt / 20) : 0;
+    if (roofUp > 0) {
+      const ang = h.raim ? Math.atan2(h.raim.y - (T - 37), h.raim.x - (h.x - VAN.hatch + 3)) : -0.4;
+      this.agent(g, h.x - VAN.hatch, T, 1, h.rocket && h.rocket.boom >= 0 ? 'stand' : 'launcher', ang, roofUp, 0);
+      g.fillStyle(0x0a0a0c, 1); g.fillRect(h.x - VAN.hatch - 12, T - 2, 24, 3);                         // (the hatch rim, in front of his legs)
+    }
+    out.push({ x1: h.x - 4, x2: h.x + 10, y1: ROAD.y - 40, y2: ROAD.y + 2, dmg: DEA.ram.dmg, angle: DEA.ram.angle, base: DEA.ram.base, growth: DEA.ram.growth, id: 'ram' + h.id + ':' + Math.floor(h.t / 40), hazard: true, dirX: -1 });
     // bullets: little bright tracers
     for (const b of h.bullets) {
       if (b.life <= 0) continue;
       b.x += b.vx; b.y += b.vy; b.life--;
       hz.lineStyle(2, 0xfff0a0, 1); hz.lineBetween(b.x, b.y, b.x - b.vx * 0.6, b.y - b.vy * 0.6);
-      out.push({ x1: b.x - 4, x2: b.x + 4, y1: b.y - 4, y2: b.y + 4, dmg: SWAT.shot.dmg, angle: SWAT.shot.angle, base: SWAT.shot.base, growth: SWAT.shot.growth, id: 'bullet' + h.id + ':' + b.id, hazard: true, dirX: 1 });
+      out.push({ x1: b.x - 4, x2: b.x + 4, y1: b.y - 4, y2: b.y + 4, dmg: DEA.shot.dmg, angle: DEA.shot.angle, base: DEA.shot.base, growth: DEA.shot.growth, id: 'bullet' + h.id + ':' + b.id, hazard: true, dirX: 1 });
       if (b.y > ROAD.y || b.x > 700) b.life = 0;
     }
     // grenades: an arc onto the roof, a bounce, blinking faster and faster - then the blast
@@ -377,8 +428,8 @@ export class DesertStage {
           sfx('bighit', 0.9, 0.6); sfx('thunder', 0.35, 1.5); match.shake(8, 8);
           for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 4; match.particles.push({ x: n.x, y: n.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 22 + Math.random() * 14, color: [0xff8a2a, 0xffe08a, 0xffffff, 0x5a5852][i % 4], size: 2 + (i % 3), grav: 0.1, drag: 0.94 }); }
         }
-        if (n.boom < 14) { hz.fillStyle(0xffe08a, 0.9 * (1 - n.boom / 14)); hz.fillCircle(n.x, n.y - 8, SWAT.radius * 0.6); hz.fillStyle(0xff8a2a, 0.6 * (1 - n.boom / 14)); hz.fillCircle(n.x, n.y - 10, SWAT.radius); }
-        if (n.boom < 5) out.push({ x1: n.x - SWAT.radius, x2: n.x + SWAT.radius, y1: n.y - SWAT.radius * 1.3, y2: n.y + 8, dmg: SWAT.boom.dmg, angle: SWAT.boom.angle, base: SWAT.boom.base, growth: SWAT.boom.growth, id: 'nade' + h.id + ':' + n.id, hazard: true, radial: true });
+        if (n.boom < 14) { hz.fillStyle(0xffe08a, 0.9 * (1 - n.boom / 14)); hz.fillCircle(n.x, n.y - 8, DEA.radius * 0.6); hz.fillStyle(0xff8a2a, 0.6 * (1 - n.boom / 14)); hz.fillCircle(n.x, n.y - 10, DEA.radius); }
+        if (n.boom < 5) out.push({ x1: n.x - DEA.radius, x2: n.x + DEA.radius, y1: n.y - DEA.radius * 1.3, y2: n.y + 8, dmg: DEA.boom.dmg, angle: DEA.boom.angle, base: DEA.boom.base, growth: DEA.boom.growth, id: 'nade' + h.id + ':' + n.id, hazard: true, radial: true });
         continue;
       }
       n.vy += 0.3; n.x += n.vx; n.y += n.vy;
@@ -390,11 +441,11 @@ export class DesertStage {
       hz.fillStyle(0x2a3a1e, 1); hz.fillCircle(n.x, n.y - 4, 4); hz.fillStyle(0x4a5a32, 1); hz.fillCircle(n.x - 1, n.y - 5, 1.5);
       hz.fillStyle(blink ? P.red : 0x5a0a0a, 1); hz.fillRect(n.x - 1, n.y - 10, 2, 2);
     }
-    return h.phase === 'leave' && h.x < -800 && h.nades.every((n) => n.boom > 14) && h.bullets.every((b) => b.life <= 0);
+    return h.phase === 'leave' && h.x < -1000 && h.nades.every((n) => n.boom > 14) && h.bullets.every((b) => b.life <= 0);
   }
 }
 
-// Miniature of DUST RUNNER for the select screen: blue sky, the sun, red mesas, the highway, the white-and-teal motorhome
+// Miniature of DUST RUNNER for the select screen: blue sky, the sun, red mesas, the highway, the cream motorhome with its brown stripes
 export function drawDesertPreview(g, x, y, w, h) {
   const P = DPAL, bh = Math.ceil(h * 0.62 / 7);
   P.sky.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(x, y + i * bh, w, bh); });
@@ -404,7 +455,7 @@ export function drawDesertPreview(g, x, y, w, h) {
   g.fillStyle(P.road, 1); g.fillRect(x, y + h * 0.8, w, h * 0.12); for (let k = 0; k < 6; k++) { g.fillStyle(P.line, 1); g.fillRect(x + k * w / 6, y + h * 0.855, w / 14, 2); }
   const rx = x + w * 0.3, ry = y + h * 0.55, rw = w * 0.4, rh = h * 0.26;
   g.fillStyle(P.outline, 1); g.fillRect(rx - 1, ry - 1, rw + 2, rh + 2); g.fillStyle(P.body, 1); g.fillRect(rx, ry, rw, rh);
-  g.fillStyle(P.stripe, 1); g.fillRect(rx, ry + rh * 0.5, rw, 3); g.fillStyle(P.glass, 1); g.fillRect(rx + rw - 14, ry + 4, 12, 9);
+  g.fillStyle(0xeee6d2, 1); g.fillRect(rx, ry, rw, rh); g.fillStyle(0x8a4a28, 1); g.fillRect(rx, ry + 3, rw, 3); g.fillRect(rx, ry + rh * 0.6, rw, 3); g.fillStyle(0xe8b830, 1); g.fillRect(rx, ry + 6, rw, 1); g.fillRect(rx, ry + rh * 0.6 - 1, rw, 1); g.fillStyle(P.glass, 1); g.fillRect(rx + rw - 14, ry + 4, 12, 9);
   g.fillStyle(P.tyre, 1); g.fillCircle(rx + rw * 0.2, ry + rh, 5); g.fillCircle(rx + rw * 0.8, ry + rh, 5);
   g.fillStyle(P.dust, 0.5); g.fillCircle(rx - 10, ry + rh, 8); g.fillCircle(rx - 24, ry + rh - 4, 10);
 }
