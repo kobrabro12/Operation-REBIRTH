@@ -3,9 +3,12 @@
 // stage (plus the luggage rack at the back and the air-con box). Fall off and you land on the road, which drags you
 // away backwards at highway speed - you get one good jump to make it back up (or a grab at the roof's edge) before
 // you're left behind. Get caught in front of it and the bumper hits you.
-// The only hazard: THE DEA VAN - a big dark-navy van with strobes and DEA on the side pulls up behind; its side door
+// Hazard one: THE DEA VAN - a big dark-navy van with strobes and DEA on the side pulls up behind; its side door
 // slides open and two agents lean out, red laser sights sweep the roof, bursts of gunfire follow, and they lob grenades
 // that bounce and blink before they go off. Last, a third agent climbs up through the roof hatch with a rocket launcher, takes a long aim and fires once (20%). Then it falls back.
+// Hazard two: THE DEA HELICOPTER - it swoops in over the roof, a door gunner sweeps laser sights and fires bursts down,
+// then agents fast-rope onto the roof to fight you hand to hand: riot shields (block from the front, shield bash) and
+// knives (quick slashes). Knock them off the motorhome - they're light - or wait them out (they bail onto the road).
 // Original - no real show, people or vehicles. Locked until the shopkeeper's code HEISENBERG (stage entry `secret`).
 // Music: 'bgm_desert' (tools/audio/desert_music.py).
 import { sfx } from '../audio/sfx.js';
@@ -32,6 +35,15 @@ const DEA = { arrive: 90, volleys: 3, aim: 46, burst: 3, gap: 7, bulletSpeed: 14
   grenades: 2, fuse: 70, radius: 38, boom: { dmg: 13, angle: 70, base: 5.0, growth: 4.4 }, ram: { reach: 30 } };
 // the ROCKET: after the gunfire one officer shoulders a launcher - a long aim with a red sight, then one rocket
 const ROCKET = { aim: 75, speed: 8.5, radius: 44, hit: { dmg: 20, angle: 60, base: 7.0, growth: 5.2 } };
+// THE DEA HELICOPTER: where it hovers (its skids), how long it takes to fly in, the door gunner's volleys (laser sights,
+// then a burst), how many agents fast-rope down (more with 3+ fighters), how long it keeps watch (firing now and then)
+const HELI = { x: 30, y: -102, arrive: 110, volleys: 2, aim: 40, burst: 4, gap: 6, bulletSpeed: 12, shot: { dmg: 3, angle: 60, base: 2.2, growth: 1.2 },
+  troops: 2, troopsCrowd: 3, ropeGap: 34, watch: 600, watchEvery: 200 };
+// the agents it drops: how heavy they are (lighter = easier to knock off), how long they stay before bailing (frames),
+// at most how many on the roof at once, and each kind: walk speed, reach, wind-up, recovery and their hit
+const TROOP = { weight: 0.75, life: 1800, max: 4,
+  knife: { speed: 1.7, range: 26, windup: 10, active: 5, cool: 45, hit: { dmg: 7, angle: 40, base: 3.4, growth: 3.0 } },
+  shield: { speed: 1.0, range: 34, windup: 18, active: 10, cool: 70, lunge: 4.5, hit: { dmg: 9, angle: 35, base: 5.0, growth: 3.4 } } };
 
 export class DesertStage {
   constructor(scene) {
@@ -46,7 +58,8 @@ export class DesertStage {
     this.hazardsOn = true;
     this.music = 'bgm_desert';
     this.t = 0;
-    this.cycle = new HazardCycle(this, ['dea'], { color: '#ff3a3a', stroke: '#06080e', gap: 1000, jitter: 400, first: 700 });   // (it doesn't come round too often)
+    this.troops = []; this.troopId = 0;                                 // the agents the helicopter drops (they outlast it)
+    this.cycle = new HazardCycle(this, ['dea', 'heli'], { color: '#ff3a3a', stroke: '#06080e', gap: 1000, jitter: 400, first: 700 });   // (it doesn't come round too often)
   }
 
   // ---------------------------------------------------------------- drawing
@@ -66,6 +79,8 @@ export class DesertStage {
     this.rvBodyG = s.add.graphics(); this.rvBody(this.rvBodyG); worldLayer.push(this.rvBodyG);   // the motorhome itself (drawn once)
     this.rvG = s.add.graphics(); worldLayer.push(this.rvG);         // its wheels, exhaust, dust (redrawn every tick)
     this.puffs = [];
+    this.heliG = s.add.graphics(); worldLayer.push(this.heliG);     // the DEA helicopter and its rope
+    this.troopG = s.add.graphics(); worldLayer.push(this.troopG);   // the agents it drops
     this.hzG = s.add.graphics(); worldLayer.push(this.hzG);         // bullets, lasers, grenades, blasts
     this.cycle.makeBanner(s);
   }
@@ -212,7 +227,7 @@ export class DesertStage {
     this.t++;
     const t = this.t;
     this.far(this.farG, t); this.mid(this.midG, t); this.road(this.roadG, t); this.rv(this.rvG, t);
-    this.hzG.clear(); this.vanG.clear();
+    this.hzG.clear(); this.vanG.clear(); this.heliG.clear(); this.troopG.clear();
     const road = this.platforms[3], roof = this.platforms[0], out = [];
     for (const f of match.fighters) {
       if (!f.alive) continue;
@@ -222,6 +237,7 @@ export class DesertStage {
       }
       if (f.y > ROAD.y - 40 && f.y <= ROAD.y + 2 && f.x > roof.x2 && f.x < roof.x2 + BUMPER.reach) this.runOver(match, f, roof.x2);   // in front of it: run over
     }
+    this.stepTroops(match, out);
     return this.cycle.run(match, out);
   }
 
@@ -294,7 +310,7 @@ export class DesertStage {
   // a DEA agent, feet at (x, y), facing dir: boots, khaki cargo trousers, a navy windbreaker, a black vest with a yellow
   // DEA panel, a navy ball cap and dark glasses. pose: 'aim' (carbine along angle a), 'throw' (arm back over the head),
   // 'launcher' (a launcher tube on the shoulder along a), 'stand'. show = how much of them is out (0..1, for the hatch)
-  agent(g, x, y, dir, pose, a = 0, show = 1, skin = 0) {
+  agent(g, x, y, dir, pose, a = 0, show = 1, skin = 0, helmet = false) {
     const d = dir, S = [0xe0b090, 0xb07850, 0x7a4e30][skin % 3], H = 46;
     const cut = y - H * show;                                                                                          // (only the part above the hatch shows)
     const R = (rx, ry, rw, rh, c) => { const y0 = Math.max(ry, cut), y1 = ry + rh; if (y1 > y0) { g.fillStyle(c, 1); g.fillRect(rx, y0, rw, y1 - y0); } };
@@ -310,6 +326,10 @@ export class DesertStage {
       g.fillStyle(S, 1); g.fillRect(x - 4, y - 45, 9, 7); g.fillStyle(0x0a0a0a, 1); g.fillRect(x - 1 + d * 2, y - 43, 5, 2);
       g.fillStyle(0x1a2244, 1); g.fillRect(x - 5, y - 48, 10, 4); g.fillRect(x + (d > 0 ? 3 : -8), y - 45, 5, 1);
       g.fillStyle(0xf0c020, 1); g.fillRect(x - 2, y - 47, 3, 1);
+      if (helmet) {                                                                                                    // riot helmet: a black dome and a smoked visor
+        g.fillStyle(0x101216, 1); g.fillRect(x - 6, y - 50, 12, 6); g.fillRect(x - 5, y - 52, 10, 2);
+        g.fillStyle(0x3a4a5a, 0.75); g.fillRect(x - 5 + d, y - 45, 10, 6); g.fillStyle(0xffffff, 0.35); g.fillRect(x - 3 + d * 2, y - 44, 3, 1);
+      }
     }
     const sx = x + d * 3, sy = y - 33;                                                                                 // the shoulder
     if (pose === 'throw') { g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx - d * 6, sy - 12); g.fillStyle(S, 1); g.fillCircle(sx - d * 6, sy - 13, 2); return; }
@@ -327,6 +347,7 @@ export class DesertStage {
       g.fillStyle(0x14140e, 1); g.fillRect(sx + ex * 8 - 1, sy + ey * 8 + 1, 3, 4);
       return;
     }
+    if (pose === 'none') return;
     g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + d * 2, sy + 12);
   }
   start_dea(match, h) {
@@ -451,6 +472,236 @@ export class DesertStage {
       hz.fillStyle(blink ? P.red : 0x5a0a0a, 1); hz.fillRect(n.x - 1, n.y - 10, 2, 2);
     }
     return h.phase === 'leave' && h.x < -1000 && h.nades.every((n) => n.boom > 14) && h.bullets.every((b) => b.life <= 0);
+  }
+
+  // ---------------------------------------------------------------- THE DEA HELICOPTER
+  // a navy utility helicopter, skids at (x, y), nose to the right: a rounded cabin with a big bubble windscreen, an open
+  // side door, a tail boom with DEA along it, a tail fin and spinning tail rotor, the main rotor a flickering blur, a
+  // searchlight under the nose, red / blue strobes. tilt leans it (flying in / away)
+  heli(g, x, y, t, tilt = 0) {
+    const N = { body: 0x161c2e, lit: 0x26304a, dark: 0x0a0e1a, trim: 0x3a4460, glass: 0x0c1018, glassLit: 0x4a5e7a, yellow: 0xf0c020, yellowDark: 0xa07a10 };
+    const O = DPAL.outline, lean = (px) => y + Math.round((px - x) * tilt);    // (a lean: the nose dips when tilt > 0)
+    // skids and their struts
+    g.fillStyle(O, 1); g.fillRect(x - 66, lean(x - 66) - 1, 92, 4); g.fillStyle(0x3a3e46, 1); g.fillRect(x - 64, lean(x - 64), 88, 2);
+    g.fillRect(x + 24, lean(x + 24) - 3, 4, 2);
+    for (const sx of [x - 48, x + 2]) { g.fillStyle(0x2a2e36, 1); g.fillRect(sx, lean(sx) - 8, 3, 8); }
+    // the tail boom (tapering), the fin, the tail rotor spinning
+    const by = lean(x - 60) - 34;
+    g.fillStyle(O, 1); g.fillPoints([{ x: x - 60, y: by - 8 }, { x: x - 146, y: by - 4 + Math.round(-86 * tilt) }, { x: x - 146, y: by + 3 + Math.round(-86 * tilt) }, { x: x - 60, y: by + 10 }], true);
+    g.fillStyle(N.body, 1); g.fillPoints([{ x: x - 60, y: by - 6 }, { x: x - 144, y: by - 3 + Math.round(-86 * tilt) }, { x: x - 144, y: by + 2 + Math.round(-86 * tilt) }, { x: x - 60, y: by + 8 }], true);
+    const ty = by + Math.round(-86 * tilt);
+    g.fillStyle(O, 1); g.fillPoints([{ x: x - 150, y: ty - 22 }, { x: x - 136, y: ty - 2 }, { x: x - 150, y: ty + 4 }], true);
+    g.fillStyle(N.lit, 1); g.fillPoints([{ x: x - 148, y: ty - 18 }, { x: x - 138, y: ty - 2 }, { x: x - 148, y: ty + 2 }], true);
+    const tr = Math.sin(t * 1.9) * 12; g.lineStyle(2, 0x9aa0a8, 0.8); g.lineBetween(x - 152, ty - 8 - tr, x - 152, ty - 8 + tr); g.fillStyle(0x2a2e36, 1); g.fillCircle(x - 152, ty - 8, 2);
+    g.fillStyle(N.yellow, 1); g.fillRect(x - 76, by + 6, 14, 1);
+    const L = { D: ['110', '101', '101', '101', '110'], E: ['111', '100', '110', '100', '111'], A: ['010', '101', '111', '101', '101'] };
+    [...'DEA'].forEach((c, i) => L[c].forEach((row, r) => [...row].forEach((b, k) => { if (b === '1') { const lx = x - 104 + i * 9 + k * 2, ly = by - 4 + r * 2 + Math.round((lx - x + 60) * -tilt); g.fillStyle(N.yellowDark, 1); g.fillRect(lx + 1, ly + 1, 2, 2); g.fillStyle(N.yellow, 1); g.fillRect(lx, ly, 2, 2); } })));
+    // the cabin: a rounded pod, the engine housing on top, exhausts
+    const cy = lean(x) - 6;
+    g.fillStyle(O, 1); g.fillRoundedRect(x - 70, cy - 54, 104, 52, 16); g.fillCircle(x + 26, cy - 24, 24);
+    g.fillStyle(N.body, 1); g.fillRoundedRect(x - 68, cy - 52, 100, 48, 14); g.fillCircle(x + 26, cy - 24, 22);
+    g.fillStyle(N.lit, 1); g.fillRect(x - 60, cy - 50, 80, 3);
+    g.fillStyle(O, 1); g.fillRoundedRect(x - 46, cy - 66, 52, 16, 5); g.fillStyle(N.trim, 1); g.fillRoundedRect(x - 44, cy - 64, 48, 13, 4);
+    for (let k = 0; k < 5; k++) { g.fillStyle(N.dark, 1); g.fillRect(x - 38 + k * 8, cy - 61, 4, 6); }
+    g.fillStyle(0x2a2a2a, 1); g.fillRect(x - 52, cy - 60, 8, 6); if (t % 6 < 3) { g.fillStyle(0x6a6a6a, 0.4); g.fillCircle(x - 58, cy - 58, 4); }
+    // the bubble windscreen (with the pilot's helmet in it), the chin window
+    g.fillStyle(N.glass, 1); g.fillPoints([{ x: x + 2, y: cy - 48 }, { x: x + 30, y: cy - 46 }, { x: x + 46, y: cy - 26 }, { x: x + 40, y: cy - 10 }, { x: x + 2, y: cy - 12 }], true);
+    g.fillStyle(0x101216, 1); g.fillCircle(x + 18, cy - 32, 6); g.fillStyle(0x3a4a5a, 1); g.fillRect(x + 20, cy - 34, 5, 3);
+    g.fillStyle(N.glassLit, 0.8); g.fillTriangle(x + 8, cy - 45, x + 24, cy - 44, x + 8, cy - 34); g.fillStyle(0xffffff, 0.5); g.fillRect(x + 30, cy - 40, 2, 8);
+    g.lineStyle(1, N.trim, 1); g.lineBetween(x + 2, cy - 30, x + 44, cy - 30);
+    // the open side door (dark inside), DEA in yellow under it, a stripe
+    g.fillStyle(0x050608, 1); g.fillRect(x - 46, cy - 50, 38, 46);
+    g.fillStyle(0xfff0c0, 0.18); g.fillRect(x - 45, cy - 49, 36, 2);
+    g.fillStyle(N.body, 1); g.fillRect(x - 64, cy - 46, 16, 38); g.fillStyle(N.trim, 1); g.fillRect(x - 64, cy - 46, 16, 1); g.fillRect(x - 50, cy - 30, 2, 4);   // (the door, slid back)
+    g.fillStyle(N.yellow, 1); g.fillRect(x - 68, cy - 9, 100, 2);
+    // the searchlight under the nose, strobes
+    const flash = Math.floor(t / 5) % 2;
+    g.fillStyle(0x2a2a2a, 1); g.fillRect(x + 22, cy - 4, 8, 5); g.fillStyle(0xfff8d8, 1); g.fillRect(x + 28, cy - 3, 3, 3);
+    g.fillStyle(flash ? DPAL.red : DPAL.blue, 1); g.fillRect(x - 70, cy - 40, 2, 3); g.fillStyle(flash ? DPAL.red : DPAL.blue, 0.2); g.fillCircle(x - 70, cy - 39, 8);
+    g.fillStyle(flash ? DPAL.blue : DPAL.red, 1); g.fillRect(x - 4, cy - 70, 3, 3);
+    // the mast and the main rotor: two blades whipping round, drawn as a flicker and a pale disc
+    g.fillStyle(0x2a2e36, 1); g.fillRect(x - 22, cy - 76, 4, 10); g.fillRect(x - 26, cy - 78, 12, 3);
+    g.fillStyle(0xc0c8d0, 0.12); g.fillEllipse(x - 20, cy - 78, 200, 8);
+    const b = Math.cos(t * 1.3), l = 96 * Math.abs(b) + 10;
+    g.lineStyle(2, 0x2a2e36, 0.9); g.lineBetween(x - 20 - l, cy - 78 - b, x - 20 + l, cy - 78 + b);
+    g.lineStyle(1, 0x5a5e66, 0.5); g.lineBetween(x - 20 - (106 - l), cy - 77, x - 20 + (106 - l), cy - 79);
+  }
+
+  start_heli(match, h) {
+    h.title = 'DEA AIR SUPPORT!';
+    h.x = -520; h.y = -280; h.phase = 'arrive'; h.volley = 0; h.vt = 0; h.bullets = []; h.n = 0; h.rope = 0; h.dropped = 0; h.wt = 0; h.tilt = 0.12;
+    const crowd = match.fighters.filter((f) => !f.eliminated).length >= 3;
+    h.toDrop = Math.max(0, Math.min(crowd ? HELI.troopsCrowd : HELI.troops, TROOP.max - this.troops.length));
+    sfx('buzz', 0.3, 0.8);
+  }
+  step_heli(match, h, out) {
+    const g = this.heliG, hz = this.hzG, P = DPAL, roof = this.platforms[0];
+    const live = match.fighters.filter((f) => f.alive && f.state !== 'respawn');
+    if (h.t % 7 === 0) sfx('whoosh', 0.12, 2.2);                                                           // the rotor chop
+    const hoverX = HELI.x + Math.sin(h.t * 0.02) * 16, hoverY = HELI.y + Math.sin(h.t * 0.05) * 3;          // (it drifts as it hovers)
+    if (h.phase === 'arrive') {
+      h.x += (hoverX - h.x) * 0.05 + 1.5; h.y += (hoverY - h.y) * 0.05; h.tilt = Math.max(0, h.tilt - 0.001);
+      if (h.t >= HELI.arrive) { h.phase = 'fire'; h.vt = 0; }
+    } else if (h.phase !== 'leave') { h.x += (hoverX - h.x) * 0.1; h.y += (hoverY - h.y) * 0.1; h.tilt *= 0.9; }
+    const gunX = h.x - 24, gunY = h.y - 4 - 33;                                                           // the door gunner's carbine (he sits in the door, legs out)
+    // a volley: the laser sight follows someone, then a burst down it
+    const volley = () => {
+      h.vt++;
+      if (h.vt === 1) { const f = live[(h.volley) % Math.max(1, live.length)]; h.tg = f || null; h.aim = f ? { x: f.x, y: f.y - 24 } : { x: 0, y: -24 }; }
+      if (h.vt <= HELI.aim) {
+        if (h.tg && h.tg.alive) { h.aim.x += (h.tg.x - h.aim.x) * 0.15; h.aim.y += (h.tg.y - 24 - h.aim.y) * 0.15; }
+        hz.lineStyle(1, P.red, 0.6 + 0.3 * Math.sin(h.t * 0.8)); hz.lineBetween(gunX + 10, gunY + 6, h.aim.x, h.aim.y); hz.fillStyle(P.red, 1); hz.fillCircle(h.aim.x, h.aim.y, 2);
+        return false;
+      }
+      const st = h.vt - HELI.aim;
+      if (st % HELI.gap === 0 && st < HELI.burst * HELI.gap) {
+        const dx = h.aim.x - gunX, dy = h.aim.y - gunY, l = Math.hypot(dx, dy) || 1, sp = (Math.random() - 0.5) * 0.08;
+        h.bullets.push({ x: gunX + 10, y: gunY + 6, vx: (dx / l + sp) * HELI.bulletSpeed, vy: dy / l * HELI.bulletSpeed, life: 60, id: h.n++ });
+        sfx('hit', 0.45, 1.9); match.shake(1, 2);
+      }
+      if (st > HELI.burst * HELI.gap + 16) { h.volley++; h.vt = 0; return true; }
+      return false;
+    };
+    if (h.phase === 'fire' && volley() && h.volley >= HELI.volleys) { h.phase = h.toDrop > 0 ? 'rope' : 'watch'; h.rt = 0; }
+    // the fast-rope: the rope drops to the roof, the agents slide down it one after another
+    const ropeX = h.x - 20, ropeTop = h.y - 6;
+    if (h.phase === 'rope') {
+      h.rt++; h.rope = Math.min(1, h.rope + 0.05);
+      if (h.rope >= 1 && h.rt % HELI.ropeGap === 0 && h.dropped < h.toDrop) {
+        const kinds = ['shield', 'knife']; const kind = h.dropped < 2 ? kinds[(h.dropped + h.id) % 2] : kinds[Math.floor(Math.random() * 2)];
+        this.troops.push({ uid: ++this.troopId, kind, x: ropeX, y: ropeTop + 10, vx: 0, vy: 2.5, state: 'rope', t: 0, pct: 0, facing: 1, stun: 0, cool: 30, seen: new Set(), life: TROOP.life, on: null, atk: 0, skin: (this.troopId % 3) });
+        h.dropped++; sfx('swing', 0.4, 0.6);
+      }
+      if (h.dropped >= h.toDrop && h.rt > HELI.ropeGap * h.toDrop + 50) h.phase = 'watch';
+    }
+    if (h.phase !== 'rope') h.rope = Math.max(0, h.rope - 0.04);
+    if (h.phase === 'watch') {                                                                             // keeps watch, firing now and then
+      h.wt++;
+      if (h.wt % HELI.watchEvery > HELI.watchEvery - HELI.aim - HELI.burst * HELI.gap - 10) volley(); else h.vt = 0;
+      if (h.wt > HELI.watch || (h.wt > 120 && this.troops.length === 0)) { h.phase = 'leave'; h.lt = 0; }
+    }
+    if (h.phase === 'leave') { h.lt++; h.tilt = Math.min(0.14, h.tilt + 0.004); h.x += Math.min(9, h.lt * 0.12); h.y -= Math.min(3, h.lt * 0.04); }
+    // the rope, the helicopter, the gunner in the door (aiming, or sat with his carbine)
+    if (h.rope > 0) { const len = (roof.y - ropeTop) * h.rope; g.lineStyle(2, 0x2a2016, 1); g.lineBetween(ropeX, ropeTop, ropeX + Math.sin(h.t * 0.1) * 2, ropeTop + len); }
+    const aimA = h.aim ? Math.atan2(h.aim.y - gunY, h.aim.x - gunX) : 0.6;
+    this.heli(g, h.x, h.y, h.t, h.tilt);
+    this.agent(g, h.x - 27, h.y - 4 + Math.round(-27 * h.tilt), 1, (h.phase === 'fire' || h.vt > 0) ? 'aim' : 'stand', aimA, 1, 2, true);
+    // rotor wash: dust whipped off the roof under it
+    if (h.phase !== 'arrive' && h.phase !== 'leave' && h.t % 3 === 0) match.particles.push({ x: h.x - 20 + (Math.random() - 0.5) * 120, y: roof.y - 2, vx: (Math.random() - 0.5) * 4, vy: -0.5 - Math.random(), life: 18, color: P.dust, size: 2, grav: 0.02 });
+    for (const b of h.bullets) {
+      if (b.life <= 0) continue;
+      b.x += b.vx; b.y += b.vy; b.life--;
+      hz.lineStyle(2, 0xfff0a0, 1); hz.lineBetween(b.x, b.y, b.x - b.vx * 0.6, b.y - b.vy * 0.6);
+      out.push({ x1: b.x - 4, x2: b.x + 4, y1: b.y - 4, y2: b.y + 4, dmg: HELI.shot.dmg, angle: HELI.shot.angle, base: HELI.shot.base, growth: HELI.shot.growth, id: 'hbullet' + h.id + ':' + b.id, hazard: true, dirX: Math.sign(b.vx) || 1 });
+      const p = this.platforms.slice(0, 3).find((q) => b.x >= q.x1 && b.x <= q.x2 && b.y >= q.y && b.y < q.y + 10);
+      if (p) { b.life = 0; match.particles.push({ x: b.x, y: p.y, vx: 0, vy: -1, life: 10, color: 0xfff0a0, size: 2, grav: 0.1 }); }
+      if (b.y > ROAD.y) b.life = 0;
+    }
+    return h.phase === 'leave' && h.x > 760 && h.bullets.every((b) => b.life <= 0);
+  }
+
+  // ---------------------------------------------------------------- the agents on the roof
+  // They walk at the nearest fighter and attack: SHIELD agents hold a riot shield in front (hits from the front just
+  // clang off - get behind them, or above) and shield-bash; KNIFE agents are quick and slash. Your attacks knock them
+  // about like a fighter (they build up %): knock them off the motorhome and the road takes them. After a while they
+  // bail off the back anyway.
+  stepTroops(match, out) {
+    const g = this.troopG, plats = this.platforms, roof = plats[0];
+    const live = match.fighters.filter((f) => f.alive && f.state !== 'respawn');
+    for (const tr of this.troops) {
+      tr.t++; const K = TROOP[tr.kind];
+      const prevY = tr.y;
+      if (tr.state === 'rope') {                                                                            // sliding down the rope
+        tr.y += tr.vy; tr.vy = Math.min(5, tr.vy + 0.15);
+        if (tr.y >= roof.y && tr.x >= roof.x1 && tr.x <= roof.x2) { tr.y = roof.y; tr.on = roof; tr.state = 'walk'; tr.vy = 0; sfx('land', 0.4); }
+      } else {
+        if (--tr.life <= 0 && tr.state !== 'bail' && tr.state !== 'hit') { tr.state = 'bail'; tr.vx = -(tr.x - roof.x1 + 24) / 32; tr.vy = -7; tr.on = null; }   // done: off the back
+        if (!tr.on) { tr.vy = Math.min(7, tr.vy + 0.42); }
+        if (tr.state === 'hit') { tr.vx *= tr.on ? 0.8 : 0.97; if (--tr.stun <= 0) { tr.state = 'walk'; tr.atk = 0; } }
+        const tg = live.reduce((a, f) => (!a || Math.abs(f.x - tr.x) + Math.abs(f.y - tr.y) < Math.abs(a.x - tr.x) + Math.abs(a.y - tr.y) ? f : a), null);
+        if (tr.state === 'walk' && tr.on) {
+          tr.cool = Math.max(0, tr.cool - 1);
+          if (tg) {
+            const dx = tg.x - tr.x, dy = tg.y - tr.y;
+            tr.facing = Math.sign(dx) || tr.facing;
+            if (Math.abs(dx) > K.range - 4) tr.vx = tr.facing * K.speed; else tr.vx = 0;
+            if (tr.kind === 'knife' && dy < -30 && Math.abs(dx) < 50 && tr.cool === 0) { tr.vy = -8.5; tr.on = null; tr.cool = 20; }   // (knife agents hop up after you)
+            if (Math.abs(dx) <= K.range && Math.abs(dy) < 40 && tr.cool === 0) { tr.state = 'windup'; tr.atk = 0; tr.vx = 0; }
+          } else tr.vx = 0;
+        }
+        if (tr.state === 'windup' && ++tr.atk >= K.windup) { tr.state = 'strike'; tr.atk = 0; tr.swing = (tr.swing || 0) + 1; sfx('swing', 0.5, tr.kind === 'knife' ? 1.6 : 0.7); if (tr.kind === 'shield') tr.vx = tr.facing * K.lunge; }
+        if (tr.state === 'strike') {
+          tr.atk++;
+          const reach = tr.kind === 'knife' ? 26 : 22;
+          out.push({ x1: tr.facing > 0 ? tr.x + 2 : tr.x - 2 - reach, x2: tr.facing > 0 ? tr.x + 2 + reach : tr.x - 2, y1: tr.y - 44, y2: tr.y - 6, dmg: K.hit.dmg, angle: K.hit.angle, base: K.hit.base, growth: K.hit.growth, id: 'troop' + tr.uid + ':' + tr.swing, hazard: true, dirX: tr.facing });
+          if (tr.kind === 'shield') tr.vx *= 0.85;
+          if (tr.atk >= K.active) { tr.state = 'walk'; tr.cool = K.cool; tr.vx = 0; }
+        }
+        if (tr.state === 'walk' && tr.on && !tr.on.road && (tr.x + tr.vx < tr.on.x1 + 4 || tr.x + tr.vx > tr.on.x2 - 4)) tr.vx = 0;   // (they don't walk off the edge)
+        tr.x += tr.vx; tr.y += tr.vy;
+        if (tr.on && tr.on.road) tr.x -= ROAD.drag;                                                         // on the road: dragged away
+        if (tr.on && (tr.x < tr.on.x1 || tr.x > tr.on.x2)) tr.on = null;                                    // walked off an edge
+        if (!tr.on && tr.vy >= 0 && tr.state !== 'bail') {                                                   // landing
+          const p = plats.find((q) => tr.x >= q.x1 && tr.x <= q.x2 && prevY <= q.y + 1 && tr.y >= q.y);
+          if (p) { tr.y = p.y; tr.vy = 0; tr.on = p; if (tr.state === 'hit' && tr.stun < 4) tr.state = 'walk'; }
+        }
+        if (tr.state === 'bail' && tr.y >= ROAD.y) { tr.y = ROAD.y; tr.vy = 0; tr.on = plats[3]; tr.state = 'walk'; tr.life = 99999; }
+        if (!tr.on && tr.y > roof.y + 2 && tr.y < roof.bottom && tr.x > roof.x1 && tr.x < roof.x2)          // the motorhome's side is a wall
+          tr.x = tr.x < (roof.x1 + roof.x2) / 2 ? roof.x1 - 1 : roof.x2 + 1;
+        if (tr.on && tr.on.road && tr.x > roof.x2 && tr.x < roof.x2 + BUMPER.reach) { this.troopGone(match, tr, true); continue; }   // run over
+      }
+      if (tr.x < -620 || tr.x > 620 || tr.y > 330 || tr.y < -420) { this.troopGone(match, tr, false); continue; }
+      this.drawTroop(g, tr);
+    }
+    this.troops = this.troops.filter((tr) => !tr.gone);
+  }
+  troopGone(match, tr, crash) {
+    tr.gone = true;
+    if (crash) { sfx('bighit', 0.8, 0.6); match.shake(6, 6); for (let i = 0; i < 14; i++) match.particles.push({ x: tr.x, y: tr.y - 10, vx: -2 - Math.random() * 5, vy: -1 - Math.random() * 3, life: 22, color: i % 2 ? DPAL.dust : 0x1a2244, size: 3, grav: 0.2 }); }
+    else sfx('ko', 0.35, 1.4);
+  }
+  // MatchScene hands over every attack each tick: the agents can be hit (a riot shield turns away hits from the front)
+  strikeTargets(match, hbs) {
+    for (const tr of this.troops) {
+      if (tr.state === 'rope' || tr.gone) continue;
+      const b = { x1: tr.x - 8, x2: tr.x + 8, y1: tr.y - 46, y2: tr.y };
+      for (const hb of hbs) {
+        if (tr.seen.has(hb.id) || !(hb.x1 < b.x2 && hb.x2 > b.x1 && hb.y1 < b.y2 && hb.y2 > b.y1)) continue;
+        tr.seen.add(hb.id);
+        const H = hb.h || {}, srcX = hb.owner ? hb.owner.x : (hb.x1 + hb.x2) / 2;
+        if (tr.kind === 'shield' && tr.state !== 'hit' && (srcX - tr.x) * tr.facing > 0 && (!hb.owner || hb.owner.y > tr.y - 40)) {   // blocked by the riot shield
+          sfx('clang', 0.6, 1.2); tr.vx = -tr.facing * 1.5; match.puff(tr.x + tr.facing * 10, tr.y - 24, 0xc8d0d8, 4); continue;
+        }
+        const dmg = H.dmg || 5; tr.pct += dmg;
+        const kb = ((H.base || 3) + (H.growth || 2) * tr.pct / 100) / TROOP.weight;
+        const dir = H.radial ? (Math.sign(tr.x - srcX) || 1) : (hb.facing || Math.sign(tr.x - srcX) || 1), a = (H.angle || 45) * Math.PI / 180;
+        tr.vx = Math.cos(a) * kb * dir; tr.vy = Math.min(-2, -Math.sin(a) * kb); tr.on = null;
+        tr.state = 'hit'; tr.stun = Math.max(10, Math.floor(kb * 4)); tr.flash = 6;
+        sfx('hit', 0.6, 1.1); match.puff(tr.x, tr.y - 24, 0xffffff, 5);
+      }
+      if (tr.seen.size > 300) tr.seen.clear();
+    }
+  }
+  // an agent: the DEA agent drawing in a riot helmet, plus a riot shield or a knife
+  drawTroop(g, tr) {
+    const d = tr.facing, x = Math.round(tr.x), y = Math.round(tr.y) - (tr.on && tr.state === 'walk' && tr.vx !== 0 && tr.t % 16 < 8 ? 1 : 0);
+    const flash = tr.flash > 0 && tr.flash-- % 2 === 0;
+    if (tr.kind === 'knife') {
+      this.agent(g, x, y, d, 'none', 0, 1, tr.skin, true);
+      const sx = x + d * 3, sy = y - 33;
+      if (tr.state === 'windup') { g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx - d * 6, sy - 10); g.lineStyle(2, 0xd8dce0, 1); g.lineBetween(sx - d * 6, sy - 11, sx - d * 2, sy - 18); if (tr.atk % 4 < 2) { g.fillStyle(0xffffff, 1); g.fillRect(sx - d * 2 - 1, sy - 19, 2, 2); } }
+      else if (tr.state === 'strike') { g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + d * 12, sy + 2); g.lineStyle(2, 0xd8dce0, 1); g.lineBetween(sx + d * 12, sy + 2, sx + d * 21, sy + 3); g.lineStyle(1, 0xffffff, 0.6); g.beginPath(); g.arc(x + d * 6, sy, 22, d > 0 ? -1.0 : Math.PI - 0.6, d > 0 ? 0.6 : Math.PI + 1.0); g.strokePath(); }
+      else { g.lineStyle(3, 0x1a2244, 1); g.lineBetween(sx, sy, sx + d * 6, sy + 8); g.lineStyle(2, 0xd8dce0, 1); g.lineBetween(sx + d * 6, sy + 8, sx + d * 12, sy + 4); }
+    } else {
+      this.agent(g, x, y, d, 'none', 0, 1, tr.skin, true);
+      const push = tr.state === 'strike' ? 5 : tr.state === 'windup' ? -2 : 0, fx = x + d * (8 + push);
+      g.lineStyle(3, 0x1a2244, 1); g.lineBetween(x + d * 3, y - 33, fx, y - 28);
+      g.fillStyle(DPAL.outline, 1); g.fillRect(fx - 3, y - 47, 6, 44);
+      g.fillStyle(0x2a3a4e, 0.85); g.fillRect(fx - 2, y - 46, 4, 42); g.fillStyle(0x8aa0b8, 0.7); g.fillRect(fx - 2, y - 42, 4, 8);   // the viewport
+      g.fillStyle(0xf0c020, 1); g.fillRect(fx - 2, y - 22, 4, 2);
+    }
+    if (flash) { g.fillStyle(0xffffff, 0.6); g.fillRect(x - 7, y - 50, 14, 50); }
+    if (tr.life < 120 && tr.life % 20 < 10 && tr.state !== 'bail') { g.fillStyle(0xf0c020, 1); g.fillRect(x - 1, y - 60, 2, 5); g.fillRect(x - 1, y - 53, 2, 2); }   // (about to bail)
   }
 }
 
