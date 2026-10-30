@@ -13,6 +13,7 @@ import { FracturedStage, drawFracturedPreview } from './fracturedStage.js';
 import { MaskedStage, drawMaskedPreview } from './maskedStage.js';
 import { StalingradStage, drawStalingradPreview } from './stalingradStage.js';
 import { WillowStage, drawWillowPreview } from './willowStage.js';
+import { DesertStage, drawDesertPreview } from './desertStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -98,6 +99,13 @@ export const STAGES = [
     hazard: 'THE CALL, BEHIND YOU AND THE STALK:\nA MASKED KILLER WHO CAN\'T BE STOPPED.',
     preview: drawWillowPreview,
   },
+  {
+    // locked until you type the shopkeeper's code HEISENBERG (`secret`); you fight on the roof of a speeding motorhome
+    id: 'dust-runner', music: 'bgm_desert', name: 'DUST RUNNER', available: true, secret: 'HEISENBERG', make: (scene) => new DesertStage(scene),
+    blurb: ['On the roof of a motorhome doing ninety', 'across the desert. Fall off and the road takes you.'],
+    hazard: 'THE SWAT VAN: LASER SIGHTS, GUNFIRE\nAND GRENADES. THE ROAD DRAGS YOU AWAY.',
+    preview: drawDesertPreview,
+  },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
@@ -116,7 +124,7 @@ export function trackList(owned = []) {
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-export const STAGE_SLOTS = 14;  // tiles on the select grid (2 across, 7 down); the last one is Random
+export const STAGE_SLOTS = 16;  // tiles on the select grid (2 across, 8 down); the last one is Random
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

@@ -101,9 +101,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('shop_crown', 'assets/shop/crown.png');
     // the code PAPERSPLEASE (tools/sprites/soviet_art.py): the OUR VICTORY poster, the VODKA bottle (unlocks STALINGRAD), the nesting dolls
     this.load.image('shop_poster', 'assets/shop/poster.png');
-    this.load.image('shop_vodka', 'assets/shop/vodka.png');
     this.load.image('shop_flag_emblem', 'assets/shop/flag_emblem.png');
     this.load.spritesheet('shop_dolls', 'assets/shop/dolls.png', { frameWidth: 40, frameHeight: 56 });   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
+    this.load.audio('bgm_desert', ['assets/audio/music/desert.ogg', 'assets/audio/music/desert.mp3']);   // DUST RUNNER's music (tools/audio/desert_music.py)
     this.load.audio('bgm_slasher', ['assets/audio/music/slasher.ogg', 'assets/audio/music/slasher.mp3']);   // 13 WILLOW LANE's music (tools/audio/slasher_music.py)
     this.load.audio('bgm_fractured', ['assets/audio/music/fractured.ogg', 'assets/audio/music/fractured.mp3']);   // FRACTURED's music (tools/audio/fractured_music.py)
     this.load.spritesheet('shop_rtd', 'assets/shop/rtd_scream.png', { frameWidth: 68, frameHeight: 68 });   // the shop's RTD secret: Rosemary screaming (tools/sprites/rosemary_scream.py)

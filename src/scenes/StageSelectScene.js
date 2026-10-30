@@ -18,7 +18,7 @@ import { ArcadeBg, titleBanner, hintBar, slant, ARC, shade } from '../ui/arcade.
 const ACC = ARC.sections.stage;
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
-const COLS = 2, TILE_W = 118, TILE_H = 38, GAP = 4;   // 7 rows of 2 fit between the title bar and the help line
+const COLS = 2, TILE_W = 118, TILE_H = 33, GAP = 4;   // 8 rows of 2 fit between the title bar and the help line
 const GRID_X = 386, GRID_Y = 36;
 const TRACK_Y = 336;                                  // the TRACK row, under the stage's description
 const ARROWS = [PREV.x + 56, PREV.x + 256];             // the < and > of the TRACK row
@@ -174,6 +174,6 @@ export class StageSelectScene extends Phaser.Scene {
     this.name.setText(st.id === 'random' ? 'RANDOM' : st.available ? st.name : '???  COMING SOON');
     this.blurb.setText(st.blurb ? st.blurb.join('\n') : st.id === 'random' ? 'Picks one of the unlocked stages\nfor you when the match starts.' : 'This stage is still being built.');
     const key = st.shop && SHOP.flatMap((t) => t.items).find((it) => it.id === st.shop);
-    this.hazard.setText(stageLocked(st) && st.secret ? 'LOCKED: THE SHOPKEEPER KNOWS THE HOUSE NUMBER.\n(RING HIS BELL THREE TIMES)' : stageLocked(st) ? 'LOCKED: BUY THE ' + (key ? key.name : 'KEY') + ' IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
+    this.hazard.setText(stageLocked(st) && st.secret ? (st.id === 'willow-lane' ? 'LOCKED: THE SHOPKEEPER KNOWS THE HOUSE NUMBER.' : 'LOCKED: THE SHOPKEEPER KNOWS A NAME.') + '\n(RING HIS BELL THREE TIMES)' : stageLocked(st) ? 'LOCKED: BUY THE ' + (key ? key.name : 'KEY') + ' IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
   }
 }

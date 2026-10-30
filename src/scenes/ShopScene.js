@@ -65,6 +65,8 @@ const SECRETS = {
   // the house number: unlocks 13 WILLOW LANE (stages.js `secret: '13'` - found codes are saved). His screen goes dark, the
   // phone rings, a cracked doll's face looks out of it for a moment (`call`)
   13: { call: true, stage: '13 WILLOW LANE', line: 'thirteen' },
+  // unlocks DUST RUNNER (stages.js `secret: 'HEISENBERG'`): his screen shows a desert highway, a motorhome speeding along it
+  HEISENBERG: { call: 'desert', stage: 'DUST RUNNER', line: 'desert' },
 };
 // RIPHOOD: the shop's colours while it's a supply depot (khaki trim, olive shelves), his screen's amber glow, and how
 // often the far-off guns shake the tent (frames, random between)
@@ -124,7 +126,7 @@ export class ShopScene extends Phaser.Scene {
   create() {
     this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
     this.riphood = this.soviet = false; this.mode = null; unreveal('riphood'); unreveal('papers');   // ...and so do RIPHOOD and PAPERSPLEASE
-    this.call = 0;
+    this.call = 0; this.callKind = null;
     this.acc = ACC; this.pal = PAL; this.banner2 = null;
     this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P');
@@ -427,6 +429,13 @@ export class ShopScene extends Phaser.Scene {
   // 13: the lights in his screen go out, a phone rings, and a doll's face looks out at you - then a new stage is open
   takeCall(S) {
     this.stopPlaying(true);
+    this.callKind = S.call === 'desert' ? 'desert' : 'call';
+    if (this.callKind === 'desert') {                                                     // HEISENBERG: the open road on his screen, an engine revving
+      this.call = 170; this.static = 20; this.jolt = 12; sfx('rumble', 0.6, 0.7); this.time.delayedCall(600, () => sfx('whoosh', 0.5, 0.6));
+      this.react('stare', S.line, 220);
+      this.time.delayedCall(2600, () => { this.react('smug', 'desert2', 160); this.say('NEW STAGE UNLOCKED: ' + S.stage + '! PICK IT ON THE STAGE SELECT SCREEN.', '#ffc860'); });
+      return;
+    }
     this.call = 150; this.static = 20; this.jolt = 12; sfx('phone', 0.6); this.time.delayedCall(1150, () => sfx('phone', 0.6));
     this.react('stare', S.line, 220);
     this.time.delayedCall(2600, () => { this.react('shock', 'thirteen2', 160); sfx('scream', 0.25, 0.9); this.cameras.main.shake(250, 0.006); this.say('NEW STAGE UNLOCKED: ' + S.stage + '! PICK IT ON THE STAGE SELECT SCREEN.', '#ff5a6a'); });
@@ -742,7 +751,20 @@ export class ShopScene extends Phaser.Scene {
     f.fillStyle(0xffffff, 0.06); f.fillEllipse(tx - 18, hy - 20, 32, 12);                                          // the glass
     if (this.playing && !this.secret) { this.faceImg.setVisible(false); this.vidImg.setVisible(true).setPosition(tx - 4, hy); this.drawPlaying(t); }
     if (this.secret) this.drawSecret(f, tx - 4, hy, t);
-    if (this.call > 0) {                                                                                       // 13: his screen goes black; a doll's face looks out; a red 13
+    if (this.call > 0 && this.callKind === 'desert') {                                                         // HEISENBERG: a desert highway at noon, a motorhome tearing along it
+      this.call--; this.faceImg.setVisible(false);
+      const cx = tx - 4, x0 = cx - 36, y0 = hy - 32, k = this.call;
+      for (let i = 0; i < 6; i++) { f.fillStyle([0x3a6ab8, 0x4a7cc4, 0x6a98cc, 0x96b8d4, 0xc4c8c0, 0xe8c898][i], 1); f.fillRect(x0, y0 + i * 6, 72, 6); }
+      f.fillStyle(0xfff2c8, 1); f.fillCircle(cx + 22, y0 + 8, 4);
+      const o = (t * 0.3) % 72; f.fillStyle(0xb8643a, 1); for (const mx of [0, 40, 72]) f.fillRect(x0 + ((mx - o + 144) % 144) - 20, y0 + 24, 18, 12);
+      f.fillStyle(0xe0b078, 1); f.fillRect(x0, y0 + 36, 72, 28); f.fillStyle(0x3a3836, 1); f.fillRect(x0, y0 + 46, 72, 10);
+      for (let d = 0; d < 5; d++) { f.fillStyle(0xf0d050, 1); f.fillRect(x0 + ((d * 18 - t * 2) % 90 + 90) % 90 - 9, y0 + 50, 8, 1); }
+      const rx = cx - 16 + Math.sin(t * 0.3) * 0.5 + (k > 140 ? (k - 140) * 2 : 0);
+      f.fillStyle(0x0e0c0c, 1); f.fillRect(rx - 1, y0 + 33, 32, 15); f.fillStyle(0xe8ecec, 1); f.fillRect(rx, y0 + 34, 30, 13);
+      f.fillStyle(0x3a8aa8, 1); f.fillRect(rx, y0 + 41, 30, 2); f.fillStyle(0x2a3a4a, 1); f.fillRect(rx + 23, y0 + 36, 6, 4); f.fillRect(rx + 4, y0 + 36, 5, 3); f.fillRect(rx + 12, y0 + 36, 5, 3);
+      f.fillStyle(0x161616, 1); f.fillCircle(rx + 6, y0 + 48, 2.5); f.fillCircle(rx + 24, y0 + 48, 2.5);
+      for (let i = 0; i < 3; i++) { f.fillStyle(0xd8b888, 0.5 - i * 0.12); f.fillCircle(rx - 4 - i * 6, y0 + 46 - i, 3 + i); }
+    } else if (this.call > 0) {                                                                                // 13: his screen goes black; a doll's face looks out; a red 13
       this.call--; this.faceImg.setVisible(false);
       const cx = tx - 4, k = this.call;
       f.fillStyle(0x020204, 1); f.fillRect(cx - 36, hy - 32, 72, 64);

@@ -74,6 +74,7 @@ export const ACHIEVEMENTS = [
   // hung on the wall of the PEOPLE'S STORE (ShopScene.sovietNook)
   { id: 'our-victory', group: 'SECRETS', secret: true, name: 'OUR VICTORY', info: 'TYPED PAPERSPLEASE. YOUR REWARD: THE WORKERS\' POSTER.', hint: 'YOUR PAPERS, PLEASE.', goal: 1, have: (s) => +s.secrets.includes('PAPERSPLEASE'), coins: 300, poster: 'shop_poster' },
   { id: 'thirteen', group: 'SECRETS', secret: true, name: 'DON\'T ANSWER IT', info: 'TYPED 13. 13 WILLOW LANE IS OPEN.', hint: 'WHAT NUMBER IS THE HOUSE?', goal: 1, have: (s) => +s.secrets.includes('13'), coins: 130 },
+  { id: 'heisenberg', group: 'SECRETS', secret: true, name: 'ROAD TRIP', info: 'TYPED HEISENBERG. DUST RUNNER IS OPEN.', hint: 'A NAME FROM PHYSICS. UNCERTAIN, BUT ALWAYS MOVING.', goal: 1, have: (s) => +s.secrets.includes('HEISENBERG'), coins: 200 },
   { id: 'bell', group: 'SECRETS', secret: true, name: 'DING DING DING', info: 'RANG THE SHOP BELL 30 TIMES.', hint: 'SOMEONE ON THE COUNTER WANTS ATTENTION.', goal: 30, have: (s) => s.bells, coins: 50 },
   { id: 'window', group: 'SECRETS', secret: true, name: 'WINDOW SHOPPER', info: 'PREVIEWED 15 COSTUMES.', hint: 'LOOK, DON\'T TOUCH.', goal: 15, have: (s) => s.previews, coins: 50 },
 ];

@@ -5,10 +5,9 @@
   poster.png        the OUR VICTORY achievement's poster: a red sunburst, a gold hammer and sickle, an industrial
                     worker and a farmer holding hands, factories and a wheat field behind them, and the words
                     WORKERS OF THE WORLD UNITE! underneath (128x176)
-  vodka.png         the VODKA bottle sold on the EXTRAS shelf (unlocks STALINGRAD)
   flag_emblem.png   the gold hammer, sickle and star in the corner of the shop's red flags (16x16)
   dolls.png         the nesting dolls of the MATRYOSHKA machines: three paint jobs (red, blue, gold) x whole / top half /
-                    bottom half, 40x56 each, in one row
+                    bottom half, 40x56 each, in one row - and frame 9 is the VODKA bottle (EXTRAS, unlocks STALINGRAD)
 
   python3 tools/sprites/soviet_art.py        -> public/assets/shop/
 """
@@ -201,7 +200,7 @@ def vodka():
     d.rectangle([8, 35, 19, 36], fill=rgb(0xc89a20)); d.rectangle([9, 38, 18, 39], fill=rgb(0x8a6010))
     a = np.array(im)
     m = a[..., 3] > 0; a[outline_of(m)] = rgb(O)
-    Image.fromarray(a).save(os.path.join(OUT, 'vodka.png'))
+    return a
 
 # ---------------------------------------------------------------------------------- nesting dolls
 DOLL_PAINT = {   # body, its shadow, the trim, flowers
@@ -242,6 +241,7 @@ def doll(paint):
 def dolls():
     tiles = []
     for p in ('red', 'blue', 'gold'): tiles += doll(p)
+    v = np.zeros((56, 40, 4), np.uint8); v[:, 6:34] = vodka(); tiles.append(v)     # frame 9: the VODKA bottle (it shares the file)
     Image.fromarray(np.concatenate(tiles, 1)).save(os.path.join(OUT, 'dolls.png'))
 
 def flag_emblem():
@@ -252,5 +252,5 @@ def flag_emblem():
     Image.fromarray(a).save(os.path.join(OUT, 'flag_emblem.png'))
 
 if __name__ == '__main__':
-    face_sickle(); poster(); vodka(); dolls(); flag_emblem()
+    face_sickle(); poster(); dolls(); flag_emblem()
     print('done')
