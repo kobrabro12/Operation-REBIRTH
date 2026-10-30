@@ -30,13 +30,17 @@ export const INTROS = {
   'nu': { kind: 'drop', color: 0xc8ff5a, trail: 0xc8ff5a, notes: true, sfx: ['bighit', 0.5, 1.2] },
   'aero': { kind: 'bubble', color: 0x7ad8f0, pre: ['popup', 0.3, 1.2], sfx: ['glass', 0.5, 1.4] },
   'what-once-was': { kind: 'warp', color: 0x9affd8, pre: ['glitch', 0.5, 0.8], sfx: ['buzz', 0.4, 0.8] },
-  // NIGHT WITCH glides in out of the dark, engines off, and drops to the stage
-  'night-witch': { kind: 'drop', color: 0xf2e6cc, trail: 0x3a5aa0, pre: ['whoosh', 0.4, 0.5], sfx: ['clang', 0.5, 1.1] },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
 
 // the special costumes' own arrivals ('fighter id:COSTUME NAME')
 export const SKIN_INTROS = {
+  // the nesting-doll costumes (code PAPERSPLEASE)
+  'soul-summoner:TRICOLORE': { kind: 'swarm', shape: 'leaf', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 24, pre: ['whoosh', 0.4, 0.8], sfx: ['shing', 0.5, 1.1] },
+  'mr-wake:TEATIME': { kind: 'portal', color: 0x1a2a6a, color2: 0xd8203a, pre: ['glass', 0.4, 1.4], sfx: ['ding', 0.4, 1.6] },
+  'hero-knight:LIBERTY': { kind: 'drop', color: 0xffd860, trail: 0xffffff, sfx: ['shing', 0.7, 1.2] },
+  'nu:LUCKY RED': { kind: 'swarm', shape: 'ember', colors: [0xd8201e, 0xffc83a, 0xffffff], n: 26, pre: ['bighit', 0.3, 1.6], sfx: ['bighit', 0.5, 1.2] },
+  'aero:AMBER': { kind: 'bubble', color: 0xe8a03a, pre: ['popup', 0.3, 1.0], sfx: ['glass', 0.5, 1.0] },
   // Soul Summoner
   "soul-summoner:JACK-O'-LANTERN": { kind: 'rise', color: 0xff8a1a, color2: 0x5aff5a, shape: 'ember', sfx: ['laugh', 0.4, 1.2] },
   'soul-summoner:HIGH NOON': { kind: 'swarm', shape: 'leaf', colors: [0xc8a060, 0x8a6a3a, 0xe8d0a0], n: 22, pre: ['whoosh', 0.4, 0.6], sfx: ['clang', 0.5, 0.6] },

@@ -29,7 +29,7 @@ import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool, shelfItems } from '../data/shop.js';
 import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped, reveal, unreveal } from '../progress.js';
-import { fighterById, showFighter, ROSTER } from '../fighters/roster.js';
+import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
 import { stat, addSecret, checkAchievements, isUnlocked } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
@@ -217,7 +217,7 @@ export class ShopScene extends Phaser.Scene {
     if (!it) return '-';
     if (it.gacha) return 'SPIN';
     if (!owns(it.id)) return 'BUY';
-    if (it.kind === 'costume' || it.kind === 'unlock' || it.kind === 'fighter') return 'OWNED';
+    if (it.kind === 'costume' || it.kind === 'unlock') return 'OWNED';
     return isEquipped(it.kind, it.id) ? 'SWITCH OFF' : 'SWITCH ON';
   }
   buy() {
@@ -225,7 +225,6 @@ export class ShopScene extends Phaser.Scene {
     if (!it) { this.react('shock', 'empty'); sfx('curse', 0.3, 1.5); return; }
     if (!it.gacha && owns(it.id)) {                                                   // already yours
       if (it.kind === 'costume') { this.react('smug', 'owned'); this.say('PICK IT ON THE SELECT SCREEN.', '#c9c4dc'); return; }
-      if (it.kind === 'fighter') { this.react('smug', 'owned'); this.say(it.name + ' IS ON THE SELECT SCREEN.', '#c9c4dc'); return; }
       if (it.kind === 'unlock') { this.react('smug', 'owned'); this.say((it.stage || 'IT') + ' IS ON THE STAGE SELECT SCREEN.', '#c9c4dc'); return; }
       const on = toggleEquip(it.kind, it.id);
       if (on) { this.react('smug', 'equip'); sfx('ding', 0.3, 1.3); } else { this.react('bow', 'unequip'); sfx('menu', 0.5, 0.8); }
@@ -303,7 +302,7 @@ export class ShopScene extends Phaser.Scene {
       const news = S.res.filter((r) => !r.dupe).length, back = S.res.reduce((n, r) => n + (r.back || 0), 0);
       this.ovSub.setText(news + ' NEW' + (back ? '   ' + back + ' ' + this.cur() + ' BACK FROM DUPLICATES' : ''));
       this.ovList.setText(S.res.map((r) => (r.dupe ? '   ' : 'NEW ') + r.prize.name + (r.dupe ? '  (+' + r.back + ')' : '')).join('\n'));
-      this.ovHelp.setText(S.res.some((x) => x.prize.kind === 'fighter' && !x.dupe) ? 'A NEW FIGHTER JOINS THE SELECT SCREEN!    J / K  CLOSE' : 'NEW STAGE EFFECTS, TRACKS AND EXTRAS: SWITCH THEM ON IN THEIR SHELF    J / K  CLOSE');
+      this.ovHelp.setText('NEW STAGE EFFECTS, TRACKS AND EXTRAS: SWITCH THEM ON IN THEIR SHELF    J / K  CLOSE');
       return;
     }
     const r = S.res[S.i], cx = W / 2, cy = 190;
@@ -327,18 +326,14 @@ export class ShopScene extends Phaser.Scene {
     if (T < 96) { o.fillStyle(0xffffff, 1 - (T - 90) / 6); o.fillRect(0, 0, W, H); }
     o.fillStyle(0x140a20, 1); o.fillRect(cx - 50, cy - 38, 100, 76);
     o.lineStyle(2, glow, 1); o.strokeRect(cx - 50, cy - 38, 100, 76);
-    if (r.prize.kind === 'fighter') {                                        // a whole new fighter: her, idling, a spotlight
-      const fd = ROSTER.find((f) => f.id === r.prize.fighter);
-      showFighter(this.ovSpr.setVisible(true), fd.def, Math.floor(t / 6), 0); this.ovSpr.setScale(1.2).setPosition(cx, cy + 34).setFlipX(false);
-      if (T === 90 && !r.dupe) { sfx('limit', 0.6); this.static = 16; }
-    } else if (r.prize.kind === 'costume') {
+    if (r.prize.kind === 'costume') {
       const fd = fighterById(r.prize.fighter), si = Math.max(0, skinsFor(fd.def.id).findIndex((k) => k.name === r.prize.skin));
       showFighter(this.ovSpr.setVisible(true), fd.def, Math.floor(t / 6), si); this.ovSpr.setScale(Math.min(1.2, 70 / this.ovSpr.frame.height)).setPosition(cx, cy + 34).setFlipX(!!fd.def.facesLeft);
     } else if (r.prize.img) { this.icon(o, cx, cy, 16, r.prize, t); this.ovSpr.setVisible(true).setTexture(r.prize.img, r.prize.imgFrame ?? 0).setOrigin(0.5).setFlipX(false).setScale(1).setPosition(cx, cy); }
     else { this.ovSpr.setVisible(false); this.icon(o, cx, cy, 16, r.prize, t); }
     this.ovSub.setText((r.dupe ? 'DUPLICATE: ' + r.prize.name + '  +' + r.back + ' ' + this.cur() : 'NEW! ' + r.prize.name) + '\n' + this.shelfOf(r.prize));
   }
-  shelfOf(it) { if (it.kind === 'fighter') return 'A NEW FIGHTER! SHE IS ON THE SELECT SCREEN'; const tb = SHOP.find((x) => x.items.includes(it)); return tb ? 'FROM THE ' + tb.name + ' SHELF' : ''; }
+  shelfOf(it) { const tb = SHOP.find((x) => x.items.includes(it)); return tb ? 'FROM THE ' + tb.name + ' SHELF' : ''; }
   // a MATRYOSHKA doll opening (one doll per prize, each smaller than the last): it wobbles, the top half twists and lifts
   // off, and the next doll - or, in the last one, the prize - is inside. The painted dolls are shop_dolls.png
   // (tools/sprites/soviet_art.py): three paint jobs x [whole, top half, bottom half]
@@ -920,7 +915,7 @@ export class ShopScene extends Phaser.Scene {
       g.fillRect(cx - 4, cy - 8, 8, 2); g.fillRect(cx + 3, cy - 7, 2, 5); g.fillRect(cx - 1, cy - 3, 4, 2); g.fillRect(cx - 1, cy - 2, 2, 4); g.fillRect(cx - 1, cy + 4, 2, 2);
       return;
     }
-    if (it.kind === 'costume' || it.kind === 'fighter') return;                         // (a sprite: drawn in update)
+    if (it.kind === 'costume') return;                                                  // (a sprite: drawn in update)
     if (it.img) { const k = (Math.sin(t * 0.05) + 1) / 2; for (let i = 5; i > 0; i--) { g.fillStyle(it.color ?? C.gold, 0.05 + k * 0.03); g.fillCircle(cx, cy, 10 + i * 5); } return; }   // an image (sprite in update) glowing
     if (it.kind === 'music') return this.vinyl(g, cx, cy, s, it, t);
     if (it.kind === 'fx') return this.scenery(g, cx, cy, it, t);
@@ -963,7 +958,7 @@ export class ShopScene extends Phaser.Scene {
   // a little window onto a stage with the effect on it: sky, a floating platform, the weather
   scenery(g, cx, cy, it, t) {
     const X = cx - 38, Y = cy - 27, w = 76, h = 54;
-    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830, 'fx-neon': 0x1a0830, 'fx-candy': 0xd8e0ff, 'fx-sunken': 0x1a5a90, 'fx-harvest': 0xd05a32, 'fx-front': 0x6a5a3a, 'fx-redsquare': 0x1a2248 }[it.id] ?? 0x3a4a8a;
+    const sky = { 'fx-night': 0x0a1440, 'fx-storm': 0x283044, 'fx-snow': 0x8aa0c0, 'fx-sakura': 0xf0b8c8, 'fx-fireflies': 0x2a1a4a, 'fx-bloodmoon': 0x3a0808, 'fx-sand': 0xc8945a, 'fx-aurora': 0x061830, 'fx-neon': 0x1a0830, 'fx-candy': 0xd8e0ff, 'fx-sunken': 0x1a5a90, 'fx-harvest': 0xd05a32, 'fx-front': 0x6a5a3a, 'fx-redsquare': 0x1a2248, 'fx-taiga': 0x8a9ab4, 'fx-whitenights': 0xe8c8d8 }[it.id] ?? 0x3a4a8a;
     g.fillStyle(sky, 1); g.fillRect(X, Y, w, h);
     const rnd = (i, k) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
     switch (it.id) {
@@ -989,6 +984,18 @@ export class ShopScene extends Phaser.Scene {
       case 'fx-harvest': g.fillStyle(0xffd070, 1); g.fillCircle(X + 20, Y + 16, 9); g.fillStyle(0x5a2a1a, 1); g.fillRect(X, Y + 36, w, h - 36);
         for (let i = 0; i < 9; i++) { g.fillStyle([0xc83a1a, 0xe8822a, 0xf4b83a][i % 3], 1); g.fillRect(X + ((rnd(i, 20) * w + t * 0.5 + Math.sin(t * 0.06 + i) * 4) % w), Y + ((rnd(i, 21) * h + t * 0.35) % h), 3, 2); }
         g.fillStyle(0xd86a1a, 1); g.fillEllipse(X + 54, Y + 38, 12, 9); g.fillStyle(0x3a6a2a, 1); g.fillRect(X + 53, Y + 32, 2, 3); break;
+      case 'fx-taiga': {                                                                        // birches, a fir, a cabin with a lit window
+        g.fillStyle(0xeef2f8, 1); g.fillRect(X, Y + 34, w, h - 34);
+        for (const bx of [8, 20, 62]) { g.fillStyle(0xf4f2ea, 1); g.fillRect(X + bx, Y + 8, 3, 28); g.fillStyle(0x1a1a1a, 1); g.fillRect(X + bx, Y + 14, 2, 1); g.fillRect(X + bx + 1, Y + 24, 2, 1); }
+        g.fillStyle(0x2e4a3e, 1); g.fillTriangle(X + 30, Y + 34, X + 44, Y + 34, X + 37, Y + 10);
+        g.fillStyle(0x5a3a22, 1); g.fillRect(X + 46, Y + 24, 14, 10); g.fillStyle(0xf4f8ff, 1); g.fillTriangle(X + 44, Y + 25, X + 62, Y + 25, X + 53, Y + 17);
+        g.fillStyle(0xffd060, 0.7 + 0.3 * Math.sin(t * 0.1)); g.fillRect(X + 49, Y + 27, 3, 3);
+        break; }
+      case 'fx-whitenights': {                                                                  // pink sky, a gold spire, palace fronts, the canal
+        g.fillStyle(0x7a8ab0, 1); g.fillRect(X, Y + 38, w, h - 38);
+        for (const [dx, c] of [[0, 0xa8d8c0], [20, 0xf0d070], [52, 0xe8b0a8]]) { g.fillStyle(c, 1); g.fillRect(X + dx, Y + 26, 22, 12); g.fillStyle(0xffffff, 1); g.fillRect(X + dx, Y + 26, 22, 1); }
+        g.fillStyle(0xd8a028, 1); g.fillTriangle(X + 44, Y + 26, X + 50, Y + 26, X + 47, Y + 4 + Math.sin(t * 0.05));
+        break; }
       case 'fx-redsquare': {                                                                   // onion domes, a red wall, a star on a spire
         g.fillStyle(0x6a1a16, 1); g.fillRect(X, Y + 34, w, 12); for (let x = X; x < X + w; x += 6) g.fillRect(x, Y + 31, 4, 3);
         for (const [dx, r, c] of [[44, 6, 0xc8201e], [54, 5, 0x2a8a5a], [62, 4, 0xd8a028]]) { g.fillStyle(0x8a2a1e, 1); g.fillRect(X + dx - 3, Y + 22, 6, 12); g.fillStyle(c, 1); g.fillCircle(X + dx, Y + 20, r); g.fillTriangle(X + dx - 3, Y + 18, X + dx + 3, Y + 18, X + dx, Y + 18 - r * 1.6); }
@@ -1022,6 +1029,19 @@ export class ShopScene extends Phaser.Scene {
         if (blast) { g.lineStyle(2, col, 1); for (let i = 0; i < 3; i++) g.strokeCircle(cx + 16, cy + 4, 4 + i * 5 + (t % 20) * 0.25); } break; }
       case 'ext-rainbow': { const C7 = [0xff4a4a, 0xff9a3a, 0xf3e358, 0x5aff6a, 0x4ac8ff, 0x8a6aff]; for (let i = 0; i < 6; i++) for (let x = 0; x < 44; x += 2) { g.fillStyle(C7[i], x / 44); g.fillRect(cx - 30 + x, cy + 6 - x * 0.4 + i * 2 + Math.sin(x * 0.2 - t * 0.1), 2, 2); }
         g.fillStyle(0xffffff, 1); g.fillCircle(cx + 16, cy - 12, 5); break; }
+      case 'ext-firebird': {                                                                  // a burning feather, drifting
+        const sw = Math.sin(t * 0.07) * 3;
+        g.fillStyle(0xff3a1a, 1); g.fillEllipse(cx + sw, cy, 12, 34); g.fillStyle(0xff8a1a, 1); g.fillEllipse(cx + sw, cy - 2, 8, 26);
+        g.fillStyle(0xffd040, 1); g.fillEllipse(cx + sw, cy - 4, 4, 16); g.fillStyle(0xfff4b0, 1); g.fillRect(cx + sw - 0.5, cy - 14, 1, 32);
+        for (let k = 0; k < 4; k++) { g.fillStyle(0xffd040, 0.5 + 0.5 * Math.sin(t * 0.2 + k)); g.fillRect(cx + sw + Math.sin(t * 0.1 + k * 2) * 12, cy + 14 - ((t + k * 13) % 30), 2, 2); }
+        break; }
+      case 'ext-bear': {                                                                      // the cub, dancing
+        const bob = Math.abs(Math.sin(t * 0.15)) * 3, y = cy + 4 - bob;
+        g.fillStyle(0x6a4424, 1); g.fillEllipse(cx, y + 6, 22, 22); g.fillCircle(cx, y - 10, 10); g.fillCircle(cx - 7, y - 18, 4); g.fillCircle(cx + 7, y - 18, 4);
+        g.fillStyle(0xc8201e, 1); g.fillRect(cx - 9, y - 1, 18, 9); g.fillStyle(0xd8a878, 1); g.fillEllipse(cx, y - 7, 9, 6);
+        g.fillStyle(0x140a04, 1); g.fillRect(cx - 4, y - 13, 2, 2); g.fillRect(cx + 3, y - 13, 2, 2); g.fillRect(cx - 1, y - 9, 3, 2);
+        const up = (t % 30) < 15; g.fillStyle(0x5a3a1c, 1); g.fillRect(cx - 15, up ? y - 12 : y, 5, 9); g.fillRect(cx + 10, up ? y - 12 : y, 5, 9);
+        break; }
       case 'ext-ushanka': {                                                                   // a fur hat, flaps swinging, a red star on the front
         const sw = Math.sin(t * 0.08) * 1.5;
         g.fillStyle(0x3a2616, 1); g.fillEllipse(cx, cy - 4, 40, 22); g.fillRect(cx - 20, cy - 4, 40, 12);
@@ -1156,9 +1176,9 @@ export class ShopScene extends Phaser.Scene {
       this.cardPrice[i].setText(!it ? '' : lit ? 'ON' : mine ? 'OWNED' : it.price + ' ' + this.cur()).setColor(lit ? '#7aff8a' : mine ? '#c9c4dc' : '#f3c358');
       if (lit) { g.fillStyle(0x7aff8a, 1); g.fillCircle(x + GRID.w - 12, y + 13, 3); }                                   // a green light: switched on
       // a costume: its fighter wearing it, idling (scaled to fit the window)
-      const spr = this.cardSpr[i], fd = it && it.kind === 'costume' ? fighterById(it.fighter) : it && it.kind === 'fighter' ? ROSTER.find((f) => f.id === it.fighter) : null;
+      const spr = this.cardSpr[i], fd = it && it.kind === 'costume' ? fighterById(it.fighter) : null;
       if (fd && fd.def) {
-        const si = it.kind === 'fighter' ? 0 : skinsFor(fd.def.id).findIndex((k) => k.name === it.skin);
+        const si = skinsFor(fd.def.id).findIndex((k) => k.name === it.skin);
         showFighter(spr.setVisible(true), fd.def, Math.floor((t + i * 7) / 6), Math.max(0, si));
         spr.setScale(Math.min(1, 54 / spr.frame.height, 74 / spr.frame.width * 1.3)).setPosition(x + GRID.w / 2, y + 62);
       } else if (it && it.img) spr.setVisible(true).setTexture(it.img, it.imgFrame ?? 0).setOrigin(0.5).setFlipX(false).setScale(it.gacha ? 1 : 0.8).setPosition(x + GRID.w / 2, y + 36 + Math.round(Math.sin((t + i * 9) * 0.05) * 2));   // e.g. the GALAXY FRAGMENT, bobbing
@@ -1172,7 +1192,7 @@ export class ShopScene extends Phaser.Scene {
     this.infoT.setText(it ? it.info || '' : 'THIS SHELF IS EMPTY FOR NOW.');
     const lab = this.label(it), mine = it && !it.gacha && owns(it.id);
     this.buyT.setText(lab === 'BUY' || lab === 'SPIN' ? lab + '  ' + it.price : lab);
-    const can = it && (mine ? it.kind !== 'costume' && it.kind !== 'unlock' && it.kind !== 'fighter' : getCoins() >= it.price);
+    const can = it && (mine ? it.kind !== 'costume' && it.kind !== 'unlock' : getCoins() >= it.price);
     const cos = it && it.kind === 'costume', bx = SIDE.x + 20 + (cos ? BTN.prevW + 4 : 0), bw = SIDE.w - 40 - (cos ? BTN.prevW + 4 : 0);
     slant(g, bx + 3, BTN.y + 3, bw, BTN.h, 0x000000, 0.5, 8);
     slant(g, bx, BTN.y, bw, BTN.h, can ? 0x2fae4a : 0x2c2650, 1, 8);

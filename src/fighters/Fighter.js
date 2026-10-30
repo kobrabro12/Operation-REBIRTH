@@ -22,7 +22,6 @@ import { FighterBeat } from './fighterBeat.js';
 import { FighterLastSeen } from './fighterLastSeen.js';
 import { FighterTaunt } from './fighterTaunt.js';
 import { FighterWhatOnceWas } from './fighterWhatOnceWas.js';
-import { LimitRaid } from './limitRaid.js';
 import { popBubble } from './entities.js';
 
 const BUFFER = 7;   // frames an early button press is remembered
@@ -557,7 +556,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, LimitRaid]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

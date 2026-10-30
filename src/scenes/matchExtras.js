@@ -34,6 +34,10 @@ const NEWSREEL = { grain: 70, scratch: 0.06, flicker: 0.05, tone: 0xe8d4a8 };
 // THE FRONT (stage effect): how often the far-off guns flash on the horizon (1 in this many ticks), and the rumble after
 const FRONT = { flash: 240, rumbleDelay: 40 };
 // DISCO FLOOR: tile width, how many ticks a beat lasts, the tile colours
+// FIREBIRD TRAILS: how many glowing feathers a launched fighter sheds per frame, how fast it has to be flying, their colours
+const FIREBIRD = { per: 2, speed: 3, colors: [0xff3a1a, 0xff8a1a, 0xffd040, 0xfff4b0] };
+// DANCING BEAR: how fast the cub strolls, how far in from the platform's ends it turns round, how long it cheers after a KO
+const BEAR = { speed: 0.35, margin: 30, cheer: 90 };
 const DISCO = { tile: 12, beat: 30, colors: [0xff3ad8, 0x3ad8ff, 0xffe03a, 0x7aff5a, 0xb05aff, 0xff7a3a] };
 
 export class MatchExtras {
@@ -43,7 +47,8 @@ export class MatchExtras {
     const on = (id) => !m.demo && extraOn(id);
     this.on = { numbers: on('ext-numbers'), confetti: on('ext-confetti'), finalcam: on('ext-finalcam'), hats: on('ext-hats'),
       moon: on('ext-moon'), airhorn: on('ext-airhorn'), rainbow: on('ext-rainbow'), impact: on('ext-impact'),
-      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel'), ushanka: on('ext-ushanka') };
+      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel'), ushanka: on('ext-ushanka'),
+      firebird: on('ext-firebird'), bear: on('ext-bear') };
     this.comics = []; this.combos = new Map(); this.ghosts = [];
     this.floor = this.on.disco ? m.add.graphics() : null; if (this.floor) m.addWorld(this.floor);   // (made before the fighters: under them)
     this.slow = 0; this.impact = 0; this.flash = 0; this.bolt = null;
@@ -103,6 +108,7 @@ export class MatchExtras {
       this.m.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, life: 60 + Math.random() * 50, color: RAINBOW[i % RAINBOW.length], size: 3, grav: 0.06, drag: 0.97, sway: i * 7 });
     }
     if (this.on.airhorn) { sfx('airhorn', 0.9); }
+    if (this.on.bear && this.bear) this.bear.cheer = BEAR.cheer;      // the bear claps for every KO
   }
   onFinalKO() { if (this.on.finalcam) { this.slow = FINAL.ticks; this.flash = 6; } }
 
@@ -115,6 +121,22 @@ export class MatchExtras {
       if (sp < 3) continue;
       const c = f.center();
       for (let i = 0; i < 2; i++) this.m.particles.push({ x: c.x + (Math.random() - 0.5) * 8, y: c.y + (i - 0.5) * 6, vx: 0, vy: 0, life: 22, color: RAINBOW[(this.t + i * 3) % RAINBOW.length], size: 4, grav: 0 });
+    }
+    if (this.on.firebird) for (const f of this.m.fighters) {       // FIREBIRD TRAILS: launched fighters shed burning feathers
+      if (!f.alive || f.state !== 'hitstun') continue;
+      if (Math.hypot(f.lx || 0, f.ly || 0) + Math.hypot(f.vx || 0, f.vy || 0) < FIREBIRD.speed) continue;
+      const c = f.center();
+      for (let i = 0; i < FIREBIRD.per; i++) this.m.particles.push({ shape: 'feather', x: c.x + (Math.random() - 0.5) * 10, y: c.y + (Math.random() - 0.5) * 10, vx: (Math.random() - 0.5) * 0.6, vy: -0.3 - Math.random() * 0.4, life: 34 + Math.random() * 20, color: FIREBIRD.colors[(this.t + i) % FIREBIRD.colors.length], grav: 0.01, drag: 0.96, sway: Math.random() * 6 });
+      if (this.t % 3 === 0) this.m.particles.push({ x: c.x, y: c.y, vx: 0, vy: -0.5, life: 16, color: 0xffd040, size: 3, grav: -0.02 });
+    }
+    if (this.on.bear) {                                             // DANCING BEAR: the cub strolls up and down the widest platform
+      const P = (this.m.stage.platforms || []).reduce((b, p) => (!b || p.x2 - p.x1 > b.x2 - b.x1 ? p : b), null);
+      if (P) {
+        const B = this.bear || (this.bear = { x: (P.x1 + P.x2) / 2 + 60, dir: 1, cheer: 0 });
+        if (B.cheer > 0) B.cheer--;
+        else { B.x += B.dir * BEAR.speed; if (B.x > P.x2 - BEAR.margin) B.dir = -1; if (B.x < P.x1 + BEAR.margin) B.dir = 1; }
+        B.y = P.y;
+      }
     }
     // weather that makes sounds: thunder
     if (this.fx === 'fx-storm' && !this.bolt && Math.random() < 1 / 420) { this.bolt = { t: 0, x: 60 + Math.random() * (W - 120) }; sfx('thunder', 0.5, 0.8 + Math.random() * 0.3); }
@@ -263,6 +285,22 @@ export class MatchExtras {
       wd.fillStyle(0x4e3420, 1); wd.fillRect(x - 11, y - 2 - hat, 4, 8); wd.fillRect(x + 7, y - 2 - hat, 4, 8);         // the ear flaps
       wd.fillStyle(0x8a6a4a, 1); wd.fillRect(x - 10, y - 5 - hat, 20, 2);                                              // the turned-up front
       wd.fillStyle(0xd8201e, 1); wd.fillCircle(x + d * 2, y - 8 - hat, 2.2); wd.fillStyle(0xffd040, 1); wd.fillRect(x + d * 2 - 0.5, y - 8.5 - hat, 1, 1);   // the red star
+    }
+    // DANCING BEAR: a little brown bear cub in a red waistcoat, bobbing along to the music - and clapping after a KO
+    if (this.on.bear && this.bear) {
+      const B = this.bear, x = Math.round(B.x), y = B.y, d = B.dir, cheer = B.cheer > 0, bob = cheer ? Math.abs(Math.sin(t * 0.4)) * 3 : Math.abs(Math.sin(t * 0.15)) * 1.5;
+      const step = cheer ? 0 : Math.sin(t * 0.3) * 2, top = y - 22 - bob;
+      wd.fillStyle(0x3a2412, 1); wd.fillRect(x - 5 + step, y - 6, 4, 6); wd.fillRect(x + 1 - step, y - 6, 4, 6);            // legs
+      wd.fillStyle(0x6a4424, 1); wd.fillEllipse(x, top + 13, 16, 16);                                                       // body
+      wd.fillStyle(0xc8201e, 1); wd.fillRect(x - 7, top + 8, 14, 7); wd.fillStyle(0xffd040, 1); wd.fillRect(x - 1, top + 9, 2, 1); wd.fillRect(x - 1, top + 12, 2, 1);   // the waistcoat
+      wd.fillStyle(0xd8a878, 1); wd.fillEllipse(x, top + 17, 8, 6);                                                         // the tummy
+      const ay = cheer ? top + 2 + (t % 10 < 5 ? 0 : 3) : top + 10;                                                          // arms: up and clapping, or swinging
+      wd.fillStyle(0x5a3a1c, 1); wd.fillRect(x - 10, ay, 4, 7); wd.fillRect(x + 6, ay, 4, 7);
+      if (cheer && t % 10 < 5) { wd.fillStyle(0xffffff, 0.8); wd.fillRect(x - 1, top - 1, 2, 2); }
+      wd.fillStyle(0x6a4424, 1); wd.fillCircle(x + d, top + 1, 7);                                                          // head
+      wd.fillCircle(x - 5 + d, top - 5, 3); wd.fillCircle(x + 5 + d, top - 5, 3);                                           // ears
+      wd.fillStyle(0xd8a878, 1); wd.fillEllipse(x + d * 4, top + 3, 6, 4);                                                  // snout
+      wd.fillStyle(0x140a04, 1); wd.fillRect(x + d * 6, top + 2, 2, 2); wd.fillRect(x + d * 2 - 1, top - 1, 1, 2); wd.fillRect(x + d * 2 + 3, top - 1, 1, 2);   // nose, eyes
     }
     // FINAL KO CAM: slow motion with letterbox bars sliding in
     if (this.slow > 0) { const k = Math.min(1, (FINAL.ticks - this.slow) / 12), bar = 34 * k; w.fillStyle(0x000000, 1); w.fillRect(0, 0, W, bar); w.fillRect(0, H - bar, W, bar); }

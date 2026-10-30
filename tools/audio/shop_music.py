@@ -15,6 +15,7 @@ match instead of the stage's own music. All original, all synthesised; each one 
   disco   MIRRORBALL        disco: four on the floor, an octave bass that won't sit still, string stabs, a clavinet
   korobeiniki KOROBEINIKI   the old Russian peddlers' song (folk, public domain): balalaika, accordion, oom-pah bass
   balalaika   BALALAIKA     an original Cossack-style stomp dance: tremolo balalaika, accordion, claps, shouts of HEY
+  troika      TROIKA        an original sleigh ride at a gallop: sleigh bells, a galloping bass, balalaika and accordion
 
 Run:  python3 tools/audio/shop_music.py [names...]
 Writes public/assets/audio/music/shop_<name>.ogg and .mp3. Loaded in BootScene as bgm_shop_<name>.
@@ -376,6 +377,32 @@ def balalaika():
         if bar % 4 == 3: add(buf, hey, t0 + 3 * b)                                          # HEY!
     return write(wrap_reverb(buf, 0.9, 1.8, 0.15), 'balalaika')
 
-PIECES = {'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
+def bell(m, dur, vel=1.0):
+    """a little sleigh bell: inharmonic partials, a sharp strike, a quick ring"""
+    n = secs(dur); t = np.arange(n) / SR; f = hz(m)
+    x = sum(a * np.sin(2 * np.pi * f * r * t) for r, a in [(1, 1), (2.76, 0.6), (5.4, 0.4), (8.9, 0.25)])
+    return x * np.exp(-t * 14) * vel * 0.12
+
+def troika():
+    bpm = 168; b = 60 / bpm; E = 52                                                       # E minor, galloping 2/4
+    prog = [(0, [0, 3, 7]), (0, [0, 3, 7]), (-4, [-4, 0, 3]), (-5, [-5, -1, 2]), (5, [5, 8, 12]), (0, [0, 3, 7]), (-5, [-5, -1, 2]), (0, [0, 3, 7])]
+    tune = [7, 7, 8, 10, 12, 10, 8, 7, 5, 7, 8, 7, 5, 3, 2, None, 7, 10, 12, 15, 14, 12, 10, 12, 10, 8, 7, 5, 3, 2, 0, None]
+    bars = 32; L = bars * 4 * b; N = secs(L); buf = np.zeros(N)
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b; part = bar // 8
+        for k in range(4):                                                                # the gallop: da-da-DUM on the bass, bells on every eighth
+            add(buf, tri(E - 24 + root, b * 0.3, 0.45), t0 + k * b); add(buf, tri(E - 24 + root + 7, b * 0.2, 0.3), t0 + k * b + b * 0.66)
+            add(buf, drum_kick(0.6 if k % 2 == 0 else 0.35), t0 + k * b)
+            for e in (0, 0.5): add(buf, bell(E + 31 + (e > 0) * 2, 0.25, 0.9 if e == 0 else 0.6), t0 + k * b + e * b)
+            add(buf, strum([E + 12 + c for c in ch], b * 0.4, 0.35), t0 + k * b + b / 2)
+        if part >= 1: add(buf, clap(0.45), t0 + 3 * b)
+        for k in range(8):
+            m = tune[(bar % 4) * 8 + k]
+            if m is None: continue
+            if part in (0, 2): add(buf, strum([E + 12 + m, E + 24 + m], b * 0.5, 0.5, trem=3), t0 + k * b / 2)
+            if part in (1, 2, 3): add(buf, accordion(E + 12 + m + (12 if part == 3 else 0), b * 0.48, 0.9), t0 + k * b / 2)
+    return write(wrap_reverb(buf, 1.1, 2.2, 0.18), 'troika')
+
+PIECES = {'troika': troika, 'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

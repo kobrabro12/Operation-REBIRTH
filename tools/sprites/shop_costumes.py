@@ -1,7 +1,7 @@
 """The shop costumes (Trinkets > SHOP): each one is its own drawing, not just a recolour - new parts (crowns,
 halos, collars, horns, visors, shades...), reshaped capes and robes, new weapons - on top of the costume's colours.
 
-  python3 tools/sprites/shop_costumes.py [olive eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
+  python3 tools/sprites/shop_costumes.py [tricolore teatime liberty luckyred amber olive eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
                                            sunset midnight] [--preview DIR]
 
 How each fighter is done:
@@ -164,7 +164,38 @@ def ss_olive(N, L):
         for px in range(xs.min() + 3, xs.max() - 2, 4): K.stamp(t, px, my, ["ooo", "o1o", "ooo"], {'o': 0x4a3e22, '1': 0x8a7a4a}, only_full=True)
     return [('helmet', hel, 'head', (33, 16), 1.5)], set(), None
 
+def ss_tricolore(N, L):
+    """TRICOLORE (from the shop's nesting dolls): a black bicorne hat with a blue-white-red cockade and gold lace in
+    place of his crown, a cape in three bands of blue, white and red, and a white sash across his silver breastplate"""
+    hd = N['head']; hd[:11] = 0                                                # the crown comes off
+    hat = blank()
+    poly(hat, [(19, 11), (22, 6), (27, 3), (33, 2), (39, 3), (44, 6), (47, 11), (42, 10), (33, 9), (24, 10)], 0x16141c)
+    for x in range(20, 47):                                                     # the lace along its edge, a shine on the crown
+        for y in range(1, 12):
+            if hat[y, x, 3] and not hat[y - 1, x, 3]: K.put(hat, x, y, 0xd8a838)
+    for x, y in ((27, 5), (28, 4), (30, 4), (31, 3)): K.put(hat, x, y, 0x3a3644)
+    K.stamp(hat, 36, 4, [".bbb.", "bwwwb", "bwrwb", "bwwwb", ".bbb."], {'b': 0x2a4ab8, 'w': 0xf4f4f8, 'r': 0xe0303a})   # the cockade
+    outline(hat, 0x08060c)
+    for n in N: tricolore_paint(N[n], mask=ss_cape_mask(L[n]))
+    t = N['torso']; ys, xs = np.nonzero(t[..., 3] > 0)                          # a white sash from shoulder to hip
+    if len(ys):
+        for x, y in zip(xs, ys):
+            d = (x - xs.min()) - (y - ys.min()) * 0.85
+            if 5 <= d <= 7: t[y, x, :3] = K.hexrgb(0xf4f4f8 if d < 7 else 0xb8bcd0)
+    return [('bicorne', hat, 'head', (33, 16), 1.5)], set(), lambda orig, out: tricolore_paint(out, mask=ss_cape_mask(orig))
+
+def tricolore_paint(cape, mask=None):
+    """the cape in three bands - blue, white, red - shaded by how lit the original pixel was"""
+    ys, xs = np.nonzero(mask if mask is not None else cape[..., 3] > 0)
+    if not len(xs): return
+    x0, x1 = xs.min(), xs.max() + 1; w = max(1, x1 - x0)
+    for x, y in zip(xs, ys):
+        v = K.shade_of(cape[y, x]); band = (x - x0) * 3 // w
+        ramp = [[0x0e1a5a, 0x1a2e8a, 0x2a4ab8, 0x4a6ad8], [0x9098b0, 0xc8ccdc, 0xecedf4, 0xffffff], [0x6a0a12, 0xa8141e, 0xe0303a, 0xff6a6a]][min(2, band)]
+        cape[y, x, :3] = K.hexrgb(K.ramp_pick(ramp, v, 0.0, 0.42))
+
 SS_LOOKS = {
+    'tricolore': (ss_tricolore, {'armor': {'sat': 0.08, 'val': 1.55}, 'gold': {'to': 44, 'sat': 1.0, 'val': 1.15}, 'flame': {'to': 356, 'sat': 1.1, 'val': 1.2}, 'eyes': {'to': 220, 'sat': 0.9, 'val': 1.3}}, (232, 64, 72)),
     'olive': (ss_olive, {'armor': {'hue': 70, 'satAdd': 0.2, 'val': 0.85}, 'cape': {'to': 42, 'sat': 0.95, 'val': 1.75}, 'gold': {'to': 40, 'sat': 0.55, 'val': 0.9}, 'flame': {'to': 32, 'sat': 1.0, 'val': 1.2}, 'eyes': {'to': 18, 'sat': 1.0, 'val': 1.2}}, (200, 186, 120)),
     'eclipse': (ss_eclipse, {'armor': {'sat': 0.2, 'val': 0.32}, 'cape': {'sat': 0.15, 'val': 0.35}, 'gold': {'to': 44, 'sat': 1.1, 'val': 1.25}, 'flame': {'to': 46, 'sat': 0.35, 'val': 1.35}, 'eyes': {'to': 48, 'sat': 0.3, 'val': 1.3}}, (255, 220, 128)),
     'celestial': (ss_celestial, {'armor': {'to': 222, 'sat': 0.25, 'val': 1.35}, 'gold': {'to': 210, 'sat': 0.35, 'val': 1.3}, 'flame': {'to': 196, 'sat': 0.55, 'val': 1.3}, 'eyes': {'to': 188, 'sat': 0.9, 'val': 1.3}, 'cape': {'to': 230, 'sat': 0.8, 'val': 0.5}}, (180, 210, 255)),
@@ -303,7 +334,43 @@ def mw_plague(N, L):
                                  "..oooo.."], {'o': 0x2a2a2a}, only_empty=True)
     return [], set(), None
 
+def mw_teatime(N, L):
+    """TEATIME (from the shop's nesting dolls): a red tartan cloak, a band of tartan round his hat, a fine porcelain
+    teapot - white with blue flowers - in place of the gem on his staff, and a gold monocle"""
+    for n in ('cape', 'bskirt', 'fskirt'): tartan_paint(N[n])
+    h = N['head']
+    for x in range(30, 50):                                                     # the hat band
+        y = 10 + (1 if 36 <= x <= 43 else 0) - (1 if x > 46 else 0)
+        for d in (0, 1):
+            if h[y + d, x, 3]: K.put(h, x, y + d, 0xc8202a if (x + d) % 4 else 0x1a3a2a)
+    K.stamp(N['staff'], 6, 8, ["....oo....",
+                               "...o33o...",
+                               ".oo3333o..",
+                               "o3333b33o.",
+                               "o33bwb33oooo",
+                               "o333b3333o.o",
+                               "o3b333b33o..",
+                               ".o333333o...",
+                               "..oooooo...."], {'o': 0x3a4a6a, '3': 0xf4f4f8, 'b': 0x2a5ad8, 'w': 0xffffff})
+    K.stamp(N['staff'], 9, 4, ["..w.", ".w..", "..w.", ".w.."], {'w': 0xd8dce8}, only_empty=True)   # a wisp of steam
+    for x, y in ((40, 13), (41, 13), (42, 14), (39, 14), (40, 15), (41, 15)): K.put(h, x, y, 0xe8c040) if h[y, x, 3] else None   # the monocle's rim
+    for y in range(16, 22): K.put(h, 42, y, 0xc8a030) if h[y, 42, 3] else None                                                   # and its chain
+    return [], set(), None
+
+def tartan_paint(lay):
+    """a red tartan: red ground, dark green and navy bands crossing, thin yellow and white lines - shaded by the original"""
+    ys, xs = np.nonzero(lay[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        v = K.shade_of(lay[y, x]); k = max(0.35, min(1.25, v / 0.32))
+        bx, by = x % 12, y % 12
+        c = (176, 24, 34)
+        if bx in (4, 5, 6) or by in (4, 5, 6): c = (24, 70, 44) if (bx in (4, 5, 6)) != (by in (4, 5, 6)) else (16, 28, 64)
+        if bx == 10 or by == 10: c = (230, 196, 60)
+        if bx == 0 or by == 0: c = (232, 228, 220)
+        lay[y, x, :3] = tuple(min(255, int(ch * k)) for ch in c)
+
 MW_LOOKS = {
+    'teatime': (mw_teatime, {'robe': {'to': 224, 'sat': 1.0, 'val': 0.75}, 'magic': {'to': 214, 'sat': 0.8, 'val': 1.2}, 'cloth': {'to': 220, 'sat': 0.6}, 'wood': {'to': 28, 'sat': 0.8, 'val': 1.0}}),
     'vampire': (mw_vampire, {'robe': {'to': 350, 'sat': 1.15, 'val': 0.55}, 'magic': {'to': 356, 'sat': 1.2, 'val': 1.15}, 'cloth': {'to': 330, 'sat': 0.6, 'val': 0.45}, 'wood': {'sat': 0.1, 'val': 1.3}}),
     'plague': (mw_plague, {'robe': {'to': 150, 'sat': 0.25, 'val': 0.42}, 'magic': {'to': 118, 'sat': 1.1, 'val': 1.15}, 'cloth': {'to': 28, 'sat': 0.9, 'val': 1.1}, 'wood': {'to': 20, 'sat': 0.3, 'val': 0.6}}),
     'sakura': (mw_sakura, {'robe': {'to': 334, 'sat': 0.55, 'val': 1.9}, 'magic': {'to': 340, 'sat': 0.4, 'val': 1.3}, 'cloth': {'to': 300, 'sat': 0.9, 'val': 1.3}, 'wood': {'to': 18, 'sat': 0.7, 'val': 0.8}}),
@@ -362,7 +429,7 @@ def hk_look(frame, H, look, fallback=None):
             inside = all(0 <= x + dx < FW and 0 <= y + dy < FH and is_plate(src[x + dx, y + dy]) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
             if is_plate(p): px[x, y] = look['plate'](x - ax, y - ay, v, inside) + (255,)
             elif is_cloth(p): px[x, y] = ramp(look['cloth'], v, 0.2, 0.32) + (255,)
-            elif is_red(p): px[x, y] = ramp(look['scarf'], v, 0.4, 0.56) + (255,)
+            elif is_red(p): px[x, y] = (look['scarf_fn'](x - ax, y - ay, v) if look.get('scarf_fn') else ramp(look['scarf'], v, 0.4, 0.56)) + (255,)
             elif helmet(x, y): px[x, y] = ramp(look['helm'], v, 0.26, 0.66) + (255,); helm_pts.append((x, y))
             elif (x, y) in blade or p[:3] in BLADE: px[x, y] = look['blade']((x, y), v) + (255,)
             elif is_grey(p) and v < 0.68 and x >= ax - 2 and y > ay - 4: px[x, y] = ramp(look['glove'], v, 0.26, 0.66) + (255,)
@@ -432,7 +499,32 @@ def verdant_blade(p, v):
     x, y = p
     return (230, 255, 170) if (x + y) % 5 == 0 else (120, 240, 120) if v > 0.6 else (40, 150, 70)
 
+def ray_crown(px, src, pts, FW, FH):
+    """LIBERTY: seven gold rays standing up off her helmet like a crown of light"""
+    top = min(y for x, y in pts); xs = sorted(x for x, y in pts if y <= top + 1); cx = (xs[0] + xs[-1]) / 2
+    for k in range(-3, 4):
+        a = math.radians(90 + k * 22)
+        for d in range(1, 6 - abs(k) // 2):
+            X, Y = round(cx + math.cos(a) * d * 1.1), round(top - math.sin(a) * d)
+            if 0 <= X < FW and 0 <= Y < FH and src[X, Y][3] < 255: px[X, Y] = ((255, 236, 140) if d > 2 else (232, 176, 40)) + (255,)
+
+def liberty_plate(dx, dy, v, inside):
+    navy = [(10, 16, 48), (20, 32, 86), (34, 54, 130), (60, 86, 176), (120, 150, 220)]
+    if inside and (dx * 5 + dy * 7) % 19 == 0: return (255, 255, 255)                                # white stars
+    return navy[min(4, int(max(0, v - 0.2) / 0.55 * 5))]
+
+def liberty_scarf(dx, dy, v):
+    red = (220, 36, 48) if v > 0.6 else (150, 20, 32)
+    return red if (dy // 2) % 2 == 0 else ((250, 250, 252) if v > 0.6 else (190, 194, 210))       # red and white stripes
+
+def liberty_blade(p, v):
+    x, y = p
+    return (255, 252, 220) if v > 0.8 or (x + y) % 6 == 0 else (240, 196, 70)
+
 HK_LOOKS = {
+    'liberty': dict(plate=liberty_plate, cloth=[(8, 12, 34), (18, 26, 64)], scarf=[(150, 20, 32), (220, 36, 48), (255, 140, 140)], scarf_fn=liberty_scarf,
+                    helm=[(10, 16, 48), (20, 32, 86), (40, 62, 140), (80, 110, 196)], glove=[(120, 90, 30), (180, 140, 50), (232, 190, 80), (255, 230, 150)],
+                    blade=liberty_blade, swipe=(255, 230, 140), crown=ray_crown, hair=lambda v: (int(250 * v), int(226 * v), int(170 * v)), glow=(255, 210, 90, 110)),
     'obsidian': dict(plate=obsidian_plate, cloth=[(10, 8, 12), (22, 18, 26)], scarf=[(200, 60, 10), (255, 140, 30), (255, 220, 120)],
                      helm=[(14, 10, 20), (30, 20, 40), (54, 38, 66), (90, 66, 106)], glove=[(14, 10, 20), (30, 20, 40), (54, 38, 66), (90, 66, 106)],
                      blade=obsidian_blade, swipe=(255, 160, 90), crown=horns, hair=lambda v: (int(232 * v), int(214 * v), int(200 * v)), glow=(255, 110, 30, 110)),
@@ -549,7 +641,62 @@ def aero_midnight(N):
     for x, y in zip(xs, ys):
         if (x * 5 + y * 11) % 17 == 0: sc[y, x, :3] = (255, 244, 200)
 
+def nu_luckyred(N):
+    """LUCKY RED (from the shop's nesting dolls): a red silk jacket with gold cloud swirls and knotted gold buttons
+    down the front, black hair tied with a red ribbon, gold-rimmed shades"""
+    h = N['hair']; ys, xs = np.nonzero(h[..., 3] > 0)
+    for x, y in zip(xs, ys): h[y, x, :3] = K.hexrgb(K.ramp_pick([0x0a0a10, 0x1a1a24, 0x2e2e3e, 0x4a4a60], K.shade_of(h[y, x]), 0.3, 1.0))
+    if len(ys):
+        bx, by = int(np.median(xs)) - 4, int(ys.max()) - 2
+        K.stamp(h, bx, by, ["rr.rr", ".rRr.", "r...r"], {'r': 0xd8202a, 'R': 0xffc040})   # the ribbon
+    hd = N['head']
+    for y in range(10, 15):
+        for x in range(24, 42):
+            if hd[y, x, 3] and K.shade_of(hd[y, x]) < 0.25: hd[y, x, :3] = K.hexrgb(0xe8b030 if y in (10, 14) else 0x2a0a0a)
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore', 'bthigh', 'fthigh'):
+        lay = N.get(n)
+        if lay is None: continue
+        ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if (hh >= 340 or hh <= 15) and ss > 0.4:                            # the red silk: gold cloud swirls
+                u = (x * 0.9 + y * 0.45) % 9; w = (x * 0.4 - y * 0.9) % 11
+                if (2.2 < u < 3.2 and w < 5) or (6 < w < 7 and u < 4): lay[y, x, :3] = K.hexrgb(0xffc040 if vv > 0.5 else 0xb8801c)
+    t = N['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+    if len(ys):
+        cx = int(np.median(xs)) + 2
+        for y in range(ys.min() + 3, ys.max() - 4, 3):                         # frog buttons: little gold knots in pairs
+            for x in (cx - 1, cx, cx + 1):
+                if t[y, x, 3]: K.put(t, x, y, 0xffd060 if x == cx else 0xc8901c)
+
+def aero_amber(N):
+    """AMBER (from the shop's nesting dolls): his dome turned to Baltic amber - honey glass with trapped bubbles and a
+    tiny fossil leaf - a golden goldfish, and a scarf of folk paper-cut patterns: red, green and blue on wheat"""
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    HONEY = [0x8a3a06, 0xb85a0e, 0xd8801a, 0xeca030, 0xf8c060, 0xffe0a0]
+    glass = (hd[..., 3] > 0) & (yy >= 3) & (yy < 22) & (hd[..., :3].max(-1) > 80) & ~np.all(hd[..., :3] >= 240, -1)
+    for y, x in zip(*np.nonzero(glass)):
+        v = K.shade_of(hd[y, x]); hd[y, x, :3] = K.hexrgb(K.ramp_pick(HONEY, v, 0.45, 1.3))
+        if (x * 17 + y * 11) % 37 == 0: hd[y, x, :3] = (255, 244, 210)          # trapped bubbles
+    K.stamp(hd, 26, 15, ["..f", ".ff", "fff", ".f."], {'f': 0x5a2a06}, only_full=True)   # a fossil leaf caught in it
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore', 'ffist', 'bthigh', 'fthigh', 'bshin', 'fshin'):   # his white suit: warm cream, like old ivory
+        lay = N.get(n)
+        if lay is None: continue
+        ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if ss < 0.18 and vv > 0.55: lay[y, x, :3] = K.hexrgb(K.ramp_pick([0xc89a5a, 0xe8c48a, 0xf8e0b0, 0xfff4dc], vv, 0.55, 1.0))
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        v = K.shade_of(sc[y, x]); sc[y, x, :3] = K.hexrgb(K.ramp_pick([0x8a6a2a, 0xc8a050, 0xe8cc80, 0xfff0c0], v, 0.2, 1.0))
+        k = (x * 3 + y * 5) % 13
+        if k == 0: sc[y, x, :3] = (216, 32, 42)
+        elif k == 4: sc[y, x, :3] = (40, 140, 60)
+        elif k == 8: sc[y, x, :3] = (40, 90, 200)
+
 PART_LOOKS = {
+    'luckyred': ('nu', 'nu_draw', NUG, {'acid': {'to': 44, 'sat': 1.2, 'val': 1.1}, 'hair': {'sat': 0.2, 'val': 0.3}, 'cloth': {'to': 356, 'sat': 3.2, 'val': 1.7}}, nu_luckyred, (255, 64, 56)),
+    'amber': ('aero', 'aero_draw', AEG, {'aqua': {'to': 30, 'sat': 0.9, 'val': 1.0}, 'lime': {'to': 44, 'sat': 0.8, 'val': 1.1}, 'fish': {'to': 46, 'sat': 1.1, 'val': 1.2}}, aero_amber, (255, 176, 70)),
     'vapor': ('nu', 'nu_draw', NUG, {'acid': {'to': 318, 'sat': 0.8, 'val': 1.1}, 'hair': {'hue': 184, 'sat': 0.9, 'val': 1.05}, 'cloth': {'to': 270, 'sat': 1.6, 'val': 1.3}}, nu_vapor, (255, 122, 208)),
     'glam': ('nu', 'nu_draw', NUG, {'acid': {'to': 322, 'sat': 1.1, 'val': 1.15}, 'hair': {'sat': 0.2, 'val': 1.2}, 'cloth': {'to': 44, 'sat': 2.4, 'val': 2.2}}, nu_glam, (255, 74, 184)),
     'midnight': ('aero', 'aero_draw', AEG, {'aqua': {'to': 232, 'sat': 1.0, 'val': 0.6}, 'lime': {'to': 268, 'sat': 0.5, 'val': 1.1}, 'fish': {'to': 44, 'sat': 0.9, 'val': 1.15}}, aero_midnight, (122, 150, 255)),
@@ -576,7 +723,7 @@ def build_parts(name):
     return A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
 
 # ====================================================================== run
-LOOKS = {'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
+LOOKS = {'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
          'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts}
 
 if __name__ == '__main__':

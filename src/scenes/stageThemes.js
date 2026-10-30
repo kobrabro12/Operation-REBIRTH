@@ -7,7 +7,7 @@
 //   grade     a colour wash multiplied over the whole picture (world and background, under the HUD)
 // The weather itself (rain, snow, petals...) is drawn by matchExtras.js.
 // Themes: NIGHTFALL, THUNDERSTORM, BLIZZARD, CHERRY BLOSSOM, FIREFLIES, BLOOD MOON, SANDSTORM, AURORA, NEON CITY,
-// CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE (from the nesting dolls, code PAPERSPLEASE).
+// CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE, TAIGA and WHITE NIGHTS (from the nesting dolls, code PAPERSPLEASE).
 import { VIEW_W, VIEW_H } from '../config.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -437,6 +437,83 @@ const THEMES = {
           for (let k = 0; k < 14; k++) { const yy = p.y - 44 + Math.sin(t * 0.12 + k * 0.5 + i) * 1.4 * (k / 14); g.fillStyle(k % 7 === 0 ? 0xa8140e : 0xd8201e, 1); g.fillRect(x + dir * (1 + k), yy, dir, 11); }
           g.fillStyle(0xffd040, 1); g.fillRect(x + dir * 3 - (dir < 0 ? 2 : 0), p.y - 42, 2, 2);
         });
+      }
+    },
+  },
+  // TAIGA (nesting dolls; no weather): a winter forest of birches and dark firs, a log cabin with a lit window and smoke
+  // from its chimney, a little wooden chapel on the hill; the platforms get snow, birch logs and a pine cone or two
+  'fx-taiga': {
+    grade: 0xe0e8f0,
+    backdrop(g, mid) {
+      bands(g, [0x6a7a9a, 0x7e8eaa, 0x96a4bc, 0xaebace, 0xc4cede, 0xd8e0ea]);
+      ridge(g, 250, [[40, 70], [210, 100], [380, 80], [560, 110]], 0x8c9ab4, 0xf0f4fa);
+      hills(mid, 300, 0, 26, 0xeef2f8, 20);
+      for (let i = 0; i < 22; i++) pine(mid, -120 + i * 44 + (i * 23) % 19, 302 - Math.abs(Math.sin((i * 44 - 90) * 0.012)) * 26, 30 + (i * 11) % 16, 0x2e4a3e);
+      for (let i = 0; i < 16; i++) {                                                           // birches: white trunks with black marks
+        const x = -100 + i * 58 + (i * 31) % 23, y = 310 - Math.abs(Math.sin((x + 20) * 0.012)) * 26, h = 46 + (i * 13) % 20;
+        mid.fillStyle(0xf4f2ea, 1); mid.fillRect(x, y - h, 3, h);
+        mid.fillStyle(0x1a1a1a, 1); for (let k = 6; k < h; k += 7 + (k % 3)) mid.fillRect(x + (k % 2), y - k, 2, 1);
+        mid.fillStyle(0xc8a050, 0.7); mid.fillEllipse(x + 1, y - h, 14, 9);
+      }
+      const cx = 300, cy = 286;                                                                // the log cabin
+      mid.fillStyle(0x5a3a22, 1); mid.fillRect(cx - 22, cy - 16, 44, 18);
+      mid.fillStyle(0x3a2412, 1); for (let k = 0; k < 4; k++) mid.fillRect(cx - 22, cy - 14 + k * 4, 44, 1);
+      mid.fillStyle(0xf4f8ff, 1); mid.fillTriangle(cx - 28, cy - 15, cx + 28, cy - 15, cx, cy - 32);
+      mid.fillStyle(0x3a2412, 1); mid.fillRect(cx + 10, cy - 32, 5, 10);
+      mid.fillStyle(0xffd060, 1); mid.fillRect(cx - 12, cy - 10, 7, 6); mid.fillStyle(0xffd060, 0.15); mid.fillCircle(cx - 8, cy - 7, 10);
+      for (let k = 0; k < 5; k++) { mid.fillStyle(0xe8ecf4, 0.5 - k * 0.08); mid.fillCircle(cx + 13 + k * 3, cy - 38 - k * 7, 3 + k); }   // chimney smoke
+      const hx = 470, hy = 262;                                                                // the chapel on the hill: one onion dome
+      mid.fillStyle(0x5a3a22, 1); mid.fillRect(hx - 8, hy - 14, 16, 16); mid.fillStyle(0x2a5a7a, 1); mid.fillCircle(hx, hy - 20, 6); mid.fillTriangle(hx - 3, hy - 24, hx + 3, hy - 24, hx, hy - 31);
+      mid.fillStyle(0xd8a028, 1); mid.fillRect(hx, hy - 37, 1, 6); mid.fillRect(hx - 2, hy - 35, 5, 1);
+    },
+    props(g, P) {
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        g.fillStyle(0xf4f8ff, 1); g.fillRect(p.x1 - 2, p.y - 3, w + 4, 4);
+        for (let x = p.x1; x < p.x2; x += 13) g.fillEllipse(x + 6, p.y - 3, 15, 5 + ((x * 3) % 3));
+        if (!p.solid) continue;
+        const lx = p.x1 + w * 0.22;                                                            // a stack of birch logs
+        for (const [dx, dy] of [[0, 0], [12, 0], [6, -7]]) { g.fillStyle(0xf4f2ea, 1); g.fillRect(lx + dx, p.y - 7 + dy, 11, 6); g.fillStyle(0x1a1a1a, 1); g.fillRect(lx + dx + 3, p.y - 6 + dy, 2, 1); g.fillRect(lx + dx + 7, p.y - 4 + dy, 2, 1); g.fillStyle(0xd8b888, 1); g.fillCircle(lx + dx + 11, p.y - 4 + dy, 2.5); }
+        const tx = p.x1 + w * 0.8;                                                             // a small snowy fir
+        g.fillStyle(0x2e4a3e, 1); for (let i = 0; i < 3; i++) g.fillTriangle(tx - 10 + i * 2, p.y - 6 - i * 8, tx + 10 - i * 2, p.y - 6 - i * 8, tx, p.y - 18 - i * 8);
+        g.fillStyle(0xf4f8ff, 1); for (let i = 0; i < 3; i++) g.fillTriangle(tx - 4 + i, p.y - 13 - i * 8, tx + 4 - i, p.y - 13 - i * 8, tx, p.y - 18 - i * 8);
+        g.fillStyle(0x5a3a22, 1); g.fillRect(tx - 1, p.y - 6, 3, 6);
+      }
+    },
+  },
+  // WHITE NIGHTS (nesting dolls; no weather): a northern summer night that never gets dark - a pale pink and lilac sky over a
+  // canal city, palace fronts in mint and yellow, a gold spire, a drawbridge raised; the platforms get lamp posts and railings
+  'fx-whitenights': {
+    grade: 0xf4e8f0,
+    backdrop(g, mid) {
+      bands(g, [0xb8a8d0, 0xcab4d8, 0xdcc0d8, 0xecccd4, 0xf8dcd0, 0xffe8d0]);
+      g.fillStyle(0xfff4e0, 0.7); g.fillCircle(150, 236, 16);
+      const wy = 296;
+      mid.fillStyle(0x7a8ab0, 1); mid.fillRect(-200, wy, W + 400, 200);                       // the canal
+      for (let x = -200; x < W + 200; x += 9) { mid.fillStyle(0xf4d8e0, 0.5); mid.fillRect(x, wy + 6 + (x % 3) * 5, 5, 1); }
+      const fronts = [[0xa8d8c0, 50], [0xf0d070, 40], [0xe8b0a8, 56], [0xd8e0f0, 44], [0xa8d8c0, 50], [0xf0d070, 48], [0xe8b0a8, 42], [0xd8e0f0, 52]];
+      let x = -150;
+      for (const [c, h] of fronts) {                                                           // palace fronts along the embankment
+        mid.fillStyle(c, 1); mid.fillRect(x, wy - h, 92, h);
+        mid.fillStyle(0xffffff, 0.9); mid.fillRect(x, wy - h, 92, 3); mid.fillRect(x, wy - 6, 92, 2);
+        for (let k = 0; k < 6; k++) { mid.fillStyle(0xffffff, 1); mid.fillRect(x + 8 + k * 14, wy - h + 10, 3, h - 22); mid.fillStyle(0x4a5470, 1); mid.fillRect(x + 4 + k * 14, wy - h + 12, 4, 7); mid.fillRect(x + 4 + k * 14, wy - h + 24, 4, 7); }
+        x += 96;
+      }
+      const sx = 330;                                                                          // the gold spire
+      mid.fillStyle(0xe8d8a0, 1); mid.fillRect(sx - 10, wy - 92, 20, 40); mid.fillStyle(0xd8a028, 1); mid.fillTriangle(sx - 4, wy - 92, sx + 4, wy - 92, sx, wy - 170);
+      mid.fillStyle(0xfff0a0, 1); mid.fillRect(sx - 1, wy - 160, 1, 50);
+      mid.fillStyle(0x4a4a5a, 1); mid.fillTriangle(470, wy, 510, wy, 492, wy - 52); mid.fillTriangle(560, wy, 520, wy, 538, wy - 52);   // a drawbridge, raised
+    },
+    props(g, P) {
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        g.fillStyle(0x2a2a34, 1); for (let x = p.x1 + 4; x < p.x2 - 4; x += 8) g.fillRect(x, p.y - 8, 1, 8);   // an iron railing
+        g.fillRect(p.x1 + 2, p.y - 9, w - 4, 1);
+        if (!p.solid) continue;
+        for (const lx of [p.x1 + 18, p.x2 - 18]) {                                             // lamp posts, lit (it never gets dark enough to need them)
+          g.fillStyle(0x2a2a34, 1); g.fillRect(lx - 1, p.y - 40, 3, 40); g.fillRect(lx - 5, p.y - 40, 11, 2);
+          g.fillStyle(0xfff0c0, 1); g.fillRect(lx - 3, p.y - 46, 7, 6); g.fillStyle(0xfff0c0, 0.15); g.fillCircle(lx, p.y - 43, 10);
+        }
       }
     },
   },

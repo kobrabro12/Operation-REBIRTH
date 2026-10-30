@@ -51,14 +51,6 @@ const QUIPS = {
     fire: [0.7, 'FIRE!', 'SHELL AWAY!', 'RELOADING!'], turn: [1, 'TANK, ROLL OUT!', 'CREW, MOUNT UP!', 'NOT ONE STEP BACK!'],
     limit: [1, 'KATYUSHA - FIRE!', 'CALLING THE ARTILLERY!', 'FLARE UP!'], ko: [1, 'URA!', 'FOR THE MOTHERLAND!', 'TARGET DOWN!'],
   },
-  // NIGHT WITCH (every costume): a night-bomber pilot - dry, quick, a little cocky
-  'night-witch:witch': {
-    jab: [0.15, 'HAH!', 'TOO SLOW!'], attack: [0.12, 'TALLY HO!', 'IN AND OUT!'],
-    smash: [0.5, 'BOMBS AWAY!', 'FULL THROTTLE!', 'HOLD ON TO SOMETHING!'],
-    grab: [0.6, 'CAUGHT YOU NAPPING!'], throw: [0.6, 'BAIL OUT!', 'WATCH THE PROPELLER!'], upb: [0.4, 'PULL UP!', 'CLIMBING!'],
-    fire: [0.4, 'PACKAGE DELIVERED!', 'HEADS UP!'], limit: [1, 'ENGINES OFF - WE GLIDE IN!', 'WITCHES, FOLLOW ME!'],
-    ko: [1, 'MAYDAY, MAYDAY!', 'GOING DOWN!', 'TELL THEM I FLEW WELL!'],
-  },
   // NU in INFERNO: a headliner playing to a stadium
   'nu:nuInferno': {
     attack: [0.12, 'BURN!', 'HEY!'], smash: [0.5, 'FEEL THE HEAT!', 'ARE YOU READY?!', 'TOO HOT!'],
@@ -99,7 +91,6 @@ const SPEECH = {
   nuSchool: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#2a3670', strokeThickness: 4 } },
   nuBones: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#e8ffd8', stroke: '#1e3a12', strokeThickness: 4 } },
   nuInferno: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffd060', stroke: '#5a0a06', strokeThickness: 4 } },
-  witch: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#f2e6cc', stroke: '#1a2a5a', strokeThickness: 4 } },
   soviet: { typed: false, style: { fontFamily: FONT, fontSize: '9px', fontStyle: 'bold', color: '#ffffff', stroke: '#c8201e', strokeThickness: 4 } },
   hero: { typed: false, style: { fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffe14a', stroke: '#2a0408', strokeThickness: 4 } },
   wowAero: { typed: false, style: { fontFamily: FONT, fontSize: '7px', color: '#0d3550', backgroundColor: '#e6f8ff', padding: { x: 4, y: 3 } } },

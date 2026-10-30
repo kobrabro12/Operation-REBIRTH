@@ -1297,14 +1297,13 @@ export class TankShell {
     this.vx = this.dir * spec.speed; this.vy = spec.lift;
     this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
     this.g = match.add.graphics(); match.addWorld(this.g);
-    if (spec.bomb) sfx('swing', 0.5, 0.7);                                // NIGHT WITCH: a little bomb, lobbed by hand
-    else { sfx('bighit', 0.7, 0.6); sfx('thunder', 0.35, 1.5); match.shake(4, 4); }
+    sfx('bighit', 0.7, 0.6); sfx('thunder', 0.35, 1.5); match.shake(4, 4);
   }
   hitbox() { return { x1: this.x - 5, x2: this.x + 5, y1: this.y - 4, y2: this.y + 4, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
   step() {
     this.t++;
     this.vy += this.spec.grav; this.x += this.vx; this.y += this.vy;
-    if (!this.spec.bomb && this.t % 2 === 0) this.match.particles.push({ x: this.x - this.dir * 6, y: this.y, vx: -this.dir * 0.3, vy: -0.3, life: 22, color: this.t % 4 ? 0x8a8478 : 0x5a5852, size: 3, grav: -0.01, drag: 0.95 });
+    if (this.t % 2 === 0) this.match.particles.push({ x: this.x - this.dir * 6, y: this.y, vx: -this.dir * 0.3, vy: -0.3, life: 22, color: this.t % 4 ? 0x8a8478 : 0x5a5852, size: 3, grav: -0.01, drag: 0.95 });
     const P = this.match.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && this.y >= p.y && this.y - this.vy < p.y + 2 && (p.solid || this.vy > 0));
     if (P) { this.y = P.y; this.kill(); return; }
     if (--this.life <= 0 || this.y > 330) this.kill();
@@ -1330,12 +1329,6 @@ export class TankShell {
     if (!this.alive) return;
     const g = this.g, x = Math.round(this.x), y = Math.round(this.y), a = Math.atan2(this.vy, this.vx);
     g.clear();
-    if (this.spec.bomb) {                                                 // a round black bomb with a tail fin and a fizzing fuse
-      g.fillStyle(0x1a1a20, 1); g.fillCircle(x, y, 4); g.fillStyle(0x4a4a56, 1); g.fillCircle(x - 1, y - 1, 1.5);
-      g.fillStyle(0x3a3a44, 1); g.fillRect(x - Math.cos(a) * 6 - 2, y - Math.sin(a) * 6 - 2, 4, 4);
-      g.fillStyle(this.t % 4 < 2 ? 0xffe08a : 0xff8a2a, 1); g.fillRect(x + 1, y - 6, 2, 2);
-      return;
-    }
     g.lineStyle(4, 0x2a2a20, 1); g.lineBetween(x - Math.cos(a) * 5, y - Math.sin(a) * 5, x + Math.cos(a) * 4, y + Math.sin(a) * 4);
     g.lineStyle(2, 0x8a8a6a, 1); g.lineBetween(x - Math.cos(a) * 4, y - Math.sin(a) * 4, x + Math.cos(a) * 3, y + Math.sin(a) * 3);
     g.fillStyle(0xffd040, 1); g.fillCircle(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 1.5);

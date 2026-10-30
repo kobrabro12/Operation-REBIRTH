@@ -18,8 +18,9 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 // while the shopkeeper is NOLI (until you leave the shop), after the shopkeeper's code NOLI; 'riphood' = after the code
 // RIPHOOD (the WW2 shop: OLIVE DRAB, THE FRONT, the RIPHOOD tracks, NEWSREEL and the SUPPLY DROP machine, which only
 // gives those); 'papers' = after the code PAPERSPLEASE (the PEOPLE'S STORE: RED ARMY, VODKA and the three MATRYOSHKA
-// machines); 'doll' = never on sale - only found inside the MATRYOSHKA dolls (a country's costume for each of the
-// shopkeeper's souvenirs, RED SQUARE, three tracks, USHANKAS and NIGHT WITCH, a whole fighter). Hidden items don't count
+// machines); 'doll' = never on sale - only found inside the MATRYOSHKA dolls (a drawn costume for each country the
+// shopkeeper's souvenirs come from, the RED SQUARE / TAIGA / WHITE NIGHTS themes, four tracks, USHANKAS, FIREBIRD TRAILS
+// and the DANCING BEAR). Hidden items don't count
 // towards the COLLECTOR / COMPLETIONIST achievements.
 // Prices: a match earns about 25-85 coins (progress.js COIN_RATES), so a cheap item is a few matches away and the
 // whole shop takes a few hundred.
@@ -40,11 +41,11 @@ export const SHOP = [
     { id: 'cos-olive', kind: 'costume', hidden: 'riphood', fighter: 'soul-summoner', skin: 'OLIVE DRAB', name: 'OLIVE DRAB', price: 1200, info: 'SOUL SUMMONER. A STEEL HELMET, OLIVE ARMOUR, A KHAKI GREATCOAT, A FLARE FOR A FLAME.' },
     { id: 'cos-redarmy', kind: 'costume', hidden: 'papers', fighter: 'last-seen', skin: 'RED ARMY', name: 'RED ARMY', price: 1941, info: 'ROSEMARY (TEST FIGHTER). A SOVIET SOLDIER OF 1942 - AND WHEN SHE TURNS, A TANK, WITH ITS OWN MOVES.' },
     // found in the MATRYOSHKA dolls only: a costume for each country the shopkeeper's souvenirs come from
-    { id: 'cos-tricolore', kind: 'costume', hidden: 'doll', fighter: 'soul-summoner', skin: 'TRICOLORE', name: 'TRICOLORE', price: 900, info: 'SOUL SUMMONER. A BLUE CAPE, SILVER ARMOUR, A RED FLAME. VIVE LE FEU!' },
-    { id: 'cos-teatime', kind: 'costume', hidden: 'doll', fighter: 'mr-wake', skin: 'TEATIME', name: 'TEATIME', price: 900, info: 'MR WAKE. NAVY ROBES, A RED-HOT GEM. HE ALWAYS STOPS AT FOUR FOR TEA.' },
-    { id: 'cos-liberty', kind: 'costume', hidden: 'doll', fighter: 'hero-knight', skin: 'LIBERTY', name: 'LIBERTY', price: 900, info: 'LACY. STARS AND STRIPES: A NAVY SUIT AND A RED SASH. HER HITS SHOOT STARS.' },
-    { id: 'cos-luckyred', kind: 'costume', hidden: 'doll', fighter: 'nu', skin: 'LUCKY RED', name: 'LUCKY RED', price: 900, info: 'NU (TEST FIGHTER). RED AND GOLD FOR LUCK, LIKE A NEW-YEAR LANTERN. HITS BURST INTO FIRECRACKERS.' },
-    { id: 'cos-amber', kind: 'costume', hidden: 'doll', fighter: 'aero', skin: 'AMBER', name: 'AMBER', price: 900, info: 'AERO (TEST FIGHTER). HIS DOME TURNED TO BALTIC AMBER, WARM AS HONEY. A PIEROGI-SHAPED GOLDFISH (NOT REALLY).' },
+    { id: 'cos-tricolore', kind: 'costume', hidden: 'doll', fighter: 'soul-summoner', skin: 'TRICOLORE', name: 'TRICOLORE', price: 900, info: 'SOUL SUMMONER. A BLACK BICORNE WITH A TRICOLOUR COCKADE, A CAPE IN BLUE, WHITE AND RED, A WHITE SASH, A RED FLAME.' },
+    { id: 'cos-teatime', kind: 'costume', hidden: 'doll', fighter: 'mr-wake', skin: 'TEATIME', name: 'TEATIME', price: 900, info: 'MR WAKE. A RED TARTAN CLOAK, A MONOCLE, AND A PORCELAIN TEAPOT ON HIS STAFF, STILL STEAMING. HE ALWAYS STOPS AT FOUR.' },
+    { id: 'cos-liberty', kind: 'costume', hidden: 'doll', fighter: 'hero-knight', skin: 'LIBERTY', name: 'LIBERTY', price: 900, info: 'LACY. NAVY ARMOUR SCATTERED WITH STARS, A STRIPED SCARF, A CROWN OF GOLD RAYS AND A GOLDEN BLADE.' },
+    { id: 'cos-luckyred', kind: 'costume', hidden: 'doll', fighter: 'nu', skin: 'LUCKY RED', name: 'LUCKY RED', price: 900, info: 'NU (TEST FIGHTER). A RED SILK JACKET WITH GOLD CLOUDS AND KNOTTED BUTTONS, A RED RIBBON, GOLD SHADES. HITS BURST LIKE FIRECRACKERS.' },
+    { id: 'cos-amber', kind: 'costume', hidden: 'doll', fighter: 'aero', skin: 'AMBER', name: 'AMBER', price: 900, info: 'AERO (TEST FIGHTER). A DOME OF BALTIC AMBER WITH BUBBLES AND A FOSSIL LEAF TRAPPED INSIDE, AN IVORY SUIT, A FOLK-ART SCARF.' },
     { id: 'cos-sunset', kind: 'costume', fighter: 'aero', skin: 'SUNSET', name: 'SUNSET', price: 900, info: 'AERO (TEST FIGHTER). GLASS GONE ORANGE AND MAGENTA. GOLDEN BUBBLES.' },
   ] },
   { name: 'STAGES', items: [
@@ -61,6 +62,8 @@ export const SHOP = [
     { id: 'fx-harvest', kind: 'fx', name: 'HARVEST MOON', price: 600, info: 'RE-THEMES ANY STAGE: AN AUTUMN EVENING - RED AND GOLD WOODS, PUMPKINS, HAY BALES, A SCARECROW, FALLING LEAVES.', color: 0xe8822a },
     { id: 'fx-front', kind: 'fx', hidden: 'riphood', name: 'THE FRONT', price: 900, info: 'RE-THEMES ANY STAGE: A RUINED TOWN AT DUSK, SEARCHLIGHTS, SANDBAGS, BARBED WIRE, CRATES. ASH FALLS.', color: 0x806a44 },
     { id: 'fx-redsquare', kind: 'fx', hidden: 'doll', name: 'RED SQUARE', price: 900, info: 'RE-THEMES ANY STAGE: A WINTER NIGHT UNDER ONION DOMES AND A RED BRICK WALL, A CLOCK TOWER WITH A RED STAR, BANNERS ON THE PLATFORMS. (FOUND IN THE DOLLS)', color: 0xc8201e },
+    { id: 'fx-taiga', kind: 'fx', hidden: 'doll', name: 'TAIGA', price: 800, info: 'RE-THEMES ANY STAGE: A WINTER FOREST OF BIRCHES AND FIRS, A LOG CABIN WITH A LIT WINDOW, A CHAPEL ON THE HILL. (FOUND IN THE DOLLS)', color: 0x2e4a3e },
+    { id: 'fx-whitenights', kind: 'fx', hidden: 'doll', name: 'WHITE NIGHTS', price: 800, info: 'RE-THEMES ANY STAGE: A SUMMER NIGHT THAT NEVER GETS DARK - A PINK SKY, A CANAL, PALACE FRONTS AND A GOLD SPIRE. (FOUND IN THE DOLLS)', color: 0xe8b0c8 },
     { id: 'fx-aurora', kind: 'fx', name: 'AURORA', price: 900, info: 'RE-THEMES ANY STAGE: A POLAR NIGHT, ICY MOUNTAINS, ICE CRYSTALS AND RIBBONS OF LIGHT.', color: 0x3affa8 },
   ] },
   { name: 'MUSIC', items: [
@@ -82,6 +85,7 @@ export const SHOP = [
     { id: 'mus-soviet', kind: 'music', hidden: 'doll', name: "THE PEOPLE'S ANTHEM", price: 1000, info: 'MASON\'S PIXELATED AUDIO 17 - THE ANTHEM THE RADIO BLASTS IN THE PEOPLE\'S STORE. (FOUND IN THE DOLLS)', color: 0xd8201e },
     { id: 'mus-korobeiniki', kind: 'music', hidden: 'doll', name: 'KOROBEINIKI', price: 500, info: 'THE OLD RUSSIAN PEDDLERS\' SONG ON BALALAIKA AND ACCORDION - IT GETS FASTER EVERY TIME (IT DOESN\'T). (FOUND IN THE DOLLS)', color: 0xffc83a },
     { id: 'mus-balalaika', kind: 'music', hidden: 'doll', name: 'BALALAIKA', price: 500, info: 'A STOMPING DANCE: TREMOLO BALALAIKA, ACCORDION, CLAPS. HEY! (FOUND IN THE DOLLS)', color: 0xe8702a },
+    { id: 'mus-troika', kind: 'music', hidden: 'doll', name: 'TROIKA', price: 500, info: 'A SLEIGH RIDE AT A GALLOP: JINGLING BELLS, BALALAIKA AND ACCORDION. (FOUND IN THE DOLLS)', color: 0x6ad0ff },
     { id: 'mus-mason', kind: 'music', name: "THE ARTIST'S CUT", price: 800, info: 'LIVE ON FOREVER DAFT PUNK...', color: 0xf3c358, rgb: true },   // rgb: its record glows through the rainbow (ShopScene vinyl)
   ] },
   { name: 'EXTRAS', items: [
@@ -101,8 +105,8 @@ export const SHOP = [
     { id: 'ext-newsreel', kind: 'extra', hidden: 'riphood', name: 'NEWSREEL', price: 700, info: 'MATCHES PLAY LIKE A 1940S NEWSREEL: SEPIA, FILM GRAIN, SCRATCHES AND A FLICKERING PROJECTOR.', color: 0xd8c8a0 },
     { id: 'ext-vodka', kind: 'unlock', hidden: 'papers', img: 'shop_vodka', stage: 'STALINGRAD', name: 'VODKA', price: 1942, info: 'A BOTTLE OF THE GOOD STUFF. UNLOCKS A NEW STAGE: STALINGRAD, A CITY IN RUINS IN THE WINTER OF 1942.', color: 0xd8ecf4 },
     { id: 'ext-ushanka', kind: 'extra', hidden: 'doll', name: 'USHANKAS', price: 600, info: 'EVERY FIGHTER WEARS A FUR HAT WITH A RED STAR. IT IS COLD OUT THERE. (FOUND IN THE DOLLS)', color: 0x8a6a4a },
-    // NIGHT WITCH: a whole new fighter, at the very bottom of the dolls (rare - the GOLDEN DOLL is the best bet)
-    { id: 'chr-witch', kind: 'fighter', hidden: 'doll', fighter: 'night-witch', name: 'NIGHT WITCH', price: 3000, info: 'A NEW FIGHTER: A NIGHT-BOMBER PILOT WITH A WRENCH, A BAG OF BOMBS AND A BIPLANE SQUADRON FOR A LIMIT. ON THE SELECT SCREEN ONCE SHE IS YOURS.', color: 0x3a5aa0 },
+    { id: 'ext-firebird', kind: 'extra', hidden: 'doll', name: 'FIREBIRD TRAILS', price: 750, info: 'LAUNCHED FIGHTERS SHED THE BURNING FEATHERS OF THE FIREBIRD - RED, ORANGE AND GOLD. (FOUND IN THE DOLLS)', color: 0xff6a1a },
+    { id: 'ext-bear', kind: 'extra', hidden: 'doll', name: 'DANCING BEAR', price: 650, info: 'A LITTLE BEAR CUB IN A RED WAISTCOAT DANCES ALONG THE STAGE - AND CLAPS FOR EVERY KO. (FOUND IN THE DOLLS)', color: 0x8a5a2a },
     { id: 'ext-impact', kind: 'extra', name: 'IMPACT FRAMES', price: 800, info: 'BIG HITS FLASH BLACK AND WHITE, LIKE AN ANIME.', color: 0xe8e8e8 },
   ] },
   // GAMBLING: gacha capsule machines - pay, turn the crank, get a random prize from the shelf the machine stocks
@@ -119,10 +123,10 @@ export const SHOP = [
     { id: 'gacha-supply', hidden: 'riphood', name: 'SUPPLY DROP', price: 800, info: 'A CRATE ON A PARACHUTE. INSIDE: ONE OF THE RIPHOOD ITEMS.', gacha: { machine: 'supply', pool: 'riphood', pulls: 1 }, color: 0x6a7232 },
     // the MATRYOSHKA dolls (code PAPERSPLEASE): open a doll, find a smaller one inside, and a prize in each - the rarer the
     // doll, the more of them nest inside (pulls). They only hold the 'doll' prizes; `odds` = how much likelier (or rarer)
-    // a prize is than the rest (1 = normal): NIGHT WITCH is rare, rarest in the little doll
-    { id: 'gacha-doll1', hidden: 'papers', name: 'LITTLE DOLL', price: 700, info: 'ONE DOLL, ONE PRIZE: A COSTUME, A THEME, A TRACK, AN EXTRA - OR, VERY RARELY, A NEW FIGHTER.', img: 'shop_dolls', imgFrame: 0, gacha: { machine: 'doll', paint: 0, pool: 'doll', pulls: 1, odds: { 'chr-witch': 0.3 } }, color: 0xd8201e },
-    { id: 'gacha-doll3', hidden: 'papers', name: 'PAINTED DOLL', price: 1800, info: 'THREE DOLLS, ONE INSIDE THE OTHER, A PRIZE IN EACH. A BETTER CHANCE AT THE NEW FIGHTER.', img: 'shop_dolls', imgFrame: 3, gacha: { machine: 'doll', paint: 1, pool: 'doll', pulls: 3, odds: { 'chr-witch': 0.6 } }, color: 0x2a5ad8 },
-    { id: 'gacha-doll5', hidden: 'papers', name: 'GOLDEN DOLL', price: 3500, info: 'FIVE DOLLS DEEP, NEVER A PRIZE YOU OWN. THE BEST CHANCE AT THE NEW FIGHTER.', img: 'shop_dolls', imgFrame: 6, gacha: { machine: 'doll', paint: 2, pool: 'doll', pulls: 5, fresh: true, odds: { 'chr-witch': 1.5 } }, color: 0xffc83a },
+    // a prize is than the rest (1 = normal)
+    { id: 'gacha-doll1', hidden: 'papers', name: 'LITTLE DOLL', price: 700, info: 'ONE DOLL, ONE PRIZE: A COSTUME, A STAGE THEME, A TRACK OR AN EXTRA.', img: 'shop_dolls', imgFrame: 0, gacha: { machine: 'doll', paint: 0, pool: 'doll', pulls: 1 }, color: 0xd8201e },
+    { id: 'gacha-doll3', hidden: 'papers', name: 'PAINTED DOLL', price: 1800, info: 'THREE DOLLS, ONE INSIDE THE OTHER, A PRIZE IN EACH.', img: 'shop_dolls', imgFrame: 3, gacha: { machine: 'doll', paint: 1, pool: 'doll', pulls: 3 }, color: 0x2a5ad8 },
+    { id: 'gacha-doll5', hidden: 'papers', name: 'GOLDEN DOLL', price: 3500, info: 'FIVE DOLLS DEEP, AND NEVER A PRIZE YOU OWN ALREADY.', img: 'shop_dolls', imgFrame: 6, gacha: { machine: 'doll', paint: 2, pool: 'doll', pulls: 5, fresh: true }, color: 0xffc83a },
     { id: 'gacha-golden', name: 'GOLDEN CAPSULE', price: 1100, info: 'ONE PRIZE FROM ANY SHELF - ALWAYS ONE YOU DO NOT OWN YET.', gacha: { machine: 'golden', pool: 'ANY', pulls: 1, fresh: true }, color: 0xf3c358 },
   ] },
 ];

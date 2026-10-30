@@ -12,7 +12,7 @@ export const NU = {
   name: 'NU',
   sheets: { idle: 'nu_idle', run: 'nu_run', jump: 'nu_jump', fall: 'nu_fall', moves: 'nu_moves' },
   // costumes with their own drawing (skins.js sheetSet) - tools/sprites/nu_costume_moves.py (VAPORWAVE: shop_costumes.py)
-  costumeSheets: Object.fromEntries(['inferno', 'street', 'bones', 'school', 'vapor', 'glam'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'nu_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['inferno', 'street', 'bones', 'school', 'vapor', 'glam', 'luckyred'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'nu_' + s + '_' + k]))])),
   runCycle: [0, 8],
   moveAnims: NU_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,                 // feet on row 58 of the 64x64 frame
