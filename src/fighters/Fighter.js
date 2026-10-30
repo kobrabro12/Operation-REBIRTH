@@ -77,7 +77,25 @@ export class Fighter {
 
   // ------------------------------------------------------------------ helpers
   get body() { return this.bodyOverride || this.def.body; }   // (WHAT ONCE WAS is only a small TV for a while)
-  hurtbox() { const b = this.body; return { x1: this.x - b.w / 2, x2: this.x + b.w / 2, y1: this.y - b.h, y2: this.y }; }
+  hurtbox() {
+    const hf = this.def.hurtFrames;                   // a fighter whose hurtbox follows its drawing, frame by frame (Lacy)
+    if (hf && this.curSheet) {
+      const name = this.sheetName(this.curSheet), box = name && hf[name] && hf[name][this.curFrame];
+      if (box) {
+        const flip = this.curFlip ? -1 : 1, d = this.facing * flip;
+        const x1 = d > 0 ? box[0] : -box[2], x2 = d > 0 ? box[2] : -box[0];
+        return { x1: this.x + x1, x2: this.x + x2, y1: this.y + box[1], y2: this.y + box[3] };
+      }
+    }
+    const b = this.body; return { x1: this.x - b.w / 2, x2: this.x + b.w / 2, y1: this.y - b.h, y2: this.y };
+  }
+  // which strip (idle, run, moves...) a sheet key is, for the current costume
+  sheetName(key) {
+    if (this._sheetNames && this._sheetNamesFor === this.sheets) return this._sheetNames[key];
+    this._sheetNamesFor = this.sheets; this._sheetNames = {};
+    for (const [k, v] of Object.entries(this.sheets || {})) this._sheetNames[v] = k;
+    return this._sheetNames[key];
+  }
   center() { return { x: this.x, y: this.y - this.body.h / 2 }; }
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }

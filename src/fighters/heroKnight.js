@@ -6,6 +6,7 @@
 // those two sword animations until her real moves are designed.
 import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
 import { HK_MOVES } from './hkMoves.js';
+import { HK_HURT } from './hkHurt.js';
 
 // Limit beam colours: steel and white
 const BEAM_STEEL = { outline: 0x14181c, deep: 0x4c5a5f, mid: 0x929ca0, light: 0xc9c9c9, core: 0xffffff };
@@ -38,6 +39,9 @@ export const HERO_KNIGHT = {
   swingSfx: 'slash', hitSfx: 'clang',   // steel swishes, and steel ringing when they land
   pal: PAL_CYAN,                  // her spin ring and the glow of her Limit blade
   body: { w: 22, h: 48 },
+  // her hurtbox follows her drawing frame by frame (tools/sprites/hk_hurtboxes.py), since her poses lunge and crouch
+  // far from where a fixed box would be; `body` is still used before her first frame is drawn
+  hurtFrames: HK_HURT,
   headTop: 46,
   tagY: 60,
   weight: 1.0,

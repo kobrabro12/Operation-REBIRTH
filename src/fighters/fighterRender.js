@@ -185,12 +185,17 @@ export class FighterRender {
       spr.setRotation(a.rot || 0); spr.setAlpha(a.alpha ?? 1); spr.y = Math.round(this.y);
       if (s !== 'jumpsquat' && s !== 'land') spr.setScale(1, 1);
       if (a.flip) spr.setFlipX(!spr.flipX);
+      this._animFlip = !!a.flip;
     }
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
+    this.curSheet = sheet; this.curFrame = frame; this.curFlip = d.ownAnims && !!this._animFlip;   // (what's drawn: Lacy's hurtbox follows it)
     if (d.float && d.float.hover && !['grabbed', 'seized', 'ledge', 'ledgeclimb', 'respawn'].includes(s)) spr.y -= Math.round(d.float.hover + 2 * Math.sin(this.anim * 0.07));   // floating off the ground
-    if (d.movesOrigin) {                       // the move frames are bigger, so their feet sit at a different spot
-      const mo = sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY];
-      if (spr.originX !== mo[0] || spr.originY !== mo[1]) spr.setOrigin(mo[0], mo[1]);
+    {                                          // where the feet are in the frame (the move frames are bigger, so theirs sit elsewhere)
+      const mo = d.movesOrigin && sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY ?? spr.originY];
+      // a flipped sprite is mirrored about the middle of its frame, so an off-centre origin has to be mirrored too -
+      // otherwise a fighter whose feet aren't in the middle of the frame (Lacy, Mr Wake) is drawn off from where they are
+      const ox = spr.flipX ? 1 - mo[0] : mo[0];
+      if (spr.originX !== ox || spr.originY !== mo[1]) spr.setOrigin(ox, mo[1]);
     }
 
     // hit flash and invincibility blink
