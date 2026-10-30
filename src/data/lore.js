@@ -16,6 +16,11 @@ export const FILES = {
     origin: 'A FALLEN KINGDOM\'S LAST KNIGHTLY ORDER', moves: 'GRAND SLAM - BLADE TOSS - CYCLONE SLASH - COUNTER', limit: 'THOUSAND CUTS',
     lore: 'The youngest knight of an order that no longer exists. When her kingdom fell, Lacy took the order\'s last sword and its oath - protect those who cannot protect themselves - and walked out into the world alone. She swings like a slugger, waits like a duelist, and has never once dropped the sword she throws. Her hair turned white the night the castle burned. She doesn\'t talk about it.',
   },
+  'night-witch': {
+    no: '004', alias: 'THE NIGHT WITCH', cls: 'NIGHT-BOMBER PILOT', weapon: 'A STEEL WRENCH AND A BAG OF BOMBS',
+    origin: 'A WOMEN\'S NIGHT-BOMBER REGIMENT, 1942', moves: 'BOMB TOSS - STRAFE RUN - CLIMB - ENGINES OFF', limit: 'NIGHT RAID',
+    lore: 'She flew a wooden biplane older than she was, at night, with no lights, no radio and no parachute. The trick was to climb high, cut the engine and glide in so quietly that all anyone heard was the wind in the wires - the sound of a broom, they said, and so they called her regiment the night witches. She never minded. She found her way into a nesting doll in a shop that should not exist, and she is not leaving without a fight.',
+  },
 };
 
 // lore for costumes that aren't milestones, by fighter id and costume name
@@ -54,6 +59,12 @@ export const SKIN_LORE = {
     '1-BIT': 'An old training simulator recorded every duel she ever fought. One night the recording started fighting back.',
     AKATSUKI: '"Dawn." The name a village gave the wandering swordswoman in crimson who arrived at sunrise and left their bandits in crystal shards.',
     STARLIGHT: 'She stood night watch on the Sanctum walls so often that the stars started to stick to her armour.',
+  },
+  'night-witch': {
+    'NIGHT WITCH': 'Leather helmet, fleece collar, a wrench in her belt. Her plane was made of plywood and canvas; she flew it anyway, eight times a night.',
+    SEARCHLIGHT: 'Caught in the beam over the river, she rolled the plane and dived for the dark. The jacket never lost the glare.',
+    WINTER: 'The winter of 1942: frost on the goggles, white paint on the wings, ice in the wires.',
+    MEDAL: 'The parade uniform, worn once, the day they pinned the gold star on her. She went back up that same night.',
   },
 };
 

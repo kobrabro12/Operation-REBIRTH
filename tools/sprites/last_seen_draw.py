@@ -42,6 +42,17 @@ WRONG = {
     'paper': (0xd8d0b8, 0xc4bca2, 0xa89e84, 0x7a7262, 0x3a3428),
 }
 
+# RED ARMY (her costume from the shop's code PAPERSPLEASE): a Soviet soldier of 1942 - an olive greatcoat, khaki
+# trousers tucked into black boots, a brown fur hat (draw_soviet adds the rest)
+SOVIET = {
+    'coat': (0xb2aa78, 0x8e8656, 0x726a40, 0x524a2a, 0x2a2614),
+    'skin': CALM['skin'],
+    'hair': CALM['hair'],
+    'boot': (0x6a6a72, 0x44444c, 0x2c2c32, 0x1a1a1e, 0x08080a),
+    'tight': (0x9a8a5a, 0x7a6c44, 0x5e5234, 0x423a24, 0x221e12),
+    'paper': CALM['paper'],
+}
+
 def shade(img, pal):
     """Light from the upper left: a highlight edge, the mid tone, a two-pixel shadow on the lower right, and an
     outline in the material's own darkest shade (not black)."""
@@ -382,7 +393,7 @@ def draw_mascot():
 def draw_parts():
     if STYLE == 'wrong': return draw_mascot()
     W = STYLE == 'wrong'
-    C = WRONG if W else CALM
+    C = WRONG if W else SOVIET if STYLE == 'soviet' else CALM
     K, T, B, CO, HR = C['skin'], C['tight'], C['boot'], C['coat'], C['hair']
     P = {}
     # ---------------- legs: slim; under the coat only the shins show
@@ -508,11 +519,67 @@ def draw_parts():
     P['face'] = np.array(blank())
     # Mason's edit of her base sprite (tools/sprites/art/rosemary_base.png): one wide, staring eye and a raw,
     # open mouth. Kept here as pixels on the head part (same coordinates as the art, she stands at rest in it).
-    if STYLE == 'calm':
+    if STYLE == 'soviet': draw_soviet(P)
+    if STYLE in ('calm', 'soviet'):
         put(P['head'], [(35, 12), (36, 12), (35, 13), (35, 14), (36, 14)], 0xffffff)
         put(P['head'], [(36, 13)], 0x000000); put(P['head'], [(37, 13)], 0xa87c6c)
         put(P['head'], [(35, 18), (36, 18)], 0xb06a6a); put(P['head'], [(37, 18)], 0xc74848)
     return P
+
+def draw_soviet(P):
+    """RED ARMY: on top of her drawn in SOVIET's colours - an ushanka (a brown fur hat, its ear flaps tied up, a red star on
+    the front flap) over her bob, the greatcoat made double-breasted with brass buttons, red collar tabs and shoulder
+    boards, a leather belt with a star buckle and ammo pouches, the trousers' seams, the boots' tops - and instead of
+    her missing poster, a rifle held at her side."""
+    FUR = (0xc8ac88, 0x9a7e5c, 0x7a6044, 0x56422e, 0x2e2218)
+    CL = SOVIET['coat']
+    # ---- the hat: a cloth crown, a fur band all round, the front flap turned up with the star, a flap tied up at the side
+    h = P['hair']
+    h[:9, :] = 0                                                               # (the top of her bob goes under the hat)
+    for y in range(3, 11):
+        for x in range(27, 42):
+            inside = ((x - 34) / 7.6) ** 2 + ((y - 8.5) / 5.2) ** 2 <= 1 or (y >= 8 and 27 <= x <= 41)
+            if not inside: continue
+            c = FUR[1] if (x + y * 3) % 5 else FUR[0]
+            if y <= 5: c = 0x6a6a4e if (x + y) % 3 else 0x585a40                 # the cloth crown on top
+            if x >= 39 and y >= 6: c = FUR[2]                                    # (shaded on the right)
+            if y in (9, 10) and 34 <= x <= 41: c = FUR[0] if (x % 2) else FUR[1] # the front flap, turned up
+            h[y, x] = hx(c)
+    for y in range(2, 12):                                                     # its outline
+        for x in range(26, 43):
+            if h[y, x, 3]: continue
+            if any(0 <= y + dy < 64 and h[y + dy, x + dx, 3] and h[y + dy, x + dx, :3].tolist() != list(hx(FUR[4])[:3]) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) and y < 11:
+                h[y, x] = hx(FUR[4])
+    for (x, y, c) in ((37, 8, 0xe8201e), (36, 9, 0xe8201e), (37, 9, 0xff5a4a), (38, 9, 0xe8201e), (37, 10, 0xa8100e), (36, 10, 0xa8100e), (38, 10, 0xa8100e)):
+        put(h, [(x, y)], c)                                                     # the red star on the front
+    for (x, y) in ((27, 9), (27, 10), (28, 10), (28, 11), (27, 11)): put(h, [(x, y)], FUR[2])   # the side flap, tied up
+    put(h, [(28, 12)], FUR[3]); put(h, [(29, 3), (30, 3), (31, 4)], 0x7a7c5a)    # its tie; light on the crown
+    # ---- the greatcoat: double-breasted, brass buttons, red collar tabs, shoulder boards, a belt with a star buckle, pouches
+    t = P['torso']
+    put(t, [(31, 21), (32, 21)], 0xc81e1e); put(t, [(35, 21), (36, 21)], 0xc81e1e)   # collar tabs
+    put(t, [(28, 23), (29, 23), (30, 23)], CL[0]); put(t, [(37, 23), (38, 23)], CL[1])   # shoulder boards
+    for y in (24, 27, 30, 37, 41): put(t, [(33, y)], 0xd8b040); put(t, [(37, y)], 0xd8b040)   # two rows of brass buttons
+    put(t, [(x, y) for y in (32, 33) for x in range(27, 40)], 0x5a3a1e)       # the leather belt...
+    put(t, [(x, 32) for x in range(28, 39)], 0x7a5230)
+    put(t, [(34, 32), (35, 32), (34, 33), (35, 33)], 0xe8c040); put(t, [(35, 32)], 0xfff0a0)   # ...its brass star buckle
+    for x0 in (29, 37):                                                        # ammo pouches either side of it
+        put(t, [(x, y) for y in (34, 35, 36) for x in range(x0, x0 + 3)], 0x6a4a26); put(t, [(x, 34) for x in range(x0, x0 + 3)], 0x8a6236)
+    put(t, [(x, y) for y in (38, 39) for x in (30, 31)], CL[3])                # a pocket flap
+    for y in range(36, 47): put(t, [(36, y)], CL[3])                           # the coat's front edge, longer
+    # ---- the boots: tall, black, a shine; the trousers' seam above them
+    for side in ('bshin', 'fshin'):
+        a = P[side]; ys, xs = np.nonzero(a[..., 3] > 0)
+        if len(xs): put(a, [(int(xs.min()) + 1, 52), (int(xs.min()) + 1, 53)], 0x7a7a84)
+    # ---- the rifle: held at her side in the back hand (where her poster was) - wooden stock, a steel barrel, a bayonet
+    r = np.zeros((64, 64, 4), np.uint8); im = Image.fromarray(r); d = ImageDraw.Draw(im)
+    d.line([(17, 50), (21, 41)], fill=hx(0x7a4a22), width=3)                   # the stock
+    d.line([(21, 41), (26, 23)], fill=hx(0x6a4020), width=2)                   # the fore-end
+    d.line([(22, 40), (27, 21)], fill=hx(0x3a3a42), width=1)                   # the barrel
+    d.line([(27, 21), (29, 13)], fill=hx(0xc8ccd8), width=1)                   # the bayonet
+    r = np.array(im)
+    put(r, [(17, 49), (18, 47), (19, 45)], 0x9a6a3a); put(r, [(23, 35), (24, 32)], 0x3a3a42); put(r, [(21, 42), (22, 42)], 0x2a2a30)   # light on the stock, the bolt
+    put(r, [(16, 51), (17, 51)], 0x2a1a0e)                                     # the butt plate
+    P['poster'] = r
 
 ORDER = ['bupper', 'bfore', 'poster', 'bthigh', 'bshin', 'bshoe', 'torso', 'axed', 'fthigh', 'fshin', 'fshoe', 'head', 'jaw', 'face', 'hair', 'fupper', 'ffore', 'axe', 'ffist']
 RIG = {**{n: nu_draw.RIG[n] for n in ORDER if n not in ('poster', 'axe', 'axed', 'jaw', 'face')}, 'poster': ((26, 38), 'bfore'), 'axe': ((45, 25), 'ffist'), 'axed': ((45, 25), 'ffist'), 'jaw': ((38, 16), 'head'), 'face': ((42, 16), 'head')}

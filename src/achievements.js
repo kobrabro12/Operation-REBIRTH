@@ -68,6 +68,9 @@ export const ACHIEVEMENTS = [
   // ---- SECRETS
   { id: 'still-life', group: 'SECRETS', secret: true, name: 'STILL LIFE', info: 'FOUND THE SHOPKEEPER\'S SECRET.', hint: 'THE SHOPKEEPER HIDES SOMETHING. RING TWICE MORE THAN ONCE.', goal: 1, have: (s) => +s.secrets.includes('STILLLIFE'), coins: 200 },
   { id: 'noli', group: 'SECRETS', secret: true, name: 'NOLI', info: 'CHANGED THE SHOPKEEPER FOR GOOD.', hint: 'SOME CODES CAN\'T BE UNDONE.', goal: 1, have: (s) => +s.secrets.includes('NOLI'), coins: 200 },
+  // OUR VICTORY: the shopkeeper's code PAPERSPLEASE. Its reward (besides the coins) is a poster - shown on its card, and
+  // hung on the wall of the PEOPLE'S STORE (ShopScene.sovietNook)
+  { id: 'our-victory', group: 'SECRETS', secret: true, name: 'OUR VICTORY', info: 'TYPED PAPERSPLEASE. YOUR REWARD: THE WORKERS\' POSTER.', hint: 'YOUR PAPERS, PLEASE.', goal: 1, have: (s) => +s.secrets.includes('PAPERSPLEASE'), coins: 300, poster: 'shop_poster' },
   { id: 'bell', group: 'SECRETS', secret: true, name: 'DING DING DING', info: 'RANG THE SHOP BELL 30 TIMES.', hint: 'SOMEONE ON THE COUNTER WANTS ATTENTION.', goal: 30, have: (s) => s.bells, coins: 50 },
   { id: 'window', group: 'SECRETS', secret: true, name: 'WINDOW SHOPPER', info: 'PREVIEWED 15 COSTUMES.', hint: 'LOOK, DON\'T TOUCH.', goal: 15, have: (s) => s.previews, coins: 50 },
 ];

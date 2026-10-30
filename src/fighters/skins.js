@@ -47,6 +47,11 @@ const LSG = {
   coat: { h: [35, 62], s: [0.3, 1], v: [0.2, 1], center: 44 },
   hair: { h: [10, 30], s: [0.45, 1], v: [0.25, 0.9], center: 20 },
 };
+// NIGHT WITCH: her leather jacket/helmet and her blue-grey jodhpurs
+const NWG = {
+  coat: { h: [16, 40], s: [0.35, 1], v: [0.15, 1], center: 28 },
+  pants: { h: [205, 235], s: [0.12, 0.6], v: [0.1, 0.8], center: 218 },
+};
 const HK = {
   sash: { h: [0, 15], s: [0.4, 1], center: 0 },
   suit: { h: [185, 215], s: [0.12, 0.6], center: 197 },
@@ -114,6 +119,10 @@ export const SKINS = {
       vfx: { hit: { shape: 'shard', colors: [0xffe08a, 0xfff6dc, 0xf3c358], n: 12, ring: 0xffe08a, ring2: 0xffffff, flash: true },
              aura: { crown: { n: 5, colors: [0xffe08a, 0xfff6dc, 0xffffff], big: true }, orbit: { n: 4, colors: [0xffe08a, 0xfff6dc], r: 26 }, motes: { colors: [0xffe08a, 0xf3c358, 0xffffff], rate: 3 } },
              trail: 0xf3c358, minion: { flame: { to: 46, sat: 0.55, val: 1.25 }, eyes: { to: 48, sat: 0.4 } } } },
+    // TRICOLORE (found in the shop's nesting dolls): blue cape, silver armour, a red flame
+    { name: 'TRICOLORE', shop: 'cos-tricolore', swatch: 0x2a4ab8, fx: 0xe8303a, groups: SS, rules: { cape: { to: 226, sat: 1.4, val: 0.95 }, gold: { sat: 0.08, val: 1.3 }, flame: { to: 356, sat: 1.3 }, eyes: { to: 0 } },
+      pal: { outline: 0x0a0e2a, deep: 0x1a2a8a, mid: 0xe8303a, light: 0xffffff, core: 0xffffff, shade: 0x141a3a, void: 0x04060e },
+      vfx: { hit: { shape: 'star', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 8 } } },
   ],
   'hero-knight': [
     { name: 'KNIGHT', swatch: 0x667980 },
@@ -181,6 +190,10 @@ export const SKINS = {
       vfx: { hit: { shape: 'feather', colors: [0xffffff, 0xfff3c0, 0xffe08a], n: 10, ring: 0xfff3c0, ring2: 0xffffff, pillar: 0xfff3c0, flash: true },
              aura: { wings: [0xffffff, 0xfff3c0, 0xf3cf74], halo: 0xfff3c0, motes: { colors: [0xffffff, 0xfff3c0], rate: 4, feathers: true } },
              trail: 0xfff3c0 } },
+    // LIBERTY (found in the shop's nesting dolls): stars and stripes - navy suit, red sash
+    { name: 'LIBERTY', shop: 'cos-liberty', swatch: 0x1a2a7a, fx: 0xffffff, groups: HK, rules: { suit: { to: 226, sat: 2.0, val: 0.8 }, sash: { to: 356, sat: 1.4 } },
+      pal: { outline: 0x060a24, deep: 0x1a2a7a, mid: 0xd8203a, light: 0xffffff, core: 0xffffff, shade: 0x10163a, void: 0x04060e },
+      vfx: { hit: { shape: 'star', colors: [0xffffff, 0xd8203a, 0x3a5ad8], n: 9, ring: 0xffffff, glint: true } } },
   ],
   // NU (test fighter): a hit of his always throws out music notes in his colours
   'nu': [
@@ -243,6 +256,10 @@ export const SKINS = {
     { name: 'GLAM', sheetSet: 'glam', shop: 'cos-glam', swatch: 0xffd23a, fx: 0xff4ab8, groups: NUG, rules: { acid: { to: 322, sat: 1.1, val: 1.15 }, hair: { sat: 0.2, val: 1.2 }, cloth: { to: 44, sat: 2.4, val: 2.2 } },
       pal: { outline: 0x2a0a20, deep: 0xb02a8a, mid: 0xff4ab8, light: 0xffd23a, core: 0xffffff, shade: 0x3a1030, void: 0x10040c },
       vfx: { hit: { shape: 'star', colors: [0xff4ab8, 0xffd23a, 0x3ad8ff, 0xffffff], n: 9, glint: true }, aura: { motes: { colors: [0xffd23a, 0xff4ab8], rate: 5 } } } },
+    // LUCKY RED (found in the shop's nesting dolls): red and gold for luck; hits burst like firecrackers
+    { name: 'LUCKY RED', shop: 'cos-luckyred', swatch: 0xd8201e, fx: 0xffc83a, groups: NUG, rules: { acid: { to: 356, sat: 1.3, val: 1.0 }, hair: { to: 46, sat: 2.4, val: 1.05 }, cloth: { to: 0, sat: 1.6, val: 0.8 } },
+      pal: { outline: 0x2a0606, deep: 0x8a100e, mid: 0xd8201e, light: 0xffc83a, core: 0xfff4c8, shade: 0x2a0a0a, void: 0x0a0202 },
+      vfx: { hit: { shape: 'star', colors: [0xd8201e, 0xffc83a, 0xffffff], n: 10, glint: true } } },
   ],
   // WHAT ONCE WAS (test fighter): TV static bursts off every hit
   'what-once-was': [
@@ -291,8 +308,28 @@ export const SKINS = {
       pal: { outline: 0xf4f4f0, deep: 0x0e0e10, mid: 0xf4f4f0, light: 0x2a2a2e, core: 0xf4f4f0, shade: 0x0e0e10, void: 0x050506 } },
   ],
   // LAST SEEN (test fighter): scraps of her missing poster fly off every hit (as SEEN: ink and static instead)
+  // NIGHT WITCH (won from the nesting dolls, code PAPERSPLEASE): recolours of her pilot's leathers. Her lines: QUIPS 'night-witch:witch'
+  'night-witch': [
+    { name: 'NIGHT WITCH', swatch: 0x8a5428, style: 'witch', vfx: { hit: { shape: 'star', colors: [0xf2e6cc, 0xd8201e, 0xffd040], n: 7 } } },
+    { name: 'SEARCHLIGHT', swatch: 0xe8e0b0, fx: 0xfff4c8, style: 'witch', groups: NWG, rules: { coat: { to: 48, sat: 0.35, val: 1.45 }, pants: { sat: 0.3, val: 1.4 } },
+      pal: { outline: 0x1a1a10, deep: 0x5a5a3a, mid: 0xb8b090, light: 0xfff4c8, core: 0xffffff, shade: 0x2a2a1a, void: 0x0a0a06 },
+      vfx: { hit: { shape: 'star', colors: [0xfff4c8, 0xffffff, 0xffe08a], n: 8, glint: true } } },
+    { name: 'WINTER', swatch: 0xdce8f0, fx: 0xbfe0ff, style: 'witch', groups: NWG, rules: { coat: { to: 205, sat: 0.15, val: 1.7 }, pants: { val: 1.5 } },
+      pal: { outline: 0x0e1a2a, deep: 0x4a6a8a, mid: 0x9ac0e0, light: 0xe8f4ff, core: 0xffffff, shade: 0x1a2a3a, void: 0x060a10 },
+      vfx: { hit: { shape: 'dust', colors: [0xffffff, 0xbfe0ff, 0x9ac0e0], n: 9 } } },
+    { name: 'MEDAL', swatch: 0x4a6a2a, fx: 0xffd040, style: 'witch', groups: NWG, rules: { coat: { to: 95, sat: 0.6, val: 0.8 }, pants: { to: 100, sat: 1.4, val: 0.8 } },
+      pal: { outline: 0x0a1a0a, deep: 0x2a4a2a, mid: 0x5a7a3a, light: 0xffd040, core: 0xfff4c8, shade: 0x142014, void: 0x040804 },
+      vfx: { hit: { shape: 'star', colors: [0xffd040, 0xfff4c8, 0xd8201e], n: 8, ring: 0xffd040 } } },
+  ],
   'last-seen': [
     { name: 'ROSEMARY', swatch: 0xc8a240, vfx: { hit: { shape: 'paper', colors: [0xece6d4, 0xe8c86a, 0xc8281e], n: 6 } } },
+    // RED ARMY (hidden in the shop until the code PAPERSPLEASE): a Soviet soldier of 1942 - fur hat with a red star, olive
+    // greatcoat, a rifle (redrawn: last_seen_draw.py style 'soviet'). Her other form isn't SEEN: it's a TANK with its own
+    // moves (`form: 'tank'`, lastSeen.js TANK; art rosemary_tank.py). Red stars fly off her hits; she shouts (QUIPS)
+    { name: 'RED ARMY', sheetSet: 'soviet', shop: 'cos-redarmy', form: 'tank', style: 'soviet', swatch: 0x726a40, fx: 0xd8201e,
+      pal: { outline: 0x2a0806, deep: 0x8a100e, mid: 0xd8201e, light: 0xffd040, core: 0xfff4c8, shade: 0x2a2614, void: 0x0a0604 },
+      vfx: { hit: { shape: 'star', colors: [0xd8201e, 0xffd040, 0xffffff], n: 8, ring: 0xffd040 },
+        seenHit: { shape: 'scrap', colors: [0xffd060, 0xd8201e, 0xffffff], n: 9 } } },
     { name: 'NIGHT RAIN', swatch: 0x2a3a6a, fx: 0x8ab0e8, groups: LSG, rules: { coat: { to: 222, sat: 0.8, val: 0.62 }, hair: { sat: 0.2, val: 0.45 } },
       pal: { outline: 0x0a0e1a, deep: 0x1a2a5a, mid: 0x3a5aa0, light: 0x8ab0e8, core: 0xe8f0ff, shade: 0x141a2a, void: 0x04060a },
       vfx: { hit: { shape: 'drop', colors: [0x8ab0e8, 0xe8f0ff, 0x3a5aa0], n: 8 } } },
@@ -363,6 +400,10 @@ export const SKINS = {
     { name: 'MIDNIGHT', sheetSet: 'midnight', shop: 'cos-midnight', swatch: 0x101a44, fx: 0x7a96ff, groups: AEG, rules: { aqua: { to: 232, sat: 1.0, val: 0.6 }, lime: { to: 268, sat: 0.5, val: 1.1 }, fish: { to: 44, sat: 0.9, val: 1.15 } },
       pal: { outline: 0x02040e, deep: 0x101a44, mid: 0x2a427a, light: 0x7a96ff, core: 0xfff4c8, shade: 0x060820, void: 0x010208 },
       vfx: { hit: { shape: 'star', colors: [0xfff4c8, 0x7a96ff, 0xffffff], n: 8, ring: 0x7a96ff, glint: true }, aura: { motes: { colors: [0xfff4c8, 0x7a96ff], rate: 7 } } } },
+    // AMBER (found in the shop's nesting dolls): his dome turned to Baltic amber, warm as honey
+    { name: 'AMBER', shop: 'cos-amber', swatch: 0xe8a03a, fx: 0xffc860, groups: AEG, rules: { aqua: { to: 36, sat: 1.1, val: 1.0 }, lime: { to: 44, sat: 0.9 } },
+      pal: { outline: 0x2a1404, deep: 0x8a4a10, mid: 0xe8a03a, light: 0xffd890, core: 0xfff4dc, shade: 0x2a1a0a, void: 0x0a0602 },
+      vfx: { hit: { shape: 'shard', colors: [0xe8a03a, 0xffd890, 0xfff4dc], n: 8, glint: true } } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },
@@ -421,6 +462,10 @@ export const SKINS = {
       vfx: { hit: { shape: 'drop', colors: [0x5ff0e6, 0xffffff, 0x1c6288], n: 14, ring: 0x5ff0e6, ring2: 0xffffff, whirl: true, bubbles: true, flash: true },
              aura: { ribbons: { colors: [0x5ff0e6, 0xb8fff4] }, coral: [0xff8a7a, 0xf3c358], bubbles: { colors: [0x5ff0e6, 0xffffff], rate: 5 } },
              trail: 0x5ff0e6 } },
+    // TEATIME (found in the shop's nesting dolls): navy robes, a red gem - tea at four
+    { name: 'TEATIME', shop: 'cos-teatime', swatch: 0x1a2a6a, fx: 0xd8203a, groups: MW, rules: { robe: { to: 224, sat: 1.0, val: 0.75 }, magic: { to: 356, sat: 1.2 }, cloth: { to: 220 } },
+      pal: { outline: 0x060a1e, deep: 0x1a2a6a, mid: 0xd8203a, light: 0xf4f0e8, core: 0xffffff, shade: 0x101634, void: 0x04060e },
+      vfx: { hit: { shape: 'drop', colors: [0xb8743a, 0xf4f0e8, 0xd8203a], n: 8 } } },
   ],
 };
 

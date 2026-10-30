@@ -18,7 +18,7 @@ import { ArcadeBg, titleBanner, hintBar, slant, ARC, shade } from '../ui/arcade.
 const ACC = ARC.sections.stage;
 
 const PREV = { x: 16, y: 36, w: 352, h: 198 };
-const COLS = 2, TILE_W = 118, TILE_H = 44, GAP = 4;   // 6 rows of 2 fit between the title bar and the help line
+const COLS = 2, TILE_W = 118, TILE_H = 38, GAP = 4;   // 7 rows of 2 fit between the title bar and the help line
 const GRID_X = 386, GRID_Y = 36;
 const TRACK_Y = 336;                                  // the TRACK row, under the stage's description
 const ARROWS = [PREV.x + 56, PREV.x + 256];             // the < and > of the TRACK row

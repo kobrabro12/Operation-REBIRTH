@@ -5,7 +5,7 @@ are her own.
   calm  (LAST SEEN) -> public/assets/fighters/last-seen/,       frame index src/fighters/lsMoves.js (LS_MOVES)
   wrong (SEEN)      -> public/assets/fighters/last-seen/wrong/, frame index src/fighters/lsWrongMoves.js (LS_WRONG_MOVES)
 
-  python3 tools/sprites/last_seen_moves.py [--preview DIR]
+  python3 tools/sprites/last_seen_moves.py [--preview DIR] [--calm | --soviet]
 """
 import os, sys, math
 sys.path.insert(0, os.path.dirname(__file__))
@@ -279,7 +279,17 @@ def unarmed(life_fn):
         p = life_fn(pose, t); p['_hide'] = tuple(set(p.get('_hide') or ()) | {'axe', 'axed'}); return p
     return f
 
+def build_soviet():
+    """RED ARMY (her costume from the shop's code PAPERSPLEASE): her calm form redrawn as a Soviet soldier
+    (last_seen_draw.py style 'soviet'), every animation, into last-seen/soviet/ - the same frames as hers, so the same
+    frame index (LS_MOVES). Her other form, as this costume, is the tank (rosemary_tank.py)."""
+    D.set_style('soviet'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (200, 186, 120)
+    out = N.build_all(small, big, CALM, os.path.join(DIR, 'soviet'), os.devnull, 'LS_MOVES', 'last_seen_moves.py', life_fn=calm_life, idle=calm_idle)
+    D.set_style('calm')
+    return {'soviet': out}
+
 def build():
+    if '--soviet' in sys.argv: return build_soviet()           # (only the RED ARMY costume: python3 last_seen_moves.py --soviet)
     out = {}
     D.set_style('calm'); small, big = N.build_rig(D, FOLLOW); N.GHOST = (232, 200, 106)
     out['calm'] = N.build_all(small, big, CALM, DIR, os.path.join(ROOT, 'src/fighters/lsMoves.js'), 'LS_MOVES', 'last_seen_moves.py', life_fn=calm_life, idle=calm_idle)

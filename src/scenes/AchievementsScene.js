@@ -46,7 +46,11 @@ export class AchievementsScene extends Phaser.Scene {
     this.cards = Array.from({ length: VIS }, () => ({
       name: txt(0, 0, '', 7, '#ffffff'), info: txt(0, 0, '', 5, '#c9c4dc', { wordWrap: { width: CARD.w - 100 } }),
       num: txt(0, 0, '', 5, '#c9c4dc').setOrigin(1, 0), coins: txt(0, 0, '', 6, '#f3c358').setOrigin(1, 0),
+      poster: this.add.image(0, 0, 'shop_poster').setScale(0.16).setVisible(false),          // (an achievement whose reward is a poster)
     }));
+    // the poster, big, while its card is picked
+    this.bigPoster = this.add.image(W - 96, 214, 'shop_poster').setScale(1).setDepth(30).setVisible(false);
+    this.bigPosterT = txt(W - 96, 104, 'YOUR REWARD', 6, '#ffd23f', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(31).setVisible(false);
     this.headT = txt(16, 80, '', 6, '#c9c4dc');
     // page 2: stats, completion, the roster
     this.statT = txt(28, 114, '', 6, '#e8e4f4', { lineSpacing: 6 });
@@ -113,6 +117,10 @@ export class AchievementsScene extends Phaser.Scene {
   drawAchievements(g, t, on) {
     this.headT.setVisible(on);
     for (const c of this.cards) for (const k of ['name', 'info', 'num', 'coins']) c[k].setVisible(on);
+    const pick = ACHIEVEMENTS[this.sel], big = on && pick && pick.poster && isUnlocked(pick.id);
+    this.bigPoster.setVisible(!!big); this.bigPosterT.setVisible(!!big);
+    if (big) { const px = this.sel % CARD.cols ? 96 : W - 96; this.bigPoster.setTexture(pick.poster).setPosition(px, 214 + Math.sin(t * 0.04) * 2); this.bigPosterT.setX(px); }   // (on the other side from its card)
+    for (const c of this.cards) if (!on) c.poster.setVisible(false);
     if (!on) return;
     const n = ACHIEVEMENTS.length, done = unlockedCount();
     const coinsEarned = ACHIEVEMENTS.filter((a) => isUnlocked(a.id)).reduce((s, a) => s + a.coins, 0);
@@ -120,14 +128,15 @@ export class AchievementsScene extends Phaser.Scene {
     slant(g, 16, 91, W - 32, 8, 0x1c1838, 1, 4); slant(g, 16, 91, Math.max(8, (W - 32) * done / n), 8, ACC, 1, 4); slant(g, 16, 91, Math.max(8, (W - 32) * done / n), 3, 0xffffff, 0.3, 2);
     for (let i = 0; i < VIS; i++) {
       const a = ACHIEVEMENTS[this.top + i], c = this.cards[i];
-      if (!a) { for (const k of ['name', 'info', 'num', 'coins']) c[k].setText(''); continue; }
+      if (!a) { for (const k of ['name', 'info', 'num', 'coins']) c[k].setText(''); c.poster.setVisible(false); continue; }
       const [x, y] = this.cardAt(i), got = isUnlocked(a.id), hidden = a.secret && !got, sel = this.top + i === this.sel;
       const [have, goal] = progressOf(a);
       slant(g, x + 4, y + 4, CARD.w, CARD.h, 0x000000, 0.5, 8);
       slant(g, x, y, CARD.w, CARD.h, sel ? ARC.white : got ? 0x8a6a2a : 0x2c2650, 1, 8);
       slant(g, x + 2, y + 2, CARD.w - 4, CARD.h - 4, got ? 0x2e2012 : sel ? 0x241e44 : ARC.panel, 1, 8);
       if (got) slant(g, x + 2, y + 2, 26, CARD.h - 4, ACC, 0.25, 8);
-      this.trophy(g, x + 18, y + 20, got, hidden, t + i * 7);
+      c.poster.setVisible(!!(a.poster && got));
+      if (a.poster && got) c.poster.setTexture(a.poster).setPosition(x + 18, y + 20); else this.trophy(g, x + 18, y + 20, got, hidden, t + i * 7);
       c.name.setText(hidden ? '???' : a.name).setPosition(x + 36, y + 6).setColor(got ? '#f3c358' : hidden ? '#8a87a3' : '#ffffff');
       c.info.setText(hidden ? a.hint : a.info).setPosition(x + 36, y + 17);
       c.coins.setText('+' + a.coins).setPosition(x + CARD.w - 8, y + 6).setColor(got ? '#7aff8a' : '#f3c358');

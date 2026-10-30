@@ -30,6 +30,8 @@ export const INTROS = {
   'nu': { kind: 'drop', color: 0xc8ff5a, trail: 0xc8ff5a, notes: true, sfx: ['bighit', 0.5, 1.2] },
   'aero': { kind: 'bubble', color: 0x7ad8f0, pre: ['popup', 0.3, 1.2], sfx: ['glass', 0.5, 1.4] },
   'what-once-was': { kind: 'warp', color: 0x9affd8, pre: ['glitch', 0.5, 0.8], sfx: ['buzz', 0.4, 0.8] },
+  // NIGHT WITCH glides in out of the dark, engines off, and drops to the stage
+  'night-witch': { kind: 'drop', color: 0xf2e6cc, trail: 0x3a5aa0, pre: ['whoosh', 0.4, 0.5], sfx: ['clang', 0.5, 1.1] },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
 
@@ -39,6 +41,7 @@ export const SKIN_INTROS = {
   "soul-summoner:JACK-O'-LANTERN": { kind: 'rise', color: 0xff8a1a, color2: 0x5aff5a, shape: 'ember', sfx: ['laugh', 0.4, 1.2] },
   'soul-summoner:HIGH NOON': { kind: 'swarm', shape: 'leaf', colors: [0xc8a060, 0x8a6a3a, 0xe8d0a0], n: 22, pre: ['whoosh', 0.4, 0.6], sfx: ['clang', 0.5, 0.6] },
   'soul-summoner:ECLIPSE': { kind: 'portal', color: 0x0a0806, color2: 0xf3c358, sfx: ['limitready', 0.5, 0.8] },
+  'last-seen:RED ARMY': { kind: 'drop', color: 0x726a40, trail: 0xd8201e, sfx: ['go', 0.5, 1.0] },
   'soul-summoner:OLIVE DRAB': { kind: 'drop', color: 0x6a7232, trail: 0xffb84a, sfx: ['bighit', 0.6, 0.7] },
   'soul-summoner:CELESTIAL': { kind: 'swarm', shape: 'star', colors: [0xb4d2ff, 0xffffff, 0xb07ae0], n: 22, sfx: ['glass', 0.5, 1.3] },
   'soul-summoner:AURORA': { kind: 'swarm', shape: 'ring', colors: [0x3affa8, 0x5ad0ff, 0xd85aff], n: 18, sfx: ['glass', 0.5, 0.9] },

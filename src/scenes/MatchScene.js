@@ -42,7 +42,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor, TankShell } from '../fighters/entities.js';
 import { stageById, STAGES, trackList, stageLocked } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -348,6 +348,12 @@ export class MatchScene extends Phaser.Scene {
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
 
+    if (t.armoured && t.armoured(hb)) {                 // THE TANK dug in (ENTRENCH): the damage gets through, the knockback doesn't
+      t.flash = 4; t.hitstop = 4; if (owner && !hb.projectile) owner.hitstop = 4;
+      const c = t.center(); this.puff(c.x, c.y, 0xffd060, 6); sfx('clang', 0.6, 0.8 + Math.random() * 0.3);
+      this.extras.onHit(t, dmg, 0, owner);
+      return;
+    }
     const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult * (beat ? beat.kb : 1);
     let dir = hb.facing || 1;
     if (!owner || h.radial) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel; explosions push outward
@@ -488,6 +494,7 @@ export class MatchScene extends Phaser.Scene {
   }
   spawnSoul(owner) { const s = new Soul(this, owner); this.souls.push(s); return s; }
   // WHAT ONCE WAS: its MISSING poster (one in the air at a time) and its door (one each)
+  spawnShell(owner, spec) { const p = new TankShell(this, owner, spec); this.projectiles.push(p); return p; }
   spawnPoster(owner, spec) { const p = new MissingPoster(this, owner, spec); this.projectiles.push(p); return p; }
   spawnDoor(owner, spec) {
     for (const p of this.pools) if (p.owner === owner && p instanceof WrongDoor) p.kill();

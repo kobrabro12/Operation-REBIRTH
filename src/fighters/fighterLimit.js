@@ -23,6 +23,8 @@ export class FighterLimit {
     if (L.type === 'turn') return this.turnLimit(L);
     if (L.type === 'approach') return this.approachLimit(L);
     if (L.type === 'birthday') return this.birthdayLimit(L);
+    if (L.type === 'barrage') return this.barrageLimit(L);
+    if (L.type === 'raid') return this.raidLimit(L);
     if (L.type === 'screensaver') return this.screensaverLimit(L);
     if (L.type === 'level0') return this.level0Limit(L);
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);

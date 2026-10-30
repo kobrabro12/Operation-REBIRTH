@@ -1285,3 +1285,60 @@ export class WrongDoor {
     }
   }
 }
+
+// THE TANK's CANNON (ROSEMARY in RED ARMY, lastSeen.js TANK neutralB.shell): a shell fired from the gun's muzzle in a long,
+// falling arc, a trail of smoke behind it. It blows up on the first fighter it hits or when it reaches the ground: a
+// fireball, smoke, and a blast that throws everyone near it outward.
+export class TankShell {
+  constructor(match, owner, spec) {
+    this.match = match; this.owner = owner; this.spec = spec;
+    this.dir = owner.facing;
+    this.x = owner.x + owner.facing * owner.def.handOffset.x; this.y = owner.y + owner.def.handOffset.y;
+    this.vx = this.dir * spec.speed; this.vy = spec.lift;
+    this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+    if (spec.bomb) sfx('swing', 0.5, 0.7);                                // NIGHT WITCH: a little bomb, lobbed by hand
+    else { sfx('bighit', 0.7, 0.6); sfx('thunder', 0.35, 1.5); match.shake(4, 4); }
+  }
+  hitbox() { return { x1: this.x - 5, x2: this.x + 5, y1: this.y - 4, y2: this.y + 4, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
+  step() {
+    this.t++;
+    this.vy += this.spec.grav; this.x += this.vx; this.y += this.vy;
+    if (!this.spec.bomb && this.t % 2 === 0) this.match.particles.push({ x: this.x - this.dir * 6, y: this.y, vx: -this.dir * 0.3, vy: -0.3, life: 22, color: this.t % 4 ? 0x8a8478 : 0x5a5852, size: 3, grav: -0.01, drag: 0.95 });
+    const P = this.match.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && this.y >= p.y && this.y - this.vy < p.y + 2 && (p.solid || this.vy > 0));
+    if (P) { this.y = P.y; this.kill(); return; }
+    if (--this.life <= 0 || this.y > 330) this.kill();
+  }
+  // it blows up: everyone in the blast is thrown outward (the one it hit directly isn't hit twice - same id)
+  kill() {
+    if (!this.alive) return; this.alive = false; this.g.destroy();
+    const m = this.match, S = this.spec, x = this.x, y = this.y;
+    sfx('bighit', 0.9, 0.5); m.shake(8, 8);
+    for (let i = 0; i < 18; i++) { const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 4; m.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 20 + Math.random() * 16, color: [0xff8a2a, 0xffe08a, 0xffffff, 0x5a5852][i % 4], size: 2 + (i % 3), grav: 0.08, drag: 0.94 }); }
+    m.particles.push({ shape: 'ring', x, y, vx: 0, vy: 0, life: 14, maxLife: 14, r: 8, dr: 4, color: 0xffd040, grav: 0 });
+    for (let i = 0; i < 5; i++) m.particles.push({ x: x + (Math.random() - 0.5) * 20, y: y - Math.random() * 16, vx: 0, vy: -0.6, life: 40, color: 0x3a3832, size: 5, grav: -0.02, drag: 0.97 });
+    for (const o of m.fighters) {
+      if (o === this.owner || !o.alive || o.team === this.owner.team || o.isIntangible()) continue;
+      const c = o.center();
+      if (Math.hypot(c.x - x, c.y - y) <= S.radius + 10) {
+        const key = this.id + ':' + o.slot; if (m.hits.has(key)) continue; m.hits.add(key);
+        if (o.state === 'shield') m.shieldHit(o, { h: S.hit, owner: this.owner, x1: x, x2: x }); else m.applyHit(o, { h: S.hit, owner: this.owner, facing: Math.sign(c.x - x) || this.dir, id: this.id, projectile: this }, x);
+      }
+    }
+  }
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), a = Math.atan2(this.vy, this.vx);
+    g.clear();
+    if (this.spec.bomb) {                                                 // a round black bomb with a tail fin and a fizzing fuse
+      g.fillStyle(0x1a1a20, 1); g.fillCircle(x, y, 4); g.fillStyle(0x4a4a56, 1); g.fillCircle(x - 1, y - 1, 1.5);
+      g.fillStyle(0x3a3a44, 1); g.fillRect(x - Math.cos(a) * 6 - 2, y - Math.sin(a) * 6 - 2, 4, 4);
+      g.fillStyle(this.t % 4 < 2 ? 0xffe08a : 0xff8a2a, 1); g.fillRect(x + 1, y - 6, 2, 2);
+      return;
+    }
+    g.lineStyle(4, 0x2a2a20, 1); g.lineBetween(x - Math.cos(a) * 5, y - Math.sin(a) * 5, x + Math.cos(a) * 4, y + Math.sin(a) * 4);
+    g.lineStyle(2, 0x8a8a6a, 1); g.lineBetween(x - Math.cos(a) * 4, y - Math.sin(a) * 4, x + Math.cos(a) * 3, y + Math.sin(a) * 3);
+    g.fillStyle(0xffd040, 1); g.fillCircle(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 1.5);
+    g.fillStyle(0xff8a2a, 0.8); g.fillCircle(x - Math.cos(a) * 7, y - Math.sin(a) * 7, 2);
+  }
+}

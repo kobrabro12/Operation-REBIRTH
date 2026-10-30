@@ -60,7 +60,8 @@ export class SelectScene extends Phaser.Scene {
       const col = i % COLS, row = Math.floor(i / COLS);
       const x = GRID_X + col * (TILE_W + GAP), y = GRID_Y + row * (TILE_H + GAP);
       const isRandom = i === GRID_SLOTS - 1;
-      const f = isRandom ? { id: 'random', name: 'RANDOM', available: true } : ROSTER[i] || { id: null, name: '???', available: false };
+      let f = isRandom ? { id: 'random', name: 'RANDOM', available: true } : ROSTER[i] || { id: null, name: '???', available: false };
+      if (f.shop && !f.available) f = { id: null, name: '???', available: false };   // a fighter you win in the shop stays a secret until then
       this.tiles.push({ x, y, f });
       g.fillStyle(0x000000, 0.6); g.fillRect(x + 3, y + 3, TILE_W, TILE_H);                    // hard shadow
       g.fillStyle(f.available ? 0x2a1f5e : 0x120f24, 1); g.fillRect(x, y, TILE_W, TILE_H);

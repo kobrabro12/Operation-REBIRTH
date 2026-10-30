@@ -43,7 +43,7 @@ export class MatchExtras {
     const on = (id) => !m.demo && extraOn(id);
     this.on = { numbers: on('ext-numbers'), confetti: on('ext-confetti'), finalcam: on('ext-finalcam'), hats: on('ext-hats'),
       moon: on('ext-moon'), airhorn: on('ext-airhorn'), rainbow: on('ext-rainbow'), impact: on('ext-impact'),
-      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel') };
+      comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel'), ushanka: on('ext-ushanka') };
     this.comics = []; this.combos = new Map(); this.ghosts = [];
     this.floor = this.on.disco ? m.add.graphics() : null; if (this.floor) m.addWorld(this.floor);   // (made before the fighters: under them)
     this.slow = 0; this.impact = 0; this.flash = 0; this.bolt = null;
@@ -253,6 +253,16 @@ export class MatchExtras {
       wd.fillStyle(c1, 1); wd.fillTriangle(x - 7, y, x + 7, y, x + (f.facing || 1), y - 18);
       wd.fillStyle(c2, 1); wd.fillTriangle(x - 4.5, y - 6, x + 4.5, y - 6, x + 2.6, y - 10); wd.fillRect(x - 7, y - 1, 14, 2);
       wd.fillStyle(0xffe04a, 1); wd.fillCircle(x + (f.facing || 1), y - 18, 3);
+    }
+    // USHANKAS (found in the shop's nesting dolls): a fur hat with the flaps down and a red star on every fighter's head
+    if (this.on.ushanka) for (const f of this.m.fighters) {
+      if (!f.alive) continue;
+      const d = f.facing || 1, x = f.x + d, y = f.y - (f.body ? f.body.h : 48) - 1, hat = this.on.hats ? 18 : 0;   // (on top of a party hat, if both are on)
+      wd.fillStyle(0x3a2616, 1); wd.fillRect(x - 10, y - 8 - hat, 20, 9); wd.fillEllipse(x, y - 9 - hat, 20, 9);      // the fur crown
+      wd.fillStyle(0x6a4a2e, 1); wd.fillRect(x - 9, y - 7 - hat, 18, 3); wd.fillEllipse(x - 2, y - 11 - hat, 12, 4);   // its sheen
+      wd.fillStyle(0x4e3420, 1); wd.fillRect(x - 11, y - 2 - hat, 4, 8); wd.fillRect(x + 7, y - 2 - hat, 4, 8);         // the ear flaps
+      wd.fillStyle(0x8a6a4a, 1); wd.fillRect(x - 10, y - 5 - hat, 20, 2);                                              // the turned-up front
+      wd.fillStyle(0xd8201e, 1); wd.fillCircle(x + d * 2, y - 8 - hat, 2.2); wd.fillStyle(0xffd040, 1); wd.fillRect(x + d * 2 - 0.5, y - 8.5 - hat, 1, 1);   // the red star
     }
     // FINAL KO CAM: slow motion with letterbox bars sliding in
     if (this.slow > 0) { const k = Math.min(1, (FINAL.ticks - this.slow) / 12), bar = 34 * k; w.fillStyle(0x000000, 1); w.fillRect(0, 0, W, bar); w.fillRect(0, H - bar, W, bar); }

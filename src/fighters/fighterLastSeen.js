@@ -22,6 +22,7 @@ export class FighterLastSeen {
   lastSeenTick() {
     if (this.wantTurn && ['idle', 'run', 'air', 'land', 'jumpsquat', 'taunt'].includes(this.state)) this.startTurn();
     if (this.def.wrong && !this.match.frozen) this.seenTick();
+    if (this.def.tank && !this.match.frozen) this.tankTick();
   }
   startTurn() {
     this.wantTurn = false;
@@ -41,9 +42,16 @@ export class FighterLastSeen {
     const m = this.match;
     if (!this.def.wrongDef) return;
     this.baseDef = this.def; this.baseSheets = this.sheets; this.basePal = this.pal;
-    this.def = this.def.wrongDef;
+    const form = skinInfo(this.def.id, this.skin).form;                    // (RED ARMY: a tank, not SEEN)
+    this.def = (form && this.def.forms && this.def.forms[form]) || this.def.wrongDef;
     this.sheets = skinSheets(this.scene, this.def, this.skin);
     this.pal = this.def.pal;
+    if (this.def.tank) {                                                   // THE TANK: it rolls out of the smoke, engine roaring
+      sfx('bighit', 0.9, 0.45); sfx('thunder', 0.6, 0.7); sfx('clang', 0.6, 0.6); m.shake(12, 16);
+      m.popText(this, 'TANK!', '#ff3a2a'); this.quip('turn');
+      for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 3; m.particles.push({ x: this.x + (Math.random() - 0.5) * 40, y: this.y - 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 40 + Math.random() * 20, color: i % 3 ? 0x5a5852 : 0x8a8478, size: 4, grav: -0.02, drag: 0.94 }); }
+      return;
+    }
     sfx('ko', 0.7, 0.4); sfx('bighit', 0.9, 0.5); m.shake(14, 14);
     m.popText(this, 'SEEN', '#ff3a2a'); sfx('buzz', 0.7, 0.6);
     for (let i = 0; i < 24; i++) {                                    // posters torn off her and scattered
@@ -51,6 +59,59 @@ export class FighterLastSeen {
       m.particles.push({ shape: 'paper', x: this.x, y: this.y - 30, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 40 + Math.random() * 20, color: i % 3 ? 0xece6d4 : 0xc8281e, ang: Math.random() * 6, spin: 0.3, drag: 0.95, grav: 0.06 });
     }
   }
+  // THE TANK, every tick: exhaust puffing out of the back, dust and snow off its tracks while it drives, and once it's badly
+  // hurt, black smoke pouring out of the hull
+  tankTick() {
+    const m = this.match, t = this.age || 0, back = this.x - this.facing * 38;
+    if (t % 9 === 0) m.particles.push({ x: back, y: this.y - 18, vx: -this.facing * 0.6, vy: -0.6, life: 28, color: 0x6a6862, size: 3, grav: -0.015, drag: 0.96 });
+    if (this.grounded && Math.abs(this.vx) > 1.2 && t % 4 === 0) m.particles.push({ x: this.x - this.facing * 30, y: this.y - 2, vx: -this.facing * 1.2, vy: -0.8, life: 18, color: 0xe8e4d8, size: 2, grav: 0.05 });
+    if (this.percent > 90 && t % 6 === 0) m.particles.push({ x: this.x + (Math.random() - 0.5) * 30, y: this.y - 40, vx: (Math.random() - 0.5) * 0.4, vy: -1, life: 40, color: 0x1e1e1e, size: 4, grav: -0.02, drag: 0.97 });
+    if (this.percent > 140 && t % 14 === 0) m.particles.push({ x: this.x + (Math.random() - 0.5) * 20, y: this.y - 30, vx: 0, vy: -1.4, life: 14, color: 0xff8a2a, size: 3, grav: -0.03 });
+  }
+  // THE TANK's ENTRENCH: hit while dug in - the damage gets through (less of it), the knockback doesn't
+  armoured(hb) {
+    const A = this.state === 'attack' && this.move && this.move.armor;
+    return !!(A && this.t >= A.from && this.t <= A.to);
+  }
+  // KATYUSHA (THE TANK's Limit): a red flare goes up, then a rocket barrage walks down onto everyone else
+  barrageLimit(L) {
+    const m = this.match;
+    this.vx = 0; this.lx = 0;
+    if (this.t === 1) { this.ult = { rockets: [], n: 0 }; this.quip('limit'); }
+    const U = this.ult;
+    if (this.t === L.flareAt) {
+      sfx('djump', 0.7, 0.5); sfx('warn', 0.5, 0.8);
+      m.particles.push({ x: this.x + this.facing * 12, y: this.y - 70, vx: this.facing * 0.4, vy: -6, life: 50, color: 0xff2a1a, size: 4, grav: 0.05 });
+      for (let i = 0; i < 10; i++) m.particles.push({ x: this.x + this.facing * 12, y: this.y - 70, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 2, life: 30, color: 0xffd040, size: 2, grav: 0.08 });
+    }
+    if (this.t >= L.from && U.n < L.rockets && (this.t - L.from) % L.every === 0) {   // the next rocket: aimed near one of them
+      const foes = m.fighters.filter((o) => o !== this && o.alive && o.team !== this.team && o.state !== 'respawn');
+      const tgt = foes.length ? foes[U.n % foes.length] : null;
+      const x = (tgt ? tgt.x : this.x + this.facing * 120) + (Math.random() - 0.5) * L.spread * 2;
+      U.rockets.push({ x, y: -420, vy: 11, n: U.n, sx: x - this.facing * 140 }); U.n++;
+      if (U.n % 3 === 1) sfx('whoosh', 0.5, 0.6);
+    }
+    for (const r of U.rockets) {
+      if (r.done) continue;
+      r.y += r.vy; r.sx += (r.x - r.sx) * 0.12;
+      m.particles.push({ x: r.sx, y: r.y, vx: 0, vy: 0, life: 10, color: r.n % 2 ? 0xffb040 : 0xff6a2a, size: 3, grav: 0 });
+      m.particles.push({ x: r.sx, y: r.y - 8, vx: 0, vy: -0.3, life: 22, color: 0x8a8478, size: 3, grav: -0.01 });
+      const floor = m.stage.platforms.find((p) => r.sx >= p.x1 && r.sx <= p.x2 && r.y >= p.y && r.y - r.vy < p.y);
+      if (floor || r.y > 300) {                                           // it lands: BOOM
+        r.done = true;
+        const y = floor ? floor.y : r.y;
+        sfx('bighit', 0.6, 0.7 + Math.random() * 0.3); m.shake(5, 5);
+        for (let i = 0; i < 12; i++) { const a = -Math.PI * Math.random(), sp = 1 + Math.random() * 3.5; m.particles.push({ x: r.sx, y: y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 1.3, life: 22 + Math.random() * 14, color: [0xff8a2a, 0xffe08a, 0x5a5852, 0xffffff][i % 4], size: 2 + (i % 3), grav: 0.12, drag: 0.95 }); }
+        m.particles.push({ shape: 'ring', x: r.sx, y: y - 10, vx: 0, vy: 0, life: 12, maxLife: 12, r: 6, dr: 4, color: 0xffd040, grav: 0 });
+        for (const o of m.fighters) {
+          if (o === this || !o.alive || o.team === this.team || o.isIntangible()) continue;
+          if (Math.abs(o.x - r.sx) <= L.radius && o.y - y < 20 && y - o.y < L.radius + o.body.h) m.applyHit(o, { h: L.hit, owner: this, facing: Math.sign(o.x - r.sx) || this.facing, id: 'katy' + this.slot + ':' + r.n + ':' + this.age, pillar: true, x1: r.sx, x2: r.sx }, r.sx);
+        }
+      }
+    }
+    if (this.t >= L.frames) { this.ult = null; this.invincible = 30; this.setState(this.grounded ? 'idle' : 'air'); }
+  }
+
   // KO'd: she's herself again, the meter empty
   revertLastSeen() {
     this.axeLost = 0; this.armedSheets = null; this.stopScream();

@@ -32,6 +32,10 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('nu_school_amp', 'assets/fighters/nu/school/amp.png', { frameWidth: 32, frameHeight: 64 });   // HOMEROOM's AMP DROP: a locker and a boombox
     // LAST SEEN (test fighter) and SEEN, what she turns into: tools/sprites/last_seen_moves.py
     // (SEEN's costumes AFTER HOURS / GRAND OPENING / LAKEBED redraw the animatronic: wrong/<set>/)
+    // ROSEMARY's RED ARMY costume (code PAPERSPLEASE): her redrawn calm form, and the TANK she turns into (all 112x104)
+    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('ls_soviet_' + k, 'assets/fighters/last-seen/soviet/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('ls_soviet_moves', 'assets/fighters/last-seen/soviet/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    for (const k of ['idle', 'run', 'jump', 'fall', 'moves']) this.load.spritesheet('ls_tank_' + k, 'assets/fighters/last-seen/tank/' + k + '_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const [pre, dir] of [['ls_', ''], ['ls_wrong_', 'wrong/'], ...['rave', 'showtime', 'drowned', 'angler'].map((c) => ['ls_wrong_' + c + '_', 'wrong/' + c + '/'])]) {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/last-seen/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/last-seen/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
@@ -75,7 +79,10 @@ export class BootScene extends Phaser.Scene {
     for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
-    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
+    // NIGHT WITCH (tools/sprites/night_witch_moves.py): her strips, on ROSEMARY's frame layout
+    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nw_' + k, 'assets/fighters/night-witch/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('nw_moves', 'assets/fighters/night-witch/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'night-witch']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow']) this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
@@ -88,13 +95,18 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
     this.load.audio('bgm_backrooms', ['assets/audio/music/backrooms.ogg', 'assets/audio/music/backrooms.mp3']);   // tools/audio/backrooms_music.py
     this.load.audio('bgm_aero', ['assets/audio/music/aero.ogg', 'assets/audio/music/aero.mp3']);   // tools/audio/aero_music.py
-    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason', 'noli', 'riphood']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
+    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason', 'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');
-    this.load.image('shop_crown', 'assets/shop/crown.png');   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
+    this.load.image('shop_crown', 'assets/shop/crown.png');
+    // the code PAPERSPLEASE (tools/sprites/soviet_art.py): the OUR VICTORY poster, the VODKA bottle (unlocks STALINGRAD), the nesting dolls
+    this.load.image('shop_poster', 'assets/shop/poster.png');
+    this.load.image('shop_vodka', 'assets/shop/vodka.png');
+    this.load.image('shop_flag_emblem', 'assets/shop/flag_emblem.png');
+    this.load.spritesheet('shop_dolls', 'assets/shop/dolls.png', { frameWidth: 40, frameHeight: 56 });   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
     this.load.audio('bgm_fractured', ['assets/audio/music/fractured.ogg', 'assets/audio/music/fractured.mp3']);   // FRACTURED's music (tools/audio/fractured_music.py)
     this.load.spritesheet('shop_rtd', 'assets/shop/rtd_scream.png', { frameWidth: 68, frameHeight: 68 });   // the shop's RTD secret: Rosemary screaming (tools/sprites/rosemary_scream.py)
-    for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare', 'noli']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
+    for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare', 'noli', 'sickle']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
     for (const [k, n] of Object.entries(NOLI_MOODS)) for (let i = 0; i < n; i++) this.load.audio('noli_v_' + k + '_' + i, ['assets/shop/noli_voice/' + k + '_' + i + '.ogg', 'assets/shop/noli_voice/' + k + '_' + i + '.mp3']);   // NOLI's glitchy voice (tools/audio/noli_voice.py)
     this.load.image('bp_guest', 'assets/stages/baseplate/guest.png');                 // BASEPLATE 2012's guests: Mason's drawings, half size (tools/sprites/baseplate_guests.py)
     this.load.image('bp_guest_glitch', 'assets/stages/baseplate/guest_glitch.png');   // ...and the one in fifty

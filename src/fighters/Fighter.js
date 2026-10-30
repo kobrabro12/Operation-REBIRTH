@@ -22,6 +22,7 @@ import { FighterBeat } from './fighterBeat.js';
 import { FighterLastSeen } from './fighterLastSeen.js';
 import { FighterTaunt } from './fighterTaunt.js';
 import { FighterWhatOnceWas } from './fighterWhatOnceWas.js';
+import { LimitRaid } from './limitRaid.js';
 import { popBubble } from './entities.js';
 
 const BUFFER = 7;   // frames an early button press is remembered
@@ -86,7 +87,7 @@ export class Fighter {
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]; }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
-  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1); }   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
+  get dmgTakenMult() { return AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1) * (this.armoured() ? this.move.armor.taken : 1); }   // (THE TANK dug in: less gets through)   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
   get fxColor() { return skinInfo(this.def.id, this.skin).fx ?? this.def.fxColor ?? 0x78a0c6; }
@@ -366,6 +367,7 @@ export class Fighter {
     }
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
+    if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);
     if (this.t >= m.frames) {
@@ -555,7 +557,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, LimitRaid]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

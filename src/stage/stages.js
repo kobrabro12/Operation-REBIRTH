@@ -11,6 +11,7 @@ import { AeroStage, drawAeroPreview } from './aeroStage.js';
 import { BaseplateStage, drawBaseplatePreview } from './baseplateStage.js';
 import { FracturedStage, drawFracturedPreview } from './fracturedStage.js';
 import { MaskedStage, drawMaskedPreview } from './maskedStage.js';
+import { StalingradStage, drawStalingradPreview } from './stalingradStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -82,6 +83,13 @@ export const STAGES = [
     hazard: "THE KING'S SWORD, COMEDY & TRAGEDY\n(HEAL OR WEEP) AND LIGHTS OUT.",
     preview: drawMaskedPreview,
   },
+  {
+    // locked until the VODKA is bought (EXTRAS - hidden until the shopkeeper's code PAPERSPLEASE); music = Mason's pixelated_audio 17
+    id: 'stalingrad', music: 'bgm_shop_soviet', name: 'STALINGRAD', available: true, shop: 'ext-vodka', make: (scene) => new StalingradStage(scene),
+    blurb: ['A factory city in ruins on the Volga,', 'in the winter of 1942. Snow, fire and rubble.'],
+    hazard: 'ARTILLERY, A SNIPER IN THE TOWER\nAND COLLAPSING WALLS.',
+    preview: drawStalingradPreview,
+  },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
@@ -96,7 +104,7 @@ export function trackList(owned = []) {
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-export const STAGE_SLOTS = 12;  // tiles on the select grid (2 across, 6 down); the last one is Random
+export const STAGE_SLOTS = 14;  // tiles on the select grid (2 across, 7 down); the last one is Random
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

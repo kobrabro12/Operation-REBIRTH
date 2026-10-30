@@ -13,6 +13,8 @@ match instead of the stage's own music. All original, all synthesised; each one 
   rain    RAINY WINDOW      a rainy afternoon: soft piano, a brushed beat, rain on the glass, distant thunder
   sugar   SUGAR RUSH        bubblegum pop: bouncy plucks, claps, a sing-song lead, sparkles
   disco   MIRRORBALL        disco: four on the floor, an octave bass that won't sit still, string stabs, a clavinet
+  korobeiniki KOROBEINIKI   the old Russian peddlers' song (folk, public domain): balalaika, accordion, oom-pah bass
+  balalaika   BALALAIKA     an original Cossack-style stomp dance: tremolo balalaika, accordion, claps, shouts of HEY
 
 Run:  python3 tools/audio/shop_music.py [names...]
 Writes public/assets/audio/music/shop_<name>.ogg and .mp3. Loaded in BootScene as bgm_shop_<name>.
@@ -296,6 +298,84 @@ def disco():
             for i in range(8): add(buf, strings([A + 24 + [0, 2, 3, 5, 7, 8, 10, 12][i]], b * 0.2, 0.9), t0 + 2 * b + i * b / 4)
     return write(wrap_reverb(buf, 1.6, 2.6, 0.2), 'disco')
 
-PIECES = {'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
+# ------------------------------------------------------------------ the nesting-doll tracks (code PAPERSPLEASE)
+def pluck(m, dur, vel=1.0, bright=0.5):
+    """A balalaika string: Karplus-Strong - a burst of noise in a short delay line, filtered as it rings out."""
+    n = secs(dur); f = hz(m); d = max(2, int(SR / f)); buf = rng.uniform(-1, 1, d) * vel
+    buf = lp(buf, 1500 + bright * 5000) if d > 32 else buf
+    out = np.zeros(n); i = 0
+    while i < n:
+        k = min(d, n - i); out[i:i + k] = buf[:k]
+        buf = 0.996 * 0.5 * (buf + np.roll(buf, -1)); i += d
+    return out * adsr(n, 0.001, 0, 1, 0.02) * 0.6
+def accordion(m, dur, vel=1.0):
+    """Two slightly detuned reeds and a little bellows swell."""
+    n = secs(dur); t = np.arange(n) / SR; x = np.zeros(n)
+    for dd in (-0.06, 0.06):
+        ph = (t * hz(m + dd)) % 1; x += np.sign(ph - 0.5) * 0.5 + (2 * ph - 1) * 0.5
+    x = lp(x, 2600) * (1 + 0.1 * np.sin(2 * np.pi * 5 * t))
+    return x * adsr(n, 0.03, 0.05, 0.85, min(0.06, dur * 0.4)) * vel * 0.14
+def strum(chord, dur, vel=1.0, trem=0):
+    """A chord on the balalaika: strummed (each string a hair later), or tremolo-picked (trem = notes per beat)."""
+    x = np.zeros(secs(dur) + secs(0.4))
+    if trem:
+        step = dur / trem
+        for k in range(trem):
+            for j, m in enumerate(chord): add(x, pluck(m, step + 0.25, vel * (0.8 if k % 2 else 1)), k * step + j * 0.004)
+    else:
+        for j, m in enumerate(chord): add(x, pluck(m, dur + 0.3, vel), j * 0.012)
+    return x
+
+def korobeiniki():
+    bpm = 132; b = 60 / bpm; A = 57                                                        # A minor, A3 = 57
+    # the tune: (semitones above A3, beats); None = a rest. 8 bars, played twice (second time an octave up, over tremolo)
+    tune = [(7, 1), (2, .5), (3, .5), (5, 1), (3, .5), (2, .5), (0, 1), (0, .5), (3, .5), (7, 1), (5, .5), (3, .5),
+            (2, 1.5), (3, .5), (5, 1), (7, 1), (3, 1), (0, 1), (0, 2),
+            (None, .5), (5, 1), (8, .5), (12, 1), (10, .5), (8, .5), (7, 1.5), (3, .5), (7, 1), (5, .5), (3, .5),
+            (2, 1), (2, .5), (3, .5), (5, 1), (7, 1), (3, 1), (0, 1), (0, 2)]
+    chords = [(0, [0, 3, 7]), (-5, [-5, -1, 2]), (0, [0, 3, 7]), (-5, [-5, -1, 2]), (-4, [-4, 0, 3]), (0, [0, 3, 7]), (-5, [-5, -1, 2]), (0, [0, 3, 7])]   # Am E Am E Dm Am E Am (roots under A3)
+    bars = 32; L = bars * 4 * b; N = secs(L); buf = np.zeros(N)
+    for bar in range(bars):
+        root, ch = chords[bar % 8]; t0 = bar * 4 * b; big = bar >= 16
+        for k in range(4):                                                                # oom-pah: bass on 1 and 3, a chord stab on 2 and 4
+            if k % 2 == 0: add(buf, tri(A - 24 + root + (7 if k == 2 else 0), b * 0.5, 0.55), t0 + k * b)
+            else: add(buf, strum([A + c for c in ch], b * 0.4, 0.5), t0 + k * b)
+            add(buf, drum_kick(0.5 if k % 2 == 0 else 0.0), t0 + k * b)
+            if big: add(buf, drum_hat(0.35), t0 + k * b + b / 2)
+        if big and bar % 2: add(buf, clap(0.5), t0 + 3 * b)
+    t = 0
+    for rep in range(4):                                                                  # the tune: balalaika, then accordion, then both an octave up
+        for m, d in tune:
+            if m is not None:
+                if rep in (0, 2): add(buf, pluck(A + 12 + m + (12 if rep == 2 else 0), d * b + 0.2, 0.9, 0.7), t)
+                if rep in (1, 2, 3): add(buf, accordion(A + 12 + m, d * b * 0.95, 1.0 if rep != 2 else 0.6), t)
+                if rep == 3: add(buf, strum([A + 12 + m, A + 19 + m], d * b, 0.5, trem=max(1, int(d * 4))), t)
+            t += d * b
+    return write(wrap_reverb(buf, 1.0, 2.0, 0.15), 'korobeiniki')
+
+def balalaika():
+    bpm = 150; b = 60 / bpm; D = 50                                                       # D minor, a stomping 2/4 feel
+    prog = [(0, [0, 3, 7]), (0, [0, 3, 7]), (-5, [-5, -1, 2]), (0, [0, 3, 7]), (5, [5, 8, 12]), (0, [0, 3, 7]), (-5, [-5, -1, 2]), (0, [0, 3, 7])]
+    riff = [12, 10, 8, 7, 8, 7, 5, 3, 2, 3, 5, 7, 8, 10, 12, None]
+    hey = 0.25 * np.sign(lp(noise(secs(0.18)), 1800)) * adsr(secs(0.18), 0.005, 0.05, 0.6, 0.08)
+    bars = 32; L = bars * 4 * b; N = secs(L); buf = np.zeros(N)
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b; part = bar // 8
+        for k in range(4):
+            add(buf, drum_kick(0.8), t0 + k * b)                                           # the stomp
+            add(buf, tri(D - 24 + root + (7 if k % 2 else 0), b * 0.45, 0.5), t0 + k * b)
+            add(buf, strum([D + 12 + c for c in ch], b * 0.45, 0.45), t0 + k * b + b / 2)  # off-beat chords
+            if part >= 1 and k % 2: add(buf, clap(0.7), t0 + k * b)
+        mel = riff if part != 2 else [m + 5 if m is not None else None for m in riff]
+        for k in range(8):
+            m = mel[(bar % 2) * 8 + k]
+            if m is None: continue
+            if part == 0: add(buf, pluck(D + 12 + m, b * 0.5 + 0.2, 0.9, 0.8), t0 + k * b / 2)
+            else: add(buf, strum([D + 12 + m, D + 24 + m], b * 0.5, 0.5, trem=3), t0 + k * b / 2)
+            if part >= 2: add(buf, accordion(D + 12 + m, b * 0.48, 0.8), t0 + k * b / 2)
+        if bar % 4 == 3: add(buf, hey, t0 + 3 * b)                                          # HEY!
+    return write(wrap_reverb(buf, 0.9, 1.8, 0.15), 'balalaika')
+
+PIECES = {'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

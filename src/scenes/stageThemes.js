@@ -7,7 +7,7 @@
 //   grade     a colour wash multiplied over the whole picture (world and background, under the HUD)
 // The weather itself (rain, snow, petals...) is drawn by matchExtras.js.
 // Themes: NIGHTFALL, THUNDERSTORM, BLIZZARD, CHERRY BLOSSOM, FIREFLIES, BLOOD MOON, SANDSTORM, AURORA, NEON CITY,
-// CANDY LAND, SUNKEN RUINS, HARVEST MOON.
+// CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE (from the nesting dolls, code PAPERSPLEASE).
 import { VIEW_W, VIEW_H } from '../config.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -388,6 +388,55 @@ const THEMES = {
         const wx = p.x1 + w * 0.82;                                                            // a coil of barbed wire on stakes
         g.fillStyle(0x4a3a24, 1); g.fillRect(wx - 14, p.y - 14, 2, 14); g.fillRect(wx + 14, p.y - 14, 2, 14);
         g.lineStyle(1, 0x6a6458, 1); for (let k = 0; k < 7; k++) g.strokeEllipse(wx - 12 + k * 4.4, p.y - 7, 9, 12);
+      }
+    },
+  },
+  // RED SQUARE (found in the shop's nesting dolls; no weather): a winter night - a red brick wall with swallowtail
+  // battlements, a clock tower with a glowing red star, a cathedral of striped onion domes; the platforms get snow and
+  // red banners on poles
+  'fx-redsquare': {
+    grade: 0xf0d8d0,
+    backdrop(g, mid) {
+      bands(g, [0x0a0e24, 0x121838, 0x1a2248, 0x262c58, 0x3a3462, 0x4a3a62]);
+      stars(g, 50, 160, 0.7);
+      g.fillStyle(0xfff4dc, 0.9); g.fillCircle(520, 52, 12); g.fillStyle(0x0a0e24, 0.25); g.fillCircle(524, 49, 10);
+      const wy = 292;                                                                          // the long red wall, its battlements
+      mid.fillStyle(0x5a1412, 1); mid.fillRect(-200, wy - 34, W + 400, 80);
+      for (let x = -200; x < W + 200; x += 14) { mid.fillStyle(0x6a1a16, 1); mid.fillRect(x, wy - 46, 9, 12); mid.fillStyle(0x5a1412, 1); mid.fillTriangle(x + 2, wy - 46, x + 7, wy - 46, x + 4.5, wy - 41); }
+      for (let y = wy - 30; y < wy + 40; y += 6) for (let x = -200 + ((y / 6) % 2) * 7; x < W + 200; x += 14) { mid.fillStyle(0x4a100e, 1); mid.fillRect(x, y, 1, 6); mid.fillRect(x, y, 14, 1); }
+      const tx = 170;                                                                          // the clock tower: tiers, a clock, a spire with a red star
+      mid.fillStyle(0x6a1a16, 1); mid.fillRect(tx - 18, wy - 120, 36, 90); mid.fillRect(tx - 14, wy - 150, 28, 32); mid.fillRect(tx - 10, wy - 168, 20, 20);
+      mid.fillStyle(0x2a4a3a, 1); mid.fillTriangle(tx - 12, wy - 168, tx + 12, wy - 168, tx, wy - 214);
+      mid.fillStyle(0xf4ecd8, 1); mid.fillCircle(tx, wy - 134, 9); mid.fillStyle(0x1a1410, 1); mid.fillRect(tx - 0.5, wy - 141, 1, 7); mid.fillRect(tx, wy - 134.5, 5, 1);
+      mid.fillStyle(0xc8a040, 1); mid.fillRect(tx - 18, wy - 122, 36, 2); mid.fillRect(tx - 14, wy - 152, 28, 2);
+      for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * Math.PI * 2 / 5, b2 = a + Math.PI / 5; mid.fillStyle(0xff3a2a, 1); mid.fillTriangle(tx, wy - 222, tx + Math.cos(a) * 8, wy - 222 + Math.sin(a) * 8, tx + Math.cos(b2) * 3.2, wy - 222 + Math.sin(b2) * 3.2); mid.fillTriangle(tx, wy - 222, tx + Math.cos(a) * 8, wy - 222 + Math.sin(a) * 8, tx + Math.cos(a - Math.PI / 5) * 3.2, wy - 222 + Math.sin(a - Math.PI / 5) * 3.2); }
+      mid.fillStyle(0xff3a2a, 0.15); mid.fillCircle(tx, wy - 222, 18);
+      const cx = 420;                                                                          // the cathedral: a cluster of striped onion domes on towers
+      for (const [dx, h, r, c1, c2] of [[-46, 60, 13, 0x2a8a5a, 0xf4ecd8], [-22, 84, 15, 0xd8a028, 0xc8201e], [0, 112, 18, 0xc8201e, 0x2a8a5a], [24, 80, 15, 0x2a5ad8, 0xf4ecd8], [46, 58, 12, 0xd8a028, 0x2a8a5a]]) {
+        const x = cx + dx, top = wy - 34 - h;
+        mid.fillStyle(0x8a2a1e, 1); mid.fillRect(x - r * 0.6, top + r, r * 1.2, h - r + 4);
+        mid.fillStyle(0xe8d8b8, 1); for (let k = 0; k < 3; k++) mid.fillRect(x - r * 0.45 + k * r * 0.35, top + r + 8, 2, 5);
+        for (let k = 0; k < 6; k++) { mid.fillStyle(k % 2 ? c1 : c2, 1); mid.slice(x, top + r * 0.4, r, Math.PI + k * Math.PI / 6, Math.PI + (k + 1) * Math.PI / 6, false); mid.fillPath(); }
+        mid.fillStyle(c1, 1); mid.fillEllipse(x, top + r * 0.5, r * 2, r * 1.1); mid.fillStyle(c2, 1); mid.fillRect(x - r * 0.15, top + r * 0.1, r * 0.3, r * 0.9);
+        mid.fillStyle(c1, 1); mid.fillTriangle(x - r * 0.55, top + r * 0.1, x + r * 0.55, top + r * 0.1, x, top - r * 0.9);
+        mid.fillStyle(0xd8a028, 1); mid.fillRect(x - 0.5, top - r * 1.5, 1, r * 0.7); mid.fillRect(x - 2.5, top - r * 1.3, 5, 1);
+      }
+      mid.fillStyle(0xf4f8ff, 1); mid.fillRect(-200, wy + 40, W + 400, 200);                  // snow on the square
+      for (let x = -200; x < W + 200; x += 11) mid.fillEllipse(x, wy + 40, 14, 5);
+      for (let i = 0; i < 9; i++) { mid.fillStyle(0xffd890, 0.5); mid.fillCircle(-80 + i * 96, wy - 20, 2); mid.fillStyle(0xffd890, 0.12); mid.fillCircle(-80 + i * 96, wy - 20, 7); }   // windows lit along the wall
+    },
+    props(g, P, t) {
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        g.fillStyle(0xf4f8ff, 1); g.fillRect(p.x1 - 2, p.y - 3, w + 4, 4);                   // snow along the top
+        for (let x = p.x1; x < p.x2; x += 14) g.fillEllipse(x + 7, p.y - 3, 16, 5 + ((x * 7) % 3));
+        const poles = p.solid ? [p.x1 + 14, p.x2 - 14] : w > 80 ? [p.x1 + 8] : [];
+        poles.forEach((x, i) => {                                                            // red banners on poles, flapping
+          g.fillStyle(0x3a3430, 1); g.fillRect(x - 1, p.y - 46, 2, 46); g.fillStyle(0xd8a028, 1); g.fillCircle(x, p.y - 47, 2);
+          const dir = i ? -1 : 1;
+          for (let k = 0; k < 14; k++) { const yy = p.y - 44 + Math.sin(t * 0.12 + k * 0.5 + i) * 1.4 * (k / 14); g.fillStyle(k % 7 === 0 ? 0xa8140e : 0xd8201e, 1); g.fillRect(x + dir * (1 + k), yy, dir, 11); }
+          g.fillStyle(0xffd040, 1); g.fillRect(x + dir * 3 - (dir < 0 ? 2 : 0), p.y - 42, 2, 2);
+        });
       }
     },
   },

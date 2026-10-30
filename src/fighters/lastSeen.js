@@ -6,6 +6,7 @@
 import { DEFAULT_GRAB } from './common.js';
 import { LS_MOVES } from './lsMoves.js';
 import { LS_WRONG_MOVES } from './lsWrongMoves.js';
+import { LS_TANK_MOVES } from './lsTankMoves.js';
 
 export const PAL_RAIN = { outline: 0x0e0a08, deep: 0x8a6a22, mid: 0xc8a240, light: 0xe8c86a, core: 0xfff6dc, shade: 0x2a2a30, void: 0x08080a };
 export const PAL_WRONG = { outline: 0x24262c, deep: 0x86703a, mid: 0xb89e4e, light: 0xf0e09a, core: 0xffffff, shade: 0x2a2620, void: 0x0a0806 };
@@ -27,6 +28,8 @@ export const LAST_SEEN = {
   ...COMMON,
   name: 'ROSEMARY',                 // (was LAST SEEN; her id and files keep the old name)
   sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves' },
+  // RED ARMY (skins.js sheetSet 'soviet', from the shop's code PAPERSPLEASE): her calm form redrawn as a Soviet soldier
+  costumeSheets: { soviet: { idle: 'ls_soviet_idle', run: 'ls_soviet_run', jump: 'ls_soviet_jump', fall: 'ls_soviet_fall', moves: 'ls_soviet_moves' } },
   moveAnims: LS_MOVES,
   fxColor: 0xe8c86a,
   pal: PAL_RAIN,
@@ -191,3 +194,89 @@ export const SEEN = {
   },
 };
 LAST_SEEN.wrongDef = SEEN;
+
+// ---------------------------------------------------------------------------------------------------- THE TANK
+// ROSEMARY in her RED ARMY costume (skins.js `form: 'tank'`) doesn't turn into SEEN: when her SIGHTINGS fill she turns into
+// a TANK, herself up in the turret hatch, until she's KO'd. Heavy, slow to jump, armoured - and its own moves: the hull
+// machine gun, the main gun, the treads, rockets under the hull and a rocket barrage for a Limit.
+// Art: tools/sprites/rosemary_tank.py (frames 112x104, its tracks resting on 56,95). Code: fighterLastSeen.js (shell,
+// armour, KATYUSHA, its smoke).
+export const PAL_TANK = { outline: 0x161c0a, deep: 0x3c4a20, mid: 0x56682f, light: 0xd8201e, core: 0xffe08a, shade: 0x1a1e10, void: 0x060804 };
+const TANK_SHEETS = { idle: 'ls_tank_idle', run: 'ls_tank_run', jump: 'ls_tank_jump', fall: 'ls_tank_fall', moves: 'ls_tank_moves' };
+export const TANK = {
+  ...COMMON,
+  name: 'TANK',
+  tank: true,                       // fighterLastSeen.js: exhaust, track dust, smoke when it's badly hurt
+  originX: 0.5, originY: 95 / 104,  // (every strip is 112x104, the tracks resting on 56,95)
+  movesOrigin: [56 / 112, 95 / 104],
+  handOffset: { x: 46, y: -32 },    // the gun's muzzle
+  portrait: [32, 40, 48, 40],
+  body: { w: 56, h: 40 },
+  headTop: 52, tagY: 66,
+  sheets: TANK_SHEETS,
+  costumeSheets: { soviet: TANK_SHEETS },
+  moveAnims: LS_TANK_MOVES,
+  fxColor: 0xd8201e,
+  pal: PAL_TANK,
+  swingSfx: 'clang',
+  hitSfx: 'clang',
+  hitVfx: { shape: 'scrap', colors: [0xffd060, 0xd8201e, 0xffffff], n: 8 },
+  weight: 1.4,                      // very heavy: hard to launch
+  takenMult: 0.82,                  // and armoured: 18% less damage taken
+  walkSpeed: 3.4, runAccel: 0.6, groundFriction: 0.6,
+  airSpeed: 2.5, airAccel: 0.22, airFriction: 0.04,
+  jumpV: -9.0, shortHopV: -6.2, doubleJumpV: -8.6,   // (a tank doesn't jump well)
+  taunt: { name: 'URA!', frames: 84, lines: ['URA!', 'FOR THE MOTHERLAND!', 'NOT ONE STEP BACK!', 'FORWARD, COMRADES!'], sounds: [[2, 'go', 0.5, 1.1], [30, 'clang', 0.3, 1.4]] },
+  moves: {
+    ...DEFAULT_GRAB,
+    // MG BURST (jab): three bursts from the hull machine gun - long and low
+    jab: { frames: 24, multi: true, fx: 'jab', hits: [4, 8, 12].map((f) => ({ from: f, to: f + 1, box: [30, -26, 64, 12], dmg: 2, angle: 20, base: 1.4, growth: 0.6, stun: 12 })) },
+    // BARREL RAM (forward tilt): jabs the gun forward
+    ftilt: { frames: 28, fx: 'thrust', hits: [{ from: 9, to: 13, box: [34, -44, 40, 16], dmg: 9, angle: 30, base: 3.0, growth: 5.0 }] },
+    // TURRET SWEEP (up tilt): the gun sweeps up overhead
+    utilt: { frames: 26, fx: 'up', hits: [{ from: 7, to: 14, box: [-6, -96, 60, 62], dmg: 8, angle: 84, base: 3.0, growth: 4.8 }] },
+    // TREAD GRIND (down tilt): the front tracks bite in
+    dtilt: { frames: 22, fx: 'low', hits: [{ from: 5, to: 10, box: [24, -14, 40, 14], dmg: 7, angle: 22, base: 2.6, growth: 3.4 }] },
+    // RAM (dash attack): charges behind its sloped front
+    dashAttack: { frames: 34, fx: 'low', slide: { from: 4, to: 18, vx: 7.0, dust: 0xe8e4d8 }, hits: [{ from: 4, to: 16, box: [10, -44, 46, 44], dmg: 11, angle: 40, base: 4.0, growth: 5.0 }] },
+    // MAIN GUN (forward smash): fires point-blank - a huge blast in front
+    fsmash: { frames: 46, fx: 'thrust', hits: [{ from: 16, to: 20, box: [36, -60, 74, 44], dmg: 18, angle: 34, base: 5.2, growth: 7.0 }] },
+    // FLAK (up smash): the gun straight up, one big shot
+    usmash: { frames: 44, fx: 'up', hits: [{ from: 14, to: 18, box: [-6, -150, 46, 100], dmg: 16, angle: 88, base: 4.6, growth: 6.6 }] },
+    // SLAM (down smash): hops and slams down - shock rings both ways
+    dsmash: { frames: 44, fx: 'low2', hits: [{ from: 20, to: 24, box: [-78, -16, 156, 18], dmg: 14, angle: 26, base: 4.2, growth: 6.0 }] },
+    // SPIN (neutral air): a full turn in the air, gun out
+    nair: { frames: 26, landLag: 10, fx: 'spin', hits: [{ from: 5, to: 16, box: [-46, -56, 92, 58], dmg: 10, angle: 45, base: 3.0, growth: 4.0 }] },
+    // GUN SWING (forward air)
+    fair: { frames: 26, landLag: 11, fx: 'thrust', hits: [{ from: 8, to: 13, box: [24, -66, 48, 52], dmg: 11, angle: 40, base: 3.0, growth: 5.4 }] },
+    // EXHAUST BLAST (back air): fire out of the back
+    bair: { frames: 24, landLag: 11, fx: 'back', hits: [{ from: 7, to: 12, box: [-68, -36, 36, 22], dmg: 12, angle: 148, base: 3.4, growth: 5.6 }] },
+    // AA BURST (up air)
+    uair: { frames: 24, landLag: 9, fx: 'up', hits: [{ from: 8, to: 12, box: [-16, -120, 48, 64], dmg: 10, angle: 86, base: 3.0, growth: 5.0 }] },
+    // CRUSH (down air): tips nose-down and drops like an anvil - a spike
+    dair: { frames: 34, landLag: 20, fx: 'down', hits: [{ from: 12, to: 20, box: [-34, -12, 68, 24], dmg: 13, angle: -78, base: 3.0, growth: 4.2 }] },
+    // CANNON (neutral special): aims and fires a shell in a long arc - it blows up on whatever it hits, or on the ground
+    neutralB: { frames: 40, spawnAt: 14, shell: { speed: 8.2, lift: -1.6, grav: 0.13, life: 110, radius: 36,
+      hit: { dmg: 12, angle: 45, base: 4.2, growth: 4.6, radial: true } } },
+    // TREAD RUSH (side special): guns the engine and rams forward a long way
+    sideB: { frames: 48, landLag: 18, slide: { from: 6, to: 30, vx: 9.0, dust: 0xe8e4d8 }, hits: [{ from: 6, to: 30, box: [12, -42, 48, 42], dmg: 12, angle: 38, base: 4.6, growth: 5.0 }] },
+    // ROCKET HOP (up special): rockets under the hull blast it straight up - and spike anyone underneath
+    upb: { frames: 40, riseAt: 8, riseV: -14.8, pushX: 1.8, drift: 2.8, hits: [{ from: 6, to: 14, box: [-36, -6, 72, 30], dmg: 8, angle: -70, base: 2.6, growth: 3.2 }] },
+    // ENTRENCH (down special): digs in behind sandbags and sprays the machine gun. While it's dug in it's ARMOURED:
+    // hits still hurt but don't move it (armor: from, to, how much damage still gets through)
+    downB: { frames: 96, multi: true, armor: { from: 8, to: 84, taken: 0.7 },
+      hits: Array.from({ length: 11 }, (_, i) => ({ from: 20 + i * 6, to: 21 + i * 6, box: [30, -24, 96, 12], dmg: 2, angle: 15, base: 1.0, growth: 0.4, stun: 10 })) },
+  },
+  // Limit: KATYUSHA. She fires a red flare into the sky - and a rocket barrage comes down on everyone else, the rockets
+  // walking toward each of them. (fighterLastSeen.js barrageLimit)
+  limit: {
+    name: 'KATYUSHA', type: 'barrage', frames: 160,
+    flareAt: 28,                                      // the flare goes up
+    from: 54, every: 5, rockets: 20,                  // then a rocket every 5 frames
+    spread: 64, radius: 40,                           // how far off its target a rocket can land, and its blast
+    hit: { dmg: 6, angle: 70, base: 3.4, growth: 3.0, radial: true },
+    colors: PAL_TANK,
+  },
+};
+// her costumes can turn her into something else instead of SEEN (skins.js `form`)
+LAST_SEEN.forms = { tank: TANK };

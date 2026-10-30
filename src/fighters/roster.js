@@ -7,12 +7,16 @@ import { NU } from './nu.js';
 import { AERO } from './aero.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
+import { NIGHT_WITCH } from './nightWitch.js';
+import { owns } from '../progress.js';
 import { skinTexture, skinInfo } from './skins.js';
 
 export const ROSTER = [
   { id: 'soul-summoner', name: 'SOUL SUMMONER', def: SOUL_SUMMONER, available: true },
   { id: 'mr-wake', name: 'MR WAKE', def: MR_WAKE, available: true },
   { id: 'hero-knight', name: 'LACY', def: HERO_KNIGHT, available: true },
+  // NIGHT WITCH: won from the shop's nesting dolls (code PAPERSPLEASE) - on the select screen once you own her ('chr-witch')
+  { id: 'night-witch', name: 'NIGHT WITCH', def: NIGHT_WITCH, shop: 'chr-witch', get available() { return owns('chr-witch'); } },
 ];
 
 // TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a
