@@ -1,7 +1,8 @@
 import {sfx} from '../audio/sfx.js';
 import {BLAST} from '../config.js';
 import {FISTS_CLIPS as C} from './fistsAnims.js';
-const pick=(clip,t,duration)=>clip[Math.min(clip.length-1,Math.floor(Math.max(0,t)*clip.length/Math.max(1,duration)))];
+// Hold readable key poses for at least three simulation ticks, even in dense source clips.
+const pick=(clip,t,duration)=>{const count=Math.min(clip.length,Math.max(1,Math.floor(duration/3))),step=Math.min(count-1,Math.floor(Math.max(0,t)*count/Math.max(1,duration)));return clip[count===1?0:Math.round(step*(clip.length-1)/(count-1))];};
 const subset=(name,a,b)=>C[name].slice(a,b);
 // Two adjacent planted guard poses form a slow breath rather than a bouncing loop.
 export const fistsIdleFrame=t=>{const phase=((Math.floor(t)%180)+180)%180;return phase>=76&&phase<100?1:0;};
@@ -14,7 +15,7 @@ export function fistsPose(f){const s=f.state,t=f.t,S=f.sheets,move=frame=>({shee
  if(s==='attack'){
   if(f.moveName==='jab'){const at=t<4?0:t<7?1:t<11?0:t<14?1:t<19?0:t<23?2:0;return move(C.jab[at]);}
   if(f.moveName==='dair')return move(downAirPose(t));
-  if(f.moveName==='neutralB'){if(t<5)return move(C.rush[0]);if(t<24)return move(C.rush[[1,2,3,4,3,2][(t-5)%6]]);return move(pick(C.rush.slice(9,14),t-24,16));}
+  if(f.moveName==='neutralB'){if(t<5)return move(C.rush[0]);if(t<24)return move(C.rush[[1,2,3,4,3,2][Math.floor((t-5)/3)%6]]);return move(pick(C.rush.slice(9,14),t-24,16));}
   if(f.moveName==='throw'){const a=f.throwDir==='up'?C.upflame:f.throwDir==='down'?C.downB:C.ftilt;return move(pick(a,t,f.move?.frames||28));}
   return move(attackPose(POSES[f.moveName]||C.jab,t,f.move));
  }
@@ -29,7 +30,7 @@ export function fistsPose(f){const s=f.state,t=f.t,S=f.sheets,move=frame=>({shee
  if(s==='ledgeattack')return move(pick(C.ftilt,t,32));
  if(['ledge','ledgeclimb'].includes(s))return {sheet:S.jump,frame:2};
  if(s==='run'){
-  const clock=f.fistsStride||(f.fistsStride={age:f.age,phase:0});const elapsed=Math.max(0,Math.min(4,f.age-clock.age));clock.age=f.age;clock.phase=(clock.phase+elapsed*Math.abs(f.vx)/96)%1;return {sheet:S.run,frame:1+Math.floor(clock.phase*10)};
+  const clock=f.fistsStride||(f.fistsStride={age:f.age,phase:0});const elapsed=Math.max(0,Math.min(4,f.age-clock.age));clock.age=f.age;clock.phase=(clock.phase+Math.min(.1,elapsed*Math.abs(f.vx)/160))%1;return {sheet:S.run,frame:1+Math.floor(clock.phase*10)};
  }
  if(['air','helpless'].includes(s)){const rise=f.vy<0,progress=rise?1-Math.min(1,Math.abs(f.vy)/Math.abs(f.def.jumpV)):Math.min(1,f.vy/7);return {sheet:rise?S.jump:S.fall,frame:rise?Math.min(4,Math.floor(progress*5)):Math.min(3,Math.floor(progress*4))};}
  return {sheet:S.idle,frame:fistsIdleFrame(t)};

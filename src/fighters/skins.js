@@ -530,6 +530,9 @@ SKINS.fists=[{name:'DEFAULT',swatch:0xc92a44},
  {name:'PHANTOM',swatch:0x9b5fbc,fx:0x78f0c5,groups:FISTS_GROUPS,rules:{cloth:{ramp:FISTS_VIOLET,lo:.12,hi:.95},clothWarm:{ramp:FISTS_VIOLET,lo:.12,hi:.95},gloves:{ramp:[0x123d38,0x246b5c,0x3caa8c,0x79e7bd,0xc8ffe4],lo:.12,hi:.95}}}
 ];
 
+// Bare chest, black trousers/hair, red gloves: Kazuya's classic fighting look.
+SKINS.fists.push({name:'KAZUYA',swatch:0xa91d30,fx:0xb26bff,groups:{...FISTS_GROUPS,hair:{h:[70,155],s:[.2,1],v:[.05,.7],center:110}},rules:{cloth:{ramp:[0x5c3028,0x985942,0xc58a64,0xe6b68a,0xffd8a5],lo:.12,hi:.95},clothWarm:{ramp:[0x5c3028,0x985942,0xc58a64,0xe6b68a,0xffd8a5],lo:.12,hi:.95},gloves:{ramp:[0x3e0d18,0x791327,0xba2336,0xea4b51,0xff9290],lo:.12,hi:.95},hair:{ramp:[0x08090d,0x11121a,0x202230,0x353849],lo:0,hi:.7}}});
+
 export function skinsFor(id) { return SKINS[id] || [{ name: 'DEFAULT', swatch: 0xffffff }]; }
 export function skinInfo(id, i) { const s = skinsFor(id); return s[((i || 0) % s.length + s.length) % s.length]; }
 
