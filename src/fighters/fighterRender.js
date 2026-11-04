@@ -1,3 +1,4 @@
+import {syncFistsDevil,drawFistsDevil} from './fistsDevil.js';
 import {fistsPose} from './fistsAnimation.js';
 import {drawYoungLinkSpecial} from './youngLinkSpecials.js';
 import {youngLinkPose} from './youngLinkAnimation.js';
@@ -130,6 +131,7 @@ export class FighterRender {
     const spr = this.sprite, g = this.fx, d = this.def;
     g.clear(); this.fxBack.clear();this.azureCape?.setVisible(false);this.premiumAnimation=null;this.premiumAnimProgress=0;
     if (!this.alive) return;
+    if(d.id==='fists')syncFistsDevil(this);
     this.anim++;
     spr.setPosition(Math.round(this.x), Math.round(this.y));
     spr.setFlipX(d.facesLeft ? this.facing > 0 : this.facing < 0);
@@ -199,7 +201,7 @@ export class FighterRender {
       if (a.flip) spr.setFlipX(!spr.flipX);
       this._animFlip = !!a.flip;
     }
-    if(d.id==='fists'){const pose=fistsPose(this);sheet=pose.sheet;frame=pose.frame;spr.setRotation(0).setScale(1,1);spr.y=Math.round(this.y);if(s==='attack'&&(this.moveName==='bair'||this.moveName==='throw'&&this.throwDir==='back'))spr.setFlipX(!spr.flipX);}
+    if(d.id==='fists'){const pose=fistsPose(this);sheet=pose.sheet;frame=pose.frame;spr.setRotation(0).setScale(1,1);spr.y=Math.round(this.y);if(pose.flip)spr.setFlipX(!spr.flipX);if(s==='attack'&&(this.moveName==='bair'||this.moveName==='throw'&&this.throwDir==='back'))spr.setFlipX(!spr.flipX);}
     const cosmetic=premiumPose(this);
     if(cosmetic){sheet=cosmetic.sheet;frame=cosmetic.frame;spr.setRotation(0).setScale(1,1);this.premiumAnimation=cosmetic.kind;this.premiumAnimProgress=cosmetic.progress;}
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
@@ -227,6 +229,7 @@ export class FighterRender {
       else spr.setAlpha(0);
     } else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
     if(this.azureCape)syncAzureCape(this.azureCape,spr,this.anim,Math.abs(this.vx+this.lx)>1);
+    if(d.id==='fists')drawFistsDevil(this,g,this.fxBack);
     if(d.id==='young-link')drawYoungLinkSpecial(this,g);
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
     if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge

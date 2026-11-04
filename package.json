@@ -33,7 +33,8 @@
     "test:bendy": "node tools/tests/neo-japan-data.mjs && node tools/tests/neo-japan.mjs",
     "test:grimoire": "node tools/tests/grimoire.mjs",
     "test:soul-potions": "node tools/tests/soul-potions-data.mjs && node tools/tests/soul-potions.mjs",
-    "test:ninja-souls": "node tools/tests/ninja-souls-data.mjs && node tools/tests/ninja-souls.mjs"
+    "test:ninja-souls": "node tools/tests/ninja-souls-data.mjs && node tools/tests/ninja-souls.mjs",
+    "test:fists-stage": "node tools/tests/fists-stage-break.mjs"
   },
   "devDependencies": {
     "phaser": "4.2.1",
