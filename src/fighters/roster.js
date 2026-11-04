@@ -1,3 +1,4 @@
+import {fistsIdleFrame} from './fistsAnimation.js';
 import {FISTS} from './fists.js';
 import { YOUNG_LINK } from './youngLink.js';
 // Every fighter slot shown on the fighter select screen, in grid order.
@@ -58,6 +59,7 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
   if (skinInfo(def.id, skin).worn && def.wornSheets) key = def.wornSheets[Math.floor(sprite.scene.time.now / 1200) % 4].idle;   // preview every damage stage
   const premium=PREMIUM_ANIMS[def.id+':'+skinInfo(def.id,skin).name];
   if(premium?.idleKey){key=premium.idleKey;frame=Math.floor(sprite.scene.time.now/(1000/60*premium.idle[2]))%premium.idle[1];}
+  else if(def.id==='fists')frame=fistsIdleFrame(sprite.scene.time.now*60/1000);
   else frame %= (def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
   if (sprite.texture.key !== key) sprite.setTexture(key, frame); else sprite.setFrame(frame);
   sprite.setOrigin(def.originX ?? 0.5, def.originY).setFlipX(!!def.facesLeft);

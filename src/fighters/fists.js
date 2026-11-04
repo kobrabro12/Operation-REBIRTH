@@ -15,7 +15,8 @@ export const FISTS={
  dsmash:{frames:48,multi:true,hits:[hit(9,13,[3,-25,63,27],5,25,2),hit(21,25,[-65,-26,65,28],5,155,2),hit(33,38,[-64,-29,128,32],8,35,6)]},
  nair:{...strike(34,7,24,[-38,-52,76,54],8,50),landLag:8},fair:{...strike(30,8,17,[5,-49,64,42],11,40),landLag:10},
  bair:{...strike(30,8,17,[-69,-49,64,42],12,140),landLag:11},uair:{...strike(28,7,15,[-23,-91,51,53],9,84),landLag:9},
- dair:{...strike(34,9,21,[-23,-16,48,41],12,-80,6),landLag:15},
+ // The heel and its downward trail are the contact area; only the clean early kick meteors.
+ dair:{frames:34,landLag:15,hits:[hit(9,13,[4,-12,44,36],14,-90,6,{base:4}),hit(14,18,[4,-10,40,28],9,40,5)]},
  neutralB:{frames:40,multi:true,hits:[hit(6,8,[5,-51,43,38],2,15,0,{stun:12}),hit(12,14,[5,-51,47,38],2,15,0,{stun:12}),hit(18,20,[5,-51,50,38],2,15,0,{stun:12}),hit(27,31,[4,-65,57,52],7,55,6)]},
  sideB:{...strike(34,7,19,[8,-48,62,40],12,35,6),slide:{from:5,to:18,vx:8.3}},
  upb:{frames:36,riseAt:8,riseV:-13.5,drift:3.2,pushX:1,hits:[hit(8,12,[-14,-67,49,69],3,88,0,{base:1.2,stun:12,pull:true}),hit(17,23,[-17,-89,55,85],8,75,6)]},
