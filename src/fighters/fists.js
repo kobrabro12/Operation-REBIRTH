@@ -22,7 +22,7 @@ export const FISTS={
  upb:{frames:36,riseAt:8,riseV:-13.5,drift:3.2,pushX:1,hits:[hit(8,12,[-14,-67,49,69],3,88,0,{base:1.2,stun:12,pull:true}),hit(17,23,[-17,-89,55,85],8,75,6)]},
  downB:{frames:34,slide:{from:6,to:16,vx:5.7},hits:[hit(8,16,[4,-27,62,30],11,30,5)]}
  },
- limit:{name:'COMET COMBO',type:'fistsRush',frames:210,reach:190},
+ limit:{name:'COMET COMBO',type:'fistsRush',frames:270,reach:190},
 };
 
 // Match contact boxes to the sprite normalization while retaining damage and timing.

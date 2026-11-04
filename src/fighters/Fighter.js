@@ -1,3 +1,5 @@
+import {isDevilKazuya} from './fistsDevil.js';
+import {tryStageBreak} from './stageBreak.js';
 import {YoungLinkBomb,youngLinkHook,YoungLinkActions} from './youngLinkSpecials.js';
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
@@ -104,7 +106,7 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get dmgMult() { return (isDevilKazuya(this)?1.6:1) * (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]*soulJumpMultiplier(this); }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
@@ -153,6 +155,7 @@ export class Fighter {
     if (c.tappedDown()) this.tapDown = this.age;
     if (this.hitstop > 0) { this.hitstop--; return; }
 
+    if(isDevilKazuya(this)&&['attack','upb'].includes(this.state)&&this.age%3===0){this.physics(c);this.checkBlast();return;}
     this.t++;
     if (this.slow > 0) this.slow--;
     if (this.invincible > 0) this.invincible--;
@@ -306,7 +309,7 @@ export class Fighter {
     if (this.tryCommon(c, false)) return;
     if (this.buffer.jump && this.jumpsLeft > 0) {
       this.buffer.jump = 0; this.jumpsLeft--; this.fastFalling = false;
-      this.vy = this.def.doubleJumpV * this.jumpMult; this.vx = c.x * this.def.airSpeed;
+      this.vy = this.def.doubleJumpV * this.jumpMult * (isDevilKazuya(this)?1.35:1); this.vx = c.x * this.def.airSpeed;
       if (Math.abs(c.x) > 0.3) this.facing = Math.sign(c.x);
       sfx('djump', 0.5); this.match.puff(this.x, this.y, 0xf0f2f3, 6);
     }
@@ -521,6 +524,7 @@ export class Fighter {
       this.grounded = false; this.platform = null;          // walked off an edge
       if (['idle', 'run', 'land', 'taunt'].includes(this.state)) this.setState('air');
     }
+    if(landed&&goingDown&&tryStageBreak(this,landed)){this.grounded=false;this.platform=null;return;}
     if (landed && !this.grounded) {
       // a strong hit into the floor bounces instead of landing
       if (this.state === 'hitstun' && this.ly > 4) { this.ly = -this.ly * 0.6; this.y = landed.y; this.match.puff(this.x, this.y, 0xd99350, 6); return; }
@@ -569,7 +573,7 @@ export class Fighter {
   }
 
   respawn() {
-    this.soulAidUsed=false;this.sugarAidUsed=false;
+    this.stageBreaker=null;this.soulAidUsed=false;this.sugarAidUsed=false;
     this.alive = true; this.percent = 0; this.hp = this.maxHp; this.curse = 0; this.slow = 0; this.swift = 0; this.star = 0; this.rage = 0; this.possessed = 0; this.possessImmune = 0; this.missingMark = 0; this.shaken = 0; this.frenzy = 0; this.axeLost = 0;
     this.x = 0; this.y = -230; this.vx = this.vy = this.lx = this.ly = 0;
     this.grounded = false; this.facing = 1; this.jumpsLeft = 1; this.usedUpB = false; this.airdodged = false;

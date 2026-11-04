@@ -22,7 +22,7 @@ export function fistsPose(f){const s=f.state,t=f.t,S=f.sheets,move=frame=>({shee
   return move(attackPose(POSES[f.moveName]||C.jab,t,f.move));
  }
  if(s==='upb')return move(attackPose(C.upflame,t,f.def.moves.upb));
- if(s==='limit'){const U=f.ult;if(U?.phase==='cutscene'){const c=U.ct;if(c<20)return move(pick(C.upflame,c,20));if(c<92){const clips=[C.nair,SIDE_KICK,C.utilt,C.ftilt],at=c-20,clip=clips[Math.floor(at/18)%4];return move(pick(clip,at%18,18));}if(c<110)return move(C.upflame[3]);return move(pick(C.dive.slice(14,20),c-110,18));}if(t<36)return move(pick(C.taunt,t,36));if(t<44)return move(pick(C.rush,t-36,8));return move(pick(C.upflame,t-44,12));}
+ if(s==='limit'){const U=f.ult;if(U?.phase==='cutscene'){const c=U.ct;if(c<20)return move(pick(C.upflame,c,20));if(c<128){const clips=[C.nair,SIDE_KICK,C.utilt,C.ftilt],at=c-20,clip=clips[Math.floor(at/18)%4];return move(pick(clip,at%18,18));}if(c<146)return move(C.upflame[3]);return move(pick(C.dive.slice(14,20),c-146,18));}if(t<36)return move(pick(C.taunt,t,36));if(t<44)return move(pick(C.rush,t-36,8));return move(pick(C.upflame,t-44,12));}
  if(s==='shield')return move(C.guard[0]);
  if(s==='holding')return move(f.pummelCd>0?C.jab[1]:C.ftilt[1]);
  if(['hitstun','dizzy','grabbed','seized'].includes(s))return move(pick(C.hurt.slice(0,4),t,18));
@@ -50,12 +50,12 @@ export function stepFistsLimit(f){const t=f.t,m=f.match;
  }
  const v=U.victims[0];if(!v?.alive||v.state==='dying')return end();const c=++U.ct;
  if(c<=20){const k=1-Math.pow(1-c/20,2);v.y=U.startY+(U.skyY-U.startY)*k;v.x=U.cx;f.x=U.from.x+(U.cx-f.facing*28-U.from.x)*k;f.y=U.from.y+(U.skyY-U.from.y)*k;}
- else if(c<92){const at=c-20,segment=Math.floor(at/18),q=(at%18)/18,side=segment%2?1:-1;v.x=U.cx;v.y=U.skyY-4*Math.sin(q*Math.PI);f.x=U.cx+side*(34-15*Math.sin(q*Math.PI));f.y=U.skyY+Math.sin(segment*1.7)*18;f.facing=side<0?1:-1;if(at%9===1)hit(v,2);}
- else if(c<110){f.x=U.cx;f.y=U.skyY-42;v.x=U.cx;v.y=U.skyY; if(c%4===0)m.puff(f.x,f.y-22,0xffd568,3);}
- else if(c===110){f.y=U.skyY-28;hit(v,18,true);U.released=true;}
- else if(c<128){f.y+=2; // Let the launched opponent fly while the cinematic camera follows.
+ else if(c<128){const at=c-20,segment=Math.floor(at/18),q=(at%18)/18,side=segment%2?1:-1;v.x=U.cx;v.y=U.skyY-4*Math.sin(q*Math.PI);f.x=U.cx+side*(34-15*Math.sin(q*Math.PI));f.y=U.skyY+Math.sin(segment*1.7)*18;f.facing=side<0?1:-1;if(at%9===1)hit(v,2);}
+ else if(c<146){f.x=U.cx;f.y=U.skyY-42;v.x=U.cx;v.y=U.skyY; if(c%4===0)m.puff(f.x,f.y-22,0xffd568,3);}
+ else if(c===146){f.y=U.skyY-28;const shatter=v.percent>70;hit(v,18,true);if(shatter)v.stageBreaker={owner:f,until:m.frame+240};U.released=true;}
+ else if(c<164){f.y+=2; // Let the launched opponent fly while the cinematic camera follows.
   v.hitstop=0;v.hitstun=Math.max(v.hitstun,20);v.physics(v.ctrl);v.checkBlast();
  }
  if(!U.released){v.hitstop=0;v.hitstun=999;v.vx=v.vy=v.lx=v.ly=0;}
- if(c>=128)return end();
+ if(c>=164)return end();
 }

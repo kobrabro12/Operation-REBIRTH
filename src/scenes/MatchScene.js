@@ -95,7 +95,7 @@ export class MatchScene extends Phaser.Scene {
     this.stageId = stageById(S.stage).id; this.stage = stageById(S.stage).make(this);
     this.stage.hazardsOn = S.hazards;
     const bg = [], world = [];
-    this.stage.draw(world, bg);
+    this.stage.draw(world, bg);this.stageArt=world;this.stageHoles=[];this.stageHoleMask=null;
     this.addBg(...bg); this.addWorld(...world);
     // FULL AERO (AERO's alternate Limit) repaints the stage: a glossy sky over the backdrop, glossy platforms
     this.aeroBg = this.add.graphics().setScrollFactor(0).setDepth(50); this.addBg(this.aeroBg);
