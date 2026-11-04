@@ -1,3 +1,4 @@
+import {fistsElectricHit} from '../fighters/fistsDevil.js';
 import {soulEncounter} from '../souls/encounters.js';
 import {soulPower,addSoulXP,applySoulAid} from '../souls/progression.js';
 import {awardSoul} from '../souls/collection.js';
@@ -593,6 +594,7 @@ export class MatchScene extends Phaser.Scene {
   }
   // Milestone costumes: each has its own hit effect (skins.js vfx.hit), bigger at higher milestones.
   skinHitFx(owner, x, y, kb, dir, dmg = 0) {
+    fistsElectricHit(this,owner,x,y);
     const v = (owner.def.wrong && owner.vfx && owner.vfx.seenHit) || owner.def.hitVfx || (owner.vfx && owner.vfx.hit) || STYLE_HIT[owner.style];   // (a form can override the costume: LAST SEEN as SEEN)
     if (!v) return;
     if (v.sound) sfx(v.sound, 0.35, 0.9 + Math.random() * 0.3);

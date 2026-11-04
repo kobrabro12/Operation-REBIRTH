@@ -14,6 +14,8 @@ const POSES={ftilt:C.ftilt,utilt:C.utilt,dtilt:C.dtilt,dashAttack:subset('rush',
 export function fistsPose(f){const s=f.state,t=f.t,S=f.sheets,move=frame=>({sheet:S.moves,frame});if(s!=='run'&&f.fistsStride)f.fistsStride.age=f.age;
  if(s==='attack'){
   if(f.moveName==='jab'){const at=t<4?0:t<7?1:t<11?0:t<14?1:t<19?0:t<23?2:0;return move(C.jab[at]);}
+  if(f.moveName==='dsmash'){const phase=t%20;return {...move(t>=40?C.downB[7]:pick(C.downB,phase,20)),flip:t>=20};}
+  if(f.moveName==='downB')return move(C.downB[t<4?0:t<8?1:t<11?2:t<14?3:t<17?4:t<22?5:t<28?6:7]);
   if(f.moveName==='dair')return move(downAirPose(t));
   if(f.moveName==='neutralB'){if(t<5)return move(C.rush[0]);if(t<24)return move(C.rush[[1,2,3,4,3,2][Math.floor((t-5)/3)%6]]);return move(pick(C.rush.slice(9,14),t-24,16));}
   if(f.moveName==='throw'){const a=f.throwDir==='up'?C.upflame:f.throwDir==='down'?C.downB:C.ftilt;return move(pick(a,t,f.move?.frames||28));}

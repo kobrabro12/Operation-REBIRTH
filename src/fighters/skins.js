@@ -533,6 +533,11 @@ SKINS.fists=[{name:'DEFAULT',swatch:0xc92a44},
 // Bare chest, black trousers/hair, red gloves: Kazuya's classic fighting look.
 SKINS.fists.push({name:'KAZUYA',swatch:0xa91d30,fx:0xb26bff,groups:{...FISTS_GROUPS,hair:{h:[70,155],s:[.2,1],v:[.05,.7],center:110}},rules:{cloth:{ramp:[0x5c3028,0x985942,0xc58a64,0xe6b68a,0xffd8a5],lo:.12,hi:.95},clothWarm:{ramp:[0x5c3028,0x985942,0xc58a64,0xe6b68a,0xffd8a5],lo:.12,hi:.95},gloves:{ramp:[0x3e0d18,0x791327,0xba2336,0xea4b51,0xff9290],lo:.12,hi:.95},hair:{ramp:[0x08090d,0x11121a,0x202230,0x353849],lo:0,hi:.7}}});
 
+const DEVIL_KAZUYA={groups:{...FISTS_GROUPS,flesh:{h:[15,65],s:[.15,1],v:[.15,1],center:35},hair:{h:[70,155],s:[.2,1],v:[.05,.7],center:110}},rules:{}};
+for(const name of ['cloth','clothWarm','flesh'])DEVIL_KAZUYA.rules[name]={ramp:[0x241033,0x442154,0x71418e,0xa56ab9,0xd9a3e8],lo:.1,hi:1};
+DEVIL_KAZUYA.rules.gloves={ramp:[0x310b20,0x711534,0xb92d51,0xff6689],lo:.1,hi:1};DEVIL_KAZUYA.rules.hair={ramp:[0x06050d,0x161020,0x31203f],lo:0,hi:.7};
+export function kazuyaDevilSheets(scene,def){return Object.fromEntries(Object.entries(def.sheets).map(([kind,key])=>[kind,recolorTexture(scene,key,key+'@DEVIL_KAZUYA',DEVIL_KAZUYA)]));}
+
 export function skinsFor(id) { return SKINS[id] || [{ name: 'DEFAULT', swatch: 0xffffff }]; }
 export function skinInfo(id, i) { const s = skinsFor(id); return s[((i || 0) % s.length + s.length) % s.length]; }
 
