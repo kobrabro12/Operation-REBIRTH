@@ -1,7 +1,7 @@
 import {FONT} from '../config.js';
 export const CARTRIDGES=[
- {id:'star-patrol',name:'STAR PATROL',genre:'SPACE SHOOTER',color:0x5ad0ff,description:'Clear three alien waves. Dodge their shots.\nMOVE: A/D or arrows   FIRE: J / SPACE / A'},
- {id:'crypt-runner',name:'CRYPT RUNNER',genre:'PLATFORM ADVENTURE',color:0xc79aff,description:'Find three gems and reach the door in each room.\nMOVE: A/D or arrows   JUMP: J / SPACE / A'},
+ {id:'star-patrol',name:'STAR PATROL',genre:'SPACE SHOOTER',color:0x5ad0ff,description:'Beat three unique fleets and the Void Commander.\nMOVE: A/D or arrows   FIRE: J / SPACE / A'},
+ {id:'crypt-runner',name:'CRYPT RUNNER',genre:'PLATFORM ADVENTURE',color:0xc79aff,description:'Explore eight different crypts. Find every gem, then the door.\nMOVE: A/D or arrows   JUMP: J / SPACE / A'},
  {id:'neon-rally',name:'NEON RALLY',genre:'ARCADE RACER',color:0xffaa51,description:'Survive a 45-second highway run. Dodge traffic.\nSTEER: A/D or arrows   BRAKE: J / SPACE / A'},
 ];
 /** Finds a cartridge definition, falling back to Star Patrol for an unknown ID. */
