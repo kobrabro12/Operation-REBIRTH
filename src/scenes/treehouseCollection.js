@@ -1,6 +1,7 @@
 import {SHOP} from '../data/shop.js';
 import {owns} from '../progress.js';
 import {FONT} from '../config.js';
+import {ensureMangaCover} from './robotSlayerManga.js';
 
 /** Returns every owned shop soundtrack, including secret and gacha records, without granting music. */
 export function ownedRecords(){return SHOP.flatMap(s=>s.items).filter(it=>it.kind==='music'&&owns(it.id));}
@@ -23,9 +24,7 @@ export function drawCollectionShelf(scene,records){
  box(356,149,88,105,0x100d1a);box(359,152,82,99,0x302333);
  for(const y of [192,240]){box(356,y,88,5,0xa77350);box(360,y,80,1,0xd2a069);}
  records.forEach((it,i)=>{const x=362+i%10*7,y=158+Math.floor(i/10)*48;box(x,y,6,34,0x151320);box(x+1,y+1,4,32,it.color);box(x+1,y+6,4,12,0x151320);box(x+2,y+10,2,3,it.color);box(x+2,y+25,2,3,0xf5e8d0);});
- // An original, visibly illustrated paperback lives on the bookcase's second shelf.
- box(73,115,44,39,0x100d1a);box(76,117,39,35,0xf2ead7);box(76,117,4,35,0x8e8a85);box(84,134,9,15,0x17151b);box(85,129,8,6,0x17151b);box(87,131,5,2,0xf2ead7);g.lineStyle(2,0x17151b);g.lineBetween(93,148,108,130);
- const title=scene.add.text(83,119,'IRON\nRAIN',{fontFamily:FONT,fontSize:'4px',color:'#17151b',lineSpacing:1}).setDepth(2);
+ ensureMangaCover(scene);box(81,113,34,42,0x100d1a);const title=scene.add.image(98,134,'iron_rain_cover').setDisplaySize(28,38).setDepth(2);
  const count=scene.add.text(361,143,'VINYL / '+records.length,{fontFamily:FONT,fontSize:'5px',color:'#ffda96'}).setDepth(2);
  return [g,title,count];
 }
