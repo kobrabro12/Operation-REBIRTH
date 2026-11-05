@@ -15,7 +15,7 @@ try{
  for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);
  Object.assign(settings,{mode:'stock',stocks:3,cpuCount:1,difficulty:0,extraPads:[],p1Pad:null,picks:['hero-knight','soul-summoner'],skins:[0,0],stage:'the-construct',items:false,hazards:true,crt:false});
  const {MatchScene}=await import('/src/scenes/MatchScene.js');MatchScene.prototype.update=function(){};
- window.game.scene.start('Match');await new Promise(r=>setTimeout(r,300));const m=window.game.scene.getScene('Match'),s=m.stage,f=m.fighters[0],p=s.platforms[1];
+ window.game.scene.start('Match');await new Promise(r=>setTimeout(r,300));while(!window.game.scene.isActive('Match')||!window.game.scene.getScene('Match').fighters?.length)await new Promise(r=>setTimeout(r,30));const m=window.game.scene.getScene('Match'),s=m.stage,f=m.fighters[0],p=s.platforms[1];
  f.placeAt((p.x1+p.x2)/2,p.y);f.grounded=true;f.platform=p;
  const seen=new Set();let hits=0,warnings=0;
  for(let i=0;i<2160;i++){const ox=f.x,oy=f.y,px=p.x1,py=p.y;const out=s.step(m);if(Math.abs((f.x-ox)-(p.x1-px))>1e-6||Math.abs((f.y-oy)-(p.y-py))>1e-6)throw Error('rider drift');if(!Number.isFinite(f.x+f.y))throw Error('nonfinite');if(out.length)hits++;else if(s.cycle.hz?.t<90)warnings++;if(i%720===300)seen.add(s.platforms.slice(1).map(q=>Math.round(q.y/10)).join());}
@@ -24,6 +24,6 @@ try{
  return {layouts:seen.size,hits,warnings,stageCount:STAGES.length};
  });
  assert.equal(result.layouts,3);assert.ok(result.hits>0&&result.warnings>0);
- await page.screenshot({path:'/workspace/work/construct-stage.png'});
+ await page.screenshot({path:'recordings/test-output/construct-stage.png'});
  assert.deepEqual(errors,[]);console.log('PASS',JSON.stringify(result));
 }finally{await browser.close();await server.close();}

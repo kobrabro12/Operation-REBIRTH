@@ -6,3 +6,6 @@ __pycache__/
 recordings/
 
 node_modules
+
+# MP3 copies of the audio are made by the build from the .ogg (tools/build/mp3.mjs): never commit them
+public/**/*.mp3

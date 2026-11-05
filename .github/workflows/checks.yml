@@ -1,0 +1,84 @@
+name: Checks
+
+# Runs on every pull request (and on demand): lint, the docs rule and the asset rules for what the PR
+# adds, a build with its download budget, then the game's tests and a smoke sim.
+# Once a week it also runs everything against the whole game, so optimizing doesn't depend on someone
+# remembering: the asset report lists every old file that breaks today's rules.
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 13 * * 1'          # Mondays ~9am Eastern
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, docs, assets, build budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                       # the docs/asset rules compare with the base branch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: sudo apt-get install -y -qq ffmpeg > /dev/null   # ffprobe: audio bitrate / sample rate rules
+      - run: npm ci
+      - run: npm run lint
+      - name: Docs rule (new functions need a doc block)
+        if: github.event_name == 'pull_request'
+        run: npm run check:docs
+        env:
+          CHECK_BASE: origin/${{ github.base_ref }}
+      - name: Asset rules (new or changed assets)
+        if: github.event_name == 'pull_request'
+        run: npm run check:assets
+        env:
+          CHECK_BASE: origin/${{ github.base_ref }}
+      - name: Asset report (every file, never fails)
+        if: github.event_name != 'pull_request'
+        run: npm run check:assets -- --all
+      - uses: actions/cache@v4            # MP3 copies the build encoded before (tools/build/mp3.mjs)
+        with:
+          path: node_modules/.cache/rebirth-mp3
+          key: mp3-${{ hashFiles('public/**/*.ogg') }}
+          restore-keys: mp3-
+      - run: npm run build
+      - run: npm run check:budget
+
+  tests:
+    name: Game tests + smoke sim
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SIM_CHROME: /usr/bin/google-chrome     # preinstalled on GitHub's Ubuntu runners
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet pillow numpy      # the asset tests in tools/tests/*.py
+      - run: npm ci
+      - run: npm test
+      - name: Smoke sim
+        if: success() || failure()               # still run when a test failed, so one run reports everything
+        run: npm run sim -- --smoke
+      - name: Keep the tests' screenshots
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: recordings/test-output/
+          if-no-files-found: ignore
+          retention-days: 7

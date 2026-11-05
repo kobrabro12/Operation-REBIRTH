@@ -2,6 +2,7 @@ import {ARC} from '../ui/arcade.js';
 import {FONT} from '../config.js';
 // Native scene art: explicit pixel shapes and the same ink, panels and accents as the arcade UI.
 // No background images or generated-image assets are used.
+/** Draws the native pixel room and frames the supplied movie poster without stretching it. */
 export function drawTreehouse(scene){
  const g=scene.add.graphics();const rect=(x,y,w,h,c)=>{g.fillStyle(c);g.fillRect(x,y,w,h);};const poly=(points,c)=>{g.fillStyle(c);g.fillPoints(points.map(([x,y])=>({x,y})),true);};
  const text=(x,y,s,size,c)=>scene.add.text(x,y,s,{fontFamily:FONT,fontSize:size+'px',color:c,stroke:'#07060e',strokeThickness:1});

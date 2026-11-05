@@ -1,5 +1,9 @@
-import {CartridgeGameScene} from './scenes/CartridgeGameScene.js';
+import './phaser-global.js';                         // must stay the first import: sets the global Phaser
+import './fonts/fonts.css';                          // the pixel font, served with the game (no Google Fonts request)
+import { setupOffline } from './pwa.js';
+import './webp.js';                                  // load the build's WebP copies of rich images (before any scene)
 import {TreehouseScene} from './scenes/TreehouseScene.js';
+import {CartridgeGameScene} from './scenes/CartridgeGameScene.js';
 import {SoulUpgradeScene} from './scenes/SoulUpgradeScene.js';
 import {SoulEvolutionScene} from './scenes/SoulEvolutionScene.js';
 import {SoulRewardScene} from './scenes/SoulRewardScene.js';
@@ -46,4 +50,5 @@ const config = {
 const fontReady = document.fonts ? document.fonts.load('10px "Press Start 2P"') : Promise.resolve();
 Promise.race([fontReady, new Promise((r) => setTimeout(r, 2500))]).finally(() => {
   window.game = new Phaser.Game(config);
+  setupOffline();                                     // offline play + UPDATE READY on the title (src/pwa.js)
 });

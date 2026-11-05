@@ -34,6 +34,7 @@ import { SHOP, CURRENCY, KEEPER, GACHA_REFUND, gachaPool, shelfItems } from '../
 import { getCoins, addCoins, buyItem, grantItem, owns, toggleEquip, isEquipped, reveal, unreveal } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinSheets } from '../fighters/skins.js';
+import { ensureSheets } from '../fighters/lazySheets.js';
 import { premiumAnimationFor } from '../fighters/premiumAnimations.js';
 import { hasWinCutscene } from './WinScene.js';
 import { stat, addSecret, checkAchievements, isUnlocked } from '../achievements.js';
@@ -258,10 +259,14 @@ export class ShopScene extends Phaser.Scene {
     this.say(it.name + ' IS ON. PRESS AGAIN TO SWITCH IT OFF.', '#7aff8a');
   }
   // ---------------------------------------------------------------- costume PREVIEW
+  /** Opens the costume PREVIEW overlay; returns a promise when the costume's strips had to load first. */
   openPreview(it) {
-    stat('previews'); this.cheevos();
     const fd = fighterById(it.fighter); if (!fd || !fd.def) return;
-    const def = fd.def, si = Math.max(0, skinsFor(def.id).findIndex((k) => k.name === it.skin)), sh = skinSheets(this, def, si);
+    const def = fd.def, si = Math.max(0, skinsFor(def.id).findIndex((k) => k.name === it.skin));
+    const loading = ensureSheets(this, [{ id: def.id, skin: si }], { evict: true });   // its strips load first (lazySheets.js)
+    if (loading) return loading.then(() => this.openPreview(it));
+    stat('previews'); this.cheevos();
+    const sh = skinSheets(this, def, si);
     const n = (key) => Math.max(1, this.textures.get(key).frameTotal - 1);
     const o = [def.originX ?? 0.5, def.originY], mo = def.movesOrigin || o;
     const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: (def.frameCounts && def.frameCounts.idle) || n(sh.idle), step: 6, o, loops: 2 }];

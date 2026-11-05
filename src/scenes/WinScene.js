@@ -1,4 +1,5 @@
 import {drawNavi} from '../fighters/navi.js';
+import { queueSheets } from '../fighters/lazySheets.js';
 import {youngLinkClip} from '../fighters/youngLinkAnimation.js';
 import {syncAzureCape} from '../fighters/azureCape.js';
 // WIN CUTSCENES: when Soul Summoner, Mr Wake, Lacy or one of the test fighters (NU, AERO, WHAT ONCE WAS,
@@ -53,6 +54,11 @@ export function hasWinCutscene(id) { return !!CUTS[id]; }
 
 export class WinScene extends Phaser.Scene {
   constructor() { super('Win'); }
+  /** Loads the costume strips the cutscene's fighters wear (src/fighters/lazySheets.js) before create. */
+  preload() {
+    const res = (this.sys.settings.data || {}).results || [];
+    queueSheets(this, res.filter((r) => r && r.fighter).map((r) => ({ id: r.fighter, skin: r.skin || 0 })));
+  }
   create(data) {
     this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.koiImg = null; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];

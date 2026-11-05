@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-title" content="REBIRTH">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="preload" as="image" href="/assets/ui/loading-screen.png" fetchpriority="high">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <!-- start fetching the pixel font right away (src/fonts/fonts.css declares it) -->
+  <link rel="preload" href="./src/fonts/press-start-2p-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --bg: #0b0a14; --ink: #f0f2f3; --muted: #8a87a3; }
     @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #0b0a14; } }
@@ -47,7 +47,6 @@
   <div id="rotate">TURN YOUR PHONE SIDEWAYS<br>TO PLAY</div>
   <div id="game"></div>
   <script src="/loading-screens.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

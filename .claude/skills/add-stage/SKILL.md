@@ -49,10 +49,10 @@ Rules:
 ## 2. Wire-up checklist
 - [ ] `src/stage/stages.js`: import, then add `{ id, name, available: true, make, blurb: [2 lines], hazard: 'TEXT\nTEXT', preview }`
 - [ ] preview function `drawXPreview(g, x, y, w, h)` exported from the stage file (select-screen miniature)
-- [ ] music: `tools/audio/<name>_music.py` → `public/assets/audio/music/<key>.ogg/.mp3`, then
-      `this.load.audio('bgm_<key>', ...)` in `src/scenes/BootScene.js`
+- [ ] music: `tools/audio/<name>_music.py` → `public/assets/audio/music/<key>.ogg` (+ an .mp3 the scripts also write - git ignores it, the build makes its own), then
+      add `'<key>'` to `TRACKS` in `src/audio/music.js` (music streams when played; never load it in BootScene)
 - [ ] announcer: add the id to the `voice_` list in BootScene and generate the line with `tools/audio/announcer.py ... <id>`
-- [ ] `DESIGN.md` §8 table; `CLAUDE.md` if anything new about the structure
+- [ ] `DESIGN.md` §8 table; `src/stage/AGENTS.md`: the stage (layout, hazards, tunables, music, unlock); root `AGENTS.md` if anything new about the structure
 
 ## 3. Verify
 ```

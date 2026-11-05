@@ -33,7 +33,7 @@ try{
  });
  for(const id of ['oathbound-rowan','rune-archivist','storm-harrier']){
   await page.evaluate(async id=>{const {awardSoul}=await import('/src/souls/collection.js'),{addSoulXP}=await import('/src/souls/progression.js');awardSoul(id);addSoulXP(id,1900);for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);window.game.scene.start('SoulEvolution',{id});},id);
-  await page.waitForFunction(()=>window.game.scene.isActive('SoulEvolution'));await page.waitForTimeout(250);await page.screenshot({path:'/workspace/work/'+id+'-evolution.png'});await page.evaluate(()=>window.game.scene.getScene('SoulEvolution').confirm());await page.waitForFunction(()=>window.game.scene.getScene('SoulEvolution').done);
+  await page.waitForFunction(()=>window.game.scene.isActive('SoulEvolution'));await page.waitForTimeout(250);await page.screenshot({path:'recordings/test-output/'+id+'-evolution.png'});await page.evaluate(()=>window.game.scene.getScene('SoulEvolution').confirm());await page.waitForFunction(()=>window.game.scene.getScene('SoulEvolution').done);
  }
  assert.deepEqual(errors,[]);console.log('PASS new pixel portraits, battle music priority/reset, real Aid shield/heal/projectile effects and all four evolution screens',checks);
 }finally{await browser.close();await server.close();}

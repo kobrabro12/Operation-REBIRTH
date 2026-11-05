@@ -4,7 +4,9 @@ export const CARTRIDGES=[
  {id:'crypt-runner',name:'CRYPT RUNNER',genre:'PLATFORM ADVENTURE',color:0xc79aff,description:'Find three gems and reach the door in each room.\nMOVE: A/D or arrows   JUMP: J / SPACE / A'},
  {id:'neon-rally',name:'NEON RALLY',genre:'ARCADE RACER',color:0xffaa51,description:'Survive a 45-second highway run. Dodge traffic.\nSTEER: A/D or arrows   BRAKE: J / SPACE / A'},
 ];
+/** Finds a cartridge definition, falling back to Star Patrol for an unknown ID. */
 export const cartridgeById=id=>CARTRIDGES.find(c=>c.id===id)||CARTRIDGES[0];
+/** Returns a pixel-drawn cartridge container at the supplied position and scale. */
 export function cartridgeArt(scene,id,x,y,scale=1){const c=cartridgeById(id),g=scene.add.graphics();g.fillStyle(0x080711);g.fillRect(-42,-58,84,116);g.fillStyle(0x676272);g.fillRect(-38,-54,76,108);g.fillStyle(0x393442);g.fillRect(-33,-49,66,91);g.fillStyle(0x211c30);g.fillRect(-28,-43,56,68);g.fillStyle(c.color);g.fillRect(-26,-41,52,3);g.fillRect(-26,22,52,3);for(let i=0;i<5;i++){g.fillStyle(0x99909b);g.fillRect(-29+i*12,31,8,14);}g.fillStyle(c.color);
  if(c.id==='star-patrol'){g.fillRect(-3,-27,6,29);g.fillRect(-16,-10,32,8);g.fillRect(-10,-19,20,6);for(const [a,b]of[[-20,-30],[18,-23],[-17,8],[20,12]])g.fillRect(a,b,2,2);}
  if(c.id==='crypt-runner'){g.fillRect(-20,-28,40,5);g.fillRect(-20,-28,6,39);g.fillRect(14,-28,6,39);g.fillRect(-5,-15,10,17);g.fillStyle(0x171221);g.fillRect(-1,-9,2,3);}

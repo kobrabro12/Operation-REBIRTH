@@ -80,8 +80,8 @@ try {
   console.log('PASS Challenge completion persists after reload');
   await page.evaluate(() => { const g = window.game; for (const s of g.scene.getScenes(true)) g.scene.stop(s.scene.key); g.scene.start('Challenges'); });
   await page.waitForTimeout(400);
-  mkdirSync('/workspace/output/rebirth-priorities', { recursive: true });
-  await page.screenshot({ path: '/workspace/output/rebirth-priorities/challenges.png' });
+  mkdirSync('recordings/test-output/rebirth-priorities', { recursive: true });
+  await page.screenshot({ path: 'recordings/test-output/rebirth-priorities/challenges.png' });
   assert.deepEqual(errors, []);
   console.log('PASS No browser runtime errors');
 } finally { await browser.close(); await server.close(); }

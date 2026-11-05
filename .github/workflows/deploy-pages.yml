@@ -24,6 +24,11 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      - uses: actions/cache@v4            # MP3 copies the build encoded before (tools/build/mp3.mjs)
+        with:
+          path: node_modules/.cache/rebirth-mp3
+          key: mp3-${{ hashFiles('public/**/*.ogg') }}
+          restore-keys: mp3-
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
