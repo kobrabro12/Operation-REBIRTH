@@ -27,18 +27,9 @@ export function drawTreehouse(scene){
  rect(365,131,144,7,ARC.ink);rect(365,129,144,3,0xc28b59);rect(378,138,6,9,0x76513f);rect(490,138,6,9,0x76513f);
  poly([[378,99],[384,66],[481,66],[486,99]],ARC.ink);poly([[382,96],[388,70],[477,70],[481,96]],0x53616b);poly([[389,91],[392,74],[473,74],[476,91]],0x354252);rect(390,75,2,15,0x7d8990);
  rect(379,102,107,27,ARC.ink);rect(382,105,101,19,0x875641);rect(382,106,101,2,0xc88c5c);rect(386,109,93,9,0x212131);rect(403,110,38,6,0x667077);rect(407,108,30,2,0x667077);rect(407,110,30,4,0x3c454f);rect(422,108,2,5,0xa9b4b9);rect(452,109,17,2,0xc5bbc6);rect(450,109,2,9,0xc5bbc6);rect(469,119,5,3,ARC.gold);rect(459,119,4,3,0xc6b4a4);
- // Poster: drawn from little silhouettes, hockey-mask pixels and a raised chainsaw.
- rect(231,43,121,162,ARC.ink);rect(234,46,115,156,0xb08b62);rect(237,49,109,150,0x151727);rect(240,52,103,144,0x26333d);disk(322,91,13,0x9aa49a);
- for(let x=244;x<342;x+=17){poly([[x,91+x%11],[x-10,163],[x+10,163]],0x151c2b);rect(x-2,131,4,56,0x151c2b);}
- text(245,55,'FRIDAY',10,'#ffe1a0');text(247,69,'THE 13TH',8,'#f26459');
- // Raised arm, coat, and Jason's hockey mask.
- poly([[265,132],[270,117],[277,115],[281,135],[305,138],[315,183],[253,183]],0x18251f);rect(273,122,6,20,0x5c6b49);rect(268,112,7,12,0x9d9a72);
- poly([[284,117],[289,112],[300,112],[306,117],[304,132],[299,138],[289,134]],0xe4d4aa);rect(288,119,5,3,ARC.ink);rect(299,119,4,3,ARC.ink);rect(295,126,2,4,0x55493e);rect(290,125,2,2,0xa34f45);rect(300,125,2,2,0xa34f45);for(let i=0;i<3;i++)rect(290+i*4,131,1,2,0x66594a);
- // Saw motor and toothed blade; no contact or injury.
- rect(265,107,17,11,ARC.ink);rect(267,109,12,7,0xc25e47);rect(270,110,4,4,0x251f2c);poly([[278,108],[315,94],[319,97],[281,114]],0xd2c9ad);for(let i=0;i<9;i++)rect(282+i*4,111-i*1.5,2,2,0x746f70);
- // Frightened foreground figure, hand raised beneath the saw.
- disk(326,146,7,0x100f1c);rect(329,145,3,6,0xa9917d);poly([[321,153],[332,151],[342,183],[307,183]],0x10101b);poly([[316,161],[308,153],[303,143],[300,144],[303,159],[313,169]],0x8d7972);rect(301,138,2,7,0xac9386);rect(305,140,2,7,0xac9386);
- rect(240,184,103,12,ARC.ink);text(247,187,'CRYSTAL LAKE',5,'#e8c899');
+ // User-supplied pixel poster, framed without changing its aspect ratio.
+ rect(231,43,121,162,ARC.ink);rect(234,46,115,156,0x91654b);
+ const poster=scene.add.image(291.5,124,'treehouse_poster');poster.setScale(Math.min(109/poster.width,150/poster.height));
  // Rug and bean bag, in the shop's gold and arcade-purple accents.
  rect(162,279,218,38,0x221a2b);rect(166,282,210,31,0x805049);rect(171,286,200,23,0x32253b);for(let x=175;x<370;x+=12){rect(x,284,6,2,0xd2a66b);rect(x,310,6,2,0xd2a66b);}for(let x=178;x<365;x+=20)rect(x,293,8,7,0x624050);
  poly([[185,290],[181,274],[188,254],[201,230],[221,218],[245,224],[259,244],[278,251],[294,270],[294,291],[277,301],[207,302]],ARC.ink);
