@@ -1,7 +1,7 @@
 // Runs before Phaser so each visit has character artwork throughout the real boot load.
 (() => {
   const screens = [
-    { id: 'roster', name: 'THE FIGHTERS', path: '/assets/ui/loading-screen.png', lore: 'Lacy, Mr Wake and Soul Summoner' },
+    { id: 'roster', name: 'THE FIGHTERS', path: 'assets/ui/loading-screen.png', lore: 'Lacy, Mr Wake and Soul Summoner' },
     { id: 'soul-summoner', name: 'SOUL SUMMONER', lore: 'His fallen friends at the Sky Sanctum gates' },
     { id: 'mr-wake', name: 'MR WAKE', lore: 'The black water beneath Gravemoon Bridge' },
     { id: 'hero-knight', name: 'LACY', lore: 'The last oath of a fallen kingdom' },
@@ -20,5 +20,5 @@
   root.dataset.screen=selected.id;root.setAttribute('aria-label','Loading Operation REBIRTH — '+selected.name);
   image.alt='Loading — '+selected.name+'. '+selected.lore;
   image.onerror=()=>{image.onerror=null;image.src=screens[0].path;image.alt='Loading — Lacy, Mr Wake and Soul Summoner';root.dataset.screen='roster';};
-  image.src=selected.path||'/assets/ui/loading/'+selected.id+'.png';
+  image.src=selected.path||'assets/ui/loading/'+selected.id+'.png';
 })();

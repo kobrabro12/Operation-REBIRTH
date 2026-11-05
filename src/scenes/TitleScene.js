@@ -11,6 +11,8 @@ import { sfx, setSfxMuted } from '../audio/sfx.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { demoRequest } from '../settings.js';
 import { slant, hintBar, ARC } from '../ui/arcade.js';
+import { makeButton } from '../ui/button.js';
+import { update as gameUpdate, applyUpdate } from '../pwa.js';
 
 const WORD = 'REBIRTH';
 
@@ -49,9 +51,13 @@ export class TitleScene extends Phaser.Scene {
     this.clicked = false;
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.clicked = true; });
     addFullscreenButton(this, VIEW_W - 8, 8);
+    // a new version of the game has downloaded in the background (src/pwa.js): offer to switch to it
+    this.updateBtn = makeButton(this, 8, 8, 'UPDATE READY - RESTART (U)', () => applyUpdate(), { size: '6px', bg: '#1d6b3a', hover: '#2fae5e', depth: 30 }).setVisible(false);
+    this.input.keyboard.addKey('U', false).on('down', () => { if (gameUpdate.ready) applyUpdate(); });
   }
   update() {
     this.t++;
+    if (gameUpdate.ready !== this.updateBtn.visible) this.updateBtn.setVisible(gameUpdate.ready);
     // rapid rainbow: every letter races around the colour wheel, each a step ahead of the last
     if(this.lightTitle){this.lightBg.update(this.t);this.lightFighters.forEach(({s,def})=>showFighter(s,def,Math.floor(this.t/6)));}
     if(!this.lightTitle||this.t%3===0)this.letters.forEach((l, i) => {

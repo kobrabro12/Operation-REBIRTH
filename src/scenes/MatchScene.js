@@ -41,7 +41,8 @@ function demoSettings() {
 }
 
 import { playMusic, playPlaylist, stopMusic } from '../audio/music.js';
-import { resolveSkins } from '../fighters/skins.js';
+import { resolveSkins, skinUnlocked } from '../fighters/skins.js';
+import { queueSheets, matchPicks, needsLoading } from '../fighters/lazySheets.js';
 import { VIEW_W, VIEW_H, STEP_MS, FONT, PHYS, LIMIT_MAX, DIFFICULTY } from '../config.js';
 import { settings, MODE_NAMES, demoRequest } from '../settings.js';
 import { KeyboardController, GamepadController, MergedController, readPad } from '../input/controllers.js';
@@ -61,9 +62,36 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { MenuInput } from './menuInput.js';
 import { Training, DummyController } from './training.js';
 import { TouchPad, TouchController, touchEnabled } from '../input/touch.js';
+import { Recorder, recordingWanted } from '../debug/recorder.js';
 
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
+
+  /**
+   * Loads the costume strips this match's fighters wear (src/fighters/lazySheets.js) before create runs, and
+   * drops the ones nobody wears. Decides the title demo's random setup here (create then uses it), but draws
+   * no other random numbers: a RANDOM pick loads every fighter it could become.
+   */
+  preload() {
+    const data = this.sys.settings.data || {};
+    const soul = data.soulBattle && soulEncounter(data.soulBattle.soulId);
+    const demo = !data.shopPreview && !soul && demoRequest.next;
+    if (demo && !demoRequest.settings) {
+      demoRequest.settings = demoSettings();
+      // the title demo only wears costumes that are already loaded: it starts at once, downloads nothing,
+      // and is never still loading when the player presses START (that left a half-started match behind)
+      const D = demoRequest.settings;
+      const used = {};
+      D.skins = D.picks.map((id, i) => {
+        const u = used[id] || (used[id] = new Set()), n = skinsFor(id).length;
+        let sk = D.skins[i];
+        for (let k = 0; k < n && (needsLoading(this, id, sk) || u.has(sk) || !skinUnlocked(id, sk)); k++) sk = (sk + 1) % n;   // (a different one for each copy of a fighter, as resolveSkins wants)
+        u.add(sk); return sk;
+      });
+    }
+    const S = (soul && data.soulBattle.setup) || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
+    queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
+  }
 
   create(data={}) {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
@@ -74,6 +102,8 @@ export class MatchScene extends Phaser.Scene {
     // demoRequest.settings: a fixed all-CPU setup instead of a random one (used by tools/sim)
     this.demo = !this.shopPreview && !this.soulBattle && demoRequest.next; demoRequest.next = false; this.demoTime = 0;
     const S = this.soulBattle?.setup || this.shopPreview?.setup || (this.demo ? (demoRequest.settings || demoSettings()) : settings); demoRequest.settings = null;
+    // DEBUG RECORDING (training button 8, or ?debug=1): starts before anything uses Math.random (src/debug/recorder.js)
+    this.recorder = recordingWanted(this) ? new Recorder(this, S) : null;
     this.mode = S.mode;
     this.challengeNotices = []; this.challengeNoticeAt = -180;
     this.feedbackTimes = new Map();
@@ -185,6 +215,7 @@ export class MatchScene extends Phaser.Scene {
       this.addUI(this.previewTitle,this.previewHelp);
     }
     this.events.once('shutdown', () => this.cleanup());
+    if (this.recorder) this.recorder.attach();
   }
 
   // ---- camera bookkeeping: every object belongs to exactly one camera

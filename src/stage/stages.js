@@ -133,7 +133,8 @@ export function trackList(owned = []) {
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-export const STAGE_SLOTS = 16;  // tiles on the select grid (2 across, 8 down); the last one is Random
+// tiles on the select grid (2 across; the last one is Random): 16 (8 rows), more rows when there are more stages
+export const STAGE_SLOTS = Math.max(16, Math.ceil((STAGES.length + 1) / 2) * 2);
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

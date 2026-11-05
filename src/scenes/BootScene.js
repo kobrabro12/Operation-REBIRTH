@@ -1,5 +1,6 @@
-import {makeOriginalSoulPortraits} from '../souls/portraits.js';
+import {makeOriginalSoulPortraits,SOUL_ATLASES} from '../souls/portraits.js';
 import {installMobileTextures} from '../mobileTextures.js';
+import {deferCostumeSheets} from '../fighters/lazySheets.js';
 import {PREMIUM_ANIMS} from '../fighters/premiumAnimsData.js';
 import {CHARACTER_SPEECH,CHARACTER_NAME_CALLS,FIGHTER_ANNOUNCER_IDS} from '../audio/speechPolicy.js';
 import {KEEPER_SCAR_ASSET,NOLI_TAP_FACE_ASSET} from '../data/shopFacePolicy.js';
@@ -19,22 +20,14 @@ export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
   preload() {
     installMobileTextures(this);
+    deferCostumeSheets(this);   // costume strips other than idle load per match (src/fighters/lazySheets.js)
     for(const k of ['idle','walk','run','jump','fall'])this.load.spritesheet('fists_'+k,'assets/fighters/fists/'+k+'_sheet.png',{frameWidth:96,frameHeight:96});
     this.load.spritesheet('fists_moves','assets/fighters/fists/moves_sheet.png',{frameWidth:192,frameHeight:192});
-    for(const [key,file] of [['soul_medieval','medieval'],['soul_arcade_sky','arcade-sky'],['soul_misc','misc-souls']])this.load.image(key+'_source','assets/souls/'+file+'.png');
     for(const id of ['bill-cipher','shadow-young-link'])this.load.audio('soul_music_'+id,['assets/audio/soul-battles/'+id+'.ogg','assets/audio/soul-battles/'+id+'.mp3']);
+    // soul portraits: the pre-made 96 px sheets (npm run bake:souls); ?bakeSouls=1 loads the full pictures to make them
+    const bakeSouls=/[?&]bakeSouls=1\b/.test(location.search);if(bakeSouls)globalThis.__soulBake={};
+    for(const a of SOUL_ATLASES)bakeSouls?this.load.image(a.key+'_source','assets/souls/'+a.file):this.load.image(a.key+'_baked','assets/souls/baked/'+a.key+'.png');
     this.load.image('soul_shadow_young_link_source','assets/souls/shadow-young-link.png');
-    this.load.image('soul_redesign_source','assets/souls/ronin-finch-redesign.png');
-    this.load.image('soul_ink_demon_source','assets/souls/ink-demon.png');
-    this.load.image('soul_bendy_source','assets/souls/bendy.png');
-    this.load.image('soul_frost_fire_source','assets/souls/frost-fire.png');
-    this.load.image('soul_shadow_carnage_source','assets/souls/shadow-carnage.png');
-    this.load.image('soul_grimoire_source','assets/souls/mythic-grimoire.png');
-    this.load.image('soul_neo_japan_source','assets/souls/neo-japan.png');
-    this.load.image('soul_steampunk_source','assets/souls/steampunk.png');
-    this.load.image('soul_evolution_source','assets/souls/evolutions.png');
-    this.load.image('soul_new_aids_source','assets/souls/keepers.png');
-    this.load.image('soul_originals_source','assets/souls/originals.png');
     this.load.image('soul_healing_orb','assets/souls/healing-orb.png');
     this.load.spritesheet('soul_portraits','assets/souls/portraits.png',{frameWidth:724,frameHeight:724});
     // The HTML image is visible before Phaser and remains above its canvas during asset loading.
@@ -144,18 +137,7 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow']) if(CHARACTER_NAME_CALLS||!FIGHTER_ANNOUNCER_IDS.has(id))this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
-    this.load.audio('bgm_endless_castle',['assets/audio/music/endless-castle.ogg','assets/audio/music/endless-castle.mp3']);
-    this.load.audio('bgm_construct',['assets/audio/music/construct.ogg','assets/audio/music/construct.mp3']);
-    this.load.audio('bgm_arcade', ['assets/audio/music/arcade.ogg', 'assets/audio/music/arcade.mp3']);
-    this.load.audio('bgm_title', ['assets/audio/music/title.ogg', 'assets/audio/music/title.mp3']);
-    this.load.audio('bgm_select', ['assets/audio/music/select.ogg', 'assets/audio/music/select.mp3']);
-    this.load.audio('bgm_sky', ['assets/audio/music/sky.ogg', 'assets/audio/music/sky.mp3']);
-    this.load.audio('bgm_spires', ['assets/audio/music/spires.ogg', 'assets/audio/music/spires.mp3']);
-    this.load.audio('bgm_forest', ['assets/audio/music/forest.ogg', 'assets/audio/music/forest.mp3']);   // Elderwood Hollow: plays once these files are added
-    this.load.audio('bgm_gravemoon', ['assets/audio/music/gravemoon.ogg', 'assets/audio/music/gravemoon.mp3']);
-    this.load.audio('bgm_backrooms', ['assets/audio/music/backrooms.ogg', 'assets/audio/music/backrooms.mp3']);   // tools/audio/backrooms_music.py
-    this.load.audio('bgm_aero', ['assets/audio/music/aero.ogg', 'assets/audio/music/aero.mp3']);   // tools/audio/aero_music.py
-    for (const n of ['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason', 'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika']) this.load.audio('bgm_shop_' + n, ['assets/audio/music/shop_' + n + '.ogg', 'assets/audio/music/shop_' + n + '.mp3']);   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
+    // Music (bgm_*) isn't loaded here: each track streams when it's played - its name goes in TRACKS in src/audio/music.js
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');
     this.load.image('shop_crown', 'assets/shop/crown.png');
@@ -163,24 +145,18 @@ export class BootScene extends Phaser.Scene {
     this.load.image('shop_poster', 'assets/shop/poster.png');
     this.load.image('shop_flag_emblem', flagEmblemUrl);   // (inlined: tools/sprites/soviet_art.py writes it into src/scenes)
     this.load.spritesheet('shop_dolls', 'assets/shop/dolls.png', { frameWidth: 40, frameHeight: 56 });   // the CROWN OF MASKS (from Mason's picture, tools/sprites/art/crown_of_masks.png) - hidden in EXTRAS until NOLI, unlocks MASKED THRONE   // the GALAXY FRAGMENT (Mason's gem) - sold in EXTRAS, unlocks FRACTURED
-    this.load.audio('bgm_desert', ['assets/audio/music/desert.ogg', 'assets/audio/music/desert.mp3']);   // DUST RUNNER's music (tools/audio/desert_music.py)
-    this.load.audio('bgm_slasher', ['assets/audio/music/slasher.ogg', 'assets/audio/music/slasher.mp3']);   // 13 WILLOW LANE's music (tools/audio/slasher_music.py)
-    this.load.audio('bgm_fractured', ['assets/audio/music/fractured.ogg', 'assets/audio/music/fractured.mp3']);   // FRACTURED's music (tools/audio/fractured_music.py)
     this.load.spritesheet('shop_rtd', 'assets/shop/rtd_scream.png', { frameWidth: 68, frameHeight: 68 });   // the shop's RTD secret: Rosemary screaming (tools/sprites/rosemary_scream.py)
     for (const f of ['calm', 'happy', 'money', 'shock', 'smug', 'glasses', 'grin', 'melt', 'bow', 'stare', 'noli', 'sickle']) this.load.spritesheet('shop_face_' + f, 'assets/shop/face_' + f + '.png', { frameWidth: 64, frameHeight: 64 });   // the shopkeeper's faces (Mason's drawings; a sheet of 64x64 frames each, so they can be animated)
     if(CHARACTER_SPEECH)for (const [k, n] of Object.entries(NOLI_MOODS)) for (let i = 0; i < n; i++) this.load.audio('noli_v_' + k + '_' + i, ['assets/shop/noli_voice/' + k + '_' + i + '.ogg', 'assets/shop/noli_voice/' + k + '_' + i + '.mp3']);   // NOLI's glitchy voice (tools/audio/noli_voice.py)
     this.load.spritesheet('bp_guests', 'assets/stages/baseplate/guests.png', { frameWidth: 32, frameHeight: 32 });   // BASEPLATE 2012's guests: Mason's drawings, half size - frame 0, and 1 = the one in fifty (tools/sprites/baseplate_guests.py)
-    for (const n of [4, 5, 6, 10]) this.load.audio('bgm_baseplate_' + n, ['assets/audio/music/baseplate_' + n + '.ogg', 'assets/audio/music/baseplate_' + n + '.mp3']);   // BASEPLATE 2012's rotating soundtrack: Mason's pixelated_audio 4, 5, 6, 10
-    for (const n of ['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather']) this.load.audio('bgm_outro_' + n, ['assets/audio/music/outro_' + n + '.ogg', 'assets/audio/music/outro_' + n + '.mp3']);   // costume outro music (tools/audio/outro_music.py)
     this.load.spritesheet('hk_sam_pray', 'assets/fighters/hero-knight/samurai/pray_sheet.png', { frameWidth: 64, frameHeight: 64 });   // Mason's praying animation for Samurai Lacy's outro (9 frames, a 3x3 grid; feet at 32,58)
-    this.load.audio('bgm_infected', ['assets/audio/music/infected.ogg', 'assets/audio/music/infected.mp3']);   // Mason's track, levelled down ~10 dB so it sits under the fight
     this.load.audio('sfx_idiot', ['assets/audio/sfx/idiot.ogg', 'assets/audio/sfx/idiot.mp3']);   // INFECTED.EXE: plays while YOU ARE AN IDIOT's pop-ups are up
     for (let i = 1; i <= 5; i++) this.load.audio('amp_song' + i, ['assets/audio/sfx/amp_song' + i + '.ogg', 'assets/audio/sfx/amp_song' + i + '.mp3']);   // NU's AMP: 8-bit rock loops at 90 BPM (1-4: tools/audio/amp_songs.py; 5: Mason's own track)
     this.load.audio('sfx_seen_scream', ['assets/audio/sfx/seen_scream.ogg', 'assets/audio/sfx/seen_scream.mp3']);   // LAST SEEN as SEEN: its SCREAM (cut from Mason's pixelated_audio_3)
     if(CHARACTER_SPEECH)this.load.audio('sfx_mail_voice', ['assets/audio/sfx/mail_voice.ogg', 'assets/audio/sfx/mail_voice.mp3']);
     this.load.spritesheet('item_heart_anim', SOUL_HEART.url, { frameWidth: SOUL_HEART.frame, frameHeight: SOUL_HEART.frame });
-    this.load.audio('fireball_charge', 'assets/audio/sfx/fireball_charge.wav');
-    this.load.audio('fireball_throw', 'assets/audio/sfx/fireball_throw.wav');
+    this.load.audio('fireball_charge', ['assets/audio/sfx/fireball_charge.ogg', 'assets/audio/sfx/fireball_charge.mp3']);
+    this.load.audio('fireball_throw', ['assets/audio/sfx/fireball_throw.ogg', 'assets/audio/sfx/fireball_throw.mp3']);
   }
   create() {
     initSfx(this);

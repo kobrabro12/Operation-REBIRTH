@@ -58,6 +58,8 @@ export class Training {
       makeButton(s, 8, 70, '', () => this.toggleHitboxes(), opt),
       makeButton(s, 8, 86, '', () => this.cycleDamage(), opt),
       makeButton(s, 8, 102, '', () => this.cycleSpeed(), opt),
+      makeButton(s, 8, 118, '', () => this.recordKey(8), opt),   // DEBUG RECORDING (src/debug/recorder.js)
+      makeButton(s, 8, 134, '', () => this.recordKey(9), opt),
     ];
     this.comboText = s.add.text(VIEW_W / 2, 30, '', { fontFamily: FONT, fontSize: '12px', color: '#f3c358', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5).setDepth(26);
     this.lastText = s.add.text(VIEW_W / 2, 48, '', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 4 }).setOrigin(0.5).setDepth(26);
@@ -65,7 +67,7 @@ export class Training {
     this.labels();
 
     const K = Phaser.Input.Keyboard.KeyCodes;
-    this.keys = s.input.keyboard.addKeys({ two: K.TWO, three: K.THREE, four: K.FOUR, five: K.FIVE, six: K.SIX, seven: K.SEVEN }, false);   // 1 is the taunt
+    this.keys = s.input.keyboard.addKeys({ two: K.TWO, three: K.THREE, four: K.FOUR, five: K.FIVE, six: K.SIX, seven: K.SEVEN, eight: K.EIGHT }, false);   // 1 is the taunt; 9 = the recorder's own key
     this.selectHeld = {};
   }
 
@@ -77,10 +79,26 @@ export class Training {
       '5  HITBOXES: ' + (this.showHitboxes ? 'ON' : 'OFF'),
       '6  DUMMY DAMAGE: ' + DUMMY_DAMAGE[this.dmgIdx] + '%',
       '7  SPEED: ' + (SPEEDS[this.speedIdx] === 1 ? 'NORMAL' : SPEEDS[this.speedIdx] === 0.5 ? 'HALF' : 'QUARTER'),
+      ...(this.recording() ? ['8  MARK A BUG', '9  SAVE RECORDING (.ZIP)'] : ['8  RECORD FOR DEBUGGING', '']),
     ];
-    this.btns.forEach((b, i) => b.setText(txt[i]));
+    this.btns.forEach((b, i) => { b.setText(txt[i]); b.setVisible(txt[i] !== ''); if (b.plate) b.plate.setVisible(txt[i] !== ''); });
   }
   get speed() { return SPEEDS[this.speedIdx]; }
+  /** Is this training match being recorded right now (and not saved yet)? */
+  recording() { const r = this.match.recorder; return !!(r && !r.stopped); }
+  /**
+   * The DEBUG RECORDING buttons. Not recording: 8 restarts this training match with recording on (it
+   * has to start from the first frame to replay). Recording: 8 marks a bug, 9 saves the .zip.
+   * (While recording, the keys themselves are handled by the recorder.)
+   */
+  recordKey(n) {
+    const r = this.match.recorder;
+    if (this.recording()) { if (n === 8) r.mark(); else r.save(); this.labels(); return; }
+    if (n !== 8) return;
+    settings.debugRecord = true;
+    sfx('select', 0.6);
+    this.match.scene.restart();
+  }
   humans() { return this.match.fighters.filter((f) => !f.isCpu); }
   dummies() { return this.match.fighters.filter((f) => f.isCpu); }
 
@@ -119,6 +137,7 @@ export class Training {
     if (JD(k.five)) this.toggleHitboxes();
     if (JD(k.six)) this.cycleDamage();
     if (JD(k.seven)) this.cycleSpeed();
+    if (JD(k.eight) && !this.recording()) this.recordKey(8);
     // Select / Back on any player's controller resets
     for (const i of [settings.p1Pad, ...settings.extraPads]) {
       if (i === null) continue;

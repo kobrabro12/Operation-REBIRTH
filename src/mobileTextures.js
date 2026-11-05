@@ -1,10 +1,20 @@
 import {PHONE_DEVICE} from './performance.js';
 import {MOBILE_ATLASES} from './mobileAtlasManifest.js';
+/**
+ * Should the packed atlases be used? Yes on every device: the same frames, trimmed and packed, take about
+ * a third of the memory (65 sheets: ~2.6 GB of full grids -> ~0.75 GB). `?atlases=0` in the URL loads
+ * the full grids instead, to compare.
+ */
+export function useAtlases(env=globalThis){
+ try{if(/[?&]atlases=0\b/.test(env.location.search))return false;}catch(e){/* no location */}
+ return true;
+}
+/** Makes BootScene load the packed atlas (assets/mobile/) for every sheet that has one, instead of its full grid. */
 export function installMobileTextures(scene){
- if(!PHONE_DEVICE)return;
+ if(!useAtlases())return;
  const original=scene.load.spritesheet.bind(scene.load);
  scene.load.spritesheet=(key,url,config,...rest)=>{const spec=MOBILE_ATLASES[key];return spec?scene.load.atlas(key,spec.image,spec.json):original(key,url,config,...rest);};
- scene.load.maxParallelDownloads=4;
+ if(PHONE_DEVICE)scene.load.maxParallelDownloads=4;   // phones: fewer downloads at once
  scene.load.on('complete',()=>{for(const [key,spec]of Object.entries(MOBILE_ATLASES))if(scene.textures.exists(key))scene.textures.get(key).customData.mobileAtlas=spec.original;});
 }
 export function copyPackedFrames(manager,key,canvas,source){

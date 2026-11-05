@@ -1,0 +1,4 @@
+{
+  "note": "Tests known to fail, which npm test runs and reports but doesn't fail on. Empty: all six that failed when CI was added were fixed (4 Nov 2026). Add one here only with a reason, and fix it soon.",
+  "tests": {}
+}

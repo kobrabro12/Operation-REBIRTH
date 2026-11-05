@@ -1,7 +1,7 @@
 // Every fighter is driven by a Controller. Keyboard, gamepad and CPU all fill in the same
 // button state each frame, so fighter code never knows who is pressing the buttons.
 
-const BUTTONS = ['jump', 'attack', 'special', 'shield', 'grab', 'limit', 'taunt', 'pause'];
+export const BUTTONS = ['jump', 'attack', 'special', 'shield', 'grab', 'limit', 'taunt', 'pause'];
 
 export class Controller {
   constructor() {

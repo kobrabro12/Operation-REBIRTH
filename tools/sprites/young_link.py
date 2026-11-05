@@ -128,5 +128,5 @@ manifest={'artist':'Gregarlink10','source':'young_link_oot_melee_sprite_sheet_by
 contact=Image.new('RGBA',(160*8,128*((len(atlas)+7)//8)),(25,22,38,255));draw=ImageDraw.Draw(contact)
 for i,cel in enumerate(atlas):
  x=i%8*160;y=i//8*128;contact.alpha_composite(cel,(x,y));draw.text((x+2,y+2),str(i),fill='white')
-contact.save('/workspace/work/young-link-extracted.png')
+preview=Path('recordings/test-output/young-link-extracted.png');preview.parent.mkdir(parents=True,exist_ok=True);contact.save(preview)   # a contact sheet to look over (git-ignored)
 print('Extracted 166 native frames; authored',len(clips),'timed animation clips')

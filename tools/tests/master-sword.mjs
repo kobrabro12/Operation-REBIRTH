@@ -13,7 +13,7 @@ try{
   const index=skinsFor('hero-knight').findIndex(s=>s.name==='HYLIAN HERO');MatchScene.prototype.update=function(){};
   for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);
   Object.assign(settings,{mode:'stock',stocks:3,cpuCount:1,difficulty:0,extraPads:[],p1Pad:null,picks:['hero-knight','mr-wake'],skins:[index,0],stage:'sky-sanctum',items:false,hazards:false});
-  window.game.scene.start('Match');await new Promise(r=>setTimeout(r,250));const m=window.game.scene.getScene('Match');m.countdown=0;m.intros=null;m.bigText.setText('');for(let i=0;i<20;i++)m.tick();m.draw();
+  window.game.scene.start('Match');await new Promise(r=>setTimeout(r,250));while(!window.game.scene.isActive('Match')||!window.game.scene.getScene('Match').fighters?.length)await new Promise(r=>setTimeout(r,30));const m=window.game.scene.getScene('Match');m.countdown=0;m.intros=null;m.bigText.setText('');for(let i=0;i<20;i++)m.tick();m.draw();
   const f=m.fighters[0];const pixels=img=>{const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;const c=cv.getContext('2d');c.drawImage(img,0,0);return c.getImageData(0,0,cv.width,cv.height).data;};
   let patchesCorrect=true,bodyAlphaPreserved=true,helmetProtected=true,strips=0;
   for(const [key,patches] of Object.entries(MASTER_SWORD_PATCHES)){
@@ -47,8 +47,8 @@ try{
   const counterPose=f.animFrame('counter');const counterUsesOwnStrip=counterPose.sheet===f.sheets.counter&&counterPose.frame===1&&f.counterReady();
   return{fixedArmLengths,noTrailingArm,twoHandedGuard,helmetProtected,fairySilent,counterUsesOwnStrip,gripNearHands,limitAtHands,strips,patchesCorrect,bodyAlphaPreserved,normalUntouched:normalSwordKey==='hk_idle'&&!skinInfo('hero-knight',0).masterSword,unarmedUntouched,thrownMatches,fairyStillPresent:!!f.fairyPosition};
  });
- await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));mkdirSync('/workspace/work/master-sword',{recursive:true});await page.screenshot({path:'/workspace/work/master-sword/in-game.png'});
+ await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));mkdirSync('recordings/test-output/master-sword',{recursive:true});await page.screenshot({path:'recordings/test-output/master-sword/in-game.png'});
  await page.evaluate(()=>{const m=window.game.scene.getScene('Match'),f=m.fighters[0];f.setState('idle');f.hurtAnim=0;m.draw();});
- await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));await page.screenshot({path:'/workspace/work/master-sword/idle.png'});
+ await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));await page.screenshot({path:'recordings/test-output/master-sword/idle.png'});
  assert.equal(facts.strips,15);for(const [k,v]of Object.entries(facts))if(k!=='strips')assert.equal(v,true,k);assert.deepEqual(errors,[]);console.log('PASS',JSON.stringify(facts));
 }finally{await browser.close();await server.close();}

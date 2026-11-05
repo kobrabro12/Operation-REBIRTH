@@ -10,8 +10,8 @@
 // Options: --fighters a,b[,c,d]  --stage id|random  --seed N  --matches N  --frames N (cap per match)
 //          --level 0|1|2 (CPU difficulty)  --stocks N  --no-items  --no-hazards  --draw-every N  --json  --smoke
 //
-// Needs Chrome or Edge installed (or set SIM_CHROME to a browser executable). Phaser is served from
-// node_modules instead of the CDN, so it works offline.
+// Needs Chrome or Edge installed (or set SIM_CHROME to a browser executable). Phaser and the font come
+// from node_modules with the game, so it works offline.
 import { createServer } from 'vite';
 import { chromium } from 'playwright-core';
 import { existsSync, readFileSync } from 'node:fs';
@@ -46,12 +46,10 @@ const exe = findBrowser();
 if (!exe) { console.error('No Chrome/Edge found. Set SIM_CHROME to a browser executable.'); process.exit(2); }
 const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
 const page = await browser.newPage();
-const phaserJs = readFileSync(path.join(ROOT, 'node_modules/phaser/dist/phaser.min.js'));
 await page.route('**/*', (r) => {
   const u = r.request().url();
-  if (u.includes('/npm/phaser@')) return r.fulfill({ body: phaserJs, contentType: 'application/javascript' });
   if (u.startsWith(url)) return r.continue();
-  return r.abort();                                   // fonts etc.: not needed to simulate
+  return r.abort();                                   // anything off the dev server: not needed to simulate
 });
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('ERR_FAILED')) consoleErrors.push(m.text()); });   // ERR_FAILED = a blocked font request

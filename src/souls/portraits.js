@@ -1,11 +1,25 @@
 // Native 96px soul art uses hard alpha edges and nearest-neighbor rendering at every UI size.
 function makeAtlas(scene,sourceKey,key,cols,rows,trim=false){
+ if(scene.textures.exists(key+'_baked'))return atlasFromBaked(scene,key,cols,rows);
  const image=scene.textures.get(sourceKey).getSourceImage(),size=96,atlas=scene.textures.createCanvas(key,size*cols,size*rows),ctx=atlas.context;ctx.imageSmoothingEnabled=false;
  let pixels=null;if(trim){const source=document.createElement('canvas');source.width=image.width;source.height=image.height;const c=source.getContext('2d');c.drawImage(image,0,0);pixels=c.getImageData(0,0,image.width,image.height).data;}
  for(let i=0;i<cols*rows;i++){const x=i%cols,y=Math.floor(i/cols),left=Math.floor(x*image.width/cols),top=Math.floor(y*image.height/rows),cw=Math.floor((x+1)*image.width/cols)-left,ch=Math.floor((y+1)*image.height/rows)-top;let sx=left,sy=top,sw=cw,sh=ch,dx=x*size,dy=y*size,dw=size,dh=size;if(trim){let minX=cw,minY=ch,maxX=0,maxY=0;for(let yy=0;yy<ch;yy++)for(let xx=0;xx<cw;xx++)if(pixels[((sy+yy)*image.width+sx+xx)*4+3]>=128){minX=Math.min(minX,xx);maxX=Math.max(maxX,xx);minY=Math.min(minY,yy);maxY=Math.max(maxY,yy);}if(minX>maxX||minY>maxY)continue;sx+=minX;sy+=minY;sw=maxX-minX+1;sh=maxY-minY+1;const fit=80/Math.max(sw,sh);dw=Math.round(sw*fit);dh=Math.round(sh*fit);dx+=Math.floor((size-dw)/2);dy+=Math.floor((size-dh)/2);}ctx.drawImage(image,sx,sy,sw,sh,dx,dy,dw,dh);}
 
  const data=ctx.getImageData(0,0,size*cols,size*rows);for(let n=3;n<data.data.length;n+=4)data.data[n]=data.data[n]>=128?255:0;ctx.putImageData(data,0,0);
  for(let i=0;i<cols*rows;i++)atlas.add(i,0,i%cols*size,Math.floor(i/cols)*size,size,size);atlas.refresh();atlas.setFilter(Phaser.Textures.FilterMode.NEAREST);scene.textures.remove(sourceKey);
+ if(globalThis.__soulBake)globalThis.__soulBake[key]=atlas.canvas.toDataURL('image/png');   // npm run bake:souls collects these
+}
+
+/**
+ * The same canvas texture makeAtlas would make, from its baked sheet (public/assets/souls/baked/<key>.png):
+ * same size, same 96 px frames, nearest-neighbour. Exact, because the sheet's pixels are fully opaque or
+ * fully see-through, which survive being saved as PNG unchanged.
+ */
+function atlasFromBaked(scene,key,cols,rows){
+ const size=96,img=scene.textures.get(key+'_baked').getSourceImage(),atlas=scene.textures.createCanvas(key,size*cols,size*rows);
+ atlas.context.imageSmoothingEnabled=false;atlas.context.drawImage(img,0,0);
+ for(let i=0;i<cols*rows;i++)atlas.add(i,0,i%cols*size,Math.floor(i/cols)*size,size,size);
+ atlas.refresh();atlas.setFilter(Phaser.Textures.FilterMode.NEAREST);scene.textures.remove(key+'_baked');
 }
 // One small shared canvas animates the lock's eye wherever the Aid portrait is shown.
 function makeGrimoireEye(scene){
@@ -25,4 +39,27 @@ function makeGrimoireEye(scene){
 }
 // Preserve the supplied model image at full aspect ratio inside the square UI frame.
 function makeShadowPortrait(scene){const image=scene.textures.get('soul_shadow_young_link_source').getSourceImage(),size=512,t=scene.textures.createCanvas('soul_shadow_young_link',size,size),fit=488/Math.max(image.width,image.height),w=Math.round(image.width*fit),h=Math.round(image.height*fit);t.context.drawImage(image,Math.floor((size-w)/2),Math.floor((size-h)/2),w,h);t.refresh();scene.textures.remove('soul_shadow_young_link_source');}
-export function makeOriginalSoulPortraits(scene){makeShadowPortrait(scene);makeAtlas(scene,'soul_frost_fire_source','soul_frost_fire',2,2,true);makeAtlas(scene,'soul_shadow_carnage_source','soul_shadow_carnage',2,2,true);makeAtlas(scene,'soul_ink_demon_source','soul_ink_demon',1,1,true);makeAtlas(scene,'soul_bendy_source','soul_bendy',1,1,true);makeAtlas(scene,'soul_grimoire_source','soul_grimoire',1,1,true);makeGrimoireEye(scene);makeAtlas(scene,'soul_redesign_source','soul_redesign',3,1,true);makeAtlas(scene,'soul_neo_japan_source','soul_neo_japan',2,2,true);for(const [key,cols,rows] of [['soul_medieval',2,2],['soul_arcade_sky',2,2],['soul_misc',3,2]])makeAtlas(scene,key+'_source',key,cols,rows,true);makeAtlas(scene,'soul_steampunk_source','soul_steampunk',2,2,true);makeAtlas(scene,'soul_originals_source','soul_originals',3,1);makeAtlas(scene,'soul_evolution_source','soul_evolution_art',2,2,true);makeAtlas(scene,'soul_new_aids_source','soul_new_aids',3,1);}
+// Every soul picture that becomes a sheet of 96 px portraits: its file in public/assets/souls/, how many
+// portraits across and down, and whether each portrait is cropped to the art (trim). The game loads the
+// pre-made sheets from public/assets/souls/baked/ (tools/sprites/bake_soul_portraits.mjs makes them from
+// these pictures with makeAtlas below - run `npm run bake:souls` after changing a soul picture or this
+// list). The full pictures are 1254-2172 px; the sheets are a few hundred KB together.
+export const SOUL_ATLASES = [
+  { key: 'soul_frost_fire', file: 'frost-fire.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_shadow_carnage', file: 'shadow-carnage.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_ink_demon', file: 'ink-demon.png', cols: 1, rows: 1, trim: true },
+  { key: 'soul_bendy', file: 'bendy.png', cols: 1, rows: 1, trim: true },
+  { key: 'soul_grimoire', file: 'mythic-grimoire.png', cols: 1, rows: 1, trim: true },
+  { key: 'soul_redesign', file: 'ronin-finch-redesign.png', cols: 3, rows: 1, trim: true },
+  { key: 'soul_neo_japan', file: 'neo-japan.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_medieval', file: 'medieval.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_arcade_sky', file: 'arcade-sky.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_misc', file: 'misc-souls.png', cols: 3, rows: 2, trim: true },
+  { key: 'soul_steampunk', file: 'steampunk.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_originals', file: 'originals.png', cols: 3, rows: 1, trim: false },
+  { key: 'soul_evolution_art', file: 'evolutions.png', cols: 2, rows: 2, trim: true },
+  { key: 'soul_new_aids', file: 'keepers.png', cols: 3, rows: 1, trim: false },
+];
+
+/** Builds every soul portrait texture at boot (from the baked sheets, or from the pictures when baking). */
+export function makeOriginalSoulPortraits(scene){makeShadowPortrait(scene);for(const a of SOUL_ATLASES){makeAtlas(scene,a.key+'_source',a.key,a.cols,a.rows,a.trim);if(a.key==='soul_grimoire')makeGrimoireEye(scene);}}

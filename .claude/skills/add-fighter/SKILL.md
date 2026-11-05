@@ -51,6 +51,7 @@ For a new Limit type, add a `<type>Limit()` method in a new `limit<Name>.js` and
 
 ## 3. Art
 - Sheets go in `public/assets/fighters/<id>/` (`idle_sheet.png`, `run_sheet.png`, `moves_sheet.png`, ..., `icon.png`).
+  Always PNG, referenced by the `.png` path: the build shrinks it (palette, or WebP for art over 256 colours) - see the images rule in AGENTS.md.
 - If the art is generated, add `tools/sprites/<name>_moves.py` that also writes `src/fighters/<xx>Moves.js`
   (`move: [firstFrame, count, ticksPerFrame, loops?]`). That file is generated: never hand-edit it.
 - Hook it up with `moveAnims: XX_MOVES` and `frameCounts` in the def.
@@ -62,9 +63,9 @@ For a new Limit type, add a `<type>Limit()` method in a new `limit<Name>.js` and
 - [ ] `src/fighters/skins.js`: `SKINS['<id>']` costume list (at least a DEFAULT) and colour groups if recolourable
 - [ ] `src/data/lore.js`: `FILES['<id>']` dossier (no, alias, cls, weapon, origin, moves, limit, lore)
 - [ ] `src/progress.js`: add the id to the `?kos=` test list
-- [ ] voice line `public/assets/audio/voice/<id>.ogg/.mp3`: `python3 tools/audio/announcer.py <model> <voices> <id>` (Mason may record his own with `my_voice.py`)
+- [ ] voice line `public/assets/audio/voice/<id>.ogg` (+ an .mp3 the scripts also write - git ignores it, the build makes its own): `python3 tools/audio/announcer.py <model> <voices> <id>` (Mason may record his own with `my_voice.py`)
 - [ ] `src/ai/cpu.js`: check that the CPU uses the new specials sensibly (it reads `def.moves`)
-- [ ] `DESIGN.md` §9: add the fighter; `CLAUDE.md` fighters list
+- [ ] `DESIGN.md` §9: add the fighter; `src/fighters/AGENTS.md` (the fighter, its sheets and mechanics) + the one-line list in the root `AGENTS.md`
 
 ## 5. Verify
 ```

@@ -6,9 +6,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node tools/build/sw.mjs",
     "preview": "vite preview",
+    "check": "npm run lint && npm run check:docs && npm run check:assets",
+    "check:full": "npm run check && npm run build && npm run check:budget && npm test",
+    "lint": "eslint .",
+    "check:docs": "node tools/check/docs.mjs",
+    "check:assets": "node tools/check/assets.mjs",
+    "check:budget": "node tools/check/budget.mjs",
+    "test": "node tools/check/run-tests.mjs",
     "sim": "node tools/sim/sim.mjs",
+    "replay": "node tools/replay/replay.mjs",
+    "images": "node tools/build/webp.mjs public",
+    "bake:souls": "node tools/sprites/bake_soul_portraits.mjs",
     "test:priorities": "node tools/tests/priorities.mjs",
     "test:spirit-limit": "node tools/tests/spirit-limit.mjs",
     "test:master-sword": "node tools/tests/master-sword.mjs",
@@ -36,8 +46,19 @@
     "test:ninja-souls": "node tools/tests/ninja-souls-data.mjs && node tools/tests/ninja-souls.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "espree": "^10.4.0",
+    "ffmpeg-static": "^5.3.0",
+    "globals": "^15.15.0",
     "phaser": "4.2.1",
     "playwright-core": "^1.56.1",
+    "pngjs": "^7.0.0",
+    "sharp": "^0.34.5",
+    "terser": "^5.51.2",
     "vite": "^6.4.4"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }

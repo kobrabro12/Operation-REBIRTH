@@ -15,9 +15,9 @@ try{
   if([...TEST_ROSTER,...ROSTER].some(r=>r.id==='kirby'))throw Error('Kirby remains');
   if(!TEST_ROSTER.find(r=>r.id==='young-link'))throw Error('Young Link missing');
   for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);
-  window.game.scene.start('TestFighters');await new Promise(r=>setTimeout(r,100));const lab=window.game.scene.getScene('TestFighters');lab.update();
+  window.game.scene.start('TestFighters');await new Promise(r=>setTimeout(r,100));const lab=window.game.scene.getScene('TestFighters');lab.sel=TEST_ROSTER.findIndex(r=>r.id==='young-link');lab.update();
   if(!lab.notes.text.includes('GREGARLINK10'))throw Error('Missing visible art credit');
-  window.game.scene.stop('TestFighters');Object.assign(settings,{mode:'stock',stocks:3,picks:['young-link','hero-knight'],skins:[0,0],cpuCount:1,p1Pad:null,extraPads:[],stage:'gravemoon-bridge',items:false,hazards:false,crt:false});window.game.scene.start('Match');await new Promise(r=>setTimeout(r,150));const m=window.game.scene.getScene('Match'),f=m.fighters[0],rival=m.fighters[1];
+  window.game.scene.stop('TestFighters');Object.assign(settings,{mode:'stock',stocks:3,picks:['young-link','hero-knight'],skins:[0,0],cpuCount:1,p1Pad:null,extraPads:[],stage:'gravemoon-bridge',items:false,hazards:false,crt:false});window.game.scene.start('Match');await new Promise(r=>setTimeout(r,150));while(!window.game.scene.isActive('Match')||!window.game.scene.getScene('Match').fighters?.length)await new Promise(r=>setTimeout(r,30));const m=window.game.scene.getScene('Match'),f=m.fighters[0],rival=m.fighters[1];
   if(f.def.id!=='young-link'||m.intros.list[0].I.kind!=='drop')throw Error('Wrong fighter/intro');
   m.countdown=0;m.intros.g.clear();m.intros=null;m.bigText.setText('');f.placeAt(-60,0);f.grounded=true;f.platform=m.stage.platforms[0];rival.placeAt(110,0);
   const {skinSheets,skinInfo,skinUnlocked}=await import('/src/fighters/skins.js');
@@ -96,9 +96,9 @@ try{
   const {checkLinkCompanion}=await import('/tools/tests/link-companion-check.js'),companion=await checkLinkCompanion(m,f,skinSheets);
   return {flightFrames,companion,rushes,juggleHits,carried,tether:true,shadow:true,poses,roster:TEST_ROSTER.map(r=>r.id),hookshot:true,throw:true,recovery:true,limit:true,bomb:true,recolored,unchanged};
  });
- await page.waitForTimeout(80);await page.screenshot({path:'/workspace/work/young-link-game.png'});
+ await page.waitForTimeout(80);await page.screenshot({path:'recordings/test-output/young-link-game.png'});
  await page.evaluate(()=>{const m=window.game.scene.getScene('Match'),f=m.fighters[0];let big=false;for(let i=0;i<400&&f.ult;i++){const before=m.fighters[1].percent;f.bladeCutscene(f.def.limit,f.ult);if(m.fighters[1].percent-before===15&&f.ult?.slashes.some(s=>s.big))big=true;}if(!big||m.fighters[1].percent!==55)throw Error('Super needs twenty cuts and one big finishing slice');if(f.ult||m.cutscene||m.frozen>0)throw Error('Super failed to release target and resume match');});
  const outro=await page.evaluate(async()=>{for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);window.game.scene.start('Win',{preview:true,results:[{fighter:'young-link',skin:2,slot:0,label:'P1'},{fighter:'hero-knight',skin:0,slot:1,label:'CPU'}]});await new Promise(r=>setTimeout(r,120));const w=window.game.scene.getScene('Win'),seen=new Set();for(let t=1;t<319;t+=3){w.t=t-1;window.winUpdate.call(w);seen.add(w.hero.frame.name);if(w.hero.originY!==112/128)throw Error('Wrong victory anchor');if(!w.hero.texture.key.includes('@SHADOW LINK'))throw Error('Skin lost during victory');}return {frames:seen.size,title:w.title.text};});
- await page.waitForTimeout(80);await page.screenshot({path:'/workspace/work/young-link-win.png'});
+ await page.waitForTimeout(80);await page.screenshot({path:'recordings/test-output/young-link-win.png'});
  assert.ok(outro.frames>=8);assert.equal(outro.title,'YOUNG LINK');assert.deepEqual(errors,[]);console.log('PASS',JSON.stringify({facts,outro}));
 }finally{await browser.close();await server.close();}
