@@ -52,7 +52,7 @@ const PER = GRID.cols * GRID.rows;
 // the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
 const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
 // the on-screen keypad for typing a code (over the shelves): 8 x 4 keys
-const KEYPAD = { x: 30, y: 104, w: 42, h: 30, gap: 5, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'DEL', 'OK', 'CANCEL'] };
+const KEYPAD = { x: 30, y: 104, w: 42, h: 30, gap: 5, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'DEL', 'OK', 'CANCEL', 'SPACE'] };
 const KEY_ROWS = Math.ceil(KEYPAD.keys.length / KEYPAD.cols);   // (5 rows: the letters, the digits, then DEL / OK / CANCEL)
 // secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
 //   video  a clip drawn on his screen at `px` pixels square (webm first; mp4 for Safari) - plays once
@@ -422,7 +422,7 @@ export class ShopScene extends Phaser.Scene {
     const onKey = (e) => {
       const S = this.secret; if (!S || S.mode !== 'code') return;
       const k = e.key, mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -KEYPAD.cols, ArrowDown: KEYPAD.cols }[k];
-      if (/^[a-zA-Z0-9]$/.test(k)) this.typeKey(k.toUpperCase());
+      if (/^[a-zA-Z0-9 ]$/.test(k)) this.typeKey(k.toUpperCase());
       else if (k === 'Backspace') this.typeKey('DEL');
       else if (k === 'Enter') this.typeKey(S.typed ? 'OK' : KEYPAD.keys[S.cur]);
       else if (k === 'Escape') this.closeSecret();
@@ -442,10 +442,12 @@ export class ShopScene extends Phaser.Scene {
     if (k === 'OK') return this.submitCode();
     if (k === 'CANCEL') return this.closeSecret();
     if (k === 'DEL') { S.typed = S.typed.slice(0, -1); sfx('menu', 0.3, 0.9); return; }
-    if (S.typed.length < 12) { S.typed += k; sfx('menu', 0.3, 1.6); S.cur = Math.max(0, KEYPAD.keys.indexOf(k)); }
+    if(k==='SPACE')k=' ';
+    if (S.typed.length < 24) { S.typed += k; sfx('menu', 0.3, 1.6); S.cur = Math.max(0, KEYPAD.keys.indexOf(k)); }
   }
   hideKeypad() { if (this.kg) this.kg.clear(); if (this.keyT) this.keyT.forEach((t) => t.setVisible(false)); if (this.keyHint) this.keyHint.setVisible(false); }
   submitCode() {
+    if(this.secret?.typed.replace(/\s+/g,'').toUpperCase()==='PHYSICALMEDIA'){this.closeSecret(true);this.stopPlaying(true);this.scene.start('Treehouse');return;}
     const code = this.secret.typed.trim().toUpperCase(), S = SECRETS[code];
     if (!S) { this.secret.typed = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
@@ -709,7 +711,7 @@ export class ShopScene extends Phaser.Scene {
       const wrong = this.face === 'shock' && S.t < 60;
       this.tvT.setText(wrong ? 'WRONG\nCODE' : 'INSERT\nCODE').setColor(wrong ? '#ff8a8a' : '#9affd8').setPosition(cx, cy - 16);
       const typed = S.typed;
-      this.tvCode.setText(typed + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
+      this.tvCode.setText((typed.length>12?'<'+typed.slice(-11):typed) + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
       f.lineStyle(1, 0x9affd8, 0.6); f.strokeRect(cx - 32, cy + 1, 64, 14);
     }
   }

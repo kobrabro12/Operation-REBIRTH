@@ -1,3 +1,4 @@
+import {TreehouseScene} from './scenes/TreehouseScene.js';
 import {SoulUpgradeScene} from './scenes/SoulUpgradeScene.js';
 import {SoulEvolutionScene} from './scenes/SoulEvolutionScene.js';
 import {SoulRewardScene} from './scenes/SoulRewardScene.js';
@@ -37,7 +38,7 @@ const config = {
   audio:{disableWebAudio:PHONE_DEVICE},
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, FilesScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, FilesScene, TestFightersScene, ShopScene, TreehouseScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.
