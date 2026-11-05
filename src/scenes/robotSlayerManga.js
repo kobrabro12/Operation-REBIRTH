@@ -149,9 +149,15 @@ export function ensureMangaCover(scene){
 }
 /** Draws a portrait page in authentic right-to-left panel order with a tap target per panel. */
 export function drawMangaPage(scene,x,y,w,h,page,focus,onPanel){
- const spread=MANGA_PAGES[page],[t,c]=canvasTexture(scene,'iron_rain_page',720,1000);c.fillStyle=PAPER;c.fillRect(0,0,720,1000);c.fillStyle=INK;c.textAlign='left';c.font='bold 27px Georgia, serif';c.fillText('IRON RAIN',28,38);c.font='14px Georgia, serif';c.fillText(spread.title+'   /   '+(page+1),28,64);
- const parts=[];for(let i=0;i<6;i++){const xx=i%2===0?375:30,yy=85+Math.floor(i/2)*296;inkPanel(c,xx,yy,315,272,spread.panels[i]);if(i===focus){c.strokeStyle='#bb8b42';c.lineWidth=7;c.strokeRect(xx-4,yy-4,323,280);}c.fillStyle=INK;c.font='13px Georgia, serif';c.fillText(String(i+1),xx+3,yy+289);parts.push(scene.add.zone(x+xx/720*w,y+yy/1000*h,315/720*w,272/1000*h).setOrigin(0).setDepth(23).setInteractive({useHandCursor:true}).on('pointerdown',()=>onPanel(i)));}
- t.refresh();parts.unshift(scene.add.image(x,y,'iron_rain_page').setOrigin(0).setDisplaySize(w,h).setDepth(21));return parts;
+ const spread=MANGA_PAGES[page],key='iron_rain_page';
+ if(scene.ironRainPage!==page||!scene.textures.exists(key)){
+  const[t,c]=canvasTexture(scene,key,720,1000);c.fillStyle=PAPER;c.fillRect(0,0,720,1000);c.fillStyle=INK;c.textAlign='left';c.font='bold 27px Georgia, serif';c.fillText('IRON RAIN',28,38);c.font='14px Georgia, serif';c.fillText(spread.title+'   /   '+(page+1),28,64);
+  for(let i=0;i<6;i++){const xx=i%2===0?375:30,yy=85+Math.floor(i/2)*296;inkPanel(c,xx,yy,315,272,spread.panels[i]);c.fillStyle=INK;c.font='13px Georgia, serif';c.fillText(String(i+1),xx+3,yy+289);}
+  scene.ironRainPage=page;t.refresh();
+ }
+ const parts=[scene.add.image(x,y,key).setOrigin(0).setDisplaySize(w,h).setDepth(21)];
+ for(let i=0;i<6;i++){const xx=i%2===0?375:30,yy=85+Math.floor(i/2)*296;parts.push(scene.add.zone(x+xx/720*w,y+yy/1000*h,315/720*w,272/1000*h).setOrigin(0).setDepth(23).setInteractive({useHandCursor:true}).on('pointerdown',()=>onPanel(i)));}
+ const xx=focus%2===0?375:30,yy=85+Math.floor(focus/2)*296,highlight=scene.add.graphics().setDepth(22);highlight.lineStyle(2,0xbb8b42);highlight.strokeRect(x+(xx-4)/720*w,y+(yy-4)/1000*h,323/720*w,280/1000*h);parts.push(highlight);return parts;
 }
 /** Enlarges the selected panel so balloon text and ink details remain readable on a phone. */
 export function drawMangaPanel(scene,x,y,w,h,panel){const[t,c]=canvasTexture(scene,'iron_rain_panel',720,440);inkPanel(c,0,0,720,440,panel);t.refresh();return[scene.add.image(x,y,'iron_rain_panel').setOrigin(0).setDisplaySize(w,h).setDepth(21)];}

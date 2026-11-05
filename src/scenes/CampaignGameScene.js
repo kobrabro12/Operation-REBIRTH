@@ -33,7 +33,7 @@ export class CampaignGameScene extends Phaser.Scene{
   this.pendingTap=false;this.score=this.progress.score;this.frame=0;this.invincible=0;this.cooldown=0;this.facing={x:1,y:0};this.overlay=null;this.clearMenu();
   if(this.id==='moonbound')this.enterRoom(this.progress.room);
   else{this.enterSector();if(this.progress.hangar&&!this.progress.won)this.openMenu('hangar');}
-  if(this.progress.won)this.openMenu('win');
+  this.saveProgress();if(this.progress.won)this.openMenu('win');
  }
  /** Stores completed objectives and upgrades, keeping a checkpoint even when the cartridge is ejected. */
  saveProgress(){
