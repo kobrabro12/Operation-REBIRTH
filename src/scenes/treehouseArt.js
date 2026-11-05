@@ -1,11 +1,9 @@
 import {ARC} from '../ui/arcade.js';
-import {FONT} from '../config.js';
 // Native scene art: explicit pixel shapes and the same ink, panels and accents as the arcade UI.
 // No background images or generated-image assets are used.
 /** Draws the native pixel room and frames the supplied movie poster without stretching it. */
 export function drawTreehouse(scene){
  const g=scene.add.graphics();const rect=(x,y,w,h,c)=>{g.fillStyle(c);g.fillRect(x,y,w,h);};const poly=(points,c)=>{g.fillStyle(c);g.fillPoints(points.map(([x,y])=>({x,y})),true);};
- const text=(x,y,s,size,c)=>scene.add.text(x,y,s,{fontFamily:FONT,fontSize:size+'px',color:c,stroke:'#07060e',strokeThickness:1});
  const disk=(cx,cy,r,c)=>{for(let y=-r;y<=r;y+=2){const w=Math.floor(Math.sqrt(Math.max(0,r*r-y*y))/2)*2;rect(cx-w,cy+y,w*2,2,c);}};
  rect(0,34,640,290,ARC.ink);rect(8,37,624,219,0x322332);
  for(let x=8;x<632;x+=26){rect(x,38,24,219,x%52?0x48303b:0x3c2937);rect(x+2,39,2,214,0x66414b);rect(x+22,38,2,217,0x201b2c);for(let y=58;y<250;y+=47){rect(x+7,y,6,1,0x302132);rect(x+14,y+11,5,1,0x302132);}}
@@ -15,7 +13,7 @@ export function drawTreehouse(scene){
  poly([[171,255],[171,126],[157,101],[159,34],[192,34],[192,93],[211,67],[229,34],[241,34],[223,80],[196,116],[195,256]],0x1b1724);
  poly([[177,255],[177,123],[164,99],[166,34],[183,34],[184,107],[193,108],[187,255]],0x785044);for(let y=48;y<246;y+=22){rect(171+(y%3)*3,y,3,15,0xa16c50);rect(181,y+7,3,9,0x4a3034);}
  rect(8,36,624,8,0x231c29);rect(8,36,624,2,0x90604d);
- // Empty wooden bookcase: five broad, bare shelves.
+ // Wooden bookcase: room for cartridges and the Iron Rain manga.
  rect(19,63,143,241,ARC.ink);rect(23,67,135,232,0x855743);rect(30,74,121,218,0x211c2b);
  for(let y=76;y<292;y+=43){rect(33,y,115,35,0x362631);rect(33,y,115,3,0x171422);rect(26,y+36,129,6,0xa77350);rect(26,y+42,129,2,0x4c3135);rect(30,y+37,121,1,0xd2a069);}
  rect(23,67,6,232,0xb07a53);rect(153,67,5,232,0x604035);rect(19,62,143,8,0x9d6a4c);for(let y of [70,287])for(let x of [25,154])rect(x,y,2,2,0x1d1925);
@@ -24,7 +22,7 @@ export function drawTreehouse(scene){
  for(let x=532;x<607;x+=15){const h=24+x%17;poly([[x,127-h],[x-9,127],[x+9,127]],0x25334a);rect(x-1,116,3,20,0x1b2338);}
  for(const [x,y]of[[539,69],[558,81],[573,63],[600,98]])rect(x,y,2,2,0xd6cbce);
  rect(568,58,4,79,0x8c624e);rect(529,99,81,4,0x8c624e);rect(521,136,97,6,0xb17a50);
- // Record-player shelf and dust cover. The platter is empty.
+ // Record-player shelf and dust cover. The room adds a spinning disc during playback.
  rect(365,131,144,7,ARC.ink);rect(365,129,144,3,0xc28b59);rect(378,138,6,9,0x76513f);rect(490,138,6,9,0x76513f);
  poly([[378,99],[384,66],[481,66],[486,99]],ARC.ink);poly([[382,96],[388,70],[477,70],[481,96]],0x53616b);poly([[389,91],[392,74],[473,74],[476,91]],0x354252);rect(390,75,2,15,0x7d8990);
  rect(379,102,107,27,ARC.ink);rect(382,105,101,19,0x875641);rect(382,106,101,2,0xc88c5c);rect(386,109,93,9,0x212131);rect(403,110,38,6,0x667077);rect(407,108,30,2,0x667077);rect(407,110,30,4,0x3c454f);rect(422,108,2,5,0xa9b4b9);rect(452,109,17,2,0xc5bbc6);rect(450,109,2,9,0xc5bbc6);rect(469,119,5,3,ARC.gold);rect(459,119,4,3,0xc6b4a4);
