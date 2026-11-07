@@ -1,3 +1,4 @@
+import {drawKombatAura} from './kombatFx.js';
 import {drawNavi} from './navi.js';
 // Fighter methods: Costume effects drawn around the fighter: Samurai spin dragon, milestone auras, afterimage trails.
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
@@ -116,6 +117,7 @@ export class FighterCostumeFx {
     const d = this.def, back = this.fxBack, t = this.anim, f = this.facing, R = Math.random, P = this.match.particles;
     if(a.fairy)this.drawCompanionFairy(g);
     if(this.theme)drawSkinTheme(this,g);
+    if(a.kombat)drawKombatAura(this,g);
     const cx = this.x, top = this.y - (d.headTop || d.body.h + 4), mid = this.y - d.body.h * 0.55;
     const flourish=this.premiumAnimation,performance=flourish==='taunt'?Math.sin(this.premiumAnimProgress*Math.PI):flourish==='idle'?.12+.06*Math.sin(this.premiumAnimProgress*Math.PI*2):flourish?Math.sin(this.premiumAnimProgress*Math.PI)*.45:0;
     if(a.prism){

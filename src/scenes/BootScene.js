@@ -1,3 +1,4 @@
+import {KOMBAT_COSTUMES} from '../data/kombatCostumes.js';
 import {makeOriginalSoulPortraits,SOUL_ATLASES} from '../souls/portraits.js';
 import {installMobileTextures} from '../mobileTextures.js';
 import {deferCostumeSheets} from '../fighters/lazySheets.js';
@@ -109,6 +110,13 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
     this.load.spritesheet('wow_faces', 'assets/fighters/what-once-was/faces.png', { frameWidth: 11, frameHeight: 9 });   // Mason's three faces for its screen (tools/sprites/wow_faces.py)
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    for(const c of KOMBAT_COSTUMES){
+      const hk=c.fighter==='hero-knight',wake=c.fighter==='mr-wake';
+      const strips=hk?['idle','run','attack1','attack2','jump','fall','hit','death','guard','counter','grab','idle_u','run_u','jump_u','fall_u','hit_u']:['idle','run','jump','fall',...(c.fighter==='soul-summoner'?['juggle']:[])];
+      for(const k of [...strips,'moves'])this.load.spritesheet(c.prefix+k,'assets/fighters/'+c.fighter+'/'+c.set+'/'+k+'_sheet.png',{
+        frameWidth:k==='moves'?(hk?180:wake?176:112):hk?150:64,frameHeight:k==='moves'?(hk?140:wake?120:104):hk?90:64});
+    }
+    for(const k of ['idle','run','jump','fall','moves'])this.load.spritesheet('aero_subzero_king_'+k,'assets/fighters/aero/subzero/king/'+k+'_sheet.png',{frameWidth:k==='moves'?112:64,frameHeight:k==='moves'?104:64});
     // shop costumes with their own drawing (tools/sprites/shop_costumes.py): sheets in <fighter>/<costume>/
     for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
       ['wake_choir_', 'mr-wake/choir/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],

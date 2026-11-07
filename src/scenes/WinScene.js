@@ -1,3 +1,4 @@
+import {KombatShots} from './kombatOutros.js';
 import {drawNavi} from '../fighters/navi.js';
 import { queueSheets } from '../fighters/lazySheets.js';
 import {youngLinkClip} from '../fighters/youngLinkAnimation.js';
@@ -917,3 +918,5 @@ for (const n of Object.getOwnPropertyNames(SkinShots.prototype)) if (n !== 'cons
 for(const n of Object.getOwnPropertyNames(ShowcaseShots.prototype))if(n!=='constructor')WinScene.prototype[n]=ShowcaseShots.prototype[n];
 
 for(const n of Object.getOwnPropertyNames(PremiumShots.prototype))if(n!=='constructor')WinScene.prototype[n]=PremiumShots.prototype[n];
+
+for(const n of Object.getOwnPropertyNames(KombatShots.prototype))if(n!=='constructor')WinScene.prototype[n]=KombatShots.prototype[n];

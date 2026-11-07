@@ -1,3 +1,4 @@
+import {KOMBAT_CUTS} from './kombatOutros.js';
 // COSTUME OUTROS: win cutscenes that only play when the winner is wearing one particular costume - they replace
 // that fighter's normal one (WinScene.js). One per fighter for now:
 //   SOUL SUMMONER  JACK-O'-LANTERN  carves the beaten into jack-o'-lanterns
@@ -29,6 +30,7 @@ import { skinTexture, skinInfo } from '../fighters/skins.js';
 const W = VIEW_W, H = VIEW_H;
 
 export const SKIN_CUTS = {
+  ...KOMBAT_CUTS,
   ...SHOWCASE_CUTS,
   ...PREMIUM_CUTS,
   "soul-summoner:JACK-O'-LANTERN": { fn: 'ss_pumpkin', len: 420, card: 262, name: 'SOUL SUMMONER', sub: "JACK-O'-LANTERN", line: 'TRICK OR TREAT? YOU GOT TRICKED.',

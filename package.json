@@ -19,6 +19,7 @@
     "replay": "node tools/replay/replay.mjs",
     "images": "node tools/build/webp.mjs public",
     "bake:souls": "node tools/sprites/bake_soul_portraits.mjs",
+    "test:kombat-costumes": "node tools/tests/kombat-costumes.mjs",
     "test:priorities": "node tools/tests/priorities.mjs",
     "test:spirit-limit": "node tools/tests/spirit-limit.mjs",
     "test:master-sword": "node tools/tests/master-sword.mjs",

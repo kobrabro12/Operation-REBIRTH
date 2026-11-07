@@ -14,6 +14,6 @@ try{
  const {SHOP,shelfItems}=await import('/src/data/shop.js'),{SKIN_RARITIES,rarityFor}=await import('/src/data/skinRarities.js');const s=window.game.scene.getScene('Shop'),shelf=shelfItems(SHOP[0]),items=SHOP.flatMap(t=>t.items).filter(i=>i.kind==='costume');const counts={};
  for(const it of items){if(!SKIN_RARITIES[it.rarity])throw Error('missing rarity '+it.id);counts[it.rarity]=(counts[it.rarity]||0)+1;const n=shelf.indexOf(it);if(n<0)continue;s.tab=0;s.page=Math.floor(n/8);s.sel=n%8;window.renderShop.call(s);if(s.cardRarity[s.sel].text!==rarityFor(it).label||s.rarityT.text!==rarityFor(it).label)throw Error('missing shop label '+it.id);if(s.nameT.getBounds().right>s.rarityT.getBounds().left-3)throw Error('detail overlap '+it.id);if(s.cardRarity[s.sel].getBounds().bottom>s.cardPrice[s.sel].getBounds().top)throw Error('card overlap '+it.id);await s.openPreview(it);s.drawPreview();if(!s.ovSub.text.includes(rarityFor(it).label))throw Error('preview label');s.closeOverlay();}
  return {counts,total:items.length};});
- assert.deepEqual(Object.keys(report.counts).sort(),['common','epic','legendary','miracle','rare']);assert.equal(report.total,24);
+ assert.deepEqual(Object.keys(report.counts).sort(),['common','epic','legendary','miracle','rare']);assert.equal(report.total,29);
  await page.screenshot({path:'recordings/test-output/skin-rarity-shop.png'});assert.deepEqual(errors,[]);console.log('PASS',JSON.stringify(report));
 }finally{await browser.close();await server.close();}

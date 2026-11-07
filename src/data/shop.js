@@ -1,3 +1,4 @@
+import {KOMBAT_COSTUMES} from './kombatCostumes.js';
 // THE SHOP (Trinkets > SHOP, ShopScene.js): what's for sale.
 // Each tab is a shelf; each item on it:
 //   { name: 'ITEM NAME', price: 100, info: 'A LINE OR TWO\nABOUT IT.', color: 0xffd23a }
@@ -26,6 +27,7 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 // whole shop takes a few hundred.
 export const SHOP = [
   { name: 'COSTUMES', items: [
+    ...KOMBAT_COSTUMES.map(c=>({id:'cos-mk-'+c.set,kind:'costume',rarity:'legendary',fighter:c.fighter,skin:c.name,name:c.name,price:1500,info:c.info})),
     {id:'cos-judgment',kind:'costume',rarity:'miracle',fighter:'soul-summoner',skin:'JUDGMENT',name:'JUDGMENT',price:2000,info:'SOUL SUMMONER. A SANS-INSPIRED COSTUME: CYAN EYE, PINK SLIPPERS, SKULL CANNONS, BONES AND A RED SOUL. INCLUDES ITS CUSTOM ENTRANCE AND VICTORY SCENE.'},
     { id: 'cos-prism', kind: 'costume', rarity: 'miracle', fighter: 'hero-knight', skin: 'PRISM REGENT', name: 'PRISM REGENT', price: 2000, info: 'LACY. FACETED CRYSTAL ARMOUR, A PRISMATIC BLADE, A GLASS DIADEM AND ORBITING SHARDS. HER GUARD REFRACTS INTO THREE COLOURS.' },
     { id: 'cos-choir', kind: 'costume', rarity: 'miracle', fighter: 'mr-wake', skin: 'ABYSSAL CHOIR', name: 'ABYSSAL CHOIR', price: 2000, info: 'MR WAKE. A DROWNED CATHEDRAL: BRONZE RELIQUARY MASK, LANTERN STAFF, EMBROIDERED ROBES AND DRIFTING BELLS THAT SEND OUT RINGS OF LIGHT.' },

@@ -56,3 +56,5 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   the hatch (`tools/sprites/rosemary_tank.py` -> `last-seen/tank/` + `lsTankMoves.js`): MG jab, CANNON neutral-B (`TankShell` in entities.js,
   `spawnShell`), armoured down-B (`armor`, `armoured()`), KATYUSHA limit (`barrage`, rockets), `tankTick` (exhaust, dust, smoke); shouts in
   QUIPS 'last-seen:soviet'.
+
+- Mortal Kombat shop homages: Soul Summoner / ERMAC, Mr Wake / RAIDEN, Lacy / KITANA, NU / SCORPION, AERO / SUB-ZERO. Definitions in `src/data/kombatCostumes.js` append saved skin indexes; `kombatFx.js` draws bounded cosmetic effects without changing combat values. SUB-ZERO keeps an ice-winged FULL AERO costume via `limitAero.js`.

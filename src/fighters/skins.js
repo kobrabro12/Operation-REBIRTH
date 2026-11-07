@@ -1,3 +1,4 @@
+import {KOMBAT_COSTUMES} from '../data/kombatCostumes.js';
 import {YOUNG_LINK_EYES} from './youngLinkEyes.js';
 import {copyPackedFrames,expandPackedTexture} from '../mobileTextures.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -714,3 +715,9 @@ export function resolveSkins(picks, wanted) {
   return out;
 }
 
+
+// Dedicated sheets provide the costume geometry; these rules also color alternate forms and minions.
+for(const c of KOMBAT_COSTUMES)SKINS[c.fighter].push({name:c.name,shop:'cos-mk-'+c.set,sheetSet:c.set,swatch:c.swatch,fx:c.color,
+  groups:({'soul-summoner':SS,'mr-wake':MW,'hero-knight':HK,nu:NUG,aero:AEG})[c.fighter],
+  rules:c.set==='subzero'?{aqua:{to:213,sat:1.2,val:.8},lime:{to:205,sat:.4,val:1.2},fish:{to:195,sat:.5,val:1.2}}:{},
+  lore:c.info,vfx:{hit:{shape:c.set==='ermac'?'bubble':c.set==='subzero'?'star':'spark',colors:[c.color,0xffffff],n:7,glint:true},aura:{kombat:c.set},...(c.set==='ermac'?{minion:{flame:{to:112,sat:1.2,val:1.25},eyes:{to:110,val:1.3},cape:{to:354}}}:{})}});
