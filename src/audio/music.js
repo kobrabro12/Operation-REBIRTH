@@ -13,7 +13,7 @@ import { settings } from '../settings.js';
 // Every music track: key 'bgm_<name>' plays public/assets/audio/music/<name>.ogg (or .mp3 where the
 // browser can't play Vorbis). Add a new track's name here (tools/audio/*.py write the files).
 export const TRACKS = [
-  'title', 'select', 'arcade', 'sky', 'spires', 'forest', 'gravemoon', 'backrooms', 'aero', 'desert', 'slasher',
+  'title', 'select', 'arcade', 'sky', 'spires', 'forest', 'dreamland', 'gravemoon', 'backrooms', 'aero', 'desert', 'slasher',
   'fractured', 'infected', 'endless_castle', 'construct', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
