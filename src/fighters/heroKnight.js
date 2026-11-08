@@ -31,7 +31,7 @@ export const HERO_KNIGHT = {
   // OBSIDIAN / CYBERBLADE (shop costumes): tools/sprites/shop_costumes.py
   // AKATSUKI costume: crimson tunic, leather belt, cloth boots and a crystal sword (tools/sprites/hero_knight_akatsuki.py)
   costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_'], ['obsidian', 'hk_obs_'], ['cyber', 'hk_cyb_'], ['verdant', 'hk_ver_'], ['liberty', 'hk_lib_'], ['prism', 'hk_prism_'], ['kitana', 'hk_kitana_'], ['metaknight', 'hk_meta_']].map(([set, pre]) => [set,
-    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'counter', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves'].map((k) => [k, pre + k]))])),
+    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'counter', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves', ...(set==='metaknight'?['bare_moves']:[])].map((k) => [k, pre + k]))])),
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, counter: 3, shrine:20, shrine_turn:12, shrine_release_u:10, shrine_weapon:1, grab: 10, idle_u: 11, run_u: 8, jump_u: 3, fall_u: 3, hit_u: 4 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,

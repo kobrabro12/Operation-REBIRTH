@@ -47,7 +47,7 @@ export function skinOrigin(origin,flip) {
 /** Keep enlarged costume taunts on the same foot anchor as the normal body and moves. */
 export function skinSheetOrigin(f,sheet) {
   const d=f.def;
-  if(d.movesOrigin&&sheet===f.sheets.moves)return d.movesOrigin;
+  if(d.movesOrigin&&(sheet===f.sheets.moves||sheet===f.sheets.bare_moves))return d.movesOrigin;
   if(d.costumeTauntOrigin&&Object.values(d.costumeSheets||{}).some(s=>s.taunt===sheet))return d.costumeTauntOrigin;
   return [d.originX??.5,d.originY??f.sprite.originY];
 }

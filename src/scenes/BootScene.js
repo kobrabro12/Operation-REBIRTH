@@ -142,6 +142,7 @@ export class BootScene extends Phaser.Scene {
     for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/'], ['hk_meta_moves', 'metaknight/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
+    this.load.spritesheet('hk_meta_bare_moves','assets/fighters/hero-knight/metaknight/bare_moves_sheet.png',{frameWidth:180,frameHeight:140});
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });

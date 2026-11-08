@@ -57,7 +57,9 @@ try{
   f.setState('limit');f.ult={phase:'grow',slashes:[],victims:[]};const geom=metaKnightLimitGeom(f,f.bladeGeom(f.def.limit,f.ult,20)),limHand=metaKnightAnchor(f,'hand');
   if(geom.hx!==limHand.x||geom.hy!==limHand.y)throw Error('detached giant sword');
   for(const phase of ['grow','slash','whiff','cutscene']){f.ult={phase,ct:17,charge:0,slashes:[],victims:[]};f.t=phase==='slash'?56:phase==='whiff'?68:20;m.frame++;m.draw();if(f.sprite.texture.key!==S.moves)throw Error('base Lacy limit pose');}
-  f.ult=null;f.swordOut={alive:true};f.setState('idle');m.frame++;m.draw();if(f.sprite.texture.key!==S.idle_u)throw Error('extra held sword');f.swordOut=null;
+  f.ult=null;f.swordOut={alive:true};f.setState('idle');m.frame++;m.draw();if(f.sprite.texture.key!==S.idle_u)throw Error('extra held sword');
+  for(const state of ['shield','roll','ledgeroll','spotdodge','ledgeclimb','ledgeattack','land','jumpsquat','crouch','taunt','dying']){f.setState(state);f.hurtAnim=0;for(let t=0;t<70;t++){f.t=t;m.frame++;m.draw();if(f.sprite.texture.key!==S.bare_moves||!f.sprite.texture.has(f.sprite.frame.name))throw Error('extra sword during '+state);}}
+  f.swordOut=null;
   f.setState('run');f.vx=3.3;f.grounded=true;const run=new Set();for(let i=0;i<100;i++){m.frame++;f.age++;f.t++;m.draw();run.add(f.sprite.frame.name);}if(run.size!==24)throw Error('truncated run cycle');
   f.vx=0;f.facing=1;f.placeAt(-70,0);f.setState('idle');f.grounded=true;f.platform=m.stage.platforms[0];m.fighters[1].placeAt(130,0);m.fighters[1].grounded=true;m.fighters[1].setState('idle');m.frame++;m.draw();
   return {clips:Object.keys(A).length,cels,draws,run:run.size,packed:true,afterimages:f.ghosts.length};

@@ -1,4 +1,4 @@
-import {HK_META_MOVES,HK_META_ANCHORS} from './hkMetaMoves.js';
+import {HK_META_MOVES,HK_META_ANCHORS,HK_META_BARE_MOVES} from './hkMetaMoves.js';
 import {skinAirFrame,skinRunFrame,skinMoveFrame} from './skinAnimation.js';
 
 /** Identify Lacy's drawn Meta Knight costume without changing her fighter definition. */
@@ -18,6 +18,11 @@ export function metaKnightPose(f){
   const move=(name,tick=t)=>{const frame=metaKnightClip(name,tick);return frame===null?null:{sheet:S.moves,frame};};
   const unarmed=!!f.swordOut&&(s!=='swordthrow'||t>=f.def.moves.sideB.sword.throwAt);
   if(f.hurtAnim>0&&!['attack','upb','dying','limit','ledge','ledgeclimb','ledgeroll','ledgeattack','grabbed','seized'].includes(s))return strip(unarmed?'hit_u':'hit',16-f.hurtAnim,16);
+  if(unarmed&&S.bare_moves){
+    const key=({shield:'counter',roll:'dodge',ledgeroll:'dodge',spotdodge:'dodge',ledgeclimb:'climb',ledgeattack:'ledgeattack',land:'land',jumpsquat:'jumpsquat',crouch:'crouch',taunt:'taunt',dying:'death'})[s];
+    const clip=HK_META_BARE_MOVES[key];
+    if(clip)return {sheet:S.bare_moves,frame:skinMoveFrame(clip,s==='shield'?Math.min(24,t):t),alpha:['roll','ledgeroll','spotdodge'].includes(s)?.55:1};
+  }
   if(s==='attack')return move(f.moveName==='throw'?'throw_'+f.throwDir:f.moveName)||move('jab');
   if(s==='upb'){
     if(f.spinGround&&f.spinStart<0)return move('spincharge');

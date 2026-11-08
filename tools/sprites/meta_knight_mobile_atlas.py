@@ -13,12 +13,13 @@ def main():
     path=ROOT/'src/mobileAtlasManifest.js';text=path.read_text()
     manifest=json.loads(re.search(r'export const MOBILE_ATLASES\s*=\s*([^;]+);',text).group(1))
     report_path=ROOT/'public/assets/mobile/report.json';report=json.loads(report_path.read_text())
-    before,after=report['originalBytes'],report['packedBytes'];key='hk_meta_moves'
-    if key in manifest:
-        old=manifest[key];o=old['original'];before-=o['width']*o['height']*4
-        with Image.open(ROOT/'public'/old['image']) as im:after-=im.width*im.height*4
-    manifest[key],raw,packed=pack(key,'',ROOT/'public/assets/fighters/hero-knight/metaknight/moves_sheet.png',(180,140))
-    before+=raw;after+=packed
+    before,after=report['originalBytes'],report['packedBytes']
+    for key,file in [('hk_meta_moves','moves_sheet.png'),('hk_meta_bare_moves','bare_moves_sheet.png')]:
+        if key in manifest:
+            old=manifest[key];o=old['original'];before-=o['width']*o['height']*4
+            with Image.open(ROOT/'public'/old['image']) as im:after-=im.width*im.height*4
+        manifest[key],raw,packed=pack(key,'',ROOT/'public/assets/fighters/hero-knight/metaknight'/file,(180,140))
+        before+=raw;after+=packed
     path.write_text('// Generated lossless sprite atlas registrations.\nexport const MOBILE_ATLASES='+json.dumps(manifest,separators=(',',':'))+';\n')
     report_path.write_text(json.dumps({'sheets':len(manifest),'originalBytes':before,'packedBytes':after,'savedPercent':round((1-after/before)*100,1)}))
     print('Packed Meta Knight custom moves; numeric cel indexes and pivots retained.')

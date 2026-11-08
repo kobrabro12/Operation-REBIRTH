@@ -61,3 +61,5 @@ Win cutscenes for one costume per fighter, replacing that fighter's own (`SKIN_C
 - META KNIGHT is a Legendary Lacy costume costing 1,500 coins, with lazy-loaded strips and packed moves. DREAMLAND is available directly in stage select; all 18 tiles fit above the footer.
 
 - Costume previews and victory helpers use the costume move table and actual native cel counts. Meta Knight previews all 24 idle/run cels; mirrored cinematic poses retain their foot pivot.
+
+- Meta Knight also has `bare_moves`: a separate swordless atlas used while Blade Toss is away, including guard, dodge, climb, landing, crouch, taunt and death. `HK_META_BARE_MOVES` and body bounds keep these poses aligned; both move atlases are packed losslessly. The phone test exercises every swordless action while the projectile is out.

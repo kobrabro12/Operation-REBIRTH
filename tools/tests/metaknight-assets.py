@@ -28,7 +28,7 @@ native={}
 for path in FOLDER.glob('*_sheet.png'):
     name=path.name.removesuffix('_sheet.png')
     if name=='taunt':continue
-    fw,fh=(180,140) if name=='moves' else (150,90)
+    fw,fh=(180,140) if name in ['moves','bare_moves'] else (150,90)
     native[name]=cells(path,fw,fh)
     for i,cel in enumerate(native[name]):
         # Transparent guard pixels keep neighboring cels from bleeding into one another.
@@ -60,12 +60,20 @@ for t in range(8,a[1]*a[2]):
     i=a[0]+t//a[2];anchor=anchors[i] if isinstance(anchors,list) else anchors[str(i)]
     assert anchor.get('armed') is False,('throw',t,'extra held sword')
 
-packed=Image.open(ROOT/'public/assets/mobile/hk_meta_moves.png').convert('RGBA')
-assert max(packed.size)<=4096
-data=json.loads((ROOT/'public/assets/mobile/hk_meta_moves.json').read_text())
-for name,spec in data['frames'].items():
-    i=int(name);r=spec['frame'];b=spec['spriteSourceSize'];out=Image.new('RGBA',(180,140))
-    out.paste(packed.crop((r['x'],r['y'],r['x']+r['w'],r['y']+r['h'])),(b['x'],b['y']))
-    actual=np.array(out);expected=moves[i];visible=expected[:,:,3]>0
-    assert np.array_equal(actual[:,:,3],expected[:,:,3]) and np.array_equal(actual[visible],expected[visible]),('packed pixels',i)
-print(f'PASS {len(clips)} custom clips, {len(moves)} move cels, 24-cel run, cel borders, body bounds, single sword and lossless phone atlas')
+bare_clips=table('HK_META_BARE_MOVES')
+for key,a in bare_clips.items():
+    for i in range(a[0],a[0]+a[1]):
+        cel=native['bare_moves'][i];rgb=cel[:,:,:3].astype(float)
+        warm=(rgb[:,:,0]>rgb[:,:,1]*.99)&(rgb[:,:,1]>110)&(rgb[:,:,1]>rgb[:,:,2]*1.3)&(cel[:,:,3]>0)
+        assert int(warm.sum())<25,(key,i,'gold weapon pixels in swordless pose')
+
+for stem,name in [('hk_meta_moves','moves'),('hk_meta_bare_moves','bare_moves')]:
+    packed=Image.open(ROOT/('public/assets/mobile/'+stem+'.png')).convert('RGBA')
+    assert max(packed.size)<=4096
+    data=json.loads((ROOT/('public/assets/mobile/'+stem+'.json')).read_text())
+    for frame,spec in data['frames'].items():
+        i=int(frame);r=spec['frame'];b=spec['spriteSourceSize'];out=Image.new('RGBA',(180,140))
+        out.paste(packed.crop((r['x'],r['y'],r['x']+r['w'],r['y']+r['h'])),(b['x'],b['y']))
+        actual=np.array(out);expected=native[name][i];visible=expected[:,:,3]>0
+        assert np.array_equal(actual[:,:,3],expected[:,:,3]) and np.array_equal(actual[visible],expected[visible]),('packed pixels',name,i)
+print(f'PASS {len(clips)} custom clips, {len(moves)} move cels, 24-cel run, swordless actions, cel borders, body bounds and lossless phone atlases')

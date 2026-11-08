@@ -64,3 +64,5 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
 - Lacy costume META KNIGHT (`metaknight`, prefix `hk_meta_`) uses her original strip sizes, moves and origins, with a silver mask, golden eyes/sword and purple cape/wings. The moves atlas is losslessly packed. Springtrap’s head/ears/jaw rig is reduced to 80% around the neck in armed and disarmed poses.
 
 - META KNIGHT has fully custom pixel poses in `hkMetaMoves.js` and `metaKnightAnimation.js`, sampled by simulation ticks. The generated body-only hurt bounds and hand/blade-tip anchors follow the selected cel. Whole-body afterimages and duplicate swooshes are disabled for this costume; the gold thrown sword and giant Limit blade are drawn once. Base Lacy balance and move data stay intact.
+
+- Meta Knight also has `bare_moves`: a separate swordless atlas used while Blade Toss is away, including guard, dodge, climb, landing, crouch, taunt and death. `HK_META_BARE_MOVES` and body bounds keep these poses aligned; both move atlases are packed losslessly. The phone test exercises every swordless action while the projectile is out.
