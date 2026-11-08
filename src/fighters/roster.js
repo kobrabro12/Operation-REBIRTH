@@ -50,6 +50,7 @@ export const TEST_ROSTER = [
 export const GRID_SLOTS = 12;          // tiles on the select grid; empty ones show as "???"
 
 // Show a fighter's idle sprite on a menu: right texture, origin and facing (all face right on menus).
+/** Show the selected costume with its actual idle count and mirrored foot pivot. */
 export function showFighter(sprite, def, frame = 0, skin = 0) {
   let key = skinTexture(sprite.scene, def.sheets.idle, def.id, skin);
   const set = skinInfo(def.id, skin).sheetSet;
@@ -58,7 +59,7 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
   if (skinInfo(def.id, skin).worn && def.wornSheets) key = def.wornSheets[Math.floor(sprite.scene.time.now / 1200) % 4].idle;   // preview every damage stage
   const premium=PREMIUM_ANIMS[def.id+':'+skinInfo(def.id,skin).name];
   if(premium?.idleKey){key=premium.idleKey;frame=Math.floor(sprite.scene.time.now/(1000/60*premium.idle[2]))%premium.idle[1];}
-  else frame %= (def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
+  else frame %= set?Math.max(1,sprite.scene.textures.get(key).frameTotal-1):(def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
   if (sprite.texture.key !== key) sprite.setTexture(key, frame); else sprite.setFrame(frame);
   const origin=premium?.idleOrigin||[def.originX??.5,def.originY];
   sprite.setOrigin(def.facesLeft?1-origin[0]:origin[0],origin[1]).setFlipX(!!def.facesLeft);

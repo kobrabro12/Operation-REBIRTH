@@ -184,3 +184,5 @@ an announcer voice for each fighter and stage, and a title screen with a live al
 ## Open design questions (decide)
 - Lacy's tilt and aerial numbers (currently placeholders).
 - Fighters 4+ and stages 6–7: planned names and concepts.
+
+Meta Knight's costume has its own articulated animations for movement, normals, air attacks, grabs, counters, Blade Toss, Cyclone Slash and Limit. The 24-cel stride and tick-based clips retain combat timing. Costume details stay attached through each pose; no full-body trail copies are drawn.

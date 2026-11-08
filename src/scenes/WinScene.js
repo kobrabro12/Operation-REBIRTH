@@ -104,14 +104,17 @@ export class WinScene extends Phaser.Scene {
   // ---------------------------------------------------------------- shared helpers
   // the winner, idle (frame by time) or a frame of one of its moves
   // (def: another form of the winner - FULL AERO, SEEN - in the same costume)
+  /** Keep the winner's foot pivot attached when a cinematic turns the idle sprite. */
   idle(x, y, sc, t, flip = false, def = this.def) {
     showFighter(this.hero, def, Math.floor(t / 6), this.win.skin || 0);
+    if(flip)this.hero.setOrigin(1-this.hero.originX,this.hero.originY);
     this.hero.setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft !== flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
+  /** Draw the winner's authored move using its costume-specific frame table. */
   move(name, i, x, y, sc, def = this.def, flip = false) {
-    const A = def.moveAnims[name], set = skinInfo(def.id, this.win.skin || 0).sheetSet;
+    const set = skinInfo(def.id, this.win.skin || 0).sheetSet,A=(def.costumeMoveAnims?.[set]||def.moveAnims)[name];
     const key = set && def.costumeSheets && def.costumeSheets[set] ? def.costumeSheets[set].moves : skinTexture(this, def.sheets.moves, def.id, this.win.skin || 0);
-    this.hero.setTexture(key, A[0] + Math.max(0, Math.min(A[1] - 1, Math.floor(i)))).setOrigin(def.movesOrigin[0], def.movesOrigin[1])
+    this.hero.setTexture(key, A[0] + Math.max(0, Math.min(A[1] - 1, Math.floor(i)))).setOrigin((!!def.facesLeft!==flip)?1-def.movesOrigin[0]:def.movesOrigin[0], def.movesOrigin[1])
       .setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft !== flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
   // a close-up: the winner's head at (cx, cy), at scale sc

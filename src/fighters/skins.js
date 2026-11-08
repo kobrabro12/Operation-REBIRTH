@@ -732,4 +732,4 @@ SKINS['last-seen'].push({name:'MICHAEL AFTON',sheetSet:'afton',shop:'cos-afton',
 SKINS['hero-knight'].push({name:'META KNIGHT',sheetSet:'metaknight',shop:'cos-metaknight',swatch:0x7779b7,fx:0xffdf83,
  lore:'A silver mask with watchful golden eyes. Purple wings unfurl behind a starlit golden sword.',
  pal:{outline:0x16182e,deep:0x333657,mid:0x7779b7,light:0xc8d2e7,core:0xffedaa,shade:0x27273e,void:0x0e1020},
- vfx:{hit:{shape:'star',colors:[0xffdf83,0xd4dcef,0xb3a0ef],n:7,glint:true},trail:0xa790d1}});
+ vfx:{hit:{shape:'star',colors:[0xffdf83,0xd4dcef,0xb3a0ef],n:7,glint:true}}});

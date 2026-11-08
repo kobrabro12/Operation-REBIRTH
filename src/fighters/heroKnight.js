@@ -6,6 +6,7 @@
 // those two sword animations until her real moves are designed.
 import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
 import { HK_MOVES } from './hkMoves.js';
+import {HK_META_MOVES,HK_META_HURT} from './hkMetaMoves.js';
 import { HK_HURT } from './hkHurt.js';
 
 // Limit beam colours: steel and white
@@ -20,6 +21,7 @@ export const HERO_KNIGHT = {
     idle_u: 'hk_idle_u', run_u: 'hk_run_u', jump_u: 'hk_jump_u', fall_u: 'hk_fall_u', hit_u: 'hk_hit_u',
     // her own tilts and aerials (tools/sprites/hero_knight_moves.py): bigger 180x140 frames, feet at (81, 111)
     moves: 'hk_moves' },
+  costumeMoveAnims:{metaknight:HK_META_MOVES},costumeHurtFrames:{hk_meta_idle:HK_META_HURT},
   moveAnims: HK_MOVES, movesOrigin: [81 / 180, 111 / 140],
   // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.

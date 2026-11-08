@@ -1,3 +1,4 @@
+import {isMetaKnight,metaKnightLimitGeom,META_KNIGHT_BLADE} from './metaKnightAnimation.js';
 import {drawTriforceSeal,drawTriforceProjectile} from './youngLinkSpecials.js';
 import { MASTER_SWORD_POSES } from './masterSwordPatches.js';
 import { skinInfo } from './skins.js';
@@ -255,13 +256,13 @@ export class LimitBlade {
   drawBladeLimit(g, L, U) {
     if(L.triangle&&U.phase!=='cutscene')return drawTriforceProjectile(g,this,U);
     if(L.triforce)drawTriforceSeal(g,U);
-    const C = this.style === 'hero' ? CRYSTAL_BLADE : L.colors;
+    const C = isMetaKnight(this)?META_KNIGHT_BLADE:this.style === 'hero' ? CRYSTAL_BLADE : L.colors;
     if (U.phase !== 'cutscene' && this.style === 'onebit') return this.drawBurningSwing(g, L, U);
     if (U.phase !== 'cutscene') {
       // Her own sword grows: the blade starts exactly on the sprite's sword (same hilt, angle and length)
       // and stretches into a giant blade of light. Raised pose (attack1 frame 1): hilt (-27,-41), pointing
       // up and slightly back. Guard pose (sword at the shoulder): hilt (37,-26), pointing down and forward.
-      const { len, half, glow, ang, hx, hy } = this.bladeGeom(L, U, this.t);
+      const { len, half, glow, ang, hx, hy } = metaKnightLimitGeom(this,this.bladeGeom(L, U, this.t));
       const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), nx = -dy, ny = dx;
       const blade = (w, col, a) => {
         g.fillStyle(col, a);
@@ -300,7 +301,7 @@ export class LimitBlade {
     // cutscene: every cut leaves a streak of light through the target
     if (U.charge > 0) {                                     // charging the killing slice: the sword raised high, growing and blazing
       const k = U.charge, ease = 1 - (1 - k) * (1 - k);
-      const held=skinInfo(this.def.id,this.skin).masterSword?this.bladeGeom(L,{phase:'grow'},L.growUntil):null;
+      const held=isMetaKnight(this)?metaKnightLimitGeom(this,this.bladeGeom(L,{phase:'grow'},L.growUntil)):skinInfo(this.def.id,this.skin).masterSword?this.bladeGeom(L,{phase:'grow'},L.growUntil):null;
       const len = 40 + 150 * ease, half = 2 + 7 * ease, ang = (held?.ang ?? -1.774) + Math.sin(this.anim * 0.9) * 0.02 * k;
       const hx = held?.hx ?? this.x + this.facing * -27, hy = held?.hy ?? this.y - 41;
       const dx = Math.cos(ang) * this.facing, dy = Math.sin(ang), nx = -dy, ny = dx;
@@ -344,6 +345,6 @@ export class LimitBlade {
       g.lineStyle(w + 6, this.pal.mid, 0.35 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
       g.lineStyle(w, 0xffffff, 0.95 * k); g.beginPath(); g.moveTo(sl.x1, sl.y1); g.lineTo(sl.x2, sl.y2); g.strokePath();
     }
-    if (U.from) { g.fillStyle(0x9ad8f0, 0.35); g.fillRect(U.from.x - 6, U.from.y - 44, 12, 40); }   // afterimage where she just was
+    if (U.from && !isMetaKnight(this)) { g.fillStyle(0x9ad8f0, 0.35); g.fillRect(U.from.x - 6, U.from.y - 44, 12, 40); }   // afterimage where she just was
   }
 }

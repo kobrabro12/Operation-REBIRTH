@@ -1,3 +1,4 @@
+import {skinInfo} from '../fighters/skins.js';
 import {CHARACTER_SPEECH} from '../audio/speechPolicy.js';
 import {keeperFaceFor} from '../data/shopFacePolicy.js';
 // The Shop (TRINKETS > SHOP). Tabs of shelves along the top, a grid of item cards, and on the right the SHOPKEEPER -
@@ -267,18 +268,18 @@ export class ShopScene extends Phaser.Scene {
     const loading = ensureSheets(this, [{ id: def.id, skin: si }], { evict: true });   // its strips load first (lazySheets.js)
     if (loading) return loading.then(() => this.openPreview(it));
     stat('previews'); this.cheevos();
-    const sh = skinSheets(this, def, si);
+    const sh = skinSheets(this, def, si),set=skinInfo(def.id,si).sheetSet,ownMoves=def.costumeMoveAnims?.[set]||def.moveAnims;
     const n = (key) => Math.max(1, this.textures.get(key).frameTotal - 1);
     const o = [def.originX ?? 0.5, def.originY], mo = def.movesOrigin || o;
-    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: (def.frameCounts && def.frameCounts.idle) || n(sh.idle), step: 6, o, loops: 2 }];
+    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: n(sh.idle), step: set==='metaknight'?4:6, o, loops: 2 }];
     const cosmetic=premiumAnimationFor(def.id,it.skin);
     if(cosmetic){seq[0]={label:'CUSTOM IDLE',key:cosmetic.idleKey,from:0,n:cosmetic.idle[1],step:cosmetic.idle[2],o:cosmetic.idleOrigin,loops:2};}
     if(cosmetic)for(const [j,kind]of ['flourish','taunt'].entries()){const [from,count,step]=cosmetic[kind];seq.push({label:cosmetic.labels[j],key:cosmetic.key,from,n:count,step,o:cosmetic.origin,loops:1});}
     if(sh.taunt&&!cosmetic){const own=def.costumeTauntOrigin&&Object.values(def.costumeSheets||{}).some(s=>s.taunt===sh.taunt);seq.push({label:'TAUNT',key:sh.taunt,from:0,n:n(sh.taunt),step:(def.taunt?.frames||80)/n(sh.taunt),o:own?def.costumeTauntOrigin:o,loops:1});}
-    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: (def.frameCounts && def.frameCounts.run) || n(sh.run), step: Math.max(1,40/n(sh.run)), o, loops: 3 });
-    for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: (def.frameCounts && def.frameCounts[k]) || n(sh[k]), step: 8, o, loops: 2 });
-    if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: def.frameCounts[k] || n(sh[k]), step: 5, o, loops: 1 });
-    if (def.moveAnims && sh.moves) for (const [k, l] of SHOW) { if(cosmetic&&k==='taunt')continue;const A = def.moveAnims[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
+    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: n(sh.run), step: Math.max(1,40/n(sh.run)), o, loops: 3 });
+    for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: n(sh[k]), step: 8, o, loops: 2 });
+    if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: n(sh[k]), step: 5, o, loops: 1 });
+    if (ownMoves && sh.moves) for (const [k, l] of SHOW) { if(cosmetic&&k==='taunt')continue;const A = ownMoves[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
     this.pv = { it, def, seq, i: 0, t: 0 }; sfx('select', 0.5, 1.3); this.react('glasses', 'preview');
   }
   previewCinema(kind) {

@@ -1,3 +1,4 @@
+import {isMetaKnight,metaKnightPose,metaKnightAnchor} from './metaKnightAnimation.js';
 import {stepSkinAnimation,skinRunFrame,skinAirFrame,skinMoveFrame,skinSheetOrigin,skinRenderCached,rememberSkinRender} from './skinAnimation.js';
 import {fistsPose} from './fistsAnimation.js';
 import {drawYoungLinkSpecial} from './youngLinkSpecials.js';
@@ -197,6 +198,8 @@ export class FighterRender {
       this._animFlip = !!a.flip;
     }
     if(d.id==='fists'){const pose=fistsPose(this);sheet=pose.sheet;frame=pose.frame;spr.setRotation(0).setScale(1,1);spr.y=Math.round(this.y);if(s==='attack'&&(this.moveName==='bair'||this.moveName==='throw'&&this.throwDir==='back'))spr.setFlipX(!spr.flipX);}
+    const metaPose=metaKnightPose(this);
+    if(metaPose){sheet=metaPose.sheet;frame=metaPose.frame;spr.setRotation(0).setScale(1,1).setAlpha(metaPose.alpha??1).setFlipX(this.facing<0);spr.y=Math.round(this.y);this._animFlip=false;this.swooshFx=null;}
     const cosmetic=premiumPose(this);
     if(cosmetic){sheet=cosmetic.sheet;frame=cosmetic.frame;spr.setRotation(0).setScale(1,1);this.premiumAnimation=cosmetic.kind;this.premiumAnimProgress=cosmetic.progress;}
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
@@ -228,7 +231,7 @@ export class FighterRender {
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
     if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge
       const C = d.moves.neutralB.charge, k = this.swingCharge / C.max, full = k >= 1;
-      const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
+      const tip=metaKnightAnchor(this),tx = tip?.x??this.x + this.facing * C.tip[0], ty = tip?.y??this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
       const [spark, hot] = this.chargeColors();
       g.fillStyle(full ? hot : spark, 0.25 + 0.25 * k); g.fillCircle(tx, ty, 3 + 6 * k + pulse);
       g.fillStyle(0xffffff, 0.9); g.fillCircle(tx, ty, 1.5 + 1.5 * k);
@@ -322,7 +325,7 @@ export class FighterRender {
     if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
-      const gx = this.x + this.facing * 18, gy = this.y - 50, tw = this.t - d.moves.counter.start;   // glint on the chest-height blade
+      const tip=metaKnightAnchor(this),gx = tip?.x??this.x + this.facing * 18, gy = tip?.y??this.y - 50, tw = this.t - d.moves.counter.start;   // glint on the chest-height blade
       g.fillStyle(0xe0f4ff, tw < 6 ? 1 : 0.55); g.fillRect(gx - 1, gy - 6, 2, 12); g.fillRect(gx - 6, gy - 1, 12, 2);
       if (tw < 6) { g.fillStyle(0x9ad8f0, 0.5); g.fillRect(gx - 9, gy, 18, 1); g.fillRect(gx, gy - 9, 1, 18); }
       g.fillStyle(0x9ad8f0, 0.12 + 0.08 * Math.sin(this.anim * 0.6)); g.fillEllipse(this.x, this.y - 26, 40, 58);
@@ -335,14 +338,14 @@ export class FighterRender {
         g.fillStyle(i % 2 ? 0xffffff : 0x9ad8f0, 0.75 * k);
         for (let r = 8; r < len; r += 3) g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), Math.max(1, 3 - r / 30), Math.max(1, 3 - r / 30));
       }
-      if (s === 'counterstrike' && this.t >= 2 && this.t <= 12) {     // the long horizontal slash streak
+      if (!isMetaKnight(this) && s === 'counterstrike' && this.t >= 2 && this.t <= 12) {     // the long horizontal slash streak
         const reach = 90 * Math.min(1, (this.t - 1) / 4), y0 = this.y - 34;
         g.fillStyle(0x9ad8f0, 0.5 * k + 0.2); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 4, reach, 9);
         g.fillStyle(0xffffff, 0.95); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 1, reach, 3);
       }
     }
     // Cyclone Slash: a glowing ring of light around her while she spins; sparks gather while charging
-    if (s === 'upb' && d.moves.upb.spin) {
+    if (!isMetaKnight(this) && s === 'upb' && d.moves.upb.spin) {
       const u = d.moves.upb, cx = this.x, cy = this.y - 26;
       if (this.spinGround && this.spinStart < 0) {
         const k = this.spinCharge / u.ground.chargeMax, tx = this.x - this.facing * 3, ty = this.y - 68;
@@ -385,7 +388,7 @@ export class FighterRender {
     }
     // attack swooshes: a pixel crescent (or ring, sweep, streak) that follows the swing through its
     // active frames and fades out just after, in the costume's ability colours
-    for (const hb of this.activeHitboxes()) {
+    for (const hb of isMetaKnight(this)?[]:this.activeHitboxes()) {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;

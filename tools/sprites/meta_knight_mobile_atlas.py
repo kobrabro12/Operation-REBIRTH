@@ -1,4 +1,4 @@
-"""Pack Meta Knight's move sheet losslessly, retaining Lacy's frame indexes and pivots."""
+"""Pack Meta Knight's custom moves losslessly, retaining numeric cel indexes and foot pivots."""
 from pathlib import Path
 from PIL import Image
 import json
@@ -21,7 +21,7 @@ def main():
     before+=raw;after+=packed
     path.write_text('// Generated lossless sprite atlas registrations.\nexport const MOBILE_ATLASES='+json.dumps(manifest,separators=(',',':'))+';\n')
     report_path.write_text(json.dumps({'sheets':len(manifest),'originalBytes':before,'packedBytes':after,'savedPercent':round((1-after/before)*100,1)}))
-    print('Packed Meta Knight moves; all Lacy cel indexes and pivots retained.')
+    print('Packed Meta Knight custom moves; numeric cel indexes and pivots retained.')
 
 
 if __name__=='__main__':

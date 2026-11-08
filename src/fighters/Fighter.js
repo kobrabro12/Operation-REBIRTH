@@ -82,8 +82,9 @@ export class Fighter {
 
   // ------------------------------------------------------------------ helpers
   get body() { return this.bodyOverride || this.def.body; }   // (WHAT ONCE WAS is only a small TV for a while)
+  /** Follow a drawn costume's body bounds, excluding its cape and weapon. */
   hurtbox() {
-    const hf = this.def.hurtFrames;                   // a fighter whose hurtbox follows its drawing, frame by frame (Lacy)
+    const hf = this.def.costumeHurtFrames?.[this.sheets.idle]||this.def.hurtFrames;                   // a fighter whose hurtbox follows its drawing, frame by frame (Lacy)
     if (hf && this.curSheet) {
       const name = this.sheetName(this.curSheet), box = name && hf[name] && hf[name][this.curFrame];
       if (box) {
