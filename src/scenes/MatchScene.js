@@ -1,3 +1,4 @@
+import {installMobileTextures} from '../mobileTextures.js';
 import {soulEncounter} from '../souls/encounters.js';
 import {soulPower,addSoulXP,applySoulAid} from '../souls/progression.js';
 import {awardSoul} from '../souls/collection.js';
@@ -73,6 +74,7 @@ export class MatchScene extends Phaser.Scene {
    * no other random numbers: a RANDOM pick loads every fighter it could become.
    */
   preload() {
+    installMobileTextures(this);
     const data = this.sys.settings.data || {};
     const soul = data.soulBattle && soulEncounter(data.soulBattle.soulId);
     const demo = !data.shopPreview && !soul && demoRequest.next;

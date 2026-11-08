@@ -60,7 +60,8 @@ export function showFighter(sprite, def, frame = 0, skin = 0) {
   if(premium?.idleKey){key=premium.idleKey;frame=Math.floor(sprite.scene.time.now/(1000/60*premium.idle[2]))%premium.idle[1];}
   else frame %= (def.frameCounts && def.frameCounts.idle) || 32;     // idle strips differ in length
   if (sprite.texture.key !== key) sprite.setTexture(key, frame); else sprite.setFrame(frame);
-  sprite.setOrigin(def.originX ?? 0.5, def.originY).setFlipX(!!def.facesLeft);
+  const origin=premium?.idleOrigin||[def.originX??.5,def.originY];
+  sprite.setOrigin(def.facesLeft?1-origin[0]:origin[0],origin[1]).setFlipX(!!def.facesLeft);
   return sprite;
 }
 

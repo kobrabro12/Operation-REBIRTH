@@ -29,7 +29,7 @@ export const LAST_SEEN = {
   name: 'ROSEMARY',                 // (was LAST SEEN; her id and files keep the old name)
   sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves' },
   // RED ARMY (skins.js sheetSet 'soviet', from the shop's code PAPERSPLEASE): her calm form redrawn as a Soviet soldier
-  costumeSheets: { bunny: Object.fromEntries(['idle','run','jump','fall','moves'].map(k=>[k,'ls_bunny_'+k])), soviet: { idle: 'ls_soviet_idle', run: 'ls_soviet_run', jump: 'ls_soviet_jump', fall: 'ls_soviet_fall', moves: 'ls_soviet_moves' } },
+  costumeSheets: { afton:Object.fromEntries(['idle','run','jump','fall','moves'].map(k=>[k,'ls_afton_'+k])), bunny: Object.fromEntries(['idle','run','jump','fall','moves'].map(k=>[k,'ls_bunny_'+k])), soviet: { idle: 'ls_soviet_idle', run: 'ls_soviet_run', jump: 'ls_soviet_jump', fall: 'ls_soviet_fall', moves: 'ls_soviet_moves' } },
   moveAnims: LS_MOVES,
   fxColor: 0xe8c86a,
   pal: PAL_RAIN,
@@ -111,7 +111,7 @@ export const SEEN = {
   swingSfx: 'whoosh',                // the axe
   sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves', axe: 'ls_wrong_axe' },
   // costumes that redraw the animatronic (skins.js sheetSet) - her first form just gets recoloured
-  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned', 'angler', 'bunny'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves', 'axe'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned', 'angler', 'bunny', 'afton'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves', 'axe'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
   moveAnims: LS_WRONG_MOVES,
   fxColor: 0xd8c070,
   pal: PAL_WRONG,

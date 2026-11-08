@@ -1,3 +1,4 @@
+import {SMOOTH_RUN_FRAMES} from './smoothRunHeads.js';
 // COSTUME SHEETS ON DEMAND. A costume with its own drawing (skins.js `sheetSet`) has a full set of strips -
 // run, jump, fall, moves... - and together they were over half of the game's texture memory (~550 MB).
 // Menus only ever show a costume's idle strip, so BootScene loads just that; the rest of a costume's strips
@@ -84,7 +85,7 @@ export function queueSheets(scene, picks, opts = {}) {
   const atlases = useAtlases(), queued = [];
   for (const k of want) {
     if (scene.textures.exists(k)) continue;
-    const spec = atlases && MOBILE_ATLASES[k], d = deferred.get(k);
+    const spec = atlases && !SMOOTH_RUN_FRAMES[k] && MOBILE_ATLASES[k], d = deferred.get(k);
     if (spec) scene.load.atlas(k, spec.image, spec.json); else scene.load.spritesheet(k, d.url, d.config);
     queued.push(k);
   }
@@ -93,7 +94,7 @@ export function queueSheets(scene, picks, opts = {}) {
     Math.random = NATIVE_RANDOM;
     scene.load.once('complete', () => {
       Math.random = seeded;
-      for (const k of queued) if (MOBILE_ATLASES[k] && scene.textures.exists(k)) scene.textures.get(k).customData.mobileAtlas = MOBILE_ATLASES[k].original;
+      for (const k of queued) if (!SMOOTH_RUN_FRAMES[k] && MOBILE_ATLASES[k] && scene.textures.exists(k)) scene.textures.get(k).customData.mobileAtlas = MOBILE_ATLASES[k].original;
     });
   }
   return queued.length;

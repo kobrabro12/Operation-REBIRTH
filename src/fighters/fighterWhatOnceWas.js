@@ -1,3 +1,4 @@
+import {RUN_HEAD_TRACKS} from './smoothRunHeads.js';
 // Fighter methods: WHAT ONCE WAS (test fighter) - its SIGNAL meter and CHANNEL menu, CHANNEL SURF, MISSING
 // posters, the WRONG DOOR, OUT OF BODY (its TV head and the bodies it grows), its screen beams, and its Limit, LEVEL 0 (the Backrooms
 // chase). Mixed into the Fighter class (Fighter.js) - `this` is the fighter. A few methods (markMissing,
@@ -65,7 +66,8 @@ export class FighterWhatOnceWas {
   headXform(spr) {
     const S = this.sheets, key = spr.texture.key;
     const kind = key === S.moves ? 'moves' : key === S.idle ? 'idle' : key === S.run ? 'run' : key === S.jump ? 'jump' : key === S.fall ? 'fall' : null;
-    const tr = (kind && WOW_SCREENS[kind][+spr.frame.name]) || WOW_SCREENS.idle[0];
+    const runTrack=kind==='run'&&RUN_HEAD_TRACKS[key.split('@')[0]];
+    const tr = (runTrack?.[+spr.frame.name]) || (kind && WOW_SCREENS[kind][+spr.frame.name]) || WOW_SCREENS.idle[0];
     const big = kind === 'moves', ox = big ? 56 : 32, oy = big ? 95 : 59, flip = spr.flipX ? -1 : 1;
     const dx = (tr[0] / 10 - ox) * flip * spr.scaleX, dy = (tr[1] / 10 - oy) * spr.scaleY, r = spr.rotation, c = Math.cos(r), sn = Math.sin(r);
     return { x: spr.x + dx * c - dy * sn, y: spr.y + dx * sn + dy * c, rot: r + flip * tr[2] * Math.PI / 180, flip, sx: tr[3] / 100 * spr.scaleX, sy: tr[4] / 100 * spr.scaleY, scr: tr[5] || 0 };

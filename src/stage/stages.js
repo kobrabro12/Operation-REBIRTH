@@ -1,3 +1,4 @@
+import {DreamlandStage,drawDreamlandPreview} from './dreamlandStage.js';
 import {LiminalCastleStage,drawLiminalCastlePreview} from './liminalCastleStage.js';
 // Every stage shown on the stage select screen, in grid order.
 // Locked entries are placeholders for stages still being made.
@@ -115,6 +116,7 @@ export const STAGES = [
     hazard: 'MOVING LEDGES AND ARENA REWRITES.\nMARKED LANES WARN BEFORE SCAN BEAMS FIRE.',
     preview: drawMatrixPreview,
   },
+  {id:'dreamland',name:'DREAMLAND',available:true,music:'bgm_dreamland',make:scene=>new DreamlandStage(scene),blurb:['A pastel floating garden beneath a friendly tree.','Three raised platforms, soft clouds and starlight.'],hazard:'NO STAGE HAZARDS.\nTHREE JUMP-THROUGH PLATFORMS.',preview:drawDreamlandPreview},
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
@@ -133,8 +135,7 @@ export function trackList(owned = []) {
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-// tiles on the select grid (2 across; the last one is Random): 16 (8 rows), more rows when there are more stages
-export const STAGE_SLOTS = Math.max(16, Math.ceil((STAGES.length + 1) / 2) * 2);
+export const STAGE_SLOTS = Math.max(16, Math.ceil((STAGES.length + 1) / 2) * 2);  // two columns, including a final RANDOM tile
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

@@ -86,10 +86,10 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('ls_soviet_' + k, 'assets/fighters/last-seen/soviet/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('ls_soviet_moves', 'assets/fighters/last-seen/soviet/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'jump', 'fall', 'moves']) this.load.spritesheet('ls_tank_' + k, 'assets/fighters/last-seen/tank/' + k + '_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    for (const [pre, dir] of [['ls_', ''], ['ls_bunny_', 'bunny/'], ['ls_wrong_bunny_', 'bunny/wrong/'], ['ls_wrong_', 'wrong/'], ...['rave', 'showtime', 'drowned', 'angler'].map((c) => ['ls_wrong_' + c + '_', 'wrong/' + c + '/'])]) {
+    for (const [pre, dir] of [['ls_', ''], ['ls_afton_', 'afton/'], ['ls_wrong_afton_', 'afton/wrong/'], ['ls_bunny_', 'bunny/'], ['ls_wrong_bunny_', 'bunny/wrong/'], ['ls_wrong_', 'wrong/'], ...['rave', 'showtime', 'drowned', 'angler'].map((c) => ['ls_wrong_' + c + '_', 'wrong/' + c + '/'])]) {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/last-seen/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/last-seen/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-      if (pre !== 'ls_' && pre !== 'ls_bunny_') this.load.spritesheet(pre + 'axe', 'assets/fighters/last-seen/' + dir + 'axe.png', { frameWidth: 32, frameHeight: 40 });   // SEEN's axe, stuck in the floor (SCREAM)
+      if (pre !== 'ls_' && pre !== 'ls_bunny_' && pre !== 'ls_afton_') this.load.spritesheet(pre + 'axe', 'assets/fighters/last-seen/' + dir + 'axe.png', { frameWidth: 32, frameHeight: 40 });   // SEEN's axe, stuck in the floor (SCREAM)
     }
     for (const c of ['inferno', 'street', 'bones', 'school']) {   // NU's costumes with their own drawing (tools/sprites/nu_costume_moves.py)
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + c + '_' + k, 'assets/fighters/nu/' + c + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
@@ -117,6 +117,7 @@ export class BootScene extends Phaser.Scene {
         frameWidth:k==='moves'?(hk?180:wake?176:112):hk?150:64,frameHeight:k==='moves'?(hk?140:wake?120:104):hk?90:64});
     }
     for(const k of ['idle','run','jump','fall','moves'])this.load.spritesheet('aero_subzero_king_'+k,'assets/fighters/aero/subzero/king/'+k+'_sheet.png',{frameWidth:k==='moves'?112:64,frameHeight:k==='moves'?104:64});
+    for(const set of ['eclipse','aurora','celestial','olive','tricolore','orrery','judgment','ermac'])this.load.spritesheet('ss_'+set+'_taunt','assets/fighters/soul-summoner/'+set+'/taunt_sheet.png',{frameWidth:112,frameHeight:104});
     // shop costumes with their own drawing (tools/sprites/shop_costumes.py): sheets in <fighter>/<costume>/
     for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
       ['wake_choir_', 'mr-wake/choir/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
@@ -136,9 +137,9 @@ export class BootScene extends Phaser.Scene {
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
       this.load.spritesheet('hk_aka_' + k, 'assets/fighters/hero-knight/akatsuki/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Akatsuki costume
       this.load.spritesheet('hk_sam_' + k, 'assets/fighters/hero-knight/samurai/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Samurai costume
-      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
+      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/'], ['hk_meta_', 'metaknight/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
     }
-    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/']]) {
+    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/'], ['hk_meta_moves', 'metaknight/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons

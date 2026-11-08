@@ -52,6 +52,7 @@ export class Fighter {
     this.invincible = 0; this.hitstop = 0; this.hitstun = 0; this.shieldHp = 60; this.shieldStun = 0;
     this.charge = 0; this.chargeSound = null; this.summonCooldown = 0; this.souls = [];
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
+    this.skinClock={frame:match.frame||0,delta:0,gait:0};
     this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0, taunt: 0 };
     this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
     this.ledge = null; this.ledgeCooldown = 0; this.ledgeGrabs = 0;

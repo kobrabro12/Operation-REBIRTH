@@ -10,7 +10,7 @@ export function premiumPose(f){
  else if(f.state==='idle'&&f.grounded){
   const phase=f.t>=120?(f.t-120)%360:-1;
   if(phase>=0&&phase<spec.flourish[1]*spec.flourish[2]){kind='flourish';local=phase;}
-  else {const n=spec.idle[1],step=spec.idle[2],frame=Math.floor(f.anim/step)%n;return {sheet:spec.idleKey,frame,origin:spec.idleOrigin,kind:'idle',progress:frame/n};}
+  else {const n=spec.idle[1],step=spec.idle[2],idleTime=phase<0?f.t:phase-spec.flourish[1]*spec.flourish[2],frame=Math.floor(Math.max(0,idleTime)/step)%n;return {sheet:spec.idleKey,frame,origin:spec.idleOrigin,kind:'idle',progress:frame/n};}
  }
  else return null;
  const [from,n,step]=spec[kind];if(kind==='flourish'&&local>=n*step)return null;

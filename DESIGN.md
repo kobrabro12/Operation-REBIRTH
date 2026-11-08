@@ -81,6 +81,8 @@ Walk over one to use it.
 
 ## 8. Stages
 
+DREAMLAND is a free, hazard-free floating garden: a 560 px island, two 122 px side shelves at −90, and a 124 px center shelf at −160. Its background tree, apples and stars are decorative. Music is an original 53-second pulse/triangle loop (`bgm_dreamland`). Lacy’s Legendary META KNIGHT costume costs 1,500 coins; her scale and combat values stay the same. Springtrap’s head and articulated face use an 80% scale around the neck in every form and move.
+
 Each stage has solid ground, pass-through platforms, spawn points, music, an announcer line, and **hazards**.
 Most stages run their hazards through one shared rhythm (`HazardCycle`): one at a time, 10–14 s after the previous one ends
 (the first comes 7–11 s in), each announced by a flashing CAUTION banner for 1.5 s. Sky Sanctum's lightning and Neon

@@ -58,3 +58,7 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   QUIPS 'last-seen:soviet'.
 
 - Mortal Kombat shop homages: Soul Summoner / ERMAC, Mr Wake / RAIDEN, Lacy / KITANA, NU / SCORPION, AERO / SUB-ZERO. Definitions in `src/data/kombatCostumes.js` append saved skin indexes; `kombatFx.js` draws bounded cosmetic effects without changing combat values. SUB-ZERO keeps an ice-winged FULL AERO costume via `limitAero.js`.
+
+- `skinAnimation.js` advances the shared visual clock from simulation frames, retains gait phase, samples monotonic air poses, completes shortened recovery clips after contact, and caches identical redraws. Constructor initialization uses match.frame. `smoothRunHeads.js` declares fresh 24-cel runs and exact WOW head tracks; these small strips bypass stale atlas substitutions. Drawn SS costumes have dedicated 40-cel taunts with the same foot edge as their move sheets. Rosemary costume MICHAEL AFTON uses `afton/`, becomes `afton/wrong/` Springtrap, and uses `afton/wrong/noaxe/` when disarmed.
+
+- Lacy costume META KNIGHT (`metaknight`, prefix `hk_meta_`) uses her original strip sizes, moves and origins, with a silver mask, golden eyes/sword and purple cape/wings. The moves atlas is losslessly packed. Springtrap’s head/ears/jaw rig is reduced to 80% around the neck in armed and disarmed poses.

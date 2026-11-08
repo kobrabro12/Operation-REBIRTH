@@ -721,3 +721,15 @@ for(const c of KOMBAT_COSTUMES)SKINS[c.fighter].push({name:c.name,shop:'cos-mk-'
   groups:({'soul-summoner':SS,'mr-wake':MW,'hero-knight':HK,nu:NUG,aero:AEG})[c.fighter],
   rules:c.set==='subzero'?{aqua:{to:213,sat:1.2,val:.8},lime:{to:205,sat:.4,val:1.2},fish:{to:195,sat:.5,val:1.2}}:{},
   lore:c.info,vfx:{hit:{shape:c.set==='ermac'?'bubble':c.set==='subzero'?'star':'spark',colors:[c.color,0xffffff],n:7,glint:true},aura:{kombat:c.set},...(c.set==='ermac'?{minion:{flame:{to:112,sat:1.2,val:1.25},eyes:{to:110,val:1.3},cape:{to:354}}}:{})}});
+
+// A permanent shopkeeper-code reward; append so existing saved skin indexes stay valid.
+SKINS['last-seen'].push({name:'MICHAEL AFTON',sheetSet:'afton',shop:'cos-afton',swatch:0x9868bb,fx:0xadbc72,
+ lore:'A purple-shirted security guard who refuses to stay gone. SIGHTINGS transforms him into the decaying Springtrap suit.',
+ vfx:{hit:{shape:'scrap',colors:[0xb6c17c,0xe0d8af,0x9274b8],n:6},aura:{afton:true},
+ seen:{drips:[0x596336,0x737b42,0x391f25],sparks:[0xffdda0,0xb3cc88],tuft:0x778146,smoke:0x242c22}}});
+
+// Append new shop costumes so saved palette selections keep their indexes.
+SKINS['hero-knight'].push({name:'META KNIGHT',sheetSet:'metaknight',shop:'cos-metaknight',swatch:0x7779b7,fx:0xffdf83,
+ lore:'A silver mask with watchful golden eyes. Purple wings unfurl behind a starlit golden sword.',
+ pal:{outline:0x16182e,deep:0x333657,mid:0x7779b7,light:0xc8d2e7,core:0xffedaa,shade:0x27273e,void:0x0e1020},
+ vfx:{hit:{shape:'star',colors:[0xffdf83,0xd4dcef,0xb3a0ef],n:7,glint:true},trail:0xa790d1}});

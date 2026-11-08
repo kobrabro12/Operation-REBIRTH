@@ -1,3 +1,4 @@
+import {SMOOTH_RUN_FRAMES} from './fighters/smoothRunHeads.js';
 import {PHONE_DEVICE} from './performance.js';
 import {MOBILE_ATLASES} from './mobileAtlasManifest.js';
 /**
@@ -11,11 +12,17 @@ export function useAtlases(env=globalThis){
 }
 /** Makes BootScene load the packed atlas (assets/mobile/) for every sheet that has one, instead of its full grid. */
 export function installMobileTextures(scene){
- if(!useAtlases())return;
+ if(!useAtlases()||scene.load.mobileTexturesInstalled)return;
+ scene.load.mobileTexturesInstalled=true;
  const original=scene.load.spritesheet.bind(scene.load);
- scene.load.spritesheet=(key,url,config,...rest)=>{const spec=MOBILE_ATLASES[key];return spec?scene.load.atlas(key,spec.image,spec.json):original(key,url,config,...rest);};
+ scene.load.spritesheet=(key,url,config,...rest)=>{
+  const spec=SMOOTH_RUN_FRAMES[key]?null:MOBILE_ATLASES[key];
+  if(!spec)return original(key,url,config,...rest);
+  scene.load.once('complete',()=>{if(scene.textures.exists(key))scene.textures.get(key).customData.mobileAtlas=spec.original;});
+  return scene.load.atlas(key,spec.image,spec.json);
+ };
  if(PHONE_DEVICE)scene.load.maxParallelDownloads=4;   // phones: fewer downloads at once
- scene.load.on('complete',()=>{for(const [key,spec]of Object.entries(MOBILE_ATLASES))if(scene.textures.exists(key))scene.textures.get(key).customData.mobileAtlas=spec.original;});
+ scene.load.on('complete',()=>{for(const [key,spec]of Object.entries(MOBILE_ATLASES))if(!SMOOTH_RUN_FRAMES[key]&&scene.textures.exists(key))scene.textures.get(key).customData.mobileAtlas=spec.original;});
 }
 export function copyPackedFrames(manager,key,canvas,source){
  const frames={};

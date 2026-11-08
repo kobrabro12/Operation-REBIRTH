@@ -60,6 +60,7 @@ const KEY_ROWS = Math.ceil(KEYPAD.keys.length / KEYPAD.cols);   // (5 rows: the 
 //   anim   a spritesheet looped on his screen (`fps`), with `audio` looping under it
 //   look   'backrooms' (sepia, wallpaper, buzzing lights, the 90s TV) or 'vhs' (washed-out tape, tracking, OSD)
 const SECRETS = {
+  IALWAYSCOMEBACK:{gift:'cos-afton'},
   STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife', look: 'backrooms', tv: '90s' },
   RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
   // forever (saved: the code is in the player's found secrets): nothing plays on his screen - he IS it now. `clip` plays once.
@@ -273,7 +274,8 @@ export class ShopScene extends Phaser.Scene {
     const cosmetic=premiumAnimationFor(def.id,it.skin);
     if(cosmetic){seq[0]={label:'CUSTOM IDLE',key:cosmetic.idleKey,from:0,n:cosmetic.idle[1],step:cosmetic.idle[2],o:cosmetic.idleOrigin,loops:2};}
     if(cosmetic)for(const [j,kind]of ['flourish','taunt'].entries()){const [from,count,step]=cosmetic[kind];seq.push({label:cosmetic.labels[j],key:cosmetic.key,from,n:count,step,o:cosmetic.origin,loops:1});}
-    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: (def.frameCounts && def.frameCounts.run) || n(sh.run), step: 5, o, loops: 3 });
+    if(sh.taunt&&!cosmetic){const own=def.costumeTauntOrigin&&Object.values(def.costumeSheets||{}).some(s=>s.taunt===sh.taunt);seq.push({label:'TAUNT',key:sh.taunt,from:0,n:n(sh.taunt),step:(def.taunt?.frames||80)/n(sh.taunt),o:own?def.costumeTauntOrigin:o,loops:1});}
+    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: (def.frameCounts && def.frameCounts.run) || n(sh.run), step: Math.max(1,40/n(sh.run)), o, loops: 3 });
     for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: (def.frameCounts && def.frameCounts[k]) || n(sh[k]), step: 8, o, loops: 2 });
     if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: def.frameCounts[k] || n(sh[k]), step: 5, o, loops: 1 });
     if (def.moveAnims && sh.moves) for (const [k, l] of SHOW) { if(cosmetic&&k==='taunt')continue;const A = def.moveAnims[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
@@ -458,6 +460,7 @@ export class ShopScene extends Phaser.Scene {
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
+    if(S.gift){const already=owns(S.gift);grantItem(S.gift);this.react('smug','bought');this.say(already?'HE ALWAYS COMES BACK. MICHAEL AFTON IS ALREADY YOURS.':'MICHAEL AFTON UNLOCKED! PICK ROSEMARY AND THIS SKIN. SIGHTINGS TURNS HIM INTO SPRINGTRAP.','#bccb82');this.static=14;sfx('select',.65,.7);return;}
     if (TAKEOVERS[S.takeover]) return this.becomeTakeover(S);
     if (S.call) return this.takeCall(S);
     if (S.takeover) return this.becomeNoli(S);

@@ -120,6 +120,10 @@ export class FighterCostumeFx {
     if(a.kombat)drawKombatAura(this,g);
     const cx = this.x, top = this.y - (d.headTop || d.body.h + 4), mid = this.y - d.body.h * 0.55;
     const flourish=this.premiumAnimation,performance=flourish==='taunt'?Math.sin(this.premiumAnimProgress*Math.PI):flourish==='idle'?.12+.06*Math.sin(this.premiumAnimProgress*Math.PI*2):flourish?Math.sin(this.premiumAnimProgress*Math.PI)*.45:0;
+    if(a.afton){
+      const color=this.def.wrong?0xb3c67c:0xb49ad0;
+      for(let i=0;i<3;i++){const p=(t+i*23)%90/90;back.fillStyle(color,(1-p)*.32);back.fillRect(Math.round(this.sprite.x-12+i*12+Math.sin(p*5)*2),Math.round(this.sprite.y-8-p*38),1,2);}
+    }
     if(a.prism){
       const cols=[0xa2eee7,0xe4b5f5,0xd9e7ff];
       for(let i=0;i<6;i++){

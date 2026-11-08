@@ -53,7 +53,7 @@ export class FighterLastSeen {
       return;
     }
     sfx('ko', 0.7, 0.4); sfx('bighit', 0.9, 0.5); m.shake(14, 14);
-    m.popText(this, 'SEEN', '#ff3a2a'); sfx('buzz', 0.7, 0.6);
+    m.popText(this, skinInfo(this.def.id,this.skin).sheetSet==='afton'?'SPRINGTRAP':'SEEN', '#ff3a2a'); sfx('buzz', 0.7, 0.6);
     for (let i = 0; i < 24; i++) {                                    // posters torn off her and scattered
       const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
       m.particles.push({ shape: 'paper', x: this.x, y: this.y - 30, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 40 + Math.random() * 20, color: i % 3 ? 0xece6d4 : 0xc8281e, ang: Math.random() * 6, spin: 0.3, drag: 0.95, grav: 0.06 });
@@ -373,11 +373,11 @@ export class FighterLastSeen {
     if (this.screamSnd && !(this.state === 'attack' && this.move && this.move.scream)) this.stopScream();   // knocked out of the SCREAM: it stops
     const m = this.match, R = Math.random, S = (this.vfx && this.vfx.seen) || {};          // (a costume recolours all of it)
     const pick = (a, d) => (a ? a[Math.floor(R() * a.length)] : d);
-    if (this.anim % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: pick(S.drips, R() < 0.5 ? 0x141216 : 0x3a2a14), size: 2, grav: 0.12 });   // oil dripping out of it
-    if (S.confetti && this.anim % 9 === 0) m.particles.push({ shape: 'paper', x: this.x + (R() - 0.5) * 50, y: this.y - 70 - R() * 20, vx: (R() - 0.5) * 0.6, vy: 0.5, life: 60, color: pick(S.drips), ang: R() * 6, spin: 0.2, drag: 0.98, grav: 0.01, sway: R() * 6 });   // GRAND OPENING: confetti falling round it
-    if ((this.anim * 7) % 61 < 2) { for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2; m.particles.push({ shape: 'shard', x: this.x + (R() - 0.5) * 16, y: this.y - 20 - R() * 24, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 10, color: S.sparks ? S.sparks[i % 2] : (i % 2 ? 0xffd060 : 0xffffff), drag: 0.92, grav: 0.2, ang: a }); } if (this.anim % 3 === 0) sfx('buzz', 0.12, 2); }   // a short in its wiring
-    if (this.anim % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: S.tuft || 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
-    if (Math.abs(this.vx) > 2.5 && this.anim % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: S.smoke || 0x141216, grav: 0 });
+    if (this.age % 6 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - R() * 40, vx: 0, vy: 0.6, life: 20, color: pick(S.drips, R() < 0.5 ? 0x141216 : 0x3a2a14), size: 2, grav: 0.12 });   // oil dripping out of it
+    if (S.confetti && this.age % 9 === 0) m.particles.push({ shape: 'paper', x: this.x + (R() - 0.5) * 50, y: this.y - 70 - R() * 20, vx: (R() - 0.5) * 0.6, vy: 0.5, life: 60, color: pick(S.drips), ang: R() * 6, spin: 0.2, drag: 0.98, grav: 0.01, sway: R() * 6 });   // GRAND OPENING: confetti falling round it
+    if ((this.age * 7) % 61 < 2) { for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2; m.particles.push({ shape: 'shard', x: this.x + (R() - 0.5) * 16, y: this.y - 20 - R() * 24, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 10, color: S.sparks ? S.sparks[i % 2] : (i % 2 ? 0xffd060 : 0xffffff), drag: 0.92, grav: 0.2, ang: a }); } if (this.age % 3 === 0) sfx('buzz', 0.12, 2); }   // a short in its wiring
+    if (this.age % 47 === 0) m.particles.push({ shape: 'pixel2', x: this.x + (R() - 0.5) * 20, y: this.y - 30 - R() * 20, vx: (R() - 0.5), vy: 0.4, life: 40, color: S.tuft || 0xd8c070, grav: 0.03, drag: 0.98 });   // a tuft of fur falling off
+    if (Math.abs(this.vx) > 2.5 && this.age % 2 === 0) m.particles.push({ shape: 'smoke', x: this.x - Math.sign(this.vx) * 6, y: this.y - 14 - R() * 20, vx: 0, vy: 0, life: 16, maxLife: 16, r: 4, color: S.smoke || 0x141216, grav: 0 });
   }
   // ---- HEAVY SWING (SEEN's neutral special): charge the axe up behind its head - it can shuffle along, very slowly -
   // then let go for one huge chop; the longer the charge, the harder and further it hits (tuning: lastSeen.js)
@@ -477,7 +477,7 @@ export class FighterLastSeen {
   // ---- no axe (SCREAM used in the air): its art without the axe, loaded the first time it's needed, for 'frames'
   unarmedKeys() {
     const set = skinInfo(this.def.id, this.skin).sheetSet, sets = this.def.costumeSheets || {};
-    const pre = set && sets[set] ? 'ls_wrong_' + set + '_noaxe_' : 'ls_wrong_noaxe_', dir = set==='bunny' ? 'bunny/wrong/noaxe/' : set && sets[set] ? 'wrong/' + set + '/noaxe/' : 'wrong/noaxe/';
+    const pre = set && sets[set] ? 'ls_wrong_' + set + '_noaxe_' : 'ls_wrong_noaxe_', dir = set==='afton' ? 'afton/wrong/noaxe/' : set==='bunny' ? 'bunny/wrong/noaxe/' : set && sets[set] ? 'wrong/' + set + '/noaxe/' : 'wrong/noaxe/';
     return { pre, dir, own: !!(set && sets[set]) };
   }
   loseAxe(frames) {

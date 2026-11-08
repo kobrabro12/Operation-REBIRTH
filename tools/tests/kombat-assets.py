@@ -14,11 +14,13 @@ for fighter, look, marker in looks:
         assert max(im.size) <= 4096, (path, im.size)
         assert path.stat().st_size < 2*1024*1024, path
         move = path.name == 'moves_sheet.png'
-        width, height = ((180,140) if fighter=='hero-knight' else (176,120) if fighter=='mr-wake' else (112,104)) if move else ((150,90) if fighter=='hero-knight' else (64,64))
+        big_taunt = fighter=='soul-summoner' and path.name=='taunt_sheet.png'
+        width, height = ((180,140) if fighter=='hero-knight' else (176,120) if fighter=='mr-wake' else (112,104)) if move or big_taunt else ((150,90) if fighter=='hero-knight' else (64,64))
         assert im.width%width == 0 and im.height%height == 0, path
         # Repacking may add empty padding frames, but must preserve all original frame indexes.
         base = Image.open(root / fighter / ('king' if 'king' in path.parts else '') / path.name)
-        assert (im.width//width)*(im.height//height) >= (base.width//width)*(base.height//height), path
+        bw,bh=(64,64) if big_taunt else (width,height)
+        assert (im.width//width)*(im.height//height) >= (base.width//bw)*(base.height//bh), path
         if path.stem in ['idle_sheet','run_sheet','jump_sheet','fall_sheet','moves_sheet']:
             a = np.array(im); solid=marked=0
             for y in range(0,im.height,height):

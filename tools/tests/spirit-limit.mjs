@@ -87,7 +87,7 @@ try {
   const next=window.game.scene.getScene('Match');next.countdown=0;next.intros=null;next.bigText.setText('');
   for(let i=0;i<20;i++)next.tick();next.draw();
   const lacy=next.fighters[0],beforeFairy=lacy.fairyPosition?.x;
-  lacy.x+=50;for(let i=0;i<25;i++)next.draw();
+  lacy.x+=50;for(let i=0;i<25;i++){next.frame++;next.draw();}
   facts.fairyFollows=Number.isFinite(beforeFairy)&&lacy.fairyPosition.x>beforeFairy+25;
   facts.fairySkinOnly=!next.fighters[1].fairyPosition;
   const base=next.textures.get('hk_idle').getSourceImage(),colored=next.textures.get(lacy.sheets.idle).getSourceImage();
