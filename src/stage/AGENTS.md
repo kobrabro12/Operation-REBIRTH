@@ -18,5 +18,6 @@ Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `st
 
 - `dreamlandStage.js` adds the free DREAMLAND floating garden: a solid 560 px island and three fixed jump-through shelves, four ground spawns, native pixel scenery and no hazards. Its clouds and tree blink on simulation ticks; music is `bgm_dreamland`. The stage-select grid computes tile height to keep all entries and RANDOM above its footer.
 
-### Castle Courtyard64 (`castle-64`)
-Original N64-style castle and courtyard modeled in `castle64Stage.js`: true3D vertices, fixed perspective camera, flat shading, coarse stone texels and fog. Static mesh projection/triangle commands are cached once. Solid courtyard[-300,300]y0/bottom68; fixed jump-through balconies[-228,-102]y-102 and[94,220]y-136. Collider lips match projected geometry. Four grounded spawns; `step` returns no hazards. Free stage; existing `bgm_dreamland` track. Exports its preview and pure mesh/projection helpers. Tests:`castle64-geometry.mjs` and phone gameplay in `recovery-and-castle.mjs`.
+### Castle Courtyard 64 (`castle-64`)
+
+`castle64Stage.js` models an original N64-style castle with 3D vertices, a fixed perspective camera, flat shading, coarse stone texels and fog. Projection and triangle commands are cached once. The solid courtyard spans [-300,300] at y=0, bottom=68; fixed jump-through balconies span [-228,-102] at y=-102 and [94,220] at y=-136. Their front lips match collision exactly. Four grounded spawns; no hazards even when enabled in settings. This free stage uses `bgm_dreamland`. Exports its preview and pure geometry helpers. Tests: `castle64-geometry.mjs` and phone gameplay in `recovery-and-castle.mjs`.
