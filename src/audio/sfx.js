@@ -125,6 +125,11 @@ export function initSfx(scene) {
   ph = 0;
   build('mail', 0.6, (t) => { ph += (t < 0.14 ? 1568 : t < 0.28 ? 1175 : 1760) / SR; return sq(ph, 0.25) * 0.4 * Math.exp(-((t % 0.14) * 9)) * (t < 0.42 ? 1 : 0); });
   // WHAT ONCE WAS in DIAL-UP: a modem dialling in - touch tones, the answer whistle, then the screech
+  // Original synthesized saber/Force/respirator effects; no voice or film recordings.
+  { let phase=0,filter=0;const r=rand(901);build('vaderIgnite',.8,t=>{phase+=(75+150*Math.exp(-t*8))/SR;filter+=(r()-filter)*.16;return (Math.sin(phase*6.283)*.3+filter*.6)*Math.min(1,t*30)*Math.max(0,1-t/.8);}); }
+  { let phase=0;const r=rand(902);build('vaderSaber',.28,t=>{phase+=(130+210*Math.sin(t*9))/SR;return (Math.sin(phase*6.283)*.4+r()*.25)*Math.sin(Math.PI*t/.28);}); }
+  { let phase=0,filter=0;const r=rand(903);build('vaderForce',.7,t=>{phase+=(48+12*Math.sin(t*10))/SR;filter+=(r()-filter)*.045;return (Math.sin(phase*6.283)*.4+filter*.55)*Math.sin(Math.PI*t/.7);}); }
+  { let filter=0;const r=rand(904);build('vaderBreath',1.3,t=>{filter+=(r()-filter)*.07;const inhale=t<.64,at=inhale?t:t-.66,envelope=Math.max(0,Math.sin(Math.PI*at/(inhale?.64:.62)));return (filter*1.4+Math.sin(t*6.283*(inhale?82:63))*.08)*envelope*.65;}); }
   ph = 0; ph2 = 0; n1 = noiseStep(3);
   const DTMF = [[697, 1209], [770, 1336], [852, 1477], [941, 1336]];
   build('dialup', 1.6, (t) => {

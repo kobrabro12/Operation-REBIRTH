@@ -480,6 +480,7 @@ export class FighterLastSeen {
     const pre = set && sets[set] ? 'ls_wrong_' + set + '_noaxe_' : 'ls_wrong_noaxe_', dir = set==='afton' ? 'afton/wrong/noaxe/' : set==='bunny' ? 'bunny/wrong/noaxe/' : set && sets[set] ? 'wrong/' + set + '/noaxe/' : 'wrong/noaxe/';
     return { pre, dir, own: !!(set && sets[set]) };
   }
+  /** Load the matching weaponless body and recovery before swapping the disarmed sheets. */
   loseAxe(frames) {
     const m = this.match, K = this.unarmedKeys(), sc = this.scene, tm = sc.textures;
     this.axeLost = frames; this.armedSheets = this.armedSheets || this.sheets;
@@ -488,11 +489,14 @@ export class FighterLastSeen {
       if (!(this.axeLost > 0) || !this.def.wrong) return;
       const out = {};
       for (const k of ['idle', 'run', 'jump', 'fall', 'moves']) out[k] = K.own ? K.pre + k : skinTexture(sc, K.pre + k, this.def.id, this.skin);
+      out.recovery=K.own?K.pre+'recovery':skinTexture(sc,K.pre+'recovery',this.def.id,this.skin);
       this.sheets = { ...this.armedSheets, ...out };
     };
-    if (tm.exists(K.pre + 'moves')) return apply();
-    for (const k of ['idle', 'run', 'jump', 'fall']) sc.load.spritesheet(K.pre + k, 'assets/fighters/last-seen/' + K.dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    sc.load.spritesheet(K.pre + 'moves', 'assets/fighters/last-seen/' + K.dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    if (tm.exists(K.pre + 'moves')&&tm.exists(K.pre+'recovery')) return apply();
+    const recoveryFile=K.own?'seen_'+skinInfo(this.def.id,this.skin).sheetSet+'_noaxe':'seen_noaxe';
+    if(!tm.exists(K.pre+'recovery'))sc.load.spritesheet(K.pre+'recovery','assets/fighters/last-seen/recovery/'+recoveryFile+'.png',{frameWidth:112,frameHeight:104});
+    for (const k of ['idle', 'run', 'jump', 'fall']) if(!tm.exists(K.pre+k))sc.load.spritesheet(K.pre + k, 'assets/fighters/last-seen/' + K.dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    if(!tm.exists(K.pre+'moves'))sc.load.spritesheet(K.pre + 'moves', 'assets/fighters/last-seen/' + K.dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     sc.load.once('complete', apply); sc.load.start();                       // (until it's in, it still looks armed)
   }
   axeLostTick() {

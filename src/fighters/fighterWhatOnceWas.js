@@ -1,3 +1,4 @@
+import {StaticRupture} from './staticRupture.js';
 import {RUN_HEAD_TRACKS} from './smoothRunHeads.js';
 // Fighter methods: WHAT ONCE WAS (test fighter) - its SIGNAL meter and CHANNEL menu, CHANNEL SURF, MISSING
 // posters, the WRONG DOOR, OUT OF BODY (its TV head and the bodies it grows), its screen beams, and its Limit, LEVEL 0 (the Backrooms
@@ -34,6 +35,7 @@ const FXS = {
 export class FighterWhatOnceWas {
 
   // ---- the parts of its attacks that need code (called from st_attack)
+  /** Advance authored broadcast/door attacks and spawn at most one Static Rupture. */
   wowAttackStep(m) {
     const M = this.match, R = Math.random;
     if (m.noclip) {                                                  // CHANNEL SURF: gone from reality, sliding straight ahead
@@ -46,6 +48,7 @@ export class FighterWhatOnceWas {
       }
       if (this.t === N.to + 1) { this.vx = this.facing * 1.5; sfx('glitch', 0.7, 1.3); M.shake(3, 4); this.glitchBurst(14); }
     }
+    if(m.rupture&&this.t===m.spawnAt&&!this.signalOrb?.alive){this.signalOrb=new StaticRupture(M,this,m.rupture);M.projectiles.push(this.signalOrb);}
     if (m.poster && this.t === m.spawnAt && !(this.posterOut && this.posterOut.alive)) this.posterOut = M.spawnPoster(this, m.poster);
     if (m.door && this.t === m.spawnAt) { this.doorOut = M.spawnDoor(this, m.door); if (!this.doorOut) { sfx('curse', 0.3, 1.5); M.puff(this.x - this.facing * 16, this.y - 10, 0xcbb662, 5); } }
     if (m.static && this.t === m.static) {                           // a burst of TV static

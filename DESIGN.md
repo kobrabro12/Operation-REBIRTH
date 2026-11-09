@@ -81,7 +81,7 @@ Walk over one to use it.
 
 ## 8. Stages
 
-DREAMLAND is a free, hazard-free floating garden: a 560 px island, two 122 px side shelves at −90, and a 124 px center shelf at −160. Its background tree, apples and stars are decorative. Music is an original 53-second pulse/triangle loop (`bgm_dreamland`). Lacy’s Legendary META KNIGHT costume costs 1,500 coins; her scale and combat values stay the same. Springtrap’s head and articulated face use an 80% scale around the neck in every form and move.
+DREAMLAND is a free, hazard-free floating garden: a 560 px island, two 122 px side shelves at −90, and a 124 px center shelf at −160. Its background tree, apples and stars are decorative. Music is an original 53-second pulse/triangle loop (`bgm_dreamland`). Lacy’s Legendary DARTH VADER costume costs 1,500 coins; her scale and combat values stay the same. Springtrap’s head and articulated face use an 80% scale around the neck in every form and move.
 
 Each stage has solid ground, pass-through platforms, spawn points, music, an announcer line, and **hazards**.
 Most stages run their hazards through one shared rhythm (`HazardCycle`): one at a time, 10–14 s after the previous one ends
@@ -185,6 +185,12 @@ an announcer voice for each fighter and stage, and a title screen with a live al
 - Lacy's tilt and aerial numbers (currently placeholders).
 - Fighters 4+ and stages 6–7: planned names and concepts.
 
-Meta Knight's costume has its own articulated animations for movement, normals, air attacks, grabs, counters, Blade Toss, Cyclone Slash and Limit. The 24-cel stride and tick-based clips retain combat timing. Costume details stay attached through each pose; no full-body trail copies are drawn.
+Darth Vader's costume has its own articulated animations for movement, normals, air attacks, grabs, counters, Blade Toss, Cyclone Slash and Limit. The 24-cel stride and tick-based clips retain combat timing. Costume details stay attached through each pose; no full-body trail copies are drawn.
 
-While Meta Knight's Blade Toss is airborne, swordless variants cover shielding, dodging, landing, climbing, taunting and defeat, so only the projectile carries the sword.
+While Darth Vader's Blade Toss is airborne, swordless variants cover shielding, dodging, landing, climbing, taunting and defeat, so only the projectile carries the sword.
+
+DARTH VADER replaces the retired shop costume in place; earlier ownership migrates without a coin charge. POWER OF THE DARK SIDE has a 52-tick startup, one-target Force catch, lift/pull, three red saber hits and a finishing Force slam (60% base damage); shield, invulnerability, team and range checks apply. It never changes stage geometry. Springtrap stands with a straight hip/neck column in idle, run and attack recovery.
+
+## Static Rupture, Last Ascent, and Castle Courtyard64
+WHAT ONCE WAS neutral special is STATIC RUPTURE:34ticks, hand release14, one slow3.6px/tick orb, maximum42flight ticks. It telegraphs a proximity/wall/range burst for2ticks before a32px radius hit(8%psychic,90ticks MISSING). Shields/counters remove it; marks apply only to unblocked damage. ROSEMARY side special keeps15%damage but cling bonus is2SIGHTINGS per squeeze, about32total instead of56. ROSEMARY and SEEN up special is LAST ASCENT: axe toss10, leap18, catch38, plunge46, end112 if no landing. Ground contact converts the plunge to24ticks of landing recovery with one shieldable shockwave(6%,SEEN9%). She cannot attack out of an offstage recovery. TANK retains its rockets. All existing human/transformed/disarmed costumes have authored recovery cels.
+CASTLE COURTYARD64 is an original N64-style fixed-camera3D castle courtyard. Combat remains on2D collision lips: solid[-300,300]y0/bottom68, balcony[-228,-102]y-102, balcony[94,220]y-136. Four spawns, no hazards; music uses Dreamland. Scenery vertices use perspective projection and distance fog;2618static triangles are built once and never rebuilt per tick.

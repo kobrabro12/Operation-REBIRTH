@@ -27,7 +27,7 @@ export const CURRENCY = { name: 'COINS', color: 0xf3c358 };
 // whole shop takes a few hundred.
 export const SHOP = [
   { name: 'COSTUMES', items: [
-    {id:'cos-metaknight',kind:'costume',rarity:'legendary',fighter:'hero-knight',skin:'META KNIGHT',name:'META KNIGHT',price:1500,info:'LACY. A SILVER MASK, GOLDEN EYES, NAVY ARMOUR, A PURPLE WINGED CAPE AND A GOLDEN SWORD. HITS SCATTER STARLIGHT.'},
+    {id:'cos-vader',kind:'costume',rarity:'legendary',fighter:'hero-knight',skin:'DARTH VADER',name:'DARTH VADER',price:1500,info:'LACY. BLACK ARMOUR, A FLOWING CAPE AND A RED LIGHTSABER. A BLAST-DOOR ENTRANCE AND FORCE-CHOKE / SABER / FORCE-SLAM SUPER.'},
     {id:'cos-afton',kind:'costume',rarity:'legendary',fighter:'last-seen',skin:'MICHAEL AFTON',name:'MICHAEL AFTON',price:0,hidden:'afton',info:'ROSEMARY. A PURPLE SECURITY UNIFORM AND A DECAYING SPRINGTRAP TRANSFORMATION. A PERMANENT SHOPKEEPER SECRET REWARD.'},
     ...KOMBAT_COSTUMES.map(c=>({id:'cos-mk-'+c.set,kind:'costume',rarity:'legendary',fighter:c.fighter,skin:c.name,name:c.name,price:1500,info:c.info})),
     {id:'cos-judgment',kind:'costume',rarity:'miracle',fighter:'soul-summoner',skin:'JUDGMENT',name:'JUDGMENT',price:2000,info:'SOUL SUMMONER. A SANS-INSPIRED COSTUME: CYAN EYE, PINK SLIPPERS, SKULL CANNONS, BONES AND A RED SOUL. INCLUDES ITS CUSTOM ENTRANCE AND VICTORY SCENE.'},

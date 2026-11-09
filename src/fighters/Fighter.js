@@ -1,3 +1,4 @@
+import {landRosemaryRecovery} from './rosemaryRecovery.js';
 import {YoungLinkBomb,youngLinkHook,YoungLinkActions} from './youngLinkSpecials.js';
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
@@ -343,6 +344,7 @@ export class Fighter {
     if (this.style === 'nuBones' && Math.random() < 0.3) sfx('glass', 0.12, 2.4);                       // NU's BONEZ: a dry rattle
     if (this.style === 'nuInferno' && Math.random() < 0.4) sfx('whoosh', 0.25, 0.7 + Math.random() * 0.2);   // NU's INFERNO: the swing roars
   }
+  /** Advance move timing, movement and the fighter-specific attack actions. */
   st_attack(c) {
     const m = this.move;
     if (m.hold && this.holdChord(c)) return;            // NU's Power Chord: holding special builds the chord
@@ -394,7 +396,7 @@ export class Fighter {
       if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
       this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
     }
-    if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
+    if (m.noclip || m.poster || m.rupture || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
@@ -535,7 +537,9 @@ export class Fighter {
     }
   }
 
+  /** Reset landing state, including Rosemary's committed axe plunge and shockwave. */
   onLand() {
+    if(landRosemaryRecovery(this))return;
     const s = this.state;
     if (s === 'attack' && this.move.landLag) { this.setState('land'); this.landLag = this.move.landLag; }
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { this.setState('land'); this.landLag = s === 'helpless' ? 14 : 3; sfx('land', 0.3); }

@@ -1,3 +1,4 @@
+import {drawVaderAura} from './limitVader.js';
 import {drawKombatAura} from './kombatFx.js';
 import {drawNavi} from './navi.js';
 // Fighter methods: Costume effects drawn around the fighter: Samurai spin dragon, milestone auras, afterimage trails.
@@ -113,6 +114,7 @@ export class FighterCostumeFx {
   // stack more of them: orbiting wisps, a crown of flames, a halo, wings, bubbles, glowing spots...
   drawSkinAura(g) {
     const a = this.vfx.aura;
+    if(a?.vader){drawVaderAura(this,this.fxBack);return;}
     if (!a || this.state === 'respawn' && this.anim % 4 < 2) return;
     const d = this.def, back = this.fxBack, t = this.anim, f = this.facing, R = Math.random, P = this.match.particles;
     if(a.fairy)this.drawCompanionFairy(g);

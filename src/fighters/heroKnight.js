@@ -6,7 +6,7 @@
 // those two sword animations until her real moves are designed.
 import { DEFAULT_GRAB, PAL_CYAN } from './common.js';
 import { HK_MOVES } from './hkMoves.js';
-import {HK_META_MOVES,HK_META_HURT} from './hkMetaMoves.js';
+import {HK_VADER_MOVES,HK_VADER_HURT} from './hkVaderMoves.js';
 import { HK_HURT } from './hkHurt.js';
 
 // Limit beam colours: steel and white
@@ -21,7 +21,7 @@ export const HERO_KNIGHT = {
     idle_u: 'hk_idle_u', run_u: 'hk_run_u', jump_u: 'hk_jump_u', fall_u: 'hk_fall_u', hit_u: 'hk_hit_u',
     // her own tilts and aerials (tools/sprites/hero_knight_moves.py): bigger 180x140 frames, feet at (81, 111)
     moves: 'hk_moves' },
-  costumeMoveAnims:{metaknight:HK_META_MOVES},costumeHurtFrames:{hk_meta_idle:HK_META_HURT},
+  costumeMoveAnims:{vader:HK_VADER_MOVES},costumeHurtFrames:{hk_vader_idle:HK_VADER_HURT},
   moveAnims: HK_MOVES, movesOrigin: [81 / 180, 111 / 140],
   // BATTLE-WORN costume: the armour cracks a little more each time she loses a stock
   // (tools/sprites/hero_knight_worn.py). Stage 0 is her normal look.
@@ -30,8 +30,8 @@ export const HERO_KNIGHT = {
   // SAMURAI costume: her own strips with red samurai armour and a katana (tools/sprites/hero_knight_samurai.py)
   // OBSIDIAN / CYBERBLADE (shop costumes): tools/sprites/shop_costumes.py
   // AKATSUKI costume: crimson tunic, leather belt, cloth boots and a crystal sword (tools/sprites/hero_knight_akatsuki.py)
-  costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_'], ['obsidian', 'hk_obs_'], ['cyber', 'hk_cyb_'], ['verdant', 'hk_ver_'], ['liberty', 'hk_lib_'], ['prism', 'hk_prism_'], ['kitana', 'hk_kitana_'], ['metaknight', 'hk_meta_']].map(([set, pre]) => [set,
-    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'counter', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves', ...(set==='metaknight'?['bare_moves']:[])].map((k) => [k, pre + k]))])),
+  costumeSheets: Object.fromEntries([['samurai', 'hk_sam_'], ['akatsuki', 'hk_aka_'], ['obsidian', 'hk_obs_'], ['cyber', 'hk_cyb_'], ['verdant', 'hk_ver_'], ['liberty', 'hk_lib_'], ['prism', 'hk_prism_'], ['kitana', 'hk_kitana_'], ['vader', 'hk_vader_']].map(([set, pre]) => [set,
+    Object.fromEntries(['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'counter', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u', 'moves', ...(set==='vader'?['bare_moves','specials']:[])].map((k) => [k, pre + k]))])),
   frameCounts: { idle: 11, run: 8, attack1: 7, attack2: 7, jump: 3, fall: 3, hit: 4, death: 11, guard: 1, counter: 3, shrine:20, shrine_turn:12, shrine_release_u:10, shrine_weapon:1, grab: 10, idle_u: 11, run_u: 8, jump_u: 3, fall_u: 3, hit_u: 4 },
   ownAnims: true,                 // drawn with the strips above (see Fighter.animFrame)
   originX: 66 / 150, originY: 86 / 90,

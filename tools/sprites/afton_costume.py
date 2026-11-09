@@ -231,6 +231,45 @@ def michael_idle():
     return [N.k(0,N.P(**pose)),N.k(48,N.P(**pose,head=(-5,0,0),torso=(1,0,0))),N.k(96,N.P(**pose)),N.k(144,N.P(**pose,head=(4,0,0),torso=(-1,0,0))),N.k(192,N.P(**pose))]
 
 
+def upright_ready(pose):
+    """Replace SEEN's inherited ready hunch, while retaining deliberate action bends."""
+    out=copy.deepcopy(pose)
+    torso=N.full(out.get('torso'))
+    if tuple(torso[:3])!=(30,2,2):return out
+    out['torso']=(0,0,0,*torso[3:])
+    head=N.full(out.get('head',(-24,0,0)))
+    # Align the neck to the hip column instead of counter-tilting a hunched torso.
+    out['head']=(head[0]+24,head[1]-1,head[2],*head[3:])
+    stance=('bthigh','bshin','fthigh','fshin','bshoe','fshoe')
+    if all(N.full(out.get(name))[0]==N.full(M.HB.get(name))[0] for name in stance):
+        for name in stance:
+            values=N.full(out.get(name));out[name]=(0,*values[1:])
+    return out
+
+
+def springtrap_idle():
+    """Stand tall: vertical hip/neck column, planted legs and restrained breathing."""
+    pose=upright_ready(M.LOW)
+    return [N.k(0,copy.deepcopy(pose)),N.k(48,copy.deepcopy(pose)),N.k(96,copy.deepcopy(pose)),N.k(144,copy.deepcopy(pose)),N.k(192,copy.deepcopy(pose))]
+
+
+def springtrap_run():
+    """Keep the complete stride but remove the constant thirty-degree torso hunch."""
+    keys=[]
+    for tick,pose,ease in M.wrong_run():
+        pose=copy.deepcopy(pose);torso=N.full(pose.get('torso'));head=N.full(pose.get('head'))
+        pose['torso']=(torso[0]-30,torso[1]-2,torso[2]-2,*torso[3:])
+        pose['head']=(head[0]+24,head[1]-1,head[2],*head[3:])
+        keys.append((tick,pose,ease))
+    return keys
+
+
+def springtrap_moves():
+    """Author attacks and recovery on the same upright standing baseline as idle."""
+    return {name:(ticks,[(tick,upright_ready(pose),ease) for tick,pose,ease in keys],step,smear,loop,center)
+            for name,(ticks,keys,step,smear,loop,center) in M.WRONG.items()}
+
+
 def fit_phone_atlas(path,width=112,height=104):
     """Keep every move's numeric frame index while reducing oversized grid height."""
     im=Image.open(path).convert('RGBA')
@@ -266,7 +305,7 @@ def smooth_runs():
     calm=render_run(small,N.run_keys(),michael_life)
     C.save_strip(calm,str(DEST/'run_sheet.png'),64,64)
     D.set_style('wrong');D.set_variant('afton');small,_=N.build_rig(D,{**M.FOLLOW,**M.LOOSE})
-    keys=M.wrong_run()
+    keys=springtrap_run()
     for noaxe in [False,True]:
         frames=render_run(small,keys,M.unarmed(springtrap_life) if noaxe else springtrap_life)
         path=DEST/'wrong'/('noaxe' if noaxe else '')/'run_sheet.png'
@@ -274,17 +313,31 @@ def smooth_runs():
     print('AFTON: all three runs use 24 seamless cels over their original 48-tick cycle.')
 
 
-def main():
-    """Export all three complete animation sets and the matching loose axe prop."""
+def build_springtrap():
+    """Regenerate only transformed/disarmed art, with upright starts and recovery."""
     configure()
-    D.set_style('calm');small,big=N.build_rig(D,M.FOLLOW);N.GHOST=(153,111,186)
-    N.build_all(small,big,M.CALM,str(DEST),os.devnull,'LS_MOVES','afton_costume.py',life_fn=michael_life,idle=michael_idle)
     D.set_style('wrong');D.set_variant('afton');small,big=N.build_rig(D,{**M.FOLLOW,**M.LOOSE});N.GHOST=(164,175,95)
     jumps=((M.WJUMP,M.mix(M.WJUMP,head=(-38,0,0),bupper=(-80,0,0),ffist=(-30,0,0))),(M.WFALL,M.mix(M.WFALL,head=(-28,0,0),bupper=(-160,0,0),ffist=(-90,0,0))))
     M.save_axe(str(DEST/'wrong/axe.png'))
     for noaxe in [False,True]:
         path=DEST/'wrong'/('noaxe' if noaxe else '')
-        N.build_all(small,big,M.WRONG,str(path),os.devnull,'LS_WRONG_MOVES','afton_costume.py',life_fn=M.unarmed(springtrap_life) if noaxe else springtrap_life,idle=M.wrong_idle,run=M.wrong_run,run_life=M.unarmed(springtrap_life) if noaxe else springtrap_life,jumps=jumps)
+        N.build_all(small,big,springtrap_moves(),str(path),os.devnull,'LS_WRONG_MOVES','afton_costume.py',life_fn=M.unarmed(springtrap_life) if noaxe else springtrap_life,idle=springtrap_idle,run=springtrap_run,run_life=M.unarmed(springtrap_life) if noaxe else springtrap_life,jumps=jumps)
+        fit_phone_atlas(path/'moves_sheet.png')
+    from smooth_run_cycles import render_run
+    import costume_kit as C
+    for noaxe in [False,True]:
+        frames=render_run(small,springtrap_run(),M.unarmed(springtrap_life) if noaxe else springtrap_life)
+        path=DEST/'wrong'/('noaxe' if noaxe else '')/'run_sheet.png'
+        C.save_strip(frames,str(path),64,64)
+    print('SPRINGTRAP: upright idle, connected attack recovery and 24-cel run exported.')
+
+
+def main():
+    """Export all three complete animation sets and the matching loose axe prop."""
+    configure()
+    D.set_style('calm');small,big=N.build_rig(D,M.FOLLOW);N.GHOST=(153,111,186)
+    N.build_all(small,big,M.CALM,str(DEST),os.devnull,'LS_MOVES','afton_costume.py',life_fn=michael_life,idle=michael_idle)
+    build_springtrap()
     for path in DEST.rglob('moves_sheet.png'):fit_phone_atlas(path)
     smooth_runs()
     print('AFTON: Michael, Springtrap, disarmed Springtrap and axe exported.')

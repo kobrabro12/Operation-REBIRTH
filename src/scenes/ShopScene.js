@@ -271,7 +271,7 @@ export class ShopScene extends Phaser.Scene {
     const sh = skinSheets(this, def, si),set=skinInfo(def.id,si).sheetSet,ownMoves=def.costumeMoveAnims?.[set]||def.moveAnims;
     const n = (key) => Math.max(1, this.textures.get(key).frameTotal - 1);
     const o = [def.originX ?? 0.5, def.originY], mo = def.movesOrigin || o;
-    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: n(sh.idle), step: set==='metaknight'?4:6, o, loops: 2 }];
+    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: n(sh.idle), step: set==='vader'?4:6, o, loops: 2 }];
     const cosmetic=premiumAnimationFor(def.id,it.skin);
     if(cosmetic){seq[0]={label:'CUSTOM IDLE',key:cosmetic.idleKey,from:0,n:cosmetic.idle[1],step:cosmetic.idle[2],o:cosmetic.idleOrigin,loops:2};}
     if(cosmetic)for(const [j,kind]of ['flourish','taunt'].entries()){const [from,count,step]=cosmetic[kind];seq.push({label:cosmetic.labels[j],key:cosmetic.key,from,n:count,step,o:cosmetic.origin,loops:1});}

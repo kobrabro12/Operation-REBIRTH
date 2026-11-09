@@ -17,3 +17,6 @@ The root `AGENTS.md` (rules, stack, map) applies too. Keep this file up to date 
 Hazards use `HazardCycle` (`hazardCycle.js`): stage defines `start_<kind>` / `step_<kind>`.
 
 - `dreamlandStage.js` adds the free DREAMLAND floating garden: a solid 560 px island and three fixed jump-through shelves, four ground spawns, native pixel scenery and no hazards. Its clouds and tree blink on simulation ticks; music is `bgm_dreamland`. The stage-select grid computes tile height to keep all entries and RANDOM above its footer.
+
+### Castle Courtyard64 (`castle-64`)
+Original N64-style castle and courtyard modeled in `castle64Stage.js`: true3D vertices, fixed perspective camera, flat shading, coarse stone texels and fog. Static mesh projection/triangle commands are cached once. Solid courtyard[-300,300]y0/bottom68; fixed jump-through balconies[-228,-102]y-102 and[94,220]y-136. Collider lips match projected geometry. Four grounded spawns; `step` returns no hazards. Free stage; existing `bgm_dreamland` track. Exports its preview and pure mesh/projection helpers. Tests:`castle64-geometry.mjs` and phone gameplay in `recovery-and-castle.mjs`.

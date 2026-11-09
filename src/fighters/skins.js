@@ -729,7 +729,7 @@ SKINS['last-seen'].push({name:'MICHAEL AFTON',sheetSet:'afton',shop:'cos-afton',
  seen:{drips:[0x596336,0x737b42,0x391f25],sparks:[0xffdda0,0xb3cc88],tuft:0x778146,smoke:0x242c22}}});
 
 // Append new shop costumes so saved palette selections keep their indexes.
-SKINS['hero-knight'].push({name:'META KNIGHT',sheetSet:'metaknight',shop:'cos-metaknight',swatch:0x7779b7,fx:0xffdf83,
- lore:'A silver mask with watchful golden eyes. Purple wings unfurl behind a starlit golden sword.',
- pal:{outline:0x16182e,deep:0x333657,mid:0x7779b7,light:0xc8d2e7,core:0xffedaa,shade:0x27273e,void:0x0e1020},
- vfx:{hit:{shape:'star',colors:[0xffdf83,0xd4dcef,0xb3a0ef],n:7,glint:true}}});
+SKINS['hero-knight'].push({name:'DARTH VADER',sheetSet:'vader',shop:'cos-vader',swatch:0x373b47,fx:0xff3b50,
+ lore:'Black armor, a flowing cape, a red lightsaber, and the power of the dark side.',
+ pal:{outline:0x160b14,deep:0x581424,mid:0xac213b,light:0xff596e,core:0xffece6,shade:0x23121d,void:0x08090f},
+ vfx:{hit:{shape:'spark',colors:[0xff4058,0xffb1ac,0xf5f6ff],n:7,glint:true},aura:{vader:true}}});

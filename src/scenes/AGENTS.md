@@ -58,8 +58,10 @@ Win cutscenes for one costume per fighter, replacing that fighter's own (`SKIN_C
 
 - Shopkeeper code `IALWAYSCOMEBACK` permanently grants hidden Legendary costume `cos-afton` (MICHAEL AFTON for Rosemary) without spending coins. Invalid codes do not grant it; owned rewards remain visible. New movement clips and outfit taunts use actual cel counts at their original cycle duration in Shop previews. Tests: `afton-and-animation.mjs`, `costume-taunts.mjs`, `skin-animation.mjs`, `smooth-skin-assets.py`.
 
-- META KNIGHT is a Legendary Lacy costume costing 1,500 coins, with lazy-loaded strips and packed moves. DREAMLAND is available directly in stage select; all 18 tiles fit above the footer.
+- DARTH VADER is a Legendary Lacy costume costing 1,500 coins, with lazy-loaded strips and packed moves. DREAMLAND is available directly in stage select; all 18 tiles fit above the footer.
 
-- Costume previews and victory helpers use the costume move table and actual native cel counts. Meta Knight previews all 24 idle/run cels; mirrored cinematic poses retain their foot pivot.
+- Costume previews and victory helpers use the costume move table and actual native cel counts. Darth Vader previews all 24 idle/run cels; mirrored cinematic poses retain their foot pivot.
 
-- Meta Knight also has `bare_moves`: a separate swordless atlas used while Blade Toss is away, including guard, dodge, climb, landing, crouch, taunt and death. `HK_META_BARE_MOVES` and body bounds keep these poses aligned; both move atlases are packed losslessly. The phone test exercises every swordless action while the projectile is out.
+- Darth Vader also has `bare_moves`: a separate swordless atlas used while Blade Toss is away, including guard, dodge, climb, landing, crouch, taunt and death. `HK_VADER_BARE_MOVES` and body bounds keep these poses aligned; both move atlases are packed losslessly. The phone test exercises every swordless action while the projectile is out.
+
+- Vader arrives through a red-lit blast door with dedicated saber-ignition cels and synthesized breathing/ignition. The old shop item is migrated to `cos-vader` without spending coins; its skin slot and 1,500-coin Legendary price are retained.

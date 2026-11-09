@@ -1,3 +1,4 @@
+import {Castle64Stage,drawCastle64Preview} from './castle64Stage.js';
 import {DreamlandStage,drawDreamlandPreview} from './dreamlandStage.js';
 import {LiminalCastleStage,drawLiminalCastlePreview} from './liminalCastleStage.js';
 // Every stage shown on the stage select screen, in grid order.
@@ -20,6 +21,7 @@ import { MatrixStage, drawMatrixPreview } from './matrixStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
+  {id:'castle-64',music:'bgm_dreamland',name:'CASTLE COURTYARD 64',available:true,make:scene=>new Castle64Stage(scene),blurb:['Low-poly towers beyond a tiled courtyard.', 'Perspective stonework and two balconies.'],hazard:'NO STAGE HAZARDS.\nSOLID COURTYARD / TWO BALCONIES.',preview:drawCastle64Preview},
   {id:'endless-castle',music:'bgm_endless_castle',name:'ENDLESS CASTLE',available:true,make:scene=>new LiminalCastleStage(scene),blurb:['An abandoned checkerboard castle.', 'Uneven terraces and silent balconies.'],hazard:'NO STAGE HAZARDS.\nFIXED TERRACES / TWO BALCONIES.',preview:drawLiminalCastlePreview},
   {
     id: 'sky-sanctum', music: 'bgm_sky', name: 'SKY SANCTUM', available: true, make: (scene) => new SkyStage(scene),
