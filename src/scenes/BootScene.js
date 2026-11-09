@@ -1,3 +1,4 @@
+import {KOMBAT_COSTUMES} from '../data/kombatCostumes.js';
 import {makeOriginalSoulPortraits,SOUL_ATLASES} from '../souls/portraits.js';
 import {installMobileTextures} from '../mobileTextures.js';
 import {deferCostumeSheets} from '../fighters/lazySheets.js';
@@ -82,13 +83,14 @@ export class BootScene extends Phaser.Scene {
     // LAST SEEN (test fighter) and SEEN, what she turns into: tools/sprites/last_seen_moves.py
     // (SEEN's costumes AFTER HOURS / GRAND OPENING / LAKEBED redraw the animatronic: wrong/<set>/)
     // ROSEMARY's RED ARMY costume (code PAPERSPLEASE): her redrawn calm form, and the TANK she turns into (all 112x104)
+    for(const [key,file]of [['ls_recovery','base'],['ls_bunny_recovery','bunny'],['ls_soviet_recovery','soviet'],['ls_afton_recovery','afton'],['ls_wrong_recovery','seen'],...['rave','showtime','drowned','angler','bunny','afton'].map(set=>['ls_wrong_'+set+'_recovery','seen_'+set])])this.load.spritesheet(key,'assets/fighters/last-seen/recovery/'+file+'.png',{frameWidth:112,frameHeight:104});
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('ls_soviet_' + k, 'assets/fighters/last-seen/soviet/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('ls_soviet_moves', 'assets/fighters/last-seen/soviet/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'jump', 'fall', 'moves']) this.load.spritesheet('ls_tank_' + k, 'assets/fighters/last-seen/tank/' + k + '_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    for (const [pre, dir] of [['ls_', ''], ['ls_bunny_', 'bunny/'], ['ls_wrong_bunny_', 'bunny/wrong/'], ['ls_wrong_', 'wrong/'], ...['rave', 'showtime', 'drowned', 'angler'].map((c) => ['ls_wrong_' + c + '_', 'wrong/' + c + '/'])]) {
+    for (const [pre, dir] of [['ls_', ''], ['ls_afton_', 'afton/'], ['ls_wrong_afton_', 'afton/wrong/'], ['ls_bunny_', 'bunny/'], ['ls_wrong_bunny_', 'bunny/wrong/'], ['ls_wrong_', 'wrong/'], ...['rave', 'showtime', 'drowned', 'angler'].map((c) => ['ls_wrong_' + c + '_', 'wrong/' + c + '/'])]) {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/last-seen/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/last-seen/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-      if (pre !== 'ls_' && pre !== 'ls_bunny_') this.load.spritesheet(pre + 'axe', 'assets/fighters/last-seen/' + dir + 'axe.png', { frameWidth: 32, frameHeight: 40 });   // SEEN's axe, stuck in the floor (SCREAM)
+      if (pre !== 'ls_' && pre !== 'ls_bunny_' && pre !== 'ls_afton_') this.load.spritesheet(pre + 'axe', 'assets/fighters/last-seen/' + dir + 'axe.png', { frameWidth: 32, frameHeight: 40 });   // SEEN's axe, stuck in the floor (SCREAM)
     }
     for (const c of ['inferno', 'street', 'bones', 'school']) {   // NU's costumes with their own drawing (tools/sprites/nu_costume_moves.py)
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('nu_' + c + '_' + k, 'assets/fighters/nu/' + c + '/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
@@ -109,6 +111,14 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('wow_modescr', 'assets/fighters/what-once-was/mode_screens.png', { frameWidth: 11, frameHeight: 9 });   // its animated MODE screens
     this.load.spritesheet('wow_faces', 'assets/fighters/what-once-was/faces.png', { frameWidth: 11, frameHeight: 9 });   // Mason's three faces for its screen (tools/sprites/wow_faces.py)
     this.load.spritesheet('ss_run', 'assets/fighters/soul-summoner/run_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    for(const c of KOMBAT_COSTUMES){
+      const hk=c.fighter==='hero-knight',wake=c.fighter==='mr-wake';
+      const strips=hk?['idle','run','attack1','attack2','jump','fall','hit','death','guard','counter','grab','idle_u','run_u','jump_u','fall_u','hit_u']:['idle','run','jump','fall',...(c.fighter==='soul-summoner'?['juggle']:[])];
+      for(const k of [...strips,'moves'])this.load.spritesheet(c.prefix+k,'assets/fighters/'+c.fighter+'/'+c.set+'/'+k+'_sheet.png',{
+        frameWidth:k==='moves'?(hk?180:wake?176:112):hk?150:64,frameHeight:k==='moves'?(hk?140:wake?120:104):hk?90:64});
+    }
+    for(const k of ['idle','run','jump','fall','moves'])this.load.spritesheet('aero_subzero_king_'+k,'assets/fighters/aero/subzero/king/'+k+'_sheet.png',{frameWidth:k==='moves'?112:64,frameHeight:k==='moves'?104:64});
+    for(const set of ['eclipse','aurora','celestial','olive','tricolore','orrery','judgment','ermac'])this.load.spritesheet('ss_'+set+'_taunt','assets/fighters/soul-summoner/'+set+'/taunt_sheet.png',{frameWidth:112,frameHeight:104});
     // shop costumes with their own drawing (tools/sprites/shop_costumes.py): sheets in <fighter>/<costume>/
     for (const [pre, dir, ks, mw, mh] of [['ss_eclipse_', 'soul-summoner/eclipse/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_aurora_', 'soul-summoner/aurora/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104],
       ['wake_choir_', 'mr-wake/choir/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
@@ -128,11 +138,13 @@ export class BootScene extends Phaser.Scene {
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
       this.load.spritesheet('hk_aka_' + k, 'assets/fighters/hero-knight/akatsuki/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Akatsuki costume
       this.load.spritesheet('hk_sam_' + k, 'assets/fighters/hero-knight/samurai/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Samurai costume
-      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
+      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/'], ['hk_vader_', 'vader/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
     }
-    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/']]) {
+    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/'], ['hk_vader_moves', 'vader/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
+    this.load.spritesheet('hk_vader_specials','assets/fighters/hero-knight/vader/specials_sheet.png',{frameWidth:180,frameHeight:140});
+    this.load.spritesheet('hk_vader_bare_moves','assets/fighters/hero-knight/vader/bare_moves_sheet.png',{frameWidth:180,frameHeight:140});
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });

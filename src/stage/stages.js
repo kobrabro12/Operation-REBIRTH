@@ -1,3 +1,5 @@
+import {Castle64Stage,drawCastle64Preview} from './castle64Stage.js';
+import {DreamlandStage,drawDreamlandPreview} from './dreamlandStage.js';
 import {LiminalCastleStage,drawLiminalCastlePreview} from './liminalCastleStage.js';
 // Every stage shown on the stage select screen, in grid order.
 // Locked entries are placeholders for stages still being made.
@@ -19,6 +21,7 @@ import { MatrixStage, drawMatrixPreview } from './matrixStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
+  {id:'castle-64',music:'bgm_dreamland',name:'CASTLE COURTYARD 64',available:true,make:scene=>new Castle64Stage(scene),blurb:['Low-poly towers beyond a tiled courtyard.', 'Perspective stonework and two balconies.'],hazard:'NO STAGE HAZARDS.\nSOLID COURTYARD / TWO BALCONIES.',preview:drawCastle64Preview},
   {id:'endless-castle',music:'bgm_endless_castle',name:'ENDLESS CASTLE',available:true,make:scene=>new LiminalCastleStage(scene),blurb:['An abandoned checkerboard castle.', 'Uneven terraces and silent balconies.'],hazard:'NO STAGE HAZARDS.\nFIXED TERRACES / TWO BALCONIES.',preview:drawLiminalCastlePreview},
   {
     id: 'sky-sanctum', music: 'bgm_sky', name: 'SKY SANCTUM', available: true, make: (scene) => new SkyStage(scene),
@@ -115,6 +118,7 @@ export const STAGES = [
     hazard: 'MOVING LEDGES AND ARENA REWRITES.\nMARKED LANES WARN BEFORE SCAN BEAMS FIRE.',
     preview: drawMatrixPreview,
   },
+  {id:'dreamland',name:'DREAMLAND',available:true,music:'bgm_dreamland',make:scene=>new DreamlandStage(scene),blurb:['A pastel floating garden beneath a friendly tree.','Three raised platforms, soft clouds and starlight.'],hazard:'NO STAGE HAZARDS.\nTHREE JUMP-THROUGH PLATFORMS.',preview:drawDreamlandPreview},
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
@@ -133,8 +137,7 @@ export function trackList(owned = []) {
     ...owned.map((it) => ({ id: it.id, name: it.name, music: 'bgm_shop_' + it.id.slice(4), shop: true }))];
 }
 
-// tiles on the select grid (2 across; the last one is Random): 16 (8 rows), more rows when there are more stages
-export const STAGE_SLOTS = Math.max(16, Math.ceil((STAGES.length + 1) / 2) * 2);
+export const STAGE_SLOTS = Math.max(16, Math.ceil((STAGES.length + 1) / 2) * 2);  // two columns, including a final RANDOM tile
 
 export function stageById(id) {
   const avail = STAGES.filter((s) => s.available);

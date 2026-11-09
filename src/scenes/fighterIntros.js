@@ -1,3 +1,4 @@
+import {drawVaderEntrance} from './vaderEntrance.js';
 // ARRIVALS: how each fighter (and each special costume) gets onto the stage during the "3, 2, 1" countdown - not a
 // cutscene, just a short entrance. MatchScene makes one FighterIntros; step() runs every countdown tick, draw() runs
 // after the fighters have drawn themselves (it hides them until they arrive and adds the effects). Off in training
@@ -38,6 +39,7 @@ export const INTROS = {
 
 // the special costumes' own arrivals ('fighter id:COSTUME NAME')
 export const SKIN_INTROS = {
+  'hero-knight:DARTH VADER':{kind:'vader-door',dur:110,color:0xff364f,color2:0x242631,pre:['vaderBreath',.55,1],sfx:['vaderIgnite',.7,1]},
   'soul-summoner:JUDGMENT':{kind:'judgment-door',dur:100,color:0x77eaff,color2:0xf3f9ff,pre:['glass',.25,.8],sfx:['ding',.3,.7]},
   'soul-summoner:ORRERY':{kind:'clockwork',dur:100,shape:'ring',color:0xd9bb74,color2:0x95ebcf,pre:['clocktick',.35,.8],sfx:['glass',.35,.8]},
   'hero-knight:PRISM REGENT':{kind:'prism-shell',dur:100,shape:'star',color:0xa2eee7,color2:0xe4b5f5,pre:['glass',.3,.8],sfx:['glass',.4,1.2]},
@@ -165,7 +167,7 @@ export class FighterIntros {
       const p = this.prog(e), { f, I } = e, A = TIME.arrive, x = e.x, y = e.y, c = e.col, c2 = e.col2;
       const pre = Math.max(0, Math.min(1, p / A)), post = Math.max(0, (p - A) / (1 - A));   // before / after the arrival, 0..1
       let vis = p < A ? 0 : 1, dy = 0, sc = 1;
-      const premium=drawPremiumEntrance(g,e,p,this.t);
+      const premium=drawVaderEntrance(g,e,p,this.t)||drawPremiumEntrance(g,e,p,this.t);
       if(premium){vis=premium.vis;dy=premium.dy;sc=premium.sc;}
       else if (p > 0 && p <= 1.05) switch (I.kind) {
         case 'rise': {                                                     // a pillar of colour, they come up out of it

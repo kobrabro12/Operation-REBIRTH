@@ -1,3 +1,4 @@
+import {KOMBAT_CUTS} from './kombatOutros.js';
 // COSTUME OUTROS: win cutscenes that only play when the winner is wearing one particular costume - they replace
 // that fighter's normal one (WinScene.js). One per fighter for now:
 //   SOUL SUMMONER  JACK-O'-LANTERN  carves the beaten into jack-o'-lanterns
@@ -29,6 +30,7 @@ import { skinTexture, skinInfo } from '../fighters/skins.js';
 const W = VIEW_W, H = VIEW_H;
 
 export const SKIN_CUTS = {
+  ...KOMBAT_CUTS,
   ...SHOWCASE_CUTS,
   ...PREMIUM_CUTS,
   "soul-summoner:JACK-O'-LANTERN": { fn: 'ss_pumpkin', len: 420, card: 262, name: 'SOUL SUMMONER', sub: "JACK-O'-LANTERN", line: 'TRICK OR TREAT? YOU GOT TRICKED.',
@@ -93,11 +95,13 @@ export class SkinShots {
     }
   }
   // a frame of one of the winner's base strips (run, death...), in its costume
+  /** Draw a native costume strip using all of its authored cels. */
   strip(name, f, x, y, sc, flip = false, def = this.def) {
     const skin = this.win.skin || 0, set = skinInfo(def.id, skin).sheetSet;
     const key = set && def.costumeSheets && def.costumeSheets[set] && def.costumeSheets[set][name] ? def.costumeSheets[set][name] : skinTexture(this, def.sheets[name], def.id, skin);
-    const n = (def.frameCounts && def.frameCounts[name]) || Math.max(1, this.textures.get(key).frameTotal - 1);
-    this.hero.setTexture(key, Math.floor(f) % n).setOrigin(def.originX ?? 0.5, def.originY)
+    const n = set?Math.max(1,this.textures.get(key).frameTotal-1):(def.frameCounts && def.frameCounts[name]) || Math.max(1, this.textures.get(key).frameTotal - 1);
+    const tick=name==='run'?f*n/(def.frameCounts?.run||n):f;
+    this.hero.setTexture(key, Math.floor(tick) % n).setOrigin((!!def.facesLeft!==flip)?1-(def.originX??.5):(def.originX??.5), def.originY)
       .setPosition(x, y).setScale(sc).setFlipX(!!def.facesLeft !== flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
   }
   // the typed text lines (this.tvLines) - [text, colour] per line, newest typing in at chars per frame

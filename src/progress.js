@@ -32,6 +32,8 @@ const SHOP_KEY = 'rebirth.shop';
 const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [] };
 try { Object.assign(shop, JSON.parse(localStorage.getItem(SHOP_KEY) || '{}') || {}); } catch (e) { /* keep the defaults */ }
 function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) { /* storage unavailable */ } }
+// Replace the retired costume without charging its existing owners again.
+if(shop.owned.includes('cos-metaknight')){shop.owned=shop.owned.map(id=>id==='cos-metaknight'?'cos-vader':id);shop.owned=[...new Set(shop.owned)];saveShop();}
 try {
   const q = new URLSearchParams(window.location.search).get('coins');
   if (q !== null && !isNaN(+q)) { shop.coins = Math.max(0, Math.floor(+q)); saveShop(); }

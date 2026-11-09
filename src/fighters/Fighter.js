@@ -1,3 +1,4 @@
+import {landRosemaryRecovery} from './rosemaryRecovery.js';
 import {YoungLinkBomb,youngLinkHook,YoungLinkActions} from './youngLinkSpecials.js';
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
@@ -52,6 +53,7 @@ export class Fighter {
     this.invincible = 0; this.hitstop = 0; this.hitstun = 0; this.shieldHp = 60; this.shieldStun = 0;
     this.charge = 0; this.chargeSound = null; this.summonCooldown = 0; this.souls = [];
     this.grabbed = null; this.grabbedBy = null; this.curse = 0; this.flash = 0; this.anim = 0;
+    this.skinClock={frame:match.frame||0,delta:0,gait:0};
     this.buffer = { attack: 0, special: 0, jump: 0, grab: 0, shield: 0, limit: 0, taunt: 0 };
     this.age = 0; this.tapX = -99; this.tapUp = -99; this.tapDown = -99; this.slow = 0;
     this.ledge = null; this.ledgeCooldown = 0; this.ledgeGrabs = 0;
@@ -81,8 +83,9 @@ export class Fighter {
 
   // ------------------------------------------------------------------ helpers
   get body() { return this.bodyOverride || this.def.body; }   // (WHAT ONCE WAS is only a small TV for a while)
+  /** Follow a drawn costume's body bounds, excluding its cape and weapon. */
   hurtbox() {
-    const hf = this.def.hurtFrames;                   // a fighter whose hurtbox follows its drawing, frame by frame (Lacy)
+    const hf = this.def.costumeHurtFrames?.[this.sheets.idle]||this.def.hurtFrames;                   // a fighter whose hurtbox follows its drawing, frame by frame (Lacy)
     if (hf && this.curSheet) {
       const name = this.sheetName(this.curSheet), box = name && hf[name] && hf[name][this.curFrame];
       if (box) {
@@ -341,6 +344,7 @@ export class Fighter {
     if (this.style === 'nuBones' && Math.random() < 0.3) sfx('glass', 0.12, 2.4);                       // NU's BONEZ: a dry rattle
     if (this.style === 'nuInferno' && Math.random() < 0.4) sfx('whoosh', 0.25, 0.7 + Math.random() * 0.2);   // NU's INFERNO: the swing roars
   }
+  /** Advance move timing, movement and the fighter-specific attack actions. */
   st_attack(c) {
     const m = this.move;
     if (m.hold && this.holdChord(c)) return;            // NU's Power Chord: holding special builds the chord
@@ -392,7 +396,7 @@ export class Fighter {
       if (this.t === D.from) { this.grounded = false; this.platform = null; this.usedDive = true; sfx('djump', 0.6, 0.8); }
       this.vy = D.vy + (D.lift || 0.18) * (this.t - D.from) - 0.42;   // a long, low arc (gravity is added on top)
     }
-    if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
+    if (m.noclip || m.poster || m.rupture || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
@@ -533,7 +537,9 @@ export class Fighter {
     }
   }
 
+  /** Reset landing state, including Rosemary's committed axe plunge and shockwave. */
   onLand() {
+    if(landRosemaryRecovery(this))return;
     const s = this.state;
     if (s === 'attack' && this.move.landLag) { this.setState('land'); this.landLag = this.move.landLag; }
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { this.setState('land'); this.landLag = s === 'helpless' ? 14 : 3; sfx('land', 0.3); }

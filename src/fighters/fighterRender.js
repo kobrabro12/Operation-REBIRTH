@@ -1,3 +1,7 @@
+import {rosemaryRecoveryPose,drawRosemaryRecovery} from './rosemaryRecovery.js';
+import {drawVaderLimit} from './limitVader.js';
+import {isDarthVader,vaderPose,vaderAnchor} from './vaderAnimation.js';
+import {stepSkinAnimation,skinRunFrame,skinAirFrame,skinMoveFrame,skinSheetOrigin,skinRenderCached,rememberSkinRender} from './skinAnimation.js';
 import {fistsPose} from './fistsAnimation.js';
 import {drawYoungLinkSpecial} from './youngLinkSpecials.js';
 import {youngLinkPose} from './youngLinkAnimation.js';
@@ -44,12 +48,11 @@ export class FighterRender {
     }
     switch (s) {
       case 'run': {
-        this.runPhase = ((this.runPhase || 0) + 0.1 + Math.abs(this.vx) * 0.06) % N.run;
-        return { sheet: S.run, frame: Math.floor(this.runPhase) };
+        return {...skinRunFrame(this),sheet:S.run};
       }
-      case 'air': return this.vy < 0 ? once('jump', this.t, 12) : loop('fall', 6);
-      case 'helpless': return { ...loop('fall', 8), alpha: this.anim % 16 < 8 ? 1 : 0.8 };
-      case 'airdodge': return { ...loop('fall', 6), alpha: 0.55 };
+      case 'air': return skinAirFrame(this,S);
+      case 'helpless': return { ...skinAirFrame(this,S), alpha: this.anim % 16 < 8 ? 1 : 0.8 };
+      case 'airdodge': return { ...skinAirFrame(this,S), alpha: 0.55 };
       case 'hitstun': return once('hit', this.t, 16);                      // the Take Hit strip on every hit
       case 'grabbed': case 'seized': return { sheet: S.hit, frame: N.hit - 1 };
       case 'dizzy': return { sheet: S.hit, frame: N.hit - 1, rot: Math.sin(this.t * 0.2) * 0.15 };
@@ -65,7 +68,7 @@ export class FighterRender {
           return { sheet: G, frame: d === 'up' ? 6 : d === 'down' ? 7 : 5, flip: d === 'back' };
         }
         const MA = this.def.moveAnims && this.def.moveAnims[this.moveName];
-        if (MA && S.moves) return { sheet: S.moves, frame: MA[0] + Math.min(MA[1] - 1, Math.floor(this.t / MA[2])) };   // her own move animation
+        if (MA && S.moves) return { sheet: S.moves, frame: skinMoveFrame(MA,this.t,m.frames,m.hits?.at(-1)?.to) };   // her own move animation
         return { ...once(m.anim || 'attack2', this.t, m.frames || 28), flip: !!m.flip };
       }
       case 'upb': {
@@ -103,7 +106,7 @@ export class FighterRender {
       }
       case 'taunt': {
         const MA = this.def.moveAnims && this.def.moveAnims.taunt;
-        if (MA && S.moves) return { sheet: S.moves, frame: MA[0] + Math.min(MA[1] - 1, Math.floor(this.t / MA[2])) };
+        if (MA && S.moves) return { sheet: S.moves, frame: skinMoveFrame(MA,this.t,this.def.taunt?.frames) };
         return loop('idle', 6);
       }
       case 'ledge': return { sheet: S.fall, frame: 0 };
@@ -126,11 +129,13 @@ export class FighterRender {
   }
 
   // ------------------------------------------------------------------ drawing
+  /** Render the current simulation pose, costume details and attached effects once per tick. */
   render(frameCount) {
+    if(skinRenderCached(this,frameCount))return;
     const spr = this.sprite, g = this.fx, d = this.def;
     g.clear(); this.fxBack.clear();this.azureCape?.setVisible(false);this.premiumAnimation=null;this.premiumAnimProgress=0;
     if (!this.alive) return;
-    this.anim++;
+    stepSkinAnimation(this,frameCount);
     spr.setPosition(Math.round(this.x), Math.round(this.y));
     spr.setFlipX(d.facesLeft ? this.facing > 0 : this.facing < 0);
     spr.setRotation(0); spr.setScale(1, 1); spr.setAlpha(1);
@@ -138,21 +143,18 @@ export class FighterRender {
     const alt = this.sheets.juggle || this.sheets.idle;   // pose sheet (fighters without one reuse their idle frames)
     let sheet = this.sheets.idle, frame = Math.floor(this.anim / 6) % (d.frameCounts?.idle || 32);
     const s = this.state;
-    if (s !== 'run') this.runPhase = 0;
     if (s === 'run' && this.sheets.run && !d.ownAnims) {   // run: straight into the stride (frames 3-7) the moment he moves, faster at speed
-      this.runPhase = (this.runPhase || 0) + 0.11 + Math.abs(this.vx) * 0.035;
-      const [from, count] = d.runCycle || [3, 5];
-      sheet = this.sheets.run; frame = from + Math.floor(this.runPhase) % count;
+      const pose=skinRunFrame(this);sheet=pose.sheet;frame=pose.frame;
     }
     else if (s === 'run' && this.sheets.walk) {      // walk cycle: the stride speeds up with ground speed
-      this.walkPhase = ((this.walkPhase || 0) + Math.max(0.08, Math.abs(this.vx) * 0.055)) % 8;
+      this.walkPhase = ((this.walkPhase || 0) + (this.skinClock.delta*Math.max(0.08, Math.abs(this.vx) * 0.055))) % 8;
       sheet = this.sheets.walk; frame = Math.floor(this.walkPhase);
       spr.setRotation(Phaser.Math.Clamp(this.vx * 0.012, -0.05, 0.05));
     }
     else if (s === 'run') { frame = Math.floor(this.anim / 3) % 32; spr.setRotation(0.1 * this.facing); spr.y -= (Math.floor(this.anim / 5) % 2); }
     else if (s === 'jumpsquat' || s === 'land') spr.setScale(1.08, 0.9);
     else if ((s === 'air' || s === 'helpless' || s === 'airdodge') && this.sheets.jump) {   // rising: legs tucked, flame pushed low; falling: legs hanging, flame streaming up
-      sheet = this.vy < 0 ? this.sheets.jump : this.sheets.fall; frame = Math.floor(this.anim / 5) % 4;
+      const pose=skinAirFrame(this);sheet=pose.sheet;frame=pose.frame;
       spr.setRotation(Phaser.Math.Clamp(this.vx * 0.03, -0.15, 0.15));
     }
     else if (s === 'air' || s === 'helpless' || s === 'airdodge') { frame = 4; spr.setRotation(Phaser.Math.Clamp(this.vx * 0.04, -0.2, 0.2)); }
@@ -173,13 +175,14 @@ export class FighterRender {
     else if (s === 'ledgeroll') { spr.setAlpha(0.55); frame = 6; }
     else if (s === 'holding') { sheet = alt; frame = 1; }
     else if (s === 'grabbed' || s === 'seized') { frame = 10; spr.setRotation(-0.2 * this.facing); }
-    if (this.hurtAnim > 0) this.hurtAnim--;
     const ma = !d.ownAnims && d.moveAnims && this.sheets.moves && this.moveAnimKey(s);
     if (ma && d.id !== 'young-link') {                                  // a drawn animation for this move: it carries its own lean and squash
-      const [from, n, step, loop] = d.moveAnims[ma], i = Math.floor((d.id==='young-link' && ma==='pummel' ? 12-this.pummelCd : this.t) / step);
-      sheet = this.sheets.moves; frame = from + (loop ? i % n : Math.min(n - 1, i));
+      const duration=s==='attack'?this.move?.frames:s==='upb'?d.moves.upb?.frames:null;
+      sheet = this.sheets.moves; frame = skinMoveFrame(d.moveAnims[ma],this.t,duration,(s==='upb'?d.moves.upb:this.move)?.hits?.at(-1)?.to);
       spr.setRotation(0); spr.setScale(1, 1);
     }
+    const recoveryPose=rosemaryRecoveryPose(this);
+    if(recoveryPose){sheet=recoveryPose.sheet;frame=recoveryPose.frame;spr.setRotation(0).setScale(1,1);}
     if (d.id === 'young-link') {
       if(s==='limit'&&d.limit.triangle)spr.y=Math.round(this.y);
       const pose=youngLinkPose(this);sheet=pose.sheet;frame=pose.frame;
@@ -187,8 +190,8 @@ export class FighterRender {
       if (s === 'attack' && (this.moveName === 'bair' || this.moveName === 'throw' && this.throwDir === 'back')) spr.setFlipX(!spr.flipX);
     }
     if (s === 'taunt' && this.sheets.taunt && d.taunt && d.taunt.anim) {   // a taunt with its own drawn strip (def.taunt.anim)
-      const [n, step] = d.taunt.anim;
-      sheet = this.sheets.taunt; frame = Math.min(n - 1, Math.floor(this.t / step));
+      const n=Math.max(1,this.scene.textures.get(this.sheets.taunt).frameTotal-1);
+      sheet = this.sheets.taunt; frame = Math.min(n - 1, Math.floor(this.t*n/d.taunt.frames));
       spr.setRotation(0); spr.setScale(1, 1);
     }
     if (d.ownAnims) {                          // fighters drawn from their own animation strips
@@ -200,20 +203,22 @@ export class FighterRender {
       this._animFlip = !!a.flip;
     }
     if(d.id==='fists'){const pose=fistsPose(this);sheet=pose.sheet;frame=pose.frame;spr.setRotation(0).setScale(1,1);spr.y=Math.round(this.y);if(s==='attack'&&(this.moveName==='bair'||this.moveName==='throw'&&this.throwDir==='back'))spr.setFlipX(!spr.flipX);}
+    const metaPose=vaderPose(this);
+    if(metaPose){sheet=metaPose.sheet;frame=metaPose.frame;spr.setRotation(0).setScale(1,1).setAlpha(metaPose.alpha??1).setFlipX(this.facing<0);spr.y=Math.round(this.y);this._animFlip=false;this.swooshFx=null;}
     const cosmetic=premiumPose(this);
     if(cosmetic){sheet=cosmetic.sheet;frame=cosmetic.frame;spr.setRotation(0).setScale(1,1);this.premiumAnimation=cosmetic.kind;this.premiumAnimProgress=cosmetic.progress;}
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
     this.curSheet = sheet; this.curFrame = frame; this.curFlip = d.ownAnims && !!this._animFlip;   // (what's drawn: Lacy's hurtbox follows it)
     if (d.float && d.float.hover && !['grabbed', 'seized', 'ledge', 'ledgeclimb', 'respawn'].includes(s)) spr.y -= Math.round(d.float.hover + 2 * Math.sin(this.anim * 0.07));   // floating off the ground
     { // Preserve frame-specific cosmetic anchors and upstream mirrored foot alignment.
-      const mo = cosmetic ? cosmetic.origin : d.movesOrigin && sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY ?? spr.originY];
+      const mo = cosmetic ? cosmetic.origin : skinSheetOrigin(this,sheet);
       const ox = spr.flipX ? 1 - mo[0] : mo[0];
       if (spr.originX !== ox || spr.originY !== mo[1]) spr.setOrigin(ox, mo[1]);
     }
 
     // hit flash and invincibility blink
-    if (this.silhouette > 0) { this.silhouette--; spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
-    else if (this.flash > 0) { this.flash--; spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
+    if (this.silhouette > 0) { this.silhouette=Math.max(0,this.silhouette-this.skinClock.delta); spr.setTint(0x120e1c).setTintMode(Phaser.TintModes.FILL); }    // frozen by a counter
+    else if (this.flash > 0) { this.flash=Math.max(0,this.flash-this.skinClock.delta); spr.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL); }
     else { spr.setTint(this.possessed > 0 ? (this.anim % 16 < 8 ? 0xb07ad0 : 0x8a5ad0) : this.curse > 0 ? 0xb07ad0 : this.slow > 0 ? 0x8a80b0 : this.shaken > 0 ? (this.anim % 20 < 10 ? 0xd09a9a : 0xb88a8a) : (this.soulTint||PLAYER_TINTS[this.slot])).setTintMode(Phaser.TintModes.MULTIPLY); }
     if (this.star > 0 && !this.silhouette && !this.flash) {         // Star Candy: cycling through every colour, sparkling
       const c = Phaser.Display.Color.HSVToRGB(((this.anim * 8) % 360) / 360, 0.55, 1);
@@ -225,13 +230,13 @@ export class FighterRender {
       const U = this.ult;
       if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(this.pal.shade).setTintMode(Phaser.TintModes.FILL); }
       else spr.setAlpha(0);
-    } else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
+    } else if (this.reform > 0) { this.reform=Math.max(0,this.reform-this.skinClock.delta); spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
     if(this.azureCape)syncAzureCape(this.azureCape,spr,this.anim,Math.abs(this.vx+this.lx)>1);
     if(d.id==='young-link')drawYoungLinkSpecial(this,g);
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
     if (s === 'swingcharge') {                      // Grand Slam: a glowing point at the blade's tip, swelling with the charge
       const C = d.moves.neutralB.charge, k = this.swingCharge / C.max, full = k >= 1;
-      const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
+      const tip=vaderAnchor(this),tx = tip?.x??this.x + this.facing * C.tip[0], ty = tip?.y??this.y + C.tip[1], pulse = full && this.anim % 6 < 3 ? 2 : 0;
       const [spark, hot] = this.chargeColors();
       g.fillStyle(full ? hot : spark, 0.25 + 0.25 * k); g.fillCircle(tx, ty, 3 + 6 * k + pulse);
       g.fillStyle(0xffffff, 0.9); g.fillCircle(tx, ty, 1.5 + 1.5 * k);
@@ -249,7 +254,7 @@ export class FighterRender {
         g.fillStyle(k % 2 ? 0x6d26bd : 0xb07ad0, 1); g.fillRect(this.x + Math.cos(a) * 16 - 2, this.y - (d.body.h + 6) + Math.sin(a) * 5 - 2, 4, 4);
       }
       const w = 36, k = Math.max(0, this.possessed / this.possessMax), shake = this.wiggleFx > 0 ? (this.anim % 2 ? 2 : -2) : 0;
-      if (this.wiggleFx > 0) this.wiggleFx--;
+      if (this.wiggleFx > 0) this.wiggleFx=Math.max(0,this.wiggleFx-this.skinClock.delta);
       g.fillStyle(0x0b0a14, 0.85); g.fillRect(this.x - w / 2 - 1 + shake, top - 1, w + 2, 6);
       g.fillStyle(0xb07ad0, 1); g.fillRect(this.x - w / 2 + shake, top, w * k, 4);
       if (!this.isCpu && this.anim % 30 < 20) { g.fillStyle(0xf3c358, 1); g.fillTriangle(this.x - 4 + shake, top - 9, this.x + 4 + shake, top - 9, this.x + shake, top - 3); }
@@ -307,11 +312,13 @@ export class FighterRender {
       }
     }
     // Thousand Cuts: the giant sword of light, its swing, and the cuts of the cutscene
-    if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
+    if (s === 'limit' && isDarthVader(this) && this.ult)drawVaderLimit(this,g);
+    else if (s === 'limit' && d.limit.type === 'blade' && this.ult) this.drawBladeLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'wall' && this.ult) this.drawWallLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'approach' && this.ult) this.drawApproach(g, d.limit, this.ult);
     if (d.wrong) this.drawBirthday(s === 'limit' && d.limit.type === 'birthday' ? this.ult : null);   // SEEN's Limit: the curtain
+    if(d.moves.upb.aether)drawRosemaryRecovery(this,g);
     if (d.sightings) this.drawSightings(g);                         // LAST SEEN: her SIGHTINGS meter
     if (d.wrong) this.drawSeen(g, spr);                              // SEEN: skipping frames, a dark haze
     if (d.beat) this.drawBeat(g);                                   // NU: the beat ring at his feet and his STREAK
@@ -325,27 +332,27 @@ export class FighterRender {
     if (this.rage > 0 && this.anim % 3 === 0) this.match.particles.push({ x: this.x + (Math.random() - 0.5) * this.body.w, y: this.y - Math.random() * this.body.h, vx: 0, vy: -1 - Math.random(), life: 14, color: Math.random() < 0.5 ? 0xff4a3a : 0xffa030, size: 2, grav: 0 });   // RAGE MODE flames
     // Riposte: a glint on the raised guard, then a burst of light rays and a long slash when it counters
     if (s === 'counter' && this.counterReady()) {
-      const gx = this.x + this.facing * 18, gy = this.y - 50, tw = this.t - d.moves.counter.start;   // glint on the chest-height blade
+      const tip=vaderAnchor(this),gx = tip?.x??this.x + this.facing * 18, gy = tip?.y??this.y - 50, tw = this.t - d.moves.counter.start;   // glint on the chest-height blade
       g.fillStyle(0xe0f4ff, tw < 6 ? 1 : 0.55); g.fillRect(gx - 1, gy - 6, 2, 12); g.fillRect(gx - 6, gy - 1, 12, 2);
       if (tw < 6) { g.fillStyle(0x9ad8f0, 0.5); g.fillRect(gx - 9, gy, 18, 1); g.fillRect(gx, gy - 9, 1, 18); }
       g.fillStyle(0x9ad8f0, 0.12 + 0.08 * Math.sin(this.anim * 0.6)); g.fillEllipse(this.x, this.y - 26, 40, 58);
     }
     if (this.counterFlash > 0) {
       const k = this.counterFlash / 26, cx = this.x + this.facing * 10, cy = this.y - 30;
-      this.counterFlash--;
+      this.counterFlash=Math.max(0,this.counterFlash-this.skinClock.delta);
       for (let i = 0; i < 12; i++) {                                   // light rays bursting out
         const a = i * 0.52 + 0.2, len = (40 + (i % 3) * 22) * (1.2 - k * 0.4);
         g.fillStyle(i % 2 ? 0xffffff : 0x9ad8f0, 0.75 * k);
         for (let r = 8; r < len; r += 3) g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), Math.max(1, 3 - r / 30), Math.max(1, 3 - r / 30));
       }
-      if (s === 'counterstrike' && this.t >= 2 && this.t <= 12) {     // the long horizontal slash streak
+      if (!isDarthVader(this) && s === 'counterstrike' && this.t >= 2 && this.t <= 12) {     // the long horizontal slash streak
         const reach = 90 * Math.min(1, (this.t - 1) / 4), y0 = this.y - 34;
         g.fillStyle(0x9ad8f0, 0.5 * k + 0.2); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 4, reach, 9);
         g.fillStyle(0xffffff, 0.95); g.fillRect(Math.min(this.x, this.x + this.facing * reach), y0 - 1, reach, 3);
       }
     }
     // Cyclone Slash: a glowing ring of light around her while she spins; sparks gather while charging
-    if (s === 'upb' && d.moves.upb.spin) {
+    if (!isDarthVader(this) && s === 'upb' && d.moves.upb.spin) {
       const u = d.moves.upb, cx = this.x, cy = this.y - 26;
       if (this.spinGround && this.spinStart < 0) {
         const k = this.spinCharge / u.ground.chargeMax, tx = this.x - this.facing * 3, ty = this.y - 68;
@@ -388,7 +395,7 @@ export class FighterRender {
     }
     // attack swooshes: a pixel crescent (or ring, sweep, streak) that follows the swing through its
     // active frames and fades out just after, in the costume's ability colours
-    for (const hb of this.activeHitboxes()) {
+    for (const hb of isDarthVader(this)?[]:this.activeHitboxes()) {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
@@ -406,10 +413,11 @@ export class FighterRender {
     }
     if (this.swooshFx) {
       const S = this.swooshFx;
-      if (!this.activeHitboxes().length) { S.life--; S.k = 1; }
+      if (!this.activeHitboxes().length) { S.life-=this.skinClock.delta; S.k = 1; }
       if (S.life <= 0 || !this.alive) this.swooshFx = null;
       else this.drawSwoosh(g, S, (this.x - S.x), (this.y - S.y));
     }
+    rememberSkinRender(this,frameCount);
     // off-screen arrow is handled by the HUD
   }
   // One swoosh. S.k = how far through the swing (0..1), S.life fades it out after the hit window.

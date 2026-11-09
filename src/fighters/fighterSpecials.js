@@ -1,3 +1,5 @@
+import {stepRosemaryRecovery} from './rosemaryRecovery.js';
+import {vaderAnchor} from './vaderAnimation.js';
 // Fighter methods: Special moves (K): charged shots, sword toss, summons, counters and up-specials.
 // Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
@@ -22,7 +24,7 @@ export class FighterSpecials {
     if (!this.grounded) this.vy = Math.min(this.vy, 1.5);            // hangs in the air a little while winding up
     // sparks spraying off the tip of the blade: more, faster and gold as the charge builds
     const k = this.swingCharge / C.max, full = k >= 1, R = Math.random;
-    const tx = this.x + this.facing * C.tip[0], ty = this.y + C.tip[1];
+    const tip=vaderAnchor(this),tx = tip?.x??this.x + this.facing * C.tip[0], ty = tip?.y??this.y + C.tip[1];
     if (this.swingCharge === C.max && this.t === C.max) { sfx('limitready', 0.6, 1.2); this.match.puff(tx, ty, 0xffffff, 12); this.match.shake(3, 6); }
     const n = full ? 3 : (R() < 0.4 + k ? 1 + (R() < k ? 1 : 0) : 0);
     const [spark, hot] = this.chargeColors();
@@ -171,9 +173,11 @@ export class FighterSpecials {
     this.vx = 0; this.vy = 0; this.lx = this.ly = 0;
     this.spinGround = this.grounded; this.spinCharge = 0; this.spinStart = -1; this.spinHit = null;   // Cyclone Slash bookkeeping
   }
+  /** Advance the fighter-specific recovery and renew its multi-hit windows. */
   st_upb(c) {
     const u = this.def.moves.upb;
     if (u.hits.length > 1 && !(u.spin && this.spinGround) && u.hits.some((h) => h.from === this.t) && this.t > u.riseAt) { this.attackId = newAttackId(); }   // multi-hit: each window hits again
+    if(u.aether)return stepRosemaryRecovery(this,c,u);
     if (u.jet) return this.jetUpB(c, u);
     if (u.spin) return this.spinUpB(c, u);
     if (u.tvhead) return this.tvUpB(c, u);                  // WHAT ONCE WAS: OUT OF BODY (fighterWhatOnceWas.js)

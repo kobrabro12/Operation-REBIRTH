@@ -11,7 +11,7 @@ export const AERO = {
   name: 'AERO',
   sheets: { idle: 'aero_idle', run: 'aero_run', jump: 'aero_jump', fall: 'aero_fall', moves: 'aero_moves' },
   // shop costume with its own drawing (skins.js sheetSet): SUNSET - tools/sprites/shop_costumes.py
-  costumeSheets: Object.fromEntries(['sunset', 'midnight', 'amber', 'scorched'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['sunset', 'midnight', 'amber', 'subzero', 'scorched'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_' + s + '_' + k]))])),
   runCycle: [0, 8],
   moveAnims: AERO_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
@@ -130,6 +130,7 @@ function spearMove(m, dir) {
 export const AERO_FULL = {
   ...AERO,
   swingSfx: 'whoosh',
+  costumeSheets:{...AERO.costumeSheets,subzero:Object.fromEntries(['idle','run','jump','fall','moves'].map(k=>[k,'aero_subzero_king_'+k]))},
   sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
   // on some stages he transforms into a different look: on INFECTED.EXE, Mason's white-and-navy FULL AERO
   stageSheets: { infected: { idle: 'aero_king_inf_idle', run: 'aero_king_inf_run', jump: 'aero_king_inf_jump', fall: 'aero_king_inf_fall', moves: 'aero_king_inf_moves' } },

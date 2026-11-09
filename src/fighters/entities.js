@@ -1,3 +1,4 @@
+import {drawVaderSword} from './vaderAnimation.js';
 import { drawThemeFireball,drawThemeBolt,drawThemeSword,drawThemePool } from './skinThemeFx.js';
 import { drawMasterSwordHilt } from './masterSword.js';
 // Things fighters create: fireballs and summoned souls.
@@ -343,7 +344,7 @@ export class ThrownSword {
     if (!this.alive) return;
     const g = this.g, x = this.x, y = this.y, L = 18, c = Math.cos(this.ang), s = Math.sin(this.ang), col = this.owner.fxColor;
     g.clear();
-    if(drawThemeSword(this,g,x,y,L,c,s))return;
+    if(drawVaderSword(this,g,x,y,L,c,s)||drawThemeSword(this,g,x,y,L,c,s))return;
     if (this.owner.style === 'onebit') return this.renderOneBit(g, x, y, L, c, s);
     if (this.phase === 'spin') {                    // the blur of the spinning blade and a ring of light
       g.fillStyle(col, 0.16); g.fillCircle(x, y, this.spec.spinR);

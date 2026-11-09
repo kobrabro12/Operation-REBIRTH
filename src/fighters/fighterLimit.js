@@ -1,3 +1,5 @@
+import {isDarthVader} from './vaderAnimation.js';
+import {stepVaderLimit,VADER_LIMIT_NAME} from './limitVader.js';
 import {stepFistsLimit} from './fistsAnimation.js';
 import { SpiritualSkeleton } from './spiritualSkeleton.js';
 import { GladiatorSkeleton } from './gladiatorSkeleton.js';
@@ -10,6 +12,7 @@ export class FighterLimit {
 
   // ---- Limit
   startLimit() {
+    if(isDarthVader(this)&&this.swordOut)return false;
     if (this.def.limit.groundOnly && !this.grounded) {
       if (this.match.frame - (this.groundLimitNotice ?? -100) >= 90) {
         this.match.popText(this, 'GROUND ONLY', '#ffd34f'); this.groundLimitNotice = this.match.frame;
@@ -21,12 +24,13 @@ export class FighterLimit {
     this.limit = 0; this.limitReadyShown = false; this.quip('limit'); voiceLine(this.match, this.def.id, 'limit'); if (!this.isCpu && !this.match.isTraining && !this.match.demo) stat('limits');
     // AERO with two computers out: FULL AERO instead of his usual Limit
     this.altLimit = !!(this.def.altLimit && !(this.fullAero > 0) && this.match.pcsOf(this).length >= 2);
-    this.limitName = this.altLimit ? this.def.altLimit.name : null;
+    this.limitName = isDarthVader(this)?VADER_LIMIT_NAME:this.altLimit ? this.def.altLimit.name : null;
     this.setState('limit'); this.vx = this.vy = 0; this.lx = this.ly = 0;
     this.match.startLimit(this);
     return true;
   }
   st_limit() {
+    if(isDarthVader(this))return stepVaderLimit(this);
     if(this.def.limit.type==='fistsRush')return stepFistsLimit(this);
     if (this.def.limit.type === 'spirits') {
       const L = this.def.limit, elapsed = this.t - L.summonAt;

@@ -1,3 +1,4 @@
+import {skinInfo} from './skins.js';
 // Fighter methods: AERO's Limits - SCREENSAVER, and FULL AERO (with two computers out): the blast, the
 // transformation into his winged form and back. Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
@@ -138,11 +139,13 @@ export class LimitAero {
     }
     if (U.flash > 0) { const v = this.match.worldCam.worldView; g.fillStyle(0xffffff, U.flash / 22 * 0.85); g.fillRect(v.x, v.y, v.width, v.height); }
   }
+  /** Transform with the icy costume rig when Sub-Zero is equipped. */
   enterFullAero(frames) {
     if (!(this.fullAero > 0)) { this.baseDef = this.def; this.baseSheets = this.sheets; }
     this.def = this.baseDef.fullAero;
     const onStage = this.def.stageSheets && this.def.stageSheets[this.match.stage.id];   // a stage-specific look (INFECTED.EXE)
     this.sheets = { ...this.baseSheets, ...(onStage || this.def.sheets) };
+    if(skinInfo(this.def.id,this.skin).sheetSet==='subzero')this.sheets={...this.baseSheets,...this.def.costumeSheets.subzero};
     this.fullAero = frames; this.match.setAeroStage(true);
     this.match.puff(this.x, this.y - 30, 0xffffff, 20); this.match.puff(this.x, this.y - 30, 0xf3c358, 12);
   }

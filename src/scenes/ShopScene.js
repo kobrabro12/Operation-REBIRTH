@@ -1,3 +1,4 @@
+import {skinInfo} from '../fighters/skins.js';
 import {CHARACTER_SPEECH} from '../audio/speechPolicy.js';
 import {keeperFaceFor} from '../data/shopFacePolicy.js';
 // The Shop (TRINKETS > SHOP). Tabs of shelves along the top, a grid of item cards, and on the right the SHOPKEEPER -
@@ -53,13 +54,14 @@ const PER = GRID.cols * GRID.rows;
 // the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
 const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
 // the on-screen keypad for typing a code (over the shelves): 8 x 4 keys
-const KEYPAD = { x: 30, y: 104, w: 42, h: 30, gap: 5, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'DEL', 'OK', 'CANCEL'] };
+const KEYPAD = { x: 30, y: 104, w: 42, h: 30, gap: 5, cols: 8, keys: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'DEL', 'OK', 'CANCEL', 'SPACE'] };
 const KEY_ROWS = Math.ceil(KEYPAD.keys.length / KEYPAD.cols);   // (5 rows: the letters, the digits, then DEL / OK / CANCEL)
 // secret codes typed on his screen, and what they play: a video drawn on his screen at `px` x `px` pixels, scaled up
 //   video  a clip drawn on his screen at `px` pixels square (webm first; mp4 for Safari) - plays once
 //   anim   a spritesheet looped on his screen (`fps`), with `audio` looping under it
 //   look   'backrooms' (sepia, wallpaper, buzzing lights, the 90s TV) or 'vhs' (washed-out tape, tracking, OSD)
 const SECRETS = {
+  IALWAYSCOMEBACK:{gift:'cos-afton'},
   STILLLIFE: { video: ['assets/shop/still_life.webm', 'assets/shop/still_life.mp4'], px: 34, line: 'stilllife', look: 'backrooms', tv: '90s' },
   RTD: { anim: 'shop_rtd', px: 68, fps: 8, audio: ['assets/shop/rtd.ogg', 'assets/shop/rtd.mp3'], scream: 6, line: 'rtd', look: 'vhs' },
   // forever (saved: the code is in the player's found secrets): nothing plays on his screen - he IS it now. `clip` plays once.
@@ -266,17 +268,18 @@ export class ShopScene extends Phaser.Scene {
     const loading = ensureSheets(this, [{ id: def.id, skin: si }], { evict: true });   // its strips load first (lazySheets.js)
     if (loading) return loading.then(() => this.openPreview(it));
     stat('previews'); this.cheevos();
-    const sh = skinSheets(this, def, si);
+    const sh = skinSheets(this, def, si),set=skinInfo(def.id,si).sheetSet,ownMoves=def.costumeMoveAnims?.[set]||def.moveAnims;
     const n = (key) => Math.max(1, this.textures.get(key).frameTotal - 1);
     const o = [def.originX ?? 0.5, def.originY], mo = def.movesOrigin || o;
-    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: (def.frameCounts && def.frameCounts.idle) || n(sh.idle), step: 6, o, loops: 2 }];
+    const seq = [{ label: 'IDLE', key: sh.idle, from: 0, n: n(sh.idle), step: set==='vader'?4:6, o, loops: 2 }];
     const cosmetic=premiumAnimationFor(def.id,it.skin);
     if(cosmetic){seq[0]={label:'CUSTOM IDLE',key:cosmetic.idleKey,from:0,n:cosmetic.idle[1],step:cosmetic.idle[2],o:cosmetic.idleOrigin,loops:2};}
     if(cosmetic)for(const [j,kind]of ['flourish','taunt'].entries()){const [from,count,step]=cosmetic[kind];seq.push({label:cosmetic.labels[j],key:cosmetic.key,from,n:count,step,o:cosmetic.origin,loops:1});}
-    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: (def.frameCounts && def.frameCounts.run) || n(sh.run), step: 5, o, loops: 3 });
-    for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: (def.frameCounts && def.frameCounts[k]) || n(sh[k]), step: 8, o, loops: 2 });
-    if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: def.frameCounts[k] || n(sh[k]), step: 5, o, loops: 1 });
-    if (def.moveAnims && sh.moves) for (const [k, l] of SHOW) { if(cosmetic&&k==='taunt')continue;const A = def.moveAnims[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
+    if(sh.taunt&&!cosmetic){const own=def.costumeTauntOrigin&&Object.values(def.costumeSheets||{}).some(s=>s.taunt===sh.taunt);seq.push({label:'TAUNT',key:sh.taunt,from:0,n:n(sh.taunt),step:(def.taunt?.frames||80)/n(sh.taunt),o:own?def.costumeTauntOrigin:o,loops:1});}
+    if (sh.run) seq.push({ label: 'RUN', key: sh.run, from: 0, n: n(sh.run), step: Math.max(1,40/n(sh.run)), o, loops: 3 });
+    for (const k of ['jump', 'fall']) if (sh[k]) seq.push({ label: k.toUpperCase(), key: sh[k], from: 0, n: n(sh[k]), step: 8, o, loops: 2 });
+    if (def.ownAnims) for (const [k, l] of [['attack1', 'SWORD SLASH'], ['attack2', 'GRAND SLAM']]) if (sh[k]) seq.push({ label: l, key: sh[k], from: 0, n: n(sh[k]), step: 5, o, loops: 1 });
+    if (ownMoves && sh.moves) for (const [k, l] of SHOW) { if(cosmetic&&k==='taunt')continue;const A = ownMoves[k]; if (A) seq.push({ label: l, key: sh.moves, from: A[0], n: A[1], step: Math.max(1, A[2]), o: mo, loops: 1 }); }
     this.pv = { it, def, seq, i: 0, t: 0 }; sfx('select', 0.5, 1.3); this.react('glasses', 'preview');
   }
   previewCinema(kind) {
@@ -427,7 +430,7 @@ export class ShopScene extends Phaser.Scene {
     const onKey = (e) => {
       const S = this.secret; if (!S || S.mode !== 'code') return;
       const k = e.key, mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -KEYPAD.cols, ArrowDown: KEYPAD.cols }[k];
-      if (/^[a-zA-Z0-9]$/.test(k)) this.typeKey(k.toUpperCase());
+      if (/^[a-zA-Z0-9 ]$/.test(k)) this.typeKey(k.toUpperCase());
       else if (k === 'Backspace') this.typeKey('DEL');
       else if (k === 'Enter') this.typeKey(S.typed ? 'OK' : KEYPAD.keys[S.cur]);
       else if (k === 'Escape') this.closeSecret();
@@ -447,15 +450,18 @@ export class ShopScene extends Phaser.Scene {
     if (k === 'OK') return this.submitCode();
     if (k === 'CANCEL') return this.closeSecret();
     if (k === 'DEL') { S.typed = S.typed.slice(0, -1); sfx('menu', 0.3, 0.9); return; }
-    if (S.typed.length < 12) { S.typed += k; sfx('menu', 0.3, 1.6); S.cur = Math.max(0, KEYPAD.keys.indexOf(k)); }
+    if(k==='SPACE')k=' ';
+    if (S.typed.length < 24) { S.typed += k; sfx('menu', 0.3, 1.6); S.cur = Math.max(0, KEYPAD.keys.indexOf(k)); }
   }
   hideKeypad() { if (this.kg) this.kg.clear(); if (this.keyT) this.keyT.forEach((t) => t.setVisible(false)); if (this.keyHint) this.keyHint.setVisible(false); }
   submitCode() {
+    if(this.secret?.typed.replace(/\s+/g,'').toUpperCase()==='PHYSICALMEDIA'){this.closeSecret(true);this.stopPlaying(true);this.scene.start('Treehouse');return;}
     const code = this.secret.typed.trim().toUpperCase(), S = SECRETS[code];
     if (!S) { this.secret.typed = ''; this.static = 8; this.react('shock', 'wrongcode'); this.secret.t = 0; sfx('curse', 0.3, 1.6); return; }
     window.removeEventListener('keydown', this.secret.onKey); this.hideKeypad(); this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture();
     this.secret = null; this.tvT.setText(''); this.tvCode.setText('');
     addSecret(code); this.cheevos();
+    if(S.gift){const already=owns(S.gift);grantItem(S.gift);this.react('smug','bought');this.say(already?'HE ALWAYS COMES BACK. MICHAEL AFTON IS ALREADY YOURS.':'MICHAEL AFTON UNLOCKED! PICK ROSEMARY AND THIS SKIN. SIGHTINGS TURNS HIM INTO SPRINGTRAP.','#bccb82');this.static=14;sfx('select',.65,.7);return;}
     if (TAKEOVERS[S.takeover]) return this.becomeTakeover(S);
     if (S.call) return this.takeCall(S);
     if (S.takeover) return this.becomeNoli(S);
@@ -714,7 +720,7 @@ export class ShopScene extends Phaser.Scene {
       const wrong = this.face === 'shock' && S.t < 60;
       this.tvT.setText(wrong ? 'WRONG\nCODE' : 'INSERT\nCODE').setColor(wrong ? '#ff8a8a' : '#9affd8').setPosition(cx, cy - 16);
       const typed = S.typed;
-      this.tvCode.setText(typed + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
+      this.tvCode.setText((typed.length>12?'<'+typed.slice(-11):typed) + ((t >> 4) % 2 ? '_' : ' ')).setPosition(cx, cy + 8).setFontSize(typed.length > 8 ? 5 : 6);
       f.lineStyle(1, 0x9affd8, 0.6); f.strokeRect(cx - 32, cy + 1, 64, 14);
     }
   }

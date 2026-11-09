@@ -116,12 +116,10 @@ export const WHAT_ONCE_WAS = {
     // POWER CORD: curls up, then whips its cord straight down - a spike
     dair: { frames: 34, landLag: 14, fx: 'down', hits: [{ from: 10, to: 14, box: [-20, -14, 26, 30], dmg: 12, angle: -80, base: 3.0, growth: 4.4 }] },
     // ---- specials
-    // MISSING POSTER (neutral): flings a poster that flutters forward. Whoever it hits is posted MISSING for
-    // 2 seconds (they take 20% more damage) and it fills the SIGNAL meter. One poster out at a time.
-    neutralB: { frames: 30, spawnAt: 13, poster: {
-      speed: 4.2, life: 80, flutter: 6, mark: 120,
-      hit: { dmg: 6, angle: 40, base: 2.4, growth: 2.2 },
-    } },
+    // STATIC RUPTURE: a slow broadcast orb bursts near an enemy, wall or maximum range.
+    // The ring warns for two ticks; one hit marks the victim for 90 ticks. One orb at a time.
+    neutralB: {name:'STATIC RUPTURE',frames:34,spawnAt:14,rupture:{speed:3.6,fuse:42,radius:32,
+      hit:{dmg:8,angle:48,base:2.7,growth:3.4,missingMark:90,damageType:'psychic'}}},
     // CHANNEL SURF (side, before it transforms): dissolves into static and can't be hit while it's out of reality, then flickers
     // back in further ahead, hitting anyone where it lands. Once per jump.
     sideB: { frames: 40, landLag: 10, fx: 'spin', noclip: { from: 8, to: 22, vx: 8.2 },

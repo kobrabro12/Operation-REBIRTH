@@ -2,6 +2,9 @@ import './phaser-global.js';                         // must stay the first impo
 import './fonts/fonts.css';                          // the pixel font, served with the game (no Google Fonts request)
 import { setupOffline } from './pwa.js';
 import './webp.js';                                  // load the build's WebP copies of rich images (before any scene)
+import {TreehouseScene} from './scenes/TreehouseScene.js';
+import {CartridgeGameScene} from './scenes/CartridgeGameScene.js';
+import {CampaignGameScene} from './scenes/CampaignGameScene.js';
 import {SoulUpgradeScene} from './scenes/SoulUpgradeScene.js';
 import {SoulEvolutionScene} from './scenes/SoulEvolutionScene.js';
 import {SoulRewardScene} from './scenes/SoulRewardScene.js';
@@ -41,7 +44,7 @@ const config = {
   audio:{disableWebAudio:PHONE_DEVICE},
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, FilesScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, FilesScene, TestFightersScene, ShopScene, TreehouseScene, CartridgeGameScene, CampaignGameScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.

@@ -1,3 +1,4 @@
+import {installMobileTextures} from '../mobileTextures.js';
 import {soulEncounter} from '../souls/encounters.js';
 import {soulPower,addSoulXP,applySoulAid} from '../souls/progression.js';
 import {awardSoul} from '../souls/collection.js';
@@ -73,6 +74,7 @@ export class MatchScene extends Phaser.Scene {
    * no other random numbers: a RANDOM pick loads every fighter it could become.
    */
   preload() {
+    installMobileTextures(this);
     const data = this.sys.settings.data || {};
     const soul = data.soulBattle && soulEncounter(data.soulBattle.soulId);
     const demo = !data.shopPreview && !soul && demoRequest.next;
@@ -404,6 +406,7 @@ export class MatchScene extends Phaser.Scene {
     else if (t.shieldHp <= 15) this.combatCue(t, 'low');
   }
 
+  /** Apply one unblocked hit, its launch, meters and any short missing-person mark. */
   applyHit(t, hb, srcX) {
     const h = hb.h, owner = hb.owner;
     const beat = owner && owner.def.beat ? owner.beatBonus(hb) : null;        // NU: an attack started on the beat
@@ -422,6 +425,7 @@ export class MatchScene extends Phaser.Scene {
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
+    if(h.missingMark)t.markMissing(h.missingMark,owner?.style);
 
     if (t.armoured && t.armoured(hb)) {                 // THE TANK dug in (ENTRENCH): the damage gets through, the knockback doesn't
       t.flash = 4; t.hitstop = 4; if (owner && !hb.projectile) owner.hitstop = 4;

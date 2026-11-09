@@ -1,3 +1,4 @@
+import {KOMBAT_COSTUMES} from '../data/kombatCostumes.js';
 import {YOUNG_LINK_EYES} from './youngLinkEyes.js';
 import {copyPackedFrames,expandPackedTexture} from '../mobileTextures.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -714,3 +715,21 @@ export function resolveSkins(picks, wanted) {
   return out;
 }
 
+
+// Dedicated sheets provide the costume geometry; these rules also color alternate forms and minions.
+for(const c of KOMBAT_COSTUMES)SKINS[c.fighter].push({name:c.name,shop:'cos-mk-'+c.set,sheetSet:c.set,swatch:c.swatch,fx:c.color,
+  groups:({'soul-summoner':SS,'mr-wake':MW,'hero-knight':HK,nu:NUG,aero:AEG})[c.fighter],
+  rules:c.set==='subzero'?{aqua:{to:213,sat:1.2,val:.8},lime:{to:205,sat:.4,val:1.2},fish:{to:195,sat:.5,val:1.2}}:{},
+  lore:c.info,vfx:{hit:{shape:c.set==='ermac'?'bubble':c.set==='subzero'?'star':'spark',colors:[c.color,0xffffff],n:7,glint:true},aura:{kombat:c.set},...(c.set==='ermac'?{minion:{flame:{to:112,sat:1.2,val:1.25},eyes:{to:110,val:1.3},cape:{to:354}}}:{})}});
+
+// A permanent shopkeeper-code reward; append so existing saved skin indexes stay valid.
+SKINS['last-seen'].push({name:'MICHAEL AFTON',sheetSet:'afton',shop:'cos-afton',swatch:0x9868bb,fx:0xadbc72,
+ lore:'A purple-shirted security guard who refuses to stay gone. SIGHTINGS transforms him into the decaying Springtrap suit.',
+ vfx:{hit:{shape:'scrap',colors:[0xb6c17c,0xe0d8af,0x9274b8],n:6},aura:{afton:true},
+ seen:{drips:[0x596336,0x737b42,0x391f25],sparks:[0xffdda0,0xb3cc88],tuft:0x778146,smoke:0x242c22}}});
+
+// Append new shop costumes so saved palette selections keep their indexes.
+SKINS['hero-knight'].push({name:'DARTH VADER',sheetSet:'vader',shop:'cos-vader',swatch:0x373b47,fx:0xff3b50,
+ lore:'Black armor, a flowing cape, a red lightsaber, and the power of the dark side.',
+ pal:{outline:0x160b14,deep:0x581424,mid:0xac213b,light:0xff596e,core:0xffece6,shade:0x23121d,void:0x08090f},
+ vfx:{hit:{shape:'spark',colors:[0xff4058,0xffb1ac,0xf5f6ff],n:7,glint:true},aura:{vader:true}}});

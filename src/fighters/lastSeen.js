@@ -3,6 +3,7 @@
 // turns into SEEN - an old canary mascot animatronic, scrapped and rotting, with her inside it - and stays that way
 // until she's KO'd: heavy, fast, and brutal. Data only. Art: tools/sprites/last_seen_draw.py + last_seen_moves.py.
 // Code: fighterLastSeen.js.
+import {rosemaryUpSpecial} from './rosemaryRecoveryData.js';
 import { DEFAULT_GRAB } from './common.js';
 import { LS_MOVES } from './lsMoves.js';
 import { LS_WRONG_MOVES } from './lsWrongMoves.js';
@@ -27,9 +28,9 @@ const COMMON = {
 export const LAST_SEEN = {
   ...COMMON,
   name: 'ROSEMARY',                 // (was LAST SEEN; her id and files keep the old name)
-  sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves' },
+  sheets: { idle: 'ls_idle', run: 'ls_run', jump: 'ls_jump', fall: 'ls_fall', moves: 'ls_moves',recovery:'ls_recovery' },
   // RED ARMY (skins.js sheetSet 'soviet', from the shop's code PAPERSPLEASE): her calm form redrawn as a Soviet soldier
-  costumeSheets: { bunny: Object.fromEntries(['idle','run','jump','fall','moves'].map(k=>[k,'ls_bunny_'+k])), soviet: { idle: 'ls_soviet_idle', run: 'ls_soviet_run', jump: 'ls_soviet_jump', fall: 'ls_soviet_fall', moves: 'ls_soviet_moves' } },
+  costumeSheets: { afton:Object.fromEntries(['idle','run','jump','fall','moves','recovery'].map(k=>[k,'ls_afton_'+k])), bunny: Object.fromEntries(['idle','run','jump','fall','moves','recovery'].map(k=>[k,'ls_bunny_'+k])), soviet: { idle: 'ls_soviet_idle', run: 'ls_soviet_run', jump: 'ls_soviet_jump', fall: 'ls_soviet_fall', moves: 'ls_soviet_moves',recovery:'ls_soviet_recovery' } },
   moveAnims: LS_MOVES,
   fxColor: 0xe8c86a,
   pal: PAL_RAIN,
@@ -66,17 +67,17 @@ export const LAST_SEEN = {
     neutralB: { frames: 30, spawnAt: 12, flyer: { speed: 4.6, life: 70, flutter: 5, mark: 240, hit: { dmg: 4, angle: 40, base: 2.4, growth: 1.6 } } },
     // PLEASE HELP ME (side): she lunges, one hand out, a long way forward - once per jump. If she catches someone
     // she CLINGS to them, begging, and they can't get away: little hits while her SIGHTINGS fill fast, then she
-    // shoves them off. 2 + 4 x 2 + 5 = 15%, and a big chunk of her meter.
+    // shoves them off. 15% damage and about 32 SIGHTINGS, down from 56.
     sideB: { frames: 34, landLag: 10, dive: { from: 8, to: 22, vx: 7.0, vy: -2.2 },
       hits: [{ from: 8, to: 22, box: [-2, -48, 42, 36], dmg: 2, angle: 0, base: 0.4, growth: 0, stun: 30 }],
       cling: {
         frames: 54, every: 12,                        // how long she hangs on, and how often she squeezes
         tick: { dmg: 2, angle: 90, base: 0.3, growth: 0, stun: 24 },
-        fill: 8,                                      // SIGHTINGS for each squeeze (on top of the damage)
+        fill: 2,                                      // SIGHTINGS for each squeeze (on top of the damage)
         shove: { dmg: 5, angle: 40, base: 4.4, growth: 3.6 },
       } },
-    // A FRIGHTENED JUMP (up)
-    upb: { frames: 40, riseAt: 8, riseV: -14, pushX: 2.0, drift: 3.4, hits: [{ from: 8, to: 14, box: [-20, -56, 40, 58], dmg: 4, angle: 80, base: 2.6, growth: 2.4 }] },
+    // LAST ASCENT: toss the axe, leap/catch, then plunge into a landing shockwave.
+    upb:rosemaryUpSpecial(),
     // HIDE (down): curls up with her arms over her head - nothing touches her for a moment
     downB: { frames: 34, hide: { from: 3, to: 26 } },
   },
@@ -109,9 +110,9 @@ export const SEEN = {
   ...COMMON,
   name: 'SEEN',
   swingSfx: 'whoosh',                // the axe
-  sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves', axe: 'ls_wrong_axe' },
+  sheets: { idle: 'ls_wrong_idle', run: 'ls_wrong_run', jump: 'ls_wrong_jump', fall: 'ls_wrong_fall', moves: 'ls_wrong_moves',recovery:'ls_wrong_recovery', axe: 'ls_wrong_axe' },
   // costumes that redraw the animatronic (skins.js sheetSet) - her first form just gets recoloured
-  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned', 'angler', 'bunny'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves', 'axe'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
+  costumeSheets: Object.fromEntries(['rave', 'showtime', 'drowned', 'angler', 'bunny', 'afton'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves', 'axe', 'recovery'].map((k) => [k, 'ls_wrong_' + s + '_' + k]))])),
   moveAnims: LS_WRONG_MOVES,
   fxColor: 0xd8c070,
   pal: PAL_WRONG,
@@ -148,13 +149,8 @@ export const SEEN = {
       finishAt: 51, finish: { dmg: 10, angle: 38, base: 5.6, growth: 6.4 },
       gap: 26,                                        // how far in front of it they're held
     } },
-    // CLIMB (up): claws its way up the air itself
-    upb: { frames: 40, riseAt: 6, riseV: -15.5, pushX: 2.0, drift: 3.8, hits: [
-      { from: 6, to: 8, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
-      { from: 12, to: 14, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
-      { from: 18, to: 20, box: [-22, -70, 44, 40], dmg: 3, angle: 85, base: 1.8, growth: 0, stun: 10 },
-      { from: 24, to: 27, box: [-26, -76, 52, 46], dmg: 7, angle: 80, base: 4.0, growth: 4.6 },
-    ] },
+    // The transformed axe uses the same committed recovery with heavier hits.
+    upb:rosemaryUpSpecial(true),
     // SCREAM (down): HIGH RISK, HIGH REWARD. It throws its axe into the floor, wrenches its jaw open with both hands
     // and screams, spewing blood. It does almost no damage and leaves it wide open (it takes more damage the whole
     // time) - but everyone near the scream is SHAKEN (slowed, and their hits do less), and if it gets the whole

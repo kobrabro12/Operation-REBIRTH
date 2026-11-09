@@ -81,6 +81,8 @@ Walk over one to use it.
 
 ## 8. Stages
 
+DREAMLAND is a free, hazard-free floating garden: a 560 px island, two 122 px side shelves at −90, and a 124 px center shelf at −160. Its background tree, apples and stars are decorative. Music is an original 53-second pulse/triangle loop (`bgm_dreamland`). Lacy’s Legendary DARTH VADER costume costs 1,500 coins; her scale and combat values stay the same. Springtrap’s head and articulated face use an 80% scale around the neck in every form and move.
+
 Each stage has solid ground, pass-through platforms, spawn points, music, an announcer line, and **hazards**.
 Most stages run their hazards through one shared rhythm (`HazardCycle`): one at a time, 10–14 s after the previous one ends
 (the first comes 7–11 s in), each announced by a flashing CAUTION banner for 1.5 s. Sky Sanctum's lightning and Neon
@@ -182,3 +184,17 @@ an announcer voice for each fighter and stage, and a title screen with a live al
 ## Open design questions (decide)
 - Lacy's tilt and aerial numbers (currently placeholders).
 - Fighters 4+ and stages 6–7: planned names and concepts.
+
+Darth Vader's costume has its own articulated animations for movement, normals, air attacks, grabs, counters, Blade Toss, Cyclone Slash and Limit. The 24-cel stride and tick-based clips retain combat timing. Costume details stay attached through each pose; no full-body trail copies are drawn.
+
+While Darth Vader's Blade Toss is airborne, swordless variants cover shielding, dodging, landing, climbing, taunting and defeat, so only the projectile carries the sword.
+
+DARTH VADER replaces the retired shop costume in place; earlier ownership migrates without a coin charge. POWER OF THE DARK SIDE has a 52-tick startup, one-target Force catch, lift/pull, three red saber hits and a finishing Force slam (60% base damage); shield, invulnerability, team and range checks apply. It never changes stage geometry. Springtrap stands with a straight hip/neck column in idle, run and attack recovery.
+
+## Static Rupture, Last Ascent, and Castle Courtyard 64
+
+WHAT ONCE WAS's neutral special is STATIC RUPTURE: 34 ticks, release at tick 14, and one orb traveling at 3.6 pixels per tick for up to 42 ticks. Proximity, a solid wall, or maximum range triggers a two-tick warning followed by a 32-pixel burst. One unblocked hit deals 8% psychic damage and applies MISSING for 90 ticks. Shields and counters remove the orb.
+
+Rosemary's side special keeps its 15% damage but grants two extra SIGHTINGS per squeeze, about 32 total instead of 56. Human Rosemary and SEEN use LAST ASCENT for up special: toss at tick 10, leap at 18, catch at 38, plunge at 46, and helpless fall at 112 if no landing occurs. Real floor contact converts the plunge into 24 ticks of recovery with one shieldable landing strike (6%, or 9% for SEEN). TANK retains its rockets. All human, transformed and disarmed costumes have matching recovery art.
+
+CASTLE COURTYARD 64 is an original N64-style castle with fixed-camera 3D geometry. Combat uses the projected front lips: solid courtyard [-300,300], y=0, bottom=68; balconies [-228,-102], y=-102 and [94,220], y=-136. It has four spawns, no hazards and Dreamland's music. Perspective, distance fog and 2,618 static triangles are computed once rather than rebuilt each tick.

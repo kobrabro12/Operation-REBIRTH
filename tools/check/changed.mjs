@@ -4,7 +4,8 @@
 // clone with no history), every file counts as changed.
 import { execFileSync } from 'node:child_process';
 
-const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+/** Read bounded Git output, including large generated sprite and animation diffs. */
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 
 /** The commit this change started from, or null when there's nothing to compare against. */
 export function baseRef() {

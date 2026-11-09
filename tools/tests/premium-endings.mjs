@@ -11,7 +11,7 @@ try{
  await page.evaluate(async()=>{
  const {MatchScene}=await import('/src/scenes/MatchScene.js'),{WinScene}=await import('/src/scenes/WinScene.js');MatchScene.prototype.update=function(){};window.renderPremiumWin=WinScene.prototype.update;WinScene.prototype.update=function(){};
  const {skinsFor}=await import('/src/fighters/skins.js');
- window.premiumWin=async(fighter,name,rival)=>{for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);const skin=skinsFor(fighter).findIndex(s=>s.name===name);window.game.scene.start('Win',{preview:true,results:[{fighter,skin,slot:0,label:'WINNER'},{fighter:rival,skin:0,slot:1,label:'CPU'}]});await new Promise(r=>setTimeout(r,160));return window.game.scene.getScene('Win');};
+ window.premiumWin=async(fighter,name,rival)=>{for(const s of window.game.scene.getScenes(true))window.game.scene.stop(s.scene.key);const skin=skinsFor(fighter).findIndex(s=>s.name===name);window.game.scene.start('Win',{preview:true,results:[{fighter,skin,slot:0,label:'WINNER'},{fighter:rival,skin:0,slot:1,label:'CPU'}]});await new Promise(r=>setTimeout(r,30));for(let wait=0;wait<1000;wait++){const w=window.game.scene.getScene('Win');if(window.game.scene.isActive('Win')&&w.cut&&w.win?.fighter===fighter&&w.win?.skin===skin)return w;await new Promise(r=>setTimeout(r,20));}throw Error('Win scene did not finish loading');};
  });
  const endings=[];
  const specs=[['soul-summoner','ORRERY','hero-knight','orrery_twelve',45,'LACY was lost to time.'],['hero-knight','PRISM REGENT','mr-wake','prism_ascent',0,'shine bright, today was a good fight'],['mr-wake','ABYSSAL CHOIR','hero-knight','choir_cathedral',0,'LACY met the final bell.'],['hero-knight','OBSIDIAN','mr-wake','obsidian_volcano',0,'Burn like the rest of them.']];
