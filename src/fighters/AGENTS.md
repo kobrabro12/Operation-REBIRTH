@@ -51,21 +51,21 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   layer: the victim walks backstage into SEEN, black/white impact frames per cut; `limit.scene` holds its timings;
   `approach`/DO NOT APPROACH is unused). SEEN is drawn bloodied; her face (part `face`) shows only while the jaw is wrenched open (`face_shows`). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
   analog-horror fighter, not wired into the game.
-  **THE DEVOTED** (`devoted`, keys `dv_*` / `dv_<stage>_*`, WIP - Mason will keep adding to him; the name is a working
+  **THE DEVOTED** (`devoted`, keys `dv_*` / `dv_<stage>_*`, WIP - Mason will keep adding to her; the name is a working
   title): a snowballing knife fighter. Def `devoted.js` (data + `def.devoted` tunables), code `fighterDevoted.js` (mixin),
   art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
   generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
-  `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL (a dying tree, `drawTree`, size `devoted.treeScale`) grows where he first lands after (re)spawning
-  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD as the OBLATION meter
-  standing on his player plate - a wobbling column of living sludge filling with bubbling purple, gobs and drips, a
+  `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). Her SYMBOL (a dying tree, `drawTree`, size `devoted.treeScale`) grows where she first lands after (re)spawning
+  (`this.sigil`); every hit she lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD as the OBLATION meter
+  standing on her player plate - a wobbling column of living sludge filling with bubbling purple, gobs and drips, a
   sludge-soaked skull with stage-coloured eyes that LAUGHS when it's full (jaw clacking, ^ ^ eyes, "HA" = `this.oblLaugh`) -
   `drawDevotionHud`, called from hud.js; its lettering is a text object `this.oblText`); PRAY
-  (down-B, `downB.pray` -> `prayTick` from st_attack; his WORSHIP animation = `downB` in devoted_draw.py: kneels, raises
+  (down-B, `downB.pray` -> `prayTick` from st_attack; her WORSHIP animation = `downB` in devoted_draw.py: kneels, raises
   the karambit, stabs it into the ground on `stabAt` with a sludge splash) with the meter full and within `range` of the symbol -> `ascend()`:
   next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in
-  lazySheets - and `devoteDmg/Speed/Kb` multipliers in Fighter's getters), meter empties. He keeps his stage through
+  lazySheets - and `devoteDmg/Speed/Kb` multipliers in Fighter's getters), meter empties. She keeps her stage through
   KOs. DROWNED: extra air jumps (`wingJumps`) and hovers like a demon (`devoted.hover`: `this.demonFloat` = a FULL AERO-style
-  float, used by Fighter.physics + fighterRender; holding jump on the way down hangs him in the air, `hover.hold` frames per trip). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
+  float, used by Fighter.physics + fighterRender; holding jump on the way down hangs her in the air, `hover.hold` frames per trip). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
   age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit FEED THE DARK
   (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawKarambit`): throws the karambit straight ahead (no homing - it sticks
   in the first opponent it reaches); if it sticks, a screen-space cutscene (`limit.scene` beats, like Rosemary's BIRTHDAY SHOW: `m.frozen`,
@@ -76,40 +76,47 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   victim drawn as two cropped sprites) -> `m.onKO` = instant KO. Miss -> `whiff`. (The old BLACK TIDE, `tideLimit`, is still in the file, unused.) CPU walks back
   to the symbol to pray when full (cpu.js).
   Specials: DEMONS (neutral-B, like Shulk's Monado Arts: `neutralB.demons`; with no demon out, tryCommon -> `startDemonPick`
-  -> state `demonpick` (`st_demonpick`, `drawDemonWheel`, name text `this.pickText`): he stops, tapping the stick turns the wheel of
+  -> state `demonpick` (`st_demonpick`, `drawDemonWheel`, name text `this.pickText`): she stops, tapping the stick turns the wheel of
   `demons.offer` (5) demons picked at random from the 8 in `def.demons.list` each time (`this.pickList`), special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. Each demon
-  moves its own way (`move_<kind>` in DemonPet) for `demons.life` (20 s, a ring shows it running out) and sets his powers while out (`demonSpeed` / `demonKb` /
+  moves its own way (`move_<kind>` in DemonPet) for `demons.life` (20 s, a ring shows it running out) and sets her powers while out (`demonSpeed` / `demonKb` /
   `demonDmg` in Fighter's getters; the glutton's heal and the weeper's double devotion go through addDevotion -> `ownerHit`), and
-  his neutral-B then makes it attack (`neutralB.cmdAt` -> `demonCommand` -> `DemonPet.attack`, cooldown `cd`); its hits are done in
-  `DemonPet.step` with `strike()` (not hitbox()). Kinds: glutton WALKS the floor after him (gravity, hops back if left behind)
+  her neutral-B then makes it attack (`neutralB.cmdAt` -> `demonCommand` -> `DemonPet.attack`, cooldown `cd`); its hits are done in
+  `DemonPet.step` with `strike()` (not hitbox()). Kinds: glutton WALKS the floor after her (gravity, hops back if left behind)
   and its attack charges and SWALLOWS (victim state `seized`, `seizedBy` = the pet, `holdsSeized` - fighterWhatOnceWas'
   st_seized asks it; sprite hidden, chewed, spat out); wraith STAYS where it was called and its attack is SHADOW STEP
-  (`shadowStep`: he and it swap places, cutting the line between - a recovery); brute lurks UNDER THE FLOOR beneath him and its
+  (`shadowStep`: she and it swap places, cutting the line between - a recovery); brute lurks UNDER THE FLOOR beneath her and its
   attack tunnels to the nearest foe and punches up out of the floor; weeper FLOATS HIGH over the nearest foe, drips a tear on
-  its own every `dripEvery`, attack = DOWNPOUR (a torrent under it); hollow is CHAINED to him, orbiting and hitting what it
+  its own every `dripEvery`, attack = DOWNPOUR (a torrent under it); hollow is CHAINED to her, orbiting and hitting what it
   swings into (`bump`), attack = hooked chain that drags them back; crawler HUNTS on its own along the floor and latches onto
   the nearest foe's back (slows them via `demonSlowUntil` in Fighter.speedMult, bites), attack = POUNCE from anywhere (or
-  bursts off whoever it's on), power = his hits charge his Limit; swarm is a CLOUD of flies round him whose power `guard()`
-  blocks a hit on him (MatchScene.applyHit asks it first; `guardEvery` to gather again), attack = STING the nearest foe;
-  toller is PLANTED in the floor (`plant`): in its ring he regenerates and foes are slowed, attack = TOLL (an expanding
-  shockwave), or re-plants itself by him if he's `far` away. Faces:
-  `drawDemonFace`. It leaves when its time's up or he's KO'd (Fighter.ko). The old THE MAW (`throwMaw`/`SludgeMaw`) and
+  bursts off whoever it's on), power = her hits charge her Limit; swarm is a CLOUD of flies round her whose power `guard()`
+  blocks a hit on her (MatchScene.applyHit asks it first; `guardEvery` to gather again), attack = STING the nearest foe;
+  TECHNICAL bits: wraith - tap = swap (`atk.pending` resolved in move_wraith on release), hold `holdFor` = `relocate()` it to her,
+  an attack started within `perfect` frames of a swap = PERFECT STEP (`perfectUntil` -> `perfectHit` in devotedTick ->
+  Fighter.dmgMult x1.3), special in hitstun = SHADOW BREAK (`breakOut()`, from devotedTick, costs `breakCost` of its time);
+  brute - hold special while it tunnels to charge (`chargeMax`, + `chargeDmg` / `chargeBase`), the stick steers it along its
+  floor, letting go bursts it up; weeper - the stick steers the downpour; hollow - the chain is aimed with the stick (read when
+  it flies, a few frames after the press, so up/down don't turn the press into up/down special) and a hook that catches a
+  platform GRAPPLES her onto it (`chain.grip`, `zip`, gives up special back).
+  toller is PLANTED in the floor (`plant`): in its ring she regenerates and foes are slowed, attack = TOLL (an expanding
+  shockwave), or re-plants itself by her if she's `far` away. Faces:
+  `drawDemonFace`. It leaves when its time's up or she's KO'd (Fighter.ko). The old THE MAW (`throwMaw`/`SludgeMaw`) and
   OFFERING (`throwGlobs`/`SludgeGlob`) are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
   `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a
-  special tap in the window, up to `devoted.cuts[stage]`, holds him up in the air; each cut's slash `this.cutFx` hangs where it
-  hit (`cutLanded`, from MatchScene.applyHit) until the combo ends, then they all flash and vanish; Fighter.dmgMult skips his
+  special tap in the window, up to `devoted.cuts[stage]`, holds her up in the air; each cut's slash `this.cutFx` hangs where it
+  hit (`cutLanded`, from MatchScene.applyHit) until the combo ends, then they all flash and vanish; Fighter.dmgMult skips her
   stage bonus for cut moves, so the whole thing tops out at 20%), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
-  SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
+  SLUDGE SWIM (down-B when she can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains
   on that platform only (`stainAt`), intangible, bursts out with jump / special as move `swimPop` (anim = upb); attack bursts
   out as `swimCut`: a knife uppercut that SKEWERS the first one it catches (`skewerStep` from st_attack: victim `seized` on the
   knife, `holdsSeized`), carries them up and smacks them back down at the top (`skewer.smack`, then move `swimSmack`).
   INK FALLS (`sludgeFalls()`, worked out each frame from stains touching a platform's edge, drawn with the stains): sludge pours
   `swim.fallLength` px down the side. Swimming over that edge, or down-B in the air beside one (`fallNear`), -> state
-  `sludgeclimb` (`enterFall` / `st_sludgeclimb`, no gravity - Fighter.physics): up/down climbs, up at the top pops him onto the
-  platform, jump shoots him up and out on top (`climbRush`), holding down at the bottom lets go, attack/special pop out away.
-  Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in his sludge and
+  `sludgeclimb` (`enterFall` / `st_sludgeclimb`, no gravity - Fighter.physics): up/down climbs, up at the top pops her onto the
+  platform, jump shoots her up and out on top (`climbRush`), holding down at the bottom lets go, attack/special pop out away.
+  Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in her sludge and
   DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. MAD MURDER is its own drawing (`sheetSet: 'murder'`,
   `devoted_draw.py --set murder` -> `devoted/murder/` + `murder/semi|taken|drowned/`, all four stages in `costumeSheets.murder`
   as `<stage>_<strip>`; setSludge picks them): blood-soaked white shirt, a cracked smiling mask with one wild eye in the crack. `setSludge` passes every stage's sheets through

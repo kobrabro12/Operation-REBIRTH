@@ -1,6 +1,6 @@
-// THE DEVOTED's mechanics (def.devoted, devoted.js): his SYMBOL, the DEVOTION meter, PRAY (down special) and
-// the four SLUDGE STAGES he climbs, the sludge stains he leaves on the stage (match.sludgeStains), and his Limit
-// FEED THE DARK (and his old one, BLACK TIDE). Mixed into Fighter like the other fighter*.js files.
+// THE DEVOTED's mechanics (def.devoted, devoted.js): her SYMBOL, the DEVOTION meter, PRAY (down special) and
+// the four SLUDGE STAGES she climbs, the sludge stains she leaves on the stage (match.sludgeStains), and her Limit
+// FEED THE DARK (and her old one, BLACK TIDE). Mixed into Fighter like the other fighter*.js files.
 import { sfx } from '../audio/sfx.js';
 import { FONT, VIEW_W, VIEW_H } from '../config.js';
 import { showFighter } from './roster.js';
@@ -14,8 +14,8 @@ const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
 /** THE DEVOTED's methods (symbol, devotion, PRAY, sludge stages, stains, BLACK TIDE), attached to Fighter. */
 export class FighterDevoted {
   /**
-   * Every frame for THE DEVOTED: sets him up the first time, puts his symbol down where he first lands after
-   * (re)spawning, keeps DROWNED's wing jumps, and drips / stains sludge at the rate his stage gives.
+   * Every frame for THE DEVOTED: sets her up the first time, puts her symbol down where she first lands after
+   * (re)spawning, keeps DROWNED's wing jumps, and drips / stains sludge at the rate her stage gives.
    */
   devotedTick() {
     const D = this.def.devoted, m = this.match;
@@ -26,7 +26,7 @@ export class FighterDevoted {
       this.setSludge(0);
     }
     if (this.state === 'respawn') this.sigilWait = true;
-    else if (this.sigilWait && this.grounded && this.platform && this.alive) {       // his symbol appears where he lands
+    else if (this.sigilWait && this.grounded && this.platform && this.alive) {       // her symbol appears where she lands
       this.sigilWait = false;
       this.sigil = { x: this.x, y: this.y, plat: this.platform, dx: this.x - this.platform.x1, born: this.age };
       sfx('curse', 0.4, 1.4); m.puff(this.x, this.y - 20, 0x3a3028, 10);   // (the dying tree grows there)
@@ -34,19 +34,24 @@ export class FighterDevoted {
     if (this.sigil && this.sigil.plat) { this.sigil.x = this.sigil.plat.x1 + this.sigil.dx; this.sigil.y = this.sigil.plat.y; }   // (riding a moving platform)
     if (this.swimCd > 0) this.swimCd--;
     if (this.sludge >= 3 && this.grounded) this.jumpsLeft = Math.max(this.jumpsLeft, D.wingJumps);
-    if (this.sludge >= 3) {                                   // DROWNED: holding jump on the way down hangs him in the air
+    if (this.sludge >= 3) {                                   // DROWNED: holding jump on the way down hangs her in the air
       if (this.grounded) this.hoverLeft = D.hover.hold;
       else if ((this.state === 'air' || this.state === 'attack') && this.ctrl.held('jump') && this.vy > -0.5 && this.hoverLeft > 0) {
         this.hoverLeft--; this.vy = Math.min(this.vy, -0.2);
         if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
       }
     }
+    if (this.state !== 'attack') this.perfectHit = this.perfectSeen = false;   // THE WRAITH's PERFECT STEP: an attack started just after a swap hits harder
+    else if (!this.perfectSeen) { this.perfectSeen = true; this.perfectHit = this.perfectUntil > this.age && this.moveName !== 'neutralB'; if (this.perfectHit) { sfx('shing', 0.5, 1.3); this.match.popText(this, 'PERFECT', '#f4eefc'); } }
+    if (this.state === 'hitstun' && this.demon && this.demon.alive && this.demon.kind === 'wraith' && this.buffer.special) {   // THE WRAITH: SHADOW BREAK out of a combo
+      if (this.demon.breakOut()) this.buffer.special = 0;
+    }
     if (this.cutFx) {                                       // CROSS CUTS' marks hang where they hit until the combo's over
       const chain = this.state === 'attack' && this.move && this.move.cut;
       if (!chain) { for (const c of this.cutFx) c.age++; this.cutFx = this.cutFx.filter((c) => c.age < 16); }
     }
     const U = this.def.moves.upb;
-    if (this.state === 'upb' && U.geyser && this.t <= U.riseAt + U.geyser.length && !m.demo) {   // SLUDGE GEYSER: the column of sludge under him
+    if (this.state === 'upb' && U.geyser && this.t <= U.riseAt + U.geyser.length && !m.demo) {   // SLUDGE GEYSER: the column of sludge under her
       const R = Math.random, gx = this.t <= U.riseAt ? this.x : this.geyserX;
       if (this.t === U.riseAt) {
         this.geyserX = this.x; sfx('bighit', 0.6, 0.55); sfx('curse', 0.4, 0.7); m.shake(4, 8);
@@ -57,7 +62,7 @@ export class FighterDevoted {
     }
     if (this.grounded && this.platform) this.lastPlatform = this.platform;
     const every = D.stainEvery[this.sludge];
-    const under = this.state === 'sludgeswim';           // (under the sludge he only swims in what's there - he doesn't spread it)
+    const under = this.state === 'sludgeswim';           // (under the sludge she only swims in what's there - she doesn't spread it)
     if (every && !under && this.grounded && this.platform && this.age % every === 0) this.stain(this.x + (Math.random() - 0.5) * 10, this.platform, 3 + this.sludge * 2);
     const drip = D.dripEvery[this.sludge];
     if (drip && !under && this.age % drip === 0 && !m.demo) {
@@ -67,7 +72,7 @@ export class FighterDevoted {
   }
 
   /**
-   * DEMONS (neutral special, like Shulk's Monado Arts): stops him to choose a demon from the wheel (state demonpick).
+   * DEMONS (neutral special, like Shulk's Monado Arts): stops her to choose a demon from the wheel (state demonpick).
    */
   startDemonPick() {
     this.setState('demonpick'); this.pickSel = 0; this.pickDir = 99; this.vx *= 0.3;
@@ -79,9 +84,9 @@ export class FighterDevoted {
   }
 
   /**
-   * Every frame on the wheel: he hangs still (falling slowly in the air); tapping the stick turns the wheel, special or
-   * attack calls it, shield backs out. If he waits too long it calls the one he's pointing at.
-   * @param {object} c - his controller
+   * Every frame on the wheel: she hangs still (falling slowly in the air); tapping the stick turns the wheel, special or
+   * attack calls it, shield backs out. If she waits too long it calls the one she's pointing at.
+   * @param {object} c - her controller
    */
   st_demonpick(c) {
     const L = this.pickList, n = L.length;
@@ -101,14 +106,14 @@ export class FighterDevoted {
     }
   }
 
-  /** His neutral special with a demon out: it attacks (if it's ready). */
+  /** Her neutral special with a demon out: it attacks (if it's ready). */
   demonCommand() {
     if (this.demon && this.demon.alive) this.demon.attack();
   }
 
   /**
-   * The demon wheel round him while he chooses: five demon faces in a ring, the one he's pointing at big and lit,
-   * a dark circle behind, and the name + power of the chosen one over his head.
+   * The demon wheel round her while she chooses: five demon faces in a ring, the one she's pointing at big and lit,
+   * a dark circle behind, and the name + power of the chosen one over her head.
    */
   drawDemonWheel(g) {
     const L = this.pickList || this.def.demons.list.slice(0, 5), n = L.length, cx = this.x, cy = this.y - 34, R = 46, k = Math.min(1, this.t / 8);
@@ -148,7 +153,7 @@ export class FighterDevoted {
   }
 
   /**
-   * OFFERING (old neutral special, unused now): flings globs of sludge from his cut palm - more of them, fanned out, at each stage
+   * OFFERING (old neutral special, unused now): flings globs of sludge from her cut palm - more of them, fanned out, at each stage
    * (`glob.count[stage]`), each one a little harder (`glob.perStage` extra damage per stage).
    */
   throwGlobs(G) {
@@ -160,21 +165,21 @@ export class FighterDevoted {
     }
   }
 
-  /** Switches his look, stats and powers to a sludge stage (0 DEFAULT - 3 DROWNED). */
+  /** Switches her look, stats and powers to a sludge stage (0 DEFAULT - 3 DROWNED). */
   setSludge(n) {
     const D = this.def.devoted;
     this.sludge = n;
     const set = skinInfo(this.def.id, this.skin || 0).sheetSet, cs = set && this.def.costumeSheets && this.def.costumeSheets[set];
     if (cs) this.sheets = Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, cs[(n ? STAGE_DIRS[n] + '_' : '') + k]]));   // (a drawn costume: its own strips for this stage)
-    else this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in his costume's colours)
+    else this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in her costume's colours)
     this.devoteDmg = D.dmg[n]; this.devoteSpeed = D.speed[n]; this.devoteKb = D.kb[n];
     this.demonFloat = n >= 3 ? D.hover.float : null;          // DROWNED hovers like a demon
   }
 
-  /** A hit he landed: one more toward his next stage. Says PRAY when the meter is full. */
+  /** A hit she landed: one more toward her next stage. Says PRAY when the meter is full. */
   addDevotion(n = 1) {
     const D = this.def.devoted;
-    if (this.demon && this.demon.alive) this.demon.ownerHit();        // (his demon's power: THE GLUTTON heals him...)
+    if (this.demon && this.demon.alive) this.demon.ownerHit();        // (her demon's power: THE GLUTTON heals her...)
     if (this.demon && this.demon.alive && this.demon.kind === 'weeper' && (this.weepHits = (this.weepHits || 0) + 1) % 2 === 0) n++;   // (...THE WEEPER doubles every second hit)
     if (this.sludge === undefined || this.sludge >= 3) return;
     const need = D.need[this.sludge], was = this.devotion;
@@ -182,7 +187,7 @@ export class FighterDevoted {
     if (was < need && this.devotion >= need) { this.match.popText(this, 'PRAY', '#f8f4ec'); sfx('limitready', 0.45, 0.6); }
   }
 
-  /** True when praying right now would take him up a stage: devotion full, near his symbol, standing. */
+  /** True when praying right now would take her up a stage: devotion full, near her symbol, standing. */
   canAscend() {
     const D = this.def.devoted;
     if (this.sludge >= 3 || this.devotion < D.need[this.sludge] || !this.sigil || !this.grounded) return false;
@@ -190,8 +195,8 @@ export class FighterDevoted {
   }
 
   /**
-   * PRAY (his down special, run from st_attack while the downB move plays): decides on the first frame whether
-   * the prayer is answered; an answered one takes him up a stage on `ascendAt`, an unanswered one ends early.
+   * PRAY (her down special, run from st_attack while the downB move plays): decides on the first frame whether
+   * the prayer is answered; an answered one takes her up a stage on `ascendAt`, an unanswered one ends early.
    */
   prayTick() {
     const D = this.def.devoted, m = this.match;
@@ -210,7 +215,7 @@ export class FighterDevoted {
       if (this.platform) this.stain(kx, this.platform, 4 + this.sludge * 2);
     }
     if (this.prayAnswered) {
-      if (this.t < D.ascendAt && this.t % 3 === 0) {      // the sludge rises out of the floor round him
+      if (this.t < D.ascendAt && this.t % 3 === 0) {      // the sludge rises out of the floor round her
         const R = Math.random;
         m.particles.push({ x: this.x + (R() - 0.5) * 40, y: this.y, vx: 0, vy: -1 - R() * 1.5, life: 24, color: SLUDGE[Math.floor(R() * 3)], size: 3, grav: -0.02 });
       }
@@ -243,7 +248,7 @@ export class FighterDevoted {
     if (S.length > this.def.devoted.maxStains) S.shift();
   }
 
-  /** Draws his symbol (the dying tree) and (for the first DEVOTED) every sludge stain. His meter is on the HUD (drawDevotionHud). */
+  /** Draws her symbol (the dying tree) and (for the first DEVOTED) every sludge stain. Her meter is on the HUD (drawDevotionHud). */
   drawDevoted() {
     if (this.sludge === undefined) return;
     const g = this.sigilG, D = this.def.devoted, m = this.match;
@@ -308,20 +313,20 @@ export class FighterDevoted {
     return out;
   }
 
-  /** The ink fall he's touching in the air (within reach of its column), or null. */
+  /** The ink fall she's touching in the air (within reach of its column), or null. */
   fallNear() {
     if (this.grounded) return null;
     return this.sludgeFalls().find((f) => Math.abs(this.x - (f.x + f.side * this.body.w / 2)) < 24 && this.y > f.top + 4 && this.y - this.body.h < f.bot) || null;
   }
 
-  /** SLUDGE SWIM: can down special sink him into the sludge here? (standing in a stain, or in the air by an ink fall - and not able to go up a stage) */
+  /** SLUDGE SWIM: can down special sink her into the sludge here? (standing in a stain, or in the air by an ink fall - and not able to go up a stage) */
   canSwim() {
     if (this.swimCd > 0 || this.canAscend()) return false;
     if (this.grounded) return !!(this.platform && this.stainAt(this.x, this.platform));
     return !!this.fallNear();
   }
 
-  /** Sinks him into the sludge (state sludgeswim), or into the ink fall he's next to (state sludgeclimb). */
+  /** Sinks her into the sludge (state sludgeswim), or into the ink fall she's next to (state sludgeclimb). */
   startSwim() {
     const fall = this.fallNear();
     if (fall) { this.enterFall(fall, this.y); return; }
@@ -332,9 +337,9 @@ export class FighterDevoted {
   }
 
   /**
-   * Every frame under the sludge: slides along the stains on his platform with the stick (stopping at their edge),
-   * can't be hit, and bursts out with jump / attack / special, or when he's been under too long or lost the floor.
-   * @param {object} c - his controller
+   * Every frame under the sludge: slides along the stains on her platform with the stick (stopping at their edge),
+   * can't be hit, and bursts out with jump / attack / special, or when she's been under too long or lost the floor.
+   * @param {object} c - her controller
    */
   st_sludgeswim(c) {
     const W = this.def.moves.downB.swim, m = this.match, plat = this.platform, R = Math.random;
@@ -344,9 +349,9 @@ export class FighterDevoted {
     this.invincible = Math.max(this.invincible, 2);
     if (Math.abs(c.x) > 0.2) {
       this.facing = Math.sign(c.x);
-      const nx = Math.max(plat.x1 + 1, Math.min(plat.x2 - 1, this.x + c.x * W.speed * this.speedMult));   // (he stays on the platform...)
+      const nx = Math.max(plat.x1 + 1, Math.min(plat.x2 - 1, this.x + c.x * W.speed * this.speedMult));   // (she stays on the platform...)
       const fall = this.sludgeFalls().find((f) => f.plat === plat && f.side === Math.sign(c.x));
-      if (fall && Math.abs(nx - fall.x) < 3) { this.enterFall(fall, plat.y + 8); return; }   // (...unless an ink fall takes him over the edge)
+      if (fall && Math.abs(nx - fall.x) < 3) { this.enterFall(fall, plat.y + 8); return; }   // (...unless an ink fall takes her over the edge)
       if (this.stainAt(nx, plat)) this.x = nx;             // (never out past the sludge's edge)
       else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat)) this.x = px; else break; }
       if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
@@ -357,9 +362,9 @@ export class FighterDevoted {
   }
 
   /**
-   * Into an ink fall (state sludgeclimb): he hangs in the column of sludge pouring off a platform's edge.
+   * Into an ink fall (state sludgeclimb): she hangs in the column of sludge pouring off a platform's edge.
    * @param {object} fall - from sludgeFalls()
-   * @param {number} y - how far down it he goes in
+   * @param {number} y - how far down it she goes in
    */
   enterFall(fall, y) {
     this.setState('sludgeclimb'); this.climbFall = fall; this.climbRush = false;
@@ -370,9 +375,9 @@ export class FighterDevoted {
 
   /**
    * Every frame in an ink fall: up / down swims along it (climbing back up the stage's side); at the top, holding
-   * up pulls him out onto the platform; at the bottom, holding down lets go. Jump shoots him up it and out onto the platform,
-   * attack / special bursts out away from it. Can't be hit; he comes out by himself when he's been in the sludge too long, or if the fall dries up.
-   * @param {object} c - his controller
+   * up pulls her out onto the platform; at the bottom, holding down lets go. Jump shoots her up it and out onto the platform,
+   * attack / special bursts out away from it. Can't be hit; she comes out by herself when she's been in the sludge too long, or if the fall dries up.
+   * @param {object} c - her controller
    */
   st_sludgeclimb(c) {
     const W = this.def.moves.downB.swim, m = this.match, R = Math.random, old = this.climbFall;
@@ -399,7 +404,7 @@ export class FighterDevoted {
 
   /**
    * Bursts out of the sludge (floor or ink fall) as move swimPop: a leap or a hop, with a splash that hits anyone there.
-   * @param {number} vy - his jump out
+   * @param {number} vy - her jump out
    * @param {number} vx - sideways push
    */
   swimPop(vy, vx = 0, move = 'swimPop') {
@@ -414,8 +419,8 @@ export class FighterDevoted {
   }
 
   /**
-   * SLUDGE SWIM's knife uppercut (attack out of the sludge, move swimCut): he bursts up karambit first. The first
-   * one it catches is SKEWERED - stuck on the knife, carried up with him - then at the top he smacks them back down
+   * SLUDGE SWIM's knife uppercut (attack out of the sludge, move swimCut): she bursts up karambit first. The first
+   * one it catches is SKEWERED - stuck on the knife, carried up with her - then at the top she smacks them back down
    * (`swimCut.smack`, a spike). Called every frame of the move from st_attack.
    * @param {object} m - the move (swimCut)
    */
@@ -437,8 +442,8 @@ export class FighterDevoted {
     const o = this.skewered;
     if (!o.alive || o.state !== 'seized') { this.skewered = null; return; }
     this.skewerT++;
-    o.x = this.x + this.facing * 4; o.y = this.y - 76;           // stuck on the knife above him
-    if (this.vy >= -0.5 || this.skewerT >= S.hold) {           // the top: he smacks them back down
+    o.x = this.x + this.facing * 4; o.y = this.y - 76;           // stuck on the knife above her
+    if (this.vy >= -0.5 || this.skewerT >= S.hold) {           // the top: she smacks them back down
       this.skewered = null; o.seizedBy = null; o.setState('air');
       M.applyHit(o, { x1: o.x - 10, x2: o.x + 10, y1: o.y - 40, y2: o.y, h: S.smack, owner: this, id: 'smack' + this.age, facing: this.facing }, this.x);
       sfx('bighit', 0.9, 0.6); M.shake(6, 8);
@@ -446,12 +451,12 @@ export class FighterDevoted {
     }
   }
 
-  /** Whether he's still holding someone on his knife (the victim's st_seized asks). */
+  /** Whether she's still holding someone on her knife (the victim's st_seized asks). */
   holdsSeized(v) { return this.skewered === v && this.state === 'attack'; }
 
   /**
-   * Draws him under the sludge: sinking into it, then only a black bulge in the puddle with his white eyes and
-   * smile peeking out, rippling as he moves.
+   * Draws her under the sludge: sinking into it, then only a black bulge in the puddle with her white eyes and
+   * smile peeking out, rippling as she moves.
    */
   drawSwim(spr, g) {
     const W = this.def.moves.downB.swim, k = Math.min(1, this.t / W.sink);
@@ -474,13 +479,13 @@ export class FighterDevoted {
   }
 
   /**
-   * His OBLATION meter on the HUD: a column of living sludge standing on his player plate. Its sides wobble and bulge,
-   * the purple sludge inside rises from the bottom as he lands hits (bubbling, with a wavy surface), it drips off its
+   * Her OBLATION meter on the HUD: a column of living sludge standing on her player plate. Its sides wobble and bulge,
+   * the purple sludge inside rises from the bottom as she lands hits (bubbling, with a wavy surface), it drips off its
    * sides, and OBLATION is written down it. On top sits a sludge-soaked skull with glowing eyes; when the meter is
    * full (and always at DROWNED) the skull LAUGHS - jaw clacking, rattling, eyes squeezed shut, "HA" popping out.
    * @param {Phaser.GameObjects.Graphics} g - the HUD's graphics
    * @param {number} cx - the column's middle
-   * @param {number} by - its foot (the top of his plate)
+   * @param {number} by - its foot (the top of her plate)
    * @param {number} frame - for the animation
    */
   drawDevotionHud(g, cx, by, frame) {
@@ -496,7 +501,7 @@ export class FighterDevoted {
     // the column: a wobbling black skin of sludge, dark inside
     for (let y = top; y < by; y += 2) { const w = half(y); g.fillStyle(0x060508, 1); g.fillRect(Math.round(cx - w - 1), y, Math.round(w * 2 + 2), 2); }
     for (let y = top + 1; y < by; y += 2) { const w = half(y) - 1.5; g.fillStyle(0x1a0f24, 1); g.fillRect(Math.round(cx - w), y, Math.round(w * 2), 2); }
-    // the purple sludge inside, rising with his devotion: a wavy surface, a lit edge, bubbles
+    // the purple sludge inside, rising with her devotion: a wavy surface, a lit edge, bubbles
     const fh = Math.round((Hh - 2) * frac), surf = by - fh;
     if (fh > 0) {
       for (let y = surf; y < by; y += 2) {
@@ -549,14 +554,14 @@ export class FighterDevoted {
   }
 
   /**
-   * CROSS CUTS (side special), every frame of a cut: draws its slash, holds him up in the air, and when special is
-   * tapped in the cut's window, carries on into the next cut (the last one he has at his stage is the finisher).
+   * CROSS CUTS (side special), every frame of a cut: draws its slash, holds her up in the air, and when special is
+   * tapped in the cut's window, carries on into the next cut (the last one she has at her stage is the finisher).
    * @param {object} m - the cut's move
    * @returns {boolean} true when it started the next cut
    */
   cutStep(m) {
     const D = this.def.devoted, max = D.cuts[this.sludge || 0];
-    if (!this.grounded) { this.vy = Math.min(this.vy, 0.5); if (this.t === 1) this.vx = this.facing * 2; }   // (cuts in the air keep him up)
+    if (!this.grounded) { this.vy = Math.min(this.vy, 0.5); if (this.t === 1) this.vx = this.facing * 2; }   // (cuts in the air keep her up)
     const h = m.hits[0];
     if (this.t === h.from) {
       const x = this.x + this.facing * (h.box[0] + h.box[2] / 2), y = this.y + h.box[1] + h.box[3] / 2;
@@ -573,8 +578,8 @@ export class FighterDevoted {
   }
 
   /**
-   * THE SYMBOL: a small dying tree growing where he first landed - crooked bare trunk, drooping broken branches with
-   * a few dead leaves left on them, black sludge weeping from a knot in the trunk. When his prayer would be answered
+   * THE SYMBOL: a small dying tree growing where she first landed - crooked bare trunk, drooping broken branches with
+   * a few dead leaves left on them, black sludge weeping from a knot in the trunk. When her prayer would be answered
    * the knot glows with a pale smile and a faint light rises round the tree.
    * @param {number} a - how far it has faded in (0-1)
    * @param {boolean} ready - devotion full
@@ -596,7 +601,7 @@ export class FighterDevoted {
     g.fillStyle(0x3a3028, a); g.fillPoints(T, true); g.lineStyle(Math.max(1, Math.round(S * 0.7)), 0x140e0c, a); g.strokePoints(T, true);
     line(0.6, 0x241c18, -1, -4, 0, -12); line(0.6, 0x241c18, 1, -22, 0, -30);              // cracks in the bark
     line(0.6, 0x5a4a3e, -2.6, -9, -2.6, -3);                                                 // light down one side
-    // the knot: black sludge weeps out of it; a pale smile in it when he's ready
+    // the knot: black sludge weeps out of it; a pale smile in it when she's ready
     const k = P(0, -16); g.fillStyle(0x060508, a); g.fillEllipse(k.x, k.y, 5 * S, 4 * S);
     const drip = (4 + ((t >> 4) % 5)) * S;
     g.fillRect(k.x - S * 0.5, k.y + S, S, drip); g.fillRect(k.x - S * 1.5, k.y + S, S, Math.max(2, drip - 3 * S));
@@ -609,7 +614,7 @@ export class FighterDevoted {
   }
 
   /**
-   * FEED THE DARK (his Limit): throws the karambit straight ahead (no homing). If it sticks in someone, a cutscene
+   * FEED THE DARK (her Limit): throws the karambit straight ahead (no homing). If it sticks in someone, a cutscene
    * (`drawRite`): a giant shadow demon of sludge rises behind them, grabs them, lifts them and tears them in half -
    * back in the arena they're KO'd on the spot. If it hits nobody, the knife just flies off.
    */
@@ -617,11 +622,11 @@ export class FighterDevoted {
     const m = this.match;
     this.vx = 0; this.lx = 0; this.vy = this.grounded ? 0 : Math.min(this.vy, 0.5);
     if (this.t === 1) {
-      this.ult = { rite: true, target: null, victims: [], phase: 'aim', ct: 0 };   // (no aiming help: it flies the way he faces)
+      this.ult = { rite: true, target: null, victims: [], phase: 'aim', ct: 0 };   // (no aiming help: it flies the way she faces)
       sfx('curse', 0.6, 0.6);
     }
     const U = this.ult, T = U.target;
-    if (U.phase === 'aim' && this.t === L.throwAt) {      // the knife leaves his hand
+    if (U.phase === 'aim' && this.t === L.throwAt) {      // the knife leaves her hand
       U.phase = 'throw'; U.kx = this.x + this.facing * 14; U.ky = this.y - 38; U.kvx = this.facing * L.knifeSpeed; U.kvy = 0; U.spin = 0;
       sfx('swing', 0.8, 0.8); sfx('whoosh', 0.5, 1.2);
     }
@@ -870,7 +875,7 @@ export class FighterDevoted {
     ui.fillStyle(0xd8b0ff, 0.25 * eyes); ui.fillCircle(cx - 16, cy - 129, 12); ui.fillCircle(cx + 16, cy - 129, 12);
   }
 
-  /** His karambit, drawn on its own (thrown, or stuck in someone): a curved hooked blade with a ring at the grip. */
+  /** Her karambit, drawn on its own (thrown, or stuck in someone): a curved hooked blade with a ring at the grip. */
   drawKarambit(g, x, y, ang, s) {
     const c = Math.cos(ang), sn = Math.sin(ang), P = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
     g.lineStyle(2 * s, 0x1a1418, 1); g.strokeCircle(...P(-6, 0), 2.5 * s);
@@ -880,8 +885,8 @@ export class FighterDevoted {
   }
 
   /**
-   * BLACK TIDE (his Limit): sludge bursts out of him on `hitAt`, hitting everyone in `radius` (harder for each
-   * stage he's reached), staining the floor all round him and filling his devotion.
+   * BLACK TIDE (her Limit): sludge bursts out of her on `hitAt`, hitting everyone in `radius` (harder for each
+   * stage she's reached), staining the floor all round her and filling her devotion.
    */
   tideLimit(L) {
     const m = this.match;

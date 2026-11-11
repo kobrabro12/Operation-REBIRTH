@@ -4,7 +4,7 @@ How fighter and costume art is generated from Mason's drawings.
 The root `AGENTS.md` (rules, stack, map) applies too. Keep this file up to date when you change what it describes.
 
 ## THE DEVOTED
-`devoted_draw.py`: THE DEVOTED's four sludge-stage looks (repaints AERO's parts; sludge coverage `COVER`, smile per stage in `head()`, `wing()` = DROWNED's demon wing in the scarf slot) and his moves table `src/fighters/dvMoves.js`. Rerun it after changing the drawing. `--set murder` builds the MAD MURDER costume instead (`VARIANT`: `MURDER_SHIRT`, `BLOOD`, `bloody()`, `mask()`, a red blade) into `devoted/murder/`.
+`devoted_draw.py`: THE DEVOTED's four sludge-stage looks (repaints AERO's parts; sludge coverage `COVER`, smile per stage in `head()`, `wing()` = DROWNED's demon wing in the scarf slot) and her moves table `src/fighters/dvMoves.js`. Rerun it after changing the drawing. `--set murder` builds the MAD MURDER costume instead (`VARIANT`: `MURDER_SHIRT`, `BLOOD`, `bloody()`, `mask()`, a red blade) into `devoted/murder/`.
 
 ## Shop costumes
 Files: `tools/sprites/shop_costumes.py` (+ helpers `costume_kit.py`)

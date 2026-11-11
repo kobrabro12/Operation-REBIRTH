@@ -1,13 +1,13 @@
 """THE DEVOTED (WIP test fighter) - a quiet, pale man with a kitchen knife who prays to a symbol, and a black
-sludge that takes a little more of him every time he does. Four looks, one per sludge stage:
+sludge that takes a little more of her every time she does. Four looks, one per sludge stage:
 
   DEFAULT  clean: long ashy-blond hair, a striped mustard shirt, dark trousers, a karambit, a faint smile
-  SEMI     sludge drips from his hair down his face and shoulders; the smile widens
-  TAKEN    most of him is covered; a wide toothy grin
-  DROWNED  he's all sludge but his eyes and a huge grin - and one giant demon wing grows from his back
+  SEMI     sludge drips from her hair down her face and shoulders; the smile widens
+  TAKEN    most of her is covered; a wide toothy grin
+  DROWNED  she's all sludge but her eyes and a huge grin - and one giant demon wing grows from her back
 
 Built on AERO's skeleton (tools/sprites/aero_moves.py: the same parts and the same moves, minus FULL AERO's
-spear moves); his move table is src/fighters/dvMoves.js (generated here). The karambit is drawn into his front fist; the scarf slot is the demon wing (DROWNED) or a sludge strand.
+spear moves); her move table is src/fighters/dvMoves.js (generated here). The karambit is drawn into her front fist; the scarf slot is the demon wing (DROWNED) or a sludge strand.
 
   python3 tools/sprites/devoted_draw.py [--preview FILE]
   -> public/assets/fighters/devoted/ (DEFAULT) and devoted/semi/, devoted/taken/, devoted/drowned/
@@ -44,7 +44,7 @@ def bloody(x, y, seed, heavy=0.0):
     """Is this pixel splashed with blood? (MAD MURDER) - spatters, plus heavier soaking lower down."""
     return blob(x, y, seed + 21) + heavy * (y / 64) > 0.78 or noise(x, y, seed + 22) > 0.95
 
-# how much of him the sludge covers at each stage (0 = none, 1 = all of him)
+# how much of her the sludge covers at each stage (0 = none, 1 = all of her)
 COVER = [0.0, 0.34, 0.6, 1.0]
 # which parts are what (the shading ramp they get)
 KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
@@ -70,7 +70,7 @@ def blob(x, y, seed=0):
     return (noise(x // 3, y // 3, seed) * 0.6 + noise(x // 2, y // 2, seed + 9) * 0.4)
 
 def sludged(x, y, stage, seed=0):
-    """Is this pixel under sludge? It pours down from the top of his head, unevenly, in runs and drips."""
+    """Is this pixel under sludge? It pours down from the top of her head, unevenly, in runs and drips."""
     c = COVER[stage]
     if c <= 0: return False
     if c >= 1: return True
@@ -108,7 +108,7 @@ def repaint(a, ramp, stage, seed):
     return outline(a) if stage else a
 
 def head(stage):
-    """His head, facing right: messy dark hair, two dark eyes, and a smile that grows with every stage."""
+    """Her head, facing right: messy dark hair, two dark eyes, and a smile that grows with every stage."""
     im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
     d.ellipse([26, 6, 41, 22], fill=(255, 255, 255, 255))
     h = np.zeros((64, 64, 4), np.uint8); s = np.array(im)[..., 3] > 0
@@ -116,13 +116,13 @@ def head(stage):
     for y, x in zip(*np.nonzero(s)):
         v = 1 - min(1, math.hypot(x - 37, y - 10) / 13)
         h[y, x] = hx(SKIN[min(3, int(v * 3.99))])
-    # hair: long and straight - a fringe across his forehead, a lock over his front eye's brow, and a curtain down
-    # the back of his head past his neck
+    # hair: long and straight - a fringe across her forehead, a lock over her front eye's brow, and a curtain down
+    # the back of her head past her neck
     im2 = Image.new('RGBA', (64, 64)); d2 = ImageDraw.Draw(im2)
-    d2.ellipse([25, 4, 42, 13], fill=(255, 255, 255, 255))                     # the crown (kept above his eyes)
+    d2.ellipse([25, 4, 42, 13], fill=(255, 255, 255, 255))                     # the crown (kept above her eyes)
     d2.rectangle([31, 11, 43, 14], fill=(0, 0, 0, 0))
     d2.polygon([(25, 9), (31, 9), (31, 26), (28, 28), (24, 25)], fill=(255, 255, 255, 255))   # down the back
-    d2.polygon([(33, 8), (42, 8), (42, 10), (34, 10)], fill=(255, 255, 255, 255))   # the fringe, ending above his brows
+    d2.polygon([(33, 8), (42, 8), (42, 10), (34, 10)], fill=(255, 255, 255, 255))   # the fringe, ending above her brows
     hm = np.array(im2)[..., 3] > 0
     for y, x in zip(*np.nonzero(hm)):
         k = 3 if (y < 8 and x > 30) else 2 if (x + y * 0) % 3 else 1     # light on top, strands down the back
@@ -131,14 +131,14 @@ def head(stage):
     for x in range(25, 31):                                                  # the uneven ends
         if noise(x, 2, 7) < 0.5: h[27 + int(noise(x, 4, 7) * 2), x] = hx(HAIR[0])
     a = h
-    # the sludge (from stage 1 on it pours down from his hair; DROWNED: all of him)
+    # the sludge (from stage 1 on it pours down from her hair; DROWNED: all of her)
     hair = np.zeros((64, 64), bool)
     for y, x in zip(*np.nonzero(a[..., 3] > 0)):
         if tuple(a[y, x, :3]) in [tuple(hx(c)[:3]) for c in HAIR]: hair[y, x] = True
     for y, x in zip(*np.nonzero(a[..., 3] > 0)):
-        if stage == 1:                    # SEMI: the top of his hair is soaked, and it runs down his hair and face in streaks
+        if stage == 1:                    # SEMI: the top of her hair is soaked, and it runs down her hair and face in streaks
             on = (hair[y, x] and (y < 9 + noise(x, 0, 12) * 4 or noise(x, 1, 12) < 0.3)) or (x in (34, 37, 41) and y < 11 + noise(x, 0, 5) * 8)
-        elif stage == 2:                  # TAKEN: all of his head but a patch of face round the eyes and the grin
+        elif stage == 2:                  # TAKEN: all of her head but a patch of face round the eyes and the grin
             on = ((x - 37) / 5.5) ** 2 + ((y - 15) / 4.5) ** 2 > 1 + (noise(x, y, 3) - 0.5) * 0.5
         else: on = stage == 3
         if on: a[y, x] = hx(SLUDGE[3 if noise(x, y, 8) > 0.9 else 1 + int(noise(x, y, 9) * 1.99)])
@@ -167,7 +167,7 @@ def head(stage):
     return a
 
 def mask(a, stage):
-    """MAD MURDER's mask over his face: a pale smiling face (shut, happy eyes and a wide painted grin) splashed with
+    """MAD MURDER's mask over her face: a pale smiling face (shut, happy eyes and a wide painted grin) splashed with
     blood, a crack running down through it, and in the crack one wild, bloodshot eye staring out."""
     im = Image.new('RGBA', (64, 64)); ImageDraw.Draw(im).ellipse([31, 7, 43, 21], fill=(255, 255, 255, 255))
     m = np.array(im)[..., 3] > 0
@@ -189,7 +189,7 @@ def mask(a, stage):
     for x, y in [(38, 11), (40, 11), (38, 12), (40, 12), (39, 11), (39, 12), (39, 10), (39, 13)]: a[y, x] = hx(0xf8f0e8)
     a[11, 38] = hx(0xc83030); a[12, 40] = hx(0xc83030)
     a[11, 39] = hx(0x000000); a[12, 39] = hx(0x6a0c10)
-    if stage >= 2: a[11, 40] = hx(0xff3030)                                              # (redder the further gone he is)
+    if stage >= 2: a[11, 40] = hx(0xff3030)                                              # (redder the further gone she is)
     for y in range(17, 20 + stage):                                                       # blood running off the chin
         if a[y, 36, 3]: a[y, 36] = hx(BLOOD[2])
     return a
@@ -203,11 +203,11 @@ def knife(a):
     return a
 
 def _knife(a):
-    """A karambit in his front fist: a black claw-curved blade hooking forward and down out of the bottom of his fist,
-    a silver edge along its inside curve, the black grip in his hand and the finger ring sticking out behind it."""
+    """A karambit in her front fist: a black claw-curved blade hooking forward and down out of the bottom of her fist,
+    a silver edge along its inside curve, the black grip in her hand and the finger ring sticking out behind it."""
     a = a.copy()
-    for x, y in [(43, 26), (44, 26), (45, 26)]: a[y, x] = hx(0x16161c)        # the black grip, showing through his fingers
-    for x, y in [(42, 19), (43, 18), (44, 18), (45, 19), (45, 20), (44, 21), (43, 21), (42, 20)]:   # the finger ring, over his fist
+    for x, y in [(43, 26), (44, 26), (45, 26)]: a[y, x] = hx(0x16161c)        # the black grip, showing through her fingers
+    for x, y in [(42, 19), (43, 18), (44, 18), (45, 19), (45, 20), (44, 21), (43, 21), (42, 20)]:   # the finger ring, over her fist
         a[y, x] = hx(0x4a4a56 if y < 20 else 0x16161c)
     for x, y in [(41, 19), (41, 20), (42, 17), (43, 17), (44, 17), (45, 17), (46, 19), (46, 20), (42, 21), (45, 21)]:
         if not a[y, x, 3]: a[y, x] = hx(LINE)
@@ -219,7 +219,7 @@ def _knife(a):
     d.polygon(outer + inner, fill=(255, 255, 255, 255))
     m = np.array(im)[..., 3] > 0
     for y, x in zip(*np.nonzero(m)):
-        if a[y, x, 3] and x <= 46: continue                                                # (his fingers stay in front)
+        if a[y, x, 3] and x <= 46: continue                                                # (her fingers stay in front)
         spine = not m[y - 1, x] or not m[y, min(63, x + 1)]
         a[y, x] = hx(0x3a3a46 if spine else 0x16161c)                                      # black, with a dull sheen on the spine
     for x, y in [(48, 29), (49, 29), (50, 30), (51, 31), (51, 32), (52, 33), (51, 34), (52, 35), (52, 36), (52, 37)]:
@@ -253,13 +253,13 @@ def wing(stage):
             if col:
                 for d2 in range(1, 3): a[max(col) + d2, x] = hx(SLUDGE[1])
         return outline(a)
-    if stage >= 1:                                                         # a sludge strand down his back
+    if stage >= 1:                                                         # a sludge strand down her back
         n = 4 + stage * 4
         for i in range(n):
             x, y = 28 - i // 3, 22 + i
             a[y, x] = hx(SLUDGE[1]); a[y, x - 1] = hx(SLUDGE[0])
         return outline(a)
-    a[24, 29] = hx(SHIRT[1])                                               # (hidden behind his back)
+    a[24, 29] = hx(SHIRT[1])                                               # (hidden behind her back)
     return a
 
 def draw_parts(stage):
@@ -270,36 +270,36 @@ def draw_parts(stage):
         P[n] = repaint(l, KIND.get(n, SHIRT), stage, hash(n) % 97)
     P['ffist'] = knife(P['ffist'])
     P['head'] = head(stage)
-    f = np.zeros((64, 64, 4), np.uint8); f[16, 33] = P['head'][16, 33] if P['head'][16, 33, 3] else hx(SKIN[2])   # (the goldfish slot: a still pixel of his cheek)
+    f = np.zeros((64, 64, 4), np.uint8); f[16, 33] = P['head'][16, 33] if P['head'][16, 33, 3] else hx(SKIN[2])   # (the goldfish slot: a still pixel of her cheek)
     P['fish'] = f
     P['scarf'] = wing(stage)
     return P
 
 ORDER = D.ORDER
-# AERO's moves without FULL AERO's spear moves (k_*, upb_king) - he never uses them, and they'd push the moves
+# AERO's moves without FULL AERO's spear moves (k_*, upb_king) - she never uses them, and they'd push the moves
 # sheet past the 4096 px phones can load. Its own frame table: src/fighters/dvMoves.js
 MOVES = {k: v for k, v in A.MOVES.items() if not k.startswith('k_') and k != 'upb_king'}
 JS = os.path.join(ROOT, 'src/fighters/dvMoves.js')
 
-# WORSHIP (his PRAY, down special - replaces AERO's downB): he drops to one knee, raises the karambit high over his
-# head, then drives it down into the ground in front of him and holds it there, head bowed,
-# before getting up. The stab lands on frame 22 (the sludge rises from there; an answered prayer takes him up at 32).
+# WORSHIP (her PRAY, down special - replaces AERO's downB): she drops to one knee, raises the karambit high over her
+# head, then drives it down into the ground in front of her and holds it there, head bowed,
+# before getting up. The stab lands on frame 22 (the sludge rises from there; an answered prayer takes her up at 32).
 P, k, mix = A.P, A.k, A.mix
 KNEEL = P(root=(0, 2, 0, 1.0, 0.84), torso=(6, 0, 1), head=(10, 0, 1),
           bthigh=(64, 0, 0), bshin=(-120, 0, 0), bshoe=(56, 0, 0), fthigh=(-62, 0, 0), fshin=(62, 0, 0), fshoe=(0, 0, 0),
           fupper=(20, 0, 0), ffore=(-40, 0, 0), bupper=(20, 0, 0), bfore=(-30, 0, 0))
 RAISE = mix(KNEEL, torso=(-6, 0, 0), head=(-4, 0, 0), fupper=(-142, 0, -2), ffore=(-36, 0, 0), bupper=(10, 0, 0), bfore=(-50, 0, 0))
 STAB = mix(KNEEL, root=(0, 3, 2, 1.0, 0.82), torso=(18, 1, 2), head=(22, 0, 2), fupper=(48, 0, 1), ffore=(36, 0, 0), bupper=(4, 0, 0), bfore=(-40, 0, 0))
-# OFFERING (neutral special): draws the karambit across his open palm, then flings the sludge that pours out of it
+# OFFERING (neutral special): draws the karambit across her open palm, then flings the sludge that pours out of it
 CUT = P(torso=(8, 0, 1), head=(14, 0, 1), fupper=(-30, 0, 0), ffore=(-100, 0, 0), bupper=(-50, 0, 0), bfore=(-60, 0, 0), **A.legs(12, -6, -14, 10))
 FLING = P(torso=(-10, 1, -1), head=(-8, 0, 0), fupper=(30, 0, 0), ffore=(-30, 0, 0), bupper=(-120, 0, -1), bfore=(-20, 0, 0), root=(0, 2, -1, 0.96, 1.04), **A.legs(20, -2, -24, 14))
 MOVES['neutralB'] = (32, [k(0, P()), k(7, CUT, 'out'), k(11, mix(CUT, ffore=(-70, 0, 0)), 'snap'), k(14, FLING, 'snap'), k(22, mix(FLING, bupper=(-100, 0, -1)), 'out'), k(32, P(), 'back')], 1, ('bfore',), False, None)
-# REAPING HOOK (side special): a low lunge, the karambit swung round in a hooking arc that drags them past him
+# REAPING HOOK (side special): a low lunge, the karambit swung round in a hooking arc that drags them past her
 COIL = P(torso=(22, 0, 2), head=(18, 0, 2), fupper=(50, 0, 0), ffore=(-40, 0, 0), bupper=(10, 0, 0), bfore=(-50, 0, 0), root=(0, -2, 0, 1.06, 0.9), **A.legs(30, -40, -30, 40))
 REACH = P(torso=(30, 2, 3), head=(20, 0, 2), fupper=(-80, 0, -1), ffore=(-10, 0, 0), bupper=(40, 0, 0), bfore=(-30, 0, 0), root=(0, 4, 2, 1.06, 0.9), **A.legs(36, -20, -44, 30))
 HOOK = mix(REACH, fupper=(-10, 0, 0), ffore=(-90, 0, 0), torso=(16, 0, 1))
 MOVES['sideB'] = (34, [k(0, P()), k(4, COIL, 'out'), k(8, REACH, 'snap'), k(13, HOOK, 'snap'), k(24, mix(HOOK, torso=(10, 0, 1)), 'out'), k(34, P(), 'back')], 1, ('ffore', 'ffist'), False, None)
-# SLUDGE GEYSER (up special): stabs straight down at his own feet - the geyser of sludge throws him up, karambit high
+# SLUDGE GEYSER (up special): stabs straight down at her own feet - the geyser of sludge throws her up, karambit high
 DOWNSTAB = P(torso=(20, 0, 2), head=(24, 0, 2), fupper=(40, 0, 0), ffore=(40, 0, 0), bupper=(20, 0, 0), bfore=(-20, 0, 0), **A.DEEP)
 UPTHRUST = P(torso=(-10, 0, -1), head=(-14, 0, 0), fupper=(-165, 0, -2), ffore=(-10, 0, 0), bupper=(-30, 0, 0), bfore=(-40, 0, 0), root=(0, 0, -3, 0.9, 1.12), **A.legs(-10, 30, -20, 40, -10, -10))
 MOVES['upb'] = (40, [k(0, P()), k(6, DOWNSTAB, 'out'), k(10, UPTHRUST, 'snap'), k(28, mix(UPTHRUST, fupper=(-150, 0, -2)), 'linear'), k(40, mix(UPTHRUST, **A.legs(-20, 50, -30, 60)), 'out')], 1, ('ffore', 'ffist'), False, None)

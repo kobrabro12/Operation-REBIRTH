@@ -16,6 +16,9 @@ import { StalingradStage, drawStalingradPreview } from './stalingradStage.js';
 import { WillowStage, drawWillowPreview } from './willowStage.js';
 import { DesertStage, drawDesertPreview } from './desertStage.js';
 import { MatrixStage, drawMatrixPreview } from './matrixStage.js';
+import { CastleCourtStage, drawCastleCourtPreview } from './castleCourtStage.js';
+import { JungleFallsStage, drawJungleFallsPreview } from './jungleFallsStage.js';
+import { BreezeHillStage, drawBreezeHillPreview } from './breezeHillStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -108,6 +111,25 @@ export const STAGES = [
     blurb: ['On the roof of a motorhome doing ninety', 'across the desert. Fall off and the road takes you.'],
     hazard: 'THE SWAT VAN: LASER SIGHTS, GUNFIRE\nAND GRENADES. THE ROAD DRAGS YOU AWAY.',
     preview: drawDesertPreview,
+  },
+  // three stages in real low-poly 3D (poly3d.js), original homages to the 64-bit era's stages
+  {
+    id: 'castle-court', music: 'bgm_sky', name: 'CASTLE COURT', available: true, make: (scene) => new CastleCourtStage(scene),
+    blurb: ['A stone court floating over a white castle,', 'in real 64-bit-style 3D.'],
+    hazard: 'THE BUMPER: A RED BUMPER SLIDES ON THE\nTOP LEDGE AND KNOCKS AWAY ANYONE IT TOUCHES.',
+    preview: drawCastleCourtPreview,
+  },
+  {
+    id: 'jungle-falls', music: 'bgm_spires', name: 'JUNGLE FALLS', available: true, make: (scene) => new JungleFallsStage(scene),
+    blurb: ['A plank deck over a jungle waterfall, with', 'two circling log rafts. Low-poly 3D.'],
+    hazard: 'THE BARREL: FALL INTO IT AND IT\nFIRES YOU STRAIGHT BACK UP.',
+    preview: drawJungleFallsPreview,
+  },
+  {
+    id: 'breeze-hill', music: 'bgm_aero', name: 'BREEZE HILL', available: true, make: (scene) => new BreezeHillStage(scene),
+    blurb: ['A grassy plateau in pastel hills, watched', 'by a giant stone head. Low-poly 3D.'],
+    hazard: 'GUST: THE HEAD PUFFS ITS CHEEKS, THEN\nBLOWS EVERYONE TO ONE SIDE.',
+    preview: drawBreezeHillPreview,
   },
   {
     id: 'the-construct', music: 'bgm_construct', name: 'THE CONSTRUCT', available: true, make: scene => new MatrixStage(scene),

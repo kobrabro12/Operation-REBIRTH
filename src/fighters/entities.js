@@ -1478,12 +1478,12 @@ export function drawDemonFace(g, kind, x, y, s, age) {
 }
 
 /**
- * One of THE DEVOTED's DEMONS (his neutral special). Each moves its own way and fights its own way:
- * THE GLUTTON walks the floor after him and swallows people; THE WRAITH stands where it was called and swaps places
- * with him; THE BRUTE lurks under the floor and punches up out of it under them; THE WEEPER floats high over the
- * nearest opponent and rains on them; THE HOLLOW swings round him on a chain. It gives him its power while it's out
+ * One of THE DEVOTED's DEMONS (her neutral special). Each moves its own way and fights its own way:
+ * THE GLUTTON walks the floor after her and swallows people; THE WRAITH stands where it was called and swaps places
+ * with her; THE BRUTE lurks under the floor and punches up out of it under them; THE WEEPER floats high over the
+ * nearest opponent and rains on them; THE HOLLOW swings round her on a chain. It gives her its power while it's out
  * (owner.demonSpeed / demonKb / demonDmg; the glutton's heal and the weeper's devotion via owner.addDevotion -> ownerHit)
- * and attacks when he uses neutral special (`attack()`). Its hits are done here with `strike()` (hitbox() is null).
+ * and attacks when she uses neutral special (`attack()`). Its hits are done here with `strike()` (hitbox() is null).
  * spec: one entry of def.demons.list.
  */
 export class DemonPet {
@@ -1492,7 +1492,7 @@ export class DemonPet {
     this.t = 0; this.cd = 0; this.atk = null; this.alive = true; this.id = nextId++; this.hitSet = new Set(); this.atkId = nextId++;
     this.dir = owner.facing; this.vy = 0; this.plat = owner.platform || null; this.ang = 0;
     this.x = owner.x - owner.facing * 30; this.y = owner.y;
-    if (this.kind === 'wraith') { this.x = owner.x + owner.facing * 24; this.y = owner.y; this.plat = owner.platform; }   // (it stands where he called it)
+    if (this.kind === 'wraith') { this.x = owner.x + owner.facing * 24; this.y = owner.y; this.plat = owner.platform; }   // (it stands where she called it)
     if (this.kind === 'weeper') this.y = owner.y - spec.height;
     if (this.kind === 'hollow') this.y = owner.y - 40;
     if (this.kind === 'toller') this.plant(owner.x + owner.facing * 36);
@@ -1502,15 +1502,15 @@ export class DemonPet {
     this.puff(16);
   }
   hitbox() { return null; }
-  /** A burst of sludge where it is (arriving, leaving, jumping back to him). */
+  /** A burst of sludge where it is (arriving, leaving, jumping back to her). */
   puff(n) { const R = Math.random; for (let i = 0; i < n; i++) this.match.particles.push({ x: this.x, y: this.y - 14, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 4, life: 24, color: [0x060508, this.spec.color, 0x2e2a38][i % 3], size: 3, grav: 0 }); }
-  /** Its power when he lands a hit: THE GLUTTON heals him, THE CRAWLER charges his Limit. */
+  /** Its power when she lands a hit: THE GLUTTON heals her, THE CRAWLER charges her Limit. */
   ownerHit() {
     if (this.kind === 'glutton') this.owner.percent = Math.max(0, this.owner.percent - this.spec.heal);
     if (this.kind === 'crawler') this.owner.limit = Math.min(100, (this.owner.limit || 0) + this.spec.limit);
   }
   /**
-   * THE SWARM's power: a hit about to land on him - if the swarm is gathered round him, it takes it instead.
+   * THE SWARM's power: a hit about to land on her - if the swarm is gathered round her, it takes it instead.
    * @returns {boolean} true when the hit is blocked
    */
   guard(hb) {
@@ -1519,7 +1519,7 @@ export class DemonPet {
     sfx('clang', 0.5, 1.6); sfx('whoosh', 0.4, 1.8); this.puff(10);
     return true;
   }
-  /** THE TOLLER: drives itself into the floor at x (on the floor under that spot, or under him). */
+  /** THE TOLLER: drives itself into the floor at x (on the floor under that spot, or under her). */
   plant(x) {
     const o = this.owner, P = this.floorUnder(x, o.y - 10) || o.platform || this.floorUnder(o.x, o.y - 10);
     if (P) { this.plat = P; this.px = Math.max(P.x1 + 8, Math.min(P.x2 - 8, x)) - P.x1; this.x = P.x1 + this.px; this.y = P.y; }
@@ -1542,7 +1542,7 @@ export class DemonPet {
     const o = this.owner;
     this.cd = this.spec.cd; this.atkId = nextId++;
     this.atk = { t: 0, dir: o.facing };
-    if (this.kind === 'wraith') this.shadowStep();
+    if (this.kind === 'wraith') this.atk.pending = true;      // (tap: swap places when special is let go; hold: move it to her - move_wraith)
     if (this.kind === 'crawler') {
       if (this.clung) { this.crawlBurst(); this.atk = null; return; }   // already on someone: bursts off them
       const f = this.nearestFoe(320); this.atk.target = f; this.plat = null; this.vy = -7;
@@ -1569,16 +1569,35 @@ export class DemonPet {
     }
     return out;
   }
-  /** THE WRAITH's SHADOW STEP: he and it swap places, and everyone on the line between them is cut. */
+  /** THE WRAITH's SHADOW STEP: she and it swap places, and everyone on the line between them is cut. */
   shadowStep() {
     const o = this.owner, m = this.match, ax = o.x, ay = o.y, bx = this.x, by = this.y;
     const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 14));
     for (let i = 0; i <= n; i++) { const x = ax + (bx - ax) * i / n, y = ay + (by - ay) * i / n; this.strike({ x1: x - 14, x2: x + 14, y1: y - 50, y2: y }, this.spec.cut, 's'); }
     o.x = bx; o.y = by; o.vx = o.vy = o.lx = o.ly = 0; o.grounded = false; o.platform = null; o.fastFalling = false;
-    if (o.state !== 'attack') o.setState('air');
+    o.setState('air');                                       // (she can act straight away - for a PERFECT STEP)
     this.x = ax; this.y = ay; this.plat = this.floorUnder(ax, ay - 2);
     this.atk.line = [ax, ay - 30, bx, by - 30];
+    o.perfectUntil = o.age + this.spec.perfect;               // PERFECT STEP: an attack started right away hits harder
     sfx('slash', 0.7, 0.8); m.shake(3, 5);
+  }
+  /** THE WRAITH (special held): it moves to where she's standing - set it up as a recovery point, no swap. */
+  relocate() {
+    const o = this.owner; this.puff(6); this.x = o.x; this.y = o.y; this.plat = o.grounded ? o.platform : null; this.wx = undefined; this.atk = null;
+    this.puff(10); sfx('whoosh', 0.4, 1.4);
+  }
+  /**
+   * THE WRAITH's SHADOW BREAK: special while she's being comboed (hitstun) - she swaps out of it, but it costs the
+   * wraith `breakCost` frames of its time. Called from her devotedTick.
+   * @returns {boolean} whether it worked
+   */
+  breakOut() {
+    if (this.kind !== 'wraith' || this.cd > 0 || this.life <= this.spec.breakCost) return false;
+    this.atk = { t: 0, dir: this.owner.facing }; this.atkId = nextId++; this.cd = this.spec.cd;
+    this.shadowStep(); this.life -= this.spec.breakCost;
+    const o = this.owner; o.hitstun = 0; o.setState('air'); o.invincible = Math.max(o.invincible, 20);
+    this.match.popText(o, 'SHADOW BREAK', '#d8dce4');
+    return true;
   }
   /** Moves it its own way, counts down its 20 s, and plays out its attack. */
   step() {
@@ -1588,7 +1607,7 @@ export class DemonPet {
     if (this.atk) this.atk.t++;
     this['move_' + this.kind](o, m, S, R);
   }
-  /** THE GLUTTON: waddles after him along the floor (gravity, falls off edges, hops back to him if left behind); its attack charges and swallows. */
+  /** THE GLUTTON: waddles after her along the floor (gravity, falls off edges, hops back to her if left behind); its attack charges and swallows. */
   move_glutton(o, m, S, R) {
     const A = this.atk;
     if (this.swallowed) {                                    // chewing: they're stuck inside, then spat out
@@ -1628,18 +1647,25 @@ export class DemonPet {
       const P = m.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && py <= p.y && this.y >= p.y);
       if (P) { this.plat = P; this.y = P.y; this.vy = 0; }
     } else this.y = this.plat.y;
-    if (this.y > 330 || Math.hypot(o.x - this.x, o.y - this.y) > 300) {   // left behind: it oozes back up next to him
+    if (this.y > 330 || Math.hypot(o.x - this.x, o.y - this.y) > 300) {   // left behind: it oozes back up next to her
       this.puff(8); this.x = o.x - o.facing * 30; this.y = o.y; this.vy = 0; this.plat = o.platform || null; this.puff(10);
     }
     this.moving = Math.abs(vx) > 0.5;
   }
   /** THE WRAITH: stands where it was left (rides a moving platform; it waits in the air if there's none). */
-  move_wraith() {
+  move_wraith(o) {
+    const A = this.atk;
+    if (A && A.pending) {                                     // tapped: SHADOW STEP; held past `holdFor`: it comes to her instead
+      if (o.ctrl && o.ctrl.held('special') && A.t < this.spec.holdFor) return;
+      A.pending = false;
+      if (A.t >= this.spec.holdFor) { this.relocate(); this.cd = 24; return; }
+      this.shadowStep();
+    }
     if (this.plat) { if (this.wx === undefined) this.wx = this.x - this.plat.x1; this.x = this.plat.x1 + this.wx; this.y = this.plat.y; }
     if (this.atk && this.atk.t === 1) this.wx = undefined;
     if (this.atk && this.atk.t > 14) this.atk = null;
   }
-  /** THE BRUTE: lurks under the floor beneath him; its attack tunnels to the nearest opponent and punches up under them. */
+  /** THE BRUTE: lurks under the floor beneath her; its attack tunnels to the nearest opponent and punches up under them. */
   move_brute(o, m, S, R) {
     const A = this.atk;
     if (!A) {
@@ -1648,23 +1674,33 @@ export class DemonPet {
       return;
     }
     if (!A.arrived) {                                         // tunnelling: a ripple racing along under the floor
-      const T = A.target; if (T && T.alive && T.state !== 'seized') { A.tx = T.x; A.tplat = T.platform || this.floorUnder(T.x, T.y) || A.tplat; }
+      const c = o.ctrl, held = c && c.held('special'), steer = c && Math.abs(c.x) > 0.3;
+      if (held) A.power = Math.min(S.chargeMax, (A.power || 0) + 1);              // holding special charges the punch...
+      if (steer) { A.steered = true; const P = A.tplat || this.plat; A.tx = this.x + Math.sign(c.x) * S.steer; if (P) A.tx = Math.max(P.x1 + 10, Math.min(P.x2 - 10, A.tx)); }   // ...the stick steers it (along its floor)
+      else if (!A.steered) { const T = A.target; if (T && T.alive && T.state !== 'seized') { A.tx = T.x; A.tplat = T.platform || this.floorUnder(T.x, T.y) || A.tplat; } }
       const ty = A.tplat ? A.tplat.y : this.y, dx = A.tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
-      if (d <= S.tunnel || A.t > 60) { this.x = A.tx; this.y = ty; this.plat = A.tplat; A.arrived = A.t; sfx('rumble', 0.6, 0.9); }
-      else { this.x += dx / d * S.tunnel; this.y += dy / d * S.tunnel; if (A.t % 2 === 0) m.particles.push({ x: this.x, y: this.y - 1, vx: (R() - 0.5), vy: -1 - R(), life: 12, color: 0x2e2a38, size: 2, grav: 0.1 }); }
+      if (d > 1) { const sp = Math.min(d, A.steered ? S.steer : S.tunnel); this.x += dx / d * sp; this.y += dy / d * sp; }
+      if (A.t % 2 === 0) m.particles.push({ x: this.x, y: this.y - 1, vx: (R() - 0.5), vy: -1 - R(), life: 12, color: A.power > S.chargeMax * 0.6 ? 0xd83a3a : 0x2e2a38, size: 2, grav: 0.1 });
+      const ready = A.t > 6 && !held && (A.steered || d <= S.tunnel);         // ...and letting go of special (once it's there) makes it burst up
+      if (ready || A.t > S.tunnelMax) { this.plat = A.tplat || this.plat; A.arrived = A.t; sfx('rumble', 0.6, 0.9); }
       return;
     }
     const k = A.t - A.arrived;
     if (k < S.warn) { if (k % 3 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 30, y: this.y - 1, vx: 0, vy: -1 - R() * 2, life: 12, color: 0x6a1a1a, size: 2, grav: 0.15 }); return; }   // the floor cracks
     if (k === S.warn) { sfx('bighit', 0.9, 0.45); m.shake(7, 8); if (this.plat && o.stain) o.stain(this.x, this.plat, 16); }
-    if (k >= S.warn && k <= S.warn + 6) this.strike({ x1: this.x - 22, x2: this.x + 22, y1: this.y - 90, y2: this.y + 4 }, S.punch);
+    if (k >= S.warn && k <= S.warn + 6) {
+      const q = (A.power || 0) / S.chargeMax, h = { ...S.punch, dmg: Math.round(S.punch.dmg + q * S.chargeDmg), base: S.punch.base + q * S.chargeBase };   // (a full charge hits much harder)
+      this.strike({ x1: this.x - 22 - q * 10, x2: this.x + 22 + q * 10, y1: this.y - 90 - q * 30, y2: this.y + 4 }, h);
+    }
     if (k > S.warn + 24) this.atk = null;
   }
   /** THE WEEPER: floats high over the nearest opponent, weeping a tear on them now and then; its attack is a downpour. */
   move_weeper(o, m, S, R) {
     const f = this.nearestFoe(600), tx = f ? f.x : o.x, ty = Math.max(-320, (f ? f.y : o.y) - S.height), A = this.atk;
-    const ease = A ? 0.035 : 0.06;                          // (it keeps drifting after them while it pours, slower)
-    this.x += (tx - this.x) * ease; this.y += (ty - this.y) * 0.05;
+    const ease = A ? 0.035 : 0.06;                          // (it keeps drifting after them while it pours, slower...)
+    if (A && o.ctrl && Math.abs(o.ctrl.x) > 0.3) this.x += Math.sign(o.ctrl.x) * S.steer;   // (...unless she steers the rain with the stick)
+    else this.x += (tx - this.x) * ease;
+    this.y += (ty - this.y) * 0.05;
     this.drops = this.drops || [];
     if (!A && this.t % S.dripEvery === 0) { this.drops.push({ x: this.x, y: this.y + 12, vy: 1, key: 'auto' + this.t, h: S.drip }); sfx('swing', 0.2, 1.8); }
     if (A) {                                                 // DOWNPOUR: a torrent straight down under it
@@ -1685,7 +1721,7 @@ export class DemonPet {
     }
     this.drops = this.drops.filter((d) => !d.dead);
   }
-  /** THE HOLLOW: swings round him on its chain, hitting anyone it swings into; its attack throws the hooked chain. */
+  /** THE HOLLOW: swings round her on its chain, hitting anyone it swings into; its attack throws the hooked chain. */
   move_hollow(o, m, S) {
     const A = this.atk;
     if (!A) {
@@ -1696,12 +1732,29 @@ export class DemonPet {
       return;
     }
     const d = A.dir;
-    if (!A.chain) A.chain = { len: 0, back: false, held: null };
+    if (!A.chain) {                                          // aimed with the stick when it's thrown: 8 ways
+      const c = o.ctrl, ax = c && Math.abs(c.x) > 0.3 ? Math.sign(c.x) : (c && Math.abs(c.y) > 0.3 ? 0 : d), ay = c && Math.abs(c.y) > 0.3 ? Math.sign(c.y) : 0, l = Math.hypot(ax, ay) || 1;
+      A.chain = { len: 0, back: false, held: null, ux: ax / l, uy: ay / l, grip: null };
+    }
     const C = A.chain;
+    if (C.grip) {                                            // GRAPPLE: the hook caught a platform - she's pulled along the chain to it
+      const gx = C.grip.x, gy = C.grip.y, dx = gx - o.x, dy = gy - o.y, dist = Math.hypot(dx, dy);
+      o.vx = o.vy = o.lx = o.ly = 0; o.fastFalling = false;
+      if (dist < S.zip + 2 || A.t > 50) { o.x = gx; o.y = gy - 1; o.vy = S.grappleHop; o.grounded = false; o.platform = null; o.usedUpB = false; sfx('land', 0.5, 1.2); this.atk = null; return; }
+      o.x += dx / dist * S.zip; o.y += dy / dist * S.zip;
+      this.x = o.x; this.y = o.y - 50; A.hx = gx; A.hy = gy; return;
+    }
     this.x += ((o.x - d * 10) - this.x) * 0.4; this.y += ((o.y - 56) - this.y) * 0.4;
     if (!C.back) { C.len += 14; if (C.len >= S.reach) C.back = true; } else C.len -= 12;
-    const hx = this.x + d * C.len, hy = this.y + 26 + C.len * 0.05;
-    if (!C.back && !C.held) { const got = this.strike({ x1: hx - 10, x2: hx + 10, y1: hy - 14, y2: hy + 14 }, S.hook, 'h'); if (got[0]) { C.held = got[0]; C.back = true; sfx('clang', 0.7, 0.7); } }
+    const hx = o.x + C.ux * C.len, hy = o.y - 30 + C.uy * C.len;   // (the chain flies from her chest)
+    if (!C.back && !C.held) {
+      const got = this.strike({ x1: hx - 10, x2: hx + 10, y1: hy - 14, y2: hy + 14 }, S.hook, 'h');
+      if (got[0]) { C.held = got[0]; C.back = true; sfx('clang', 0.7, 0.7); }
+      else {                                                 // it hit a platform's top or edge: grapple onto it
+        const P = m.stage.platforms.find((p) => hx >= p.x1 - 6 && hx <= p.x2 + 6 && hy >= p.y - 16 && hy <= (p.solid ? (p.bottom ?? p.y + 30) : p.y + 8));
+        if (P) { C.grip = { x: Math.max(P.x1 + 8, Math.min(P.x2 - 8, hx)), y: P.y }; sfx('clang', 0.6, 1.3); A.hx = hx; A.hy = hy; return; }
+      }
+    }
     if (C.held && C.held.alive) { C.held.x = hx; C.held.y = Math.max(C.held.y, hy - 10); C.held.vx = C.held.vy = 0; }
     A.hx = hx; A.hy = hy;
     if (C.back && C.len <= 20) { if (C.held && C.held.alive) { C.held.x = o.x + d * 26; C.held.y = o.y; } this.atk = null; }
@@ -1754,7 +1807,7 @@ export class DemonPet {
     if (this.y > 330 || Math.hypot(o.x - this.x, o.y - this.y) > 420) { this.puff(6); this.x = o.x - o.facing * 24; this.y = o.y; this.vy = 0; this.plat = o.platform || null; this.puff(8); }
     this.moving = Math.abs(vx) > 0.5;
   }
-  /** THE SWARM: a cloud of flies buzzing round him (gathering again after it blocks a hit); its attack stings the nearest opponent. */
+  /** THE SWARM: a cloud of flies buzzing round her (gathering again after it blocks a hit); its attack stings the nearest opponent. */
   move_swarm(o, m, S) {
     const A = this.atk; if (this.guardCd > 0) this.guardCd--;
     let cx = o.x, cy = o.y - 30, spread = 1;
@@ -1774,7 +1827,7 @@ export class DemonPet {
       f.x += (tx - f.x) * 0.3; f.y += (ty - f.y) * 0.3;
     }
   }
-  /** THE TOLLER: stays planted where it was driven in (riding its platform); inside its ring he heals and opponents slow; its attack tolls. */
+  /** THE TOLLER: stays planted where it was driven in (riding its platform); inside its ring she heals and opponents slow; its attack tolls. */
   move_toller(o, m, S) {
     if (this.plat) { this.x = this.plat.x1 + this.px; this.y = this.plat.y; }
     const inRing = (f) => Math.abs(f.x - this.x) < S.ring && Math.abs(f.y - this.y) < S.ring * 0.6;
@@ -1787,7 +1840,7 @@ export class DemonPet {
       if (A.t > 34) this.atk = null;
     }
   }
-  /** It leaves (its 20 s are up, he was KO'd, or it was countered): his powers go with it, and it lets go of anyone it swallowed. */
+  /** It leaves (its 20 s are up, she was KO'd, or it was countered): her powers go with it, and it lets go of anyone it swallowed. */
   kill() {
     if (!this.alive) return; this.alive = false; this.g.destroy();
     const o = this.owner, v = this.swallowed;
@@ -1814,7 +1867,7 @@ export class DemonPet {
       ringY = y - 20;
     } else if (this.kind === 'wraith') {                      // a tall, thin shadow standing still, its cloak streaming
       const o = this.owner, f = o.x > x ? 1 : -1;
-      g.lineStyle(1, 0xd8dce4, 0.18); for (let i = 0; i < 8; i++) { const k = i / 8, k2 = (i + 0.5) / 8; g.lineBetween(x + (o.x - x) * k, y - 40 + (o.y - y) * k, x + (o.x - x) * k2, y - 40 + (o.y - y) * k2); }   // a faint thread to him
+      g.lineStyle(1, 0xd8dce4, 0.18); for (let i = 0; i < 8; i++) { const k = i / 8, k2 = (i + 0.5) / 8; g.lineBetween(x + (o.x - x) * k, y - 40 + (o.y - y) * k, x + (o.x - x) * k2, y - 40 + (o.y - y) * k2); }   // a faint thread to her
       g.fillStyle(B, 0.95);
       g.fillTriangle(x - 10, y, x + 10, y, x, y - 64);
       for (let i = 0; i < 4; i++) { const sway = Math.sin(t * 0.15 + i) * 5; g.fillTriangle(x - 6, y - 50 + i * 12, x + 6, y - 50 + i * 12, x - f * (14 + i * 4) + sway, y - 40 + i * 12); }
@@ -1871,13 +1924,13 @@ export class DemonPet {
       g.lineStyle(1, B, 1); g.lineBetween(bx + 3, by - 14, bx - 2, by - 2); g.lineBetween(bx - 2, by - 2, bx + 1, by + 6);              // the crack
       if (A && A.t >= 8 && A.t <= 22) { const r = (A.t - 8) / 14 * S.tollRadius; g.lineStyle(3, c, 1 - (A.t - 8) / 14); g.strokeEllipse(x, y - 20, r * 2, r * 0.9); }
       ringY = by - 4;
-    } else {                                                  // THE HOLLOW: an empty hood on a chain from his chest
+    } else {                                                  // THE HOLLOW: an empty hood on a chain from her chest
       const o = this.owner;
       if (!A) { g.lineStyle(2, 0x8a7a5a, 1); const n = 6; for (let i = 0; i < n; i++) { const k = i / n, k2 = (i + 0.6) / n; g.lineBetween(o.x + (x - o.x) * k, o.y - 34 + (y - o.y + 34) * k, o.x + (x - o.x) * k2, o.y - 34 + (y - o.y + 34) * k2); } }
       g.fillStyle(B, 1); g.fillTriangle(x - 13, y + 14, x + 13, y + 14, x, y - 16);
       drawDemonFace(g, 'hollow', x, y + 2, 1.2, t);
       if (A && A.chain) {
-        const d = A.dir; g.lineStyle(2, 0x8a7a5a, 1); g.lineBetween(x, y + 4, A.hx, A.hy);
+        const d = A.dir; g.lineStyle(2, 0x8a7a5a, 1); g.lineBetween(A.chain && A.chain.ux !== undefined ? this.owner.x : x, A.chain && A.chain.ux !== undefined ? this.owner.y - 30 : y + 4, A.hx, A.hy);
         g.lineStyle(2, 0xd8dce4, 1); g.beginPath(); g.arc(A.hx, A.hy, 5, -Math.PI / 2, Math.PI / 2, d < 0); g.strokePath();
       }
     }
