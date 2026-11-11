@@ -226,7 +226,8 @@ export class FighterRender {
       const U = this.ult;
       if (U.phase === 'melt') { const k = Math.min(1, this.t / d.limit.melt); spr.setScale(1 + k * 0.6, 1 - k * 0.92); spr.setTint(this.pal.shade).setTintMode(Phaser.TintModes.FILL); }
       else spr.setAlpha(0);
-    } else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
+    } else if (s === 'sludgeswim') this.drawSwim(spr, g);   // THE DEVOTED under his sludge
+    else if (this.reform > 0) { this.reform--; spr.setScale(1 + this.reform * 0.03, 1 - this.reform * 0.055); }
     if(this.azureCape)syncAzureCape(this.azureCape,spr,this.anim,Math.abs(this.vx+this.lx)>1);
     if(d.id==='young-link')drawYoungLinkSpecial(this,g);
     if (this.vfx) { this.drawSkinAura(g); this.drawTrail(spr); }
@@ -239,7 +240,7 @@ export class FighterRender {
     }
 
     // name tag
-    this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0)));
+    this.tag.setPosition(Math.round(this.x), Math.round(this.y - (d.tagY || 60) - (s === 'limit' ? 16 : 0) + (s === 'sludgeswim' && this.t > 8 ? (d.tagY || 60) - 16 : 0)));
     this.updateSpeech();
 
     // possessed by Soul Hex: wisps circling the head and a bar that shrinks as you wiggle free

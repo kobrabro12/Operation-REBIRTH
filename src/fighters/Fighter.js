@@ -258,7 +258,7 @@ export class Fighter {
       const M = this.def.moves;
       this.buffer.special = 0;
       if (this.axeLost > 0 && !c.up) { this.noAxe(); return false; }   // SEEN without its axe: only CLIMB
-      if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB) this.startAttack('downB'); return true; }
+      if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB && M.downB.swim && this.canSwim()) this.startSwim(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB && M.neutralB.axeCharge) this.startAxeCharge(); else if (M.neutralB) this.startAttack('neutralB');

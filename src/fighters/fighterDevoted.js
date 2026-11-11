@@ -28,6 +28,7 @@ export class FighterDevoted {
       sfx('curse', 0.4, 1.4); m.puff(this.x, this.y - 20, 0x3a3028, 10);   // (the dying tree grows there)
     }
     if (this.sigil && this.sigil.plat) { this.sigil.x = this.sigil.plat.x1 + this.sigil.dx; this.sigil.y = this.sigil.plat.y; }   // (riding a moving platform)
+    if (this.swimCd > 0) this.swimCd--;
     if (this.sludge >= 3 && this.grounded) this.jumpsLeft = Math.max(this.jumpsLeft, D.wingJumps);
     const U = this.def.moves.upb;
     if (this.state === 'upb' && U.geyser && this.t <= U.riseAt + U.geyser.length && !m.demo) {   // SLUDGE GEYSER: the column of sludge under him
@@ -155,6 +156,72 @@ export class FighterDevoted {
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
+  }
+
+  /** The stain under x on platform plat (any DEVOTED's), within `pad` px of its edge, or null. */
+  stainAt(x, plat, pad = 0) {
+    const S = this.match.sludgeStains;
+    if (!S || !plat) return null;
+    return S.find((s) => s.plat === plat && Math.abs(x - (plat.x1 + s.dx)) <= s.w + pad) || null;
+  }
+
+  /** SLUDGE SWIM: can down special sink him into the sludge here? (on the floor, by a stain, and not able to go up a stage) */
+  canSwim() {
+    const W = this.def.moves.downB.swim;
+    return this.grounded && this.platform && !(this.swimCd > 0) && !this.canAscend() && !!this.stainAt(this.x, this.platform, W.near);
+  }
+
+  /** Sinks him into the sludge (state sludgeswim). */
+  startSwim() {
+    this.setState('sludgeswim'); this.vx = 0; this.swimFrom = this.x;
+    sfx('geyser', 0.3, 1.4); sfx('curse', 0.2, 1.6);
+    const R = Math.random;
+    for (let i = 0; i < 10; i++) this.match.particles.push({ x: this.x + (R() - 0.5) * 20, y: this.y - 2, vx: (R() - 0.5) * 2.5, vy: -1 - R() * 2, life: 18, color: SLUDGE[i % 3], size: 2, grav: 0.2 });
+  }
+
+  /**
+   * Every frame under the sludge: slides along the stains on his platform with the stick (stopping at their edge),
+   * can't be hit, and bursts out with jump / attack / special, or when he's been under too long or lost the floor.
+   * @param {object} c - his controller
+   */
+  st_sludgeswim(c) {
+    const W = this.def.moves.downB.swim, m = this.match, plat = this.platform, R = Math.random;
+    this.vx = 0;
+    if (!this.grounded || !plat) { this.swimCd = W.cooldown; this.setState('air'); return; }
+    if (this.t <= W.sink) return;
+    this.invincible = Math.max(this.invincible, 2);
+    if (Math.abs(c.x) > 0.2) {
+      this.facing = Math.sign(c.x);
+      const nx = this.x + c.x * W.speed * this.speedMult;
+      if (this.stainAt(nx, plat, 4)) this.x = nx;             // (never out past the sludge's edge)
+      else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat, 4)) this.x = px; else break; }
+      if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
+    }
+    const leap = this.buffer.jump, out = leap || this.buffer.attack || this.buffer.special || this.t > W.max;
+    if (!out) return;
+    this.buffer.jump = this.buffer.attack = this.buffer.special = 0;
+    this.swimCd = W.cooldown;
+    this.startAttack('swimPop');
+    this.vy = leap ? W.leap : W.hop; this.grounded = false; this.platform = null; this.y -= 1;
+    sfx('geyser', 0.45, 1.1); m.shake(2, 6);
+    for (let i = 0; i < 16; i++) m.particles.push({ x: this.x + (R() - 0.5) * 16, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -2 - R() * 4, life: 22, color: SLUDGE[i % 3], size: 3, grav: 0.25 });
+  }
+
+  /**
+   * Draws him under the sludge: sinking into it, then only a black bulge in the puddle with his white eyes and
+   * smile peeking out, rippling as he moves.
+   */
+  drawSwim(spr, g) {
+    const W = this.def.moves.downB.swim, k = Math.min(1, this.t / W.sink);
+    if (k < 1) { spr.setScale(1 + k * 0.4, 1 - k * 0.9); return; }
+    spr.setAlpha(0);
+    const x = Math.round(this.x), y = Math.round(this.y), bob = Math.sin(this.anim * 0.3), moving = Math.abs(this.x - (this.swimLastX ?? this.x)) > 0.5;
+    this.swimLastX = this.x;
+    g.fillStyle(0x060508, 1); g.fillEllipse(x, y - 2 - bob * 0.5, 26 + (moving ? 6 : 0), 9);
+    g.fillStyle(0x2e2a38, 0.8); g.fillRect(x - 6, y - 5 - bob * 0.5, 7, 1);
+    g.fillStyle(0xffffff, 1); g.fillRect(x + this.facing * 2 - 3, y - 5, 2, 2); g.fillRect(x + this.facing * 2 + 2, y - 5, 2, 2);   // eyes
+    g.fillRect(x + this.facing * 2 - 3, y - 2, 7, 1);                                                                             // the smile
+    if (moving) { g.lineStyle(1, 0x2e2a38, 0.7); g.strokeEllipse(x - this.facing * 12, y - 1, 10, 3); }
   }
 
   /**

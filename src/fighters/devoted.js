@@ -20,7 +20,7 @@ export const DEVOTED = {
   // his look at each sludge stage (fighterDevoted.js swaps to it when he prays his way up)
   sludgeSheets: [SET(''), SET('semi'), SET('taken'), SET('drowned')],
   runCycle: [0, 8],
-  moveAnims: DV_MOVES, movesOrigin: [56 / 112, 95 / 104],
+  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb },   // (bursting out of a puddle reuses the geyser's rise) movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
   handOffset: { x: 18, y: -34 },   // the tip of his knife
   portrait: [18, 4, 34, 30],
@@ -105,7 +105,15 @@ export const DEVOTED = {
     ] },
     // PRAY (down): kneels and prays. With his devotion full and his symbol close by, he goes up a sludge stage.
     // Otherwise it's a short, useless prayer (and he's wide open).
-    downB: { frames: 54, pray: true },
+    downB: { frames: 54, pray: true,
+      // SLUDGE SWIM: down special standing on (or next to) sludge on the floor - when he can't go up a stage - sinks
+      // him into it, Splatoon-style. Under the sludge he slides fast along the stains on that platform (never past their
+      // edge), can't be hit, and bursts out with jump (a big leap) or attack / special (a hop), hitting anyone above.
+      // near: how close to a stain counts (px); sink: frames to sink in; speed: px per frame under the sludge;
+      // max: the longest he can stay under (frames); leap / hop: his jump out; cooldown: frames before he can sink again
+      swim: { near: 10, sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30 } },
+    // bursting out of the sludge (SLUDGE SWIM's exit)
+    swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },
 
   // Limit: BLACK TIDE - sludge bursts out of him, hitting everyone near (harder at each stage), staining the
