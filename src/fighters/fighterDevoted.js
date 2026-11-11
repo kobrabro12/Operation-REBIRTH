@@ -140,30 +140,31 @@ export class FighterDevoted {
    * @param {boolean} ready - devotion full
    */
   drawTree(g, x, y, a, ready) {
-    const t = this.age, sway = Math.sin(t * 0.03) * 0.6;
-    if (ready) { const p = 0.5 + 0.5 * Math.sin(t * 0.15); g.fillStyle(0xf8f4ec, 0.07 + 0.08 * p); g.fillEllipse(x, y - 26, 54, 64); g.fillStyle(0xf8f4ec, 0.05 + 0.05 * p); g.fillEllipse(x, y - 26, 34, 44); }
-    g.fillStyle(0x060508, 0.9 * a); g.fillEllipse(x, y + 1, 26, 4);                       // the sludge pooled round its roots
-    for (const [dx, len] of [[-7, 5], [6, 4], [-3, 3]]) { g.lineStyle(2, 0x241c18, a); g.lineBetween(x + dx * 0.4, y - 1, x + dx, y + 1); }   // roots
+    const t = this.age, S = this.def.devoted.treeScale || 1, sway = Math.sin(t * 0.03) * 0.6 * S;
+    const P = (px, py) => ({ x: x + px * S + sway * (-py / 46), y: y + py * S });      // a point on the tree (the top sways a little)
+    const line = (w, c, x1, y1, x2, y2) => { const p1 = P(x1, y1), p2 = P(x2, y2); g.lineStyle(Math.max(1, Math.round(w * S)), c, a); g.lineBetween(p1.x, p1.y, p2.x, p2.y); };
+    if (ready) { const p = 0.5 + 0.5 * Math.sin(t * 0.15); g.fillStyle(0xf8f4ec, 0.07 + 0.08 * p); g.fillEllipse(x, y - 26 * S, 54 * S, 64 * S); g.fillStyle(0xf8f4ec, 0.05 + 0.05 * p); g.fillEllipse(x, y - 26 * S, 34 * S, 44 * S); }
+    g.fillStyle(0x060508, 0.9 * a); g.fillEllipse(x, y + 1, 26 * S, 4 * S * 0.75);       // the sludge pooled round its roots
+    for (const dx of [-7, 6, -3]) line(2, 0x241c18, dx * 0.4, -1 / S, dx, 1 / S);           // roots
     // the branches (from, to, thickness): crooked, drooping at the ends, one snapped short
     const B = [[-2, -26, -12, -34, 2], [-12, -34, -16, -29, 1], [-12, -34, -14, -42, 1], [0, -34, -4, -46, 2], [-4, -46, -8, -49, 1],
       [1, -31, 10, -41, 2], [10, -41, 16, -39, 1], [16, -39, 18, -33, 1], [3, -20, 11, -24, 1], [11, -24, 13, -20, 1]];
-    const bx = (bxv, byv) => x + bxv + sway * (-byv / 46);                                  // (the top sways a little)
-    for (const [x1, y1, x2, y2, w] of B) { g.lineStyle(w + 2, 0x140e0c, a); g.lineBetween(bx(x1, y1), y + y1, bx(x2, y2), y + y2); }
-    for (const [x1, y1, x2, y2, w] of B) { g.lineStyle(w, 0x4a3c32, a); g.lineBetween(bx(x1, y1), y + y1, bx(x2, y2), y + y2); }
+    for (const [x1, y1, x2, y2, w] of B) line(w + 1.2, 0x140e0c, x1, y1, x2, y2);
+    for (const [x1, y1, x2, y2, w] of B) line(w, 0x4a3c32, x1, y1, x2, y2);
     // the trunk: crooked, cracked
-    const T = [[-4, 0], [-3, -10], [-4, -18], [-2, -26], [-1, -34], [1, -34], [2, -27], [4, -19], [3, -10], [5, 0]].map(([px, py]) => ({ x: bx(px, py), y: y + py }));
-    g.fillStyle(0x3a3028, a); g.fillPoints(T, true); g.lineStyle(1, 0x140e0c, a); g.strokePoints(T, true);
-    g.lineStyle(1, 0x241c18, a); g.lineBetween(bx(-1, -4), y - 4, bx(0, -12), y - 12); g.lineBetween(bx(1, -22), y - 22, bx(0, -30), y - 30);   // cracks in the bark
-    g.fillStyle(0x5a4a3e, a); g.fillRect(bx(-3, -9), y - 9, 1, 6);                          // light down one side
+    const T = [[-4, 0], [-3, -10], [-4, -18], [-2, -26], [-1, -34], [1, -34], [2, -27], [4, -19], [3, -10], [5, 0]].map(([px, py]) => P(px, py));
+    g.fillStyle(0x3a3028, a); g.fillPoints(T, true); g.lineStyle(Math.max(1, Math.round(S * 0.7)), 0x140e0c, a); g.strokePoints(T, true);
+    line(0.6, 0x241c18, -1, -4, 0, -12); line(0.6, 0x241c18, 1, -22, 0, -30);              // cracks in the bark
+    line(0.6, 0x5a4a3e, -2.6, -9, -2.6, -3);                                                 // light down one side
     // the knot: black sludge weeps out of it; a pale smile in it when he's ready
-    g.fillStyle(0x060508, a); g.fillEllipse(bx(0, -16), y - 16, 5, 4);
-    const drip = 4 + ((t >> 4) % 5);
-    g.fillRect(bx(0, -15) - 0.5, y - 15, 1, drip); g.fillRect(bx(-1, -15) - 0.5, y - 15, 1, Math.max(2, drip - 3));
-    if (ready) { g.lineStyle(1, 0xf8f4ec, 0.9 * a); g.beginPath(); g.arc(bx(0, -17), y - 17, 2, 0.2, Math.PI - 0.2); g.strokePath(); }
+    const k = P(0, -16); g.fillStyle(0x060508, a); g.fillEllipse(k.x, k.y, 5 * S, 4 * S);
+    const drip = (4 + ((t >> 4) % 5)) * S;
+    g.fillRect(k.x - S * 0.5, k.y + S, S, drip); g.fillRect(k.x - S * 1.5, k.y + S, S, Math.max(2, drip - 3 * S));
+    if (ready) { g.lineStyle(Math.max(1, Math.round(S * 0.8)), 0xf8f4ec, 0.9 * a); g.beginPath(); g.arc(k.x, k.y - S * 0.5, 2 * S, 0.2, Math.PI - 0.2); g.strokePath(); }
     // the last few dead leaves, hanging on
     for (const [lx, ly, c] of [[-16, -29, 0x6a4a2a], [18, -33, 0x8a5a2a], [13, -20, 0x5a3e24], [-8, -49, 0x7a5228]]) {
-      const s2 = Math.sin(t * 0.06 + lx) * 1;
-      g.fillStyle(c, a); g.fillRect(bx(lx, ly) + s2 - 1, y + ly, 2, 3);
+      const q = P(lx, ly), s2 = Math.sin(t * 0.06 + lx) * S;
+      g.fillStyle(c, a); g.fillRect(q.x + s2 - S, q.y, 2 * S, 3 * S);
     }
   }
 

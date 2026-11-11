@@ -31,8 +31,9 @@ export const DEVOTED = {
   headTop: 54,
   tagY: 64,
   weight: 0.96,
-  walkSpeed: 3.0, runAccel: 0.55, groundFriction: 0.5,
-  airSpeed: 3.0, airAccel: 0.28, airFriction: 0.03,
+  // quick on his feet: faster than AERO on the ground and in the air
+  walkSpeed: 3.9, runAccel: 0.75, groundFriction: 0.55,
+  airSpeed: 3.6, airAccel: 0.36, airFriction: 0.03,
   jumpV: -9.6, shortHopV: -6.4, doubleJumpV: -9.2,
 
   // THE SNOWBALL: his devotion meter, his symbol and what each sludge stage does
@@ -42,6 +43,8 @@ export const DEVOTED = {
     need: [6, 8, 10],
     // how close to his symbol he has to be to pray his way up (pixels)
     range: 70,
+    // how big his symbol (the dying tree) is drawn: 1 = 50 px tall
+    treeScale: 2,
     // the prayer: when it takes him up (frame), and how long a prayer that isn't answered lasts
     ascendAt: 32, failLength: 22,
     // per stage: damage he deals, his speed, knockback he takes (lower = harder to launch)
