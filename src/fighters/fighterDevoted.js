@@ -5,7 +5,9 @@ import { sfx } from '../audio/sfx.js';
 import { FONT, VIEW_W, VIEW_H } from '../config.js';
 import { showFighter } from './roster.js';
 import { drawDemonFace } from './entities.js';
-import { skinTexture } from './skins.js';
+import { skinTexture, skinInfo } from './skins.js';
+
+const STAGE_DIRS = ['', 'semi', 'taken', 'drowned'];
 
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
 
@@ -68,7 +70,10 @@ export class FighterDevoted {
    * DEMONS (neutral special, like Shulk's Monado Arts): stops him to choose a demon from the wheel (state demonpick).
    */
   startDemonPick() {
-    this.setState('demonpick'); this.pickSel = this.pickSel ?? 0; this.pickDir = 99; this.vx *= 0.3;
+    this.setState('demonpick'); this.pickSel = 0; this.pickDir = 99; this.vx *= 0.3;
+    const all = this.def.demons.list.slice();                 // the wheel offers a different few each time
+    for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+    this.pickList = all.slice(0, this.def.demons.offer);
     sfx('curse', 0.5, 0.7); sfx('select', 0.3, 0.6);
     if (!this.pickText) { this.pickText = this.scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#f4eefc', align: 'center', stroke: '#0b0a14', strokeThickness: 3, lineSpacing: 3 }).setOrigin(0.5).setDepth(31); this.match.addWorld(this.pickText); }
   }
@@ -79,7 +84,7 @@ export class FighterDevoted {
    * @param {object} c - his controller
    */
   st_demonpick(c) {
-    const L = this.def.demons.list, n = L.length;
+    const L = this.pickList, n = L.length;
     this.vx *= 0.8; if (!this.grounded) this.vy = Math.min(this.vy, 1.2);
     const dir = Math.abs(c.x) > 0.5 ? Math.sign(c.x) : Math.abs(c.y) > 0.5 ? Math.sign(c.y) : 0;   // right / down = next round the wheel, left / up = back
     if (dir && dir !== this.pickDir) { this.pickSel = (this.pickSel + dir + n) % n; sfx('menu', 0.35, 1.3); }
@@ -106,7 +111,7 @@ export class FighterDevoted {
    * a dark circle behind, and the name + power of the chosen one over his head.
    */
   drawDemonWheel(g) {
-    const L = this.def.demons.list, n = L.length, cx = this.x, cy = this.y - 34, R = 46, k = Math.min(1, this.t / 8);
+    const L = this.pickList || this.def.demons.list.slice(0, 5), n = L.length, cx = this.x, cy = this.y - 34, R = 46, k = Math.min(1, this.t / 8);
     g.fillStyle(0x0b0a14, 0.55 * k); g.fillCircle(cx, cy, R + 18);
     g.lineStyle(2, 0x4a3248, 0.9 * k); g.strokeCircle(cx, cy, R + 18);
     for (let i = 0; i < n; i++) {
@@ -159,7 +164,9 @@ export class FighterDevoted {
   setSludge(n) {
     const D = this.def.devoted;
     this.sludge = n;
-    this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in his costume's colours)
+    const set = skinInfo(this.def.id, this.skin || 0).sheetSet, cs = set && this.def.costumeSheets && this.def.costumeSheets[set];
+    if (cs) this.sheets = Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, cs[(n ? STAGE_DIRS[n] + '_' : '') + k]]));   // (a drawn costume: its own strips for this stage)
+    else this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in his costume's colours)
     this.devoteDmg = D.dmg[n]; this.devoteSpeed = D.speed[n]; this.devoteKb = D.kb[n];
     this.demonFloat = n >= 3 ? D.hover.float : null;          // DROWNED hovers like a demon
   }
@@ -345,7 +352,8 @@ export class FighterDevoted {
       if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
     }
     const leap = this.buffer.jump;
-    if (leap || this.buffer.attack || this.buffer.special || this.t > W.max) this.swimPop(leap ? W.leap : W.hop);
+    if (this.buffer.attack) { this.swimPop(W.cutRise, 0, 'swimCut'); return; }   // attack: up out of it, knife first
+    if (leap || this.buffer.special || this.t > W.max) this.swimPop(leap ? W.leap : W.hop);
   }
 
   /**
@@ -394,16 +402,52 @@ export class FighterDevoted {
    * @param {number} vy - his jump out
    * @param {number} vx - sideways push
    */
-  swimPop(vy, vx = 0) {
+  swimPop(vy, vx = 0, move = 'swimPop') {
     const m = this.match, R = Math.random, W = this.def.moves.downB.swim;
     this.buffer.jump = this.buffer.attack = this.buffer.special = 0;
     this.swimCd = W.cooldown;
-    this.startAttack('swimPop');
+    this.startAttack(move);
     this.vy = vy; this.vx = vx; if (vx) this.facing = Math.sign(vx);
     this.grounded = false; this.platform = null; this.y -= 1;
     sfx('geyser', 0.45, 1.1); m.shake(2, 6);
     for (let i = 0; i < 16; i++) m.particles.push({ x: this.x + (R() - 0.5) * 16, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -2 - R() * 4, life: 22, color: SLUDGE[i % 3], size: 3, grav: 0.25 });
   }
+
+  /**
+   * SLUDGE SWIM's knife uppercut (attack out of the sludge, move swimCut): he bursts up karambit first. The first
+   * one it catches is SKEWERED - stuck on the knife, carried up with him - then at the top he smacks them back down
+   * (`swimCut.smack`, a spike). Called every frame of the move from st_attack.
+   * @param {object} m - the move (swimCut)
+   */
+  skewerStep(m) {
+    const M = this.match, S = m.skewer, v = this.skewered;
+    if (!v && this.t >= S.from && this.t <= S.to) {           // the knife going up: catch the first one in reach
+      for (const o of M.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.isIntangible() || ['seized', 'grabbed', 'respawn'].includes(o.state)) continue;
+        const hb = o.hurtbox(), x1 = this.x - 18, x2 = this.x + 18, y1 = this.y - 96, y2 = this.y - 20;
+        if (!(x1 < hb.x2 && x2 > hb.x1 && y1 < hb.y2 && y2 > hb.y1)) continue;
+        if (o.state === 'shield') { M.shieldHit(o, { h: S.stab, owner: this, id: 'skewer' + this.age, facing: this.facing }); continue; }
+        o.stopChargeSound(); o.setState('seized'); o.seizedBy = this; o.vx = o.vy = o.lx = o.ly = 0;
+        o.percent += S.stab.dmg; this.skewered = o; this.skewerT = 0;
+        sfx('hit', 0.9, 0.6); sfx('slash', 0.6, 0.7); M.shake(4, 6); this.hitstop = 4;
+        break;
+      }
+    }
+    if (!this.skewered) return;
+    const o = this.skewered;
+    if (!o.alive || o.state !== 'seized') { this.skewered = null; return; }
+    this.skewerT++;
+    o.x = this.x + this.facing * 4; o.y = this.y - 76;           // stuck on the knife above him
+    if (this.vy >= -0.5 || this.skewerT >= S.hold) {           // the top: he smacks them back down
+      this.skewered = null; o.seizedBy = null; o.setState('air');
+      M.applyHit(o, { x1: o.x - 10, x2: o.x + 10, y1: o.y - 40, y2: o.y, h: S.smack, owner: this, id: 'smack' + this.age, facing: this.facing }, this.x);
+      sfx('bighit', 0.9, 0.6); M.shake(6, 8);
+      this.startAttack('swimSmack'); this.vy = Math.min(this.vy, -1);
+    }
+  }
+
+  /** Whether he's still holding someone on his knife (the victim's st_seized asks). */
+  holdsSeized(v) { return this.skewered === v && this.state === 'attack'; }
 
   /**
    * Draws him under the sludge: sinking into it, then only a black bulge in the puddle with his white eyes and

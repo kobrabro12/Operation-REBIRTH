@@ -33,6 +33,17 @@ SKIN = [0xa88e7e, 0xc8ad9c, 0xe0c8b6, 0xf0dccc]
 HAIR = [0x7a6c50, 0x9e8e68, 0xc2b48a, 0xddd2a8]       # long, straight, ashy-blond hair
 SLUDGE = [0x060508, 0x0e0c12, 0x1a1720, 0x2e2a38]     # black sludge, with an oily sheen
 SHEEN = 0x4a4458
+# MAD MURDER (costume, `--set murder`): a grimy white shirt soaked in blood, and a smiling mask with a crack
+# through it, one wild eye staring out of the crack
+VARIANT = ''
+MURDER_SHIRT = [0x7e786c, 0x9c9688, 0xbab4a4, 0xd4cfc0]
+BLOOD = [0x3a0608, 0x5e0c10, 0x861418, 0xa8201e]
+MASK = [0xb8b0a0, 0xd0c8b8, 0xe4ddce, 0xf4efe4]
+
+def bloody(x, y, seed, heavy=0.0):
+    """Is this pixel splashed with blood? (MAD MURDER) - spatters, plus heavier soaking lower down."""
+    return blob(x, y, seed + 21) + heavy * (y / 64) > 0.78 or noise(x, y, seed + 22) > 0.95
+
 # how much of him the sludge covers at each stage (0 = none, 1 = all of him)
 COVER = [0.0, 0.34, 0.6, 1.0]
 # which parts are what (the shading ramp they get)
@@ -79,8 +90,11 @@ def repaint(a, ramp, stage, seed):
         if sludged(x, y, stage, seed):
             k = 3 if noise(x, y, seed + 5) > 0.93 else int(v[y, x] * 2.99)
             a[y, x] = hx(SLUDGE[k])
+        elif VARIANT == 'murder' and ramp in (SHIRT, SKIN, PANTS) and bloody(x, y, seed, 0.5 if ramp is SHIRT else 0.2):
+            a[y, x] = hx(BLOOD[min(3, int(v[y, x] * 3.99))])
         else:
-            r = STRIPE if ramp is SHIRT and y % 4 == 1 else ramp          # (the shirt's stripes)
+            if VARIANT == 'murder' and ramp is SHIRT: r = MURDER_SHIRT
+            else: r = STRIPE if ramp is SHIRT and y % 4 == 1 else ramp          # (the shirt's stripes)
             a[y, x] = hx(r[min(len(r) - 1, int(v[y, x] * (len(r) - 0.01)))])
     a[line] = hx(LINE)
     if stage:                                                          # drips hanging off the sludge's lower edge
@@ -147,11 +161,48 @@ def head(stage):
         for x, y in teeth: a[y, x] = hx(0xf8f4ec)
         if stage == 3:
             for x, y in smile[2:-2]: a[y + 1, x] = hx(0xd8d4cc)
+    if VARIANT == 'murder': a = mask(a, stage)
     a = outline(a)
     a[22, 31:36] = np.where(a[22, 31:36, 3:4] > 0, a[22, 31:36], hx(LINE))   # (neck shadow)
     return a
 
+def mask(a, stage):
+    """MAD MURDER's mask over his face: a pale smiling face (shut, happy eyes and a wide painted grin) splashed with
+    blood, a crack running down through it, and in the crack one wild, bloodshot eye staring out."""
+    im = Image.new('RGBA', (64, 64)); ImageDraw.Draw(im).ellipse([31, 7, 43, 21], fill=(255, 255, 255, 255))
+    m = np.array(im)[..., 3] > 0
+    for y, x in zip(*np.nonzero(m)):
+        v = 1 - min(1, math.hypot(x - 39, y - 11) / 10)
+        a[y, x] = hx(MASK[min(3, int(v * 3.99))])
+        pass
+    for x, y in [(42, 9), (43, 10), (42, 10), (34, 19), (35, 20), (41, 19), (32, 14)]:          # a few splashes of blood on it
+        if m[y, x]: a[y, x] = hx(BLOOD[2])
+    for x, y in [(33, 12), (34, 11), (35, 12)]: a[y, x] = hx(0x1a1418)                     # a shut, happy eye (^)
+    smile = [(33, 16), (34, 17), (35, 18), (36, 18), (37, 18), (38, 18), (39, 18), (40, 17), (41, 16), (42, 15)]
+    for x, y in smile: a[y, x] = hx(0x1a1418)                                            # the painted grin...
+    for x, y in smile[2:-2]: a[y - 1, x] = hx(0x8e1a1e)                                  # ...its red lips
+    crack = [(41, 7), (40, 8), (40, 9), (39, 10), (39, 11), (40, 12), (39, 13), (38, 14), (38, 15), (37, 16)]
+    for x, y in crack: a[y, x] = hx(0x0e0c12)                                            # the crack
+    # the eye in the crack: a dark hole torn round it, bloodshot white, a tiny pupil, red veins
+    for x in range(37, 42):
+        for y in range(9, 15): a[y, x] = hx(0x0e0c12)
+    for x, y in [(38, 11), (40, 11), (38, 12), (40, 12), (39, 11), (39, 12), (39, 10), (39, 13)]: a[y, x] = hx(0xf8f0e8)
+    a[11, 38] = hx(0xc83030); a[12, 40] = hx(0xc83030)
+    a[11, 39] = hx(0x000000); a[12, 39] = hx(0x6a0c10)
+    if stage >= 2: a[11, 40] = hx(0xff3030)                                              # (redder the further gone he is)
+    for y in range(17, 20 + stage):                                                       # blood running off the chin
+        if a[y, 36, 3]: a[y, 36] = hx(BLOOD[2])
+    return a
+
 def knife(a):
+    a = _knife(a)
+    if VARIANT == 'murder':                                   # MAD MURDER: the blade's red
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):
+            r, g, b = a[y, x, :3]
+            if r > 150 and g > 150 and noise(x, y, 50) > 0.35: a[y, x] = hx(BLOOD[3] if noise(x, y, 51) > 0.5 else BLOOD[2])
+    return a
+
+def _knife(a):
     """A karambit in his front fist: a black claw-curved blade hooking forward and down out of the bottom of his fist,
     a silver edge along its inside curve, the black grip in his hand and the finger ring sticking out behind it."""
     a = a.copy()
@@ -277,6 +328,8 @@ def composite(layers, hide=()):
     return out
 
 if __name__ == '__main__':
+    if '--set' in sys.argv:                                          # a costume's look: --set murder
+        i = sys.argv.index('--set'); VARIANT = sys.argv[i + 1]; del sys.argv[i:i + 2]
     if '--move' in sys.argv:                                         # a contact sheet of one move: --move NAME FILE
         sys.argv[sys.argv.index('--move'):sys.argv.index('--move') + 1] = []
     if '--pray' in sys.argv or len(sys.argv) == 3:
@@ -298,9 +351,10 @@ if __name__ == '__main__':
         layers = draw_parts(i)
         look = types.SimpleNamespace(draw_parts=lambda L=layers: {n: a.copy() for n, a in L.items()}, composite=composite, ORDER=ORDER, RIG=D.RIG)
         small, big = A.N.build_rig(look, FOLLOW)
-        out = OUT if i == 0 else os.path.join(OUT, name)
+        root = os.path.join(OUT, VARIANT) if VARIANT else OUT
+        out = root if i == 0 else os.path.join(root, name)
         os.makedirs(out, exist_ok=True)
-        A.N.build_all(small, big, MOVES, out, JS if i == 0 else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=A.idle_keys)
+        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=A.idle_keys)
         if i:
             p = os.path.join(out, 'icon.png')
             if os.path.exists(p): os.remove(p)

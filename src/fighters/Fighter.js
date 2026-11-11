@@ -106,7 +106,7 @@ export class Fighter {
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
   get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg && !(this.move && this.move.cut && this.state === 'attack') ? this.devoteDmg : 1) * (this.demonDmg || 1); }   // (THE DEVOTED: his stage makes him hit harder - except CROSS CUTS, which top out at 20%)   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1) * (this.demonSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
+  get speedMult() { return (this.demonSlowUntil > this.age ? 0.6 : 1) * (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1) * (this.demonSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]*soulJumpMultiplier(this); }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel] * (this.devoteKb || 1) * (this.demonKb || 1); }
   get dmgTakenMult() { return (this.soulPowerTaken||1) * (this.soulBattleTaken||1) * AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1) * (this.armoured() ? this.move.armor.taken : 1); }   // (THE TANK dug in: less gets through)   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
@@ -401,6 +401,7 @@ export class Fighter {
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);
     if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // (THE DEVOTED's old THE MAW)
     if (m.demons && this.t === m.cmdAt) this.demonCommand();   // THE DEVOTED: his demon attacks
+    if (m.skewer) this.skewerStep(m);                   // THE DEVOTED: the uppercut out of the sludge
     if (m.cut && this.cutStep(m)) return;                // THE DEVOTED's CROSS CUTS: tap special for the next cut   // THE DEVOTED's OFFERING
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);

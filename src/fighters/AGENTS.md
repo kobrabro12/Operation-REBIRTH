@@ -77,7 +77,7 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   to the symbol to pray when full (cpu.js).
   Specials: DEMONS (neutral-B, like Shulk's Monado Arts: `neutralB.demons`; with no demon out, tryCommon -> `startDemonPick`
   -> state `demonpick` (`st_demonpick`, `drawDemonWheel`, name text `this.pickText`): he stops, tapping the stick turns the wheel of
-  `def.demons.list`, special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. Each demon
+  `demons.offer` (5) demons picked at random from the 8 in `def.demons.list` each time (`this.pickList`), special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. Each demon
   moves its own way (`move_<kind>` in DemonPet) for `demons.life` (20 s, a ring shows it running out) and sets his powers while out (`demonSpeed` / `demonKb` /
   `demonDmg` in Fighter's getters; the glutton's heal and the weeper's double devotion go through addDevotion -> `ownerHit`), and
   his neutral-B then makes it attack (`neutralB.cmdAt` -> `demonCommand` -> `DemonPet.attack`, cooldown `cd`); its hits are done in
@@ -87,7 +87,12 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   (`shadowStep`: he and it swap places, cutting the line between - a recovery); brute lurks UNDER THE FLOOR beneath him and its
   attack tunnels to the nearest foe and punches up out of the floor; weeper FLOATS HIGH over the nearest foe, drips a tear on
   its own every `dripEvery`, attack = DOWNPOUR (a torrent under it); hollow is CHAINED to him, orbiting and hitting what it
-  swings into (`bump`), attack = hooked chain that drags them back. Faces:
+  swings into (`bump`), attack = hooked chain that drags them back; crawler HUNTS on its own along the floor and latches onto
+  the nearest foe's back (slows them via `demonSlowUntil` in Fighter.speedMult, bites), attack = POUNCE from anywhere (or
+  bursts off whoever it's on), power = his hits charge his Limit; swarm is a CLOUD of flies round him whose power `guard()`
+  blocks a hit on him (MatchScene.applyHit asks it first; `guardEvery` to gather again), attack = STING the nearest foe;
+  toller is PLANTED in the floor (`plant`): in its ring he regenerates and foes are slowed, attack = TOLL (an expanding
+  shockwave), or re-plants itself by him if he's `far` away. Faces:
   `drawDemonFace`. It leaves when its time's up or he's KO'd (Fighter.ko). The old THE MAW (`throwMaw`/`SludgeMaw`) and
   OFFERING (`throwGlobs`/`SludgeGlob`) are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
   `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a
@@ -97,13 +102,17 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
   SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains
-  on that platform only (`stainAt`), intangible, bursts out with jump / attack / special as move `swimPop` (anim = upb).
+  on that platform only (`stainAt`), intangible, bursts out with jump / special as move `swimPop` (anim = upb); attack bursts
+  out as `swimCut`: a knife uppercut that SKEWERS the first one it catches (`skewerStep` from st_attack: victim `seized` on the
+  knife, `holdsSeized`), carries them up and smacks them back down at the top (`skewer.smack`, then move `swimSmack`).
   INK FALLS (`sludgeFalls()`, worked out each frame from stains touching a platform's edge, drawn with the stains): sludge pours
   `swim.fallLength` px down the side. Swimming over that edge, or down-B in the air beside one (`fallNear`), -> state
   `sludgeclimb` (`enterFall` / `st_sludgeclimb`, no gravity - Fighter.physics): up/down climbs, up at the top pops him onto the
   platform, jump shoots him up and out on top (`climbRush`), holding down at the bottom lets go, attack/special pop out away.
   Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in his sludge and
-  DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. `setSludge` passes every stage's sheets through
+  DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. MAD MURDER is its own drawing (`sheetSet: 'murder'`,
+  `devoted_draw.py --set murder` -> `devoted/murder/` + `murder/semi|taken|drowned/`, all four stages in `costumeSheets.murder`
+  as `<stage>_<strip>`; setSludge picks them): blood-soaked white shirt, a cracked smiling mask with one wild eye in the crack. `setSludge` passes every stage's sheets through
   `skinTexture`, so the costume carries through all four stages.
   Rosemary's RED ARMY costume (shop, PAPERSPLEASE; `ss`-style drawing `draw_soviet()` in last_seen_draw.py, sheets `last-seen/soviet/`) has
   its own other form: skin `form: 'tank'` -> `LAST_SEEN.forms.tank` (TANK in lastSeen.js) instead of SEEN - a T-34-style tank with her in

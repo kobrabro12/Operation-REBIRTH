@@ -1460,6 +1460,16 @@ export function drawDemonFace(g, kind, x, y, s, age) {
       g.fillStyle(W, 1); g.fillEllipse(x + ex * s, y + ey * s, 4 * s, 3 * s); g.fillStyle(0x4a8ad8, 1); g.fillRect(x + ex * s - 0.5 * s, y + ey * s - 0.5 * s, 1 * s, 1 * s);
       g.fillStyle(B, 1); g.fillRect(x + ex * s - 0.5 * s, y + ey * s + 1.5 * s, 1 * s, (2 + ((age >> 3) + ex) % 3) * s);
     }
+  } else if (kind === 'crawler') {                       // a cluster of red eyes over pincers
+    for (const [ex, ey, r] of [[-3, -2, 1.6], [3, -2, 1.6], [0, -4, 1.2], [-5, 1, 1], [5, 1, 1], [0, 0, 1]]) { g.fillStyle(0xd8302a, 1); g.fillCircle(x + ex * s, y + ey * s, r * s); }
+    g.lineStyle(1.5 * s, W, 1); g.lineBetween(x - 2 * s, y + 3 * s, x - 4 * s, y + 7 * s); g.lineBetween(x + 2 * s, y + 3 * s, x + 4 * s, y + 7 * s);
+  } else if (kind === 'swarm') {                          // a buzz of flies
+    for (let i = 0; i < 9; i++) { const a = i * 2.4 + age * 0.3, r = (3 + (i % 3) * 2.5) * s; g.fillStyle(i % 3 ? B : 0x8ad83a, 1); g.fillRect(x + Math.cos(a) * r - 1, y + Math.sin(a) * r - 1, 2 * s, 2 * s); }
+  } else if (kind === 'toller') {                         // a cracked bell with one eye in its mouth
+    g.fillStyle(0x8a6428, 1); g.fillTriangle(x - 8 * s, y + 6 * s, x + 8 * s, y + 6 * s, x, y - 8 * s); g.fillEllipse(x, y - 2 * s, 10 * s, 12 * s);
+    g.fillStyle(B, 1); g.fillEllipse(x, y + 6 * s, 14 * s, 4 * s);
+    g.fillStyle(0xf4eefc, 1); g.fillCircle(x, y + 5 * s, 1.6 * s); g.fillStyle(0xd8302a, 1); g.fillRect(x - 0.5 * s, y + 4.5 * s, 1 * s, 1 * s);
+    g.lineStyle(1, B, 1); g.lineBetween(x + 2 * s, y - 6 * s, x - 1 * s, y + 1 * s);
   } else {
     g.fillStyle(B, 1); g.fillTriangle(x - 9 * s, y + 7 * s, x + 9 * s, y + 7 * s, x, y - 9 * s);
     g.fillStyle(0x000000, 1); g.fillEllipse(x, y + 1 * s, 8 * s, 9 * s);
@@ -1485,6 +1495,8 @@ export class DemonPet {
     if (this.kind === 'wraith') { this.x = owner.x + owner.facing * 24; this.y = owner.y; this.plat = owner.platform; }   // (it stands where he called it)
     if (this.kind === 'weeper') this.y = owner.y - spec.height;
     if (this.kind === 'hollow') this.y = owner.y - 40;
+    if (this.kind === 'toller') this.plant(owner.x + owner.facing * 36);
+    if (this.kind === 'swarm') { this.guardCd = 0; this.flies = Array.from({ length: spec.flies }, (_, i) => ({ a: i * 0.7, r: 14 + (i % 4) * 6, x: this.x, y: this.y - 30 })); }
     this.g = match.add.graphics().setDepth(4); match.addWorld(this.g);
     owner.demonSpeed = spec.speed || 1; owner.demonKb = spec.kb || 1; owner.demonDmg = spec.dmg || 1;
     this.puff(16);
@@ -1492,8 +1504,28 @@ export class DemonPet {
   hitbox() { return null; }
   /** A burst of sludge where it is (arriving, leaving, jumping back to him). */
   puff(n) { const R = Math.random; for (let i = 0; i < n; i++) this.match.particles.push({ x: this.x, y: this.y - 14, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 4, life: 24, color: [0x060508, this.spec.color, 0x2e2a38][i % 3], size: 3, grav: 0 }); }
-  /** Its power when he lands a hit: THE GLUTTON heals him. */
-  ownerHit() { if (this.kind === 'glutton') this.owner.percent = Math.max(0, this.owner.percent - this.spec.heal); }
+  /** Its power when he lands a hit: THE GLUTTON heals him, THE CRAWLER charges his Limit. */
+  ownerHit() {
+    if (this.kind === 'glutton') this.owner.percent = Math.max(0, this.owner.percent - this.spec.heal);
+    if (this.kind === 'crawler') this.owner.limit = Math.min(100, (this.owner.limit || 0) + this.spec.limit);
+  }
+  /**
+   * THE SWARM's power: a hit about to land on him - if the swarm is gathered round him, it takes it instead.
+   * @returns {boolean} true when the hit is blocked
+   */
+  guard(hb) {
+    if (this.kind !== 'swarm' || this.atk || this.guardCd > 0 || hb.owner === this.owner) return false;
+    this.guardCd = this.spec.guardEvery; this.burstAt = this.t;
+    sfx('clang', 0.5, 1.6); sfx('whoosh', 0.4, 1.8); this.puff(10);
+    return true;
+  }
+  /** THE TOLLER: drives itself into the floor at x (on the floor under that spot, or under him). */
+  plant(x) {
+    const o = this.owner, P = this.floorUnder(x, o.y - 10) || o.platform || this.floorUnder(o.x, o.y - 10);
+    if (P) { this.plat = P; this.px = Math.max(P.x1 + 8, Math.min(P.x2 - 8, x)) - P.x1; this.x = P.x1 + this.px; this.y = P.y; }
+    else { this.plat = null; this.x = x; this.y = o.y; }
+    this.plantedAt = this.t; this.match.shake(4, 6); sfx('bighit', 0.5, 0.6); this.puff(10);
+  }
   /** Whether it's still holding someone it seized (THE GLUTTON's swallow) - the victim's st_seized asks. */
   holdsSeized(v) { return this.alive && this.swallowed === v; }
   /** The nearest opponent who can be hit, or null. */
@@ -1511,8 +1543,15 @@ export class DemonPet {
     this.cd = this.spec.cd; this.atkId = nextId++;
     this.atk = { t: 0, dir: o.facing };
     if (this.kind === 'wraith') this.shadowStep();
+    if (this.kind === 'crawler') {
+      if (this.clung) { this.crawlBurst(); this.atk = null; return; }   // already on someone: bursts off them
+      const f = this.nearestFoe(320); this.atk.target = f; this.plat = null; this.vy = -7;
+      if (!f) this.atk.target = null;
+    }
+    if (this.kind === 'swarm') { const f = this.nearestFoe(this.spec.range); if (!f) { this.atk = null; this.cd = 20; return; } this.atk.target = f; }
+    if (this.kind === 'toller' && Math.abs(o.x - this.x) + Math.abs(o.y - this.y) > this.spec.far) { this.puff(10); this.plant(o.x + o.facing * 36); this.atk = null; this.cd = 40; return; }
     if (this.kind === 'brute') { const f = this.nearestFoe(500); this.atk.target = f; this.atk.tx = f ? f.x : o.x + o.facing * 70; this.atk.tplat = f ? (f.platform || this.floorUnder(f.x, f.y)) : this.plat; }
-    sfx({ glutton: 'roar', wraith: 'whoosh', brute: 'rumble', weeper: 'curse', hollow: 'clang' }[this.kind], 0.5, this.kind === 'glutton' ? 1.3 : 0.8);
+    sfx({ glutton: 'roar', wraith: 'whoosh', brute: 'rumble', weeper: 'curse', hollow: 'clang', crawler: 'swing', swarm: 'whoosh', toller: 'clang' }[this.kind], 0.5, this.kind === 'glutton' ? 1.3 : this.kind === 'toller' ? 0.4 : 0.8);
   }
   /**
    * Hits whoever overlaps a box with this attack (once each per `key`); shields block it.
@@ -1667,11 +1706,93 @@ export class DemonPet {
     A.hx = hx; A.hy = hy;
     if (C.back && C.len <= 20) { if (C.held && C.held.alive) { C.held.x = o.x + d * 26; C.held.y = o.y; } this.atk = null; }
   }
+  /** THE CRAWLER bursts off whoever it's clinging to: a hit, and it drops to the floor. */
+  crawlBurst() {
+    const v = this.clung; this.clung = null; if (!v) return;
+    this.atkId = nextId++; this.strike({ x1: v.x - 20, x2: v.x + 20, y1: v.y - 60, y2: v.y }, this.spec.burst, 'burst');
+    sfx('bighit', 0.6, 0.8); this.puff(12); this.vy = -5; this.plat = null;
+  }
+  /**
+   * THE CRAWLER: hunts on its own - runs along the floor after the nearest opponent and latches onto their back
+   * (they're slowed and bitten while it clings); its attack is a pounce from anywhere onto them.
+   */
+  move_crawler(o, m, S, R) {
+    const A = this.atk;
+    if (this.clung) {                                         // on someone's back
+      const v = this.clung;
+      if (!v.alive || v.state === 'respawn' || --this.clingLeft <= 0 || v.isIntangible()) { this.clung = null; this.vy = -4; this.plat = null; this.puff(6); }
+      else {
+        this.x = v.x - (v.facing || 1) * 6; this.y = v.y - v.body.h * 0.6; v.demonSlowUntil = v.age + 2;
+        if (this.clingLeft % 20 === 0) { v.percent += S.chew; sfx('hit', 0.2, 1.4); m.particles.push({ x: this.x, y: this.y, vx: (R() - 0.5) * 2, vy: -1, life: 10, color: 0x6a0c10, size: 2, grav: 0.2 }); }
+        return;
+      }
+    }
+    let vx = 0;
+    if (A && A.target) {                                      // the pounce: an arc onto them
+      const T = A.target, dx = T.x - this.x;
+      vx = Math.sign(dx) * Math.min(Math.abs(dx), 8); this.dir = Math.sign(dx) || this.dir;
+      this.vy = Math.min(9, this.vy + 0.45);
+      const got = this.strike({ x1: this.x - 14, x2: this.x + 14, y1: this.y - 20, y2: this.y + 4 }, S.pounce, 'p');
+      if (got[0]) { this.clung = got[0]; this.clingLeft = S.clingFor; this.atk = null; sfx('hit', 0.6, 1.2); return; }
+      if (A.t > 50) this.atk = null;
+    } else {                                                  // hunting along the floor
+      if (A) this.atk = null;
+      const f = this.nearestFoe(420), tx = f && Math.abs(f.y - this.y) < 60 ? f.x : o.x - o.facing * 30, dx = tx - this.x;
+      if (Math.abs(dx) > 6) { vx = Math.sign(dx) * S.run; this.dir = Math.sign(dx); }
+      if (f && this.plat && Math.abs(dx) < 14 && Math.abs(f.y - this.y) < 30 && !f.isIntangible() && f.state !== 'seized' && this.t % 4 === 0) {   // reached them: up their back
+        this.clung = f; this.clingLeft = S.clingFor; sfx('hit', 0.4, 1.4);
+        return;
+      }
+    }
+    this.x += vx;
+    if (this.plat && (this.x < this.plat.x1 || this.x > this.plat.x2)) this.plat = null;
+    if (!this.plat) {
+      this.vy = Math.min(8, this.vy + 0.45); const py = this.y; this.y += this.vy;
+      const P = m.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && py <= p.y && this.y >= p.y);
+      if (P && this.vy >= 0) { this.plat = P; this.y = P.y; this.vy = 0; }
+    } else this.y = this.plat.y;
+    if (this.y > 330 || Math.hypot(o.x - this.x, o.y - this.y) > 420) { this.puff(6); this.x = o.x - o.facing * 24; this.y = o.y; this.vy = 0; this.plat = o.platform || null; this.puff(8); }
+    this.moving = Math.abs(vx) > 0.5;
+  }
+  /** THE SWARM: a cloud of flies buzzing round him (gathering again after it blocks a hit); its attack stings the nearest opponent. */
+  move_swarm(o, m, S) {
+    const A = this.atk; if (this.guardCd > 0) this.guardCd--;
+    let cx = o.x, cy = o.y - 30, spread = 1;
+    if (A) {
+      const T = A.target;
+      if (!T || !T.alive || A.t > S.stingFor + 30) { this.atk = null; }
+      else if (A.t <= S.stingFor) {
+        const k = Math.min(1, A.t / 12); cx = o.x + (T.x - o.x) * k; cy = o.y - 30 + (T.y - 30 - (o.y - 30)) * k; spread = 0.7;
+        if (A.t > 10 && A.t % 6 === 0) { this.atkId = nextId++; this.strike({ x1: T.x - 22, x2: T.x + 22, y1: T.y - 60, y2: T.y + 4 }, A.t >= S.stingFor - 6 ? S.stingLast : S.sting); }
+        if (A.t % 5 === 0) sfx('swing', 0.12, 2.2);
+      }
+    } else if (this.guardCd > 0) spread = 2.2 - 1.2 * (1 - this.guardCd / S.guardEvery);   // (scattered, gathering back in)
+    this.x = cx; this.y = cy;
+    for (const f of this.flies) {
+      f.a += 0.18 + (f.r % 5) * 0.02;
+      const tx = cx + Math.cos(f.a) * f.r * spread, ty = cy + Math.sin(f.a * 1.3) * f.r * 0.7 * spread;
+      f.x += (tx - f.x) * 0.3; f.y += (ty - f.y) * 0.3;
+    }
+  }
+  /** THE TOLLER: stays planted where it was driven in (riding its platform); inside its ring he heals and opponents slow; its attack tolls. */
+  move_toller(o, m, S) {
+    if (this.plat) { this.x = this.plat.x1 + this.px; this.y = this.plat.y; }
+    const inRing = (f) => Math.abs(f.x - this.x) < S.ring && Math.abs(f.y - this.y) < S.ring * 0.6;
+    if (inRing(o) && this.t % 60 === 0 && o.percent > 0) { o.percent = Math.max(0, o.percent - S.regen); m.particles.push({ x: o.x, y: o.y - 40, vx: 0, vy: -0.8, life: 20, color: 0xc8963a, size: 2, grav: 0 }); }
+    for (const f of m.fighters) if (f !== o && f.alive && f.team !== o.team && inRing(f)) f.demonSlowUntil = f.age + 2;
+    const A = this.atk;
+    if (A) {
+      if (A.t === 8) { sfx('clang', 0.9, 0.35); sfx('bighit', 0.5, 0.4); m.shake(5, 10); }
+      if (A.t >= 8 && A.t <= 22) { const r = (A.t - 8) / 14 * S.tollRadius; this.strike({ x1: this.x - r, x2: this.x + r, y1: this.y - 50 - r * 0.4, y2: this.y + 6 }, S.toll); }
+      if (A.t > 34) this.atk = null;
+    }
+  }
   /** It leaves (its 20 s are up, he was KO'd, or it was countered): his powers go with it, and it lets go of anyone it swallowed. */
   kill() {
     if (!this.alive) return; this.alive = false; this.g.destroy();
     const o = this.owner, v = this.swallowed;
     if (v) { this.swallowed = null; v.seizedBy = null; v.sprite.setVisible(true); if (v.state === 'seized') v.setState('air'); }
+    this.clung = null;
     if (o.demon === this) { o.demon = null; o.demonSpeed = o.demonKb = o.demonDmg = 1; }
     this.puff(14); sfx('curse', 0.3, 1.3);
   }
@@ -1722,6 +1843,34 @@ export class DemonPet {
       for (const d of this.drops || []) { g.fillStyle(B, 1); g.fillEllipse(d.x, d.y, d.pour ? 5 : 7, d.pour ? 9 : 11); if (!d.pour) { g.fillTriangle(d.x - 3, d.y - 3, d.x + 3, d.y - 3, d.x, d.y - 10); g.fillStyle(c, 0.8); g.fillRect(d.x - 1, d.y - 2, 1, 3); } }
       if (A && A.t <= this.spec.pourFor) { g.fillStyle(B, 0.35); const P = this.floorUnder(x, y + 12); g.fillRect(x - 12, y + 10, 24, (P ? P.y : y + 300) - y - 10); }
       ringY = y;
+    } else if (this.kind === 'crawler') {                     // a low black body on six skittering legs, a cluster of red eyes
+      const d = this.dir, run = this.moving || this.clung ? t * 0.7 : 0;
+      g.lineStyle(2, B, 1);
+      for (let i = 0; i < 3; i++) for (const s of [-1, 1]) {
+        const lx = x + (i - 1) * 6, ph = Math.sin(run + i * 2 + (s > 0 ? Math.PI : 0)) * 3;
+        g.lineBetween(lx, y - 8, lx + s * 7 + ph, y - 13); g.lineBetween(lx + s * 7 + ph, y - 13, lx + s * 11 + ph, y);
+      }
+      g.fillStyle(B, 1); g.fillEllipse(x, y - 8, 22, 12); g.fillEllipse(x - d * 9, y - 9, 12, 10);
+      drawDemonFace(g, 'crawler', x + d * 8, y - 9, 0.8, t);
+      ringY = y - 8;
+    } else if (this.kind === 'swarm') {                       // a cloud of flies (scattered for a moment after it blocks a hit)
+      for (const f of this.flies) { const wing = (t + f.r) % 4 < 2; g.fillStyle(B, 1); g.fillRect(f.x - 1, f.y - 1, 3, 2); if (wing) { g.fillStyle(0x8ad83a, 0.6); g.fillRect(f.x - 2, f.y - 2, 1, 1); g.fillRect(f.x + 2, f.y - 2, 1, 1); } }
+      if (this.burstAt !== undefined && t - this.burstAt < 8) { g.lineStyle(2, 0x8ad83a, 1 - (t - this.burstAt) / 8); g.strokeCircle(this.owner.x, this.owner.y - 30, 20 + (t - this.burstAt) * 4); }
+      ringY = y;
+    } else if (this.kind === 'toller') {                      // a sludge pillar with a cracked bronze bell for a head, and its ring on the floor
+      const S = this.spec, A = this.atk, swing = A && A.t < 20 ? Math.sin(A.t * 0.9) * 0.3 * (1 - A.t / 20) : Math.sin(t * 0.03) * 0.04;
+      g.lineStyle(1, c, 0.35 + 0.1 * Math.sin(t * 0.08)); g.strokeEllipse(x, y, S.ring * 2, 14);
+      g.fillStyle(c, 0.06); g.fillEllipse(x, y, S.ring * 2, 14);
+      g.fillStyle(B, 1); g.fillRect(x - 6, y - 50, 12, 50); g.fillTriangle(x - 12, y, x + 12, y, x, y - 22);   // the pillar, spreading at its foot
+      for (let i = 0; i < 3; i++) { g.fillStyle(B, 1); g.fillRect(x - 6 + i * 5, y - 10 + ((t + i * 9) % 12), 2, 3); }   // sludge running down it
+      const bx = x + Math.sin(swing) * 14, by = y - 58;
+      g.fillStyle(0x6a4a1e, 1); g.fillTriangle(bx - 14, by + 12, bx + 14, by + 12, bx, by - 14); g.fillEllipse(bx, by - 4, 18, 22);
+      g.fillStyle(0xc8963a, 0.7); g.fillRect(bx - 6, by - 10, 2, 14);
+      g.fillStyle(B, 1); g.fillEllipse(bx, by + 12, 28, 7);
+      g.fillStyle(0xf4eefc, 1); g.fillCircle(bx, by + 11, 2.2); g.fillStyle(0xd8302a, 1); g.fillRect(bx - 0.5, by + 10.5, 1.5, 1.5);   // the eye in its mouth
+      g.lineStyle(1, B, 1); g.lineBetween(bx + 3, by - 14, bx - 2, by - 2); g.lineBetween(bx - 2, by - 2, bx + 1, by + 6);              // the crack
+      if (A && A.t >= 8 && A.t <= 22) { const r = (A.t - 8) / 14 * S.tollRadius; g.lineStyle(3, c, 1 - (A.t - 8) / 14); g.strokeEllipse(x, y - 20, r * 2, r * 0.9); }
+      ringY = by - 4;
     } else {                                                  // THE HOLLOW: an empty hood on a chain from his chest
       const o = this.owner;
       if (!A) { g.lineStyle(2, 0x8a7a5a, 1); const n = 6; for (let i = 0; i < n; i++) { const k = i / n, k2 = (i + 0.6) / n; g.lineBetween(o.x + (x - o.x) * k, o.y - 34 + (y - o.y + 34) * k, o.x + (x - o.x) * k2, o.y - 34 + (y - o.y + 34) * k2); } }

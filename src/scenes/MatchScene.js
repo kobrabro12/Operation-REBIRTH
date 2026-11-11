@@ -405,6 +405,7 @@ export class MatchScene extends Phaser.Scene {
   }
 
   applyHit(t, hb, srcX) {
+    if (t.demon && t.demon.alive && t.demon.guard && t.demon.guard(hb)) return;   // THE DEVOTED's SWARM takes the hit for him
     const h = hb.h, owner = hb.owner;
     const beat = owner && owner.def.beat ? owner.beatBonus(hb) : null;        // NU: an attack started on the beat
     if (t.def.beat) t.dropStreak();

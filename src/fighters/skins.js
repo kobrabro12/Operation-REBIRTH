@@ -734,5 +734,9 @@ SKINS['devoted'] = [
   // ROTWOOD: a moss-green shirt, dark brown hair, sickly skin
   { name: 'ROTWOOD', swatch: 0x5a7a2a, fx: 0x8ab04a, groups: DVG, rules: { wing: { to: 96, sat: 0.9, val: 1.2 }, shirt: { to: 92, sat: 0.9, val: 0.85 }, hair: { to: 28, sat: 1.6, val: 0.5 }, skin: { to: 62, sat: 0.7, val: 0.92 } } },
   // CHOIRBOY: a sky-blue shirt, platinum hair, navy trousers
+  // MAD MURDER: its own drawing (tools/sprites/devoted_draw.py --set murder): a grimy white shirt soaked in blood,
+  // a smiling mask with a crack through it and one wild eye staring out
+  { name: 'MAD MURDER', sheetSet: 'murder', swatch: 0x8e1a1e, fx: 0xc8202a, pal: { outline: 0x1a0608, deep: 0x3a0608, mid: 0x861418, light: 0xe4ddce, core: 0xffffff, shade: 0x0e0204, void: 0x000000 },
+    vfx: { hit: { shape: 'spark', colors: [0xc8202a, 0x3a0608, 0xe4ddce], n: 10 } } },
   { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
 ];

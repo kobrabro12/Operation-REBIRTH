@@ -19,11 +19,16 @@ export const DEVOTED = {
   sheets: SET(''),
   // his look at each sludge stage (fighterDevoted.js swaps to it when he prays his way up)
   sludgeSheets: [SET(''), SET('semi'), SET('taken'), SET('drowned')],
+  // MAD MURDER (costume): its own drawing at every stage - one group, loaded per match (lazySheets); setSludge
+  // picks the stage's strips out of it (`<stage>_<strip>`)
+  costumeSheets: { murder: Object.assign({}, ...['', 'semi', 'taken', 'drowned'].map((st) => Object.fromEntries(
+    ['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [(st ? st + '_' : '') + k, 'dv_murder_' + (st ? st + '_' : '') + k])))) },
   runCycle: [0, 8],
   // DEMONS (neutral special): the five, in wheel order from the top, clockwise. life: frames it stays; cd: frames
   // between its attacks; power: what it does for him while it's out
   demons: {
     life: 1200, pickFor: 240,        // how long it stays (20 s); the wheel picks for him if he waits this long
+    offer: 5,                        // how many of the demons the wheel offers each time (picked at random)
     list: [
       // THE GLUTTON - WALKS: a bloated maw that waddles along the floor after him (falls off edges, catches up if
       // it's left behind). Neutral special: it charges along the floor and SWALLOWS the first one it reaches - they're
@@ -53,11 +58,29 @@ export const DEVOTED = {
       { kind: 'hollow', name: 'THE HOLLOW', power: 'HIT HARDER  /  ORBITS YOU', color: 0xc89a4a, cd: 100, dmg: 1.1, reach: 190,
         orbit: 48, spin: 0.07, bump: { dmg: 3, angle: 45, base: 2.6, growth: 1.6 },
         hook: { dmg: 5, angle: 30, base: 1.0, growth: 0.2, stun: 30 } },
+      // THE CRAWLER - HUNTS ON ITS OWN: a skittering, many-legged thing that runs along the floor after the nearest
+      // opponent by itself and latches onto their back - while it clings they're 40% slower and it bites them (`chew`
+      // every 20 frames). Neutral special: POUNCE - it leaps onto the nearest opponent from anywhere; if it's
+      // already on someone, it bursts off them instead (a hit). Power: every hit he lands charges his Limit.
+      { kind: 'crawler', name: 'THE CRAWLER', power: 'HITS CHARGE YOUR LIMIT  /  HUNTS', color: 0xd8302a, cd: 90, limit: 3,
+        run: 4.2, clingFor: 200, chew: 1, pounce: { dmg: 6, angle: 60, base: 2.0, growth: 1.0, stun: 14 },
+        burst: { dmg: 8, angle: 70, base: 4.6, growth: 4.6 } },
+      // THE SWARM - A CLOUD AROUND HIM: a buzzing cloud of black flies. Power: it throws itself in front of the first
+      // hit that would land on him - the hit's blocked - then it needs `guardEvery` frames to gather again. Neutral
+      // special: STING - the whole cloud flies onto the nearest opponent and stings them over and over, then comes back.
+      { kind: 'swarm', name: 'THE SWARM', power: 'BLOCKS A HIT  /  STINGS', color: 0x8ad83a, cd: 120, guardEvery: 360, flies: 16,
+        range: 280, stingFor: 54, sting: { dmg: 1, angle: 80, base: 0.6, growth: 0, stun: 8 }, stingLast: { dmg: 3, angle: 50, base: 3.6, growth: 3.0 } },
+      // THE TOLLER - PLANTED: a pillar of sludge with a cracked bronze bell for a head, driven into the floor beside
+      // him. Inside its ring he heals (`regen` every 60 frames) and opponents are slowed. Neutral special: it TOLLS -
+      // a shockwave rings out from it, throwing everyone near it away; if he's far from it, it uproots and plants
+      // itself next to him again instead.
+      { kind: 'toller', name: 'THE TOLLER', power: 'ITS RING: YOU HEAL, THEY SLOW', color: 0xc8963a, cd: 120, ring: 96, regen: 1,
+        far: 220, toll: { dmg: 9, angle: 40, base: 5.4, growth: 4.6 }, tollRadius: 140 },
     ],
   },
 
   // (bursting out of a puddle reuses the geyser's rise; the cross cuts reuse his slashes)
-  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, demonpick: [...DV_MOVES.taunt.slice(0, 3), 1], sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
+  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, swimCut: DV_MOVES.upb, swimSmack: DV_MOVES.dair, demonpick: [...DV_MOVES.taunt.slice(0, 3), 1], sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
   movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
   handOffset: { x: 18, y: -34 },   // the tip of his knife
@@ -161,11 +184,17 @@ export const DEVOTED = {
       // edge), can't be hit, and bursts out with jump (a big leap) or attack / special (a hop), hitting anyone above.
       // (only where there's sludge: standing on clean floor it's a normal prayer) sink: frames to sink in; speed: px per frame under the sludge;
       // max: the longest he can stay under (frames); leap / hop: his jump out; cooldown: frames before he can sink again
-      swim: { sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30,
+      swim: { sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30, cutRise: -10.5,
         // INK FALLS: sludge that reaches a platform's edge pours down its side. Down special in the air beside one (or
         // swimming over the edge into it) puts him in it; up / down climbs it (px per frame). fallLength: how far it
         // pours below the platform (px)
         climb: 5.2, fallLength: 70 } },
+    // SLUDGE SWIM's attack out of the sludge: an uppercut, knife first. The first one it catches (frames from-to) is
+    // skewered on the knife and carried up (stab damage), then at the top of his rise (or after `hold` frames) he
+    // smacks them back down (smack: a spike)
+    swimCut: { frames: 34, skewer: { from: 1, to: 10, hold: 24, stab: { dmg: 6, angle: 90, base: 0, growth: 0 },
+      smack: { dmg: 8, angle: -80, base: 4.4, growth: 4.2 } } },
+    swimSmack: { frames: 22 },
     // bursting out of the sludge (SLUDGE SWIM's exit)
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },
