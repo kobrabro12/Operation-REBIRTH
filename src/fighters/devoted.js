@@ -111,7 +111,11 @@ export const DEVOTED = {
       // edge), can't be hit, and bursts out with jump (a big leap) or attack / special (a hop), hitting anyone above.
       // (only where there's sludge: standing on clean floor it's a normal prayer) sink: frames to sink in; speed: px per frame under the sludge;
       // max: the longest he can stay under (frames); leap / hop: his jump out; cooldown: frames before he can sink again
-      swim: { sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30 } },
+      swim: { sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30,
+        // INK FALLS: sludge that reaches a platform's edge pours down its side. Down special in the air beside one (or
+        // swimming over the edge into it) puts him in it; up / down climbs it (px per frame). fallLength: how far it
+        // pours below the platform (px)
+        climb: 5.2, fallLength: 70 } },
     // bursting out of the sludge (SLUDGE SWIM's exit)
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },

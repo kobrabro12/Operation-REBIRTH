@@ -154,6 +154,17 @@ export class FighterDevoted {
         sg.fillStyle(0x060508, 0.92); sg.fillEllipse(x, y + 1, s.w * 2, 3 + s.w * 0.12);
         sg.fillStyle(0x2e2a38, 0.6); sg.fillRect(x - s.w * 0.4, y, Math.max(1, s.w * 0.3), 1);   // an oily sheen
       }
+      for (const f of this.sludgeFalls()) {                 // INK FALLS pouring off the edges
+        const x = f.x + f.side * 2, len = f.bot - f.top, a = this.age;
+        sg.fillStyle(0x060508, 0.92); sg.fillRect(x - 3, f.top, 6, len - 10);
+        sg.fillStyle(0x0e0c12, 0.9); sg.fillRect(x - 4 + f.side * 2, f.top, 3, len * 0.6);
+        sg.fillStyle(0x4a3248, 0.8); sg.fillRect(x - 1, f.top + ((a * 2) % len), 1, 10);      // a purple sheen running down it
+        sg.fillStyle(0x4a3248, 0.5); sg.fillRect(x + 1, f.top + ((a * 2 + len / 2) % len), 1, 6);
+        for (let i = 0; i < 3; i++) {                       // drips falling off the bottom
+          const d = (a * 1.5 + i * 23) % 40;
+          sg.fillStyle(0x060508, 1 - d / 40); sg.fillRect(x - 1, f.bot - 10 + d, 2, 3);
+        }
+      }
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
@@ -166,14 +177,44 @@ export class FighterDevoted {
     return S.find((s) => s.plat === plat && Math.abs(x - (plat.x1 + s.dx)) <= s.w * 0.85) || null;
   }
 
-  /** SLUDGE SWIM: can down special sink him into the sludge here? (on the floor, by a stain, and not able to go up a stage) */
-  canSwim() {
-    const W = this.def.moves.downB.swim;
-    return this.grounded && this.platform && !(this.swimCd > 0) && !this.canAscend() && !!this.stainAt(this.x, this.platform);
+  /**
+   * The INK FALLS: where a stain reaches a platform's edge, the sludge pours off it in a column down the side.
+   * Worked out from the stains every frame. Returns [{ plat, side (-1 left / 1 right), x, top, bot }].
+   */
+  sludgeFalls() {
+    const m = this.match, S = m.sludgeStains, W = this.def.moves.downB.swim;
+    if (!S) return [];
+    if (m.sludgeFallsAt === this.age && m.sludgeFallsBy === this) return m.sludgeFallsCache;
+    const out = [];
+    for (const s of S) {
+      const p = s.plat, wide = p.x2 - p.x1;
+      for (const side of [-1, 1]) {
+        if (side < 0 ? s.dx - s.w > 2 : s.dx + s.w < wide - 2) continue;
+        if (out.some((f) => f.plat === p && f.side === side)) continue;
+        out.push({ plat: p, side, x: side < 0 ? p.x1 : p.x2, top: p.y, bot: (p.solid ? p.bottom ?? p.y + 40 : p.y) + W.fallLength });
+      }
+    }
+    m.sludgeFallsAt = this.age; m.sludgeFallsBy = this; m.sludgeFallsCache = out;
+    return out;
   }
 
-  /** Sinks him into the sludge (state sludgeswim). */
+  /** The ink fall he's touching in the air (within reach of its column), or null. */
+  fallNear() {
+    if (this.grounded) return null;
+    return this.sludgeFalls().find((f) => Math.abs(this.x - (f.x + f.side * this.body.w / 2)) < 24 && this.y > f.top + 4 && this.y - this.body.h < f.bot) || null;
+  }
+
+  /** SLUDGE SWIM: can down special sink him into the sludge here? (standing in a stain, or in the air by an ink fall - and not able to go up a stage) */
+  canSwim() {
+    if (this.swimCd > 0 || this.canAscend()) return false;
+    if (this.grounded) return !!(this.platform && this.stainAt(this.x, this.platform));
+    return !!this.fallNear();
+  }
+
+  /** Sinks him into the sludge (state sludgeswim), or into the ink fall he's next to (state sludgeclimb). */
   startSwim() {
+    const fall = this.fallNear();
+    if (fall) { this.enterFall(fall, this.y); return; }
     this.setState('sludgeswim'); this.vx = 0; this.swimFrom = this.x;
     sfx('geyser', 0.3, 1.4); sfx('curse', 0.2, 1.6);
     const R = Math.random;
@@ -193,17 +234,70 @@ export class FighterDevoted {
     this.invincible = Math.max(this.invincible, 2);
     if (Math.abs(c.x) > 0.2) {
       this.facing = Math.sign(c.x);
-      const nx = this.x + c.x * W.speed * this.speedMult;
+      const nx = Math.max(plat.x1 + 1, Math.min(plat.x2 - 1, this.x + c.x * W.speed * this.speedMult));   // (he stays on the platform...)
+      const fall = this.sludgeFalls().find((f) => f.plat === plat && f.side === Math.sign(c.x));
+      if (fall && Math.abs(nx - fall.x) < 3) { this.enterFall(fall, plat.y + 8); return; }   // (...unless an ink fall takes him over the edge)
       if (this.stainAt(nx, plat)) this.x = nx;             // (never out past the sludge's edge)
       else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat)) this.x = px; else break; }
       if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
     }
-    const leap = this.buffer.jump, out = leap || this.buffer.attack || this.buffer.special || this.t > W.max;
-    if (!out) return;
+    const leap = this.buffer.jump;
+    if (leap || this.buffer.attack || this.buffer.special || this.t > W.max) this.swimPop(leap ? W.leap : W.hop);
+  }
+
+  /**
+   * Into an ink fall (state sludgeclimb): he hangs in the column of sludge pouring off a platform's edge.
+   * @param {object} fall - from sludgeFalls()
+   * @param {number} y - how far down it he goes in
+   */
+  enterFall(fall, y) {
+    this.setState('sludgeclimb'); this.climbFall = fall; this.climbRush = false;
+    this.vx = this.vy = this.lx = this.ly = 0; this.grounded = false; this.platform = null; this.fastFalling = false;
+    this.x = fall.x + fall.side * this.body.w / 2; this.y = Math.max(fall.top + 8, Math.min(fall.bot, y)); this.facing = -fall.side;
+    sfx('geyser', 0.3, 1.6);
+  }
+
+  /**
+   * Every frame in an ink fall: up / down swims along it (climbing back up the stage's side); at the top, holding
+   * up pulls him out onto the platform; at the bottom, holding down lets go. Jump shoots him up it and out onto the platform,
+   * attack / special bursts out away from it. Can't be hit; he comes out by himself when he's been in the sludge too long, or if the fall dries up.
+   * @param {object} c - his controller
+   */
+  st_sludgeclimb(c) {
+    const W = this.def.moves.downB.swim, m = this.match, R = Math.random, old = this.climbFall;
+    const fall = this.sludgeFalls().find((f) => f.plat === old.plat && f.side === old.side);
+    this.vx = this.vy = this.lx = this.ly = 0;
+    if (!fall) { this.swimCd = W.cooldown; this.setState('air'); return; }   // (the sludge at the edge is gone)
+    this.climbFall = fall; this.invincible = Math.max(this.invincible, 2); this.grounded = false; this.platform = null;
+    this.x = fall.x + fall.side * this.body.w / 2;
+    if (this.buffer.jump) { this.buffer.jump = 0; this.climbRush = true; sfx('geyser', 0.35, 1.8); }   // jump: shoots up the fall and out on top
+    if (this.climbRush || Math.abs(c.y) > 0.25) {
+      this.y += (this.climbRush ? -W.climb * 2.6 : c.y * W.climb) * this.speedMult;
+      if (this.t % 3 === 0) m.particles.push({ x: fall.x + (R() - 0.5) * 6, y: this.y - 4, vx: fall.side * R(), vy: 0.5 + R(), life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
+    }
+    if (this.y < fall.top + 8) {                                // at the top: out onto the platform
+      this.y = fall.top + 8;
+      if (c.y < -0.5 || this.climbRush) { this.swimPop(this.climbRush ? W.leap * 0.85 : W.hop, -fall.side * 2.4); this.x = fall.x - fall.side * 6; this.y = fall.top - 2; return; }
+    }
+    if (this.y >= fall.bot) {                                // at the bottom: keep holding down to let go
+      this.y = fall.bot; this.climbHold = c.y > 0.5 ? (this.climbHold || 0) + 1 : 0;
+      if (this.climbHold > 20) { this.swimCd = W.cooldown; this.setState('air'); return; }
+    } else this.climbHold = 0;
+    if (this.buffer.attack || this.buffer.special || this.t > W.max) this.swimPop(W.hop, fall.side * 1.6);
+  }
+
+  /**
+   * Bursts out of the sludge (floor or ink fall) as move swimPop: a leap or a hop, with a splash that hits anyone there.
+   * @param {number} vy - his jump out
+   * @param {number} vx - sideways push
+   */
+  swimPop(vy, vx = 0) {
+    const m = this.match, R = Math.random, W = this.def.moves.downB.swim;
     this.buffer.jump = this.buffer.attack = this.buffer.special = 0;
     this.swimCd = W.cooldown;
     this.startAttack('swimPop');
-    this.vy = leap ? W.leap : W.hop; this.grounded = false; this.platform = null; this.y -= 1;
+    this.vy = vy; this.vx = vx; if (vx) this.facing = Math.sign(vx);
+    this.grounded = false; this.platform = null; this.y -= 1;
     sfx('geyser', 0.45, 1.1); m.shake(2, 6);
     for (let i = 0; i < 16; i++) m.particles.push({ x: this.x + (R() - 0.5) * 16, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -2 - R() * 4, life: 22, color: SLUDGE[i % 3], size: 3, grav: 0.25 });
   }
@@ -214,6 +308,13 @@ export class FighterDevoted {
    */
   drawSwim(spr, g) {
     const W = this.def.moves.downB.swim, k = Math.min(1, this.t / W.sink);
+    if (this.state === 'sludgeclimb') {                     // in an ink fall: a bulge in the column, eyes looking out
+      spr.setAlpha(0);
+      const f = this.climbFall, fx = Math.round(f.x + f.side * 2), y = Math.round(this.y - 12), bob = Math.sin(this.anim * 0.3);
+      g.fillStyle(0x060508, 1); g.fillEllipse(fx, y + bob, 10, 26);
+      g.fillStyle(0xffffff, 1); g.fillRect(fx + f.side * 1 - 1, y - 6, 2, 2); g.fillRect(fx + f.side * 1 - 1, y - 1, 2, 2);
+      return;
+    }
     if (k < 1) { spr.setScale(1 + k * 0.4, 1 - k * 0.9); return; }
     spr.setAlpha(0);
     const x = Math.round(this.x), y = Math.round(this.y), bob = Math.sin(this.anim * 0.3), moving = Math.abs(this.x - (this.swimLastX ?? this.x)) > 0.5;

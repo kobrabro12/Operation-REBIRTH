@@ -74,6 +74,10 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains
   on that platform only (`stainAt`), intangible, bursts out with jump / attack / special as move `swimPop` (anim = upb).
+  INK FALLS (`sludgeFalls()`, worked out each frame from stains touching a platform's edge, drawn with the stains): sludge pours
+  `swim.fallLength` px down the side. Swimming over that edge, or down-B in the air beside one (`fallNear`), -> state
+  `sludgeclimb` (`enterFall` / `st_sludgeclimb`, no gravity - Fighter.physics): up/down climbs, up at the top pops him onto the
+  platform, jump shoots him up and out on top (`climbRush`), holding down at the bottom lets go, attack/special pop out away.
   Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in his sludge and
   DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. `setSludge` passes every stage's sheets through
   `skinTexture`, so the costume carries through all four stages.

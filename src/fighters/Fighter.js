@@ -474,7 +474,7 @@ export class Fighter {
           this.vx -= Math.sign(this.vx) * Math.min(Math.abs(this.vx), d.airFriction);
         }
       }
-      const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding' || (this.seized && s.endsWith('_hold'));   // (WHAT ONCE WAS hangs in the air while it holds someone)
+      const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding' || s === 'sludgeclimb' || (this.seized && s.endsWith('_hold'));   // (WHAT ONCE WAS hangs in the air while it holds someone)
       if (!noGravity) {
         const fl = s !== 'hitstun' && d.float;                // FULL AERO floats: slow, gentle falls
         const g = s === 'hitstun' ? PHYS.gravity * PHYS.hitstunGravity : PHYS.gravity * (fl ? fl.gravity : 1);
