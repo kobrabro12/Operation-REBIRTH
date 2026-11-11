@@ -122,6 +122,11 @@ export class BootScene extends Phaser.Scene {
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: mw, frameHeight: mh });
     }
     for (const [k, url] of [['idle', scIdle], ['run', scRun], ['jump', scJump], ['fall', scFall]]) this.load.spritesheet('aero_scorched_' + k, url, { frameWidth: 64, frameHeight: 64 });
+    // THE DEVOTED (WIP test fighter): one set per sludge stage (tools/sprites/devoted_draw.py)
+    for (const dir of ['', 'semi', 'taken', 'drowned']) {
+      for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('dv_' + (dir ? dir + '_' : '') + k, 'assets/fighters/devoted/' + (dir ? dir + '/' : '') + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+      this.load.spritesheet('dv_' + (dir ? dir + '_' : '') + 'moves', 'assets/fighters/devoted/' + (dir ? dir + '/' : '') + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    }
     this.load.spritesheet('aero_scorched_moves', 'assets/fighters/aero/scorched/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'attack1', 'attack2', 'jump', 'fall', 'hit', 'death', 'guard', 'counter', 'grab', 'idle_u', 'run_u', 'jump_u', 'fall_u', 'hit_u']) {
       this.load.spritesheet('hk_' + k, 'assets/fighters/hero-knight/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });

@@ -78,6 +78,13 @@ export class CpuController extends Controller {
     if (!['builder','healer','aerial'].includes(this.soulStyle) && me.limit >= LIMIT_MAX && (!me.def.limit.groundOnly || me.grounded) && adx < (me.def.limit.reach || 360) && Math.abs(dy) < (me.def.limit.reach ? 70 : 40)) { this.tap('limit'); return; }
 
     const M = me.def.moves;
+    // THE DEVOTED: devotion full - go back to his symbol and pray (most of the time; sometimes he keeps fighting)
+    if (M.downB && M.downB.pray && me.sigil && me.sludge < 3 && me.devotion >= me.def.devoted.need[me.sludge] && Math.random() < 0.8) {
+      if (me.canAscend()) { this.x = 0; this.y = 1; this.tap('special'); return; }
+      const sx = me.sigil.x - me.x;
+      if (me.grounded && me.sigil.y < me.y - 30 && Math.abs(sx) < 90) { this.x = Math.sign(sx); this.tap('jump'); return; }
+      if (Math.abs(sx) > 12) { this.x = Math.sign(sx); return; }
+    }
     // Soul Summoner: summon souls from a distance
     me.souls = me.souls.filter((s) => s.alive);
     if (M.summon && me.souls.length < 2 && me.summonCooldown <= 0 && adx > 90 && me.grounded && Math.random() < 0.18 * L.aggression) {

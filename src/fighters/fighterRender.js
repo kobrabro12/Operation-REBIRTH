@@ -129,6 +129,7 @@ export class FighterRender {
   render(frameCount) {
     const spr = this.sprite, g = this.fx, d = this.def;
     g.clear(); this.fxBack.clear();this.azureCape?.setVisible(false);this.premiumAnimation=null;this.premiumAnimProgress=0;
+    if (d.devoted) this.drawDevoted();               // THE DEVOTED: his symbol, devotion pips, the sludge stains
     if (!this.alive) return;
     this.anim++;
     spr.setPosition(Math.round(this.x), Math.round(this.y));

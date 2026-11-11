@@ -422,6 +422,7 @@ export class MatchScene extends Phaser.Scene {
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
+    if (owner && owner.def.devoted && t !== owner) owner.addDevotion(1);   // THE DEVOTED: every hit he lands counts toward his next stage
 
     if (t.armoured && t.armoured(hb)) {                 // THE TANK dug in (ENTRENCH): the damage gets through, the knockback doesn't
       t.flash = 4; t.hitstop = 4; if (owner && !hb.projectile) owner.hitstop = 4;

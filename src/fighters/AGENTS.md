@@ -51,6 +51,19 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   layer: the victim walks backstage into SEEN, black/white impact frames per cut; `limit.scene` holds its timings;
   `approach`/DO NOT APPROACH is unused). SEEN is drawn bloodied; her face (part `face`) shows only while the jaw is wrenched open (`face_shows`). DEAD AIR (`deadAir.js`, `fighterDeadAir.js`, `dead_air_*.py`) is an unfinished
   analog-horror fighter, not wired into the game.
+  **THE DEVOTED** (`devoted`, keys `dv_*` / `dv_<stage>_*`, WIP - Mason will keep adding to him; the name is a working
+  title): a snowballing knife fighter. Def `devoted.js` (data + `def.devoted` tunables), code `fighterDevoted.js` (mixin),
+  art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
+  generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
+  `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL appears where he first lands after (re)spawning
+  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; pips over his head); PRAY
+  (down-B, `downB.pray` -> `prayTick` from st_attack) with the meter full and within `range` of the symbol -> `ascend()`:
+  next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in
+  lazySheets - and `devoteDmg/Speed/Kb` multipliers in Fighter's getters), meter empties. He keeps his stage through
+  KOs. DROWNED: extra air jumps (`wingJumps`). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
+  age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit BLACK TIDE
+  (`type: 'tide'`, `tideLimit`): radial sludge burst, stronger per stage, stains round him, fills devotion. CPU walks back
+  to the symbol to pray when full (cpu.js).
   Rosemary's RED ARMY costume (shop, PAPERSPLEASE; `ss`-style drawing `draw_soviet()` in last_seen_draw.py, sheets `last-seen/soviet/`) has
   its own other form: skin `form: 'tank'` -> `LAST_SEEN.forms.tank` (TANK in lastSeen.js) instead of SEEN - a T-34-style tank with her in
   the hatch (`tools/sprites/rosemary_tank.py` -> `last-seen/tank/` + `lsTankMoves.js`): MG jab, CANNON neutral-B (`TankShell` in entities.js,

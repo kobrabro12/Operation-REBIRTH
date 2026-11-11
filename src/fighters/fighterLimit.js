@@ -45,6 +45,7 @@ export class FighterLimit {
     if (L.type === 'undertow') return this.undertowLimit(L);
     if (L.type === 'wall') return this.wallLimit(L);
     if (L.type === 'turn') return this.turnLimit(L);
+    if (L.type === 'tide') return this.tideLimit(L);             // THE DEVOTED: BLACK TIDE
     if (L.type === 'approach') return this.approachLimit(L);
     if (L.type === 'birthday') return this.birthdayLimit(L);
     if (L.type === 'barrage') return this.barrageLimit(L);

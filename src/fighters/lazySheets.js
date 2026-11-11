@@ -35,7 +35,7 @@ function costumeGroups() {
   for (const { def } of [...ROSTER, ...TEST_ROSTER]) {
     const nested = [def, def.fullAero, def.wrongDef].filter(Boolean);
     for (const d of nested) {
-      for (const k of [...keysOf(d.sheets), ...keysOf(d.wornSheets), ...keysOf(d.menuSheets), ...Object.values(d.bodySheets || {}).flatMap(keysOf)]) always.add(k);
+      for (const k of [...keysOf(d.sheets), ...keysOf(d.wornSheets), ...keysOf(d.sludgeSheets), ...keysOf(d.menuSheets), ...Object.values(d.bodySheets || {}).flatMap(keysOf)]) always.add(k);
       for (const [set, sh] of Object.entries(d.costumeSheets || {})) add(def.id + ':' + set, Object.entries(sh).filter(([n]) => n !== 'idle').map(([, k]) => k));
     }
     for (const [name, f] of Object.entries(def.forms || {})) {

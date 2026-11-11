@@ -1,4 +1,5 @@
 import {YoungLinkBomb,youngLinkHook,YoungLinkActions} from './youngLinkSpecials.js';
+import { FighterDevoted } from './fighterDevoted.js';
 // A fighter: its own fixed-step physics, a state machine, attacks and rendering.
 // Position (x, y) is the point between the fighter's feet; y grows downward.
 // Most behaviour lives in the fighter*.js files next to this one (see the mix-in list at the bottom).
@@ -104,10 +105,10 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
+  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg || 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]*soulJumpMultiplier(this); }
-  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel]; }
+  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel] * (this.devoteKb || 1); }
   get dmgTakenMult() { return (this.soulPowerTaken||1) * (this.soulBattleTaken||1) * AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1) * (this.armoured() ? this.move.armor.taken : 1); }   // (THE TANK dug in: less gets through)   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
@@ -132,6 +133,7 @@ export class Fighter {
     if (this.possessImmune > 0) this.possessImmune--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
     if (this.worn) this.updateWorn();
+    if (this.def.devoted && this.alive) this.devotedTick();   // THE DEVOTED: his symbol, sludge stages and stains
     if (this.possessed > 0) c = this.possessedInput(c);
     // remember presses so they fire as soon as the fighter can act
     for (const b of Object.keys(this.buffer)) {
@@ -343,6 +345,7 @@ export class Fighter {
   }
   st_attack(c) {
     const m = this.move;
+    if (m.pray) { this.prayTick(); if (this.state !== 'attack') return; }   // THE DEVOTED's PRAY
     if (m.hold && this.holdChord(c)) return;            // NU's Power Chord: holding special builds the chord
     if (this.diveBounce && !m.dive) this.diveBounce = false;   // the dive was cut short before it could bounce
     if (this.diveBounce) {                              // NU's Stage Dive landed on someone: crowd surf off them
@@ -588,11 +591,11 @@ export class Fighter {
   }
   st_dying() { if (this.t >= 80) this.match.onKO(this); }
 
-  destroy() { this.azureCape?.destroy(); if(this.fairySpeech)this.fairySpeech.destroy(); if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); if (this.headImg) this.headImg.destroy(); if (this.leftBodies) this.clearBodies(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
+  destroy() { this.sigilG?.destroy(); this.azureCape?.destroy(); if(this.fairySpeech)this.fairySpeech.destroy(); if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); if (this.headImg) this.headImg.destroy(); if (this.leftBodies) this.clearBodies(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

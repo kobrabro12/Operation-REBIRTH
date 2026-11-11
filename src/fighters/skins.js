@@ -713,4 +713,5 @@ export function resolveSkins(picks, wanted) {
   });
   return out;
 }
-
+// THE DEVOTED (WIP test fighter): his look changes with his sludge stage instead (devoted.js sludgeSheets)
+SKINS['devoted'] = [{ name: 'DEFAULT', swatch: 0xd2d2ca }];
