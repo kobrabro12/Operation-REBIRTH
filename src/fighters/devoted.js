@@ -1,5 +1,5 @@
 // THE DEVOTED (WIP name): a TEST FIGHTER who snowballs. He starts as a quiet man with a kitchen knife; when he
-// first spawns a SYMBOL appears where he lands. Landing hits fills his DEVOTION; once it's full, praying (down
+// first spawns his SYMBOL - a small dying tree - grows where he lands. Landing hits fills his DEVOTION; once it's full, praying (down
 // special) at the symbol takes him up a SLUDGE STAGE - DEFAULT -> SEMI -> TAKEN -> DROWNED - and empties it again.
 // Every stage covers him in more black sludge, widens his smile and makes him stronger; DROWNED grows one giant
 // demon wing. The sludge drips onto the stage and stains it (match.sludgeStains - for a mechanic later).

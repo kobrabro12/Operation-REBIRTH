@@ -1,7 +1,7 @@
 """THE DEVOTED (WIP test fighter) - a quiet, pale man with a kitchen knife who prays to a symbol, and a black
 sludge that takes a little more of him every time he does. Four looks, one per sludge stage:
 
-  DEFAULT  clean: white shirt, dark trousers, a faint smile
+  DEFAULT  clean: long ashy-blond hair, a striped mustard shirt, dark trousers, a curved knife, a faint smile
   SEMI     sludge drips from his hair down his face and shoulders; the smile widens
   TAKEN    most of him is covered; a wide toothy grin
   DROWNED  he's all sludge but his eyes and a huge grin - and one giant demon wing grows from his back
@@ -25,11 +25,12 @@ STAGES = ['default', 'semi', 'taken', 'drowned']
 
 def hx(c): return np.array([c >> 16 & 255, c >> 8 & 255, c & 255, 255], np.uint8)
 LINE = 0x1a1418
-SHIRT = [0x8a8a86, 0xb0b0aa, 0xd2d2ca, 0xecece4]       # off-white shirt, shadow -> light
+SHIRT = [0x6e5e24, 0x96823a, 0xbca452, 0xd8c47a]       # a faded mustard long-sleeved shirt, shadow -> light
+STRIPE = [0x3a2c18, 0x4e3c20, 0x5e4a28, 0x6e5830]      # its dark brown stripes
 PANTS = [0x22222a, 0x2e2e38, 0x3c3c48, 0x4a4a58]
 SHOE = [0x141216, 0x1e1c22, 0x2a2830, 0x36343c]
 SKIN = [0xa88e7e, 0xc8ad9c, 0xe0c8b6, 0xf0dccc]
-HAIR = [0x1e1612, 0x2e221c, 0x3e2e24]
+HAIR = [0x7a6c50, 0x9e8e68, 0xc2b48a, 0xddd2a8]       # long, straight, ashy-blond hair
 SLUDGE = [0x060508, 0x0e0c12, 0x1a1720, 0x2e2a38]     # black sludge, with an oily sheen
 SHEEN = 0x4a4458
 # how much of him the sludge covers at each stage (0 = none, 1 = all of him)
@@ -79,7 +80,8 @@ def repaint(a, ramp, stage, seed):
             k = 3 if noise(x, y, seed + 5) > 0.93 else int(v[y, x] * 2.99)
             a[y, x] = hx(SLUDGE[k])
         else:
-            a[y, x] = hx(ramp[min(len(ramp) - 1, int(v[y, x] * (len(ramp) - 0.01)))])
+            r = STRIPE if ramp is SHIRT and y % 4 == 1 else ramp          # (the shirt's stripes)
+            a[y, x] = hx(r[min(len(r) - 1, int(v[y, x] * (len(r) - 0.01)))])
     a[line] = hx(LINE)
     if stage:                                                          # drips hanging off the sludge's lower edge
         H = a.shape[0]
@@ -100,23 +102,27 @@ def head(stage):
     for y, x in zip(*np.nonzero(s)):
         v = 1 - min(1, math.hypot(x - 37, y - 10) / 13)
         h[y, x] = hx(SKIN[min(3, int(v * 3.99))])
-    # hair: a messy mop over the top and the back
-    for y, x in zip(*np.nonzero(s)):
-        top = 10 + (noise(x, 0, 2) - 0.5) * 3
-        if y < top or (x < 31 and y < 18 - (x - 26) * 0.3):
-            h[y, x] = hx(HAIR[int(noise(x, y, 4) * 2.99)])
-    for x in range(25, 42):                                    # a few strands over the edge
-        if noise(x, 1, 6) < 0.35:
-            for y in range(5, 7):
-                if not s[y, x]: h[y, x] = hx(HAIR[0])
+    # hair: long and straight - a fringe across his forehead, a lock over his front eye's brow, and a curtain down
+    # the back of his head past his neck
+    im2 = Image.new('RGBA', (64, 64)); d2 = ImageDraw.Draw(im2)
+    d2.ellipse([25, 5, 42, 15], fill=(255, 255, 255, 255))                     # the crown
+    d2.polygon([(25, 9), (31, 9), (31, 26), (28, 28), (24, 25)], fill=(255, 255, 255, 255))   # down the back
+    d2.polygon([(33, 9), (42, 9), (42, 12), (40, 13), (38, 11), (34, 11)], fill=(255, 255, 255, 255))   # the fringe
+    hm = np.array(im2)[..., 3] > 0
+    for y, x in zip(*np.nonzero(hm)):
+        k = 3 if (y < 8 and x > 30) else 2 if (x + y * 0) % 3 else 1     # light on top, strands down the back
+        if x < 27 or y > 20: k = max(0, k - 1)
+        h[y, x] = hx(HAIR[k])
+    for x in range(25, 31):                                                  # the uneven ends
+        if noise(x, 2, 7) < 0.5: h[27 + int(noise(x, 4, 7) * 2), x] = hx(HAIR[0])
     a = h
     # the sludge (from stage 1 on it pours down from his hair; DROWNED: all of him)
     hair = np.zeros((64, 64), bool)
     for y, x in zip(*np.nonzero(a[..., 3] > 0)):
         if tuple(a[y, x, :3]) in [tuple(hx(c)[:3]) for c in HAIR]: hair[y, x] = True
     for y, x in zip(*np.nonzero(a[..., 3] > 0)):
-        if stage == 1:                    # SEMI: his hair is soaked, and it runs down his face in a few streaks
-            on = hair[y, x] or (x in (30, 32, 38, 41) and y < 11 + noise(x, 0, 5) * 8) or (x == 36 and y < 12)
+        if stage == 1:                    # SEMI: the top of his hair is soaked, and it runs down his hair and face in streaks
+            on = (hair[y, x] and (y < 9 + noise(x, 0, 12) * 4 or noise(x, 1, 12) < 0.3)) or (x in (34, 37, 41) and y < 11 + noise(x, 0, 5) * 8)
         elif stage == 2:                  # TAKEN: all of his head but a patch of face round the eyes and the grin
             on = ((x - 37) / 5.5) ** 2 + ((y - 15) / 4.5) ** 2 > 1 + (noise(x, y, 3) - 0.5) * 0.5
         else: on = stage == 3
@@ -145,16 +151,19 @@ def head(stage):
     return a
 
 def knife(a):
-    """A kitchen knife in his front fist, blade forward."""
+    """A curved knife in his front fist: the blade sweeps up and forward, then hooks down to a point."""
     a = a.copy()
     for x, y in [(43, 26), (44, 26), (45, 25)]: a[y, x] = hx(0x3a2418)        # the handle, showing through his grip
     im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
-    d.polygon([(46, 25), (55, 20), (57, 19), (54, 22), (47, 26)], fill=(255, 255, 255, 255))
+    top = [(46, 23), (49, 21), (52, 20), (55, 20), (57, 21), (58, 23), (58, 26)]          # the outer (sharp) curve
+    inner = [(57, 24), (55, 22), (52, 22), (49, 23), (47, 25), (46, 26)]                    # the inner curve, back to the grip
+    d.polygon(top + inner, fill=(255, 255, 255, 255))
     m = np.array(im)[..., 3] > 0
     for y, x in zip(*np.nonzero(m)):
-        if not a[y, x, 3] or x > 46: a[y, x] = hx(0xe8ecf0 if y < 22 or (x + y) % 5 == 0 else 0xb8bec6)
-    a[19, 57] = hx(0xffffff)
-    # outline the blade only where it sticks out past the fist
+        if not a[y, x, 3] or x > 46:
+            edge = y == 0 or not m[y - 1, x] or (x < 63 and not m[y, x + 1] and x > 55)
+            a[y, x] = hx(0xf0f4f8 if edge else 0xb0b8c2 if (x + y) % 3 else 0x98a0aa)
+    a[25, 58] = hx(0xffffff)                                                  # the glint on the point
     s = a[..., 3] > 0
     ring = ~s & (sh(s, 1, 0) | sh(s, -1, 0) | sh(s, 0, 1) | sh(s, 0, -1))
     ring[:, :46] = False

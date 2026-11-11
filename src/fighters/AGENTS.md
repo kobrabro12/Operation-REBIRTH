@@ -55,7 +55,7 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   title): a snowballing knife fighter. Def `devoted.js` (data + `def.devoted` tunables), code `fighterDevoted.js` (mixin),
   art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
   generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
-  `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL appears where he first lands after (re)spawning
+  `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL (a small dying tree, `drawTree`) grows where he first lands after (re)spawning
   (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; pips over his head); PRAY
   (down-B, `downB.pray` -> `prayTick` from st_attack) with the meter full and within `range` of the symbol -> `ascend()`:
   next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in

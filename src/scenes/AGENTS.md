@@ -29,6 +29,8 @@ Files: `src/scenes/*Scene.js`, `menuInput.js`; training mode in `training.js`
 - Test with `?coins=N` in the URL.
 - One-time coin gifts: `GIFTS` in progress.js (id -> coins, given once per browser, remembered in `rebirth.gifts`; 'mason-2000' gave everyone 2000 once).
 
+- TEST FIGHTERS (`TestFightersScene.js`): the list's row height shrinks so every name fits above the map picker (`this.row`), and the costume swatches always fit between the costume arrows - smaller, and in two rows past 10 (`swatchLayout`).
+
 ## Arrival intros
 Files: `src/scenes/fighterIntros.js` (`FighterIntros`, made by MatchScene when there's a countdown - not in training/title demo/sim)
 

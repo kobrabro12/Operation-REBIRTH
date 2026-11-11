@@ -23,7 +23,7 @@ export class FighterDevoted {
     else if (this.sigilWait && this.grounded && this.platform && this.alive) {       // his symbol appears where he lands
       this.sigilWait = false;
       this.sigil = { x: this.x, y: this.y, plat: this.platform, dx: this.x - this.platform.x1, born: this.age };
-      sfx('curse', 0.4, 1.4); m.puff(this.x, this.y - 30, 0x2e2a38, 10);
+      sfx('curse', 0.4, 1.4); m.puff(this.x, this.y - 20, 0x3a3028, 10);   // (the dying tree grows there)
     }
     if (this.sigil && this.sigil.plat) { this.sigil.x = this.sigil.plat.x1 + this.sigil.dx; this.sigil.y = this.sigil.plat.y; }   // (riding a moving platform)
     if (this.sludge >= 3 && this.grounded) this.jumpsLeft = Math.max(this.jumpsLeft, D.wingJumps);
@@ -108,7 +108,7 @@ export class FighterDevoted {
     if (S.length > this.def.devoted.maxStains) S.shift();
   }
 
-  /** Draws his symbol, his devotion pips over his head and (for the first DEVOTED) every sludge stain. */
+  /** Draws his symbol (the dying tree), his devotion pips over his head and (for the first DEVOTED) every sludge stain. */
   drawDevoted() {
     if (this.sludge === undefined) return;
     const g = this.sigilG, D = this.def.devoted, m = this.match;
@@ -122,26 +122,48 @@ export class FighterDevoted {
       }
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
-    if (this.sigil) {
-      // THE SYMBOL: a small stone on the floor and, floating over it, a black ring with a smile inside it -
-      // it glows when his prayer would be answered
-      const x = this.sigil.x, y = this.sigil.y, a = Math.min(1, (this.age - this.sigil.born) / 30);
-      const pulse = ready ? 0.5 + 0.5 * Math.sin(this.age * 0.2) : 0, cy = y - 34 + Math.sin(this.age * 0.05) * 2;
-      g.fillStyle(0x3a3640, a); g.fillRect(x - 6, y - 4, 12, 4); g.fillStyle(0x1a1720, a); g.fillRect(x - 7, y - 1, 14, 2);
-      if (ready) { g.fillStyle(0xf8f4ec, 0.12 + 0.12 * pulse); g.fillCircle(x, cy, 16); }
-      g.lineStyle(3, 0x060508, a); g.strokeCircle(x, cy, 9);
-      g.lineStyle(1, ready ? 0xf8f4ec : 0x4a4458, a); g.strokeCircle(x, cy, 9);
-      g.lineStyle(2, ready ? 0xf8f4ec : 0x8a8494, a);
-      g.beginPath(); g.arc(x, cy - 1, 5, 0.35, Math.PI - 0.35); g.strokePath();               // the smile
-      g.fillStyle(ready ? 0xf8f4ec : 0x8a8494, a); g.fillRect(x - 3, cy - 4, 2, 2); g.fillRect(x + 1, cy - 4, 2, 2);
-      for (let i = 0; i < 3; i++) { g.fillStyle(0x060508, a); g.fillRect(x - 4 + i * 4, cy + 9, 1, 2 + ((this.age >> 3) + i) % 4); }   // sludge dripping off it
-    }
+    if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
     if (this.alive && this.sludge < 3) {                 // his devotion: pips over his head
       const need = D.need[this.sludge], w = need * 4, x0 = this.x - w / 2, y = this.y - this.def.headTop - 8;
       for (let i = 0; i < need; i++) {
         g.fillStyle(0x000000, 0.5); g.fillRect(x0 + i * 4, y, 3, 3);
         if (i < this.devotion) { g.fillStyle(ready ? 0xf8f4ec : 0x4a4458, 1); g.fillRect(x0 + i * 4, y, 3, 3); }
       }
+    }
+  }
+
+  /**
+   * THE SYMBOL: a small dying tree growing where he first landed - crooked bare trunk, drooping broken branches with
+   * a few dead leaves left on them, black sludge weeping from a knot in the trunk. When his prayer would be answered
+   * the knot glows with a pale smile and a faint light rises round the tree.
+   * @param {number} a - how far it has faded in (0-1)
+   * @param {boolean} ready - devotion full
+   */
+  drawTree(g, x, y, a, ready) {
+    const t = this.age, sway = Math.sin(t * 0.03) * 0.6;
+    if (ready) { const p = 0.5 + 0.5 * Math.sin(t * 0.15); g.fillStyle(0xf8f4ec, 0.07 + 0.08 * p); g.fillEllipse(x, y - 26, 54, 64); g.fillStyle(0xf8f4ec, 0.05 + 0.05 * p); g.fillEllipse(x, y - 26, 34, 44); }
+    g.fillStyle(0x060508, 0.9 * a); g.fillEllipse(x, y + 1, 26, 4);                       // the sludge pooled round its roots
+    for (const [dx, len] of [[-7, 5], [6, 4], [-3, 3]]) { g.lineStyle(2, 0x241c18, a); g.lineBetween(x + dx * 0.4, y - 1, x + dx, y + 1); }   // roots
+    // the branches (from, to, thickness): crooked, drooping at the ends, one snapped short
+    const B = [[-2, -26, -12, -34, 2], [-12, -34, -16, -29, 1], [-12, -34, -14, -42, 1], [0, -34, -4, -46, 2], [-4, -46, -8, -49, 1],
+      [1, -31, 10, -41, 2], [10, -41, 16, -39, 1], [16, -39, 18, -33, 1], [3, -20, 11, -24, 1], [11, -24, 13, -20, 1]];
+    const bx = (bxv, byv) => x + bxv + sway * (-byv / 46);                                  // (the top sways a little)
+    for (const [x1, y1, x2, y2, w] of B) { g.lineStyle(w + 2, 0x140e0c, a); g.lineBetween(bx(x1, y1), y + y1, bx(x2, y2), y + y2); }
+    for (const [x1, y1, x2, y2, w] of B) { g.lineStyle(w, 0x4a3c32, a); g.lineBetween(bx(x1, y1), y + y1, bx(x2, y2), y + y2); }
+    // the trunk: crooked, cracked
+    const T = [[-4, 0], [-3, -10], [-4, -18], [-2, -26], [-1, -34], [1, -34], [2, -27], [4, -19], [3, -10], [5, 0]].map(([px, py]) => ({ x: bx(px, py), y: y + py }));
+    g.fillStyle(0x3a3028, a); g.fillPoints(T, true); g.lineStyle(1, 0x140e0c, a); g.strokePoints(T, true);
+    g.lineStyle(1, 0x241c18, a); g.lineBetween(bx(-1, -4), y - 4, bx(0, -12), y - 12); g.lineBetween(bx(1, -22), y - 22, bx(0, -30), y - 30);   // cracks in the bark
+    g.fillStyle(0x5a4a3e, a); g.fillRect(bx(-3, -9), y - 9, 1, 6);                          // light down one side
+    // the knot: black sludge weeps out of it; a pale smile in it when he's ready
+    g.fillStyle(0x060508, a); g.fillEllipse(bx(0, -16), y - 16, 5, 4);
+    const drip = 4 + ((t >> 4) % 5);
+    g.fillRect(bx(0, -15) - 0.5, y - 15, 1, drip); g.fillRect(bx(-1, -15) - 0.5, y - 15, 1, Math.max(2, drip - 3));
+    if (ready) { g.lineStyle(1, 0xf8f4ec, 0.9 * a); g.beginPath(); g.arc(bx(0, -17), y - 17, 2, 0.2, Math.PI - 0.2); g.strokePath(); }
+    // the last few dead leaves, hanging on
+    for (const [lx, ly, c] of [[-16, -29, 0x6a4a2a], [18, -33, 0x8a5a2a], [13, -20, 0x5a3e24], [-8, -49, 0x7a5228]]) {
+      const s2 = Math.sin(t * 0.06 + lx) * 1;
+      g.fillStyle(c, a); g.fillRect(bx(lx, ly) + s2 - 1, y + ly, 2, 3);
     }
   }
 

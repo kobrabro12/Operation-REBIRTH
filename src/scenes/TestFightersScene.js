@@ -29,6 +29,16 @@ let lastMap = 0;
 
 export class TestFightersScene extends Phaser.Scene {
   constructor() { super('TestFighters'); }
+  /**
+   * Where the costume swatches go: they have to fit between the costume arrows (104 px), so a fighter with lots of
+   * costumes gets smaller swatches and, past 10, a second row.
+   * @returns {{step: number, perRow: number, rows: number, rowH: number, x0: function(number): number}}
+   */
+  swatchLayout(n) {
+    const W = 104, perRow = n * 14 <= W ? n : Math.min(n, 10), rows = Math.ceil(n / perRow), step = Math.min(14, Math.floor(W / perRow));
+    const cx = R.x + 80, inRow = (r) => Math.min(perRow, n - r * perRow);
+    return { step, perRow, rows, rowH: step, x0: (r) => cx - (inRow(r) * step) / 2 };
+  }
 
   create() {
     this.t = 0; this.sel = 0; this.mode = 0; this.menu = new MenuInput(this);
@@ -44,7 +54,9 @@ export class TestFightersScene extends Phaser.Scene {
     titleBanner(this, 'TEST FIGHTERS', LINE, { crumb: 'TRINKETS  >  THE LAB' });
     this.add.text(L.x + 14, L.y + 10, 'IN THE LAB', { fontFamily: FONT, fontSize: '6px', color: '#a8ff8a', stroke: '#07060e', strokeThickness: 3 });
     this.cursor = this.add.graphics().setDepth(-5);
-    this.names = TEST_ROSTER.map((f, i) => this.add.text(L.x + 22, L.y + 32 + i * 24, f.name, { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc', stroke: '#07060e', strokeThickness: 3 }));
+    // the list's row height: 24 px, squeezed so every name fits above the map picker (which starts at L.y + 150)
+    this.row = Math.max(12, Math.min(24, Math.floor((150 - 30) / Math.max(1, TEST_ROSTER.length))));
+    this.names = TEST_ROSTER.map((f, i) => this.add.text(L.x + 22, L.y + 32 + i * this.row - (24 - this.row) / 3, f.name, { fontFamily: FONT, fontSize: this.row < 20 ? '7px' : '8px', color: '#c9c4dc', stroke: '#07060e', strokeThickness: 3 }));
     if (!TEST_ROSTER.length) this.add.text(L.x + 18, L.y + 32, 'NOTHING HERE YET.', { fontFamily: FONT, fontSize: '7px', color: DIM });
     // right: the fighter, its notes, and how to try it
     this.stageG = this.add.graphics();
@@ -65,7 +77,7 @@ export class TestFightersScene extends Phaser.Scene {
     // costume picker under the platform: name, a row of swatches, arrows
     const cx = R.x + 80;
     this.skinName = this.add.text(cx, R.y + 214, '', { fontFamily: FONT, fontSize: '7px', color: GOLD }).setOrigin(0.5);
-    this.skinCount = this.add.text(cx, R.y + 246, '', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5);
+    this.skinCount = this.add.text(cx, R.y + 251, '', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(0.5);
     this.swatchG = this.add.graphics();
     this.arrows = [-1, 1].map((d) => makeButton(this, cx + d * 66, R.y + 214, d < 0 ? '<' : '>', () => this.stepSkin(d), { originX: 0.5, originY: 0.5, size: '8px' }));
     hintBar(this, 'W/S FIGHTER   A/D COSTUME   E MAP   Q MODE   J / ENTER / A START   K / ESC / B  BACK', LINE);
@@ -74,12 +86,12 @@ export class TestFightersScene extends Phaser.Scene {
     this.clicked = false;
     this.input.on('pointerdown', (p, over) => {
       if (over.length) return;
-      const i = Math.floor((p.y - L.y - 26) / 24);
+      const i = Math.floor((p.y - L.y - 26) / this.row);
       if (p.x < L.x + L.w && i >= 0 && i < TEST_ROSTER.length) { this.sel = i; sfx('menu', 0.5); return; }
       const f = TEST_ROSTER[this.sel];
-      if (f && Math.abs(p.y - (R.y + 230)) < 7) {                       // a swatch
-        const n = skinsFor(f.id).length, step = Math.min(14, Math.floor(150 / n)), x0 = R.x + 80 - (n * step) / 2;
-        const k = Math.floor((p.x - x0) / step);
+      if (f && p.y > R.y + 222 && p.y < R.y + 242) {                     // a swatch
+        const n = skinsFor(f.id).length, S = this.swatchLayout(n), row = p.y > R.y + 230 && S.rows > 1 ? 1 : 0;
+        const k = row * S.perRow + Math.floor((p.x - S.x0(row)) / S.step);
         if (k >= 0 && k < n && skinUnlocked(f.id, k)) { this.skin[f.id] = k; sfx('menu', 0.5, 1.2); return; }
       }
       if (this.mode === FIGHT_IT && p.x >= this.youText.x && p.x < this.youText.x + this.youText.width && Math.abs(p.y - (this.youText.y + 3)) < 8) { this.stepYou(1); return; }
@@ -134,7 +146,7 @@ export class TestFightersScene extends Phaser.Scene {
     this.youText.setVisible(!!f && this.mode === FIGHT_IT).setText('YOU PLAY:  < ' + (this.real[this.you] ? this.real[this.you].name : '') + ' >   (A/D)');
     if (!f) return;
     if (this.sel !== this.lastSel) { this.selK = 0; this.lastSel = this.sel; } this.selK = Math.min(1, (this.selK || 0) + 0.15);
-    rowBar(c, L.x + 14, L.y + 26 + this.sel * 24, L.w - 34, 20, LINE, this.t, 0.3 + this.selK * 0.7);
+    rowBar(c, L.x + 14, L.y + 26 + this.sel * this.row - (24 - this.row) / 3, L.w - 34, Math.min(20, this.row - 2), LINE, this.t, 0.3 + this.selK * 0.7);
     this.modeTexts.forEach((mt, k) => {                                   // the four modes as slanted buttons; the picked one lit
       const on = k === this.mode; slant(c, mt.x - 7 + 2, mt.y - 5 + 2, 104, 17, 0x000000, 0.5, 5);
       slant(c, mt.x - 7, mt.y - 5, 104, 17, on ? LINE : 0x1c2a22, 1, 5); if (on) slant(c, mt.x - 7, mt.y - 5, 104, 7, 0xffffff, 0.2, 2);
@@ -163,9 +175,9 @@ export class TestFightersScene extends Phaser.Scene {
     showFighter(this.sprite.setVisible(true), f.def, Math.floor(this.t / 6), si);
     this.skinName.setText(skins[si].name); this.skinCount.setText((si + 1) + ' / ' + skins.length);
     const sw = this.swatchG; sw.clear();
-    const step = Math.min(14, Math.floor(150 / skins.length)), x0 = cx - (skins.length * step) / 2;   // (lots of costumes: smaller swatches, so they stay on this side)
+    const S = this.swatchLayout(skins.length), step = S.step;
     skins.forEach((s, i) => {
-      const x = x0 + i * step + 2, y = R.y + 225;
+      const row = Math.floor(i / S.perRow), x = S.x0(row) + (i % S.perRow) * step + 2, y = R.y + 225 + row * S.rowH;
       const q = step - 4;
       if (i === si) { sw.fillStyle(0xffd23f, 1); sw.fillRect(x - 2, y - 2, q + 4, q + 4); }
       sw.fillStyle(0x0b0a14, 1); sw.fillRect(x - 1, y - 1, q + 2, q + 2);
