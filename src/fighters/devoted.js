@@ -106,12 +106,12 @@ export const DEVOTED = {
     // PRAY (down): kneels and prays. With his devotion full and his symbol close by, he goes up a sludge stage.
     // Otherwise it's a short, useless prayer (and he's wide open).
     downB: { frames: 54, pray: true,
-      // SLUDGE SWIM: down special standing on (or next to) sludge on the floor - when he can't go up a stage - sinks
+      // SLUDGE SWIM: down special standing in sludge on the floor - when he can't go up a stage - sinks
       // him into it, Splatoon-style. Under the sludge he slides fast along the stains on that platform (never past their
       // edge), can't be hit, and bursts out with jump (a big leap) or attack / special (a hop), hitting anyone above.
-      // near: how close to a stain counts (px); sink: frames to sink in; speed: px per frame under the sludge;
+      // (only where there's sludge: standing on clean floor it's a normal prayer) sink: frames to sink in; speed: px per frame under the sludge;
       // max: the longest he can stay under (frames); leap / hop: his jump out; cooldown: frames before he can sink again
-      swim: { near: 10, sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30 } },
+      swim: { sink: 8, speed: 7.2, max: 180, leap: -11.5, hop: -7.5, cooldown: 30 } },
     // bursting out of the sludge (SLUDGE SWIM's exit)
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },

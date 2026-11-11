@@ -71,7 +71,7 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   sludge globs, `count` per stage, fanned, stain where they land), REAPING HOOK (side-B: rush + a 165-degree hit that
   drags them through behind him, extra `stun`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
-  SLUDGE SWIM (down-B when he can't ascend but stands on/next to a stain, `downB.swim`, `canSwim` from tryCommon -> state
+  SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains
   on that platform only (`stainAt`), intangible, bursts out with jump / attack / special as move `swimPop` (anim = upb).
   Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in his sludge and

@@ -42,9 +42,10 @@ export class FighterDevoted {
     }
     if (this.grounded && this.platform) this.lastPlatform = this.platform;
     const every = D.stainEvery[this.sludge];
-    if (every && this.grounded && this.platform && this.age % every === 0) this.stain(this.x + (Math.random() - 0.5) * 10, this.platform, 3 + this.sludge * 2);
+    const under = this.state === 'sludgeswim';           // (under the sludge he only swims in what's there - he doesn't spread it)
+    if (every && !under && this.grounded && this.platform && this.age % every === 0) this.stain(this.x + (Math.random() - 0.5) * 10, this.platform, 3 + this.sludge * 2);
     const drip = D.dripEvery[this.sludge];
-    if (drip && this.age % drip === 0 && !m.demo) {
+    if (drip && !under && this.age % drip === 0 && !m.demo) {
       const R = Math.random;
       m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - 10 - R() * 36, vx: (R() - 0.5) * 0.3, vy: 0.3, life: 30, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.16 });
     }
@@ -158,17 +159,17 @@ export class FighterDevoted {
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
   }
 
-  /** The stain under x on platform plat (any DEVOTED's), within `pad` px of its edge, or null. */
-  stainAt(x, plat, pad = 0) {
+  /** The stain right under x on platform plat (any DEVOTED's) - inside the puddle you can see - or null. */
+  stainAt(x, plat) {
     const S = this.match.sludgeStains;
     if (!S || !plat) return null;
-    return S.find((s) => s.plat === plat && Math.abs(x - (plat.x1 + s.dx)) <= s.w + pad) || null;
+    return S.find((s) => s.plat === plat && Math.abs(x - (plat.x1 + s.dx)) <= s.w * 0.85) || null;
   }
 
   /** SLUDGE SWIM: can down special sink him into the sludge here? (on the floor, by a stain, and not able to go up a stage) */
   canSwim() {
     const W = this.def.moves.downB.swim;
-    return this.grounded && this.platform && !(this.swimCd > 0) && !this.canAscend() && !!this.stainAt(this.x, this.platform, W.near);
+    return this.grounded && this.platform && !(this.swimCd > 0) && !this.canAscend() && !!this.stainAt(this.x, this.platform);
   }
 
   /** Sinks him into the sludge (state sludgeswim). */
@@ -193,8 +194,8 @@ export class FighterDevoted {
     if (Math.abs(c.x) > 0.2) {
       this.facing = Math.sign(c.x);
       const nx = this.x + c.x * W.speed * this.speedMult;
-      if (this.stainAt(nx, plat, 4)) this.x = nx;             // (never out past the sludge's edge)
-      else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat, 4)) this.x = px; else break; }
+      if (this.stainAt(nx, plat)) this.x = nx;             // (never out past the sludge's edge)
+      else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat)) this.x = px; else break; }
       if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
     }
     const leap = this.buffer.jump, out = leap || this.buffer.attack || this.buffer.special || this.t > W.max;
