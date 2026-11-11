@@ -34,20 +34,22 @@ export class JungleFallsStage {
     C.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 90, 1440, 91); });
     bg.push(sky);
     const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 2600 });
-    // cliffs behind, the river below
-    R.box(-2400, -300, 1500, -500, 700, 1900, C.rock, 0x6a9a4a); R.box(500, -200, 1400, 2400, 700, 1800, C.rock, 0x6a9a4a);
-    R.box(-500, 100, 1700, 500, 700, 1900, C.rock, 0x6a9a4a);
-    R.quad([[-2400, 600, 200], [2400, 600, 200], [2400, 600, 1700], [-2400, 600, 1700]], 0x3a7ab8);
+    // cliffs behind (huge faceted crags with jungle on top), the river below, boulders
+    R.blob(-1500, 250, 1700, 1100, 700, 380, [C.rock, 0x7a6a5a, 0x9a8a78], 2, 0x5a9a3a); R.blob(1500, 300, 1600, 1100, 650, 380, [C.rock, 0x7a6a5a, 0x9a8a78], 3, 0x5a9a3a);
+    R.blob(0, 420, 1850, 700, 420, 260, [C.rock, 0x7a6a5a], 4, 0x5a9a3a);
+    R.terrain({ x1: -2600, x2: 2600, z1: 200, z2: 1800, y: 600, nx: 24, nz: 8, amp: 6, seed: 9, cols: [0x3a7ab8, 0x4a8ac8, 0x346eaa, 0x5a9ad0] });
+    for (let i = 0; i < 6; i++) R.blob(-1000 + i * 400 + (i % 2) * 90, 580, 300 + (i % 3) * 200, 60 + (i % 3) * 20, 40, 50, [C.rock, 0x7a6a5a], 30 + i, 0x5a9a3a);
     for (let i = 0; i < 12; i++) {                               // palms: a trunk and a crown of leaf pyramids
       const x = -1500 + i * 280 + (i % 3) * 40, z = 500 + (i % 4) * 260, base = 600, h = 260 + (i % 3) * 60;
-      R.prism(x, base - h, base, z, 12, 5, C.trunk);
+      R.prism(x, base - h, base, z, 12, 4, C.trunk);
       for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + i; R.pyramid(x + Math.cos(a) * 50, base - h + 10, z + Math.sin(a) * 50, 110, 50, -30, k % 2 ? C.leaf : C.leafDark); }
     }
     // the deck: planks (a row of boxes), a rail of posts, stilts down into the water, the hut
     const P = this.platforms[0];
     for (let x = P.x1, i = 0; x < P.x2; x += 46, i++) R.box(x, 0, 0, Math.min(P.x2, x + 44), 14, 120, i % 2 ? C.plank : C.plankDark, i % 2 ? 0xc08a4a : 0x9a6a34);
     R.box(P.x1, 14, 10, P.x2, 30, 110, C.plankDark);
-    for (const x of [-200, -100, 0, 100, 200]) R.prism(x, 30, 600, 60, 9, 6, C.log);
+    for (const x of [-200, -100, 0, 100, 200]) R.prism(x, 30, 600, 60, 9, 5, C.log);
+    for (const x of [-170, 170]) R.blob(x, 40, 70, 46, 26, 40, [C.leaf, C.leafDark, 0x4aaa44], x, null, 0.3);           // bushes hanging off the deck's ends
     const T = this.platforms[3];
     R.box(T.x1 + 20, T.y + 6, 50, T.x2 - 20, 0, 110, C.plankDark);                                  // the hut walls
     R.box(T.x1, T.y, 30, T.x2, T.y + 8, 130, C.roof, 0xb8843a);                                     // its roof (the top platform)
@@ -66,7 +68,7 @@ export class JungleFallsStage {
     if (this.hazardsOn) this.stepBarrel(match, bx, by);
     // this frame's moving faces: the rafts, the waterfall's foam and the barrel
     const dyn = [];
-    for (const r of this.rafts) for (let k = 0; k < 3; k++) dyn.push(...prismFaces(r.p.x1 + 15 + k * 30, r.p.y, r.p.y + 12, 40, 7, 6, C.log, 0xa87a3a).map((f) => f));
+    for (const r of this.rafts) for (let k = 0; k < 3; k++) dyn.push(...prismFaces(r.p.x1 + 15 + k * 30, r.p.y, r.p.y + 12, 40, 7, 5, C.log, 0xa87a3a).map((f) => f));
     for (const r of this.rafts) dyn.push(...boxFaces(r.p.x1, r.p.y, 0, r.p.x2, r.p.y + 6, 80, C.plank, 0xc08a4a));
     for (let i = 0; i < 8; i++) {                              // the waterfall: a sheet of water behind the deck with foam streaks running down
       const x = -360 + i * 90, wy = ((this.t * 6 + i * 70) % 800) - 300;
@@ -75,8 +77,8 @@ export class JungleFallsStage {
     }
     if (this.hazardsOn) {
       const spin = this.held ? 0.4 : 0;
-      dyn.push(...prismFaces(bx, by - BARREL.r - spin * 4, by + BARREL.r, 40, BARREL.r, 8, C.log, 0x6a3a1a));
-      dyn.push(...prismFaces(bx, by - 6, by + 6, 39, BARREL.r + 2, 8, 0x2a2a2a));
+      dyn.push(...prismFaces(bx, by - BARREL.r - spin * 4, by + BARREL.r, 40, BARREL.r, 6, C.log, 0x6a3a1a));
+      dyn.push(...prismFaces(bx, by - 6, by + 6, 39, BARREL.r + 2, 6, 0x2a2a2a));
     }
     this.R.render(dyn);
     return [];

@@ -2,7 +2,7 @@
 // low-poly 3D (poly3d.js): a stone court floating high over a moat and green grounds, a white castle with red
 // cone-roofed towers behind, two side ledges and a high central slab where a red BUMPER slides back and forth and
 // knocks away whoever touches it. No hazard cycle: the bumper is always there (off with hazards off).
-import { Poly3D, prismFaces } from './poly3d.js';
+import { Poly3D, prismFaces, blobFaces } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 
 const C = { stone: 0xb8b0a0, stoneDark: 0x8a8274, trim: 0xc83a32, roof: 0xd8463a, wall: 0xf0ece0, window: 0x3a4a8a,
@@ -29,17 +29,18 @@ export class CastleCourtStage {
     C.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 90, 1440, 91); });
     bg.push(sky);
     const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200 });
-    // the grounds far below: grass, the moat ring, hills
-    R.quad([[-2600, 520, 300], [2600, 520, 300], [2600, 520, 3400], [-2600, 520, 3400]], C.grass);
-    R.quad([[-900, 518, 900], [900, 518, 900], [900, 518, 1150], [-900, 518, 1150]], C.water);
-    for (const [x, z, w, h] of [[-1500, 2600, 900, 260], [1300, 2800, 1100, 320], [-400, 3100, 1200, 220], [2100, 2200, 700, 200], [-2300, 1900, 700, 240]]) R.pyramid(x, 520, z, w, 500, h, C.hill);
-    for (let i = 0; i < 9; i++) { const x = -1800 + i * 450, z = 700 + (i % 3) * 300; R.prism(x, 470, 520, z, 14, 5, 0x6a4a2a); R.pyramid(x, 480, z, 70, 70, 110, C.grassDark); }   // trees
+    // the grounds far below: faceted grass rising into hills at the back, the moat, lumpy trees, clouds
+    R.terrain({ x1: -2800, x2: 2800, z1: 300, z2: 3600, y: 520, nx: 28, nz: 14, amp: 14, seed: 3, cols: [C.grass, C.grassDark, 0x4aa840, 0x62c050],
+      hill: (x, z) => -Math.max(0, z - 2100) * (0.22 + 0.12 * Math.sin(x / 420)) });
+    R.quad([[-900, 512, 900], [900, 512, 900], [900, 512, 1150], [-900, 512, 1150]], C.water); this.R.faces[this.R.faces.length - 1].bias = -60;
+    for (let i = 0; i < 9; i++) { const x = -1800 + i * 450, z = 700 + (i % 3) * 300; R.prism(x, 460, 520, z, 12, 5, 0x6a4a2a); R.blob(x, 430, z, 46, 52, 46, [C.grassDark, 0x2e7a2e, 0x4a9a3a], i); }   // trees
+    for (let i = 0; i < 7; i++) R.blob(-2200 + i * 720, -260 + (i % 3) * 70, 1500 + (i % 4) * 380, 170 + (i % 2) * 70, 44, 90, [0xffffff, 0xf0f4fa, 0xe4ecf6], 20 + i, null, 0.3);   // clouds
     // the castle: a keep, walls, towers with red cone roofs, a bridge over the moat
     const cz = 1300, cy = 520;
     R.box(-260, cy - 260, cz, 260, cy, cz + 260, C.wall, 0xd8d4c8);
     R.box(-140, cy - 420, cz + 60, 140, cy - 260, cz + 200, C.wall, 0xd8d4c8);
     R.pyramid(0, cy - 420, cz + 130, 300, 160, 140, C.roof);
-    for (const [x, z, h] of [[-260, cz, 340], [260, cz, 340], [-260, cz + 260, 300], [260, cz + 260, 300], [0, cz + 60, 520]]) { R.prism(x, cy - h, cy, z, 46, 8, C.wall, 0xd8d4c8); R.pyramid(x, cy - h, z, 120, 120, 150, C.roof); }
+    for (const [x, z, h] of [[-260, cz, 340], [260, cz, 340], [-260, cz + 260, 300], [260, cz + 260, 300], [0, cz + 60, 520]]) { R.prism(x, cy - h, cy, z, 46, 6, C.wall, 0xd8d4c8); R.pyramid(x, cy - h, z, 120, 120, 150, C.roof); }
     for (let i = 0; i < 5; i++) R.box(-200 + i * 90, cy - 200, cz - 2, -170 + i * 90, cy - 150, cz, C.window);
     R.box(-60, cy - 110, cz - 2, 60, cy, cz, 0x5a3a1a);                                                    // the door
     R.box(-60, cy - 12, cz - 260, 60, cy, cz, 0xa88a5a);                                                   // the bridge
@@ -48,7 +49,8 @@ export class CastleCourtStage {
     R.box(P[0].x1, 0, 0, P[0].x2, 18, 160, C.stone, 0xd0c8b8);
     R.box(P[0].x1 + 10, 18, 0, P[0].x2 - 10, 30, 150, C.trim);
     R.box(P[0].x1 + 30, 30, 10, P[0].x2 - 30, 46, 140, C.stoneDark);
-    for (const x of [-180, -60, 60, 180]) R.prism(x, 46, 260, 70, 16, 6, C.stoneDark);                   // pillars down toward the grounds
+    R.rock(0, 44, 80, 245, 85, 230, 9, [C.stone, C.stoneDark, 0x9a9284, 0x7a7266], 5);                      // the jagged rock it floats on
+    for (const p of P.slice(1)) R.rock((p.x1 + p.x2) / 2, p.y + 13, 40, (p.x2 - p.x1) / 2 - 6, 36, 46, 5, [C.stone, C.stoneDark], p.x1);   // little rocks under the ledges
     for (const p of P.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 10, 80, C.stone, 0xd0c8b8); R.box(p.x1 + 6, p.y + 10, 0, p.x2 - 6, p.y + 14, 70, C.trim); }
   }
 
@@ -59,8 +61,9 @@ export class CastleCourtStage {
     const dyn = [];
     if (this.hazardsOn) {
       const pulse = this.bumpT > 0 ? 1.15 : 1; if (this.bumpT > 0) this.bumpT--;
-      dyn.push(...prismFaces(bx, by - BUMPER.r * pulse, by + BUMPER.r * pulse, 40, BUMPER.r * 1.6 * pulse, 10, 0xe83a3a, 0xff8a7a));
-      dyn.push(...prismFaces(bx, by - BUMPER.r * 0.4, by + BUMPER.r * 0.4, 38, BUMPER.r * 1.9 * pulse, 10, 0xf0d040, 0xf8e070));
+      dyn.push(...prismFaces(bx, by - BUMPER.r * pulse, by + BUMPER.r * pulse, 40, BUMPER.r * 1.6 * pulse, 8, 0xe83a3a, 0xff8a7a));
+      dyn.push(...prismFaces(bx, by - BUMPER.r * 0.4, by + BUMPER.r * 0.4, 38, BUMPER.r * 1.9 * pulse, 8, 0xf0d040, 0xf8e070));
+      dyn.push(...blobFaces(bx, by - BUMPER.r * pulse, 40, BUMPER.r * 1.1, BUMPER.r * 0.7, BUMPER.r * 1.1, [0xff5a4a, 0xe83a3a], 9, null, 0));
     }
     this.R.render(dyn);
     if (!this.hazardsOn) return [];

@@ -2,7 +2,7 @@
 // (poly3d.js): a grassy plateau with three floating platforms, pastel hills and checkered fields rolling away, and
 // behind the stage a giant mossy stone head. Now and then the head's cheeks puff up (CAUTION) and it blows: a GUST
 // pushes everyone across the stage toward one side for a few seconds, leaves streaming past.
-import { Poly3D, boxFaces } from './poly3d.js';
+import { Poly3D, boxFaces, blobFaces } from './poly3d.js';
 import { HazardCycle } from './hazardCycle.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -33,24 +33,24 @@ export class BreezeHillStage {
     bg.push(sky);
     this.cycle.makeBanner(s);
     const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3000 });
-    // rolling hills and checkered fields
-    for (let i = 0; i < 10; i++) for (let j = 0; j < 4; j++) {
-      const x = -2500 + i * 500, z = 900 + j * 500;
-      R.quad([[x, 380, z], [x + 500, 380, z], [x + 500, 380, z + 500], [x, 380, z + 500]], (i + j) % 2 ? C.field : C.hillB);
-    }
-    for (const [x, z, w, h, c] of [[-1600, 2400, 1100, 420, C.hillA], [1500, 2600, 1300, 480, C.hillB], [-200, 3000, 1500, 380, C.hillA], [2300, 1800, 800, 300, C.hillA], [-2400, 1600, 800, 340, C.hillB]]) R.pyramid(x, 380, z, w, 600, h, c);
+    // rolling faceted fields (checkered) and lumpy pastel hills, clouds
+    R.terrain({ x1: -2500, x2: 2500, z1: 900, z2: 3000, y: 380, nx: 20, nz: 8, amp: 16, seed: 4,
+      col: (i, j, x, z, k) => ((Math.floor(i / 2) + Math.floor(j / 2)) % 2 ? [C.field, 0xf0da7a][k] : [C.hillB, 0x7ad8b0][k]) });
+    for (const [x, z, w, h, c] of [[-1600, 2400, 1100, 420, C.hillA], [1500, 2600, 1300, 480, C.hillB], [-200, 3000, 1500, 380, C.hillA], [2300, 1800, 800, 300, C.hillA], [-2400, 1600, 800, 340, C.hillB]]) R.blob(x, 380, z, w / 2, h, 300, [c, C.grass, 0x9ae8a0], x, null, 0.28);
+    for (let i = 0; i < 6; i++) R.blob(-2000 + i * 800, -300 + (i % 2) * 90, 1700 + (i % 3) * 400, 200, 50, 100, [0xffffff, 0xf8f0fa, 0xece4f6], 40 + i, null, 0.3);
     // the plateau: grass top, a band of dirt, and a dirt underside stepping in toward its foot
     const P = this.platforms[0];
     R.box(P.x1, 0, 0, P.x2, 12, 170, C.grass, C.grassTop);
-    for (let k = 0; k < 4; k++) R.box(P.x1 + 14 + k * 26, 12 + k * 16, 6 + k * 8, P.x2 - 14 - k * 26, 28 + k * 16, 160 - k * 10, k % 2 ? C.dirtDark : C.dirt);
-    for (const p of this.platforms.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 8, 70, C.grass, C.grassTop); R.box(p.x1 + 8, p.y + 8, 6, p.x2 - 8, p.y + 18, 64, C.dirt); }
+    R.rock(0, 10, 85, 240, 88, 210, 10, [C.dirt, C.dirtDark, 0xa06a3e, 0x9a7048], 7);                         // the dirt it floats on
+    for (const x of [-200, 200]) R.blob(x, 4, 150, 34, 22, 30, [C.grass, 0x5ac84a], x, C.grassTop, 0.3);       // tufts at the back
+    for (const p of this.platforms.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 8, 70, C.grass, C.grassTop); R.rock((p.x1 + p.x2) / 2, p.y + 7, 35, (p.x2 - p.x1) / 2 - 4, 32, 44, 6, [C.dirt, C.dirtDark], p.x1); }
   }
 
   /** The stone head behind the stage this frame: its face, its cheeks (puffed up before a gust), its mouth. */
   headFaces() {
     const out = [], hx = 0, hy = -40, hz = 520, k = this.puffK;
     out.push(...boxFaces(hx - 150, hy - 220, hz, hx + 150, hy + 200, hz + 220, C.stone, C.moss));
-    out.push(...boxFaces(hx - 160, hy - 240, hz + 10, hx + 160, hy - 200, hz + 200, C.moss, 0x7ac86a));                  // moss on its brow
+    out.push(...blobFaces(hx, hy - 215, hz + 100, 175, 48, 120, [C.moss, 0x4a983e, 0x6ab85a], 11, 0x7ac86a, 0.3));       // a lumpy cap of moss on its head
     out.push(...boxFaces(hx - 120, hy - 120, hz - 14, hx - 50, hy - 90, hz, C.stoneDark), ...boxFaces(hx + 50, hy - 120, hz - 14, hx + 120, hy - 90, hz, C.stoneDark));   // brows
     out.push(...boxFaces(hx - 100, hy - 84, hz - 6, hx - 70, hy - 50, hz, 0x2a2a3a), ...boxFaces(hx + 70, hy - 84, hz - 6, hx + 100, hy - 50, hz, 0x2a2a3a));            // eyes
     out.push(...boxFaces(hx - 18, hy - 60, hz - 30, hx + 18, hy + 10, hz, C.stone));                                                                                     // nose

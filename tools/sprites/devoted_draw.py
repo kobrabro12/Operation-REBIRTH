@@ -143,13 +143,19 @@ def head(stage):
         else: on = stage == 3
         if on: a[y, x] = hx(SLUDGE[3 if noise(x, y, 8) > 0.9 else 1 + int(noise(x, y, 9) * 1.99)])
     # the face: eyes, then the smile (drawn over the sludge - it never covers those)
-    eye = 0x14100e if stage < 3 else 0xf4f0e8
-    for x in (35, 39):
-        a[12, x] = hx(eye); a[13, x] = hx(eye)
-        if stage == 3: a[12, x] = hx(0xffffff)
-    if stage >= 2:                                            # dark hollows round the eyes
-        for x in (34, 36, 38, 40):
-            if a[13, x, 3] and stage < 3: a[13, x] = hx(0x6a4a44)
+    # eyes: big enough to read at game size - a white, a dark 2x2 iris looking forward (glowing sludge-violet the
+    # further gone she is) with a bright glint, and a dark lash line on top. DROWNED: two staring white lights.
+    iris = [0x14100e, 0x3a1450, 0x6a1a8a, 0xf4f0e8][stage]
+    for x0 in (34, 38):
+        a[11, x0:x0 + 3] = hx(0x0e0a0a)                                    # the lash line
+        for y in (12, 13):
+            a[y, x0] = hx(0xf4f0e8 if stage < 3 else 0x2a1a30)            # the white (DROWNED: dark round the light)
+            a[y, x0 + 1] = hx(iris); a[y, x0 + 2] = hx(iris)
+        a[12, x0 + 2] = hx(0xffffff if stage < 3 else 0xffffff)            # the glint
+        if stage == 3: a[13, x0 + 1] = hx(0xc8c0ff)
+    if stage >= 2:                                            # dark hollows under the eyes
+        for x in range(34, 41):
+            if a[14, x, 3] and stage < 3: a[14, x] = hx(0x6a4a44)
     smile = {0: [(36, 17), (37, 17), (38, 17)],
              1: [(35, 16), (36, 17), (37, 17), (38, 17), (39, 16)],
              2: [(33, 15), (34, 16), (35, 17), (36, 17), (37, 17), (38, 17), (39, 17), (40, 16)],
@@ -308,6 +314,24 @@ MOVES['downB'] = (54, [k(0, P()), k(8, KNEEL, 'out'), k(16, RAISE, 'inout'), k(2
                   1, (), False, None)
 FOLLOW = dict(A.FOLLOW, fish=(0, 0), scarf=(0.5, 1.0))
 
+def idle_keys():
+    """Her own idle: hunched, head hung, the karambit spinning round her finger on its ring (two quick flicks), then
+    her head slowly sinks and lolls forward... holds... and twitches back. 192 ticks."""
+    keys = []
+    for i in range(0, 193, 6):
+        flip = 0
+        for t0 in (18, 48):                                           # two quick flicks of the blade on its ring
+            if t0 <= i <= t0 + 18: flip = -70 * math.sin((i - t0) / 18 * math.pi)
+        tilt = 0.0                                                    # 0 -> 1: the slow head tilt, snapped back at 168
+        if 96 <= i < 132: tilt = (i - 96) / 36
+        elif 132 <= i < 168: tilt = 1
+        twitch = 1 if i == 168 else 0
+        sway = math.sin(i * math.pi / 96)
+        keys.append(k(i, P(root=(0, 0, 1, 1.0, 0.98), torso=(10 + 2 * sway, 0, 1), head=(12 + 24 * tilt - 14 * twitch, 0, 1 + tilt),
+                           fupper=(18 + 4 * sway, 0, 0), ffore=(-38 + flip * 0.3, 0, 0), ffist=(flip, 0, 0),
+                           bupper=(6, 0, 0), bfore=(-6, 0, 0), **A.legs(10, -10, -12, 14)), 'linear'))
+    return keys
+
 def make_life(stage):
     """AERO's breathing, minus the goldfish; DROWNED's wing beats slowly and heavily."""
     def life(pose, t):
@@ -354,7 +378,7 @@ if __name__ == '__main__':
         root = os.path.join(OUT, VARIANT) if VARIANT else OUT
         out = root if i == 0 else os.path.join(root, name)
         os.makedirs(out, exist_ok=True)
-        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=A.idle_keys)
+        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=idle_keys)
         if i:
             p = os.path.join(out, 'icon.png')
             if os.path.exists(p): os.remove(p)

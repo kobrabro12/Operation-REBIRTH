@@ -24,6 +24,8 @@ const BUTTONS = [
   { id: 'shield', label: 'SHLD', x: 603, y: 196, r: 22, color: 0xffd34f },
   { id: 'grab', label: 'GRAB', x: 482, y: 278, r: 21, color: 0xc9c4dc },
   { id: 'limit', label: 'LIMIT', x: 600, y: 135, r: 23, color: 0x78a0c6 },
+  // the taunt (keyboard 1 / stick click): small, tucked up out of the way of the fighting buttons
+  { id: 'taunt', label: 'TAUNT', x: 545, y: 166, r: 18, color: 0xd070c0 },
 ];
 
 export class TouchPad {
@@ -33,7 +35,7 @@ export class TouchPad {
     this.held = {};
     scene.input.addPointer(3);      // up to 4 fingers at once
     this.g = scene.add.graphics().setDepth(40);
-    this.labels = BUTTONS.map((b) => scene.add.text(b.x, b.y, b.label, { fontFamily: FONT, fontSize: b.r > 23 ? '8px' : '7px', color: '#ffffff' }).setOrigin(0.5).setDepth(41).setAlpha(0.85));
+    this.labels = BUTTONS.map((b) => scene.add.text(b.x, b.y, b.label, { fontFamily: FONT, fontSize: b.r > 23 ? '8px' : b.r < 20 ? '6px' : '7px', color: '#ffffff' }).setOrigin(0.5).setDepth(41).setAlpha(0.85));
     scene.addUI(this.g, ...this.labels);
 
     this.onDown = (p, over) => {
@@ -95,7 +97,7 @@ export class TouchController extends Controller {
     this.pad.update();
     const a = this.pad.axes(), h = this.pad.held;
     this.x = a.x; this.y = a.y;
-    for (const b of ['jump', 'attack', 'special', 'shield', 'grab', 'limit']) this.cur[b] = !!h[b];
+    for (const b of ['jump', 'attack', 'special', 'shield', 'grab', 'limit', 'taunt']) this.cur[b] = !!h[b];
     this.cur.pause = false;
   }
 }
