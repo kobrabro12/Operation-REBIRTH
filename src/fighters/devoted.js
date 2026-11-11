@@ -45,8 +45,9 @@ export const DEVOTED = {
     range: 70,
     // how big his symbol (the dying tree) is drawn: 1 = 50 px tall
     treeScale: 2,
-    // the prayer: when it takes him up (frame), and how long a prayer that isn't answered lasts
-    ascendAt: 32, failLength: 22,
+    // the prayer (his WORSHIP animation): when the karambit hits the ground, when an answered prayer takes him up,
+    // and how long a prayer that isn't answered lasts (frames)
+    stabAt: 22, ascendAt: 32, failLength: 30,
     // per stage: damage he deals, his speed, knockback he takes (lower = harder to launch)
     dmg: [1.0, 1.12, 1.26, 1.42],
     speed: [1.0, 1.04, 1.08, 1.12],

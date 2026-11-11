@@ -56,8 +56,10 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
   generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
   `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL (a dying tree, `drawTree`, size `devoted.treeScale`) grows where he first lands after (re)spawning
-  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; pips over his head); PRAY
-  (down-B, `downB.pray` -> `prayTick` from st_attack) with the meter full and within `range` of the symbol -> `ascend()`:
+  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD in a strip under his
+  player plate - `drawDevotionHud`, called from hud.js, which lifts the plates 5 px when he's in the match); PRAY
+  (down-B, `downB.pray` -> `prayTick` from st_attack; his WORSHIP animation = `downB` in devoted_draw.py: kneels, raises
+  the karambit, stabs it into the ground on `stabAt` with a sludge splash) with the meter full and within `range` of the symbol -> `ascend()`:
   next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in
   lazySheets - and `devoteDmg/Speed/Kb` multipliers in Fighter's getters), meter empties. He keeps his stage through
   KOs. DROWNED: extra air jumps (`wingJumps`). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,

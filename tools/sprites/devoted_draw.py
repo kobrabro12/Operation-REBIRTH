@@ -229,6 +229,19 @@ ORDER = D.ORDER
 # sheet past the 4096 px phones can load. Its own frame table: src/fighters/dvMoves.js
 MOVES = {k: v for k, v in A.MOVES.items() if not k.startswith('k_') and k != 'upb_king'}
 JS = os.path.join(ROOT, 'src/fighters/dvMoves.js')
+
+# WORSHIP (his PRAY, down special - replaces AERO's downB): he drops to one knee, raises the karambit high over his
+# head, then drives it down into the ground in front of him and holds it there, head bowed,
+# before getting up. The stab lands on frame 22 (the sludge rises from there; an answered prayer takes him up at 32).
+P, k, mix = A.P, A.k, A.mix
+KNEEL = P(root=(0, 2, 0, 1.0, 0.84), torso=(6, 0, 1), head=(10, 0, 1),
+          bthigh=(64, 0, 0), bshin=(-120, 0, 0), bshoe=(56, 0, 0), fthigh=(-62, 0, 0), fshin=(62, 0, 0), fshoe=(0, 0, 0),
+          fupper=(20, 0, 0), ffore=(-40, 0, 0), bupper=(20, 0, 0), bfore=(-30, 0, 0))
+RAISE = mix(KNEEL, torso=(-6, 0, 0), head=(-4, 0, 0), fupper=(-142, 0, -2), ffore=(-36, 0, 0), bupper=(10, 0, 0), bfore=(-50, 0, 0))
+STAB = mix(KNEEL, root=(0, 3, 2, 1.0, 0.82), torso=(18, 1, 2), head=(22, 0, 2), fupper=(48, 0, 1), ffore=(36, 0, 0), bupper=(4, 0, 0), bfore=(-40, 0, 0))
+MOVES['downB'] = (54, [k(0, P()), k(8, KNEEL, 'out'), k(16, RAISE, 'inout'), k(22, STAB, 'snap'),
+                       k(30, mix(STAB, torso=(30, 1, 2)), 'linear'), k(44, mix(STAB, head=(36, 0, 2)), 'linear'), k(54, P(), 'back')],
+                  1, (), False, None)
 FOLLOW = dict(A.FOLLOW, fish=(0, 0), scarf=(0.5, 1.0))
 
 def make_life(stage):
@@ -251,6 +264,16 @@ def composite(layers, hide=()):
     return out
 
 if __name__ == '__main__':
+    if '--pray' in sys.argv:                                         # a contact sheet of the WORSHIP animation
+        layers = draw_parts(0)
+        look = types.SimpleNamespace(draw_parts=lambda L=layers: {n: a.copy() for n, a in L.items()}, composite=composite, ORDER=ORDER, RIG=D.RIG)
+        small, big = A.N.build_rig(look, FOLLOW)
+        t, keys, step, smear, loop, center = MOVES['downB']
+        fr = A.N.animate(big, keys, t, step=step, smear=smear, center=center, life=make_life(0))
+        pick = fr[::4]
+        sheet = Image.new('RGBA', (112 * len(pick), 104), (120, 150, 190, 255))
+        for i, f in enumerate(pick): sheet.alpha_composite(Image.fromarray(f), (i * 112, 0))
+        sheet.resize((sheet.width * 3, sheet.height * 3), Image.NEAREST).save(sys.argv[sys.argv.index('--pray') + 1]); sys.exit()
     if '--preview' in sys.argv:
         row = Image.new('RGBA', (64 * 4, 64), (120, 150, 190, 255))
         for i in range(4): row.alpha_composite(Image.fromarray(composite(draw_parts(i))), (i * 64, 0))

@@ -74,6 +74,12 @@ export class FighterDevoted {
         m.popText(this, why, '#8a8494'); sfx('curse', 0.25, 0.8);
       } else { sfx('curse', 0.6, 0.6); this.match.shake(3, 20); }
     }
+    if (this.t === D.stabAt) {                            // the karambit hits the ground: a thud and a splash of sludge
+      const kx = this.x + this.facing * 14, R = Math.random;
+      sfx('hit', 0.5, 0.6); sfx('clang', 0.25, 0.7); m.shake(this.prayAnswered ? 4 : 2, 6);
+      for (let i = 0; i < 10; i++) m.particles.push({ x: kx, y: this.y - 2, vx: (R() - 0.5) * 3, vy: -1 - R() * 2.5, life: 22, color: SLUDGE[i % 3], size: 2, grav: 0.2 });
+      if (this.platform) this.stain(kx, this.platform, 4 + this.sludge * 2);
+    }
     if (this.prayAnswered) {
       if (this.t < D.ascendAt && this.t % 3 === 0) {      // the sludge rises out of the floor round him
         const R = Math.random;
@@ -108,7 +114,7 @@ export class FighterDevoted {
     if (S.length > this.def.devoted.maxStains) S.shift();
   }
 
-  /** Draws his symbol (the dying tree), his devotion pips over his head and (for the first DEVOTED) every sludge stain. */
+  /** Draws his symbol (the dying tree) and (for the first DEVOTED) every sludge stain. His meter is on the HUD (drawDevotionHud). */
   drawDevoted() {
     if (this.sludge === undefined) return;
     const g = this.sigilG, D = this.def.devoted, m = this.match;
@@ -123,12 +129,26 @@ export class FighterDevoted {
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
-    if (this.alive && this.sludge < 3) {                 // his devotion: pips over his head
-      const need = D.need[this.sludge], w = need * 4, x0 = this.x - w / 2, y = this.y - this.def.headTop - 8;
-      for (let i = 0; i < need; i++) {
-        g.fillStyle(0x000000, 0.5); g.fillRect(x0 + i * 4, y, 3, 3);
-        if (i < this.devotion) { g.fillStyle(ready ? 0xf8f4ec : 0x4a4458, 1); g.fillRect(x0 + i * 4, y, 3, 3); }
-      }
+  }
+
+  /**
+   * His meter on the HUD, in a strip under his player plate: four marks for the sludge stages (filled up to the one
+   * he's reached), then one pip per hit his next stage needs. It pulses white when he can pray; DROWNED fills black.
+   * @param {Phaser.GameObjects.Graphics} g - the HUD's graphics
+   * @param {number} frame - for the pulse
+   */
+  drawDevotionHud(g, x, y, w, frame) {
+    const D = this.def.devoted, need = this.sludge < 3 ? D.need[this.sludge] : 0, ready = need && this.devotion >= need;
+    g.fillStyle(0x000000, 0.6); g.fillRect(x + 1, y + 1, w, 7);
+    g.fillStyle(0x0b0a14, 1); g.fillRect(x, y, w, 7);
+    for (let i = 0; i < 4; i++) { g.fillStyle(i <= this.sludge ? (i === 3 ? 0x6a3a7a : 0xd2d2ca) : 0x2a2632, 1); g.fillRect(x + 2 + i * 6, y + 1, 4, 5); }
+    const px = x + 28, pw = w - 30;
+    if (!need) { g.fillStyle(0x060508, 1); g.fillRect(px, y + 1, pw, 5); g.fillStyle(0x6a3a7a, 0.5 + 0.5 * Math.sin(frame * 0.1)); g.fillRect(px, y + 1, pw, 1); return; }
+    const step = pw / need;
+    for (let i = 0; i < need; i++) {
+      const on = i < this.devotion;
+      g.fillStyle(on ? (ready ? (frame % 20 < 10 ? 0xffffff : 0xd2d2ca) : 0xb8b0c8) : 0x2a2632, 1);
+      g.fillRect(Math.round(px + i * step), y + 1, Math.max(1, Math.round(step) - 1), 5);
     }
   }
 
