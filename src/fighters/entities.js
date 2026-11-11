@@ -1383,3 +1383,55 @@ export class SludgeGlob {
     g.fillStyle(0x060508, 1); g.fillRect(x - this.dir * (r + 1), y - 1, 2, 2);          // a trailing drip
   }
 }
+
+/**
+ * THE DEVOTED's THE MAW (neutral special): a puddle of sludge that bubbles on the floor for a moment, then a jaw of
+ * sludge snaps up out of it - the bite pops anyone over it into the air - and sinks back, leaving a stain.
+ * spec: { warn, bite, sink, r, hit } (from devoted.js neutralB.maw, r and hit already for his stage).
+ */
+export class SludgeMaw {
+  constructor(match, owner, plat, x, spec) {
+    this.match = match; this.owner = owner; this.plat = plat; this.dx = x - plat.x1; this.spec = spec; this.dir = owner.facing;
+    this.x = x; this.y = plat.y; this.t = 0; this.alive = true; this.id = nextId++;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+  }
+  /** The bite, only while its jaws are up. */
+  hitbox() {
+    const S = this.spec, r = S.r;
+    if (this.t < S.warn || this.t >= S.warn + S.bite) return null;
+    return { x1: this.x - r, x2: this.x + r, y1: this.y - r * 2.6, y2: this.y + 2, h: S.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this, persist: true };
+  }
+  /** Bubbles, bites, sinks; rides a moving platform. */
+  step() {
+    const S = this.spec, m = this.match, R = Math.random;
+    this.t++; this.x = this.plat.x1 + this.dx; this.y = this.plat.y;
+    if (this.t < S.warn && this.t % 4 === 0) m.particles.push({ x: this.x + (R() - 0.5) * S.r * 1.4, y: this.y - 1, vx: 0, vy: -0.5 - R(), life: 10, color: 0x2e2a38, size: 2, grav: 0.05 });
+    if (this.t === S.warn) {
+      sfx('bighit', 0.5, 0.6); sfx('curse', 0.4, 0.8); m.shake(3, 5);
+      for (let i = 0; i < 12; i++) m.particles.push({ x: this.x + (R() - 0.5) * S.r * 2, y: this.y - 4, vx: (R() - 0.5) * 3, vy: -2 - R() * 4, life: 20, color: [0x060508, 0x1a1720, 0x6a3a7a][i % 3], size: 3, grav: 0.25 });
+      if (this.owner.stain) this.owner.stain(this.x, this.plat, S.r);
+    }
+    if (this.t >= S.warn + S.bite + S.sink) this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.g.destroy(); }
+  /** Draws it: the bubbling puddle, then the jaws of black sludge with white teeth snapping up and shut, then sinking. */
+  render() {
+    if (!this.alive) return;
+    const S = this.spec, g = this.g, x = Math.round(this.x), y = Math.round(this.y), r = S.r, t = this.t;
+    g.clear();
+    const pw = Math.min(1, t / 6) * r * 2.4;
+    g.fillStyle(0x060508, 0.95); g.fillEllipse(x, y + 1, pw, 5);                       // the puddle
+    if (t < S.warn) { g.fillStyle(0x4a3248, 0.8); g.fillCircle(x + Math.sin(t) * r * 0.5, y - 1, 1.5); return; }
+    const bt = t - S.warn, rise = bt < S.bite ? Math.min(1, bt / 3) : Math.max(0, 1 - (bt - S.bite) / S.sink), h = r * 2.6 * rise;
+    const shut = bt < S.bite ? Math.min(1, Math.max(0, (bt - 3) / (S.bite - 3))) : 1, gap = (1 - shut) * r * 0.9;
+    for (const s of [-1, 1]) {                                                            // the two jaws, closing
+      const jx = x + s * (gap + r * 0.55);
+      g.fillStyle(0x060508, 1);
+      g.fillTriangle(jx - r * 0.55, y, jx + r * 0.55, y, jx - s * r * 0.3, y - h);
+      g.fillStyle(0x2e2a38, 1); g.fillRect(jx - s * r * 0.2, y - h * 0.6, 1, h * 0.4);                 // a sheen
+      g.fillStyle(0xf4eefc, 1);
+      for (let i = 1; i <= 3; i++) { const ty = y - h * i / 4.2, tx = jx - s * r * 0.55 * (1 - i / 4.2); g.fillTriangle(tx, ty - 2, tx, ty + 2, tx - s * 4, ty); }   // teeth along its inner edge
+    }
+    if (rise > 0.5) { g.fillStyle(0xd8b0ff, 0.9); g.fillRect(x - 1 - gap - r * 0.4, y - h * 0.8, 2, 2); g.fillRect(x - 1 + gap + r * 0.4, y - h * 0.8, 2, 2); }   // eyes
+  }
+}

@@ -38,7 +38,10 @@ export class FighterDevoted {
         if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
       }
     }
-    if (this.cutFx) { for (const c of this.cutFx) c.age++; this.cutFx = this.cutFx.filter((c) => c.age < 14); }
+    if (this.cutFx) {                                       // CROSS CUTS' marks hang where they hit until the combo's over
+      const chain = this.state === 'attack' && this.move && this.move.cut;
+      if (!chain) { for (const c of this.cutFx) c.age++; this.cutFx = this.cutFx.filter((c) => c.age < 16); }
+    }
     const U = this.def.moves.upb;
     if (this.state === 'upb' && U.geyser && this.t <= U.riseAt + U.geyser.length && !m.demo) {   // SLUDGE GEYSER: the column of sludge under him
       const R = Math.random, gx = this.t <= U.riseAt ? this.x : this.geyserX;
@@ -61,7 +64,32 @@ export class FighterDevoted {
   }
 
   /**
-   * OFFERING (neutral special): flings globs of sludge from his cut palm - more of them, fanned out, at each stage
+   * CROSS CUTS: a cut connected - its mark moves onto the spot where it hit them.
+   * @param {object} t - who it hit
+   */
+  cutLanded(t) {
+    const c = this.cutFx && this.cutFx[this.cutFx.length - 1];
+    if (!c || c.age > 0) return;
+    if (this.move.cut === 9) { const o = this.cutFx[this.cutFx.length - 2]; if (o) { o.x = t.x; o.y = t.y - t.body.h / 2; } }
+    c.x = t.x; c.y = t.y - t.body.h / 2;
+  }
+
+  /**
+   * THE MAW (neutral special): flings sludge at the floor ahead (further with forward held) - where it lands, a jaw of
+   * sludge will snap up (`SludgeMaw` in entities.js). It needs floor under that spot (the nearest platform below).
+   */
+  throwMaw(M) {
+    const st = this.sludge || 0, far = this.ctrl.x * this.facing > 0.5 ? M.far : 0, x = this.x + this.facing * (M.dist[st] + far);
+    sfx('swing', 0.5, 0.6); sfx('curse', 0.3, 1.4);
+    let plat = null;
+    for (const p of this.match.stage.platforms) if (x >= p.x1 + 4 && x <= p.x2 - 4 && p.y >= this.y - 40 && (!plat || p.y < plat.y)) plat = p;
+    const R = Math.random;
+    for (let i = 0; i < 8; i++) this.match.particles.push({ x: this.x + this.facing * 12, y: this.y - 36, vx: this.facing * (2 + R() * 3), vy: -1 + R() * 2, life: 16, color: SLUDGE[i % 3], size: 2, grav: 0.25 });
+    if (plat) this.match.spawnMaw(this, plat, x, { ...M, r: M.r[st], hit: { ...M.hit, dmg: M.hit.dmg + M.perStage * st } });
+  }
+
+  /**
+   * OFFERING (old neutral special, unused now): flings globs of sludge from his cut palm - more of them, fanned out, at each stage
    * (`glob.count[stage]`), each one a little harder (`glob.perStage` extra damage per stage).
    */
   throwGlobs(G) {
@@ -176,10 +204,12 @@ export class FighterDevoted {
         }
       }
     }
-    if (this.cutFx) for (const c of this.cutFx) {         // CROSS CUTS: the slashes hang in the air for a moment
-      const k = 1 - c.age / 14, dx = Math.cos(c.a) * c.len / 2, dy = Math.sin(c.a) * c.len / 2;
-      g.lineStyle(5 * k, 0x7a2ad8, 0.7 * k); g.lineBetween(c.x - dx, c.y - dy, c.x + dx, c.y + dy);
-      g.lineStyle(2 * k, 0xf4eefc, k); g.lineBetween(c.x - dx, c.y - dy, c.x + dx, c.y + dy);
+    if (this.cutFx) for (const c of this.cutFx) {         // CROSS CUTS: the slashes left hanging where they hit
+      const flash = c.age > 0 && c.age < 4, k = c.age < 4 ? 1 : 1 - (c.age - 4) / 12, dx = Math.cos(c.a) * c.len / 2, dy = Math.sin(c.a) * c.len / 2;
+      const jit = c.age === 0 ? Math.sin(this.age * 0.8 + c.x) * 0.6 : 0;
+      g.lineStyle((flash ? 8 : 5) * k, flash ? 0xf4eefc : 0x7a2ad8, (flash ? 0.9 : 0.75) * k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
+      g.lineStyle(2 * k, flash ? 0x7a2ad8 : 0xf4eefc, k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
+      if (c.age === 0) { g.fillStyle(0xf4eefc, 0.6); g.fillCircle(c.x + dx * Math.sin(this.age * 0.3), c.y + dy * Math.sin(this.age * 0.3), 1.5); }   // a glint running along it
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
@@ -433,7 +463,7 @@ export class FighterDevoted {
       else this.cutFx.push({ x, y, a: [-0.6, 0.6, -0.15, 1.2][(m.cut - 1) % 4] * this.facing, len: 52, age: 0 });
       sfx('slash', 0.5, 0.9 + m.cut * 0.07);
     }
-    if (!m.next || !this.buffer.special || this.t < m.next[0] || this.t > m.next[1]) return false;
+    if (!m.next || !this.buffer.special || this.t < m.next[0] || this.t > m.next[1]) return false;   // (no tap: the combo ends and the marks vanish)
     this.buffer.special = 0;
     const n = m.cut + 1;
     this.startAttack(n >= max ? 'sideBF' : 'sideB' + n);
@@ -521,9 +551,13 @@ export class FighterDevoted {
       const C = L.scene, ct = ++U.ct;
       if (!T.alive) return this.endRite();
       T.vx = T.vy = T.lx = T.ly = 0; T.x = U.tx; T.y = U.ty;
-      if (ct === C.rise) { sfx('rumble', 0.8, 0.6); sfx('roar', 0.6, 0.45); }
-      if (ct === C.grab) { sfx('bighit', 0.8, 0.5); sfx('laugh', 0.6, 0.5); }
-      if (ct === C.lift) sfx('rumble', 0.5, 0.8);
+      if (ct === 1) sfx('whoosh', 0.6, 0.4);                                        // the lights go out
+      if (ct > C.look && ct < C.emerge && (ct - C.look) % 22 === 0) sfx('land', 0.25, 1.5);   // they look round, shuffling
+      if (ct === C.emerge) { sfx('rumble', 0.7, 0.5); sfx('curse', 0.7, 0.5); }
+      if (ct === C.emerge + 30) sfx('roar', 0.6, 0.45);
+      if (ct === C.hit) { sfx('bighit', 1, 0.45); sfx('hit', 0.8, 0.6); }            // the uppercut
+      if (ct === C.fly) sfx('whoosh', 0.8, 0.6);
+      if (ct === C.grab) { sfx('bighit', 0.6, 0.6); sfx('laugh', 0.7, 0.45); }
       if (ct === C.tear) { sfx('slash', 1, 0.5); sfx('bighit', 1, 0.4); sfx('ko', 0.7, 0.6); }
       if (ct >= C.end) {                                    // back in the arena: they're gone
         m.frozen = 0; m.cutscene = null; this.x = U.origin.x; this.y = U.origin.y;
@@ -547,8 +581,9 @@ export class FighterDevoted {
   }
 
   /**
-   * Draws FEED THE DARK: the spinning karambit in the arena, then the cutscene on screen - the dark, the victim with
-   * the knife in them, the giant sludge demon rising, its hands closing round them, lifting them, and the tear.
+   * Draws FEED THE DARK: the spinning karambit in the arena, then the cutscene on screen (beats in `limit.scene`):
+   * everything goes black; they look round in a thin light; a hulking demon steps out of the shadows behind them
+   * (eyes first); an uppercut knocks them up; the demon flies up after them, catches them and tears them in half.
    * @param {object|null} U - the Limit's state (null clears it all away)
    */
   drawRite(U) {
@@ -556,13 +591,14 @@ export class FighterDevoted {
     if (!this.riteG) {
       this.riteG = this.scene.add.graphics().setDepth(30); m.addWorld(this.riteG);
       this.riteUI = this.scene.add.graphics().setDepth(40); m.addUI(this.riteUI);
+      this.riteMid = this.scene.add.graphics().setDepth(40.5); m.addUI(this.riteMid);
       this.riteFront = this.scene.add.graphics().setDepth(42); m.addUI(this.riteFront);
       this.riteTop = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteTop);
       this.riteBot = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteBot);
       this.riteText = this.scene.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '10px', color: '#c890ff' }).setOrigin(0.5).setDepth(43).setVisible(false); m.addUI(this.riteText);
     }
-    const g = this.riteG, ui = this.riteUI, fr = this.riteFront;
-    g.clear(); ui.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false);
+    const g = this.riteG, ui = this.riteUI, mid = this.riteMid, fr = this.riteFront;
+    g.clear(); ui.clear(); mid.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false);
     if (!U) return;
     if (U.phase === 'throw' || U.phase === 'miss') {        // the knife, spinning through the air
       for (let i = 1; i <= 3; i++) { g.fillStyle(0x7a2ad8, 0.25 / i); g.fillCircle(U.kx - U.kvx * i * 0.6, U.ky - U.kvy * i * 0.6, 4); }
@@ -570,98 +606,147 @@ export class FighterDevoted {
       return;
     }
     if (U.phase !== 'cutscene') return;
-    const L = this.def.limit, C = L.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 64, R = Math.random;
-    // ---- the dark: a black void, a lake of sludge for a floor, purple mist
-    for (let y = 0; y < floor; y += 8) { const k = y / floor; ui.fillStyle(Phaser.Display.Color.GetColor(14 + k * 22, 8 + k * 10, 22 + k * 30), 1); ui.fillRect(0, y, W, 8); }   // a sick purple glow low down
-    for (let i = 0; i < 6; i++) { ui.fillStyle(0x3a2450, 0.18); ui.fillEllipse(W / 2 + Math.sin(ct * 0.01 + i) * 120, floor - 20 - i * 16, 560 - i * 50, 36); }
-    ui.fillStyle(0x0b0810, 1); ui.fillRect(0, floor, W, H - floor);
-    for (let x = 0; x < W; x += 6) { ui.fillStyle(0x2e2a38, 0.5); ui.fillRect(x, floor + Math.round(Math.sin(x * 0.07 + ct * 0.1) * 1.5), 4, 1); }
-    // ---- the demon
-    const rise = Math.max(0, Math.min(1, (ct - C.rise) / 40)), dx = W * 0.68, headY = floor - 20 - rise * 196;
-    const lift = Math.max(0, Math.min(1, (ct - C.lift) / (C.tear - C.lift - 6)));
-    const vx = W * 0.4, vy = floor - lift * 110 - (ct >= C.grab ? 4 : 0), torn = ct >= C.tear, since = ct - C.tear;
-    if (rise > 0) this.drawDemon(ui, dx, headY, floor, rise, ct, C);
-    // ---- them, with the knife in them; torn in two after the tear
-    const vTex = T.sheets.idle;
+    const C = this.def.limit.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 60, R = Math.random;
+    const clamp = (v) => Math.max(0, Math.min(1, v)), ease = (v) => v * v * (3 - 2 * v);
+    const up = ct >= C.fly ? ease(clamp((ct - C.fly) / (C.grab - C.fly))) : 0;      // how far "up" the camera has flown with them
+    // ---- the black, and the shadows (in flight: purple dark with streaks rushing down past them)
+    ui.fillStyle(0x000000, 1); ui.fillRect(0, 0, W, H);
+    if (ct >= C.look && ct < C.fly) {                        // a thin light from above on them, the floor just visible
+      const k = clamp((ct - C.look) / 12);
+      ui.fillStyle(0xd8d0ff, 0.06 * k); ui.fillTriangle(W * 0.4 - 10, 34, W * 0.4 + 10, 34, W * 0.4 + 60, floor); ui.fillTriangle(W * 0.4 - 10, 34, W * 0.4 - 60, floor, W * 0.4 + 60, floor);
+      ui.fillStyle(0xd8d0ff, 0.12 * k); ui.fillEllipse(W * 0.4, floor + 2, 120, 12);
+    }
+    if (ct >= C.emerge && ct < C.fly) for (let i = 0; i < 8; i++) {   // shadows curling round the edges
+      const a = ct * 0.02 + i * 0.8; ui.fillStyle(0x1a0f24, 0.35); ui.fillEllipse(W * 0.7 + Math.cos(a) * 140, floor - 120 + Math.sin(a * 1.3) * 90, 160, 60);
+    }
+    if (ct >= C.fly) {
+      ui.fillStyle(0x120a1a, 1); ui.fillRect(0, 0, W, H);
+      for (let i = 0; i < 24; i++) { const x = (i * 97) % W, y = ((i * 53 + ct * (ct < C.grab ? 26 : 4)) % (H + 80)) - 40; ui.fillStyle(0x3a2450, 0.6); ui.fillRect(x, y, 2, ct < C.grab ? 40 : 10); }
+    }
+    // ---- them (screen positions: on the floor, knocked up, held up in front of it)
+    let vx = 250, vy = floor, rot = 0, flip = !!T.def.facesLeft;
+    if (ct >= C.look && ct < C.hit) flip = ((Math.floor((ct - C.look) / 22)) % 2 === 1) !== flip;   // looking round, left then right
+    if (ct >= C.hit && ct < C.fly) { vy = floor - (ct - C.hit) * 14; vx = 250 + (ct - C.hit) * 3; rot = (ct - C.hit) * 0.3; }   // the uppercut sends them up
+    else if (ct >= C.fly) { const k = clamp((ct - C.fly) / (C.grab - C.fly)); vy = floor - 140 + k * 14 + Math.sin(ct * 0.2) * 2; vx = 280 + k * 30; rot = ct < C.grab ? 3 + (ct - C.fly) * 0.3 : 0; }
+    const torn = ct >= C.tear, since = ct - C.tear;
     for (const [spr, top] of [[this.riteTop, true], [this.riteBot, false]]) {
-      if (T.def.menuSheets) showFighter(spr, T.def, 0, T.skin);
-      else spr.setTexture(vTex, 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
-      spr.setScale(2).setFlipX(!!T.def.facesLeft).setVisible(true).setTintMode(Phaser.TintModes.MULTIPLY).setTint(torn ? 0x9a8aa8 : 0xd8d0e0);
+      if (T.def.menuSheets) showFighter(spr, T.def, Math.floor(ct / 6), T.skin);
+      else spr.setTexture(T.sheets.idle, ct < C.hit ? Math.floor(ct / 6) % Math.max(1, Math.min(32, this.scene.textures.get(T.sheets.idle).frameTotal - 1)) : 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
+      spr.setScale(2).setFlipX(flip).setVisible(ct >= C.dark).setTintMode(Phaser.TintModes.MULTIPLY)
+        .setTint(ct < C.look ? 0x2a2430 : ct < C.fly ? 0xb8b0c8 : torn ? 0x8a7a98 : 0xd0c8e0).setAlpha(ct < C.look ? clamp((ct - C.dark) / 10) : 1);
       const fh = spr.frame.realHeight, fw = spr.frame.realWidth, waist = Math.max(4, Math.round((T.def.originY ?? 1) * fh - T.body.h * 0.55));
       if (top) spr.setCrop(0, 0, fw, waist); else spr.setCrop(0, waist, fw, fh - waist);
-      const k = torn ? Math.min(1, since / 18) : 0, shake = ct >= C.grab && !torn ? Math.sin(ct * 2) * 1.5 : 0;
-      spr.setPosition(vx + shake + (top ? -1 : 1) * k * 70, vy + (top ? -1 : 1) * k * 40 + (torn ? since * since * 0.03 : 0)).setRotation(torn ? (top ? -1 : 1) * k * 0.9 : 0);
+      const k = torn ? Math.min(1, since / 16) : 0;
+      spr.setPosition(vx + (top ? -1 : 1) * k * 90, vy + (top ? -1 : 1) * k * 24 + (torn ? since * since * 0.04 : 0)).setRotation(rot + (torn ? (top ? -1 : 1) * k * 1.1 : 0));
     }
-    if (!torn) this.drawKarambit(fr, vx + 8, vy - T.body.h * 1.1, 2.4, 2);
-    // ---- its hands: closing round them from the grab, the second one at their legs for the tear
-    if (ct >= C.grab - 10 && !torn) {
-      const k = Math.min(1, (ct - (C.grab - 10)) / 10);
-      this.drawClaw(fr, vx + 26 - (1 - k) * 60, vy - T.body.h * 1.3, 1, k);
-      if (ct >= C.tear - 18) this.drawClaw(fr, vx + 24 + (1 - Math.min(1, (ct - (C.tear - 18)) / 10)) * 60, vy - 10, 1, 1);
+    const bh = T.body.h * 2, chest = vy - bh * 0.7;
+    if (ct >= C.emerge + 10 && ct < C.emerge + 34) { fr.fillStyle(0xffffff, 0.9); fr.fillRect(vx - 2, vy - bh - 30, 4, 10); fr.fillRect(vx - 2, vy - bh - 17, 4, 4); }   // "!" - something's behind them
+    // ---- the demon (its own graphics, moved and scaled: drawn at 0,0 = its chest)
+    mid.setVisible(ct >= C.emerge);
+    if (ct >= C.emerge) {
+      const a = clamp((ct - C.emerge - 14) / 40), eyes = clamp((ct - C.emerge) / 10), sc = 0.72;
+      let X = 440, Y = floor - 110, pose;
+      if (ct < C.hit - 10) pose = { l: [X - 90, Y + 90], r: [X + 90, Y + 95], grin: 4 };                          // looming, arms hanging
+      else if (ct < C.fly) {                                                                                     // the uppercut
+        const k = clamp((ct - (C.hit - 10)) / 10); X -= k * 40;
+        pose = { l: [X - 90, Y + 80], r: ct < C.hit ? [vx + 60 - (1 - k) * 40, Y + 80 - k * 110] : [vx + 20, vy - bh - 20], grin: 10, fist: true };
+      } else if (ct < C.grab) {                                                                                  // flying up after them, from below
+        const k = ease(clamp((ct - C.fly) / (C.grab - C.fly))); X = 330; Y = floor + 220 - k * 250;
+        pose = { l: [X - 70, Y + 110], r: [vx, chest + (1 - k) * 60], grin: 8, rise: true };
+      } else {                                                                                                   // it has them: one hand on each half, then tears
+        X = 330; Y = floor - 30;
+        const pull = torn ? Math.min(1, since / 16) * 90 : clamp((ct - C.grab) / (C.tear - C.grab)) * 6;
+        pose = { l: [vx - 8 - pull, vy - bh * 0.85 - (torn ? pull * 0.27 : 0)], r: [vx + 8 + pull, vy - bh * 0.3 + (torn ? pull * 0.27 : 0)], grin: torn ? 16 : 12, hold: true, rise: true };
+      }
+      mid.setPosition(X, Y).setScale(sc);
+      const local = (pt) => [(pt[0] - X) / sc, (pt[1] - Y) / sc];
+      this.drawDemon(mid, 0, 0, a, eyes, { ...pose, l: local(pose.l), r: local(pose.r) }, ct);
     }
-    if (torn && since < 30) {                                // the tear: sludge bursting out of them
-      if (!U.spray) U.spray = Array.from({ length: 50 }, () => ({ x: vx, y: vy - T.body.h * 1.1, vx: (R() - 0.5) * 9, vy: -2 - R() * 6, r: 1 + R() * 3 }));
+    if (torn && since < 34) {                                 // the tear: sludge bursting out of them
+      if (!U.spray) U.spray = Array.from({ length: 60 }, () => ({ x: vx, y: vy - T.body.h * 1.1, vx: (R() - 0.5) * 10, vy: -3 - R() * 6, r: 1 + R() * 3 }));
       for (const p of U.spray) { p.x += p.vx; p.y += p.vy; p.vy += 0.35; fr.fillStyle(p.r > 2.5 ? 0x4a3248 : 0x060508, 1); fr.fillCircle(p.x, p.y, p.r); }
-      this.drawClaw(fr, vx - 50 - since * 2, vy - T.body.h * 1.4 - since, 1, 1); this.drawClaw(fr, vx + 70 + since * 2, vy + 20 + since, 1, 1);
     }
-    // impact frames at the tear
-    if (torn && since < 4) { fr.fillStyle(since < 2 ? 0xffffff : 0x000000, 1); fr.fillRect(0, 0, W, H); if (since >= 2) { this.riteTop.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); this.riteBot.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); } else { this.riteTop.setVisible(false); this.riteBot.setVisible(false); } }
+    // impact frames: the uppercut and the tear
+    for (const at of [C.hit, C.tear]) {
+      const d = ct - at;
+      if (d >= 0 && d < 4) {
+        fr.fillStyle(d < 2 ? 0xffffff : 0x000000, 1); fr.fillRect(0, 0, W, H);
+        if (d >= 2) for (const spr of [this.riteTop, this.riteBot]) spr.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff).setDepth(43);
+        else for (const spr of [this.riteTop, this.riteBot]) spr.setVisible(false);
+      }
+    }
+    for (const spr of [this.riteTop, this.riteBot]) if (!(ct - C.hit >= 2 && ct - C.hit < 4) && !(ct - C.tear >= 2 && ct - C.tear < 4)) spr.setDepth(41);
     // ---- letterbox, a line of text, fades
     fr.fillStyle(0x000000, 1); fr.fillRect(0, 0, W, 34); fr.fillRect(0, H - 34, W, 34);
-    const line = ct < C.rise ? '' : ct < C.grab ? 'IT HUNGERS.' : torn && since > 10 ? 'FED.' : '';
+    const line = ct >= C.look + 10 && ct < C.emerge ? '...HELLO?' : ct >= C.emerge + 20 && ct < C.hit - 6 ? 'IT HUNGERS.' : torn && since > 10 ? 'FED.' : '';
     if (line) this.riteText.setText(line).setVisible(true);
-    if (ct < 8 || ct > C.end - 8) { fr.fillStyle(0x000000, ct < 8 ? 1 - ct / 8 : (ct - (C.end - 8)) / 8); fr.fillRect(0, 0, W, H); }
+    if (ct > C.end - 8) { fr.fillStyle(0x000000, (ct - (C.end - 8)) / 8); fr.fillRect(0, 0, W, H); }
   }
 
   /**
-   * The shadow demon of the Limit: a towering body of black sludge rising out of the floor, curved horns, white
-   * slit eyes, an enormous grin full of teeth, purple sheen and drips, and long arms.
-   * @param {number} cx - its middle; headY - where its head is; floor - the sludge lake; rise - how far it's up (0-1)
+   * The demon of the Limit, drawn on the cutscene's screen: a huge, man-shaped brute of black sludge - broad
+   * shoulders, a barrel chest with pecs and abs picked out in a purple rim light, thick arms ending in clawed hands,
+   * a human skull-like face with heavy brows, curling horns, white burning eyes and a wide grin - its lower half
+   * trailing off into shadow (or a smoky tail as it flies).
+   * @param {number} cx - its chest; cy - its chest's height
+   * @param {number} a - how solid it is (0-1, stepping out of the shadows); eyes - how lit its eyes are (they come first)
+   * @param {object} pose - l / r: where its left / right hand is; grin: how wide its mouth is; fist / hold / rise
    */
-  drawDemon(ui, cx, headY, floor, rise, ct, C) {
-    const sway = Math.sin(ct * 0.04) * 6, hx = cx + sway, R = Math.random;
-    ui.fillStyle(0x4a2a68, 0.9);                                                                                // a faint purple rim round its silhouette
-    ui.fillEllipse(hx, (headY + floor) / 2 + 30, 228, floor - headY + 48); ui.fillEllipse(hx, headY, 128, 108);
-    ui.fillTriangle(hx - 48, headY - 20, hx - 28, headY - 44, hx - 100, headY - 116); ui.fillTriangle(hx + 48, headY - 20, hx + 28, headY - 44, hx + 100, headY - 116);
-    ui.fillStyle(0x020203, 1);
-    ui.fillTriangle(hx - 150, floor + 4, hx + 150, floor + 4, hx, headY + 30);                                  // its body, a mound of sludge
-    ui.fillEllipse(hx, (headY + floor) / 2 + 30, 220, floor - headY + 40);
-    ui.fillEllipse(hx, headY, 120, 100);                                                                        // the head
-    ui.fillTriangle(hx - 44, headY - 22, hx - 30, headY - 40, hx - 96, headY - 110);                             // horns
-    ui.fillTriangle(hx + 44, headY - 22, hx + 30, headY - 40, hx + 96, headY - 110);
-    ui.fillStyle(0x2e1a3e, 0.8);                                                                                 // a purple sheen
-    ui.fillEllipse(hx - 30, headY - 20, 30, 12); ui.fillRect(hx - 90, headY + 60, 4, floor - headY - 70);
-    // arms, reaching toward the victim
-    const reach = Math.min(1, Math.max(0, (ct - (C.grab - 24)) / 20));
-    ui.lineStyle(26, 0x020203, 1); ui.lineBetween(hx - 60, headY + 70, hx - 60 - reach * 90, headY + 120 + reach * 20);
-    ui.lineBetween(hx + 60, headY + 70, hx + 70, floor - 20);
-    // the eyes: white slits, and the grin
-    const blink = (ct % 90) < 4;
-    ui.fillStyle(0xffffff, 1);
-    if (!blink) { ui.fillTriangle(hx - 40, headY - 6, hx - 10, headY + 2, hx - 36, headY + 6); ui.fillTriangle(hx + 40, headY - 6, hx + 10, headY + 2, hx + 36, headY + 6); }
-    ui.fillStyle(0xd8b0ff, 0.25); ui.fillCircle(hx - 26, headY, 16); ui.fillCircle(hx + 26, headY, 16);
-    const open = ct >= C.grab ? 10 + Math.sin(ct * 0.6) * 4 : 4;                                                  // (laughing once it has them)
-    ui.fillStyle(0x0b0810, 1); ui.fillEllipse(hx, headY + 28, 90, 12 + open);
-    ui.fillStyle(0xf4eefc, 1);
-    for (let i = -5; i <= 5; i++) { const x = hx + i * 8, d = Math.abs(i); ui.fillTriangle(x - 3, headY + 23 - d * 0.4, x + 3, headY + 23 - d * 0.4, x, headY + 30); ui.fillTriangle(x - 3, headY + 33 + open * 0.5, x + 3, headY + 33 + open * 0.5, x, headY + 27 + open * 0.3); }
-    for (let i = 0; i < 7; i++) {                                                                                 // drips running off it
-      const x = hx - 70 + i * 23, l = 10 + ((ct + i * 13) % 30);
-      ui.fillStyle(0x020203, 1); ui.fillRect(x, headY + 40, 3, l); ui.fillCircle(x + 1.5, headY + 40 + l, 2.5);
+  drawDemon(ui, cx, cy, a, eyes, pose, ct) {
+    const BODY = 0x040306, RIM = 0x5a3480, MUS = 0x24162e, sh = [[cx - 96, cy - 66], [cx + 96, cy - 66]];
+    const arm = (s, hand, side, w) => {                     // a thick two-part arm (shoulder -> elbow -> hand), elbow bent outward
+      const L1 = 92, L2 = 88, dx = hand[0] - s[0], dy = hand[1] - s[1], d = Math.min(L1 + L2 - 1, Math.max(20, Math.hypot(dx, dy)));
+      const base = Math.atan2(dy, dx), bend = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+      const ea = base - side * bend, ex = s[0] + Math.cos(ea) * L1, ey = s[1] + Math.sin(ea) * L1;
+      const ha = Math.atan2(hand[1] - ey, hand[0] - ex), hx = ex + Math.cos(ha) * L2, hy = ey + Math.sin(ha) * L2;
+      return { ex, ey, hx, hy, ha, w };
+    };
+    const arms = [arm(sh[0], pose.l, -1, 40), arm(sh[1], pose.r, 1, 40)];
+    const shapes = (col, k, alpha) => {                     // the whole silhouette; k = how much bigger (for the rim)
+      ui.fillStyle(col, alpha); ui.lineStyle(0, col, 0);
+      const tail = pose.rise ? 220 : 150;
+      for (let i = 0; i < 6; i++) ui.fillEllipse(cx + Math.sin(ct * 0.1 + i) * 8, cy + 70 + i * (tail / 6), 150 - i * 20 + k * 2, 60 + k * 2);   // trailing off into shadow
+      ui.fillPoints([{ x: cx - 112 - k, y: cy - 74 - k }, { x: cx + 112 + k, y: cy - 74 - k }, { x: cx + 62 + k, y: cy + 80 + k }, { x: cx - 62 - k, y: cy + 80 + k }], true);   // the torso
+      ui.fillCircle(sh[0][0], sh[0][1], 40 + k); ui.fillCircle(sh[1][0], sh[1][1], 40 + k);                       // shoulders
+      ui.fillPoints([{ x: cx - 30 - k, y: cy - 100 }, { x: cx + 30 + k, y: cy - 100 }, { x: cx + 70 + k, y: cy - 66 }, { x: cx - 70 - k, y: cy - 66 }], true);   // neck and traps
+      for (const A of arms) {
+        ui.lineStyle(A.w + k * 2, col, alpha); ui.lineBetween(sh[arms.indexOf(A)][0], sh[arms.indexOf(A)][1], A.ex, A.ey);
+        ui.lineStyle(A.w - 6 + k * 2, col, alpha); ui.lineBetween(A.ex, A.ey, A.hx, A.hy);
+        ui.fillStyle(col, alpha); ui.fillCircle(A.ex, A.ey, A.w / 2 + k); ui.fillCircle(A.hx, A.hy, (pose.fist ? 26 : 22) + k);
+      }
+      ui.fillEllipse(cx, cy - 128, 70 + k * 2, 80 + k * 2);                                                   // the head
+      ui.fillEllipse(cx, cy - 104, 62 + k * 2, 44 + k * 2);                                                   // a heavy jaw
+      for (const s of [-1, 1]) {                                                                              // horns curling up and back
+        ui.fillTriangle(cx + s * 22, cy - 150, cx + s * 36, cy - 140, cx + s * 58 + s * k, cy - 196 - k);
+        ui.fillTriangle(cx + s * 58, cy - 196, cx + s * 50, cy - 184, cx + s * 40 + s * k, cy - 214 - k);
+      }
+    };
+    if (a <= 0 && eyes <= 0) return;
+    shapes(RIM, 3, 0.85 * a);                                                                                // (it comes out of the dark: its body is
+    shapes(BODY, 0, 1);                                                                                      // black on black - only its rim light fades in)
+    if (a > 0) {                                                                                              // the muscles, in the rim light
+      ui.lineStyle(2, MUS, a);
+      ui.strokeEllipse(cx - 36, cy - 40, 66, 40); ui.strokeEllipse(cx + 36, cy - 40, 66, 40);                 // pecs
+      for (let i = 0; i < 3; i++) { ui.strokeRect(cx - 26, cy - 10 + i * 24, 22, 20); ui.strokeRect(cx + 4, cy - 10 + i * 24, 22, 20); }   // abs
+      ui.lineBetween(cx, cy - 64, cx, cy + 64);
+      for (const A of arms) { ui.lineStyle(2, MUS, a); ui.strokeEllipse((A.ex + sh[arms.indexOf(A)][0]) / 2, (A.ey + sh[arms.indexOf(A)][1]) / 2, 40, 26); }   // biceps
+      ui.lineStyle(3, RIM, 0.6 * a); ui.lineBetween(cx - 30, cy - 142, cx + 30, cy - 142);                    // a heavy brow
+      for (const A of arms) {                                                                                 // claws
+        for (let f = -1; f <= 1.01; f += 0.66) {
+          const fa = A.ha + f * 0.5, x0 = A.hx + Math.cos(fa) * 18, y0 = A.hy + Math.sin(fa) * 18;
+          ui.lineStyle(5, BODY, a); ui.lineBetween(x0, y0, x0 + Math.cos(fa + 0.4) * 18, y0 + Math.sin(fa + 0.4) * 18);
+          ui.lineStyle(1, RIM, a); ui.lineBetween(x0 + Math.cos(fa + 0.4) * 10, y0 + Math.sin(fa + 0.4) * 10, x0 + Math.cos(fa + 0.4) * 18, y0 + Math.sin(fa + 0.4) * 18);
+        }
+      }
+      const open = pose.grin + Math.sin(ct * 0.6) * (pose.grin > 8 ? 3 : 0);                                  // the grin
+      ui.fillStyle(0x10081a, a); ui.fillEllipse(cx, cy - 104, 46, 6 + open);
+      ui.fillStyle(0xf4eefc, a);
+      for (let i = -3; i <= 3; i++) { const x = cx + i * 6; ui.fillTriangle(x - 2.5, cy - 107 - open * 0.3, x + 2.5, cy - 107 - open * 0.3, x, cy - 101); ui.fillTriangle(x - 2.5, cy - 101 + open * 0.5, x + 2.5, cy - 101 + open * 0.5, x, cy - 106 + open * 0.4); }
+      for (let i = 0; i < 5; i++) { const x = cx - 50 + i * 25, l = 8 + ((ct + i * 11) % 24); ui.fillStyle(BODY, a); ui.fillRect(x, cy + 60, 3, l); ui.fillCircle(x + 1.5, cy + 60 + l, 2.5); }   // sludge dripping off it
     }
-    if (rise < 1 && R() < 0.8) { ui.fillStyle(0x0b0810, 1); ui.fillCircle(hx + (R() - 0.5) * 260, floor - R() * 10, 3 + R() * 5); }      // the lake churning as it rises
-  }
-
-  /**
-   * One of the demon's hands: four long black claws curled round a point.
-   * @param {number} side - which way it faces; k - how closed it is (0-1)
-   */
-  drawClaw(g, x, y, side, k) {
-    g.fillStyle(0x020203, 1); g.fillEllipse(x + side * 10, y, 34, 26);
-    for (let i = 0; i < 4; i++) {
-      const fy = y - 12 + i * 8, curl = 18 + 10 * k;
-      g.lineStyle(6, 0x020203, 1); g.lineBetween(x, fy, x - side * curl, fy + 2 + 4 * k);
-      g.lineStyle(2, 0x2e1a3e, 1); g.lineBetween(x - side * (curl - 6), fy + 1, x - side * curl, fy + 2 + 4 * k);
-    }
+    ui.fillStyle(0xffffff, eyes);                                                                            // its eyes, burning white
+    ui.fillTriangle(cx - 26, cy - 134, cx - 6, cy - 128, cx - 22, cy - 124); ui.fillTriangle(cx + 26, cy - 134, cx + 6, cy - 128, cx + 22, cy - 124);
+    ui.fillStyle(0xd8b0ff, 0.25 * eyes); ui.fillCircle(cx - 16, cy - 129, 12); ui.fillCircle(cx + 16, cy - 129, 12);
   }
 
   /** His karambit, drawn on its own (thrown, or stuck in someone): a curved hooked blade with a ring at the grip. */

@@ -49,7 +49,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor, TankShell, SludgeGlob } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor, TankShell, SludgeGlob, SludgeMaw } from '../fighters/entities.js';
 import { stageById, STAGES, trackList, stageLocked } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -422,7 +422,7 @@ export class MatchScene extends Phaser.Scene {
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
-    if (owner && owner.def.devoted && t !== owner) owner.addDevotion(1);   // THE DEVOTED: every hit he lands counts toward his next stage
+    if (owner && owner.def.devoted && t !== owner) { owner.addDevotion(1); if (!hb.projectile && owner.state === 'attack' && owner.move && owner.move.cut) owner.cutLanded(t); }   // (CROSS CUTS: the slash marks where it hit)   // THE DEVOTED: every hit he lands counts toward his next stage
 
     if (t.armoured && t.armoured(hb)) {                 // THE TANK dug in (ENTRENCH): the damage gets through, the knockback doesn't
       t.flash = 4; t.hitstop = 4; if (owner && !hb.projectile) owner.hitstop = 4;
@@ -578,6 +578,7 @@ export class MatchScene extends Phaser.Scene {
   spawnSoul(owner) { this.challengeEvent(owner, 'summon'); const s = new Soul(this, owner); this.souls.push(s); return s; }
   // WHAT ONCE WAS: its MISSING poster (one in the air at a time) and its door (one each)
   spawnShell(owner, spec) { const p = new TankShell(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnMaw(owner, plat, x, spec) { const p = new SludgeMaw(this, owner, plat, x, spec); this.projectiles.push(p); return p; }   // THE DEVOTED's THE MAW
   spawnGlob(owner, spec, vx, vy) { const p = new SludgeGlob(this, owner, spec, vx, vy); this.projectiles.push(p); return p; }   // THE DEVOTED's OFFERING
   spawnPoster(owner, spec) { const p = new MissingPoster(this, owner, spec); this.projectiles.push(p); return p; }
   spawnDoor(owner, spec) {

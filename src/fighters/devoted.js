@@ -94,21 +94,25 @@ export const DEVOTED = {
     uair: { frames: 26, landLag: 7, fx: 'up', hits: [{ from: 7, to: 12, box: [-22, -100, 44, 50], dmg: 9, angle: 86, base: 3.2, growth: 5.4 }] },
     dair: { frames: 34, landLag: 13, fx: 'down', hits: [{ from: 10, to: 14, box: [-14, -12, 28, 24], dmg: 11, angle: -80, base: 3.0, growth: 4.2 }] },   // a downward stab: a spike
     // ---- specials
-    // OFFERING (neutral): draws the karambit across his palm and flings the sludge that pours out - a glob that arcs
-    // forward, hits the first one it touches and stains the floor where it lands. More globs, fanned out, at each
-    // stage (count per stage), and each hits harder (+perStage damage per stage).
-    neutralB: { frames: 32, spawnAt: 14, glob: { speed: 5.2, lift: -4.4, grav: 0.26, life: 90, r: 5, fan: 2.4,
-      count: [1, 1, 2, 3], perStage: 1, hit: { dmg: 6, angle: 50, base: 2.6, growth: 3.4 } } },
+    // THE MAW (neutral): he cuts his palm and flings the sludge at the floor ahead of him - a puddle bubbles up there,
+    // then a jaw of sludge snaps up out of it, popping anyone standing over it into the air, and leaves a stain.
+    // Hold forward to throw it further. It's bigger and bites harder at each stage.
+    // dist: how far ahead (px, per stage); far: extra with forward held; warn / bite / sink: frames it bubbles, its
+    // jaws are open (the hit), it sinks back; r: its size per stage; perStage: extra damage per stage
+    neutralB: { frames: 30, spawnAt: 12, maw: { dist: [80, 92, 104, 116], far: 56, warn: 18, bite: 8, sink: 16, r: [15, 18, 21, 25],
+      perStage: 1, hit: { dmg: 8, angle: 88, base: 4.4, growth: 3.8 } } },
     // CROSS CUTS (side): like Cloud's Cross Slash - a lunging cut, and every tap of special during a cut's window
     // carries on into the next one. The last cut (sideBF) launches; the ones before it keep them stuck in place.
+    // Every cut leaves its slash hanging where it hit until the combo ends, then they all vanish. Its damage doesn't
+    // grow with his stage: the most the whole thing deals is 20% (4 cuts x 3 + the finisher's 8, at DROWNED).
     // How many cuts he can chain grows with his stage (devoted.cuts). In the air each cut holds him up.
     // next: [from, to] = the frames of a cut when a special tap carries on into the next cut
-    sideB: { frames: 26, cut: 1, lunge: 2.4, next: [6, 20], fx: 'arc', hits: [{ from: 6, to: 9, box: [4, -52, 46, 44], dmg: 4, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
-    sideB2: { frames: 24, cut: 2, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -58, 46, 50], dmg: 4, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
-    sideB3: { frames: 24, cut: 3, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -52, 48, 44], dmg: 4, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
-    sideB4: { frames: 24, cut: 4, lunge: 2.2, next: [5, 19], fx: 'spin', hits: [{ from: 5, to: 9, box: [-18, -56, 66, 52], dmg: 4, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB: { frames: 26, cut: 1, lunge: 2.4, next: [6, 20], fx: 'arc', hits: [{ from: 6, to: 9, box: [4, -52, 46, 44], dmg: 3, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB2: { frames: 24, cut: 2, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -58, 46, 50], dmg: 3, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB3: { frames: 24, cut: 3, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -52, 48, 44], dmg: 3, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB4: { frames: 24, cut: 4, lunge: 2.2, next: [5, 19], fx: 'spin', hits: [{ from: 5, to: 9, box: [-18, -56, 66, 52], dmg: 3, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
     // the finishing cut: an X through them that sends them flying
-    sideBF: { frames: 40, cut: 9, lunge: 3.0, fx: 'flare', hits: [{ from: 9, to: 13, box: [-4, -64, 70, 62], dmg: 9, angle: 40, base: 4.6, growth: 5.4 }] },
+    sideBF: { frames: 40, cut: 9, lunge: 3.0, fx: 'flare', hits: [{ from: 9, to: 13, box: [-4, -64, 70, 62], dmg: 8, angle: 40, base: 4.6, growth: 5.4 }] },
     // SLUDGE GEYSER (up): stabs down at his own feet and a geyser of sludge erupts under him, throwing him up -
     // the burst hits anyone around him, then the karambit cuts upward as he rises. Leaves a stain where it started.
     upb: { frames: 40, riseAt: 10, riseV: -14.2, pushX: 1.2, drift: 3.6, geyser: { length: 14 }, hits: [
@@ -132,15 +136,17 @@ export const DEVOTED = {
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },
 
-  // Limit: FEED THE DARK - he throws his karambit at the nearest opponent in reach. If it sticks, a CUTSCENE: in the
-  // dark, a giant shadow demon of sludge rises behind them, picks them up and tears them in half - an instant KO.
+  // Limit: FEED THE DARK - he throws his karambit at the nearest opponent in reach. If it sticks, a CUTSCENE: the
+  // screen goes black, they look round in the dark, a hulking demon steps out of the shadows behind them, uppercuts
+  // them into the air, flies up after them and tears them in half - an instant KO.
   // If nobody's in reach, the knife just flies and the Limit is wasted.
   limit: {
     name: 'FEED THE DARK', type: 'rite', reach: 420,
     throwAt: 16, knifeSpeed: 11, flyFor: 50,      // when the knife leaves his hand, how fast it flies, how long before it's a miss
     whiff: 40,                                    // frames he's left standing there after a miss
-    // the cutscene's beats (frames from its start): the demon rises, grabs, lifts, tears, back to the arena
-    scene: { rise: 24, grab: 78, lift: 96, tear: 132, end: 190 },
+    // the cutscene's beats (frames from its start): black, they look round, the demon steps out, the uppercut,
+    // it flies up after them, catches them, the tear, back to the arena
+    scene: { dark: 4, look: 24, emerge: 92, hit: 150, fly: 160, grab: 186, tear: 206, end: 262 },
     colors: PAL_SLUDGE,
   },
 };

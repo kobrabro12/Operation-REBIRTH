@@ -105,7 +105,7 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg || 1); }   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg && !(this.move && this.move.cut && this.state === 'attack') ? this.devoteDmg : 1); }   // (THE DEVOTED: his stage makes him hit harder - except CROSS CUTS, which top out at 20%)   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
   get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]*soulJumpMultiplier(this); }
   get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel] * (this.devoteKb || 1); }
@@ -398,6 +398,7 @@ export class Fighter {
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);
+    if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // THE DEVOTED's THE MAW
     if (m.cut && this.cutStep(m)) return;                // THE DEVOTED's CROSS CUTS: tap special for the next cut   // THE DEVOTED's OFFERING
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);

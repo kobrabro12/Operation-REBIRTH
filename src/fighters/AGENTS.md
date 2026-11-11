@@ -67,15 +67,20 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   KOs. DROWNED: extra air jumps (`wingJumps`) and hovers like a demon (`devoted.hover`: `this.demonFloat` = a FULL AERO-style
   float, used by Fighter.physics + fighterRender; holding jump on the way down hangs him in the air, `hover.hold` frames per trip). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
   age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit FEED THE DARK
-  (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawClaw` / `drawKarambit`): throws the karambit (homing) at the nearest
+  (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawKarambit`): throws the karambit (homing) at the nearest
   opponent in `reach`; if it sticks, a screen-space cutscene (`limit.scene` beats, like Rosemary's BIRTHDAY SHOW: `m.frozen`,
-  `m.cutscene`, `ult.victims`): a giant sludge demon rises, grabs, lifts and tears them in half (the victim drawn as two
-  cropped sprites) -> `m.onKO` = instant KO. Miss -> `whiff`. (The old BLACK TIDE, `tideLimit`, is still in the file, unused.) CPU walks back
+  `m.cutscene`, `ult.victims`): black, they look round under a thin light, a hulking man-shaped sludge demon steps out of
+  the shadows (black on black - only its purple rim light fades in; drawn at 0,0 into `riteMid`, which is moved/scaled,
+  arms by 2-bone IK to the pose's hand points), uppercuts them, flies up after them, grabs and tears them in half (the
+  victim drawn as two cropped sprites) -> `m.onKO` = instant KO. Miss -> `whiff`. (The old BLACK TIDE, `tideLimit`, is still in the file, unused.) CPU walks back
   to the symbol to pray when full (cpu.js).
-  Specials: OFFERING (neutral-B, `neutralB.glob` -> `throwGlobs` -> `match.spawnGlob` = `SludgeGlob` in entities.js: arcing
-  sludge globs, `count` per stage, fanned, stain where they land), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
+  Specials: THE MAW (neutral-B, `neutralB.maw` -> `throwMaw` -> `match.spawnMaw` = `SludgeMaw` in entities.js: a puddle on the
+  nearest floor ahead (further with forward held) bubbles, then sludge jaws snap up out of it - pops them up - and leave a stain;
+  bigger/harder per stage. The old OFFERING globs - `throwGlobs`/`SludgeGlob` - are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
   `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a
-  special tap in the window, up to `devoted.cuts[stage]`, holds him up in the air, draws the slashes `this.cutFx`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
+  special tap in the window, up to `devoted.cuts[stage]`, holds him up in the air; each cut's slash `this.cutFx` hangs where it
+  hit (`cutLanded`, from MatchScene.applyHit) until the combo ends, then they all flash and vanish; Fighter.dmgMult skips his
+  stage bonus for cut moves, so the whole thing tops out at 20%), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
   SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains
