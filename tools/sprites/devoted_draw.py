@@ -1,13 +1,13 @@
 """THE DEVOTED (WIP test fighter) - a quiet, pale man with a kitchen knife who prays to a symbol, and a black
 sludge that takes a little more of him every time he does. Four looks, one per sludge stage:
 
-  DEFAULT  clean: long ashy-blond hair, a striped mustard shirt, dark trousers, a curved knife, a faint smile
+  DEFAULT  clean: long ashy-blond hair, a striped mustard shirt, dark trousers, a karambit, a faint smile
   SEMI     sludge drips from his hair down his face and shoulders; the smile widens
   TAKEN    most of him is covered; a wide toothy grin
   DROWNED  he's all sludge but his eyes and a huge grin - and one giant demon wing grows from his back
 
 Built on AERO's skeleton (tools/sprites/aero_moves.py: the same parts and the same moves, minus FULL AERO's
-spear moves); his move table is src/fighters/dvMoves.js (generated here). The knife is drawn into his front fist; the scarf slot is the demon wing (DROWNED) or a sludge strand.
+spear moves); his move table is src/fighters/dvMoves.js (generated here). The karambit is drawn into his front fist; the scarf slot is the demon wing (DROWNED) or a sludge strand.
 
   python3 tools/sprites/devoted_draw.py [--preview FILE]
   -> public/assets/fighters/devoted/ (DEFAULT) and devoted/semi/, devoted/taken/, devoted/drowned/
@@ -105,9 +105,10 @@ def head(stage):
     # hair: long and straight - a fringe across his forehead, a lock over his front eye's brow, and a curtain down
     # the back of his head past his neck
     im2 = Image.new('RGBA', (64, 64)); d2 = ImageDraw.Draw(im2)
-    d2.ellipse([25, 5, 42, 15], fill=(255, 255, 255, 255))                     # the crown
+    d2.ellipse([25, 4, 42, 13], fill=(255, 255, 255, 255))                     # the crown (kept above his eyes)
+    d2.rectangle([31, 11, 43, 14], fill=(0, 0, 0, 0))
     d2.polygon([(25, 9), (31, 9), (31, 26), (28, 28), (24, 25)], fill=(255, 255, 255, 255))   # down the back
-    d2.polygon([(33, 9), (42, 9), (42, 12), (40, 13), (38, 11), (34, 11)], fill=(255, 255, 255, 255))   # the fringe
+    d2.polygon([(33, 8), (42, 8), (42, 10), (34, 10)], fill=(255, 255, 255, 255))   # the fringe, ending above his brows
     hm = np.array(im2)[..., 3] > 0
     for y, x in zip(*np.nonzero(hm)):
         k = 3 if (y < 8 and x > 30) else 2 if (x + y * 0) % 3 else 1     # light on top, strands down the back
@@ -151,22 +152,31 @@ def head(stage):
     return a
 
 def knife(a):
-    """A curved knife in his front fist: the blade sweeps up and forward, then hooks down to a point."""
+    """A karambit in his front fist: a black claw-curved blade hooking forward and down out of the bottom of his fist,
+    a silver edge along its inside curve, the black grip in his hand and the finger ring sticking out behind it."""
     a = a.copy()
-    for x, y in [(43, 26), (44, 26), (45, 25)]: a[y, x] = hx(0x3a2418)        # the handle, showing through his grip
+    for x, y in [(43, 26), (44, 26), (45, 26)]: a[y, x] = hx(0x16161c)        # the black grip, showing through his fingers
+    for x, y in [(42, 19), (43, 18), (44, 18), (45, 19), (45, 20), (44, 21), (43, 21), (42, 20)]:   # the finger ring, over his fist
+        a[y, x] = hx(0x4a4a56 if y < 20 else 0x16161c)
+    for x, y in [(41, 19), (41, 20), (42, 17), (43, 17), (44, 17), (45, 17), (46, 19), (46, 20), (42, 21), (45, 21)]:
+        if not a[y, x, 3]: a[y, x] = hx(LINE)
+    for x, y in [(43, 22), (44, 22)]:
+        if not a[y, x, 3]: a[y, x] = hx(0x16161c)
     im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
-    top = [(46, 23), (49, 21), (52, 20), (55, 20), (57, 21), (58, 23), (58, 26)]          # the outer (sharp) curve
-    inner = [(57, 24), (55, 22), (52, 22), (49, 23), (47, 25), (46, 26)]                    # the inner curve, back to the grip
-    d.polygon(top + inner, fill=(255, 255, 255, 255))
+    outer = [(46, 26), (49, 26), (52, 27), (54, 30), (55, 33), (54, 36), (52, 39)]           # the spine: a claw's curve
+    inner = [(52, 36), (52, 33), (51, 31), (49, 29), (47, 29)]                               # the cutting edge, inside the curve
+    d.polygon(outer + inner, fill=(255, 255, 255, 255))
     m = np.array(im)[..., 3] > 0
     for y, x in zip(*np.nonzero(m)):
-        if not a[y, x, 3] or x > 46:
-            edge = y == 0 or not m[y - 1, x] or (x < 63 and not m[y, x + 1] and x > 55)
-            a[y, x] = hx(0xf0f4f8 if edge else 0xb0b8c2 if (x + y) % 3 else 0x98a0aa)
-    a[25, 58] = hx(0xffffff)                                                  # the glint on the point
+        if a[y, x, 3] and x <= 46: continue                                                # (his fingers stay in front)
+        spine = not m[y - 1, x] or not m[y, min(63, x + 1)]
+        a[y, x] = hx(0x3a3a46 if spine else 0x16161c)                                      # black, with a dull sheen on the spine
+    for x, y in [(48, 29), (49, 29), (50, 30), (51, 31), (51, 32), (52, 33), (51, 34), (52, 35), (52, 36), (52, 37)]:
+        if m[y, x]: a[y, x] = hx(0xd8dce4)                                                 # the bright silver edge
+    a[39, 52] = hx(0xf4f6fa)                                                                 # the point
     s = a[..., 3] > 0
     ring = ~s & (sh(s, 1, 0) | sh(s, -1, 0) | sh(s, 0, 1) | sh(s, 0, -1))
-    ring[:, :46] = False
+    ring[:, :46] = False; ring[:26, :] = False
     a[ring] = hx(LINE)
     return a
 
