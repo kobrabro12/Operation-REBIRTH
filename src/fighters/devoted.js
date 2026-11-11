@@ -87,13 +87,21 @@ export const DEVOTED = {
     uair: { frames: 26, landLag: 7, fx: 'up', hits: [{ from: 7, to: 12, box: [-22, -100, 44, 50], dmg: 9, angle: 86, base: 3.2, growth: 5.4 }] },
     dair: { frames: 34, landLag: 13, fx: 'down', hits: [{ from: 10, to: 14, box: [-14, -12, 28, 24], dmg: 11, angle: -80, base: 3.0, growth: 4.2 }] },   // a downward stab: a spike
     // ---- specials
-    // STAB (neutral): steps in with a fast, straight knife thrust
-    neutralB: { frames: 28, lunge: 3.6, fx: 'arc', hits: [{ from: 8, to: 11, box: [8, -46, 42, 18], dmg: 8, angle: 35, base: 3.2, growth: 4.4 }] },
-    // LUNGE (side): rushes forward, knife out, cutting through whoever's in the way
-    sideB: { frames: 34, rush: { from: 4, to: 14, speed: 7.4 }, fx: 'arc', hits: [{ from: 5, to: 14, box: [0, -48, 36, 40], dmg: 8, angle: 40, base: 3.4, growth: 4.2 }] },
-    // RISE (up): springs straight up with an upward cut
-    upb: { frames: 40, riseAt: 6, riseV: -13.6, pushX: 2.2, drift: 3.4, hits: [
-      { from: 6, to: 10, box: [-22, -60, 44, 62], dmg: 6, angle: 82, base: 3.4, growth: 4.4 },
+    // OFFERING (neutral): draws the karambit across his palm and flings the sludge that pours out - a glob that arcs
+    // forward, hits the first one it touches and stains the floor where it lands. More globs, fanned out, at each
+    // stage (count per stage), and each hits harder (+perStage damage per stage).
+    neutralB: { frames: 32, spawnAt: 14, glob: { speed: 5.2, lift: -4.4, grav: 0.26, life: 90, r: 5, fan: 2.4,
+      count: [1, 1, 2, 3], perStage: 1, hit: { dmg: 6, angle: 50, base: 2.6, growth: 3.4 } } },
+    // REAPING HOOK (side): a low lunge, hooking them with the karambit and dragging them through behind him - they're
+    // left stunned for a moment with their back to him, wide open for a follow-up
+    sideB: { frames: 34, rush: { from: 5, to: 13, speed: 7.8 }, hits: [
+      { from: 7, to: 13, box: [0, -44, 38, 38], dmg: 7, angle: 165, base: 3.0, growth: 0.8, stun: 22 },
+    ] },
+    // SLUDGE GEYSER (up): stabs down at his own feet and a geyser of sludge erupts under him, throwing him up -
+    // the burst hits anyone around him, then the karambit cuts upward as he rises. Leaves a stain where it started.
+    upb: { frames: 40, riseAt: 10, riseV: -14.2, pushX: 1.2, drift: 3.6, geyser: { length: 14 }, hits: [
+      { from: 9, to: 12, box: [-30, -36, 60, 40], dmg: 8, angle: 80, base: 4.2, growth: 3.6 },
+      { from: 14, to: 18, box: [-18, -78, 36, 46], dmg: 5, angle: 86, base: 3.6, growth: 4.0 },
     ] },
     // PRAY (down): kneels and prays. With his devotion full and his symbol close by, he goes up a sludge stage.
     // Otherwise it's a short, useless prayer (and he's wide open).

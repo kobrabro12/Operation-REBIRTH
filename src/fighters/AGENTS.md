@@ -56,8 +56,9 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
   generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
   `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL (a dying tree, `drawTree`, size `devoted.treeScale`) grows where he first lands after (re)spawning
-  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD in a strip under his
-  player plate - `drawDevotionHud`, called from hud.js, which lifts the plates 5 px when he's in the match); PRAY
+  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD as the OBLATION totem
+  standing on his player plate - skull with stage-coloured eyes and a thorn crown per stage, purple fill, thorns, drips -
+  `drawDevotionHud`, called from hud.js; its lettering is a text object `this.oblText`); PRAY
   (down-B, `downB.pray` -> `prayTick` from st_attack; his WORSHIP animation = `downB` in devoted_draw.py: kneels, raises
   the karambit, stabs it into the ground on `stabAt` with a sludge splash) with the meter full and within `range` of the symbol -> `ascend()`:
   next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in
@@ -66,6 +67,10 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit BLACK TIDE
   (`type: 'tide'`, `tideLimit`): radial sludge burst, stronger per stage, stains round him, fills devotion. CPU walks back
   to the symbol to pray when full (cpu.js).
+  Specials: OFFERING (neutral-B, `neutralB.glob` -> `throwGlobs` -> `match.spawnGlob` = `SludgeGlob` in entities.js: arcing
+  sludge globs, `count` per stage, fanned, stain where they land), REAPING HOOK (side-B: rush + a 165-degree hit that
+  drags them through behind him, extra `stun`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
+  `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
   Rosemary's RED ARMY costume (shop, PAPERSPLEASE; `ss`-style drawing `draw_soviet()` in last_seen_draw.py, sheets `last-seen/soviet/`) has
   its own other form: skin `form: 'tank'` -> `LAST_SEEN.forms.tank` (TANK in lastSeen.js) instead of SEEN - a T-34-style tank with her in
   the hatch (`tools/sprites/rosemary_tank.py` -> `last-seen/tank/` + `lsTankMoves.js`): MG jab, CANNON neutral-B (`TankShell` in entities.js,

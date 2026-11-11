@@ -239,6 +239,19 @@ KNEEL = P(root=(0, 2, 0, 1.0, 0.84), torso=(6, 0, 1), head=(10, 0, 1),
           fupper=(20, 0, 0), ffore=(-40, 0, 0), bupper=(20, 0, 0), bfore=(-30, 0, 0))
 RAISE = mix(KNEEL, torso=(-6, 0, 0), head=(-4, 0, 0), fupper=(-142, 0, -2), ffore=(-36, 0, 0), bupper=(10, 0, 0), bfore=(-50, 0, 0))
 STAB = mix(KNEEL, root=(0, 3, 2, 1.0, 0.82), torso=(18, 1, 2), head=(22, 0, 2), fupper=(48, 0, 1), ffore=(36, 0, 0), bupper=(4, 0, 0), bfore=(-40, 0, 0))
+# OFFERING (neutral special): draws the karambit across his open palm, then flings the sludge that pours out of it
+CUT = P(torso=(8, 0, 1), head=(14, 0, 1), fupper=(-30, 0, 0), ffore=(-100, 0, 0), bupper=(-50, 0, 0), bfore=(-60, 0, 0), **A.legs(12, -6, -14, 10))
+FLING = P(torso=(-10, 1, -1), head=(-8, 0, 0), fupper=(30, 0, 0), ffore=(-30, 0, 0), bupper=(-120, 0, -1), bfore=(-20, 0, 0), root=(0, 2, -1, 0.96, 1.04), **A.legs(20, -2, -24, 14))
+MOVES['neutralB'] = (32, [k(0, P()), k(7, CUT, 'out'), k(11, mix(CUT, ffore=(-70, 0, 0)), 'snap'), k(14, FLING, 'snap'), k(22, mix(FLING, bupper=(-100, 0, -1)), 'out'), k(32, P(), 'back')], 1, ('bfore',), False, None)
+# REAPING HOOK (side special): a low lunge, the karambit swung round in a hooking arc that drags them past him
+COIL = P(torso=(22, 0, 2), head=(18, 0, 2), fupper=(50, 0, 0), ffore=(-40, 0, 0), bupper=(10, 0, 0), bfore=(-50, 0, 0), root=(0, -2, 0, 1.06, 0.9), **A.legs(30, -40, -30, 40))
+REACH = P(torso=(30, 2, 3), head=(20, 0, 2), fupper=(-80, 0, -1), ffore=(-10, 0, 0), bupper=(40, 0, 0), bfore=(-30, 0, 0), root=(0, 4, 2, 1.06, 0.9), **A.legs(36, -20, -44, 30))
+HOOK = mix(REACH, fupper=(-10, 0, 0), ffore=(-90, 0, 0), torso=(16, 0, 1))
+MOVES['sideB'] = (34, [k(0, P()), k(4, COIL, 'out'), k(8, REACH, 'snap'), k(13, HOOK, 'snap'), k(24, mix(HOOK, torso=(10, 0, 1)), 'out'), k(34, P(), 'back')], 1, ('ffore', 'ffist'), False, None)
+# SLUDGE GEYSER (up special): stabs straight down at his own feet - the geyser of sludge throws him up, karambit high
+DOWNSTAB = P(torso=(20, 0, 2), head=(24, 0, 2), fupper=(40, 0, 0), ffore=(40, 0, 0), bupper=(20, 0, 0), bfore=(-20, 0, 0), **A.DEEP)
+UPTHRUST = P(torso=(-10, 0, -1), head=(-14, 0, 0), fupper=(-165, 0, -2), ffore=(-10, 0, 0), bupper=(-30, 0, 0), bfore=(-40, 0, 0), root=(0, 0, -3, 0.9, 1.12), **A.legs(-10, 30, -20, 40, -10, -10))
+MOVES['upb'] = (40, [k(0, P()), k(6, DOWNSTAB, 'out'), k(10, UPTHRUST, 'snap'), k(28, mix(UPTHRUST, fupper=(-150, 0, -2)), 'linear'), k(40, mix(UPTHRUST, **A.legs(-20, 50, -30, 60)), 'out')], 1, ('ffore', 'ffist'), False, None)
 MOVES['downB'] = (54, [k(0, P()), k(8, KNEEL, 'out'), k(16, RAISE, 'inout'), k(22, STAB, 'snap'),
                        k(30, mix(STAB, torso=(30, 1, 2)), 'linear'), k(44, mix(STAB, head=(36, 0, 2)), 'linear'), k(54, P(), 'back')],
                   1, (), False, None)
@@ -264,16 +277,19 @@ def composite(layers, hide=()):
     return out
 
 if __name__ == '__main__':
-    if '--pray' in sys.argv:                                         # a contact sheet of the WORSHIP animation
+    if '--move' in sys.argv:                                         # a contact sheet of one move: --move NAME FILE
+        sys.argv[sys.argv.index('--move'):sys.argv.index('--move') + 1] = []
+    if '--pray' in sys.argv or len(sys.argv) == 3:
         layers = draw_parts(0)
         look = types.SimpleNamespace(draw_parts=lambda L=layers: {n: a.copy() for n, a in L.items()}, composite=composite, ORDER=ORDER, RIG=D.RIG)
         small, big = A.N.build_rig(look, FOLLOW)
-        t, keys, step, smear, loop, center = MOVES['downB']
+        name = sys.argv[1] if len(sys.argv) == 3 else 'downB'
+        t, keys, step, smear, loop, center = MOVES[name]
         fr = A.N.animate(big, keys, t, step=step, smear=smear, center=center, life=make_life(0))
         pick = fr[::4]
         sheet = Image.new('RGBA', (112 * len(pick), 104), (120, 150, 190, 255))
         for i, f in enumerate(pick): sheet.alpha_composite(Image.fromarray(f), (i * 112, 0))
-        sheet.resize((sheet.width * 3, sheet.height * 3), Image.NEAREST).save(sys.argv[sys.argv.index('--pray') + 1]); sys.exit()
+        sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(sys.argv[-1]); sys.exit()
     if '--preview' in sys.argv:
         row = Image.new('RGBA', (64 * 4, 64), (120, 150, 190, 255))
         for i in range(4): row.alpha_composite(Image.fromarray(composite(draw_parts(i))), (i * 64, 0))

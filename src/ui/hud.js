@@ -13,9 +13,8 @@ export class Hud {
     const n = match.fighters.length;
     const total = n * PANEL_W + (n - 1) * 10;
     const x0 = Math.round((VIEW_W - total) / 2);
-    const lift = match.fighters.some((f) => f.def.devoted) ? 5 : 0;   // (room under the plates for THE DEVOTED's meter)
     match.fighters.forEach((f, i) => {
-      const x = x0 + i * (PANEL_W + 10), y = VIEW_H - PANEL_H - 6 - lift;
+      const x = x0 + i * (PANEL_W + 10), y = VIEW_H - PANEL_H - 6;
       const name = s.add.text(x + 10, y + 3, f.label, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
       const pct = s.add.text(x + PANEL_W - 10, y + 10, '0%', { fontFamily: FONT, fontSize: '17px', color: '#ffffff', stroke: '#07060e', strokeThickness: 5, shadow: { offsetX: 2, offsetY: 2, color: '#07060e', fill: true, stroke: true } }).setOrigin(1, 0);
       const sub = s.add.text(x + 8, y + 18, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc' });
@@ -71,7 +70,7 @@ export class Hud {
       if (k > 0 && !full) slant(g, gx + 1, gy + 1, Math.max(5, Math.round((gw - 2) * k)), 2, 0xffffff, 0.25, 1);
       for (let q = 1; q < 4; q++) { g.fillStyle(0x0b0a14, 1); g.fillRect(gx + (gw * q) / 4, gy, 1, 7); }   // quarter ticks
       if (f.curse > 0) { g.fillStyle(0xb07ad0, 1); g.fillRect(p.x + PANEL_W - 14, p.y + 22, 6, 6); }
-      if (f.def.devoted && f.sludge !== undefined && !f.eliminated) f.drawDevotionHud(g, p.x + 8, p.y + PANEL_H + 2, PANEL_W - 16, frame);   // THE DEVOTED's meter, under his plate
+      if (f.def.devoted && f.sludge !== undefined && !f.eliminated) f.drawDevotionHud(g, p.x + 8, p.y - 2, frame);   // THE DEVOTED's OBLATION meter, standing on his plate
     }
     // timer
     if (m.mode === 'time') {

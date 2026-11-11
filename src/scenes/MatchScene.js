@@ -49,7 +49,7 @@ import { KeyboardController, GamepadController, MergedController, readPad } from
 import { CpuController } from '../ai/cpu.js';
 import { Fighter } from '../fighters/Fighter.js';
 import { fighterById } from '../fighters/roster.js';
-import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor, TankShell } from '../fighters/entities.js';
+import { Fireball, Soul, EnergyBolt, ShadowPool, ThrownSword, VoidOrb, SoundWave, SpeakerAmp, MicToss, GraffitiTag, drawCursor, drawMiniWindow, AeroBubble, GoldfishFling, AeroPC, CdCloud, MissingPoster, WrongDoor, TankShell, SludgeGlob } from '../fighters/entities.js';
 import { stageById, STAGES, trackList, stageLocked } from '../stage/stages.js';
 import { ROSTER } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
@@ -578,6 +578,7 @@ export class MatchScene extends Phaser.Scene {
   spawnSoul(owner) { this.challengeEvent(owner, 'summon'); const s = new Soul(this, owner); this.souls.push(s); return s; }
   // WHAT ONCE WAS: its MISSING poster (one in the air at a time) and its door (one each)
   spawnShell(owner, spec) { const p = new TankShell(this, owner, spec); this.projectiles.push(p); return p; }
+  spawnGlob(owner, spec, vx, vy) { const p = new SludgeGlob(this, owner, spec, vx, vy); this.projectiles.push(p); return p; }   // THE DEVOTED's OFFERING
   spawnPoster(owner, spec) { const p = new MissingPoster(this, owner, spec); this.projectiles.push(p); return p; }
   spawnDoor(owner, spec) {
     for (const p of this.pools) if (p.owner === owner && p instanceof WrongDoor) p.kill();

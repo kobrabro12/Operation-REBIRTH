@@ -397,6 +397,7 @@ export class Fighter {
     }
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
+    if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);   // THE DEVOTED's OFFERING
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
     if (m.pool && m.hits && this.t === m.hits[0].from) this.match.spawnPool(this, m.pool);

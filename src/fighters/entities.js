@@ -1342,3 +1342,44 @@ export class TankShell {
     g.fillStyle(0xff8a2a, 0.8); g.fillCircle(x - Math.cos(a) * 7, y - Math.sin(a) * 7, 2);
   }
 }
+
+/**
+ * THE DEVOTED's OFFERING (neutral special): a glob of black sludge flung in an arc. It hits the first fighter it
+ * touches; wherever it lands it splats and stains the floor (his `stain()`).
+ * spec: { speed, lift, grav, life, hit, r }; the throw passes `vx`/`vy` so several can fan out.
+ */
+export class SludgeGlob {
+  constructor(match, owner, spec, vx, vy) {
+    this.match = match; this.owner = owner; this.spec = spec; this.dir = owner.facing;
+    this.x = owner.x + owner.facing * 10; this.y = owner.y - 40;
+    this.vx = vx; this.vy = vy; this.life = spec.life; this.t = 0; this.alive = true; this.id = nextId++;
+    this.g = match.add.graphics(); match.addWorld(this.g);
+  }
+  hitbox() { const r = this.spec.r; return { x1: this.x - r, x2: this.x + r, y1: this.y - r, y2: this.y + r, h: this.spec.hit, owner: this.owner, id: this.id, facing: this.dir, projectile: this }; }
+  /** Flies on its arc; lands on (or falls off) the stage. */
+  step() {
+    this.t++; this.vy += this.spec.grav; this.x += this.vx; this.y += this.vy;
+    if (this.t % 3 === 0) this.match.particles.push({ x: this.x, y: this.y, vx: 0, vy: 0.4, life: 14, color: 0x0e0c12, size: 2, grav: 0.1 });
+    const P = this.match.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && this.y >= p.y && this.y - this.vy < p.y + 2 && (p.solid || this.vy > 0));
+    if (P) { this.y = P.y; this.splat(P); return; }
+    if (--this.life <= 0 || this.y > 330) this.kill();
+  }
+  /** Lands: a splash and a stain where it hit the floor. */
+  splat(plat) {
+    const m = this.match, R = Math.random;
+    sfx('hit', 0.3, 0.5);
+    for (let i = 0; i < 8; i++) m.particles.push({ x: this.x, y: this.y - 2, vx: (R() - 0.5) * 3, vy: -0.8 - R() * 1.8, life: 18, color: [0x060508, 0x1a1720, 0x6a3a7a][i % 3], size: 2, grav: 0.18 });
+    if (this.owner.stain) this.owner.stain(this.x, plat, 6 + (this.owner.sludge || 0) * 2);
+    this.kill();
+  }
+  kill() { if (!this.alive) return; this.alive = false; this.g.destroy(); }
+  /** Draws the glob: a black blob of sludge with a purple glint. */
+  render() {
+    if (!this.alive) return;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), r = this.spec.r;
+    g.clear();
+    g.fillStyle(0x060508, 1); g.fillCircle(x, y, r); g.fillStyle(0x2e2a38, 1); g.fillCircle(x - 1, y - 1, r * 0.45);
+    g.fillStyle(0x6a3a7a, 0.9); g.fillRect(x - 1, y - r, 2, 1);                        // a purple glint
+    g.fillStyle(0x060508, 1); g.fillRect(x - this.dir * (r + 1), y - 1, 2, 2);          // a trailing drip
+  }
+}
