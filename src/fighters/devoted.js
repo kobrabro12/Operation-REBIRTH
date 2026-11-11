@@ -130,7 +130,7 @@ export const DEVOTED = {
     // DROWNED hovers like a demon: slow, gentle falls (float, like FULL AERO - only on the way down, so her jumps are
     // normal height), floating a little off the ground, and
     // holding jump on the way down hangs her in the air (frames per trip into the air)
-    hover: { float: { gravity: 0.45, maxFall: 3.0, hover: 6 }, hold: 110 },
+    hover: { float: { gravity: 0.45, maxFall: 3.0, hover: 6 }, hold: 110, sink: 0.3 },   // (sink: how fast she drifts down while hanging, px per frame)
     // CROSS CUTS (side special): how many cuts she can chain at each stage (the last one launches)
     cuts: [3, 3, 4, 5],
     // the sludge she leaves on the floor: frames between drops while standing, per stage (0 = none), and

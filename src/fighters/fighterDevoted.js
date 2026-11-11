@@ -37,7 +37,7 @@ export class FighterDevoted {
     if (this.sludge >= 3) {                                   // DROWNED: holding jump on the way down hangs her in the air
       if (this.grounded) this.hoverLeft = D.hover.hold;
       else if ((this.state === 'air' || this.state === 'attack') && this.ctrl.held('jump') && this.vy > -0.5 && this.hoverLeft > 0) {
-        this.hoverLeft--; this.vy = Math.min(this.vy, -0.2);
+        this.hoverLeft--; this.vy = Math.min(this.vy, D.hover.sink);   // (hangs there, sinking slowly - it never climbs)
         if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
       }
     }
