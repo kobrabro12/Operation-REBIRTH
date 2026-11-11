@@ -714,4 +714,25 @@ export function resolveSkins(picks, wanted) {
   return out;
 }
 // THE DEVOTED (WIP test fighter): his look changes with his sludge stage instead (devoted.js sludgeSheets)
-SKINS['devoted'] = [{ name: 'DEFAULT', swatch: 0xd2d2ca }];
+// Costumes are recolours (DVG groups), applied to every sludge stage's sheets (fighterDevoted.js setSludge).
+const DVG = {
+  shirt: { h: [34, 52], s: [0.42, 1], v: [0.18, 1], center: 44 },      // the mustard shirt and its brown stripes
+  hair: { h: [36, 54], s: [0.12, 0.41], v: [0.4, 1], center: 46 },     // his ashy-blond hair
+  skin: { h: [16, 32], s: [0.1, 0.32], v: [0.6, 1], center: 25 },
+  pants: { h: [225, 265], s: [0.1, 0.24], v: [0.2, 0.4], center: 240 },
+  wing: { h: [275, 315], s: [0.3, 1], v: [0.08, 0.4], center: 290 },   // the purple sheen in his sludge and DROWNED's wing
+};
+SKINS['devoted'] = [
+  { name: 'DEFAULT', swatch: 0xd2d2ca },
+  // ZEALOT: a blood-red shirt, black hair
+  { name: 'ZEALOT', swatch: 0xa01828, fx: 0xd8304a, groups: DVG, rules: { wing: { to: 352, sat: 1.2, val: 1.3 }, shirt: { to: 354, sat: 1.15, val: 0.85 }, hair: { to: 250, sat: 0.3, val: 0.32 } },
+    vfx: { hit: { shape: 'spark', colors: [0xd8304a, 0x1a1418, 0xf0dccc], n: 8 } } },
+  // PALE PILGRIM: bleached white shirt and hair, grey trousers - he's been out in the sun a long time
+  { name: 'PALE PILGRIM', swatch: 0xf0ece0, fx: 0xe8e4d8, groups: DVG, rules: { wing: { sat: 0.1, val: 2.6 }, shirt: { sat: 0.12, val: 1.18 }, hair: { sat: 0.08, val: 1.15 }, skin: { sat: 0.5, val: 1.04 }, pants: { sat: 0.2, val: 1.5 } } },
+  // MIDNIGHT MASS: a violet shirt, red hair
+  { name: 'MIDNIGHT MASS', swatch: 0x6a2aa8, fx: 0x9a4aff, groups: DVG, rules: { wing: { sat: 1.2, val: 1.5 }, shirt: { to: 274, sat: 1.1, val: 0.8 }, hair: { to: 12, sat: 2.2, val: 0.85 }, pants: { to: 262, sat: 1.6 } } },
+  // ROTWOOD: a moss-green shirt, dark brown hair, sickly skin
+  { name: 'ROTWOOD', swatch: 0x5a7a2a, fx: 0x8ab04a, groups: DVG, rules: { wing: { to: 96, sat: 0.9, val: 1.2 }, shirt: { to: 92, sat: 0.9, val: 0.85 }, hair: { to: 28, sat: 1.6, val: 0.5 }, skin: { to: 62, sat: 0.7, val: 0.92 } } },
+  // CHOIRBOY: a sky-blue shirt, platinum hair, navy trousers
+  { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
+];

@@ -3,6 +3,7 @@
 // BLACK TIDE. Mixed into Fighter like the other fighter*.js files.
 import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
+import { skinTexture } from './skins.js';
 
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
 
@@ -65,7 +66,7 @@ export class FighterDevoted {
   setSludge(n) {
     const D = this.def.devoted;
     this.sludge = n;
-    this.sheets = this.def.sludgeSheets[n];
+    this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in his costume's colours)
     this.devoteDmg = D.dmg[n]; this.devoteSpeed = D.speed[n]; this.devoteKb = D.kb[n];
   }
 

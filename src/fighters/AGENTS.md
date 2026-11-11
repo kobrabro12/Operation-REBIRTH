@@ -71,6 +71,9 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   sludge globs, `count` per stage, fanned, stain where they land), REAPING HOOK (side-B: rush + a 165-degree hit that
   drags them through behind him, extra `stun`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
+  Costumes (skins.js, recolours with groups `DVG`: shirt / hair / skin / pants / wing = the purple in his sludge and
+  DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. `setSludge` passes every stage's sheets through
+  `skinTexture`, so the costume carries through all four stages.
   Rosemary's RED ARMY costume (shop, PAPERSPLEASE; `ss`-style drawing `draw_soviet()` in last_seen_draw.py, sheets `last-seen/soviet/`) has
   its own other form: skin `form: 'tank'` -> `LAST_SEEN.forms.tank` (TANK in lastSeen.js) instead of SEEN - a T-34-style tank with her in
   the hatch (`tools/sprites/rosemary_tank.py` -> `last-seen/tank/` + `lsTankMoves.js`): MG jab, CANNON neutral-B (`TankShell` in entities.js,
