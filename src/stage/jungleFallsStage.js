@@ -3,11 +3,15 @@
 // carry you), a hut roof up top, palms and cliffs behind. Below the deck a BARREL drifts back and forth - fall into
 // it and it holds you for a moment, then fires you straight back up (a second chance, or a trap if you were
 // recovering anyway).
-import { Poly3D, boxFaces, prismFaces } from './poly3d.js';
+import { Poly3D, boxFaces, prismFaces, blobFaces } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 
 const C = { plank: 0xa8743a, plankDark: 0x7a4e24, log: 0x8a5a2a, leaf: 0x3a9a3a, leafDark: 0x2a7030, trunk: 0x6a4a2a,
   rock: 0x8a7a6a, water: 0x5ab0e8, foam: 0xe8f4ff, roof: 0x9a6a2a, sky: [0x5aa0d8, 0x7ab4e0, 0x9ac8e8, 0xb8dcee, 0xd0e8f2], fog: 0xbcd8e4 };
+// the birds that fly across the back: how many, how fast (px per frame)
+const BIRDS = { n: 4, speed: 2.2 };
+// the fish that leap out of the river now and then: frames between leaps, how long a leap lasts
+const FISH = { gap: 150, time: 70 };
 // the log rafts: how far they circle (px) and how long a lap takes (frames)
 const RAFT = { r: 26, period: 360 };
 // THE BARREL: where it drifts (its y, and how far to each side), how long it holds you, how hard it fires you up
@@ -54,6 +58,30 @@ export class JungleFallsStage {
     R.box(T.x1 + 20, T.y + 6, 50, T.x2 - 20, 0, 110, C.plankDark);                                  // the hut walls
     R.box(T.x1, T.y, 30, T.x2, T.y + 8, 130, C.roof, 0xb8843a);                                     // its roof (the top platform)
     R.box(-14, -60, 48, 14, 0, 50, 0x2a1a0a);                                                       // its doorway
+    R.box(T.x1 + 26, -50, 48, T.x1 + 44, -30, 50, 0x2a1a0a); R.box(T.x2 - 44, -50, 48, T.x2 - 26, -30, 50, 0x2a1a0a);   // its windows
+    R.pyramid(0, T.y + 2, 80, 170, 120, 46, 0x8a5a24);                                               // a thatched peak on the roof, set back
+    // two giant jungle trees framing the stage, with lumpy canopies, and vines hanging off them
+    for (const sx of [-1, 1]) {
+      const x = sx * 560, z = 320;
+      R.prism(x, -420, 600, z, 60, 7, C.trunk, 0x7a5a34);
+      for (const [dx, dy, r] of [[0, -440, 170], [-sx * 120, -380, 120], [sx * 110, -470, 120], [0, -330, 110]]) R.blob(x + dx, dy, z + 20, r, r * 0.55, r * 0.8, [C.leaf, C.leafDark, 0x4aaa44], x + dx, null, 0.3);
+      R.prism(x - sx * 70, -260, -240, z, 70, 6, C.trunk);                                           // a branch reaching in
+    }
+    // a rope bridge strung between the cliffs far behind
+    for (let i = 0; i < 26; i++) { const x = -650 + i * 50, sag = 60 * Math.sin(i / 25 * Math.PI); R.box(x, -170 + sag, 1180, x + 40, -164 + sag, 1240, 0x8a6a3a, 0x9a7a4a); }
+    for (const zr of [1180, 1240]) for (let i = 0; i < 25; i++) { const x = -650 + i * 50, s1 = 60 * Math.sin(i / 25 * Math.PI), s2 = 60 * Math.sin((i + 1) / 25 * Math.PI); R.quad([[x, -200 + s1, zr], [x + 50, -200 + s2, zr], [x + 50, -197 + s2, zr], [x, -197 + s1, zr]], 0x6a4a24); }
+    // boulders and ferns at the waterfall's foot, a rainbow in the spray
+    for (let i = 0; i < 5; i++) R.blob(-300 + i * 150, 590, 840, 50 + (i % 2) * 20, 30, 40, [C.rock, 0x7a6a5a], 60 + i, 0x5a9a3a);
+    const bands = [0xff6a6a, 0xffb05a, 0xfff07a, 0x7ae87a, 0x6ab0ff, 0xb07aff];
+    bands.forEach((c, b) => { for (let i = 0; i < 16; i++) {
+      const a1 = Math.PI * i / 16, a2 = Math.PI * (i + 1) / 16, r1 = 520 - b * 14, r2 = r1 - 14;
+      const pt = (a, r) => [Math.cos(a) * r - 150, 500 - Math.sin(a) * r, 1400];
+      R.faces.push({ p: [pt(a1, r1), pt(a2, r1), pt(a2, r2), pt(a1, r2)], n: null, c, a: 0.32, bias: -300 });
+    } });
+    // tiki torches at the back corners of the deck
+    for (const x of [P.x1 + 14, P.x2 - 14]) { R.prism(x, -44, 0, 100, 4, 5, C.log); R.box(x - 7, -52, 94, x + 7, -42, 106, 0x5a3a1a); }
+    this.birds = Array.from({ length: BIRDS.n }, (_, i) => ({ x: -900 + i * 520, y: -260 + i * 40, z: 700 + i * 120, ph: i * 1.3, dir: i % 2 ? -1 : 1, col: [0xe83a3a, 0x3a8ae8, 0xf0c030, 0x3ac85a][i] }));
+    this.fish = null;
   }
 
   /** Moves the rafts (carrying whoever stands on them) and the barrel, runs the barrel, draws the frame. */
@@ -75,6 +103,7 @@ export class JungleFallsStage {
       dyn.push({ p: [[x, -400, 900], [x + 90, -400, 900], [x + 90, 700, 900], [x, 700, 900]], n: null, c: i % 2 ? C.water : 0x6ac0f0 });
       dyn.push({ p: [[x + 30, wy, 898], [x + 44, wy, 898], [x + 44, wy + 60, 898], [x + 30, wy + 60, 898]], n: null, c: C.foam, bias: -1 });
     }
+    this.lifeFaces(dyn);
     if (this.hazardsOn) {
       const spin = this.held ? 0.4 : 0;
       dyn.push(...prismFaces(bx, by - BARREL.r - spin * 4, by + BARREL.r, 40, BARREL.r, 6, C.log, 0x6a3a1a));
@@ -82,6 +111,32 @@ export class JungleFallsStage {
     }
     this.R.render(dyn);
     return [];
+  }
+
+  /** This frame's jungle life: torch flames, swaying vines, birds flapping across the back, a leaping fish, mist. */
+  lifeFaces(dyn) {
+    const t = this.t, P = this.platforms[0];
+    for (const x of [P.x1 + 14, P.x2 - 14]) { const fl = Math.sin(t * 0.4 + x) * 2; dyn.push(...blobFaces(x, -62 - fl, 100, 7, 12 + fl, 7, [0xffb03a, 0xff7a2a, 0xffe07a], t % 6, null, 0.3)); }
+    for (const sx of [-1, 1]) for (let v = 0; v < 3; v++) {                                     // vines hanging from the big trees' branches
+      const x0 = sx * (450 - v * 40), sw = Math.sin(t * 0.02 + v + sx) * 14;
+      for (let k = 0; k < 6; k++) { const y = -250 + k * 40, a = sw * k / 6, b = sw * (k + 1) / 6; dyn.push({ p: [[x0 + a - 3, y, 300], [x0 + a + 3, y, 300], [x0 + b + 3, y + 40, 300], [x0 + b - 3, y + 40, 300]], n: null, c: k % 2 ? C.leaf : C.leafDark }); }
+      dyn.push(...blobFaces(x0 + sw, -10, 300, 8, 6, 8, [C.leaf, 0x5aba4a], v, null, 0.3));
+    }
+    for (const b of this.birds) {                                                              // parrots: a body and two flapping wings
+      b.x += b.dir * BIRDS.speed; if (Math.abs(b.x) > 1300) b.x = -b.dir * 1300;
+      const y = b.y + Math.sin(t * 0.05 + b.ph) * 20, fl = Math.sin(t * 0.35 + b.ph) * 16;
+      dyn.push(...blobFaces(b.x, y, b.z, 14, 7, 7, [b.col], 1, null, 0));
+      dyn.push({ p: [[b.x - 8, y, b.z], [b.x + 8, y, b.z], [b.x, y - fl, b.z - 18]], n: null, c: b.col }, { p: [[b.x - 8, y, b.z], [b.x + 8, y, b.z], [b.x, y - fl, b.z + 18]], n: null, c: b.col });
+      dyn.push({ p: [[b.x - b.dir * 12, y, b.z], [b.x - b.dir * 26, y + 3, b.z - 4], [b.x - b.dir * 26, y + 6, b.z + 4]], n: null, c: 0xf0e040 });   // the tail
+    }
+    if (!this.fish && t % FISH.gap === 0) this.fish = { x: -250 + Math.random() * 500, t: 0, dir: Math.random() < 0.5 ? -1 : 1 };
+    if (this.fish) {                                                                           // a fish leaping out of the river in front of the falls
+      const F = this.fish, u = F.t / FISH.time, x = F.x + F.dir * 120 * u, y = 600 - Math.sin(u * Math.PI) * 160, z = 760;
+      dyn.push(...blobFaces(x, y, z, 16, 7, 6, [0xf0a03a, 0xe87a2a], 2, null, 0));
+      dyn.push({ p: [[x - F.dir * 14, y, z], [x - F.dir * 26, y - 8, z], [x - F.dir * 26, y + 8, z]], n: null, c: 0xe87a2a });
+      if (++F.t > FISH.time) this.fish = null;
+    }
+    for (let i = 0; i < 6; i++) { const u = (t * 0.01 + i / 6) % 1; dyn.push(...blobFaces(-300 + i * 120, 590 - u * 90, 880, 50 + u * 60, 24 + u * 20, 30, [0xf4f8ff, 0xe4f0fa], i, null, 0.3).map((f) => Object.assign(f, { a: 0.55 * (1 - u) }))); }   // mist off the falls
   }
 
   /**

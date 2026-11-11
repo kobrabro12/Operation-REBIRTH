@@ -481,7 +481,7 @@ export class Fighter {
       }
       const noGravity = (s === 'upb' && this.t <= d.moves.upb.riseAt) || (s === 'airdodge' && this.adDirected) || s === 'limit' || s === 'holding' || s === 'sludgeclimb' || (this.seized && s.endsWith('_hold'));   // (WHAT ONCE WAS hangs in the air while it holds someone)
       if (!noGravity) {
-        const fl = s !== 'hitstun' && (d.float || this.demonFloat);   // FULL AERO (and DROWNED DEVOTED) float: slow, gentle falls
+        const fl = s !== 'hitstun' && (d.float || (this.demonFloat && this.vy >= 0 && this.demonFloat));   // FULL AERO (and DROWNED DEVOTED, only on the way down - her jumps stay normal height) float: slow, gentle falls
         const g = s === 'hitstun' ? PHYS.gravity * PHYS.hitstunGravity : PHYS.gravity * (fl ? fl.gravity : 1);
         const cap = this.fastFalling ? PHYS.fastFall : fl ? fl.maxFall : PHYS.maxFall;
         this.vy = this.fastFalling && s !== 'hitstun' && this.vy >= -1 ? cap : Math.min(cap, this.vy + g);

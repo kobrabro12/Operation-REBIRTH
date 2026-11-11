@@ -1,4 +1,4 @@
-// A tiny low-poly 3D renderer for the N64-style stages (Castle Court, Jungle Falls, Breeze Hill): flat-shaded
+// A tiny low-poly 3D renderer for the N64-style stages (Castle Court, Jungle Falls, Starlight Fountain): flat-shaded
 // boxes, prisms and quads, drawn in perspective into one world-space Graphics every frame. The gameplay plane is
 // Z = 0 (a point there is drawn exactly where it is in the game), +Z goes away from the camera, so the front of
 // every platform lines up with where you stand and the rest of the world sits behind in real perspective - it

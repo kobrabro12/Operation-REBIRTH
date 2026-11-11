@@ -18,7 +18,7 @@ import { DesertStage, drawDesertPreview } from './desertStage.js';
 import { MatrixStage, drawMatrixPreview } from './matrixStage.js';
 import { CastleCourtStage, drawCastleCourtPreview } from './castleCourtStage.js';
 import { JungleFallsStage, drawJungleFallsPreview } from './jungleFallsStage.js';
-import { BreezeHillStage, drawBreezeHillPreview } from './breezeHillStage.js';
+import { StarlightFountainStage, drawStarlightFountainPreview } from './starlightFountainStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -126,10 +126,10 @@ export const STAGES = [
     preview: drawJungleFallsPreview,
   },
   {
-    id: 'breeze-hill', music: 'bgm_aero', name: 'BREEZE HILL', available: true, make: (scene) => new BreezeHillStage(scene),
-    blurb: ['A grassy plateau in pastel hills, watched', 'by a giant stone head. Low-poly 3D.'],
-    hazard: 'GUST: THE HEAD PUFFS ITS CHEEKS, THEN\nBLOWS EVERYONE TO ONE SIDE.',
-    preview: drawBreezeHillPreview,
+    id: 'starlight-fountain', music: 'bgm_aero', name: 'STARLIGHT FOUNTAIN', available: true, make: (scene) => new StarlightFountainStage(scene),
+    blurb: ['A marble stage under a starry twilight sky,', 'before a great glittering fountain. Low-poly 3D.'],
+    hazard: 'SIDE PLATFORMS RISE AND SINK.\nDREAM GEYSER: BUBBLES, THEN BURSTS UP.',
+    preview: drawStarlightFountainPreview,
   },
   {
     id: 'the-construct', music: 'bgm_construct', name: 'THE CONSTRUCT', available: true, make: scene => new MatrixStage(scene),

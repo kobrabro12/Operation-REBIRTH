@@ -332,6 +332,32 @@ def idle_keys():
                            bupper=(6, 0, 0), bfore=(-6, 0, 0), **A.legs(10, -10, -12, 14)), 'linear'))
     return keys
 
+def drowned_idle_keys():
+    """DROWNED's idle: she floats - legs dangling, toes pointed down, arms hanging limp and swaying, head hung, bobbing
+    slowly in the air; now and then her head jerks up to look, then sinks again. 192 ticks."""
+    keys = []
+    for i in range(0, 193, 6):
+        ph = i * math.pi / 48
+        bob = math.sin(ph)                                         # two slow bobs a loop
+        look = 1.0 if 120 <= i <= 150 else 0.0
+        keys.append(k(i, P(root=(0, 0, round(-2 * bob), 1.0, 1.0), torso=(12 + 3 * bob, 0, 1), head=(22 - 30 * look + 4 * bob, 0, 1),
+                           fupper=(14 + 8 * math.sin(ph + 0.6), 0, 0), ffore=(-12 + 6 * math.sin(ph + 1.2), 0, 0),
+                           bupper=(8 + 8 * math.sin(ph + 2.0), 0, 0), bfore=(-8 + 6 * math.sin(ph + 2.6), 0, 0),
+                           **A.legs(14 + 4 * bob, 22, -4 + 4 * bob, 30, 46, 40)), 'linear'))
+    return keys
+
+def drowned_glide_keys():
+    """DROWNED's walk: she doesn't walk, she glides - leaning in, head up and staring ahead, arms and legs trailing
+    behind her and rippling like something underwater. 48 ticks."""
+    keys = []
+    for i in range(0, 49, 6):
+        ph = i * math.pi / 24
+        w = math.sin(ph)
+        keys.append(k(i, P(root=(0, 0, round(-1.5 * math.sin(ph * 2)), 1.0, 1.0), torso=(26 + 2 * w, 1, 1), head=(-10, 0, 0),
+                           fupper=(56 + 10 * w, 0, 0), ffore=(-24 + 8 * w, 0, 0), bupper=(66 - 10 * w, 0, 0), bfore=(-18 - 8 * w, 0, 0),
+                           **A.legs(34 + 8 * w, 30 - 10 * w, 26 - 8 * w, 36 + 10 * w, 50, 46)), 'linear'))
+    return keys
+
 def make_life(stage):
     """AERO's breathing, minus the goldfish; DROWNED's wing beats slowly and heavily."""
     def life(pose, t):
@@ -378,7 +404,7 @@ if __name__ == '__main__':
         root = os.path.join(OUT, VARIANT) if VARIANT else OUT
         out = root if i == 0 else os.path.join(root, name)
         os.makedirs(out, exist_ok=True)
-        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=idle_keys)
+        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=drowned_idle_keys if i == 3 else idle_keys, run=drowned_glide_keys if i == 3 else A.N.run_keys)
         if i:
             p = os.path.join(out, 'icon.png')
             if os.path.exists(p): os.remove(p)

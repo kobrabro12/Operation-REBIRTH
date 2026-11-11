@@ -127,7 +127,8 @@ export const DEVOTED = {
     kb: [1.0, 0.96, 0.9, 0.84],
     // DROWNED's wing: jumps in the air
     wingJumps: 2,
-    // DROWNED hovers like a demon: slow, gentle falls (float, like FULL AERO), floating a little off the ground, and
+    // DROWNED hovers like a demon: slow, gentle falls (float, like FULL AERO - only on the way down, so her jumps are
+    // normal height), floating a little off the ground, and
     // holding jump on the way down hangs her in the air (frames per trip into the air)
     hover: { float: { gravity: 0.45, maxFall: 3.0, hover: 6 }, hold: 110 },
     // CROSS CUTS (side special): how many cuts she can chain at each stage (the last one launches)
