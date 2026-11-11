@@ -77,12 +77,17 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   to the symbol to pray when full (cpu.js).
   Specials: DEMONS (neutral-B, like Shulk's Monado Arts: `neutralB.demons`; with no demon out, tryCommon -> `startDemonPick`
   -> state `demonpick` (`st_demonpick`, `drawDemonWheel`, name text `this.pickText`): he stops, tapping the stick turns the wheel of
-  `def.demons.list`, special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. The demon floats
-  at his shoulder for `demons.life` (20 s, a ring shows it running out), sets his powers while out (`demonSpeed` / `demonKb` /
+  `def.demons.list`, special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. Each demon
+  moves its own way (`move_<kind>` in DemonPet) for `demons.life` (20 s, a ring shows it running out) and sets his powers while out (`demonSpeed` / `demonKb` /
   `demonDmg` in Fighter's getters; the glutton's heal and the weeper's double devotion go through addDevotion -> `ownerHit`), and
   his neutral-B then makes it attack (`neutralB.cmdAt` -> `demonCommand` -> `DemonPet.attack`, cooldown `cd`); its hits are done in
-  `DemonPet.step` with `strike()` (not hitbox()). Kinds: glutton (lunging bite), wraith (rips through in a line), brute (floor
-  slam both ways), weeper (3 tears onto the nearest foe, can spike), hollow (hooked chain that drags them back). Faces:
+  `DemonPet.step` with `strike()` (not hitbox()). Kinds: glutton WALKS the floor after him (gravity, hops back if left behind)
+  and its attack charges and SWALLOWS (victim state `seized`, `seizedBy` = the pet, `holdsSeized` - fighterWhatOnceWas'
+  st_seized asks it; sprite hidden, chewed, spat out); wraith STAYS where it was called and its attack is SHADOW STEP
+  (`shadowStep`: he and it swap places, cutting the line between - a recovery); brute lurks UNDER THE FLOOR beneath him and its
+  attack tunnels to the nearest foe and punches up out of the floor; weeper FLOATS HIGH over the nearest foe, drips a tear on
+  its own every `dripEvery`, attack = DOWNPOUR (a torrent under it); hollow is CHAINED to him, orbiting and hitting what it
+  swings into (`bump`), attack = hooked chain that drags them back. Faces:
   `drawDemonFace`. It leaves when its time's up or he's KO'd (Fighter.ko). The old THE MAW (`throwMaw`/`SludgeMaw`) and
   OFFERING (`throwGlobs`/`SludgeGlob`) are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
   `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a

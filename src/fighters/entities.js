@@ -1468,158 +1468,271 @@ export function drawDemonFace(g, kind, x, y, s, age) {
 }
 
 /**
- * One of THE DEVOTED's DEMONS (his neutral special): it floats at his shoulder for `spec.life`... frames, giving him its
- * power (set on the owner while it's out: demonSpeed / demonKb / demonDmg; the glutton's heal and the weeper's
- * devotion go through owner.addDevotion -> ownerHit), and attacks when he uses neutral special (`attack()`).
- * Its hits are done here (not through hitbox()), so each attack can do its own thing - bite, rip, slam, tears, hook.
+ * One of THE DEVOTED's DEMONS (his neutral special). Each moves its own way and fights its own way:
+ * THE GLUTTON walks the floor after him and swallows people; THE WRAITH stands where it was called and swaps places
+ * with him; THE BRUTE lurks under the floor and punches up out of it under them; THE WEEPER floats high over the
+ * nearest opponent and rains on them; THE HOLLOW swings round him on a chain. It gives him its power while it's out
+ * (owner.demonSpeed / demonKb / demonDmg; the glutton's heal and the weeper's devotion via owner.addDevotion -> ownerHit)
+ * and attacks when he uses neutral special (`attack()`). Its hits are done here with `strike()` (hitbox() is null).
  * spec: one entry of def.demons.list.
  */
 export class DemonPet {
   constructor(match, owner, spec, life) {
     this.match = match; this.owner = owner; this.spec = spec; this.kind = spec.kind; this.life = life; this.max = life;
-    this.x = owner.x - owner.facing * 30; this.y = owner.y - 64; this.t = 0; this.cd = 0; this.atk = null; this.alive = true; this.id = nextId++;
+    this.t = 0; this.cd = 0; this.atk = null; this.alive = true; this.id = nextId++; this.hitSet = new Set(); this.atkId = nextId++;
+    this.dir = owner.facing; this.vy = 0; this.plat = owner.platform || null; this.ang = 0;
+    this.x = owner.x - owner.facing * 30; this.y = owner.y;
+    if (this.kind === 'wraith') { this.x = owner.x + owner.facing * 24; this.y = owner.y; this.plat = owner.platform; }   // (it stands where he called it)
+    if (this.kind === 'weeper') this.y = owner.y - spec.height;
+    if (this.kind === 'hollow') this.y = owner.y - 40;
     this.g = match.add.graphics().setDepth(4); match.addWorld(this.g);
     owner.demonSpeed = spec.speed || 1; owner.demonKb = spec.kb || 1; owner.demonDmg = spec.dmg || 1;
-    const R = Math.random;
-    for (let i = 0; i < 16; i++) match.particles.push({ x: this.x, y: this.y, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 4, life: 24, color: [0x060508, spec.color, 0x2e2a38][i % 3], size: 3, grav: 0 });
+    this.puff(16);
   }
   hitbox() { return null; }
+  /** A burst of sludge where it is (arriving, leaving, jumping back to him). */
+  puff(n) { const R = Math.random; for (let i = 0; i < n; i++) this.match.particles.push({ x: this.x, y: this.y - 14, vx: (R() - 0.5) * 4, vy: (R() - 0.5) * 4, life: 24, color: [0x060508, this.spec.color, 0x2e2a38][i % 3], size: 3, grav: 0 }); }
   /** Its power when he lands a hit: THE GLUTTON heals him. */
-  ownerHit() {
-    if (this.kind === 'glutton') this.owner.percent = Math.max(0, this.owner.percent - this.spec.heal);
+  ownerHit() { if (this.kind === 'glutton') this.owner.percent = Math.max(0, this.owner.percent - this.spec.heal); }
+  /** Whether it's still holding someone it seized (THE GLUTTON's swallow) - the victim's st_seized asks. */
+  holdsSeized(v) { return this.alive && this.swallowed === v; }
+  /** The nearest opponent who can be hit, or null. */
+  nearestFoe(range = 9999) {
+    let best = null, bd = range;
+    for (const f of this.match.fighters) { if (f === this.owner || !f.alive || f.team === this.owner.team || f.state === 'respawn') continue; const d = Math.hypot(f.x - this.owner.x, f.y - this.owner.y); if (d < bd) { bd = d; best = f; } }
+    return best;
   }
+  /** The floor right under a point (the highest platform at or below it), or null. */
+  floorUnder(x, y) { let P = null; for (const p of this.match.stage.platforms) if (x >= p.x1 && x <= p.x2 && p.y >= y - 4 && (!P || p.y < P.y)) P = p; return P; }
   /** Neutral special with it out: starts its attack, if it's ready. */
   attack() {
-    if (this.cd > 0 || this.atk) { if (this.cd > 0) sfx('menu', 0.2, 0.6); return; }
-    const o = this.owner, m = this.match;
-    this.cd = this.spec.cd; this.hitSet = new Set(); this.atkId = nextId++;
-    this.atk = { t: 0, dir: o.facing, x0: this.x, y0: this.y };
-    if (this.kind === 'weeper') {                             // marks where its tears will fall: over the nearest opponent
-      let best = null, bd = 400;
-      for (const f of m.fighters) { if (f === o || !f.alive || f.team === o.team) continue; const d = Math.abs(f.x - o.x); if (d < bd) { bd = d; best = f; } }
-      this.atk.tx = best ? best.x : o.x + o.facing * 120; this.atk.ty = (best ? best.y : o.y) - 150; this.atk.drops = [];
-    }
-    sfx(this.kind === 'brute' ? 'rumble' : this.kind === 'hollow' ? 'clang' : 'whoosh', 0.5, this.kind === 'wraith' ? 1.4 : 0.8);
+    if (this.cd > 0 || this.atk) { sfx('menu', 0.2, 0.6); return; }
+    const o = this.owner;
+    this.cd = this.spec.cd; this.atkId = nextId++;
+    this.atk = { t: 0, dir: o.facing };
+    if (this.kind === 'wraith') this.shadowStep();
+    if (this.kind === 'brute') { const f = this.nearestFoe(500); this.atk.target = f; this.atk.tx = f ? f.x : o.x + o.facing * 70; this.atk.tplat = f ? (f.platform || this.floorUnder(f.x, f.y)) : this.plat; }
+    sfx({ glutton: 'roar', wraith: 'whoosh', brute: 'rumble', weeper: 'curse', hollow: 'clang' }[this.kind], 0.5, this.kind === 'glutton' ? 1.3 : 0.8);
   }
   /**
-   * Hits whoever overlaps a box with this attack (once each per hit `key`): shields block it.
-   * @param {object} box - {x1, x2, y1, y2}; h - the hit; key - a new key = a new hit on the same target
+   * Hits whoever overlaps a box with this attack (once each per `key`); shields block it.
    * @returns {object[]} who it hit
    */
   strike(box, h, key = '') {
     const m = this.match, o = this.owner, out = [];
     for (const f of m.fighters) {
-      if (f === o || !f.alive || f.team === o.team || f.isIntangible()) continue;
+      if (f === o || !f.alive || f.team === o.team || f.isIntangible() || f.state === 'seized') continue;
       const hb = f.hurtbox(); if (!(box.x1 < hb.x2 && box.x2 > hb.x1 && box.y1 < hb.y2 && box.y2 > hb.y1)) continue;
       const k = this.atkId + key + ':' + f.slot; if (this.hitSet.has(k)) continue; this.hitSet.add(k);
-      const hit = { ...box, h, owner: o, id: 'demon' + k, facing: Math.sign(f.x - (box.x1 + box.x2) / 2) || this.atk.dir, projectile: this, persist: true };
+      if (this.hitSet.size > 400) this.hitSet.clear();
+      const hit = { ...box, h, owner: o, id: 'demon' + k, facing: Math.sign(f.x - (box.x1 + box.x2) / 2) || this.dir, projectile: this, persist: true };
       if (f.state === 'shield') m.shieldHit(f, hit); else { m.applyHit(f, hit, (box.x1 + box.x2) / 2); out.push(f); }
     }
     return out;
   }
-  /** Follows him, counts down its 20 s, and plays out its attack. */
+  /** THE WRAITH's SHADOW STEP: he and it swap places, and everyone on the line between them is cut. */
+  shadowStep() {
+    const o = this.owner, m = this.match, ax = o.x, ay = o.y, bx = this.x, by = this.y;
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 14));
+    for (let i = 0; i <= n; i++) { const x = ax + (bx - ax) * i / n, y = ay + (by - ay) * i / n; this.strike({ x1: x - 14, x2: x + 14, y1: y - 50, y2: y }, this.spec.cut, 's'); }
+    o.x = bx; o.y = by; o.vx = o.vy = o.lx = o.ly = 0; o.grounded = false; o.platform = null; o.fastFalling = false;
+    if (o.state !== 'attack') o.setState('air');
+    this.x = ax; this.y = ay; this.plat = this.floorUnder(ax, ay - 2);
+    this.atk.line = [ax, ay - 30, bx, by - 30];
+    sfx('slash', 0.7, 0.8); m.shake(3, 5);
+  }
+  /** Moves it its own way, counts down its 20 s, and plays out its attack. */
   step() {
-    const o = this.owner, m = this.match, A = this.atk, R = Math.random;
+    const o = this.owner, m = this.match, S = this.spec, R = Math.random;
     this.t++; if (this.cd > 0) this.cd--;
     if (!o.alive || --this.life <= 0) return this.kill();
-    if (!A) {                                                  // floating at his shoulder
-      const tx = o.x - o.facing * 30, ty = o.y - 66 + Math.sin(this.t * 0.08) * 4;
-      this.x += (tx - this.x) * 0.15; this.y += (ty - this.y) * 0.15;
+    if (this.atk) this.atk.t++;
+    this['move_' + this.kind](o, m, S, R);
+  }
+  /** THE GLUTTON: waddles after him along the floor (gravity, falls off edges, hops back to him if left behind); its attack charges and swallows. */
+  move_glutton(o, m, S, R) {
+    const A = this.atk;
+    if (this.swallowed) {                                    // chewing: they're stuck inside, then spat out
+      const v = this.swallowed; this.hold++;
+      if (!v.alive) { this.swallowed = null; }
+      else {
+        v.x = this.x; v.y = this.y; v.vx = v.vy = 0;
+        if (this.hold % 10 === 0) { v.percent += S.chew; sfx('hit', 0.25, 0.5 + R() * 0.2); }
+        if (this.hold >= S.holdFor) {
+          this.swallowed = null; v.seizedBy = null; v.sprite.setVisible(true); v.setState('air');
+          v.x = this.x + this.dir * 20; v.y = this.y - 4;
+          this.atkId = nextId++; this.strike({ x1: v.x - 30, x2: v.x + 30, y1: v.y - 60, y2: v.y + 10 }, S.spit, 'spit');
+          sfx('bighit', 0.6, 0.7); for (let i = 0; i < 12; i++) m.particles.push({ x: v.x, y: v.y - 20, vx: this.dir * (2 + R() * 4), vy: -1 - R() * 3, life: 22, color: [0x060508, 0x9a3a5a][i % 2], size: 2, grav: 0.2 });
+        }
+      }
+      if (this.swallowed) return;
+    }
+    let vx = 0;
+    if (A && A.t <= S.chargeFor) {                           // the charge, mouth open
+      this.dir = A.dir; vx = this.dir * S.charge;
+      if (A.t % 3 === 0) m.particles.push({ x: this.x - this.dir * 10, y: this.y - 2, vx: -this.dir, vy: -0.5, life: 12, color: 0x2e2a38, size: 2, grav: 0.05 });
+      const got = this.strike({ x1: this.x - 16 + this.dir * 10, x2: this.x + 16 + this.dir * 10, y1: this.y - 36, y2: this.y }, { dmg: 3, angle: 0, base: 0, growth: 0 }, 'bite');
+      const v = got[0];
+      if (v && v.alive) {                                    // swallowed whole
+        this.swallowed = v; this.hold = 0; v.setState('seized'); v.seizedBy = this; v.sprite.setVisible(false); v.stopChargeSound();
+        sfx('bighit', 0.7, 0.5); sfx('laugh', 0.4, 0.6); m.shake(4, 6); this.atk = null; return;
+      }
+    } else {
+      if (A) this.atk = null;
+      const tx = o.x - o.facing * 34, dx = tx - this.x;
+      if (Math.abs(dx) > 10) { vx = Math.sign(dx) * S.walk * (Math.abs(dx) > 120 ? 1.6 : 1); this.dir = Math.sign(dx); }
+    }
+    this.x += vx;
+    if (this.plat && (this.x < this.plat.x1 || this.x > this.plat.x2)) this.plat = null;   // walked off the edge
+    if (!this.plat) {
+      this.vy = Math.min(7, this.vy + 0.4); const py = this.y; this.y += this.vy;
+      const P = m.stage.platforms.find((p) => this.x >= p.x1 && this.x <= p.x2 && py <= p.y && this.y >= p.y);
+      if (P) { this.plat = P; this.y = P.y; this.vy = 0; }
+    } else this.y = this.plat.y;
+    if (this.y > 330 || Math.hypot(o.x - this.x, o.y - this.y) > 300) {   // left behind: it oozes back up next to him
+      this.puff(8); this.x = o.x - o.facing * 30; this.y = o.y; this.vy = 0; this.plat = o.platform || null; this.puff(10);
+    }
+    this.moving = Math.abs(vx) > 0.5;
+  }
+  /** THE WRAITH: stands where it was left (rides a moving platform; it waits in the air if there's none). */
+  move_wraith() {
+    if (this.plat) { if (this.wx === undefined) this.wx = this.x - this.plat.x1; this.x = this.plat.x1 + this.wx; this.y = this.plat.y; }
+    if (this.atk && this.atk.t === 1) this.wx = undefined;
+    if (this.atk && this.atk.t > 14) this.atk = null;
+  }
+  /** THE BRUTE: lurks under the floor beneath him; its attack tunnels to the nearest opponent and punches up under them. */
+  move_brute(o, m, S, R) {
+    const A = this.atk;
+    if (!A) {
+      const P = o.platform || this.plat || this.floorUnder(o.x, o.y);
+      if (P) { this.plat = P; const tx = Math.max(P.x1 + 6, Math.min(P.x2 - 6, o.x - o.facing * 20)); this.x += (tx - this.x) * 0.12; this.y = P.y; }
       return;
     }
-    A.t++;
-    const d = A.dir;
-    if (this.kind === 'glutton') {                             // lunges and bites
-      if (A.t <= 10) { this.x += d * 9; this.y += ((o.y - 34) - this.y) * 0.3; }
-      if (A.t >= 4 && A.t <= 12) this.strike({ x1: this.x - 18, x2: this.x + 18, y1: this.y - 16, y2: this.y + 16 }, this.spec.bite);
-      if (A.t === 8) sfx('hit', 0.5, 0.6);
-      if (A.t > 26) this.atk = null;
-    } else if (this.kind === 'wraith') {                       // rips forward through everyone in a line
-      if (A.t <= 16) { this.x += d * 14; this.y += ((o.y - 30) - this.y) * 0.4; if (A.t % 2 === 0) m.particles.push({ x: this.x - d * 10, y: this.y + (R() - 0.5) * 16, vx: -d, vy: 0, life: 14, color: 0x1a1418, size: 3, grav: 0 }); }
-      const n = Math.floor((A.t - 1) / 6);
-      if (A.t <= 18) this.strike({ x1: this.x - 20, x2: this.x + 20, y1: this.y - 26, y2: this.y + 26 }, n >= 2 ? this.spec.ripLast : this.spec.rip, 'r' + n);
-      if (A.t > 30) this.atk = null;
-    } else if (this.kind === 'brute') {                        // leaps in front of him and slams the floor
-      const fx = o.x + d * 40;
-      if (A.t <= 12) { this.x += (fx - this.x) * 0.3; this.y += ((o.y - 90) - this.y) * 0.3; }
-      else if (A.t <= 16) this.y += 22;
-      if (A.t === 16) {
-        this.y = o.y - 10; sfx('bighit', 0.8, 0.5); m.shake(6, 8);
-        for (let i = 0; i < 18; i++) m.particles.push({ x: this.x + (R() - 0.5) * 30, y: o.y - 2, vx: (R() - 0.5) * 7, vy: -1 - R() * 4, life: 24, color: [0x060508, 0x2e2a38, 0x6a2ad8][i % 3], size: 3, grav: 0.25 });
-        if (o.platform && o.stain) o.stain(this.x, o.platform, 18);
-      }
-      if (A.t >= 16 && A.t <= 22) { const w = 30 + (A.t - 16) * 14; this.strike({ x1: this.x - w, x2: this.x + w, y1: o.y - 30, y2: o.y + 4 }, this.spec.slam); }
-      if (A.t > 36) this.atk = null;
-    } else if (this.kind === 'weeper') {                       // three black tears fall on them
-      this.x += (A.tx - this.x) * 0.12; this.y += (A.ty - 30 - this.y) * 0.12;
-      if (A.t === 14 || A.t === 22 || A.t === 30) { A.drops.push({ x: A.tx + (A.drops.length - 1) * 16, y: this.y + 10, vy: 2, key: 'd' + A.drops.length, live: true }); sfx('swing', 0.3, 1.6); }
-      for (const dr of A.drops) {
-        if (!dr.live) continue;
-        dr.vy += 0.5; dr.y += dr.vy;
-        this.strike({ x1: dr.x - 7, x2: dr.x + 7, y1: dr.y - 10, y2: dr.y + 6 }, this.spec.tear, dr.key);
-        const P = m.stage.platforms.find((p) => dr.x >= p.x1 && dr.x <= p.x2 && dr.y >= p.y && dr.y - dr.vy <= p.y + 2);
-        if (P) { dr.live = false; sfx('hit', 0.25, 0.5); if (o.stain) o.stain(dr.x, P, 7); for (let i = 0; i < 6; i++) m.particles.push({ x: dr.x, y: P.y - 2, vx: (R() - 0.5) * 3, vy: -1 - R() * 2, life: 16, color: 0x060508, size: 2, grav: 0.2 }); }
-        if (dr.y > 330) dr.live = false;
-      }
-      if (A.t > 70) this.atk = null;
-    } else {                                                   // THE HOLLOW: throws a hooked chain, drags whoever it catches back
-      if (!A.chain) A.chain = { len: 0, back: false, held: null };
-      const C = A.chain, reach = this.spec.reach;
-      this.x += ((o.x - d * 10) - this.x) * 0.3; this.y += ((o.y - 60) - this.y) * 0.3;
-      if (!C.back) { C.len += 14; if (C.len >= reach) C.back = true; }
-      else C.len -= 12;
-      const hx = this.x + d * C.len, hy = this.y + 26 + C.len * 0.05;
-      if (!C.back && !C.held) { const got = this.strike({ x1: hx - 10, x2: hx + 10, y1: hy - 14, y2: hy + 14 }, this.spec.hook); if (got[0]) { C.held = got[0]; C.back = true; sfx('clang', 0.7, 0.7); } }
-      if (C.held && C.held.alive) { C.held.x = hx; C.held.y = Math.max(C.held.y, hy - 10); C.held.vx = C.held.vy = 0; }
-      A.hx = hx; A.hy = hy;
-      if (C.back && C.len <= 20) { if (C.held) { C.held.x = o.x + d * 26; C.held.y = o.y; } this.atk = null; }
+    if (!A.arrived) {                                         // tunnelling: a ripple racing along under the floor
+      const T = A.target; if (T && T.alive && T.state !== 'seized') { A.tx = T.x; A.tplat = T.platform || this.floorUnder(T.x, T.y) || A.tplat; }
+      const ty = A.tplat ? A.tplat.y : this.y, dx = A.tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy);
+      if (d <= S.tunnel || A.t > 60) { this.x = A.tx; this.y = ty; this.plat = A.tplat; A.arrived = A.t; sfx('rumble', 0.6, 0.9); }
+      else { this.x += dx / d * S.tunnel; this.y += dy / d * S.tunnel; if (A.t % 2 === 0) m.particles.push({ x: this.x, y: this.y - 1, vx: (R() - 0.5), vy: -1 - R(), life: 12, color: 0x2e2a38, size: 2, grav: 0.1 }); }
+      return;
     }
+    const k = A.t - A.arrived;
+    if (k < S.warn) { if (k % 3 === 0) m.particles.push({ x: this.x + (R() - 0.5) * 30, y: this.y - 1, vx: 0, vy: -1 - R() * 2, life: 12, color: 0x6a1a1a, size: 2, grav: 0.15 }); return; }   // the floor cracks
+    if (k === S.warn) { sfx('bighit', 0.9, 0.45); m.shake(7, 8); if (this.plat && o.stain) o.stain(this.x, this.plat, 16); }
+    if (k >= S.warn && k <= S.warn + 6) this.strike({ x1: this.x - 22, x2: this.x + 22, y1: this.y - 90, y2: this.y + 4 }, S.punch);
+    if (k > S.warn + 24) this.atk = null;
   }
-  /** It leaves (its 20 s are up, he was KO'd, or it was countered): his powers go with it. */
+  /** THE WEEPER: floats high over the nearest opponent, weeping a tear on them now and then; its attack is a downpour. */
+  move_weeper(o, m, S, R) {
+    const f = this.nearestFoe(600), tx = f ? f.x : o.x, ty = Math.max(-320, (f ? f.y : o.y) - S.height), A = this.atk;
+    const ease = A ? 0.035 : 0.06;                          // (it keeps drifting after them while it pours, slower)
+    this.x += (tx - this.x) * ease; this.y += (ty - this.y) * 0.05;
+    this.drops = this.drops || [];
+    if (!A && this.t % S.dripEvery === 0) { this.drops.push({ x: this.x, y: this.y + 12, vy: 1, key: 'auto' + this.t, h: S.drip }); sfx('swing', 0.2, 1.8); }
+    if (A) {                                                 // DOWNPOUR: a torrent straight down under it
+      if (A.t <= S.pourFor) {
+        if (A.t % 2 === 0) this.drops.push({ x: this.x + (R() - 0.5) * 22, y: this.y + 12, vy: 3, pour: true });
+        const P = this.floorUnder(this.x, this.y + 12), bot = P ? P.y : this.y + 400;
+        if (A.t % 8 === 0) { this.atkId = nextId++; this.strike({ x1: this.x - 16, x2: this.x + 16, y1: this.y + 10, y2: bot }, A.t >= S.pourFor - 8 ? S.pourLast : S.pour); }
+        if (P && A.t % 6 === 0 && o.stain) o.stain(this.x + (R() - 0.5) * 20, P, 6);
+      } else this.atk = null;
+    }
+    for (const d of this.drops) {
+      if (d.dead) continue;
+      d.vy += 0.45; d.y += d.vy;
+      if (d.h) { if (this.strike({ x1: d.x - 6, x2: d.x + 6, y1: d.y - 8, y2: d.y + 6 }, d.h, d.key).length) d.dead = true; }
+      const P = m.stage.platforms.find((p) => d.x >= p.x1 && d.x <= p.x2 && d.y >= p.y && d.y - d.vy <= p.y + 2);
+      if (P) { d.dead = true; if (!d.pour && o.stain) o.stain(d.x, P, 5); }
+      if (d.y > 330) d.dead = true;
+    }
+    this.drops = this.drops.filter((d) => !d.dead);
+  }
+  /** THE HOLLOW: swings round him on its chain, hitting anyone it swings into; its attack throws the hooked chain. */
+  move_hollow(o, m, S) {
+    const A = this.atk;
+    if (!A) {
+      this.ang += S.spin;
+      this.x = o.x + Math.cos(this.ang) * S.orbit; this.y = o.y - 34 + Math.sin(this.ang) * S.orbit * 0.8;
+      const bucket = Math.floor(this.t / 40);                 // (each opponent at most once every 40 frames)
+      this.strike({ x1: this.x - 12, x2: this.x + 12, y1: this.y - 14, y2: this.y + 14 }, S.bump, 'b' + bucket);
+      return;
+    }
+    const d = A.dir;
+    if (!A.chain) A.chain = { len: 0, back: false, held: null };
+    const C = A.chain;
+    this.x += ((o.x - d * 10) - this.x) * 0.4; this.y += ((o.y - 56) - this.y) * 0.4;
+    if (!C.back) { C.len += 14; if (C.len >= S.reach) C.back = true; } else C.len -= 12;
+    const hx = this.x + d * C.len, hy = this.y + 26 + C.len * 0.05;
+    if (!C.back && !C.held) { const got = this.strike({ x1: hx - 10, x2: hx + 10, y1: hy - 14, y2: hy + 14 }, S.hook, 'h'); if (got[0]) { C.held = got[0]; C.back = true; sfx('clang', 0.7, 0.7); } }
+    if (C.held && C.held.alive) { C.held.x = hx; C.held.y = Math.max(C.held.y, hy - 10); C.held.vx = C.held.vy = 0; }
+    A.hx = hx; A.hy = hy;
+    if (C.back && C.len <= 20) { if (C.held && C.held.alive) { C.held.x = o.x + d * 26; C.held.y = o.y; } this.atk = null; }
+  }
+  /** It leaves (its 20 s are up, he was KO'd, or it was countered): his powers go with it, and it lets go of anyone it swallowed. */
   kill() {
     if (!this.alive) return; this.alive = false; this.g.destroy();
-    const o = this.owner, R = Math.random;
+    const o = this.owner, v = this.swallowed;
+    if (v) { this.swallowed = null; v.seizedBy = null; v.sprite.setVisible(true); if (v.state === 'seized') v.setState('air'); }
     if (o.demon === this) { o.demon = null; o.demonSpeed = o.demonKb = o.demonDmg = 1; }
-    for (let i = 0; i < 14; i++) this.match.particles.push({ x: this.x, y: this.y, vx: (R() - 0.5) * 3, vy: -0.5 - R() * 2, life: 26, color: [0x060508, 0x2e2a38][i % 2], size: 3, grav: -0.02 });
-    sfx('curse', 0.3, 1.3);
+    this.puff(14); sfx('curse', 0.3, 1.3);
   }
-  /** Draws the demon (each its own shape), its 20 s ring, and its attack (the weeper's tears, the hollow's chain). */
+  /** Draws it (each its own body and movement), its 20 s ring, and what its attack leaves in the air. */
   render() {
     if (!this.alive) return;
-    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), t = this.t, d = this.atk ? this.atk.dir : this.owner.facing, c = this.spec.color, B = 0x060508;
+    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), t = this.t, c = this.spec.color, B = 0x060508, A = this.atk, W = 0xf4eefc;
     g.clear();
-    const fade = this.life < 90 && (t >> 2) % 2 ? 0.5 : 1;    // (flickering when it's about to leave)
-    g.setAlpha(fade);
-    if (this.kind === 'glutton') {
-      const bite = this.atk && this.atk.t >= 4 && this.atk.t <= 12 ? Math.abs(Math.sin(this.atk.t * 0.8)) : 0.3;
-      g.fillStyle(B, 1); g.fillCircle(x, y, 16); g.fillStyle(c, 0.5); g.fillCircle(x - 5, y - 6, 6);
-      g.fillStyle(0x200814, 1); g.fillEllipse(x + d * 4, y + 3, 22, 4 + bite * 14);
-      g.fillStyle(0xf4eefc, 1); for (let i = -4; i <= 4; i++) { const tx = x + d * 4 + i * 2.6; g.fillTriangle(tx - 1.2, y + 1 - bite * 6, tx + 1.2, y + 1 - bite * 6, tx, y + 4 - bite * 4); g.fillTriangle(tx - 1.2, y + 5 + bite * 6, tx + 1.2, y + 5 + bite * 6, tx, y + 2 + bite * 4); }
-      g.fillStyle(0xff7aa0, 1); g.fillRect(x + d * 2 - 4, y - 9, 2, 2); g.fillRect(x + d * 2 + 3, y - 9, 2, 2);
-    } else if (this.kind === 'wraith') {
-      g.fillStyle(B, 0.9);
-      for (let i = 0; i < 5; i++) { const ty = y + 6 + i * 5, sway = Math.sin(t * 0.2 + i) * 4; g.fillTriangle(x - 10 + i, ty, x + 10 - i, ty, x - d * (8 + i * 4) + sway, ty + 9); }
-      g.fillTriangle(x - 12, y + 8, x + 12, y + 8, x, y - 16);
-      drawDemonFace(g, 'wraith', x, y - 4, 1, t);
-    } else if (this.kind === 'brute') {
-      g.fillStyle(B, 1); g.fillEllipse(x, y, 30, 22);
-      for (const s of [-1, 1]) { const fx = x + s * 18, fy = y + 10 + (this.atk && this.atk.t >= 14 && this.atk.t <= 20 ? 6 : Math.sin(t * 0.1 + s) * 2); g.fillCircle(fx, fy, 9); g.fillStyle(c, 0.6); g.fillRect(fx - 4, fy - 6, 3, 2); g.fillStyle(B, 1); }
-      drawDemonFace(g, 'brute', x, y - 6, 1, t);
-    } else if (this.kind === 'weeper') {
+    g.setAlpha(this.life < 90 && (t >> 2) % 2 ? 0.5 : 1);    // (flickering when it's about to leave)
+    let ringY = y - 20;
+    if (this.kind === 'glutton') {                            // a fat thing on two stubby legs, all mouth
+      const d = this.dir, step = this.moving ? Math.sin(t * 0.5) * 3 : 0, full = this.swallowed ? 1 + Math.sin(t * 0.9) * 0.08 : 1, open = A ? 1 : 0.25;
+      g.fillStyle(B, 1); g.fillRect(x - 9, y - 8 + step, 5, 8 - step); g.fillRect(x + 4, y - 8 - step, 5, 8 + step);   // legs
+      g.fillEllipse(x, y - 20, 36 * full, 28 * full); g.fillStyle(c, 0.45); g.fillEllipse(x - d * 6, y - 27, 12, 7);
+      if (this.swallowed) { g.fillStyle(0x200814, 1); g.fillCircle(x + Math.sin(t * 1.3) * 5, y - 18 + Math.cos(t) * 3, 5); }   // something kicking inside
+      g.fillStyle(0x200814, 1); g.fillEllipse(x + d * 8, y - 16, 20, 4 + open * 14);
+      g.fillStyle(W, 1); for (let i = -3; i <= 3; i++) { const tx = x + d * 8 + i * 2.6; g.fillTriangle(tx - 1.2, y - 16 - open * 7, tx + 1.2, y - 16 - open * 7, tx, y - 12 - open * 5); g.fillTriangle(tx - 1.2, y - 16 + open * 7, tx + 1.2, y - 16 + open * 7, tx, y - 19 + open * 5); }
+      g.fillStyle(0xff7aa0, 1); g.fillRect(x + d * 6 - 4, y - 30, 2, 2); g.fillRect(x + d * 6 + 2, y - 30, 2, 2);
+      ringY = y - 20;
+    } else if (this.kind === 'wraith') {                      // a tall, thin shadow standing still, its cloak streaming
+      const o = this.owner, f = o.x > x ? 1 : -1;
+      g.lineStyle(1, 0xd8dce4, 0.18); for (let i = 0; i < 8; i++) { const k = i / 8, k2 = (i + 0.5) / 8; g.lineBetween(x + (o.x - x) * k, y - 40 + (o.y - y) * k, x + (o.x - x) * k2, y - 40 + (o.y - y) * k2); }   // a faint thread to him
+      g.fillStyle(B, 0.95);
+      g.fillTriangle(x - 10, y, x + 10, y, x, y - 64);
+      for (let i = 0; i < 4; i++) { const sway = Math.sin(t * 0.15 + i) * 5; g.fillTriangle(x - 6, y - 50 + i * 12, x + 6, y - 50 + i * 12, x - f * (14 + i * 4) + sway, y - 40 + i * 12); }
+      g.fillRect(x - 3, y - 62, 6, 14);
+      drawDemonFace(g, 'wraith', x, y - 64, 0.9, t);
+      if (A && A.line && A.t < 12) { const k = 1 - A.t / 12, [ax, ay, bx, by] = A.line; g.lineStyle(10 * k, B, 0.8 * k); g.lineBetween(ax, ay, bx, by); g.lineStyle(2 * k, W, k); g.lineBetween(ax, ay, bx, by); }
+      ringY = y - 64;
+    } else if (this.kind === 'brute') {                       // under the floor: a shadow with red eyes; then a giant fist bursting up
+      const k = A && A.arrived !== undefined ? A.t - A.arrived : -1, S = this.spec;
+      g.fillStyle(B, 0.85); g.fillEllipse(x, y + 1, A && A.arrived === undefined ? 30 : 46, 6);
+      g.fillStyle(0xff3a2a, 1); g.fillRect(x - 6, y - 1, 3, 1); g.fillRect(x + 3, y - 1, 3, 1);
+      if (!A && (t % 90) < 20) { g.fillStyle(B, 1); for (let i = 0; i < 3; i++) g.fillCircle(x - 6 + i * 6, y - 2, 2.5); }      // knuckles breaking the surface now and then
+      if (k >= 0 && k < S.warn) { g.lineStyle(1, 0xff6a4a, 0.8); for (let i = 0; i < 5; i++) g.lineBetween(x, y, x + (i - 2) * 10, y + 2 - (i % 2) * 3); }
+      if (k >= S.warn) {
+        const up = Math.min(1, (k - S.warn + 1) / 3) * (k > S.warn + 14 ? Math.max(0, 1 - (k - S.warn - 14) / 10) : 1), h = 84 * up;
+        g.fillStyle(B, 1); g.fillRect(x - 10, y - h + 20, 20, h - 20);                                        // the forearm
+        g.fillRoundedRect ? g.fillRoundedRect(x - 18, y - h, 36, 28, 8) : g.fillRect(x - 18, y - h, 36, 28);   // the fist
+        g.fillStyle(c, 0.7); for (let i = 0; i < 4; i++) g.fillRect(x - 14 + i * 8, y - h + 2, 5, 3);         // knuckles
+        g.fillStyle(B, 1); for (let i = 0; i < 6; i++) g.fillCircle(x + (i - 2.5) * 9, y - 2, 4);                // the broken floor round it
+      }
+      ringY = y - 14;
+    } else if (this.kind === 'weeper') {                      // a floating head of eyes in a thorn ring, high in the air
       g.fillStyle(B, 1); g.fillCircle(x, y, 13);
       g.lineStyle(1, c, 0.8); g.strokeCircle(x, y, 17 + Math.sin(t * 0.1)); for (let i = 0; i < 8; i++) { const a = i * 0.785 + t * 0.02; g.lineBetween(x + Math.cos(a) * 15, y + Math.sin(a) * 15, x + Math.cos(a) * 20, y + Math.sin(a) * 20); }
       drawDemonFace(g, 'weeper', x, y, 1.3, t);
-      if (this.atk) for (const dr of this.atk.drops || []) if (dr.live) { g.fillStyle(B, 1); g.fillEllipse(dr.x, dr.y, 7, 11); g.fillTriangle(dr.x - 3, dr.y - 3, dr.x + 3, dr.y - 3, dr.x, dr.y - 10); g.fillStyle(c, 0.8); g.fillRect(dr.x - 1, dr.y - 2, 1, 3); }
-    } else {
-      g.fillStyle(B, 1); g.fillTriangle(x - 13, y + 16, x + 13, y + 16, x, y - 16);
+      for (const d of this.drops || []) { g.fillStyle(B, 1); g.fillEllipse(d.x, d.y, d.pour ? 5 : 7, d.pour ? 9 : 11); if (!d.pour) { g.fillTriangle(d.x - 3, d.y - 3, d.x + 3, d.y - 3, d.x, d.y - 10); g.fillStyle(c, 0.8); g.fillRect(d.x - 1, d.y - 2, 1, 3); } }
+      if (A && A.t <= this.spec.pourFor) { g.fillStyle(B, 0.35); const P = this.floorUnder(x, y + 12); g.fillRect(x - 12, y + 10, 24, (P ? P.y : y + 300) - y - 10); }
+      ringY = y;
+    } else {                                                  // THE HOLLOW: an empty hood on a chain from his chest
+      const o = this.owner;
+      if (!A) { g.lineStyle(2, 0x8a7a5a, 1); const n = 6; for (let i = 0; i < n; i++) { const k = i / n, k2 = (i + 0.6) / n; g.lineBetween(o.x + (x - o.x) * k, o.y - 34 + (y - o.y + 34) * k, o.x + (x - o.x) * k2, o.y - 34 + (y - o.y + 34) * k2); } }
+      g.fillStyle(B, 1); g.fillTriangle(x - 13, y + 14, x + 13, y + 14, x, y - 16);
       drawDemonFace(g, 'hollow', x, y + 2, 1.2, t);
-      g.lineStyle(1, 0x8a7a5a, 1); for (const s of [-1, 1]) for (let i = 0; i < 4; i++) g.strokeCircle(x + s * 8, y + 18 + i * 4 + Math.sin(t * 0.1 + i) * 1, 1.5);   // chains hanging off it
-      if (this.atk && this.atk.chain) {                       // the thrown chain and its hook
-        const A = this.atk; g.lineStyle(2, 0x8a7a5a, 1); g.lineBetween(x, y + 4, A.hx, A.hy);
+      if (A && A.chain) {
+        const d = A.dir; g.lineStyle(2, 0x8a7a5a, 1); g.lineBetween(x, y + 4, A.hx, A.hy);
         g.lineStyle(2, 0xd8dce4, 1); g.beginPath(); g.arc(A.hx, A.hy, 5, -Math.PI / 2, Math.PI / 2, d < 0); g.strokePath();
       }
     }
     g.setAlpha(1);
-    g.lineStyle(2, c, 0.7); g.beginPath(); g.arc(x, y, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (this.life / this.max)); g.strokePath();   // its 20 s, running out
+    g.lineStyle(2, c, 0.7); g.beginPath(); g.arc(x, ringY, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (this.life / this.max)); g.strokePath();   // its 20 s, running out
   }
 }

@@ -375,6 +375,7 @@ export class FighterWhatOnceWas {
   // the victim's side: held still until it's let go (or whoever held them got interrupted)
   st_seized() {
     const by = this.seizedBy;
+    if (by && by.holdsSeized) { if (!by.holdsSeized(this)) { this.seizedBy = null; this.setState('air'); } return; }   // (held by something else - THE GLUTTON)
     if (!by || !by.alive || by.seized !== this || !['see_hold', 'inc_hold', 'smile_hold'].includes(by.state)) { this.seizedBy = null; this.setState('air'); }
   }
 

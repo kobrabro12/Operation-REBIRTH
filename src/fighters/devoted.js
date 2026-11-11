@@ -25,24 +25,33 @@ export const DEVOTED = {
   demons: {
     life: 1200, pickFor: 240,        // how long it stays (20 s); the wheel picks for him if he waits this long
     list: [
-      // THE GLUTTON: a bloated maw. Neutral special: it lunges and bites. Power: every hit he lands heals him 1%.
-      { kind: 'glutton', name: 'THE GLUTTON', power: 'HITS HEAL YOU', color: 0x9a3a5a, cd: 70,
-        bite: { dmg: 9, angle: 40, base: 4.0, growth: 4.6 }, heal: 1 },
-      // THE WRAITH: a tattered shadow. Neutral special: it rips forward through everyone in a line (3 hits).
-      // Power: he moves 15% faster.
-      { kind: 'wraith', name: 'THE WRAITH', power: 'FASTER', color: 0xd8dce4, cd: 80, speed: 1.15,
-        rip: { dmg: 3, angle: 35, base: 1.6, growth: 0.6, stun: 16 }, ripLast: { dmg: 4, angle: 40, base: 3.8, growth: 3.6 } },
-      // THE BRUTE: a pair of huge fists. Neutral special: it slams the floor in front of him (a shockwave both ways).
+      // THE GLUTTON - WALKS: a bloated maw that waddles along the floor after him (falls off edges, catches up if
+      // it's left behind). Neutral special: it charges along the floor and SWALLOWS the first one it reaches - they're
+      // stuck in its belly, taking `chew` damage every 10 frames, then spat out. Power: every hit he lands heals him 1%.
+      { kind: 'glutton', name: 'THE GLUTTON', power: 'HITS HEAL YOU', color: 0x9a3a5a, cd: 150, heal: 1,
+        walk: 2.8, charge: 7.5, chargeFor: 34, holdFor: 70, chew: 1,
+        spit: { dmg: 6, angle: 35, base: 5.2, growth: 4.8 } },
+      // THE WRAITH - STAYS PUT: a tall shadow that stands where he called it and waits. Neutral special: SHADOW STEP -
+      // he and the wraith swap places in an instant, cutting everyone on the line between them (it works as a
+      // recovery: leave it on the stage). Power: he moves 15% faster.
+      { kind: 'wraith', name: 'THE WRAITH', power: 'FASTER  /  SWAP PLACES', color: 0xd8dce4, cd: 80, speed: 1.15,
+        cut: { dmg: 6, angle: 50, base: 3.4, growth: 3.6 } },
+      // THE BRUTE - UNDERGROUND: lurks in the floor under him (a shadow with red eyes, knuckles breaking the surface).
+      // Neutral special: it tunnels to the nearest opponent and a giant fist bursts up out of the floor under them.
       // Power: he takes 20% less knockback.
-      { kind: 'brute', name: 'THE BRUTE', power: 'HARDER TO LAUNCH', color: 0x6a2ad8, cd: 100, kb: 0.8,
-        slam: { dmg: 11, angle: 70, base: 5.0, growth: 5.2 } },
-      // THE WEEPER: a floating head of eyes. Neutral special: three black tears fall on the nearest opponent (they can
-      // spike). Power: every second hit he lands counts double toward his devotion.
-      { kind: 'weeper', name: 'THE WEEPER', power: 'MORE DEVOTION', color: 0x4a8ad8, cd: 110,
-        tear: { dmg: 4, angle: -70, base: 2.6, growth: 2.2 } },
-      // THE HOLLOW: an empty hood dragging chains. Neutral special: it throws a hooked chain and drags whoever it
-      // catches back to him. Power: he hits 10% harder.
-      { kind: 'hollow', name: 'THE HOLLOW', power: 'HIT HARDER', color: 0xc89a4a, cd: 90, dmg: 1.1, reach: 190,
+      { kind: 'brute', name: 'THE BRUTE', power: 'HARDER TO LAUNCH', color: 0xd83a3a, cd: 130, kb: 0.8,
+        tunnel: 12, warn: 14, punch: { dmg: 12, angle: 86, base: 5.6, growth: 5.6 } },
+      // THE WEEPER - FLOATS HIGH: drifts in the sky over the nearest opponent and weeps a tear on them now and then
+      // by itself (`drip` every `dripEvery` frames). Neutral special: DOWNPOUR - a torrent of black tears pours straight
+      // down under it for a moment (several hits, the last one pushes down). Power: every 2nd hit he lands counts
+      // double toward his devotion.
+      { kind: 'weeper', name: 'THE WEEPER', power: 'MORE DEVOTION  /  RAINS ON THEM', color: 0x4a8ad8, cd: 140,
+        height: 150, dripEvery: 110, drip: { dmg: 2, angle: -80, base: 1.4, growth: 0.4 },
+        pour: { dmg: 2, angle: 270, base: 1.2, growth: 0.2, stun: 12 }, pourLast: { dmg: 4, angle: -75, base: 3.0, growth: 3.0 }, pourFor: 48 },
+      // THE HOLLOW - CHAINED TO HIM: an empty hood swinging round him on a chain; it hits anyone it swings into.
+      // Neutral special: it throws its hooked chain and drags whoever it catches back to him. Power: he hits 10% harder.
+      { kind: 'hollow', name: 'THE HOLLOW', power: 'HIT HARDER  /  ORBITS YOU', color: 0xc89a4a, cd: 100, dmg: 1.1, reach: 190,
+        orbit: 48, spin: 0.07, bump: { dmg: 3, angle: 45, base: 2.6, growth: 1.6 },
         hook: { dmg: 5, angle: 30, base: 1.0, growth: 0.2, stun: 30 } },
     ],
   },
