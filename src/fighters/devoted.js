@@ -20,7 +20,9 @@ export const DEVOTED = {
   // his look at each sludge stage (fighterDevoted.js swaps to it when he prays his way up)
   sludgeSheets: [SET(''), SET('semi'), SET('taken'), SET('drowned')],
   runCycle: [0, 8],
-  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb },   // (bursting out of a puddle reuses the geyser's rise) movesOrigin: [56 / 112, 95 / 104],
+  // (bursting out of a puddle reuses the geyser's rise; the cross cuts reuse his slashes)
+  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
+  movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
   handOffset: { x: 18, y: -34 },   // the tip of his knife
   portrait: [18, 4, 34, 30],
@@ -54,6 +56,11 @@ export const DEVOTED = {
     kb: [1.0, 0.96, 0.9, 0.84],
     // DROWNED's wing: jumps in the air
     wingJumps: 2,
+    // DROWNED hovers like a demon: slow, gentle falls (float, like FULL AERO), floating a little off the ground, and
+    // holding jump on the way down hangs him in the air (frames per trip into the air)
+    hover: { float: { gravity: 0.45, maxFall: 3.0, hover: 6 }, hold: 110 },
+    // CROSS CUTS (side special): how many cuts he can chain at each stage (the last one launches)
+    cuts: [3, 3, 4, 5],
     // the sludge he leaves on the floor: frames between drops while standing, per stage (0 = none), and
     // the most stains a match keeps (the oldest goes)
     stainEvery: [0, 40, 20, 9], maxStains: 220,
@@ -92,11 +99,16 @@ export const DEVOTED = {
     // stage (count per stage), and each hits harder (+perStage damage per stage).
     neutralB: { frames: 32, spawnAt: 14, glob: { speed: 5.2, lift: -4.4, grav: 0.26, life: 90, r: 5, fan: 2.4,
       count: [1, 1, 2, 3], perStage: 1, hit: { dmg: 6, angle: 50, base: 2.6, growth: 3.4 } } },
-    // REAPING HOOK (side): a low lunge, hooking them with the karambit and dragging them through behind him - they're
-    // left stunned for a moment with their back to him, wide open for a follow-up
-    sideB: { frames: 34, rush: { from: 5, to: 13, speed: 7.8 }, hits: [
-      { from: 7, to: 13, box: [0, -44, 38, 38], dmg: 7, angle: 165, base: 3.0, growth: 0.8, stun: 22 },
-    ] },
+    // CROSS CUTS (side): like Cloud's Cross Slash - a lunging cut, and every tap of special during a cut's window
+    // carries on into the next one. The last cut (sideBF) launches; the ones before it keep them stuck in place.
+    // How many cuts he can chain grows with his stage (devoted.cuts). In the air each cut holds him up.
+    // next: [from, to] = the frames of a cut when a special tap carries on into the next cut
+    sideB: { frames: 26, cut: 1, lunge: 2.4, next: [6, 20], fx: 'arc', hits: [{ from: 6, to: 9, box: [4, -52, 46, 44], dmg: 4, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB2: { frames: 24, cut: 2, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -58, 46, 50], dmg: 4, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB3: { frames: 24, cut: 3, lunge: 2.2, next: [5, 19], fx: 'arc', hits: [{ from: 5, to: 8, box: [4, -52, 48, 44], dmg: 4, angle: 20, base: 1.2, growth: 0.2, stun: 22 }] },
+    sideB4: { frames: 24, cut: 4, lunge: 2.2, next: [5, 19], fx: 'spin', hits: [{ from: 5, to: 9, box: [-18, -56, 66, 52], dmg: 4, angle: 30, base: 1.2, growth: 0.2, stun: 22 }] },
+    // the finishing cut: an X through them that sends them flying
+    sideBF: { frames: 40, cut: 9, lunge: 3.0, fx: 'flare', hits: [{ from: 9, to: 13, box: [-4, -64, 70, 62], dmg: 9, angle: 40, base: 4.6, growth: 5.4 }] },
     // SLUDGE GEYSER (up): stabs down at his own feet and a geyser of sludge erupts under him, throwing him up -
     // the burst hits anyone around him, then the karambit cuts upward as he rises. Leaves a stain where it started.
     upb: { frames: 40, riseAt: 10, riseV: -14.2, pushX: 1.2, drift: 3.6, geyser: { length: 14 }, hits: [
@@ -120,12 +132,15 @@ export const DEVOTED = {
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },
 
-  // Limit: BLACK TIDE - sludge bursts out of him, hitting everyone near (harder at each stage), staining the
-  // floor all round him, and filling his devotion
+  // Limit: FEED THE DARK - he throws his karambit at the nearest opponent in reach. If it sticks, a CUTSCENE: in the
+  // dark, a giant shadow demon of sludge rises behind them, picks them up and tears them in half - an instant KO.
+  // If nobody's in reach, the knife just flies and the Limit is wasted.
   limit: {
-    name: 'BLACK TIDE', type: 'tide', frames: 46, hitAt: 14, radius: 130,
-    blast: { dmg: 14, angle: 60, base: 5.4, growth: 5.0, radial: true },
-    perStage: 4,                    // extra damage for each sludge stage he's reached
+    name: 'FEED THE DARK', type: 'rite', reach: 420,
+    throwAt: 16, knifeSpeed: 11, flyFor: 50,      // when the knife leaves his hand, how fast it flies, how long before it's a miss
+    whiff: 40,                                    // frames he's left standing there after a miss
+    // the cutscene's beats (frames from its start): the demon rises, grabs, lifts, tears, back to the arena
+    scene: { rise: 24, grab: 78, lift: 96, tear: 132, end: 190 },
     colors: PAL_SLUDGE,
   },
 };

@@ -56,20 +56,26 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   art `tools/sprites/devoted_draw.py` (AERO's skeleton and moves minus FULL AERO's spear moves -> frame table `dvMoves.js`,
   generated; knife in the front fist, the scarf slot = a sludge strand / DROWNED's demon wing; one sheet set per stage in
   `public/assets/fighters/devoted/` + `semi/ taken/ drowned/`). His SYMBOL (a dying tree, `drawTree`, size `devoted.treeScale`) grows where he first lands after (re)spawning
-  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD as the OBLATION totem
-  standing on his player plate - skull with stage-coloured eyes and a thorn crown per stage, purple fill, thorns, drips -
+  (`this.sigil`); every hit he lands adds 1 DEVOTION (`addDevotion`, from MatchScene.applyHit; shown on the HUD as the OBLATION meter
+  standing on his player plate - a wobbling column of living sludge filling with bubbling purple, gobs and drips, a
+  sludge-soaked skull with stage-coloured eyes that LAUGHS when it's full (jaw clacking, ^ ^ eyes, "HA" = `this.oblLaugh`) -
   `drawDevotionHud`, called from hud.js; its lettering is a text object `this.oblText`); PRAY
   (down-B, `downB.pray` -> `prayTick` from st_attack; his WORSHIP animation = `downB` in devoted_draw.py: kneels, raises
   the karambit, stabs it into the ground on `stabAt` with a sludge splash) with the meter full and within `range` of the symbol -> `ascend()`:
   next SLUDGE STAGE (DEFAULT / SEMI / TAKEN / DROWNED, `setSludge`: `def.sludgeSheets[n]` - always loaded, listed in
   lazySheets - and `devoteDmg/Speed/Kb` multipliers in Fighter's getters), meter empties. He keeps his stage through
-  KOs. DROWNED: extra air jumps (`wingJumps`). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
-  age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit BLACK TIDE
-  (`type: 'tide'`, `tideLimit`): radial sludge burst, stronger per stage, stains round him, fills devotion. CPU walks back
+  KOs. DROWNED: extra air jumps (`wingJumps`) and hovers like a demon (`devoted.hover`: `this.demonFloat` = a FULL AERO-style
+  float, used by Fighter.physics + fighterRender; holding jump on the way down hangs him in the air, `hover.hold` frames per trip). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
+  age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit FEED THE DARK
+  (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawClaw` / `drawKarambit`): throws the karambit (homing) at the nearest
+  opponent in `reach`; if it sticks, a screen-space cutscene (`limit.scene` beats, like Rosemary's BIRTHDAY SHOW: `m.frozen`,
+  `m.cutscene`, `ult.victims`): a giant sludge demon rises, grabs, lifts and tears them in half (the victim drawn as two
+  cropped sprites) -> `m.onKO` = instant KO. Miss -> `whiff`. (The old BLACK TIDE, `tideLimit`, is still in the file, unused.) CPU walks back
   to the symbol to pray when full (cpu.js).
   Specials: OFFERING (neutral-B, `neutralB.glob` -> `throwGlobs` -> `match.spawnGlob` = `SludgeGlob` in entities.js: arcing
-  sludge globs, `count` per stage, fanned, stain where they land), REAPING HOOK (side-B: rush + a 165-degree hit that
-  drags them through behind him, extra `stun`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
+  sludge globs, `count` per stage, fanned, stain where they land), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
+  `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a
+  special tap in the window, up to `devoted.cuts[stage]`, holds him up in the air, draws the slashes `this.cutFx`), SLUDGE GEYSER (up-B: ordinary upb rise; the geyser particles/stain run in
   `devotedTick` while `state === 'upb'`). Poses for all three are in devoted_draw.py (rerun it after changing them).
   SLUDGE SWIM (down-B when he can't ascend but stands in a stain - only where there's sludge, `downB.swim`, `canSwim` from tryCommon -> state
   `sludgeswim`, `st_sludgeswim` / `drawSwim` in fighterDevoted.js): Splatoon-style - sinks in, slides fast along the stains

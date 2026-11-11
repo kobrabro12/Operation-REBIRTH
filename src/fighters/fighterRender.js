@@ -205,7 +205,8 @@ export class FighterRender {
     if(cosmetic){sheet=cosmetic.sheet;frame=cosmetic.frame;spr.setRotation(0).setScale(1,1);this.premiumAnimation=cosmetic.kind;this.premiumAnimProgress=cosmetic.progress;}
     if (spr.texture.key !== sheet) spr.setTexture(sheet, frame); else spr.setFrame(frame);
     this.curSheet = sheet; this.curFrame = frame; this.curFlip = d.ownAnims && !!this._animFlip;   // (what's drawn: Lacy's hurtbox follows it)
-    if (d.float && d.float.hover && !['grabbed', 'seized', 'ledge', 'ledgeclimb', 'respawn'].includes(s)) spr.y -= Math.round(d.float.hover + 2 * Math.sin(this.anim * 0.07));   // floating off the ground
+    const fl = d.float || this.demonFloat;
+    if (fl && fl.hover && !['grabbed', 'seized', 'ledge', 'ledgeclimb', 'respawn'].includes(s)) spr.y -= Math.round(fl.hover + 2 * Math.sin(this.anim * 0.07));   // floating off the ground
     { // Preserve frame-specific cosmetic anchors and upstream mirrored foot alignment.
       const mo = cosmetic ? cosmetic.origin : d.movesOrigin && sheet === this.sheets.moves ? d.movesOrigin : [d.originX ?? 0.5, d.originY ?? spr.originY];
       const ox = spr.flipX ? 1 - mo[0] : mo[0];
@@ -313,6 +314,7 @@ export class FighterRender {
     if (s === 'limit' && d.limit.type === 'undertow' && this.ult) this.drawUndertow(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'wall' && this.ult) this.drawWallLimit(g, d.limit, this.ult);
     if (s === 'limit' && d.limit.type === 'approach' && this.ult) this.drawApproach(g, d.limit, this.ult);
+    if (d.devoted) this.drawRite(s === 'limit' && this.ult && this.ult.rite ? this.ult : null);   // THE DEVOTED's Limit: the knife, the demon
     if (d.wrong) this.drawBirthday(s === 'limit' && d.limit.type === 'birthday' ? this.ult : null);   // SEEN's Limit: the curtain
     if (d.sightings) this.drawSightings(g);                         // LAST SEEN: her SIGHTINGS meter
     if (d.wrong) this.drawSeen(g, spr);                              // SEEN: skipping frames, a dark haze

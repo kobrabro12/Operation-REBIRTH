@@ -1,8 +1,9 @@
 // THE DEVOTED's mechanics (def.devoted, devoted.js): his SYMBOL, the DEVOTION meter, PRAY (down special) and
 // the four SLUDGE STAGES he climbs, the sludge stains he leaves on the stage (match.sludgeStains), and his Limit
-// BLACK TIDE. Mixed into Fighter like the other fighter*.js files.
+// FEED THE DARK (and his old one, BLACK TIDE). Mixed into Fighter like the other fighter*.js files.
 import { sfx } from '../audio/sfx.js';
-import { FONT } from '../config.js';
+import { FONT, VIEW_W, VIEW_H } from '../config.js';
+import { showFighter } from './roster.js';
 import { skinTexture } from './skins.js';
 
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
@@ -30,6 +31,14 @@ export class FighterDevoted {
     if (this.sigil && this.sigil.plat) { this.sigil.x = this.sigil.plat.x1 + this.sigil.dx; this.sigil.y = this.sigil.plat.y; }   // (riding a moving platform)
     if (this.swimCd > 0) this.swimCd--;
     if (this.sludge >= 3 && this.grounded) this.jumpsLeft = Math.max(this.jumpsLeft, D.wingJumps);
+    if (this.sludge >= 3) {                                   // DROWNED: holding jump on the way down hangs him in the air
+      if (this.grounded) this.hoverLeft = D.hover.hold;
+      else if ((this.state === 'air' || this.state === 'attack') && this.ctrl.held('jump') && this.vy > -0.5 && this.hoverLeft > 0) {
+        this.hoverLeft--; this.vy = Math.min(this.vy, -0.2);
+        if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
+      }
+    }
+    if (this.cutFx) { for (const c of this.cutFx) c.age++; this.cutFx = this.cutFx.filter((c) => c.age < 14); }
     const U = this.def.moves.upb;
     if (this.state === 'upb' && U.geyser && this.t <= U.riseAt + U.geyser.length && !m.demo) {   // SLUDGE GEYSER: the column of sludge under him
       const R = Math.random, gx = this.t <= U.riseAt ? this.x : this.geyserX;
@@ -70,6 +79,7 @@ export class FighterDevoted {
     this.sludge = n;
     this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in his costume's colours)
     this.devoteDmg = D.dmg[n]; this.devoteSpeed = D.speed[n]; this.devoteKb = D.kb[n];
+    this.demonFloat = n >= 3 ? D.hover.float : null;          // DROWNED hovers like a demon
   }
 
   /** A hit he landed: one more toward his next stage. Says PRAY when the meter is full. */
@@ -165,6 +175,11 @@ export class FighterDevoted {
           sg.fillStyle(0x060508, 1 - d / 40); sg.fillRect(x - 1, f.bot - 10 + d, 2, 3);
         }
       }
+    }
+    if (this.cutFx) for (const c of this.cutFx) {         // CROSS CUTS: the slashes hang in the air for a moment
+      const k = 1 - c.age / 14, dx = Math.cos(c.a) * c.len / 2, dy = Math.sin(c.a) * c.len / 2;
+      g.lineStyle(5 * k, 0x7a2ad8, 0.7 * k); g.lineBetween(c.x - dx, c.y - dy, c.x + dx, c.y + dy);
+      g.lineStyle(2 * k, 0xf4eefc, k); g.lineBetween(c.x - dx, c.y - dy, c.x + dx, c.y + dy);
     }
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
@@ -327,69 +342,102 @@ export class FighterDevoted {
   }
 
   /**
-   * His OBLATION meter on the HUD (after Mason's drawing): a totem standing on his player plate - a skull with glowing
-   * eyes on top, a bar that fills with purple from the bottom as he lands hits (OBLATION written down it), black thorns
-   * wound round it, white spikes jutting out and purple dripping off. It pulses when he can pray; the skull's eyes
-   * and crown show his stage; DROWNED keeps it full and overflowing.
+   * His OBLATION meter on the HUD: a column of living sludge standing on his player plate. Its sides wobble and bulge,
+   * the purple sludge inside rises from the bottom as he lands hits (bubbling, with a wavy surface), it drips off its
+   * sides, and OBLATION is written down it. On top sits a sludge-soaked skull with glowing eyes; when the meter is
+   * full (and always at DROWNED) the skull LAUGHS - jaw clacking, rattling, eyes squeezed shut, "HA" popping out.
    * @param {Phaser.GameObjects.Graphics} g - the HUD's graphics
-   * @param {number} cx - the totem's middle
+   * @param {number} cx - the column's middle
    * @param {number} by - its foot (the top of his plate)
    * @param {number} frame - for the animation
    */
   drawDevotionHud(g, cx, by, frame) {
     const D = this.def.devoted, need = this.sludge < 3 ? D.need[this.sludge] : 0;
     const frac = need ? Math.min(1, this.devotion / need) : 1, ready = !need || this.devotion >= need;
-    const W = 12, Hh = 72, top = by - Hh, pulse = ready ? 0.5 + 0.5 * Math.sin(frame * 0.2) : 0;
+    const Hh = 72, top = by - Hh, half = (y) => 6 + 1.6 * Math.sin(y * 0.33 + frame * 0.09) + 0.8 * Math.sin(y * 0.11 - frame * 0.05);
     if (!this.oblText) {                                    // the lettering, once
       this.oblText = this.scene.add.text(0, 0, 'O\nB\nL\nA\nT\nI\nO\nN', { fontFamily: FONT, fontSize: '5px', color: '#f4eefc', align: 'center', lineSpacing: 1, stroke: '#1a0a2a', strokeThickness: 2 }).setOrigin(0.5, 0).setDepth(11);
-      this.match.addUI(this.oblText);
+      this.oblLaugh = this.scene.add.text(0, 0, 'HA', { fontFamily: FONT, fontSize: '5px', color: '#e0c8ff', stroke: '#1a0a2a', strokeThickness: 2 }).setOrigin(0.5).setDepth(11);
+      this.match.addUI(this.oblText); this.match.addUI(this.oblLaugh);
     }
     this.oblText.setPosition(cx + 0.5, top + 5).setVisible(!this.eliminated);
-    // white spikes jutting out, up near the skull
-    for (const [sx, sy, ex, ey] of [[-6, 6, -15, -4], [-6, 14, -16, 8], [-6, 22, -14, 18], [6, 6, 15, -4], [6, 14, 16, 8], [6, 22, 14, 18]]) {
-      g.lineStyle(3, 0x0b0a14, 1); g.lineBetween(cx + sx, top + sy, cx + ex, top + ey);
-      g.lineStyle(1, 0xf4eefc, 1); g.lineBetween(cx + sx, top + sy, cx + ex, top + ey);
-    }
-    // the bar: black frame, dark when empty, purple filling up from the bottom
-    g.fillStyle(0x000000, 0.5); g.fillRect(cx - W / 2 + 2, top + 2, W, Hh);
-    g.fillStyle(0x0b0a14, 1); g.fillRect(cx - W / 2 - 1, top - 1, W + 2, Hh + 2);
-    g.fillStyle(0x24123a, 1); g.fillRect(cx - W / 2, top, W, Hh);
-    const fh = Math.round(Hh * frac);
+    // the column: a wobbling black skin of sludge, dark inside
+    for (let y = top; y < by; y += 2) { const w = half(y); g.fillStyle(0x060508, 1); g.fillRect(Math.round(cx - w - 1), y, Math.round(w * 2 + 2), 2); }
+    for (let y = top + 1; y < by; y += 2) { const w = half(y) - 1.5; g.fillStyle(0x1a0f24, 1); g.fillRect(Math.round(cx - w), y, Math.round(w * 2), 2); }
+    // the purple sludge inside, rising with his devotion: a wavy surface, a lit edge, bubbles
+    const fh = Math.round((Hh - 2) * frac), surf = by - fh;
     if (fh > 0) {
-      g.fillStyle(ready ? (frame % 20 < 10 ? 0x9a4aff : 0x7a2ad8) : 0x6a22c0, 1); g.fillRect(cx - W / 2, by - fh, W, fh);
-      g.fillStyle(0xb47aff, 0.8); g.fillRect(cx - W / 2, by - fh, 2, fh);                     // a lit left edge
-      g.fillStyle(0x3a0e70, 0.8); g.fillRect(cx + W / 2 - 2, by - fh, 2, fh);                 // a shaded right edge
-      g.fillStyle(0xd8b0ff, 1); g.fillRect(cx - W / 2, by - fh, W, 1);                        // the surface
+      for (let y = surf; y < by; y += 2) {
+        const w = half(y) - 1.5, wave = y < surf + 2 ? 1 : 0;
+        g.fillStyle(ready && (frame >> 3) % 2 ? 0x8a3ae8 : 0x6a22c0, 1); g.fillRect(Math.round(cx - w) + wave, y, Math.round(w * 2) - wave * 2, 2);
+        g.fillStyle(0xb47aff, 0.7); g.fillRect(Math.round(cx - w), y, 1, 2);
+        g.fillStyle(0x3a0e70, 0.8); g.fillRect(Math.round(cx + w) - 2, y, 2, 2);
+      }
+      for (let x = -4; x <= 4; x++) { g.fillStyle(0xd8b0ff, 1); g.fillRect(cx + x, surf + Math.round(Math.sin(x * 0.9 + frame * 0.2)), 1, 1); }   // the wavy surface
+      for (let i = 0; i < 4; i++) {                         // bubbles rising through it
+        const ph = (frame * 0.6 + i * 23) % (fh + 4), bx = cx + Math.round(Math.sin(i * 2.1 + frame * 0.05) * 3), byy = by - ph;
+        if (byy > surf + 1) { g.lineStyle(1, 0xd8b0ff, 0.8); g.strokeCircle(bx, byy, 1 + (i % 2)); }
+      }
     }
-    if (pulse) { g.fillStyle(0xb47aff, 0.15 * pulse); g.fillRect(cx - W / 2 - 4, top - 4, W + 8, Hh + 8); }
-    // purple dripping off its sides
-    for (const [dx, ph] of [[-W / 2 - 1, 0], [W / 2, 7], [-W / 2 - 1, 13], [W / 2, 21]]) {
-      const len = 3 + ((frame >> 3) + ph) % 6, dy = 18 + ph * 2.4;
-      g.fillStyle(0x7a2ad8, 0.9); g.fillRect(cx + dx, top + dy, 1, len); g.fillRect(cx + dx, top + dy + len + 1, 1, 1);
+    // gobs of sludge bulging out of its sides, and drips running off them
+    for (const [side, ph] of [[-1, 0], [1, 9], [-1, 17], [1, 28], [-1, 36]]) {
+      const yy = top + 10 + ph * 1.6, w = half(yy), len = 2 + ((frame >> 2) + ph) % 9;
+      g.fillStyle(0x060508, 1); g.fillCircle(cx + side * (w + 1), yy, 2.5);
+      g.fillStyle(0x4a3248, 1); g.fillRect(cx + side * (w + 1) - 1, yy - 2, 1, 1);
+      g.fillStyle(0x060508, 1); g.fillRect(cx + side * (w + 1), yy + 2, 1, len); g.fillCircle(cx + side * (w + 1) + 0.5, yy + 3 + len, 1.2);
     }
-    // black thorns winding round it
-    g.lineStyle(1, 0x0b0a14, 1);
-    for (let y = top + 10; y < by - 4; y += 15) {
-      g.lineBetween(cx - W / 2 - 3, y + 8, cx + W / 2 + 3, y);
-      for (const t of [0.25, 0.6]) { const px = cx - W / 2 - 3 + (W + 6) * t, py = y + 8 - 8 * t; g.lineBetween(px, py, px + 2, py - 3); }
+    for (let i = 0; i < 2; i++) {                           // a drop falling off the bottom onto the plate
+      const d = (frame * 0.7 + i * 30) % 60; if (d < 14) { g.fillStyle(0x060508, 1); g.fillRect(cx + (i ? 7 : -8), by - 6 + d * 0.5, 2, 2); }
     }
-    // the skull on top: purple bone, black outline, eyes that glow (brighter with his stage, and when he can pray)
-    const sy = top - 7;
-    g.fillStyle(0x0b0a14, 1); g.fillCircle(cx, sy, 9); g.fillRect(cx - 6, sy + 3, 12, 8);
-    g.fillStyle(0x5a2a8a, 1); g.fillCircle(cx, sy, 8); g.fillRect(cx - 5, sy + 3, 10, 7);
-    g.fillStyle(0x7a3ab0, 1); g.fillCircle(cx - 2, sy - 3, 4);
+    // the skull on top: sludge-soaked, eyes glowing; laughing when the meter is full
+    const laugh = ready, jaw = laugh ? ((frame >> 2) % 2 ? 4 : 1) : 0, rattle = laugh ? ((frame >> 1) % 2 ? 1 : -1) : 0;
+    const sx = cx + rattle, sy = top - 8 + (laugh ? Math.round(Math.sin(frame * 0.5)) : 0);
+    g.fillStyle(0x060508, 1); g.fillCircle(sx, sy, 9); g.fillRect(sx - 6, sy + 3, 12, 6);
+    g.fillStyle(0x3a2050, 1); g.fillCircle(sx, sy, 8); g.fillRect(sx - 5, sy + 3, 10, 5);
+    g.fillStyle(0x5a3080, 1); g.fillCircle(sx - 2, sy - 3, 4);
+    g.fillStyle(0x060508, 1);                               // sludge dripping over the cranium
+    g.fillEllipse(sx + 1, sy - 7, 14, 5); for (const [dx, l] of [[-5, 4], [-1, 6 + ((frame >> 3) % 3)], [4, 3]]) { g.fillRect(sx + dx, sy - 6, 2, l); g.fillCircle(sx + dx + 1, sy - 5 + l, 1.3); }
     const eye = [0xf4eefc, 0xe0c8ff, 0xc890ff, 0xff7aff][this.sludge || 0];
-    g.fillStyle(0x0b0a14, 1); g.fillRect(cx - 6, sy - 1, 5, 5); g.fillRect(cx + 1, sy - 1, 5, 5);
-    g.fillStyle(eye, 0.7 + 0.3 * pulse); g.fillRect(cx - 5, sy, 3, 3); g.fillRect(cx + 2, sy, 3, 3);
-    if (pulse || this.sludge >= 3) { g.fillStyle(eye, 0.25); g.fillCircle(cx - 3.5, sy + 1.5, 4); g.fillCircle(cx + 3.5, sy + 1.5, 4); }
-    g.fillStyle(0x0b0a14, 1); g.fillRect(cx - 1, sy + 4, 2, 2);                               // nose
-    for (let i = 0; i < 4; i++) { g.fillStyle(0xf4eefc, 1); g.fillRect(cx - 4 + i * 2.5, sy + 7, 1.5, 2); }   // teeth
-    // its crown of thorns: one spike for each stage he's reached
-    for (let i = 0; i <= (this.sludge || 0); i++) {
-      const a = -Math.PI / 2 + (i - 1.5) * 0.45;
-      g.lineStyle(3, 0x0b0a14, 1); g.lineBetween(cx + Math.cos(a) * 8, sy + Math.sin(a) * 8, cx + Math.cos(a) * 14, sy + Math.sin(a) * 14);
-      g.lineStyle(1, i === 3 ? 0xff7aff : 0xf4eefc, 1); g.lineBetween(cx + Math.cos(a) * 8, sy + Math.sin(a) * 8, cx + Math.cos(a) * 14, sy + Math.sin(a) * 14);
+    if (laugh) {                                            // eyes squeezed shut, glowing: ^ ^
+      g.lineStyle(2, eye, 1); g.lineBetween(sx - 6, sy + 2, sx - 4, sy); g.lineBetween(sx - 4, sy, sx - 2, sy + 2); g.lineBetween(sx + 2, sy + 2, sx + 4, sy); g.lineBetween(sx + 4, sy, sx + 6, sy + 2);
+      g.fillStyle(eye, 0.25); g.fillCircle(sx - 4, sy + 1, 5); g.fillCircle(sx + 4, sy + 1, 5);
+    } else {
+      g.fillStyle(0x060508, 1); g.fillRect(sx - 6, sy - 1, 5, 5); g.fillRect(sx + 1, sy - 1, 5, 5);
+      g.fillStyle(eye, 0.8 + 0.2 * Math.sin(frame * 0.1)); g.fillRect(sx - 5, sy, 3, 3); g.fillRect(sx + 2, sy, 3, 3);
     }
+    g.fillStyle(0x060508, 1); g.fillRect(sx - 1, sy + 4, 2, 2);                                 // nose
+    for (let i = 0; i < 4; i++) { g.fillStyle(0xf4eefc, 1); g.fillRect(sx - 4 + i * 2.5, sy + 7, 1.5, 2); }   // top teeth
+    // the jaw, hanging open as it laughs
+    g.fillStyle(0x060508, 1); g.fillRect(sx - 6, sy + 9 + jaw - 1, 12, 5); g.fillStyle(0x3a2050, 1); g.fillRect(sx - 5, sy + 9 + jaw, 10, 3);
+    for (let i = 0; i < 4; i++) { g.fillStyle(0xf4eefc, 1); g.fillRect(sx - 4 + i * 2.5, sy + 9 + jaw - 1, 1.5, 2); }
+    if (jaw > 1) { g.fillStyle(0x060508, 1); g.fillRect(sx - 4, sy + 9, 8, jaw - 1); }
+    const ha = laugh && !this.eliminated && (frame % 24) < 16;
+    this.oblLaugh.setVisible(ha);
+    if (ha) { const k = (frame % 24) / 16, side = (frame / 24 | 0) % 2 ? 1 : -1; this.oblLaugh.setPosition(sx + side * (13 + k * 6), sy - 4 - k * 8).setAlpha(1 - k * 0.6); }
+  }
+
+  /**
+   * CROSS CUTS (side special), every frame of a cut: draws its slash, holds him up in the air, and when special is
+   * tapped in the cut's window, carries on into the next cut (the last one he has at his stage is the finisher).
+   * @param {object} m - the cut's move
+   * @returns {boolean} true when it started the next cut
+   */
+  cutStep(m) {
+    const D = this.def.devoted, max = D.cuts[this.sludge || 0];
+    if (!this.grounded) { this.vy = Math.min(this.vy, 0.5); if (this.t === 1) this.vx = this.facing * 2; }   // (cuts in the air keep him up)
+    const h = m.hits[0];
+    if (this.t === h.from) {
+      const x = this.x + this.facing * (h.box[0] + h.box[2] / 2), y = this.y + h.box[1] + h.box[3] / 2;
+      this.cutFx = this.cutFx || [];
+      if (m.cut === 9) { this.cutFx.push({ x, y, a: 0.8, len: 70, age: 0 }, { x, y, a: -0.8, len: 70, age: 0 }); sfx('shing', 0.6, 0.7); }
+      else this.cutFx.push({ x, y, a: [-0.6, 0.6, -0.15, 1.2][(m.cut - 1) % 4] * this.facing, len: 52, age: 0 });
+      sfx('slash', 0.5, 0.9 + m.cut * 0.07);
+    }
+    if (!m.next || !this.buffer.special || this.t < m.next[0] || this.t > m.next[1]) return false;
+    this.buffer.special = 0;
+    const n = m.cut + 1;
+    this.startAttack(n >= max ? 'sideBF' : 'sideB' + n);
+    return true;
   }
 
   /**
@@ -426,6 +474,203 @@ export class FighterDevoted {
       const q = P(lx, ly), s2 = Math.sin(t * 0.06 + lx) * S;
       g.fillStyle(c, a); g.fillRect(q.x + s2 - S, q.y, 2 * S, 3 * S);
     }
+  }
+
+  /**
+   * FEED THE DARK (his Limit): throws the karambit at the nearest opponent in reach. If it sticks, a cutscene
+   * (`drawRite`): a giant shadow demon of sludge rises behind them, grabs them, lifts them and tears them in half -
+   * back in the arena they're KO'd on the spot. With nobody in reach (or if they vanish) the knife just flies off.
+   */
+  riteLimit(L) {
+    const m = this.match;
+    this.vx = 0; this.lx = 0; this.vy = this.grounded ? 0 : Math.min(this.vy, 0.5);
+    if (this.t === 1) {
+      let best = null, bd = L.reach;
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.eliminated) continue;
+        const d = Math.hypot(o.x - this.x, o.y - this.y); if (d < bd) { bd = d; best = o; }
+      }
+      if (best) this.facing = Math.sign(best.x - this.x) || this.facing;
+      this.ult = { rite: true, target: best, victims: best ? [best] : [], phase: 'aim', ct: 0 };
+      sfx('curse', 0.6, 0.6);
+    }
+    const U = this.ult, T = U.target;
+    if (U.phase === 'aim' && this.t === L.throwAt) {      // the knife leaves his hand
+      U.phase = 'throw'; U.kx = this.x + this.facing * 14; U.ky = this.y - 38; U.kvx = this.facing * L.knifeSpeed; U.kvy = 0; U.spin = 0;
+      sfx('swing', 0.8, 0.8); sfx('whoosh', 0.5, 1.2);
+    }
+    if (U.phase === 'throw') {
+      U.spin += 0.6;
+      const live = T && T.alive && T.state !== 'respawn' && !T.isIntangible();
+      if (live) {                                           // homing in on them
+        const dx = T.x - U.kx, dy = T.y - 30 - U.ky, d = Math.hypot(dx, dy);
+        if (d < 16) {                                       // it sticks: the cutscene
+          sfx('hit', 0.9, 0.7); sfx('bighit', 0.6, 0.5); m.shake(6, 8);
+          U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this; U.origin = { x: this.x, y: this.y };
+          T.vx = T.vy = T.lx = T.ly = 0; T.setState('hitstun'); T.hitstun = 999; U.tx = T.x; U.ty = T.y;
+          return;
+        }
+        U.kvx = dx / d * L.knifeSpeed; U.kvy = dy / d * L.knifeSpeed;
+      }
+      U.kx += U.kvx; U.ky += U.kvy;
+      if (!live || this.t > L.throwAt + L.flyFor) { U.phase = 'miss'; U.missEnd = this.t + L.whiff; m.popText(this, '...', '#8a8494'); }
+      return;
+    }
+    if (U.phase === 'miss') { U.kx += U.kvx; U.ky += U.kvy + (this.t - L.throwAt) * 0.02; U.spin += 0.6; if (this.t >= U.missEnd) this.endRite(); return; }
+    if (U.phase === 'cutscene') {
+      const C = L.scene, ct = ++U.ct;
+      if (!T.alive) return this.endRite();
+      T.vx = T.vy = T.lx = T.ly = 0; T.x = U.tx; T.y = U.ty;
+      if (ct === C.rise) { sfx('rumble', 0.8, 0.6); sfx('roar', 0.6, 0.45); }
+      if (ct === C.grab) { sfx('bighit', 0.8, 0.5); sfx('laugh', 0.6, 0.5); }
+      if (ct === C.lift) sfx('rumble', 0.5, 0.8);
+      if (ct === C.tear) { sfx('slash', 1, 0.5); sfx('bighit', 1, 0.4); sfx('ko', 0.7, 0.6); }
+      if (ct >= C.end) {                                    // back in the arena: they're gone
+        m.frozen = 0; m.cutscene = null; this.x = U.origin.x; this.y = U.origin.y;
+        T.hitstun = 0; T.setState('air'); T.lastHitBy = this; T.lastHitTimer = 120;
+        const R = Math.random;
+        for (let i = 0; i < 30; i++) m.particles.push({ x: T.x, y: T.y - 30, vx: (R() - 0.5) * 8, vy: -1 - R() * 5, life: 40, color: SLUDGE[i % 3], size: 3, grav: 0.22 });
+        m.popText(T, 'FED TO THE DARK', '#c890ff'); m.shake(14, 12);
+        m.onKO(T);
+        U.phase = 'out'; U.outEnd = this.t + 20;
+      }
+      return;
+    }
+    if (U.phase === 'out' && this.t >= U.outEnd) this.endRite();
+  }
+
+  /** Ends FEED THE DARK (lifting the cutscene if it was still on). */
+  endRite() {
+    const U = this.ult, m = this.match;
+    if (U && U.phase === 'cutscene') { m.frozen = 0; m.cutscene = null; if (U.origin) { this.x = U.origin.x; this.y = U.origin.y; } if (U.target) { U.target.hitstun = 0; U.target.setState('air'); } }
+    this.ult = null; this.invincible = 30; this.setState(this.grounded ? 'idle' : 'air');
+  }
+
+  /**
+   * Draws FEED THE DARK: the spinning karambit in the arena, then the cutscene on screen - the dark, the victim with
+   * the knife in them, the giant sludge demon rising, its hands closing round them, lifting them, and the tear.
+   * @param {object|null} U - the Limit's state (null clears it all away)
+   */
+  drawRite(U) {
+    const m = this.match;
+    if (!this.riteG) {
+      this.riteG = this.scene.add.graphics().setDepth(30); m.addWorld(this.riteG);
+      this.riteUI = this.scene.add.graphics().setDepth(40); m.addUI(this.riteUI);
+      this.riteFront = this.scene.add.graphics().setDepth(42); m.addUI(this.riteFront);
+      this.riteTop = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteTop);
+      this.riteBot = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteBot);
+      this.riteText = this.scene.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '10px', color: '#c890ff' }).setOrigin(0.5).setDepth(43).setVisible(false); m.addUI(this.riteText);
+    }
+    const g = this.riteG, ui = this.riteUI, fr = this.riteFront;
+    g.clear(); ui.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false);
+    if (!U) return;
+    if (U.phase === 'throw' || U.phase === 'miss') {        // the knife, spinning through the air
+      for (let i = 1; i <= 3; i++) { g.fillStyle(0x7a2ad8, 0.25 / i); g.fillCircle(U.kx - U.kvx * i * 0.6, U.ky - U.kvy * i * 0.6, 4); }
+      this.drawKarambit(g, U.kx, U.ky, U.spin, 1);
+      return;
+    }
+    if (U.phase !== 'cutscene') return;
+    const L = this.def.limit, C = L.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 64, R = Math.random;
+    // ---- the dark: a black void, a lake of sludge for a floor, purple mist
+    for (let y = 0; y < floor; y += 8) { const k = y / floor; ui.fillStyle(Phaser.Display.Color.GetColor(14 + k * 22, 8 + k * 10, 22 + k * 30), 1); ui.fillRect(0, y, W, 8); }   // a sick purple glow low down
+    for (let i = 0; i < 6; i++) { ui.fillStyle(0x3a2450, 0.18); ui.fillEllipse(W / 2 + Math.sin(ct * 0.01 + i) * 120, floor - 20 - i * 16, 560 - i * 50, 36); }
+    ui.fillStyle(0x0b0810, 1); ui.fillRect(0, floor, W, H - floor);
+    for (let x = 0; x < W; x += 6) { ui.fillStyle(0x2e2a38, 0.5); ui.fillRect(x, floor + Math.round(Math.sin(x * 0.07 + ct * 0.1) * 1.5), 4, 1); }
+    // ---- the demon
+    const rise = Math.max(0, Math.min(1, (ct - C.rise) / 40)), dx = W * 0.68, headY = floor - 20 - rise * 196;
+    const lift = Math.max(0, Math.min(1, (ct - C.lift) / (C.tear - C.lift - 6)));
+    const vx = W * 0.4, vy = floor - lift * 110 - (ct >= C.grab ? 4 : 0), torn = ct >= C.tear, since = ct - C.tear;
+    if (rise > 0) this.drawDemon(ui, dx, headY, floor, rise, ct, C);
+    // ---- them, with the knife in them; torn in two after the tear
+    const vTex = T.sheets.idle;
+    for (const [spr, top] of [[this.riteTop, true], [this.riteBot, false]]) {
+      if (T.def.menuSheets) showFighter(spr, T.def, 0, T.skin);
+      else spr.setTexture(vTex, 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
+      spr.setScale(2).setFlipX(!!T.def.facesLeft).setVisible(true).setTintMode(Phaser.TintModes.MULTIPLY).setTint(torn ? 0x9a8aa8 : 0xd8d0e0);
+      const fh = spr.frame.realHeight, fw = spr.frame.realWidth, waist = Math.max(4, Math.round((T.def.originY ?? 1) * fh - T.body.h * 0.55));
+      if (top) spr.setCrop(0, 0, fw, waist); else spr.setCrop(0, waist, fw, fh - waist);
+      const k = torn ? Math.min(1, since / 18) : 0, shake = ct >= C.grab && !torn ? Math.sin(ct * 2) * 1.5 : 0;
+      spr.setPosition(vx + shake + (top ? -1 : 1) * k * 70, vy + (top ? -1 : 1) * k * 40 + (torn ? since * since * 0.03 : 0)).setRotation(torn ? (top ? -1 : 1) * k * 0.9 : 0);
+    }
+    if (!torn) this.drawKarambit(fr, vx + 8, vy - T.body.h * 1.1, 2.4, 2);
+    // ---- its hands: closing round them from the grab, the second one at their legs for the tear
+    if (ct >= C.grab - 10 && !torn) {
+      const k = Math.min(1, (ct - (C.grab - 10)) / 10);
+      this.drawClaw(fr, vx + 26 - (1 - k) * 60, vy - T.body.h * 1.3, 1, k);
+      if (ct >= C.tear - 18) this.drawClaw(fr, vx + 24 + (1 - Math.min(1, (ct - (C.tear - 18)) / 10)) * 60, vy - 10, 1, 1);
+    }
+    if (torn && since < 30) {                                // the tear: sludge bursting out of them
+      if (!U.spray) U.spray = Array.from({ length: 50 }, () => ({ x: vx, y: vy - T.body.h * 1.1, vx: (R() - 0.5) * 9, vy: -2 - R() * 6, r: 1 + R() * 3 }));
+      for (const p of U.spray) { p.x += p.vx; p.y += p.vy; p.vy += 0.35; fr.fillStyle(p.r > 2.5 ? 0x4a3248 : 0x060508, 1); fr.fillCircle(p.x, p.y, p.r); }
+      this.drawClaw(fr, vx - 50 - since * 2, vy - T.body.h * 1.4 - since, 1, 1); this.drawClaw(fr, vx + 70 + since * 2, vy + 20 + since, 1, 1);
+    }
+    // impact frames at the tear
+    if (torn && since < 4) { fr.fillStyle(since < 2 ? 0xffffff : 0x000000, 1); fr.fillRect(0, 0, W, H); if (since >= 2) { this.riteTop.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); this.riteBot.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); } else { this.riteTop.setVisible(false); this.riteBot.setVisible(false); } }
+    // ---- letterbox, a line of text, fades
+    fr.fillStyle(0x000000, 1); fr.fillRect(0, 0, W, 34); fr.fillRect(0, H - 34, W, 34);
+    const line = ct < C.rise ? '' : ct < C.grab ? 'IT HUNGERS.' : torn && since > 10 ? 'FED.' : '';
+    if (line) this.riteText.setText(line).setVisible(true);
+    if (ct < 8 || ct > C.end - 8) { fr.fillStyle(0x000000, ct < 8 ? 1 - ct / 8 : (ct - (C.end - 8)) / 8); fr.fillRect(0, 0, W, H); }
+  }
+
+  /**
+   * The shadow demon of the Limit: a towering body of black sludge rising out of the floor, curved horns, white
+   * slit eyes, an enormous grin full of teeth, purple sheen and drips, and long arms.
+   * @param {number} cx - its middle; headY - where its head is; floor - the sludge lake; rise - how far it's up (0-1)
+   */
+  drawDemon(ui, cx, headY, floor, rise, ct, C) {
+    const sway = Math.sin(ct * 0.04) * 6, hx = cx + sway, R = Math.random;
+    ui.fillStyle(0x4a2a68, 0.9);                                                                                // a faint purple rim round its silhouette
+    ui.fillEllipse(hx, (headY + floor) / 2 + 30, 228, floor - headY + 48); ui.fillEllipse(hx, headY, 128, 108);
+    ui.fillTriangle(hx - 48, headY - 20, hx - 28, headY - 44, hx - 100, headY - 116); ui.fillTriangle(hx + 48, headY - 20, hx + 28, headY - 44, hx + 100, headY - 116);
+    ui.fillStyle(0x020203, 1);
+    ui.fillTriangle(hx - 150, floor + 4, hx + 150, floor + 4, hx, headY + 30);                                  // its body, a mound of sludge
+    ui.fillEllipse(hx, (headY + floor) / 2 + 30, 220, floor - headY + 40);
+    ui.fillEllipse(hx, headY, 120, 100);                                                                        // the head
+    ui.fillTriangle(hx - 44, headY - 22, hx - 30, headY - 40, hx - 96, headY - 110);                             // horns
+    ui.fillTriangle(hx + 44, headY - 22, hx + 30, headY - 40, hx + 96, headY - 110);
+    ui.fillStyle(0x2e1a3e, 0.8);                                                                                 // a purple sheen
+    ui.fillEllipse(hx - 30, headY - 20, 30, 12); ui.fillRect(hx - 90, headY + 60, 4, floor - headY - 70);
+    // arms, reaching toward the victim
+    const reach = Math.min(1, Math.max(0, (ct - (C.grab - 24)) / 20));
+    ui.lineStyle(26, 0x020203, 1); ui.lineBetween(hx - 60, headY + 70, hx - 60 - reach * 90, headY + 120 + reach * 20);
+    ui.lineBetween(hx + 60, headY + 70, hx + 70, floor - 20);
+    // the eyes: white slits, and the grin
+    const blink = (ct % 90) < 4;
+    ui.fillStyle(0xffffff, 1);
+    if (!blink) { ui.fillTriangle(hx - 40, headY - 6, hx - 10, headY + 2, hx - 36, headY + 6); ui.fillTriangle(hx + 40, headY - 6, hx + 10, headY + 2, hx + 36, headY + 6); }
+    ui.fillStyle(0xd8b0ff, 0.25); ui.fillCircle(hx - 26, headY, 16); ui.fillCircle(hx + 26, headY, 16);
+    const open = ct >= C.grab ? 10 + Math.sin(ct * 0.6) * 4 : 4;                                                  // (laughing once it has them)
+    ui.fillStyle(0x0b0810, 1); ui.fillEllipse(hx, headY + 28, 90, 12 + open);
+    ui.fillStyle(0xf4eefc, 1);
+    for (let i = -5; i <= 5; i++) { const x = hx + i * 8, d = Math.abs(i); ui.fillTriangle(x - 3, headY + 23 - d * 0.4, x + 3, headY + 23 - d * 0.4, x, headY + 30); ui.fillTriangle(x - 3, headY + 33 + open * 0.5, x + 3, headY + 33 + open * 0.5, x, headY + 27 + open * 0.3); }
+    for (let i = 0; i < 7; i++) {                                                                                 // drips running off it
+      const x = hx - 70 + i * 23, l = 10 + ((ct + i * 13) % 30);
+      ui.fillStyle(0x020203, 1); ui.fillRect(x, headY + 40, 3, l); ui.fillCircle(x + 1.5, headY + 40 + l, 2.5);
+    }
+    if (rise < 1 && R() < 0.8) { ui.fillStyle(0x0b0810, 1); ui.fillCircle(hx + (R() - 0.5) * 260, floor - R() * 10, 3 + R() * 5); }      // the lake churning as it rises
+  }
+
+  /**
+   * One of the demon's hands: four long black claws curled round a point.
+   * @param {number} side - which way it faces; k - how closed it is (0-1)
+   */
+  drawClaw(g, x, y, side, k) {
+    g.fillStyle(0x020203, 1); g.fillEllipse(x + side * 10, y, 34, 26);
+    for (let i = 0; i < 4; i++) {
+      const fy = y - 12 + i * 8, curl = 18 + 10 * k;
+      g.lineStyle(6, 0x020203, 1); g.lineBetween(x, fy, x - side * curl, fy + 2 + 4 * k);
+      g.lineStyle(2, 0x2e1a3e, 1); g.lineBetween(x - side * (curl - 6), fy + 1, x - side * curl, fy + 2 + 4 * k);
+    }
+  }
+
+  /** His karambit, drawn on its own (thrown, or stuck in someone): a curved hooked blade with a ring at the grip. */
+  drawKarambit(g, x, y, ang, s) {
+    const c = Math.cos(ang), sn = Math.sin(ang), P = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+    g.lineStyle(2 * s, 0x1a1418, 1); g.strokeCircle(...P(-6, 0), 2.5 * s);
+    g.lineStyle(2 * s, 0x2e2a38, 1); g.lineBetween(...P(-4, 0), ...P(1, 0));
+    g.lineStyle(2 * s, 0xd8dce4, 1);
+    let prev = P(1, 0); for (let i = 1; i <= 6; i++) { const t = i / 6, pt = P(1 + t * 8, -Math.sin(t * 2.6) * 5); g.lineBetween(...prev, ...pt); prev = pt; }
   }
 
   /**
