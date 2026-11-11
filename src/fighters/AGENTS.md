@@ -67,16 +67,24 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   KOs. DROWNED: extra air jumps (`wingJumps`) and hovers like a demon (`devoted.hover`: `this.demonFloat` = a FULL AERO-style
   float, used by Fighter.physics + fighterRender; holding jump on the way down hangs him in the air, `hover.hold` frames per trip). The sludge stains the stage: `match.sludgeStains` = `[{ plat, dx, w, owner,
   age }]` (`stain()`, drawn by the first DEVOTED into `match.sludgeG`) - kept for a later mechanic. Limit FEED THE DARK
-  (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawKarambit`): throws the karambit (homing) at the nearest
-  opponent in `reach`; if it sticks, a screen-space cutscene (`limit.scene` beats, like Rosemary's BIRTHDAY SHOW: `m.frozen`,
+  (`type: 'rite'`, `riteLimit` / `drawRite` / `drawDemon` / `drawKarambit`): throws the karambit straight ahead (no homing - it sticks
+  in the first opponent it reaches); if it sticks, a screen-space cutscene (`limit.scene` beats, like Rosemary's BIRTHDAY SHOW: `m.frozen`,
   `m.cutscene`, `ult.victims`): black, they look round under a thin light, a hulking man-shaped sludge demon steps out of
   the shadows (black on black - only its purple rim light fades in; drawn at 0,0 into `riteMid`, which is moved/scaled,
-  arms by 2-bone IK to the pose's hand points), uppercuts them, flies up after them, grabs and tears them in half (the
+  arms by 2-bone IK to the pose's hand points), grabs their head and slams them into the floor twice (`slam1`/`slam2`:
+  impact frames, floor cracks, sludge spray), uppercuts them, flies up after them, grabs and tears them in half (the
   victim drawn as two cropped sprites) -> `m.onKO` = instant KO. Miss -> `whiff`. (The old BLACK TIDE, `tideLimit`, is still in the file, unused.) CPU walks back
   to the symbol to pray when full (cpu.js).
-  Specials: THE MAW (neutral-B, `neutralB.maw` -> `throwMaw` -> `match.spawnMaw` = `SludgeMaw` in entities.js: a puddle on the
-  nearest floor ahead (further with forward held) bubbles, then sludge jaws snap up out of it - pops them up - and leave a stain;
-  bigger/harder per stage. The old OFFERING globs - `throwGlobs`/`SludgeGlob` - are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
+  Specials: DEMONS (neutral-B, like Shulk's Monado Arts: `neutralB.demons`; with no demon out, tryCommon -> `startDemonPick`
+  -> state `demonpick` (`st_demonpick`, `drawDemonWheel`, name text `this.pickText`): he stops, tapping the stick turns the wheel of
+  `def.demons.list`, special/attack calls one (`match.spawnDemon` = `DemonPet` in entities.js), shield cancels. The demon floats
+  at his shoulder for `demons.life` (20 s, a ring shows it running out), sets his powers while out (`demonSpeed` / `demonKb` /
+  `demonDmg` in Fighter's getters; the glutton's heal and the weeper's double devotion go through addDevotion -> `ownerHit`), and
+  his neutral-B then makes it attack (`neutralB.cmdAt` -> `demonCommand` -> `DemonPet.attack`, cooldown `cd`); its hits are done in
+  `DemonPet.step` with `strike()` (not hitbox()). Kinds: glutton (lunging bite), wraith (rips through in a line), brute (floor
+  slam both ways), weeper (3 tears onto the nearest foe, can spike), hollow (hooked chain that drags them back). Faces:
+  `drawDemonFace`. It leaves when its time's up or he's KO'd (Fighter.ko). The old THE MAW (`throwMaw`/`SludgeMaw`) and
+  OFFERING (`throwGlobs`/`SludgeGlob`) are unused), CROSS CUTS (side-B, like Cloud's Cross Slash: moves
   `sideB`, `sideB2..4`, finisher `sideBF`, each with `cut`/`next`; `cutStep` from st_attack chains to the next cut on a
   special tap in the window, up to `devoted.cuts[stage]`, holds him up in the air; each cut's slash `this.cutFx` hangs where it
   hit (`cutLanded`, from MatchScene.applyHit) until the combo ends, then they all flash and vanish; Fighter.dmgMult skips his

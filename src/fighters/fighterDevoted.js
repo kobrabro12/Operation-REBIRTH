@@ -4,6 +4,7 @@
 import { sfx } from '../audio/sfx.js';
 import { FONT, VIEW_W, VIEW_H } from '../config.js';
 import { showFighter } from './roster.js';
+import { drawDemonFace } from './entities.js';
 import { skinTexture } from './skins.js';
 
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
@@ -64,6 +65,59 @@ export class FighterDevoted {
   }
 
   /**
+   * DEMONS (neutral special, like Shulk's Monado Arts): stops him to choose a demon from the wheel (state demonpick).
+   */
+  startDemonPick() {
+    this.setState('demonpick'); this.pickSel = this.pickSel ?? 0; this.pickDir = 99; this.vx *= 0.3;
+    sfx('curse', 0.5, 0.7); sfx('select', 0.3, 0.6);
+    if (!this.pickText) { this.pickText = this.scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#f4eefc', align: 'center', stroke: '#0b0a14', strokeThickness: 3, lineSpacing: 3 }).setOrigin(0.5).setDepth(31); this.match.addWorld(this.pickText); }
+  }
+
+  /**
+   * Every frame on the wheel: he hangs still (falling slowly in the air); tapping the stick turns the wheel, special or
+   * attack calls it, shield backs out. If he waits too long it calls the one he's pointing at.
+   * @param {object} c - his controller
+   */
+  st_demonpick(c) {
+    const L = this.def.demons.list, n = L.length;
+    this.vx *= 0.8; if (!this.grounded) this.vy = Math.min(this.vy, 1.2);
+    const dir = Math.abs(c.x) > 0.5 ? Math.sign(c.x) : Math.abs(c.y) > 0.5 ? Math.sign(c.y) : 0;   // right / down = next round the wheel, left / up = back
+    if (dir && dir !== this.pickDir) { this.pickSel = (this.pickSel + dir + n) % n; sfx('menu', 0.35, 1.3); }
+    this.pickDir = dir;
+    const pick = L[this.pickSel];
+    this.pickText.setText(pick.name + '\n' + pick.power).setPosition(Math.round(this.x), Math.round(this.y - 116));
+    this.buffer.jump = 0;                                    // (up on the stick is a direction here, not a jump)
+    if (c.held('shield')) { this.setState(this.grounded ? 'idle' : 'air'); return; }
+    if (this.buffer.special || this.buffer.attack || this.t > this.def.demons.pickFor) {
+      this.buffer.special = this.buffer.attack = 0;
+      this.demon = this.match.spawnDemon(this, pick);
+      this.match.popText(this, pick.name, '#c890ff'); sfx('roar', 0.35, 1.2); this.match.shake(3, 8);
+      this.setState(this.grounded ? 'idle' : 'air');
+    }
+  }
+
+  /** His neutral special with a demon out: it attacks (if it's ready). */
+  demonCommand() {
+    if (this.demon && this.demon.alive) this.demon.attack();
+  }
+
+  /**
+   * The demon wheel round him while he chooses: five demon faces in a ring, the one he's pointing at big and lit,
+   * a dark circle behind, and the name + power of the chosen one over his head.
+   */
+  drawDemonWheel(g) {
+    const L = this.def.demons.list, n = L.length, cx = this.x, cy = this.y - 34, R = 46, k = Math.min(1, this.t / 8);
+    g.fillStyle(0x0b0a14, 0.55 * k); g.fillCircle(cx, cy, R + 18);
+    g.lineStyle(2, 0x4a3248, 0.9 * k); g.strokeCircle(cx, cy, R + 18);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / n, x = cx + Math.cos(a) * R * k, y = cy + Math.sin(a) * R * k, on = i === this.pickSel;
+      g.fillStyle(on ? L[i].color : 0x1a1418, 1); g.fillCircle(x, y, on ? 15 : 11);
+      g.lineStyle(on ? 2 : 1, on ? 0xf4eefc : L[i].color, 1); g.strokeCircle(x, y, on ? 15 : 11);
+      drawDemonFace(g, L[i].kind, x, y, on ? 1 : 0.75, this.age);
+    }
+  }
+
+  /**
    * CROSS CUTS: a cut connected - its mark moves onto the spot where it hit them.
    * @param {object} t - who it hit
    */
@@ -113,6 +167,8 @@ export class FighterDevoted {
   /** A hit he landed: one more toward his next stage. Says PRAY when the meter is full. */
   addDevotion(n = 1) {
     const D = this.def.devoted;
+    if (this.demon && this.demon.alive) this.demon.ownerHit();        // (his demon's power: THE GLUTTON heals him...)
+    if (this.demon && this.demon.alive && this.demon.kind === 'weeper' && (this.weepHits = (this.weepHits || 0) + 1) % 2 === 0) n++;   // (...THE WEEPER doubles every second hit)
     if (this.sludge === undefined || this.sludge >= 3) return;
     const need = D.need[this.sludge], was = this.devotion;
     this.devotion = Math.min(need, this.devotion + n);
@@ -211,6 +267,8 @@ export class FighterDevoted {
       g.lineStyle(2 * k, flash ? 0x7a2ad8 : 0xf4eefc, k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
       if (c.age === 0) { g.fillStyle(0xf4eefc, 0.6); g.fillCircle(c.x + dx * Math.sin(this.age * 0.3), c.y + dy * Math.sin(this.age * 0.3), 1.5); }   // a glint running along it
     }
+    if (this.state === 'demonpick') this.drawDemonWheel(g);
+    if (this.pickText) this.pickText.setVisible(this.state === 'demonpick' && this.alive);
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
   }
@@ -507,21 +565,15 @@ export class FighterDevoted {
   }
 
   /**
-   * FEED THE DARK (his Limit): throws the karambit at the nearest opponent in reach. If it sticks, a cutscene
+   * FEED THE DARK (his Limit): throws the karambit straight ahead (no homing). If it sticks in someone, a cutscene
    * (`drawRite`): a giant shadow demon of sludge rises behind them, grabs them, lifts them and tears them in half -
-   * back in the arena they're KO'd on the spot. With nobody in reach (or if they vanish) the knife just flies off.
+   * back in the arena they're KO'd on the spot. If it hits nobody, the knife just flies off.
    */
   riteLimit(L) {
     const m = this.match;
     this.vx = 0; this.lx = 0; this.vy = this.grounded ? 0 : Math.min(this.vy, 0.5);
     if (this.t === 1) {
-      let best = null, bd = L.reach;
-      for (const o of m.fighters) {
-        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.eliminated) continue;
-        const d = Math.hypot(o.x - this.x, o.y - this.y); if (d < bd) { bd = d; best = o; }
-      }
-      if (best) this.facing = Math.sign(best.x - this.x) || this.facing;
-      this.ult = { rite: true, target: best, victims: best ? [best] : [], phase: 'aim', ct: 0 };
+      this.ult = { rite: true, target: null, victims: [], phase: 'aim', ct: 0 };   // (no aiming help: it flies the way he faces)
       sfx('curse', 0.6, 0.6);
     }
     const U = this.ult, T = U.target;
@@ -529,21 +581,20 @@ export class FighterDevoted {
       U.phase = 'throw'; U.kx = this.x + this.facing * 14; U.ky = this.y - 38; U.kvx = this.facing * L.knifeSpeed; U.kvy = 0; U.spin = 0;
       sfx('swing', 0.8, 0.8); sfx('whoosh', 0.5, 1.2);
     }
-    if (U.phase === 'throw') {
-      U.spin += 0.6;
-      const live = T && T.alive && T.state !== 'respawn' && !T.isIntangible();
-      if (live) {                                           // homing in on them
-        const dx = T.x - U.kx, dy = T.y - 30 - U.ky, d = Math.hypot(dx, dy);
-        if (d < 16) {                                       // it sticks: the cutscene
+    if (U.phase === 'throw') {                              // straight ahead - it sticks in the first one it reaches
+      U.spin += 0.6; U.kvy += 0.06; U.kx += U.kvx; U.ky += U.kvy;
+      for (const o of m.fighters) {
+        if (o === this || !o.alive || o.team === this.team || o.state === 'respawn' || o.isIntangible()) continue;
+        const hb = o.hurtbox();
+        if (U.kx > hb.x1 - 6 && U.kx < hb.x2 + 6 && U.ky > hb.y1 - 6 && U.ky < hb.y2 + 6) {   // it sticks: the cutscene
           sfx('hit', 0.9, 0.7); sfx('bighit', 0.6, 0.5); m.shake(6, 8);
+          U.target = o; U.victims = [o];
           U.phase = 'cutscene'; U.ct = 0; m.frozen = 9999; m.cutscene = this; U.origin = { x: this.x, y: this.y };
-          T.vx = T.vy = T.lx = T.ly = 0; T.setState('hitstun'); T.hitstun = 999; U.tx = T.x; U.ty = T.y;
+          o.vx = o.vy = o.lx = o.ly = 0; o.setState('hitstun'); o.hitstun = 999; U.tx = o.x; U.ty = o.y;
           return;
         }
-        U.kvx = dx / d * L.knifeSpeed; U.kvy = dy / d * L.knifeSpeed;
       }
-      U.kx += U.kvx; U.ky += U.kvy;
-      if (!live || this.t > L.throwAt + L.flyFor) { U.phase = 'miss'; U.missEnd = this.t + L.whiff; m.popText(this, '...', '#8a8494'); }
+      if (this.t > L.throwAt + L.flyFor) { U.phase = 'miss'; U.missEnd = this.t + L.whiff; m.popText(this, '...', '#8a8494'); }
       return;
     }
     if (U.phase === 'miss') { U.kx += U.kvx; U.ky += U.kvy + (this.t - L.throwAt) * 0.02; U.spin += 0.6; if (this.t >= U.missEnd) this.endRite(); return; }
@@ -555,9 +606,11 @@ export class FighterDevoted {
       if (ct > C.look && ct < C.emerge && (ct - C.look) % 22 === 0) sfx('land', 0.25, 1.5);   // they look round, shuffling
       if (ct === C.emerge) { sfx('rumble', 0.7, 0.5); sfx('curse', 0.7, 0.5); }
       if (ct === C.emerge + 30) sfx('roar', 0.6, 0.45);
+      if (ct === C.grab) { sfx('hit', 0.6, 0.5); sfx('laugh', 0.5, 0.4); }            // it grabs them by the head
+      if (ct === C.slam1 || ct === C.slam2) { sfx('bighit', 1, 0.4); sfx('land', 1, 0.5); sfx('hit', 0.7, 0.5); m.shake(10, 8); }   // slammed into the floor
       if (ct === C.hit) { sfx('bighit', 1, 0.45); sfx('hit', 0.8, 0.6); }            // the uppercut
       if (ct === C.fly) sfx('whoosh', 0.8, 0.6);
-      if (ct === C.grab) { sfx('bighit', 0.6, 0.6); sfx('laugh', 0.7, 0.45); }
+      if (ct === C.catch) { sfx('bighit', 0.6, 0.6); sfx('laugh', 0.7, 0.45); }
       if (ct === C.tear) { sfx('slash', 1, 0.5); sfx('bighit', 1, 0.4); sfx('ko', 0.7, 0.6); }
       if (ct >= C.end) {                                    // back in the arena: they're gone
         m.frozen = 0; m.cutscene = null; this.x = U.origin.x; this.y = U.origin.y;
@@ -608,7 +661,7 @@ export class FighterDevoted {
     if (U.phase !== 'cutscene') return;
     const C = this.def.limit.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 60, R = Math.random;
     const clamp = (v) => Math.max(0, Math.min(1, v)), ease = (v) => v * v * (3 - 2 * v);
-    const up = ct >= C.fly ? ease(clamp((ct - C.fly) / (C.grab - C.fly))) : 0;      // how far "up" the camera has flown with them
+    const up = ct >= C.fly ? ease(clamp((ct - C.fly) / (C.catch - C.fly))) : 0;      // how far "up" the camera has flown with them
     // ---- the black, and the shadows (in flight: purple dark with streaks rushing down past them)
     ui.fillStyle(0x000000, 1); ui.fillRect(0, 0, W, H);
     if (ct >= C.look && ct < C.fly) {                        // a thin light from above on them, the floor just visible
@@ -621,17 +674,29 @@ export class FighterDevoted {
     }
     if (ct >= C.fly) {
       ui.fillStyle(0x120a1a, 1); ui.fillRect(0, 0, W, H);
-      for (let i = 0; i < 24; i++) { const x = (i * 97) % W, y = ((i * 53 + ct * (ct < C.grab ? 26 : 4)) % (H + 80)) - 40; ui.fillStyle(0x3a2450, 0.6); ui.fillRect(x, y, 2, ct < C.grab ? 40 : 10); }
+      for (let i = 0; i < 24; i++) { const x = (i * 97) % W, y = ((i * 53 + ct * (ct < C.catch ? 26 : 4)) % (H + 80)) - 40; ui.fillStyle(0x3a2450, 0.6); ui.fillRect(x, y, 2, ct < C.catch ? 40 : 10); }
     }
     // ---- them (screen positions: on the floor, knocked up, held up in front of it)
     let vx = 250, vy = floor, rot = 0, flip = !!T.def.facesLeft;
-    if (ct >= C.look && ct < C.hit) flip = ((Math.floor((ct - C.look) / 22)) % 2 === 1) !== flip;   // looking round, left then right
+    if (ct >= C.look && ct < C.grab) flip = ((Math.floor((ct - C.look) / 22)) % 2 === 1) !== flip;   // looking round, left then right
+    if (ct >= C.grab && ct < C.hit) {                         // grabbed by the head: lifted, slammed into the floor, lifted, slammed again, hauled up
+      const seg = (a, b) => clamp((ct - a) / (b - a));
+      let h = 0;
+      if (ct < C.slam1 - 6) h = 70 * seg(C.grab, C.grab + 12);
+      else if (ct < C.slam1) { h = 70 * (1 - seg(C.slam1 - 6, C.slam1)); rot = -1.5 * seg(C.slam1 - 6, C.slam1); }
+      else if (ct < C.slam1 + 6) rot = -1.5;
+      else if (ct < C.slam2 - 6) { h = 70 * seg(C.slam1 + 6, C.slam1 + 14); rot = -1.5 * (1 - seg(C.slam1 + 6, C.slam1 + 14)); }
+      else if (ct < C.slam2) { h = 70 * (1 - seg(C.slam2 - 6, C.slam2)); rot = 1.5 * seg(C.slam2 - 6, C.slam2); }
+      else if (ct < C.hit - 14) rot = 1.5;
+      else { h = 40 * seg(C.hit - 14, C.hit - 4); rot = 1.5 * (1 - seg(C.hit - 14, C.hit - 4)); }
+      vy = floor - h + (h > 60 ? Math.sin(ct * 1.7) * 2 : 0);
+    }
     if (ct >= C.hit && ct < C.fly) { vy = floor - (ct - C.hit) * 14; vx = 250 + (ct - C.hit) * 3; rot = (ct - C.hit) * 0.3; }   // the uppercut sends them up
-    else if (ct >= C.fly) { const k = clamp((ct - C.fly) / (C.grab - C.fly)); vy = floor - 140 + k * 14 + Math.sin(ct * 0.2) * 2; vx = 280 + k * 30; rot = ct < C.grab ? 3 + (ct - C.fly) * 0.3 : 0; }
+    else if (ct >= C.fly) { const k = clamp((ct - C.fly) / (C.catch - C.fly)); vy = floor - 140 + k * 14 + Math.sin(ct * 0.2) * 2; vx = 280 + k * 30; rot = ct < C.catch ? 3 + (ct - C.fly) * 0.3 : 0; }
     const torn = ct >= C.tear, since = ct - C.tear;
     for (const [spr, top] of [[this.riteTop, true], [this.riteBot, false]]) {
       if (T.def.menuSheets) showFighter(spr, T.def, Math.floor(ct / 6), T.skin);
-      else spr.setTexture(T.sheets.idle, ct < C.hit ? Math.floor(ct / 6) % Math.max(1, Math.min(32, this.scene.textures.get(T.sheets.idle).frameTotal - 1)) : 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
+      else spr.setTexture(T.sheets.idle, ct < C.grab ? Math.floor(ct / 6) % Math.max(1, Math.min(32, this.scene.textures.get(T.sheets.idle).frameTotal - 1)) : 0).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
       spr.setScale(2).setFlipX(flip).setVisible(ct >= C.dark).setTintMode(Phaser.TintModes.MULTIPLY)
         .setTint(ct < C.look ? 0x2a2430 : ct < C.fly ? 0xb8b0c8 : torn ? 0x8a7a98 : 0xd0c8e0).setAlpha(ct < C.look ? clamp((ct - C.dark) / 10) : 1);
       const fh = spr.frame.realHeight, fw = spr.frame.realWidth, waist = Math.max(4, Math.round((T.def.originY ?? 1) * fh - T.body.h * 0.55));
@@ -646,16 +711,22 @@ export class FighterDevoted {
     if (ct >= C.emerge) {
       const a = clamp((ct - C.emerge - 14) / 40), eyes = clamp((ct - C.emerge) / 10), sc = 0.72;
       let X = 440, Y = floor - 110, pose;
-      if (ct < C.hit - 10) pose = { l: [X - 90, Y + 90], r: [X + 90, Y + 95], grin: 4 };                          // looming, arms hanging
+      const head = (k) => [vx + Math.sin(rot) * bh * k, vy - Math.cos(rot) * bh * k];                            // a point up their body (they may be lying down)
+      if (ct < C.grab - 12) pose = { l: [X - 90, Y + 90], r: [X + 90, Y + 95], grin: 4 };                        // looming, arms hanging
+      else if (ct < C.hit - 10) {                                                                                // its hand clamped on their head
+        const k = clamp((ct - (C.grab - 12)) / 12); X = 440 - k * 40;
+        const hd = head(0.92), rest = [X - 90, Y + 90];
+        pose = { l: ct < C.grab ? [rest[0] + (hd[0] - rest[0]) * k, rest[1] + (hd[1] - rest[1]) * k] : hd, r: [X + 90, Y + 95], grin: ct >= C.grab ? 10 : 6 };
+      }
       else if (ct < C.fly) {                                                                                     // the uppercut
-        const k = clamp((ct - (C.hit - 10)) / 10); X -= k * 40;
+        const k = clamp((ct - (C.hit - 10)) / 10); X = 400 - k * 10;
         pose = { l: [X - 90, Y + 80], r: ct < C.hit ? [vx + 60 - (1 - k) * 40, Y + 80 - k * 110] : [vx + 20, vy - bh - 20], grin: 10, fist: true };
-      } else if (ct < C.grab) {                                                                                  // flying up after them, from below
-        const k = ease(clamp((ct - C.fly) / (C.grab - C.fly))); X = 330; Y = floor + 220 - k * 250;
+      } else if (ct < C.catch) {                                                                                  // flying up after them, from below
+        const k = ease(clamp((ct - C.fly) / (C.catch - C.fly))); X = 330; Y = floor + 220 - k * 250;
         pose = { l: [X - 70, Y + 110], r: [vx, chest + (1 - k) * 60], grin: 8, rise: true };
       } else {                                                                                                   // it has them: one hand on each half, then tears
         X = 330; Y = floor - 30;
-        const pull = torn ? Math.min(1, since / 16) * 90 : clamp((ct - C.grab) / (C.tear - C.grab)) * 6;
+        const pull = torn ? Math.min(1, since / 16) * 90 : clamp((ct - C.catch) / (C.tear - C.catch)) * 6;
         pose = { l: [vx - 8 - pull, vy - bh * 0.85 - (torn ? pull * 0.27 : 0)], r: [vx + 8 + pull, vy - bh * 0.3 + (torn ? pull * 0.27 : 0)], grin: torn ? 16 : 12, hold: true, rise: true };
       }
       mid.setPosition(X, Y).setScale(sc);
@@ -667,7 +738,13 @@ export class FighterDevoted {
       for (const p of U.spray) { p.x += p.vx; p.y += p.vy; p.vy += 0.35; fr.fillStyle(p.r > 2.5 ? 0x4a3248 : 0x060508, 1); fr.fillCircle(p.x, p.y, p.r); }
     }
     // impact frames: the uppercut and the tear
-    for (const at of [C.hit, C.tear]) {
+    if (ct >= C.slam1 && ct < C.fly) {                        // cracks in the floor where they were slammed
+      fr.lineStyle(2, 0xd8d0ff, 0.5);
+      for (let i = 0; i < 7; i++) { const a = Math.PI + i * 0.45 + 0.1, l = 20 + (i * 37) % 30; fr.lineBetween(vx - 30, floor, vx - 30 + Math.cos(a) * l * 1.6, floor + Math.abs(Math.sin(a)) * 6); fr.lineBetween(vx + 30, floor, vx + 30 - Math.cos(a) * l * 1.6, floor + Math.abs(Math.sin(a)) * 6); }
+      if (!U.slamSpray || ct === C.slam2) U.slamSpray = Array.from({ length: 30 }, () => ({ x: vx + (R() - 0.5) * 50, y: floor - 4, vx: (R() - 0.5) * 7, vy: -2 - R() * 5, r: 1 + R() * 2.5 }));
+      for (const p of U.slamSpray) { p.x += p.vx; p.y += p.vy; p.vy += 0.4; if (p.y < floor + 4) { fr.fillStyle(p.r > 2 ? 0x4a3248 : 0x060508, 1); fr.fillCircle(p.x, p.y, p.r); } }
+    }
+    for (const at of [C.slam1, C.slam2, C.hit, C.tear]) {
       const d = ct - at;
       if (d >= 0 && d < 4) {
         fr.fillStyle(d < 2 ? 0xffffff : 0x000000, 1); fr.fillRect(0, 0, W, H);
@@ -675,10 +752,10 @@ export class FighterDevoted {
         else for (const spr of [this.riteTop, this.riteBot]) spr.setVisible(false);
       }
     }
-    for (const spr of [this.riteTop, this.riteBot]) if (!(ct - C.hit >= 2 && ct - C.hit < 4) && !(ct - C.tear >= 2 && ct - C.tear < 4)) spr.setDepth(41);
+    for (const spr of [this.riteTop, this.riteBot]) if (![C.slam1, C.slam2, C.hit, C.tear].some((at) => ct - at >= 2 && ct - at < 4)) spr.setDepth(41);
     // ---- letterbox, a line of text, fades
     fr.fillStyle(0x000000, 1); fr.fillRect(0, 0, W, 34); fr.fillRect(0, H - 34, W, 34);
-    const line = ct >= C.look + 10 && ct < C.emerge ? '...HELLO?' : ct >= C.emerge + 20 && ct < C.hit - 6 ? 'IT HUNGERS.' : torn && since > 10 ? 'FED.' : '';
+    const line = ct >= C.look + 10 && ct < C.emerge ? '...HELLO?' : ct >= C.emerge + 20 && ct < C.grab ? 'IT HUNGERS.' : torn && since > 10 ? 'FED.' : '';
     if (line) this.riteText.setText(line).setVisible(true);
     if (ct > C.end - 8) { fr.fillStyle(0x000000, (ct - (C.end - 8)) / 8); fr.fillRect(0, 0, W, H); }
   }

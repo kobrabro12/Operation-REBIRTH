@@ -105,10 +105,10 @@ export class Fighter {
   setState(s) { this.state = s; this.t = 0; }
   actionable() { return ['idle', 'run', 'air', 'land', 'shield'].includes(this.state) || (this.state === 'land' && this.t >= 2); }
   get cursedMult() { return this.curse > 0 ? 0.7 : 1; }
-  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg && !(this.move && this.move.cut && this.state === 'attack') ? this.devoteDmg : 1); }   // (THE DEVOTED: his stage makes him hit harder - except CROSS CUTS, which top out at 20%)   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
-  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
+  get dmgMult() { return (this.soulPowerDamage||1) * (this.soulBattleDamage||1) * this.cursedMult * (this.rage > 0 ? 1.2 : 1) * AERO_BOOST.dmg[this.aeroLevel] * this.modeDmg * (this.shaken > 0 ? 0.7 : 1) * (this.frenzy > 0 ? 1.3 : 1) * (this.axeLost > 0 ? 0.65 : 1) * (this.devoteDmg && !(this.move && this.move.cut && this.state === 'attack') ? this.devoteDmg : 1) * (this.demonDmg || 1); }   // (THE DEVOTED: his stage makes him hit harder - except CROSS CUTS, which top out at 20%)   // ...and without its axe, 35% softer   // SEEN's SCREAM: SHAKEN hits 30% softer, its FRENZY 30% harder   // NU's RAGE MODE hits 20% harder; WHAT ONCE WAS in SEE mode 20%
+  get speedMult() { return (this.curse > 0 ? 0.6 : 1) * (this.slow > 0 ? 0.5 : 1) * (this.swift > 0 ? 1.3 : 1) * AERO_BOOST.speed[this.aeroLevel] * this.modeSpeed * (this.shaken > 0 ? 0.6 : 1) * (this.frenzy > 0 ? 1.15 : 1) * (this.devoteSpeed || 1) * (this.demonSpeed || 1); }   // WHAT ONCE WAS in INCOMING mode: 20% faster
   get jumpMult() { return AERO_BOOST.jump[this.aeroLevel]*soulJumpMultiplier(this); }
-  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel] * (this.devoteKb || 1); }
+  get kbTakenMult() { return AERO_BOOST.kb[this.aeroLevel] * (this.devoteKb || 1) * (this.demonKb || 1); }
   get dmgTakenMult() { return (this.soulPowerTaken||1) * (this.soulBattleTaken||1) * AERO_BOOST.taken[this.aeroLevel] * (this.missingMark > 0 ? 1.2 : 1) * (this.def.takenMult || 1) * (this.state === 'attack' && this.move && this.move.scream ? this.move.scream.taken : 1) * (this.armoured() ? this.move.armor.taken : 1); }   // (THE TANK dug in: less gets through)   // mid-SCREAM: wide open   // posted MISSING: takes 20% more
   // AERO powered up: 1 = standing near one of his computers, 2 = FULL AERO. Every stat goes up.
   get aeroLevel() { return this.fullAero > 0 ? 2 : this.pcBuff > 0 ? 1 : 0; }
@@ -261,6 +261,7 @@ export class Fighter {
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB && M.downB.swim && this.canSwim()) this.startSwim(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
+      if (M.neutralB && M.neutralB.demons && !this.demon) { this.startDemonPick(); return true; }   // THE DEVOTED: choose a demon
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB && M.neutralB.axeCharge) this.startAxeCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
     }
@@ -398,7 +399,8 @@ export class Fighter {
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);
-    if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // THE DEVOTED's THE MAW
+    if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // (THE DEVOTED's old THE MAW)
+    if (m.demons && this.t === m.cmdAt) this.demonCommand();   // THE DEVOTED: his demon attacks
     if (m.cut && this.cutStep(m)) return;                // THE DEVOTED's CROSS CUTS: tap special for the next cut   // THE DEVOTED's OFFERING
     if (m.shell && this.t === m.spawnAt) { this.match.spawnShell(this, m.shell); this.quip('fire'); }   // THE TANK's CANNON
     if (m.orb && this.t === m.spawnAt) this.voidOrb = this.match.spawnOrb(this, m.orb);
@@ -561,6 +563,7 @@ export class Fighter {
   }
 
   ko() {
+    if (this.demon) this.demon.kill();                   // (THE DEVOTED's demon leaves with him)
     if (this.fullAero > 0) { this.alive = false; this.exitFullAero(); }
     if (this.def.id === 'last-seen') this.revertLastSeen();   // SEEN goes back to LAST SEEN
     this.alive = false; this.stopChargeSound(); this.possessed = 0; this.ledge = null;

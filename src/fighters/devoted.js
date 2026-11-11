@@ -20,8 +20,35 @@ export const DEVOTED = {
   // his look at each sludge stage (fighterDevoted.js swaps to it when he prays his way up)
   sludgeSheets: [SET(''), SET('semi'), SET('taken'), SET('drowned')],
   runCycle: [0, 8],
+  // DEMONS (neutral special): the five, in wheel order from the top, clockwise. life: frames it stays; cd: frames
+  // between its attacks; power: what it does for him while it's out
+  demons: {
+    life: 1200, pickFor: 240,        // how long it stays (20 s); the wheel picks for him if he waits this long
+    list: [
+      // THE GLUTTON: a bloated maw. Neutral special: it lunges and bites. Power: every hit he lands heals him 1%.
+      { kind: 'glutton', name: 'THE GLUTTON', power: 'HITS HEAL YOU', color: 0x9a3a5a, cd: 70,
+        bite: { dmg: 9, angle: 40, base: 4.0, growth: 4.6 }, heal: 1 },
+      // THE WRAITH: a tattered shadow. Neutral special: it rips forward through everyone in a line (3 hits).
+      // Power: he moves 15% faster.
+      { kind: 'wraith', name: 'THE WRAITH', power: 'FASTER', color: 0xd8dce4, cd: 80, speed: 1.15,
+        rip: { dmg: 3, angle: 35, base: 1.6, growth: 0.6, stun: 16 }, ripLast: { dmg: 4, angle: 40, base: 3.8, growth: 3.6 } },
+      // THE BRUTE: a pair of huge fists. Neutral special: it slams the floor in front of him (a shockwave both ways).
+      // Power: he takes 20% less knockback.
+      { kind: 'brute', name: 'THE BRUTE', power: 'HARDER TO LAUNCH', color: 0x6a2ad8, cd: 100, kb: 0.8,
+        slam: { dmg: 11, angle: 70, base: 5.0, growth: 5.2 } },
+      // THE WEEPER: a floating head of eyes. Neutral special: three black tears fall on the nearest opponent (they can
+      // spike). Power: every second hit he lands counts double toward his devotion.
+      { kind: 'weeper', name: 'THE WEEPER', power: 'MORE DEVOTION', color: 0x4a8ad8, cd: 110,
+        tear: { dmg: 4, angle: -70, base: 2.6, growth: 2.2 } },
+      // THE HOLLOW: an empty hood dragging chains. Neutral special: it throws a hooked chain and drags whoever it
+      // catches back to him. Power: he hits 10% harder.
+      { kind: 'hollow', name: 'THE HOLLOW', power: 'HIT HARDER', color: 0xc89a4a, cd: 90, dmg: 1.1, reach: 190,
+        hook: { dmg: 5, angle: 30, base: 1.0, growth: 0.2, stun: 30 } },
+    ],
+  },
+
   // (bursting out of a puddle reuses the geyser's rise; the cross cuts reuse his slashes)
-  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
+  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, demonpick: [...DV_MOVES.taunt.slice(0, 3), 1], sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
   movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
   handOffset: { x: 18, y: -34 },   // the tip of his knife
@@ -94,13 +121,11 @@ export const DEVOTED = {
     uair: { frames: 26, landLag: 7, fx: 'up', hits: [{ from: 7, to: 12, box: [-22, -100, 44, 50], dmg: 9, angle: 86, base: 3.2, growth: 5.4 }] },
     dair: { frames: 34, landLag: 13, fx: 'down', hits: [{ from: 10, to: 14, box: [-14, -12, 28, 24], dmg: 11, angle: -80, base: 3.0, growth: 4.2 }] },   // a downward stab: a spike
     // ---- specials
-    // THE MAW (neutral): he cuts his palm and flings the sludge at the floor ahead of him - a puddle bubbles up there,
-    // then a jaw of sludge snaps up out of it, popping anyone standing over it into the air, and leaves a stain.
-    // Hold forward to throw it further. It's bigger and bites harder at each stage.
-    // dist: how far ahead (px, per stage); far: extra with forward held; warn / bite / sink: frames it bubbles, its
-    // jaws are open (the hit), it sinks back; r: its size per stage; perStage: extra damage per stage
-    neutralB: { frames: 30, spawnAt: 12, maw: { dist: [80, 92, 104, 116], far: 56, warn: 18, bite: 8, sink: 16, r: [15, 18, 21, 25],
-      perStage: 1, hit: { dmg: 8, angle: 88, base: 4.4, growth: 3.8 } } },
+    // DEMONS (neutral), like Shulk's Monado Arts: neutral special stops him to pick one of five demons on a wheel
+    // (tap the stick to turn the wheel, special / attack to call it, shield to cancel). It floats at his shoulder for `life`
+    // frames (20 s) with its own power, and while it's out neutral special makes it attack. When it leaves (or he's
+    // KO'd) he can call another. cmdAt: the frame of his neutral special that sets it off.
+    neutralB: { frames: 22, demons: true, cmdAt: 6 },
     // CROSS CUTS (side): like Cloud's Cross Slash - a lunging cut, and every tap of special during a cut's window
     // carries on into the next one. The last cut (sideBF) launches; the ones before it keep them stuck in place.
     // Every cut leaves its slash hanging where it hit until the combo ends, then they all vanish. Its damage doesn't
@@ -136,17 +161,18 @@ export const DEVOTED = {
     swimPop: { frames: 24, hits: [{ from: 1, to: 6, box: [-24, -44, 48, 46], dmg: 7, angle: 85, base: 3.6, growth: 3.4 }] },
   },
 
-  // Limit: FEED THE DARK - he throws his karambit at the nearest opponent in reach. If it sticks, a CUTSCENE: the
-  // screen goes black, they look round in the dark, a hulking demon steps out of the shadows behind them, uppercuts
-  // them into the air, flies up after them and tears them in half - an instant KO.
+  // Limit: FEED THE DARK - he throws his karambit straight ahead (it doesn't home in). If it sticks in someone, a
+  // CUTSCENE: the screen goes black, they look round in the dark, a hulking demon steps out of the shadows behind them,
+  // grabs them by the head and slams them into the floor twice, uppercuts them into the air, flies up after them and
+  // tears them in half - an instant KO.
   // If nobody's in reach, the knife just flies and the Limit is wasted.
   limit: {
-    name: 'FEED THE DARK', type: 'rite', reach: 420,
-    throwAt: 16, knifeSpeed: 11, flyFor: 50,      // when the knife leaves his hand, how fast it flies, how long before it's a miss
+    name: 'FEED THE DARK', type: 'rite',
+    throwAt: 16, knifeSpeed: 11, flyFor: 44,      // when the knife leaves his hand, how fast it flies, how long before it's a miss
     whiff: 40,                                    // frames he's left standing there after a miss
-    // the cutscene's beats (frames from its start): black, they look round, the demon steps out, the uppercut,
-    // it flies up after them, catches them, the tear, back to the arena
-    scene: { dark: 4, look: 24, emerge: 92, hit: 150, fly: 160, grab: 186, tear: 206, end: 262 },
+    // the cutscene's beats (frames from its start): black, they look round, the demon steps out, grabs their head,
+    // slams them down twice, the uppercut, it flies up after them, catches them, the tear, back to the arena
+    scene: { dark: 4, look: 24, emerge: 92, grab: 136, slam1: 156, slam2: 178, hit: 204, fly: 214, catch: 240, tear: 262, end: 322 },
     colors: PAL_SLUDGE,
   },
 };
