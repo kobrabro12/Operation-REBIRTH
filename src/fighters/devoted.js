@@ -92,7 +92,7 @@ export const DEVOTED = {
   },
 
   // (bursting out of a puddle reuses the geyser's rise; the cross cuts reuse her slashes)
-  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, swimCut: DV_MOVES.upb, swimSmack: DV_MOVES.dair, demonpick: [...DV_MOVES.taunt.slice(0, 3), 1], sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
+  moveAnims: { ...DV_MOVES, swimPop: DV_MOVES.upb, swimCut: DV_MOVES.upb, swimSmack: DV_MOVES.dair, sideB: DV_MOVES.ftilt, sideB2: DV_MOVES.fair, sideB3: DV_MOVES.ftilt, sideB4: DV_MOVES.nair, sideBF: DV_MOVES.fsmash },
   movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
   handOffset: { x: 18, y: -34 },   // the tip of her knife

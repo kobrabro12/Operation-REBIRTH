@@ -2,11 +2,12 @@
 // low-poly 3D (poly3d.js): a stone court floating high over a moat and green grounds, a white castle with red
 // cone-roofed towers behind, two side ledges and a high central slab where a red BUMPER slides back and forth and
 // knocks away whoever touches it. No hazard cycle: the bumper is always there (off with hazards off).
-import { Poly3D, prismFaces, blobFaces } from './poly3d.js';
+import { Poly3D, prismFaces, blobFaces, gradientSky } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 
-const C = { stone: 0xb8b0a0, stoneDark: 0x8a8274, trim: 0xc83a32, roof: 0xd8463a, wall: 0xf0ece0, window: 0x3a4a8a,
-  grass: 0x58b84a, grassDark: 0x3a8a34, water: 0x4a8ad8, hill: 0x6ac85a, sky: [0x3a78d8, 0x5a92e2, 0x7aaeea, 0x9cc8f0, 0xbcdcf6], fog: 0xb4d4f2 };
+// bold cartridge colours: saturated primaries, a deep blue sky fading to pale cyan at the horizon
+const C = { stone: 0xf4e4c0, stoneDark: 0xc8a070, trim: 0xf02818, roof: 0xff3020, wall: 0xfff6e0, window: 0x2040c8,
+  grass: 0x30d038, grassDark: 0x189828, water: 0x1870f8, hill: 0x48e040, sky: [0x0c3cd8, 0x2a6cf0, 0x58a4ff, 0x9cd4ff, 0xd8f4ff], fog: 0x9cd4ff };
 // the BUMPER: how far it slides from the middle (px), how long one trip takes (frames), its size, and how it hits
 const BUMPER = { swing: 50, period: 300, r: 13, hit: { dmg: 4, angle: 50, base: 6.5, growth: 0.4 } };
 
@@ -25,8 +26,7 @@ export class CastleCourtStage {
 
   /** Builds the sky (flat bands) and the 3D world: the court, its ledges, the castle and its grounds far below. */
   draw(world, bg) {
-    const s = this.scene, sky = s.add.graphics().setScrollFactor(0);
-    C.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 90, 1440, 91); });
+    const s = this.scene, sky = gradientSky(s, C.sky);
     bg.push(sky);
     const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200 });
     // the grounds far below: faceted grass rising into hills at the back, the moat, lumpy trees, clouds
@@ -46,12 +46,12 @@ export class CastleCourtStage {
     R.box(-60, cy - 12, cz - 260, 60, cy, cz, 0xa88a5a);                                                   // the bridge
     // the court itself (front faces on the play plane), with a red trim band and stone pillars under it
     const P = this.platforms;
-    R.box(P[0].x1, 0, 0, P[0].x2, 18, 160, C.stone, 0xd0c8b8);
+    R.box(P[0].x1, 0, 0, P[0].x2, 18, 160, C.stone, 0xfff4dc);
     R.box(P[0].x1 + 10, 18, 0, P[0].x2 - 10, 30, 150, C.trim);
     R.box(P[0].x1 + 30, 30, 10, P[0].x2 - 30, 46, 140, C.stoneDark);
     R.rock(0, 44, 80, 245, 85, 230, 9, [C.stone, C.stoneDark, 0x9a9284, 0x7a7266], 5);                      // the jagged rock it floats on
     for (const p of P.slice(1)) R.rock((p.x1 + p.x2) / 2, p.y + 13, 40, (p.x2 - p.x1) / 2 - 6, 36, 46, 5, [C.stone, C.stoneDark], p.x1);   // little rocks under the ledges
-    for (const p of P.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 10, 80, C.stone, 0xd0c8b8); R.box(p.x1 + 6, p.y + 10, 0, p.x2 - 6, p.y + 14, 70, C.trim); }
+    for (const p of P.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 10, 80, C.stone, 0xfff4dc); R.box(p.x1 + 6, p.y + 10, 0, p.x2 - 6, p.y + 14, 70, C.trim); }
   }
 
   /** Slides the bumper, draws the frame, and hands back the bumper's hitbox while hazards are on. */
@@ -76,7 +76,7 @@ export class CastleCourtStage {
 
 /** The stage select miniature: sky, the castle, the court and its three ledges. */
 export function drawCastleCourtPreview(g, x, y, w, h) {
-  C.sky.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(x, y + i * h / 5, w, h / 5 + 1); });
+  C.sky.forEach((c, i, A) => { g.fillStyle(c, 1); g.fillRect(x, y + i * h / A.length, w, h / A.length + 1); });
   g.fillStyle(C.wall, 1); g.fillRect(x + w * 0.38, y + h * 0.25, w * 0.24, h * 0.3);
   g.fillStyle(C.roof, 1); for (const k of [0.36, 0.5, 0.64]) g.fillTriangle(x + w * (k - 0.05), y + h * 0.3, x + w * (k + 0.05), y + h * 0.3, x + w * k, y + h * 0.12);
   g.fillStyle(C.stone, 1); g.fillRect(x + w * 0.12, y + h * 0.72, w * 0.76, h * 0.08);

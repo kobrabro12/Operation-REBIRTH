@@ -2,13 +2,14 @@
 // (poly3d.js): a pale marble stage on a lavender crystal rock under a starry twilight sky, a great tiered fountain
 // behind it throwing arcs of glittering water, crystal spires rising from a dark lake, sparkles drifting up. Its two
 // side platforms rise and sink slowly. Now and then a DREAM GEYSER bubbles up through the floor and bursts.
-import { Poly3D, boxFaces, prismFaces, blobFaces, rockFaces } from './poly3d.js';
+import { Poly3D, boxFaces, prismFaces, blobFaces, rockFaces, gradientSky } from './poly3d.js';
 import { HazardCycle } from './hazardCycle.js';
 import { sfx } from '../audio/sfx.js';
 
-const C = { marble: 0xe0d8f0, marbleTop: 0xf6f0fe, trim: 0x6a7ad8, crystal: [0x8a7ac8, 0x6a5aa8, 0x9a8ad8, 0x5a4a98], water: 0x7ac8f8, waterTop: 0x5aa8f0,
-  foam: 0xe8f8ff, spire: [0xa8e0f0, 0xc8b8f0, 0xb8d0f8], lake: [0x2a2a7a, 0x343a90, 0x2e3086, 0x40489e],
-  sky: [0x120e34, 0x1e1648, 0x2c1e5e, 0x402a76, 0x5a3a8a, 0x7a4a9a, 0xa868a8, 0xd890b8], fog: 0x4a3a88 };
+// bold cartridge colours: candy marble, electric-violet crystal, a deep indigo sky glowing hot pink at the horizon
+const C = { marble: 0xffe4ff, marbleTop: 0xfffaff, trim: 0x4a5aff, crystal: [0xa060f8, 0x7838e0, 0xc088ff, 0x5a28c0], water: 0x48d0ff, waterTop: 0x2898ff,
+  foam: 0xf0fcff, spire: [0x70f0ff, 0xd0a0ff, 0x90c8ff], lake: [0x1c1c90, 0x2830b0, 0x2024a0, 0x3040c8],
+  sky: [0x080430, 0x18084c, 0x2c0c70, 0x48148e, 0x7020a8, 0xa834b0, 0xe058b0, 0xff90b8], fog: 0x5a2aa8 };
 // the side platforms: how far they rise and sink (px) and how long one full trip takes (frames)
 const LIFT = { amp: 30, period: 560 };
 // DREAM GEYSER: frames of bubbling before it bursts, how long the column lasts, its width, how tall, how it hits
@@ -36,9 +37,7 @@ export class StarlightFountainStage {
 
   /** Builds the twilight sky, the stars and the static 3D world: lake, hills, spires, the fountain, the marble stage. */
   draw(world, bg) {
-    const s = this.scene, sky = s.add.graphics().setScrollFactor(0);
-    C.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 52, 1440, 53); });
-    sky.fillStyle(0xd890b8, 1); sky.fillRect(-400, 356, 1440, 400);
+    const s = this.scene, sky = gradientSky(s, C.sky, -60, 360);
     this.starG = s.add.graphics().setScrollFactor(0);
     bg.push(sky, this.starG);
     this.cycle.makeBanner(s);

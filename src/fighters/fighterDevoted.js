@@ -92,7 +92,7 @@ export class FighterDevoted {
     const L = this.pickList, n = L.length;
     this.vx *= 0.8; if (!this.grounded) this.vy = Math.min(this.vy, 1.2);
     const dir = Math.abs(c.x) > 0.5 ? Math.sign(c.x) : Math.abs(c.y) > 0.5 ? Math.sign(c.y) : 0;   // right / down = next round the wheel, left / up = back
-    if (dir && dir !== this.pickDir) { this.pickSel = (this.pickSel + dir + n) % n; sfx('menu', 0.35, 1.3); }
+    if (dir && dir !== this.pickDir) { this.pickSel = (this.pickSel + dir + n) % n; sfx('menu', 0.35, 1.3); this.bookFlip = this.age; this.bookFlipDir = dir; }
     this.pickDir = dir;
     const pick = L[this.pickSel];
     this.pickText.setText(pick.name + '\n' + pick.power).setPosition(Math.round(this.x), Math.round(this.y - 116));
@@ -124,6 +124,43 @@ export class FighterDevoted {
       g.fillStyle(on ? L[i].color : 0x1a1418, 1); g.fillCircle(x, y, on ? 15 : 11);
       g.lineStyle(on ? 2 : 1, on ? 0xf4eefc : L[i].color, 1); g.strokeCircle(x, y, on ? 15 : 11);
       drawDemonFace(g, L[i].kind, x, y, on ? 1 : 0.75, this.age);
+    }
+  }
+
+  /**
+   * THE BOOK: while she chooses a demon she holds a spellbook of shadow sludge open in her hands - black covers
+   * oozing at the edges, dark pages scrawled with glowing violet script, the chosen demon's face burning on the right
+   * page. Every turn of the wheel flips a page over (the way the stick turned), and she idly flicks pages on her own.
+   */
+  drawSpellbook(g) {
+    const f = this.facing, fl = this.demonFloat, hov = fl && fl.hover ? fl.hover + 2 * Math.sin(this.anim * 0.07) : 0;
+    const cx = Math.round(this.x + f * 11), cy = Math.round(this.y - 31 - hov), open = Math.min(1, this.t / 6), W = 12 * open, H = 7;
+    const pick = this.pickList && this.pickList[this.pickSel];
+    g.fillStyle(0x7a2ad8, 0.18 + 0.08 * Math.sin(this.age * 0.2)); g.fillCircle(cx, cy - 2, 16);         // its glow
+    // the covers (a little bigger than the pages), black sludge with a purple sheen along the edge
+    g.fillStyle(0x0a0610, 1); g.fillPoints([{ x: cx - W - 2, y: cy - H + 1 }, { x: cx, y: cy - H - 1 }, { x: cx + W + 2, y: cy - H + 1 }, { x: cx + W + 2, y: cy + H + 2 }, { x: cx, y: cy + H + 1 }, { x: cx - W - 2, y: cy + H + 2 }], true);
+    g.lineStyle(1, 0x4a2a6a, 1); g.strokePoints([{ x: cx - W - 2, y: cy + H + 2 }, { x: cx, y: cy + H + 1 }, { x: cx + W + 2, y: cy + H + 2 }], false);
+    // the pages: dark, curling toward the spine
+    const page = (sx) => [{ x: cx, y: cy - H }, { x: cx + sx * W, y: cy - H + 1 }, { x: cx + sx * W, y: cy + H }, { x: cx, y: cy + H - 1 }];
+    g.fillStyle(0x2a1a36, 1); g.fillPoints(page(-1), true); g.fillPoints(page(1), true);
+    g.lineStyle(1, 0x140a1c, 1); g.lineBetween(cx, cy - H, cx, cy + H - 1);                               // the spine
+    if (open >= 1) {
+      g.fillStyle(0xb07aff, 0.85);                                                                        // the script: glowing scrawls
+      for (let r = 0; r < 4; r++) { const y = cy - H + 3 + r * 2.5, w = 3 + ((r * 7 + this.pickSel * 3) % 4); g.fillRect(cx - W + 2, y, w, 1); if (r !== 1) g.fillRect(cx + W - 2 - w, y + 0.5, w * 0.4, 1); }
+      if (pick) drawDemonFace(g, pick.kind, cx + f * 5, cy, 0.42, this.age);                               // the chosen demon, burning on its page
+    }
+    // a page turning over: lifted off one side and laid on the other (a flip on every turn of the wheel, and now and then on its own)
+    const since = this.age - (this.bookFlip ?? -99), idle = this.t % 48, p = since < 10 ? since / 10 : idle >= 6 && idle < 16 ? (idle - 6) / 10 : -1;
+    if (p >= 0 && open >= 1) {
+      const d = since < 10 ? (this.bookFlipDir || 1) * f : -f, ex = cx + d * W * Math.cos(Math.PI * p), lift = 4 * Math.sin(Math.PI * p);
+      g.fillStyle(0x3a2448, 1); g.fillPoints([{ x: cx, y: cy - H }, { x: ex, y: cy - H + 1 - lift }, { x: ex, y: cy + H - lift }, { x: cx, y: cy + H - 1 }], true);
+      g.lineStyle(1, 0x9a6ad8, 0.8); g.lineBetween(ex, cy - H + 1 - lift, ex, cy + H - lift);
+    }
+    // sludge dripping off the bottom of the covers
+    for (let i = 0; i < 3; i++) {
+      const dx = cx + (i - 1) * 7 + (i === 1 ? f * 2 : 0), len = (this.age * 0.35 + i * 9) % 12;
+      g.fillStyle(0x0a0610, 1 - len / 14); g.fillRect(dx, cy + H + 2, 1, 1 + len * 0.6);
+      if (len > 9) g.fillCircle(dx + 0.5, cy + H + 3 + len, 1);
     }
   }
 
@@ -280,6 +317,9 @@ export class FighterDevoted {
       if (c.age === 0) { g.fillStyle(0xf4eefc, 0.6); g.fillCircle(c.x + dx * Math.sin(this.age * 0.3), c.y + dy * Math.sin(this.age * 0.3), 1.5); }   // a glint running along it
     }
     if (this.state === 'demonpick') this.drawDemonWheel(g);
+    if (!this.bookG) { this.bookG = this.scene.add.graphics(); m.addWorld(this.bookG); }   // (made after her sprite, so it's in front)
+    this.bookG.clear();
+    if (this.state === 'demonpick' && this.alive) this.drawSpellbook(this.bookG);
     if (this.pickText) this.pickText.setVisible(this.state === 'demonpick' && this.alive);
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);

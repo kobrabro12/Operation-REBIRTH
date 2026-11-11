@@ -3,11 +3,12 @@
 // carry you), a hut roof up top, palms and cliffs behind. Below the deck a BARREL drifts back and forth - fall into
 // it and it holds you for a moment, then fires you straight back up (a second chance, or a trap if you were
 // recovering anyway).
-import { Poly3D, boxFaces, prismFaces, blobFaces } from './poly3d.js';
+import { Poly3D, boxFaces, prismFaces, blobFaces, gradientSky } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 
-const C = { plank: 0xa8743a, plankDark: 0x7a4e24, log: 0x8a5a2a, leaf: 0x3a9a3a, leafDark: 0x2a7030, trunk: 0x6a4a2a,
-  rock: 0x8a7a6a, water: 0x5ab0e8, foam: 0xe8f4ff, roof: 0x9a6a2a, sky: [0x5aa0d8, 0x7ab4e0, 0x9ac8e8, 0xb8dcee, 0xd0e8f2], fog: 0xbcd8e4 };
+// bold cartridge colours: jungle greens, warm wood, a bright tropical sky
+const C = { plank: 0xd07a28, plankDark: 0x9a4e14, log: 0xa85a1c, leaf: 0x20c828, leafDark: 0x0c8a1c, trunk: 0x7a4a1c,
+  rock: 0xb87848, water: 0x18a8ff, foam: 0xf0faff, roof: 0xb86a18, sky: [0x0870e8, 0x2896f8, 0x5cc0ff, 0x9ce0ff, 0xd8f6ff], fog: 0x9ce0ff };
 // the birds that fly across the back: how many, how fast (px per frame)
 const BIRDS = { n: 4, speed: 2.2 };
 // the fish that leap out of the river now and then: frames between leaps, how long a leap lasts
@@ -34,15 +35,14 @@ export class JungleFallsStage {
 
   /** Builds the sky and the 3D jungle: the deck and its stilts, the hut, the waterfall, cliffs, palms. */
   draw(world, bg) {
-    const s = this.scene, sky = s.add.graphics().setScrollFactor(0);
-    C.sky.forEach((c, i) => { sky.fillStyle(c, 1); sky.fillRect(-400, -60 + i * 90, 1440, 91); });
+    const s = this.scene, sky = gradientSky(s, C.sky);
     bg.push(sky);
     const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 2600 });
     // cliffs behind (huge faceted crags with jungle on top), the river below, boulders
-    R.blob(-1500, 250, 1700, 1100, 700, 380, [C.rock, 0x7a6a5a, 0x9a8a78], 2, 0x5a9a3a); R.blob(1500, 300, 1600, 1100, 650, 380, [C.rock, 0x7a6a5a, 0x9a8a78], 3, 0x5a9a3a);
-    R.blob(0, 420, 1850, 700, 420, 260, [C.rock, 0x7a6a5a], 4, 0x5a9a3a);
+    R.blob(-1500, 250, 1700, 1100, 700, 380, [C.rock, 0x9a5a30, 0xc89058], 2, 0x5a9a3a); R.blob(1500, 300, 1600, 1100, 650, 380, [C.rock, 0x9a5a30, 0xc89058], 3, 0x5a9a3a);
+    R.blob(0, 420, 1850, 700, 420, 260, [C.rock, 0x9a5a30], 4, 0x5a9a3a);
     R.terrain({ x1: -2600, x2: 2600, z1: 200, z2: 1800, y: 600, nx: 24, nz: 8, amp: 6, seed: 9, cols: [0x3a7ab8, 0x4a8ac8, 0x346eaa, 0x5a9ad0] });
-    for (let i = 0; i < 6; i++) R.blob(-1000 + i * 400 + (i % 2) * 90, 580, 300 + (i % 3) * 200, 60 + (i % 3) * 20, 40, 50, [C.rock, 0x7a6a5a], 30 + i, 0x5a9a3a);
+    for (let i = 0; i < 6; i++) R.blob(-1000 + i * 400 + (i % 2) * 90, 580, 300 + (i % 3) * 200, 60 + (i % 3) * 20, 40, 50, [C.rock, 0x9a5a30], 30 + i, 0x5a9a3a);
     for (let i = 0; i < 12; i++) {                               // palms: a trunk and a crown of leaf pyramids
       const x = -1500 + i * 280 + (i % 3) * 40, z = 500 + (i % 4) * 260, base = 600, h = 260 + (i % 3) * 60;
       R.prism(x, base - h, base, z, 12, 4, C.trunk);
@@ -71,7 +71,7 @@ export class JungleFallsStage {
     for (let i = 0; i < 26; i++) { const x = -650 + i * 50, sag = 60 * Math.sin(i / 25 * Math.PI); R.box(x, -170 + sag, 1180, x + 40, -164 + sag, 1240, 0x8a6a3a, 0x9a7a4a); }
     for (const zr of [1180, 1240]) for (let i = 0; i < 25; i++) { const x = -650 + i * 50, s1 = 60 * Math.sin(i / 25 * Math.PI), s2 = 60 * Math.sin((i + 1) / 25 * Math.PI); R.quad([[x, -200 + s1, zr], [x + 50, -200 + s2, zr], [x + 50, -197 + s2, zr], [x, -197 + s1, zr]], 0x6a4a24); }
     // boulders and ferns at the waterfall's foot, a rainbow in the spray
-    for (let i = 0; i < 5; i++) R.blob(-300 + i * 150, 590, 840, 50 + (i % 2) * 20, 30, 40, [C.rock, 0x7a6a5a], 60 + i, 0x5a9a3a);
+    for (let i = 0; i < 5; i++) R.blob(-300 + i * 150, 590, 840, 50 + (i % 2) * 20, 30, 40, [C.rock, 0x9a5a30], 60 + i, 0x5a9a3a);
     const bands = [0xff6a6a, 0xffb05a, 0xfff07a, 0x7ae87a, 0x6ab0ff, 0xb07aff];
     bands.forEach((c, b) => { for (let i = 0; i < 16; i++) {
       const a1 = Math.PI * i / 16, a2 = Math.PI * (i + 1) / 16, r1 = 520 - b * 14, r2 = r1 - 14;
@@ -171,7 +171,7 @@ export class JungleFallsStage {
 
 /** The stage select miniature: the waterfall, the deck, the rafts, the hut and the barrel. */
 export function drawJungleFallsPreview(g, x, y, w, h) {
-  C.sky.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(x, y + i * h / 5, w, h / 5 + 1); });
+  C.sky.forEach((c, i, A) => { g.fillStyle(c, 1); g.fillRect(x, y + i * h / A.length, w, h / A.length + 1); });
   g.fillStyle(C.water, 1); g.fillRect(x + w * 0.2, y + h * 0.1, w * 0.6, h * 0.9);
   g.fillStyle(C.foam, 1); for (let i = 0; i < 6; i++) g.fillRect(x + w * (0.25 + i * 0.1), y + h * (0.2 + (i % 3) * 0.2), 2, h * 0.1);
   g.fillStyle(C.plank, 1); g.fillRect(x + w * 0.14, y + h * 0.66, w * 0.72, h * 0.07);

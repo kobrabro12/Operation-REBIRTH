@@ -93,11 +93,31 @@ export function rockFaces(cx, y, cz, rx, rz, h, n, cols, seed = 1) {
   return out;
 }
 
-/** A colour times a brightness, then mixed toward the fog colour by k (0-1). */
-function shade(col, b, fog, k) {
-  const r = (col >> 16 & 255) * b, g = (col >> 8 & 255) * b, bl = (col & 255) * b;
+/**
+ * A colour times a brightness, its saturation pushed up by sat (the bold, punchy colours of a 64-bit cartridge),
+ * then mixed toward the fog colour by k (0-1).
+ */
+function shade(col, b, fog, k, sat = 1) {
+  let r = (col >> 16 & 255) * b, g = (col >> 8 & 255) * b, bl = (col & 255) * b;
+  if (sat !== 1) { const L = 0.3 * r + 0.59 * g + 0.11 * bl; r = L + (r - L) * sat; g = L + (g - L) * sat; bl = L + (bl - L) * sat; }
   const fr = fog >> 16 & 255, fg = fog >> 8 & 255, fb = fog & 255;
-  return (Math.min(255, r + (fr - r) * k) << 16) | (Math.min(255, g + (fg - g) * k) << 8) | Math.min(255, bl + (fb - bl) * k);
+  const c = (v, f) => Math.max(0, Math.min(255, v + (f - v) * k)) | 0;
+  return (c(r, fr) << 16) | (c(g, fg) << 8) | c(bl, fb);
+}
+
+/**
+ * The sky behind a 3D stage: a smooth vertical gradient through the given colours (top to bottom), fixed to the
+ * screen - the sky box of a 64-bit cartridge game.
+ */
+export function gradientSky(scene, stops, y1 = -80, y2 = 440) {
+  const g = scene.add.graphics().setScrollFactor(0), n = stops.length - 1, h = (y2 - y1) / n;
+  for (let i = 0; i < n; i++) {
+    g.fillStyle(stops[i], 1); g.fillGradientStyle(stops[i], stops[i], stops[i + 1], stops[i + 1], 1);
+    g.fillRect(-400, y1 + i * h, 1440, h + 1);
+  }
+  g.fillStyle(stops[n], 1); g.fillRect(-400, y2, 1440, 400);
+  g.fillStyle(stops[0], 1); g.fillRect(-400, y1 - 400, 1440, 400);
+  return g;
 }
 
 /** Builds the faces of a box (corners x1,y1,z1 - x2,y2,z2): six quads with outward normals. */
@@ -142,7 +162,10 @@ export class Poly3D {
   constructor(scene, layer, o = {}) {
     this.scene = scene; this.fog = o.fog ?? 0x9cc8f0; this.zFar = o.zFar ?? 2600; this.zNear = o.zNear ?? 300;
     this.f = o.f ?? 560; this.lift = o.lift ?? 70;
-    this.edge = o.edge ?? 0.28;                                // how strongly each facet's edges are drawn (0 = none)
+    this.edge = o.edge ?? 0.12;                                // how strongly each facet's edges are drawn (0 = none)
+    this.sat = o.sat ?? 1.3;                                   // colour boost (1 = as given)
+    this.fogMax = o.fogMax ?? 0.55;                            // the most the fog ever covers (far things keep their colour)
+    this.gouraud = o.gouraud ?? true;                          // smooth per-corner shading inside each facet, like the N64
     const L = o.light || [-0.45, -1, -0.55], l = Math.hypot(...L); this.light = L.map((v) => -v / l);
     this.faces = [];
     this.g = scene.add.graphics().setDepth(-5); layer.push(this.g);
@@ -188,14 +211,22 @@ export class Poly3D {
       for (const q of pts) { if (q.x < ax) ax = q.x; if (q.x > bx) bx = q.x; if (q.y < ay) ay = q.y; if (q.y > by) by = q.y; }
       if (bx < vx1 || ax > vx2 || by < vy1 || ay > vy2) continue;              // off screen
       // light, plus a small fixed per-facet wobble so neighbouring facets never blend into one flat colour
-      const wob = 1 + (hash(Math.round(cx), Math.round(cy), Math.round(zs)) - 0.5) * 0.12;
-      const b = (F.n ? 0.58 + 0.42 * Math.max(0, F.n[0] * this.light[0] + F.n[1] * this.light[1] + F.n[2] * this.light[2]) : 0.85) * wob;
-      const fog = clamp((z - this.zNear) / (this.zFar - this.zNear)) * 0.85;
-      list.push({ z: z + (F.bias || 0), pts, col: shade(F.c, Math.min(1.15, b), this.fog, fog), edge: shade(F.c, b * 0.62, this.fog, fog), a: F.a ?? 1 });
+      const wob = 1 + (hash(Math.round(cx), Math.round(cy), Math.round(zs)) - 0.5) * 0.1;
+      const b = Math.min(1.15, (F.n ? 0.62 + 0.42 * Math.max(0, F.n[0] * this.light[0] + F.n[1] * this.light[1] + F.n[2] * this.light[2]) : 0.88) * wob);
+      const fogK = (zz) => clamp((zz - this.zNear) / (this.zFar - this.zNear)) * this.fogMax;
+      const fog = fogK(z), col = shade(F.c, b, this.fog, fog, this.sat);
+      // each corner gets its own shade (lit a touch brighter higher up, plus a fixed wobble), blended across the
+      // facet by the GPU - the soft vertex-coloured look of 64-bit games
+      const vc = this.gouraud ? P.map(([x, y, zz]) => shade(F.c, b * (1 + (hash(Math.round(x), Math.round(y), Math.round(zz) + 7) - 0.5) * 0.16 - y * 0.00012), this.fog, fogK(zz), this.sat)) : null;
+      list.push({ z: z + (F.bias || 0), pts, col, vc, edge: shade(F.c, b * 0.6, this.fog, fog, this.sat), a: F.a ?? 1 });
     }
     list.sort((a, b) => b.z - a.z);
     for (const q of list) {
-      g.fillStyle(q.col, q.a); g.fillPoints(q.pts, true);
+      g.fillStyle(q.col, q.a);
+      if (q.vc) {                                                   // fan the polygon into triangles, each corner its own colour
+        const p = q.pts, c = q.vc;
+        for (let i = 1; i < p.length - 1; i++) { g.fillGradientStyle(c[0], c[i], c[i + 1], c[i + 1], q.a); g.fillTriangle(p[0].x, p[0].y, p[i].x, p[i].y, p[i + 1].x, p[i + 1].y); }
+      } else g.fillPoints(q.pts, true);
       if (this.edge) { g.lineStyle(1, q.edge, this.edge * q.a); g.strokePoints(q.pts, true); }   // the facet's edges
     }
   }

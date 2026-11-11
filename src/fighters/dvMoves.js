@@ -31,4 +31,5 @@ export const DV_MOVES = {
    "downB": [672, 54, 1],
    "limit": [726, 30, 4],
    "taunt": [756, 90, 1],
+   "demonpick": [846, 12, 4, 1],
 };

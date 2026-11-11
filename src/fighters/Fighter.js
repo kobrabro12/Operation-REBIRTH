@@ -598,7 +598,7 @@ export class Fighter {
   }
   st_dying() { if (this.t >= 80) this.match.onKO(this); }
 
-  destroy() { this.sigilG?.destroy(); this.azureCape?.destroy(); if(this.fairySpeech)this.fairySpeech.destroy(); if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); if (this.headImg) this.headImg.destroy(); if (this.leftBodies) this.clearBodies(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
+  destroy() { this.sigilG?.destroy(); this.bookG?.destroy(); this.azureCape?.destroy(); if(this.fairySpeech)this.fairySpeech.destroy(); if (this.speech) this.speech.destroy(); if (this.scrImg) this.scrImg.destroy(); if (this.headImg) this.headImg.destroy(); if (this.leftBodies) this.clearBodies(); this.stopChargeSound(); this.sprite.destroy(); this.fx.destroy(); this.fxBack.destroy(); this.tag.destroy(); for (const gh of this.ghosts) gh.destroy(); }
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).

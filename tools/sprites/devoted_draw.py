@@ -312,24 +312,29 @@ MOVES['upb'] = (40, [k(0, P()), k(6, DOWNSTAB, 'out'), k(10, UPTHRUST, 'snap'), 
 MOVES['downB'] = (54, [k(0, P()), k(8, KNEEL, 'out'), k(16, RAISE, 'inout'), k(22, STAB, 'snap'),
                        k(30, mix(STAB, torso=(30, 1, 2)), 'linear'), k(44, mix(STAB, head=(36, 0, 2)), 'linear'), k(54, P(), 'back')],
                   1, (), False, None)
+# THE BOOK (her demon wheel, state demonpick): she holds a shadow-sludge spellbook open in front of her in both
+# hands (the game draws the book and its turning pages at her hands - fighterDevoted.drawSpellbook), head bowed
+# over it, the front hand flicking a page over every 12 ticks. Loops.
+BOOK = P(torso=(8, 0, 1), head=(22, 0, 1), fupper=(-38, 0, 0), ffore=(-74, 0, 0), ffist=(20, 0, 0), bupper=(-30, 0, 0), bfore=(-92, 0, 0), **A.legs(6, -6, -8, 10))
+FLICK = A.mix(BOOK, fupper=(-50, 0, 0), ffore=(-96, 0, 0), head=(18, 0, 1))
+MOVES['demonpick'] = (48, [k(0, BOOK), k(6, FLICK, 'out'), k(12, BOOK, 'in'), k(18, A.mix(BOOK, head=(26, 0, 1)), 'inout'), k(24, BOOK, 'inout'),
+                           k(30, FLICK, 'out'), k(36, BOOK, 'in'), k(42, A.mix(BOOK, head=(18, 0, 1)), 'inout'), k(48, BOOK, 'inout')], 4, (), True, None)
 FOLLOW = dict(A.FOLLOW, fish=(0, 0), scarf=(0.5, 1.0))
 
 def idle_keys():
-    """Her own idle: hunched, head hung, the karambit spinning round her finger on its ring (two quick flicks), then
-    her head slowly sinks and lolls forward... holds... and twitches back. 192 ticks."""
+    """Her own idle - a vigil: she stands upright, her free hand pressed to her heart, the karambit hanging point-down
+    at her side, rocking gently as she murmurs a prayer (a small bow on every line); halfway through she stops, her head
+    turns as if she heard something behind her, she rolls the blade once in her fingers, then goes back to praying.
+    192 ticks."""
     keys = []
     for i in range(0, 193, 6):
-        flip = 0
-        for t0 in (18, 48):                                           # two quick flicks of the blade on its ring
-            if t0 <= i <= t0 + 18: flip = -70 * math.sin((i - t0) / 18 * math.pi)
-        tilt = 0.0                                                    # 0 -> 1: the slow head tilt, snapped back at 168
-        if 96 <= i < 132: tilt = (i - 96) / 36
-        elif 132 <= i < 168: tilt = 1
-        twitch = 1 if i == 168 else 0
+        bow = math.sin(i * math.pi / 24) ** 2 if i < 96 or i >= 156 else 0    # a small bow on every line of the prayer
+        listen = 1.0 if 108 <= i <= 144 else 0.5 if i in (102, 150) else 0  # ...the head lifts and turns: something behind her
+        roll = -60 * math.sin((i - 120) / 18 * math.pi) if 120 <= i <= 138 else 0   # the blade rolled once in her fingers
         sway = math.sin(i * math.pi / 96)
-        keys.append(k(i, P(root=(0, 0, 1, 1.0, 0.98), torso=(10 + 2 * sway, 0, 1), head=(12 + 24 * tilt - 14 * twitch, 0, 1 + tilt),
-                           fupper=(18 + 4 * sway, 0, 0), ffore=(-38 + flip * 0.3, 0, 0), ffist=(flip, 0, 0),
-                           bupper=(6, 0, 0), bfore=(-6, 0, 0), **A.legs(10, -10, -12, 14)), 'linear'))
+        keys.append(k(i, P(root=(0, 0, round(bow), 1.0, 1.0 - 0.015 * bow), torso=(4 + 6 * bow + 2 * sway, 0, 1), head=(10 + 12 * bow - 26 * listen, 0, 1 - listen),
+                           fupper=(12 + 3 * sway, 0, 0), ffore=(-12 + roll * 0.4, 0, 0), ffist=(30 + roll, 0, 0),
+                           bupper=(-44 - 4 * bow, 0, 0), bfore=(-104 + 6 * bow, 0, 0), **A.legs(6, -6, -8, 10)), 'linear'))
     return keys
 
 def drowned_idle_keys():
