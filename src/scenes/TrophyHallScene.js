@@ -17,7 +17,9 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { titleBanner, hintBar, ARC } from '../ui/arcade.js';
-import { Poly3D, boxFaces, prismFaces, blobFaces } from '../stage/poly3d.js';
+import { Poly3D, boxFaces, prismFaces, blobFaces, pyramidFaces } from '../stage/poly3d.js';
+import { checkAchievements, trophyEarned, trophyProgress, TROPHY_GOALS } from '../achievements.js';
+import { achievementToasts } from '../ui/toast.js';
 import { HALL, HALL_SLOTS, DISPLAY, PAINTINGS, TROPHIES } from '../data/trophyHall.js';
 
 // the room (px; x 0 = the middle of the hall, y 0 = eye height, +y down, +z away from you)
@@ -47,6 +49,10 @@ const P = {
   glass: [0xff3a5a, 0x3a8aff, 0xffd040, 0x3ae08a, 0xb04aff, 0xff9a2a],
 };
 const ease = (v) => v * v * (3 - 2 * v);
+// the ledger of ACHIEVEMENTS: a lectern with an open book just inside the doors, on the left (look closer = the ACHIEVEMENTS page)
+const LEDGER = { id: 'ledger', kind: 'ledger', side: -1, x: -132, z: 70 };
+// where a trophy stands: on its pedestal, or (the phoenix) twice as big on the great plinth
+const trophySpot = (sl) => (sl.kind === 'plinth' ? { x: 0, y: FLOOR - 122, z: sl.z, k: 2.2 } : { x: sl.side * PED_X, y: FLOOR - 64, z: sl.z, k: 1 });
 
 /** A flat face with a known outward normal (so it's culled and lit like the stage geometry). */
 const face = (pts, n, c, extra = {}) => ({ p: pts, n, c, ...extra });
@@ -62,9 +68,11 @@ export class TrophyHallScene extends Phaser.Scene {
   }
 
   /** Builds the hall, its lights and its words, and starts the doors opening. */
-  create() {
+  create(data) {
     this.t = 0; this.menu = new MenuInput(this);
     this.camZ = WALK.start; this.vz = 0; this.lookX = 0; this.look = 0; this.bob = 0;
+    if (data && data.back) { this.t = ARRIVE.glide + 300; this.camZ = data.back.camZ; }   // (back from the ACHIEVEMENTS: where you were, doors already open)
+    const fresh = checkAchievements();                                                    // (trophies earned since last time pop up)
     playMusic(this, 'bgm_trophy_hall');
     this.cameras.main.setBackgroundColor(0x05030a);
     this.bg = this.add.graphics().setDepth(-30);
@@ -78,21 +86,25 @@ export class TrophyHallScene extends Phaser.Scene {
     this.beams = this.add.graphics().setDepth(-22).setBlendMode(Phaser.BlendModes.ADD);   // spotlights, window light, chandelier glow
     this.motesG = this.add.graphics().setDepth(-21).setBlendMode(Phaser.BlendModes.ADD);
     this.items = Object.entries(DISPLAY).map(([slot, d]) => ({ slot: HALL_SLOTS.find((q) => q.id === slot), painting: d.painting && PAINTINGS.find((q) => q.id === d.painting), trophy: d.trophy && TROPHIES.find((q) => q.id === d.trophy) })).filter((it) => it.slot && (it.painting || it.trophy));
+    for (const it of this.items) if (it.trophy) it.earned = !!it.trophy.free || trophyEarned(it.trophy.id);
+    this.items.unshift({ slot: LEDGER, ledger: true });                                   // the ledger of ACHIEVEMENTS by the door
     this.build();
     this.makePaintings();
     this.motes = Array.from({ length: 70 }, (_, i) => ({ x: (this.rnd(i, 1) - 0.5) * 520, y: CEIL + this.rnd(i, 2) * (FLOOR - CEIL), z: this.rnd(i, 3) * 1400, s: 0.2 + this.rnd(i, 4) * 0.5 }));
 
     titleBanner(this, 'TROPHY HALL', ARC.sections.trinkets, { crumb: 'TRINKETS  >  TROPHY HALL' });
-    hintBar(this, 'W/S WALK   A/D LOOK   J  LOOK CLOSER   K / ESC / B  BACK', ARC.sections.trinkets);
+    hintBar(this, 'W/S WALK   A/D LOOK   J  LOOK CLOSER   Q  ACHIEVEMENTS   K / ESC / B  BACK', ARC.sections.trinkets);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
-    const shown = Object.keys(DISPLAY).length, total = HALL_SLOTS.length;
-    this.count = this.add.text(VIEW_W - 10, 26, 'ON DISPLAY  ' + shown + ' / ' + total, { fontFamily: FONT, fontSize: '7px', color: '#f0d890', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(1, 0).setDepth(20);
+    const shown = this.items.filter((it) => it.painting || it.earned).length, total = HALL_SLOTS.length, cups = this.items.filter((it) => it.trophy);
+    this.count = this.add.text(VIEW_W - 10, 26, 'ON DISPLAY  ' + shown + ' / ' + total + '\nTROPHIES  ' + cups.filter((it) => it.earned).length + ' / ' + cups.length, { fontFamily: FONT, fontSize: '7px', color: '#f0d890', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(1, 0).setDepth(20);
     this.title = this.add.text(VIEW_W / 2, 132, 'WELCOME TO THE TROPHY HALL', { fontFamily: FONT, fontSize: '16px', color: '#f6d77a', stroke: '#2a0a10', strokeThickness: 5 }).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.sub = this.add.text(VIEW_W / 2, 154, 'WALK UP TO A PAINTING OR A TROPHY AND PRESS J', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#2a0a10', strokeThickness: 3 }).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.slotText = this.add.text(VIEW_W / 2, VIEW_H - 38, '', { fontFamily: FONT, fontSize: '7px', color: '#e8d0a0', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
     this.prompt = this.add.text(VIEW_W / 2, VIEW_H - 27, 'J / ENTER / TAP  LOOK CLOSER', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', backgroundColor: '#5a2a7a', padding: { x: 4, y: 2 } }).setOrigin(0.5).setDepth(20).setVisible(false)
       .setInteractive({ useHandCursor: true }).on('pointerdown', () => { if (this.near && !this.inspect) this.openInspect(this.items.indexOf(this.near)); });
+    this.qKey = this.input.keyboard && this.input.keyboard.addKey('Q', false);
+    if (fresh.length) achievementToasts(this, fresh, { delay: 3000 });
     this.held = null;
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.held = p; });
     this.input.on('pointerup', () => { this.held = null; });
@@ -149,6 +161,14 @@ export class TrophyHallScene extends Phaser.Scene {
       O.faces.push(...parts, face([[x - 9, FLOOR - 40, z - 16.5], [x + 9, FLOOR - 40, z - 16.5], [x + 9, FLOOR - 32, z - 16.5], [x - 9, FLOOR - 32, z - 16.5]], [0, 0, -1], P.goldD));
       Rf.faces.push(...this.mirror(parts));
     }
+    // ---- the ledger: a dark wood lectern with a big open book of achievements (gold-edged pages, a red ribbon)
+    { const x = LEDGER.x, z = LEDGER.z, top = FLOOR - 52;
+      O.faces.push(...boxFaces(x - 14, FLOOR - 6, z - 12, x + 14, FLOOR, z + 12, P.woodD, P.wood), ...prismFaces(x, top + 6, FLOOR - 6, z, 5, 8, P.wood, P.wood));
+      O.faces.push({ p: [[x - 18, top - 4, z + 8], [x + 18, top - 4, z + 8], [x + 18, top + 6, z - 10], [x - 18, top + 6, z - 10]], n: [0, -0.87, -0.5], c: P.woodD });
+      O.faces.push({ p: [[x - 16, top - 6, z + 6], [x - 1, top - 5, z + 6], [x - 1, top + 3, z - 8], [x - 16, top + 3, z - 8]], n: [0, -0.87, -0.5], c: 0xf4ead0, bias: -1 });
+      O.faces.push({ p: [[x + 1, top - 5, z + 6], [x + 16, top - 6, z + 6], [x + 16, top + 3, z - 8], [x + 1, top + 3, z - 8]], n: [0, -0.87, -0.5], c: 0xece0c0, bias: -1 });
+      O.faces.push({ p: [[x - 1, top - 5, z + 6], [x + 1, top - 5, z + 6], [x + 1, top + 12, z - 9], [x - 1, top + 12, z - 9]], n: null, c: 0xc01828, bias: -2 });
+      Rf.faces.push(...this.mirror(boxFaces(x - 14, FLOOR - 6, z - 12, x + 14, FLOOR, z + 12, P.woodD, P.wood))); }
     // ---- the picture frames on the walls (a dark canvas inside a deep gold frame; the paintings are drawn over the canvas)
     for (const sl of HALL_SLOTS.filter((q) => q.kind === 'frame')) {
       const C = canvasOf(sl), s = sl.side, x = s * (WALL - 2), z = sl.z, n = [-s, 0, 0], w = C.half + 16, y1 = C.top - 16, y2 = C.bot + 16;
@@ -234,8 +254,9 @@ export class TrophyHallScene extends Phaser.Scene {
     const dyn = this.dynamic();
     this.reflR.render(this.mirror(dyn.lights));
     this.mainR.render([]);
-    const tr = this.items.find((it) => it.trophy), ang = this.t * 0.02;
-    this.objR.render([...dyn.doors, ...dyn.lights, ...(tr ? this.trophyFaces(tr.slot.side * PED_X, FLOOR - 64, tr.slot.z, ang, 1) : [])]);
+    const cups = this.items.filter((it) => it.trophy), ang = this.t * 0.02, tf = [];
+    for (const it of cups) { const S = trophySpot(it.slot); if (S.z - this.camZ < 4300) tf.push(...this.trophyFaces(it.trophy.model, S.x, S.y, S.z, ang, S.k, !it.earned)); }
+    this.objR.render([...dyn.doors, ...dyn.lights, ...tf]);
     this.drawPaintings();
     // light: a soft cone from the ceiling onto every pedestal and onto the plinth, the window's glow, candle glows
     const b = this.beams; b.clear();
@@ -254,9 +275,13 @@ export class TrophyHallScene extends Phaser.Scene {
         if (q) for (let r = 0; r < 5; r++) { b.fillStyle(0xffe8b8, 0.045 * fk); b.fillEllipse(q.x, q.y + 30 * q.s, (300 - r * 50) * q.s * 0.6, (180 - r * 26) * q.s); }
       }
     }
-    if (tr) for (let i = 0; i < 5; i++) {                                                   // the trophy's gold glinting
-      const a = this.t * 0.05 + i * 1.26, q = this.project(tr.slot.side * PED_X + Math.cos(a) * 16, FLOOR - 98 + Math.sin(a * 1.7) * 8, tr.slot.z + Math.sin(a) * 16);
-      if (q && (this.t + i * 11) % 40 < 20) { const r = Math.max(1, 3 * q.s); b.fillStyle(0xfff0a0, 0.9); b.fillRect(q.x - r, q.y, r * 2 + 1, 1); b.fillRect(q.x, q.y - r, 1, r * 2 + 1); }
+    for (const it of cups) {                                                              // the earned trophies glinting
+      if (!it.earned) continue;
+      const S = trophySpot(it.slot);
+      for (let i = 0; i < 5; i++) {
+        const a = this.t * 0.05 + i * 1.26, q = this.project(S.x + Math.cos(a) * 16 * S.k, S.y - (34 + Math.sin(a * 1.7) * 8) * S.k, S.z + Math.sin(a) * 16 * S.k);
+        if (q && (this.t + i * 11) % 40 < 20) { const r = Math.max(1, 3 * q.s); b.fillStyle(0xfff0a0, 0.9); b.fillRect(q.x - r, q.y, r * 2 + 1, 1); b.fillRect(q.x, q.y - r, 1, r * 2 + 1); }
+      }
     }
     const w = this.project(0, -190, LEN - 3);                                              // the window's glow pouring in
     if (w) { for (let i = 0; i < 4; i++) { b.fillStyle([0xff6a8a, 0x6aa0ff, 0xffd870, 0xc08aff][i], 0.05); b.fillCircle(w.x + (i - 1.5) * 14 * w.s, w.y, (140 - i * 20) * w.s); } }
@@ -281,21 +306,51 @@ export class TrophyHallScene extends Phaser.Scene {
   }
 
   /**
-   * THE YOU DID IT TROPHY in 3D: a black marble base with a gold plaque, a gold stem and dish, and on top a lumpy
-   * nugget of solid gold, turning slowly. x, y = the middle of the pedestal's top; ang = how far the rock has turned;
-   * k = size. Returns its faces (for a Poly3D).
+   * A trophy in 3D: every one stands on the same black marble base with a gold plaque; on top, its own model, turning
+   * slowly (built round 0,0,0 = the middle of the base's top, then turned by ang, scaled by k and set at x, y, z).
+   * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
+   * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
+   * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire).
+   * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
-  trophyFaces(x, y, z, ang, k = 1) {
-    const out = [], G = [0xffd040, 0xf0b020, 0xffe070, 0xd89818];
+  trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
+    const out = [];
     out.push(...boxFaces(x - 14 * k, y - 8 * k, z - 10 * k, x + 14 * k, y, z + 10 * k, 0x1a1418, 0x3a3440));
     out.push(...boxFaces(x - 10 * k, y - 15 * k, z - 7 * k, x + 10 * k, y - 8 * k, z + 7 * k, 0x2a2430, 0x4a4450));
-    out.push({ p: [[x - 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 1.5 * k, z - 10.4 * k], [x - 8 * k, y - 1.5 * k, z - 10.4 * k]], n: [0, 0, -1], c: 0xe0b040, bias: -1 });   // the plaque
-    out.push(...prismFaces(x, y - 25 * k, y - 15 * k, z, 2.6 * k, 6, G[1], G[0]));
-    out.push(...prismFaces(x, y - 28 * k, y - 25 * k, z, 9 * k, 8, G[3], G[2]));
-    const c = Math.cos(ang), sn = Math.sin(ang), rot = (v) => [v[0] * c + v[2] * sn, v[1], -v[0] * sn + v[2] * c];
-    for (const f of blobFaces(0, 0, 0, 11, 9, 10, G, 7, 0xfff0a0, 0.48)) {
-      out.push({ ...f, p: f.p.map((v) => { const r = rot(v); return [x + r[0] * k, y - 37 * k + r[1] * k, z + r[2] * k]; }), n: f.n && rot(f.n), bias: -2 });
+    out.push({ p: [[x - 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 1.5 * k, z - 10.4 * k], [x - 8 * k, y - 1.5 * k, z - 10.4 * k]], n: [0, 0, -1], c: locked ? 0x5a5060 : 0xe0b040, bias: -1 });   // the plaque
+    const T = [], flat = (pts, zz, c) => T.push({ p: pts.map(([px, py]) => [px, py, zz]), n: null, c });
+    const G = [0xffd040, 0xf0b020, 0xffe070, 0xd89818];
+    if (model === 'gold-rock') {
+      T.push(...prismFaces(0, -10, 0, 0, 2.6, 6, G[1], G[0]), ...prismFaces(0, -13, -10, 0, 9, 8, G[3], G[2]), ...blobFaces(0, -22, 0, 11, 9, 10, G, 7, 0xfff0a0, 0.48));
+    } else if (model === 'sword') {
+      T.push(...prismFaces(0, -2, 0, 0, 7, 8, G[3], G[2]), ...prismFaces(0, -9, -2, 0, 1.7, 6, 0x6a3a1a));
+      T.push(...boxFaces(-8, -12, -1.8, 8, -9, 1.8, 0xe83a3a, 0xff6a5a), ...boxFaces(-1.7, -46, -0.7, 1.7, -12, 0.7, 0xd8e0ec, 0xffffff), ...pyramidFaces(0, -46, 0, 3.4, 1.4, 7, 0xe8f0f8));
+      T.push(...blobFaces(0, -10.5, 0, 2.4, 2.4, 2.4, [0xffd040, 0xffe070], 3, null, 0.1));
+    } else if (model === 'boot') {
+      const B = 0xc87a3a, BL = 0xe8a060;
+      T.push(...boxFaces(-6, -3, -4.5, 10, 0, 4.5, 0x7a3a12), ...boxFaces(-6, -10, -4, 7, -3, 4, B, BL), ...blobFaces(7, -6, 0, 4.5, 4, 4, [B, BL], 4, null, 0.1));
+      T.push(...boxFaces(-6, -26, -4, 1, -10, 4, B, BL), ...boxFaces(-7, -29, -5, 2, -25, 5, BL, 0xffc890));
+      for (const zz of [-4.6, 4.6]) flat([[-6, -22], [-15, -31], [-12, -25], [-17, -24], [-12, -19], [-16, -16], [-6, -14]], zz, 0xffd040);   // its wings
+    } else if (model === 'goldfish') {
+      const S = 0xdde4ee;
+      T.push(...blobFaces(0, -4, 0, 10, 4, 7, [0xa8c8e0, 0xc8e0f0, 0xffffff], 9, 0xffffff, 0.3), ...blobFaces(1, -18, 0, 9, 6, 4.5, [S, 0xc8d0dc], 5, 0xffffff, 0.1));
+      flat([[-7, -18], [-16, -26], [-13, -18], [-16, -9]], 0, 0xc8d0dc); flat([[-2, -23], [2, -29], [6, -23]], 0, 0xc8d0dc);
+      for (const zz of [-4.4, 4.4]) T.push(...boxFaces(6, -21, zz - 0.4, 8, -19, zz + 0.4, 0x101018));
+    } else if (model === 'crown') {
+      T.push(...blobFaces(0, -5, 0, 10, 5, 10, [0xa01828, 0xc02030], 6, 0xd8303a, 0.1), ...prismFaces(0, -17, -8, 0, 8.5, 10, 0xe0b040, 0xffe070));
+      for (let i = 0; i < 10; i++) { const q = i / 10 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 7.5, -17, Math.sin(q) * 7.5, 3, 3, 7 + (i % 2) * 5, i % 2 ? 0x3ab0e8 : 0x7ae8ff)); }
+      T.push(...pyramidFaces(0, -17, 0, 5, 5, 17, 0xc8f4ff));
+      for (let i = 0; i < 5; i++) { const q = i / 5 * Math.PI * 2; T.push(...boxFaces(Math.cos(q) * 8.6 - 1, -13.5, Math.sin(q) * 8.6 - 1, Math.cos(q) * 8.6 + 1, -11.5, Math.sin(q) * 8.6 + 1, 0xe83a5a)); }
+    } else if (model === 'phoenix') {
+      for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
+      T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));
+      T.push(...boxFaces(5, -36, -0.6, 9, -34.5, 0.6, 0xff6a1a));
+      for (const sx of [1, -1]) { flat([[2 * sx, -28], [18 * sx, -50], [14 * sx, -40], [24 * sx, -42], [16 * sx, -30], [22 * sx, -30], [10 * sx, -22]], sx * 1.5, 0xff8a1a); flat([[3 * sx, -27], [12 * sx, -40], [10 * sx, -30]], sx * 1.6, 0xffd040); }
+      flat([[-1, -18], [-9, -4], [0, -9], [9, -4], [1, -18]], -3, 0xff5a1a); flat([[1, -38], [3, -46], [4, -38]], 0, 0xff3a1a);
     }
+    const c = Math.cos(ang), sn = Math.sin(ang), rot = (v) => [v[0] * c + v[2] * sn, v[1], -v[0] * sn + v[2] * c], y0 = y - 15 * k;
+    const dark = [0x1e1a28, 0x2a2436, 0x24202e];
+    T.forEach((f, i) => out.push({ ...f, c: locked ? dark[i % 3] : f.c, p: f.p.map((v) => { const r = rot(v); return [x + r[0] * k, y0 + r[1] * k, z + r[2] * k]; }), n: f.n && rot(f.n), bias: -2 }));
     return out;
   }
 
@@ -339,6 +394,10 @@ export class TrophyHallScene extends Phaser.Scene {
   /** Opens the close-up of item i (a painting big with its story, or a trophy turning in a spotlight). */
   openInspect(i) {
     const n = this.items.length; i = ((i % n) + n) % n;
+    if (this.items[i].ledger) {                                                               // the ledger: the ACHIEVEMENTS page (back comes here)
+      if (this.inspect) i = (i + (this.inspect.i > i ? -1 : 1) + n) % n;                     // (flipping past it in the close-up skips it)
+      else return this.openLedger();
+    }
     if (!this.insp) {
       const D = 50;
       this.insp = {
@@ -357,7 +416,10 @@ export class TrophyHallScene extends Phaser.Scene {
     for (const o of [I.bg, I.fx, I.title, I.text, I.hint, I.R.g]) o.setVisible(true);
     I.img.setVisible(!!it.painting);
     if (it.painting) I.img.setTexture(it.painting.big ? it.painting.sheet : 'hall_paintings', it.painting.big ? 0 : it.painting.frame).setScale(it.painting.big ? 1.1 : 2.25);
-    I.title.setText((it.painting || it.trophy).title); I.text.setText((it.painting || it.trophy).text);
+    I.title.setText((it.painting || it.trophy).title);
+    if (it.trophy && !it.earned) { const T = TROPHY_GOALS.find((q) => q.id === it.trophy.id), [h, g] = trophyProgress(it.trophy.id); I.text.setText('LOCKED. TO EARN IT: ' + (T ? T.info : '') + '\nPROGRESS  ' + h + ' / ' + g + (T ? '      REWARD  ' + T.coins + ' COINS' : '')); }
+    else I.text.setText((it.painting || it.trophy).text);
+    if (it.trophy) I.plaque.setText(it.earned ? it.trophy.plaque : '? ? ?');
     sfx('menu', 0.5, 0.8);
   }
 
@@ -388,15 +450,23 @@ export class TrophyHallScene extends Phaser.Scene {
       g.fillStyle(0x2a2430, 1); g.fillEllipse(VIEW_W / 2, 268, 220, 30); g.fillStyle(0xe0b040, 1); g.fillEllipse(VIEW_W / 2, 264, 200, 24); g.fillStyle(0x3a3440, 1); g.fillEllipse(VIEW_W / 2, 262, 196, 20);
       const R = I.R; R.scene = { cameras: { main: { midPoint: { x: 0, y: 0 }, worldView: { x: -VIEW_W / 2, y: -VIEW_H / 2, width: VIEW_W, height: VIEW_H } } } }; R.camZ = 0;
       R.g.setPosition(VIEW_W / 2, 150);
-      R.render(this.trophyFaces(0, 110, 120, t * 0.025, 5.2));
-      for (let i = 0; i < 7; i++) {                                                            // glints off the gold
+      const big = it.trophy.model === 'phoenix';
+      R.render(this.trophyFaces(it.trophy.model, 0, 110, 120, t * 0.025, big ? 4.2 : 5.2, !it.earned));
+      if (!it.earned) {                                                                         // locked: a progress bar under it
+        const [h, gl] = trophyProgress(it.trophy.id), bw = 220, bx = VIEW_W / 2 - bw / 2;
+        g.fillStyle(0x000000, 0.8); g.fillRect(bx - 2, 276, bw + 4, 9); g.fillStyle(0x3a2a50, 1); g.fillRect(bx, 278, bw, 5); g.fillStyle(0xf3c358, 1); g.fillRect(bx, 278, bw * h / Math.max(1, gl), 5);
+      }
+      if (it.earned) for (let i = 0; i < 7; i++) {                                                            // glints off the gold
         const a = t * 0.04 + i * 0.9, px = VIEW_W / 2 + Math.cos(a) * 60, py = 70 + Math.sin(a * 1.6) * 30;
         if ((t + i * 13) % 50 < 24) { I.fx.fillStyle(0xfff6c0, 0.9); I.fx.fillRect(px - 5, py, 11, 1); I.fx.fillRect(px, py - 5, 1, 11); I.fx.fillStyle(0xffffff, 1); I.fx.fillRect(px - 1, py - 1, 3, 3); }
       }
       I.fx.fillStyle(0x2a1a08, 1);
     }
-    I.text.setY(it.painting ? 303 : 290); I.plaque.setVisible(!it.painting);
+    I.text.setY(it.painting ? 303 : 290); I.plaque.setVisible(!it.painting).setY(it.trophy && it.trophy.model === 'phoenix' ? 214 : 222);
   }
+
+  /** Opens the ACHIEVEMENTS page; its BACK returns here, where you stood. */
+  openLedger() { sfx('menu', 0.6, 1.2); this.scene.start('Achievements', { from: { scene: 'TrophyHall', data: { back: { camZ: this.camZ } } } }); }
 
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
 
@@ -412,6 +482,7 @@ export class TrophyHallScene extends Phaser.Scene {
     }
     if (backPress) return this.back();
     if (okPress && this.near) { this.openInspect(this.items.indexOf(this.near)); return; }
+    if (this.qKey && Phaser.Input.Keyboard.JustDown(this.qKey)) return this.openLedger();
     // walking and looking (keys, sticks / d-pads, or a held pointer)
     let fwd = 0, side = 0;
     if (K.up.isDown || K.up2.isDown) fwd += 1;
@@ -445,10 +516,11 @@ export class TrophyHallScene extends Phaser.Scene {
     const a = this.t < ARRIVE.glide ? 0 : this.t < ARRIVE.glide + 30 ? (this.t - ARRIVE.glide) / 30 : this.t < ARRIVE.glide + 240 ? 1 : Math.max(0, 1 - (this.t - ARRIVE.glide - 240) / 40);
     this.title.setAlpha(a); this.sub.setAlpha(a);
     // what you're looking at: the nearest thing on show a little way ahead, closest to the middle of the screen
-    const ahead = (s) => s.z - this.camZ > 60 && s.z - this.camZ < 600, mid = (s) => { const q = this.project(s.side * (s.kind === 'frame' ? WALL : PED_X), 0, s.z); return q ? Math.abs(q.x - VIEW_W / 2) : 999; };
+    const ahead = (s) => s.z - this.camZ > 60 && s.z - this.camZ < 600, mid = (s) => { const q = this.project(s.x ?? (s.kind === 'plinth' ? 0 : s.side * (s.kind === 'frame' ? WALL : PED_X)), 0, s.z); return q ? Math.abs(q.x - VIEW_W / 2) : 999; };
     this.near = this.t > ARRIVE.glide ? this.items.filter((it) => ahead(it.slot)).sort((p, q) => mid(p.slot) - mid(q.slot))[0] : null;
     const empty = !this.near && HALL_SLOTS.filter((s) => s.kind !== 'frame' && !DISPLAY[s.id] && ahead(s)).sort((p, q) => mid(p) - mid(q))[0];
-    this.slotText.setText(a > 0.5 ? '' : this.near ? (this.near.painting || this.near.trophy).title : empty ? (empty.kind === 'plinth' ? 'THE GREAT PLINTH  -  AWAITING A STATUE' : 'PEDESTAL ' + (empty.side < 0 ? 'L' : 'R') + empty.id.slice(-1) + '  -  EMPTY') : '');
+    const nearName = (it) => (it.ledger ? 'THE LEDGER OF ACHIEVEMENTS' : it.painting ? it.painting.title : it.trophy.title + (it.earned ? '' : '  -  LOCKED'));
+    this.slotText.setText(a > 0.5 ? '' : this.near ? nearName(this.near) : empty ? (empty.kind === 'plinth' ? 'THE GREAT PLINTH  -  AWAITING A STATUE' : 'PEDESTAL ' + (empty.side < 0 ? 'L' : 'R') + empty.id.slice(-1) + '  -  EMPTY') : '');
     this.prompt.setVisible(!!this.near && a < 0.5);
   }
 }

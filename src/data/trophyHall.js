@@ -51,14 +51,22 @@ export const PAINTINGS = [
   { id: 'drowned', big: true, sheet: 'hall_master_drowned', frames: 8, title: 'THE DROWNED HOUR', text: "A MASTERPIECE. The storm breaks over a sea of sludge. THE DEVOTED rises, drowned, with her demons - and what she will become rises behind her. On the last cliff, two stand their ground. Mr Wake holds back the tide." },
 ];
 
-// THE TROPHIES: drawn in 3D on their pedestals by the scene (`model` = which one: TrophyHallScene.trophyFaces)
+// THE TROPHIES: drawn in 3D on their pedestals by the scene (`model` = which one: TrophyHallScene.trophyFaces;
+// `plaque` = what's engraved on it). YOU DID IT is `free`; the rest are earned - how, and how far along you are, is
+// TROPHY_GOALS in src/achievements.js (same ids), each harder than the last. Locked ones stand there as a shadow.
 export const TROPHIES = [
-  { id: 'you-did-it', model: 'gold-rock', title: 'THE YOU DID IT TROPHY', text: 'Awarded for doing it. Nobody remembers what "it" was. The rock is solid gold. Probably.' },
+  { id: 'you-did-it', free: true, model: 'gold-rock', plaque: 'YOU DID IT', title: 'THE YOU DID IT TROPHY', text: 'Awarded for doing it. Nobody remembers what "it" was. The rock is solid gold. Probably.' },
+  { id: 'first-sword', model: 'sword', plaque: 'FIRST WIN', title: 'THE FIRST SWORD', text: 'A toy sword with a red plastic hilt. Everyone starts somewhere. You started by winning.' },
+  { id: 'bronze-boot', model: 'boot', plaque: '100 KOS', title: 'THE BRONZE BOOT', text: 'A winged boot cast in bronze, for kicking a hundred fighters off the edge of the world.' },
+  { id: 'silver-fish', model: 'goldfish', plaque: '50 WINS', title: 'THE SILVER GOLDFISH', text: "AERO's goldfish, in solid silver, leaping a silver wave. Fifty wins. The real one is not impressed." },
+  { id: 'crystal-crown', model: 'crown', plaque: 'FLAWLESS', title: 'THE CRYSTAL CROWN', text: 'Ten wins without falling once. The crown is cut from the same crystal as the galaxy shard. Wear it carefully.' },
+  { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 
 // slot id -> what's displayed there ({ painting } or { trophy } id)
 export const DISPLAY = {
-  'pedestal-l1': { trophy: 'you-did-it' },
+  'pedestal-l1': { trophy: 'you-did-it' }, 'pedestal-r1': { trophy: 'first-sword' }, 'pedestal-l2': { trophy: 'bronze-boot' },
+  'pedestal-r2': { trophy: 'silver-fish' }, 'pedestal-l3': { trophy: 'crystal-crown' }, 'plinth': { trophy: 'phoenix' },
   'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
   'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },

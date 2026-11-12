@@ -12,6 +12,8 @@
 // The gradient fill needs WebGL; the canvas renderer falls back to flat colours.
 // Also here: n64Gem (a Gouraud-shaded spinning octahedron) and n64Star (a chunky 3D star) for her effects.
 
+import { skinInfo } from './skins.js';
+
 const clamp255 = (v) => Math.max(0, Math.min(255, Math.round(v)));
 
 /** A colour times a brightness (k > 1 also lifts it a little toward white, like a specular hot spot). */
@@ -36,6 +38,24 @@ function rgb(h, s, l) {
   const C = (1 - Math.abs(2 * l - 1)) * s, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - C / 2;
   const [r, g, b] = h < 60 ? [C, X, 0] : h < 120 ? [X, C, 0] : h < 180 ? [0, C, X] : h < 240 ? [0, X, C] : h < 300 ? [X, 0, C] : [C, 0, X];
   return (clamp255((r + m) * 255) << 16) | (clamp255((g + m) * 255) << 8) | clamp255((b + m) * 255);
+}
+
+const plainCache = new Map();
+/** The plain N64 palette (for costumes that aren't THE DEVOTED): colours kept, just a touch more saturated. */
+export function PLAIN(c) {
+  let o = plainCache.get(c);
+  if (o === undefined) { const [h, s, l] = hsl(c); o = rgb(h, Math.min(1, s * 1.15), l); plainCache.set(c, o); }
+  return o;
+}
+
+/**
+ * A Graphics drawn N64-style if `fighter` wears an N64 costume (skin `n64: true`, e.g. AERO64), else the Graphics
+ * itself. For a fighter's projectiles, minions and props (entities.js).
+ */
+export function n64For(fighter, g) {
+  if (!fighter || !fighter.def) return g;
+  if (fighter._n64key !== fighter.skin) { fighter._n64key = fighter.skin; fighter._n64 = !!skinInfo(fighter.def.id, fighter.skin || 0).n64; }
+  return fighter._n64 ? n64(g, PLAIN) : g;
 }
 
 const cartCache = new Map();

@@ -51,6 +51,7 @@ export const SKIN_INTROS = {
   'nu:SURF ROCK': { kind: 'wave', dur: 100, color: 0x2ad0d0, color2: 0xffffff, pre: ['whoosh', 0.5, 0.5], sfx: ['geyser', 0.6, 0.9] },
   'aero:TIDE POOL': { kind: 'pool', dur: 110, pool: { deep: 0x0a6a98, mid: 0x30c8e0, rim: 0xf0d48a, sheen: 0xffffff }, pre: ['geyser', 0.35, 1.1], sfx: ['glass', 0.5, 1.1] },
   // THE DEVOTED's drawn costumes
+  'aero:AERO64': { kind: 'n64', color: 0x5ad8ff, color2: 0xffe848, gem: [0x5ad8ff, 0xffe848, 0x8ae83a, 0xff6a10], pre: ['glass', 0.4, 1.6], sfx: ['limitready', 0.5, 1.4] },
   'devoted:CARTRIDGE': { kind: 'n64', color: 0x20e8ff, color2: 0xff3ad8, gem: [0x2ac8c0, 0xffe848, 0x9038c0, 0xff9420], pre: ['glass', 0.4, 1.6], sfx: ['limitready', 0.5, 1.4] },
   'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
   'devoted:EMBER SAINT': { kind: 'pool', dur: 120, lava: true, color: 0xff6a10, pool: { deep: 0x5a1408, mid: 0xff6a10, rim: 0xffe070, sheen: 0xfff4c0, glow: 0xff5a0a }, pre: ['rumble', 0.6, 0.6], sfx: ['flame', 0.7, 0.6] },   // up out of the lava

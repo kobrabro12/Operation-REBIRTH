@@ -21,7 +21,7 @@ function toast(scene, a, opts) {
   slant(g, 0, 0, w, h, 0xffd23f, 1, 10); slant(g, 3, 3, w - 6, h - 6, 0x0b0a14, 0.96, 9);
   slant(g, 3, 3, 30, h - 6, 0xffd23f, 1, 9);
   g.fillStyle(0xffd23f, 1); g.fillRect(8, 8, 18, 18); g.fillStyle(0x0b0a14, 1); g.fillRect(12, 12, 10, 3); g.fillRect(15, 15, 4, 6); g.fillRect(12, 21, 10, 2);   // a little trophy
-  const t1 = scene.add.text(38, 6, 'ACHIEVEMENT UNLOCKED', { fontFamily: FONT, fontSize: '6px', color: '#ffd23f' });
+  const t1 = scene.add.text(38, 6, a.label || 'ACHIEVEMENT UNLOCKED', { fontFamily: FONT, fontSize: '6px', color: '#ffd23f' });
   const t2 = scene.add.text(38, 17, a.name, { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 });
   const t3 = scene.add.text(w - 14, 18, '+' + a.coins, { fontFamily: FONT, fontSize: '7px', color: '#ffd23f' }).setOrigin(1, 0);
   c.add([g, t1, t2, t3]);

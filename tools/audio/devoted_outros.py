@@ -10,6 +10,11 @@ scored to its shots (frame numbers at 60 fps in brackets):
   ember      MARTYRDOM: a low choir and a heartbeat on timpani [0], the fire catching - rising choir, a crackle [180],
              a huge hit as she rises out of the flames [360], a soaring choir chord over a bell [560]
 
+  aero64     AERO64's outro (not DEVOTED's, but it shares CARTRIDGE's console-boot world): the boot sparkle [0], a
+             bouncy, splashier take on the field tune - steel drum and marimba over a skipping beat [150], the brass
+             fanfare for the golden shard [420], then a party: the tune again with the whole band and fireworks [560],
+             a big final chord [660]
+
   devoted    her own outro (no costume): wind, her music-box theme, the stab, the beaten sinking, three splashes as the
              sludge takes her, a whisper, the thing's eyes opening
 Spoken lines (tools/audio/voice_src/dv_*.ogg) were made with Kokoro TTS (kokoro-onnx, voice af_nicole, slowed).
@@ -242,6 +247,41 @@ def devoted():
     finish(reverb(out, 3.2, 1.8, 0.42), 'devoted', fade=1.2)
 
 
-PIECES = {'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted}
+def aero64():
+    from n64_stage_music import steel
+    L = 13.0; out = np.zeros(secs(L))
+    for i, mi in enumerate([72, 76, 79, 84, 88, 91, 96]): add(out, musicbox(mi, 2.4, 0.5), 0.2 + i * 0.07)   # [0] the boot sparkle
+    add(out, mx(glass(84, 2.2, 0.4), glass(91, 2.2, 0.3)), 0.7)
+    t0, b = 2.5, 60 / 156                                                          # [150] the field, splashier
+    tune = seq('C5:.5 E5:.5 G5:.5 C6:.5 B5:.5 G5:.5 A5:1  F5:.5 A5:.5 C6:.5 A5:.5 G5:1 E5:1  D5:.5 E5:.5 F5:.5 G5:.5 A5:.5 B5:.5 C6:1  G5:1 E5:.5 D5:.5 C5:2')
+    sec = 0.0
+    for mi, d in tune:
+        if mi: add(out, mx(steel(mi, 0.7, 0.9), marimba(mi - 12, 0.4, 0.5)), t0 + sec * b)
+        sec += d
+    for i, r in enumerate([48, 45, 41, 43]):
+        for q in range(4):
+            tt = t0 + (i * 4 + q) * b
+            add(out, bass(r if q % 2 == 0 else r + 7, b * 0.8, 0.8), tt)
+            add(out, drum_kick(0.5) if q % 2 == 0 else drum_snare(0.35), tt); add(out, drum_hat(0.45), tt + b / 2)
+    t1 = 7.0                                                                       # [420] the fanfare
+    for i, (mi, d) in enumerate([(72, 0.25), (76, 0.25), (79, 0.25), (84, 1.2)]):
+        s0 = sum(x[1] for x in [(72, 0.25), (76, 0.25), (79, 0.25), (84, 1.2)][:i])
+        for h in (0, -5, -12): add(out, horn(mi + h, d, 0.9 if h == 0 else 0.5, bright=1.3), t1 + s0)
+    add(out, chime(1.0), t1 + 0.8); add(out, crash(0.6), t1 + 0.75)
+    t2, sec = 9.33, 0.0                                                            # [560] the party: the tune with the band
+    for mi, d in tune[:14]:
+        if mi: add(out, mx(steel(mi, 0.7, 1.0), horn(mi, d * b * 0.9, 0.4), marimba(mi + 12, 0.3, 0.3)), t2 + sec * b)
+        sec += d
+    for q in range(10):
+        tt = t2 + q * b; add(out, drum_kick(0.6) if q % 2 == 0 else drum_snare(0.45), tt); add(out, drum_hat(0.5), tt + b / 2)
+        add(out, bass([48, 48, 53, 55][(q // 2) % 4], b * 0.8, 0.9), tt)
+    for k in range(5): add(out, crash(0.25), t2 + 0.4 + k * 0.6)                   # (fireworks)
+    t3 = 11.0                                                                      # [660] a big final chord
+    for mi in (48, 60, 64, 67, 72, 76): add(out, horn(mi, 1.8, 0.5, bright=1.2), t3)
+    add(out, crash(0.8), t3); add(out, chime(1.0), t3 + 0.1)
+    finish(reverb(out, 2.0, 2.4, 0.26), 'aero64', fade=0.8)
+
+
+PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

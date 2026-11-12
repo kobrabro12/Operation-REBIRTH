@@ -422,6 +422,13 @@ export const SKINS = {
       pal: { outline: 0x140808, deep: 0xb8320a, mid: 0xff7a1a, light: 0xffd23a, core: 0xfff4b0, shade: 0x2a0a06, void: 0x0a0202 },
       vfx: { hit: { shape: 'flame', colors: [0xffd23a, 0xff7a1a, 0xd8401a, 0xfff4b0], n: 10, ring: 0xff7a1a, sound: 'whoosh' },
              aura: { scorched: true }, trail: 0xff6a1a } },
+    // AERO64: AERO as a real low-poly 3D model (Blender: tools/sprites/aero_3d.py) - a see-through glass fishbowl with
+    // the goldfish swimming inside, a chunky white suit, big round aqua gloves and moon boots, a leaf scarf; smooth
+    // Gouraud shading like a 64-bit game. Spinning 3D gems and stars for hits, a crystal arrival, its own outro
+    { name: 'AERO64', sheetSet: 'n64', n64: true, swatch: 0x5ad8ff, fx: 0x5ad8ff,
+      pal: { outline: 0x101830, deep: 0x1aa8e0, mid: 0x5ad8ff, light: 0xffe848, core: 0xffffff, shade: 0x0a3a6a, void: 0x02081a },
+      vfx: { hit: { shape: 'poly', colors: [0x5ad8ff, 0xffe848, 0x8ae83a], n: 9, ring: 0x5ad8ff, glint: true },
+             aura: { motes: { colors: [0x5ad8ff, 0xffe848, 0xff6a10], rate: 9, shape: 'polygem' } }, trail: 0x5ad8ff } },
   ],
   'mr-wake': [
     { name: 'CRIMSON', swatch: 0x651b3a },

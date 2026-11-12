@@ -10,8 +10,9 @@ export const AERO = {
   id: 'aero',
   name: 'AERO',
   sheets: { idle: 'aero_idle', run: 'aero_run', jump: 'aero_jump', fall: 'aero_fall', moves: 'aero_moves' },
-  // shop costume with its own drawing (skins.js sheetSet): SUNSET - tools/sprites/shop_costumes.py
-  costumeSheets: Object.fromEntries(['sunset', 'midnight', 'amber', 'scorched', 'tide'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_' + s + '_' + k]))])),
+  // costumes with their own drawing (skins.js sheetSet): SUNSET... - tools/sprites/shop_costumes.py; AERO64 (n64) is a
+  // real 3D model rendered in Blender - tools/sprites/aero_3d.py
+  costumeSheets: Object.fromEntries(['sunset', 'midnight', 'amber', 'scorched', 'tide', 'n64'].map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_' + s + '_' + k]))])),
   runCycle: [0, 8],
   moveAnims: AERO_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,

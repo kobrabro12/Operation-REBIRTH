@@ -1,4 +1,4 @@
-// Trinkets > ACHIEVEMENTS: two pages.
+// ACHIEVEMENTS (opened from the TROPHY HALL's ledger, or Q in the hall; BACK returns there): two pages.
 //   ACHIEVEMENTS  every achievement (src/achievements.js) as a card: a trophy (gold once unlocked), its name, how to
 //                 get it, a progress bar and the coins it pays. Secret ones read ??? with a hint until found.
 //   PROGRESS      lifetime stats, overall completion, and each fighter's matches, wins, KOs and next milestone costume.
@@ -39,7 +39,8 @@ export class AchievementsScene extends Phaser.Scene {
     this.g = this.add.graphics();
     const txt = (x, y, s, size, color, o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, ...o });
     this.txt = txt;
-    titleBanner(this, 'ACHIEVEMENTS', ACC, { crumb: 'TRINKETS  >  ACHIEVEMENTS' });
+    this.from = (this.sys.settings.data || {}).from;                          // (opened from the TROPHY HALL's ledger)
+    titleBanner(this, 'ACHIEVEMENTS', ACC, { crumb: this.from ? 'TROPHY HALL  >  ACHIEVEMENTS' : 'TRINKETS  >  ACHIEVEMENTS' });
     this.tabT = TABS.map((n, i) => txt(TAB.x + i * (TAB.w + TAB.gap) + TAB.w / 2, TAB.y + 6, n, 7, '#c9c4dc', { stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5, 0));
     this.sumT = txt(W - 16, TAB.y + 6, '', 7, '#f3c358').setOrigin(1, 0);
     // page 1: a pool of text for the cards on screen
@@ -75,7 +76,7 @@ export class AchievementsScene extends Phaser.Scene {
 
   cardAt(i) { const c = i % CARD.cols, r = Math.floor(i / CARD.cols); return [CARD.x + c * (CARD.w + CARD.gapX), CARD.y + r * (CARD.h + CARD.gapY)]; }
   setTab(i) { if (i !== this.tab) { this.tab = i; sfx('menu', 0.5, 1.2); } }
-  back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  back() { sfx('menu', 0.6); if (this.from) this.scene.start(this.from.scene, this.from.data); else this.scene.start('Trinkets'); }
   scroll(d) {
     const n = ACHIEVEMENTS.length, maxTop = Math.max(0, Math.ceil(n / CARD.cols) * CARD.cols - VIS);
     this.top = Phaser.Math.Clamp(this.top + d, 0, maxTop);

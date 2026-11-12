@@ -1,4 +1,4 @@
-import { n64 } from './n64Draw.js';
+import { n64, n64For } from './n64Draw.js';
 import { drawThemeFireball,drawThemeBolt,drawThemeSword,drawThemePool } from './skinThemeFx.js';
 import { drawMasterSwordHilt } from './masterSword.js';
 // Things fighters create: fireballs and summoned souls.
@@ -811,7 +811,7 @@ export class AeroBubble {
     if (--this.life <= 0) this.kill();
   }
   kill() { if (!this.alive) return; this.alive = false; popBubble(this.match, this.x, this.y, this.r, this.owner.pal); this.g.destroy(); }
-  render() { if (!this.alive) return; this.g.clear(); drawBubble(this.g, this.x, this.y, this.r + Math.sin(this.t * 0.3) * 0.6, this.owner.pal, Math.min(1, this.life / 12)); }
+  render() { if (!this.alive) return; this.g.clear(); drawBubble(n64For(this.owner, this.g), this.x, this.y, this.r + Math.sin(this.t * 0.3) * 0.6, this.owner.pal, Math.min(1, this.life / 12)); }   // (AERO64: N64-style)
 }
 // a glossy bubble: a thin bright rim, a faint tinted body, a hard white shine and a little rainbow sheen
 export function drawBubble(g, x, y, r, P, a = 1) {
@@ -872,7 +872,7 @@ export class GoldfishFling {
   remove() { if (!this.alive) return; this.alive = false; this.g.destroy(); this.owner.fishOut = Math.max(0, (this.owner.fishOut || 0) - 1); }
   render() {
     if (!this.alive) return;
-    const g = this.g, P = this.owner.pal, fx = Math.sign(this.vx) || this.dir, x = Math.round(this.x), y = Math.round(this.y);
+    const g = n64For(this.owner, this.g), P = this.owner.pal, fx = Math.sign(this.vx) || this.dir, x = Math.round(this.x), y = Math.round(this.y);
     g.clear();
     this.trail.forEach(([tx, ty], i) => { const k = (i + 1) / this.trail.length; g.fillStyle(P.light, 0.12 + 0.25 * k); g.fillCircle(tx, ty, 2 + 4 * k); });   // the ribbon of water
     const wig = Math.sin(this.t * 0.8) * 2;
@@ -944,7 +944,7 @@ export class AeroPC {
   kill() { if (!this.alive) return; this.alive = false; if (!this.absorbed) this.match.puff(this.x, this.y - 12, 0xffffff, 6); this.g.destroy(); }
   render() {
     if (!this.alive) return;
-    const g = this.g, P = this.owner.pal, x = Math.round(this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0)), y = Math.round(this.y), t = this.t;
+    const g = n64For(this.owner, this.g), P = this.owner.pal, x = Math.round(this.x + (this.shake ? (this.shake % 2 ? 1 : -1) : 0)), y = Math.round(this.y), t = this.t;
     g.clear();
     const o = this.owner, on = this.landed && this.inRange(o) && o.state !== 'respawn';
     if (on) {                                                     // the power link: a glossy beam from the screen to AERO
@@ -1018,7 +1018,7 @@ export class CdCloud {
   kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xffffff, 8); this.g.destroy(); if (this.owner.cdCloud === this) this.owner.cdCloud = null; }
   render() {
     if (!this.alive) return;
-    const g = this.g, P = this.owner.pal, x = this.x, y = this.y, w = 56;
+    const g = n64For(this.owner, this.g), P = this.owner.pal, x = this.x, y = this.y, w = 56;
     const fade = Math.min(1, this.t / 8, (this.life - this.t) / 16);
     g.clear();
     const puffs = [[-0.36, 0, 0.26], [-0.12, -0.12, 0.32], [0.16, -0.08, 0.3], [0.38, 0.02, 0.22], [0, 0.06, 0.3]];
@@ -1046,7 +1046,7 @@ export class FlyingCD {
   kill() { if (!this.alive) return; this.alive = false; this.match.puff(this.x, this.y, 0xe6f4fb, 3); this.g.destroy(); }
   render() {
     if (!this.alive) return;
-    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), sq = Math.abs(Math.cos(this.t * 0.6));
+    const g = n64For(this.owner, this.g), x = Math.round(this.x), y = Math.round(this.y), sq = Math.abs(Math.cos(this.t * 0.6));
     g.clear();
     g.fillStyle(0x0d3550, 1); g.fillEllipse(x, y, 13, 13 * Math.max(0.25, sq) + 1);
     g.fillStyle(0xdfe8ee, 1); g.fillEllipse(x, y, 11, 11 * Math.max(0.2, sq));

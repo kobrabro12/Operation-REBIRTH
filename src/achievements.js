@@ -1,4 +1,5 @@
-// ACHIEVEMENTS and the player's lifetime stats (Trinkets > ACHIEVEMENTS, AchievementsScene.js). Remembered in this
+// ACHIEVEMENTS, TROPHIES and the player's lifetime stats (the ACHIEVEMENTS page is opened from the TROPHY HALL's ledger:
+// AchievementsScene.js; trophies stand in the hall). Remembered in this
 // browser. Stats are counted for human players in real matches only (not training, not the title demo, not CPUs).
 // Each achievement pays out coins for the shop the moment it unlocks (a toast pops up: src/ui/toast.js).
 // To add one: an entry in ACHIEVEMENTS with `goal` and `have(s)` (how far along the player is, from the stats `s`).
@@ -7,13 +8,15 @@ import { getKOs, getCoins, addCoins, owns } from './progress.js';
 import { SHOP } from './data/shop.js';
 import { STAGES, setSecretCheck } from './stage/stages.js';
 
-const STATS_KEY = 'rebirth.stats', ACH_KEY = 'rebirth.ach';
+const STATS_KEY = 'rebirth.stats', ACH_KEY = 'rebirth.ach', TROPHY_KEY = 'rebirth.trophies';
 const blank = () => ({ matches: 0, wins: 0, flawless: 0, limits: 0, taunts: 0, spins: 0, spent: 0, bells: 0, previews: 0, played: {}, won: {}, stages: [], secrets: [], bestCoins: 0 });
 let stats = blank(), got = {};
 try { stats = { ...blank(), ...(JSON.parse(localStorage.getItem(STATS_KEY) || '{}') || {}) }; } catch (e) { /* defaults */ }
 try { got = JSON.parse(localStorage.getItem(ACH_KEY) || '{}') || {}; } catch (e) { got = {}; }
-try { if (new URLSearchParams(window.location.search).get('ach') === 'reset') { stats = blank(); got = {}; save(); } } catch (e) { /* no URL */ }
-function save() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); localStorage.setItem(ACH_KEY, JSON.stringify(got)); } catch (e) { /* storage unavailable */ } }
+let cups = {};
+try { cups = JSON.parse(localStorage.getItem(TROPHY_KEY) || '{}') || {}; } catch (e) { cups = {}; }
+try { if (new URLSearchParams(window.location.search).get('ach') === 'reset') { stats = blank(); got = {}; cups = {}; save(); } } catch (e) { /* no URL */ }
+function save() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); localStorage.setItem(ACH_KEY, JSON.stringify(got)); localStorage.setItem(TROPHY_KEY, JSON.stringify(cups)); } catch (e) { /* storage unavailable */ } }
 
 export function getStats() { return stats; }
 // count something: stat('taunts'), stat('spins', 10)
@@ -79,6 +82,20 @@ export const ACHIEVEMENTS = [
   { id: 'window', group: 'SECRETS', secret: true, name: 'WINDOW SHOPPER', info: 'PREVIEWED 15 COSTUMES.', hint: 'LOOK, DON\'T TOUCH.', goal: 15, have: (s) => s.previews, coins: 50 },
 ];
 
+// TROPHIES (shown in the TROPHY HALL, src/scenes/TrophyHallScene.js; their look and story in src/data/trophyHall.js):
+// five big goals, each harder than the last, paying more coins. (THE YOU DID IT TROPHY is free - it isn't here.)
+export const TROPHY_GOALS = [
+  { id: 'first-sword', name: 'THE FIRST SWORD', info: 'WIN YOUR FIRST MATCH.', goal: 1, have: (s) => s.wins, coins: 50 },
+  { id: 'bronze-boot', name: 'THE BRONZE BOOT', info: 'SCORE 100 KOS.', goal: 100, have: () => totalKOs(), coins: 250 },
+  { id: 'silver-fish', name: 'THE SILVER GOLDFISH', info: 'WIN 50 MATCHES.', goal: 50, have: (s) => s.wins, coins: 600 },
+  { id: 'crystal-crown', name: 'THE CRYSTAL CROWN', info: 'WIN 10 STOCK MATCHES WITHOUT FALLING ONCE.', goal: 10, have: (s) => s.flawless, coins: 1200 },
+  { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
+];
+/** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */
+export function trophyEarned(id) { return !!cups[id]; }
+/** How far along a trophy is: [have, goal] (capped at the goal). */
+export function trophyProgress(id) { const T = TROPHY_GOALS.find((q) => q.id === id); return T ? [Math.min(T.goal, Math.floor(T.have(stats) || 0)), T.goal] : [1, 1]; }
+
 export function isUnlocked(id) { return !!got[id]; }
 export function unlockedCount() { return ACHIEVEMENTS.filter((a) => got[a.id]).length; }
 // how far along: [have, goal] (capped at the goal)
@@ -89,6 +106,7 @@ export function checkAchievements() {
   stats.bestCoins = Math.max(stats.bestCoins || 0, getCoins());
   const fresh = [];
   for (const a of ACHIEVEMENTS) if (!got[a.id] && (a.have(stats) || 0) >= a.goal) { got[a.id] = Date.now(); fresh.push(a); }
+  for (const T of TROPHY_GOALS) if (!cups[T.id] && (T.have(stats) || 0) >= T.goal) { cups[T.id] = Date.now(); fresh.push({ ...T, label: 'TROPHY EARNED - SEE THE TROPHY HALL' }); }   // (after the achievements: the phoenix counts them)
   const pay = fresh.reduce((n, a) => n + a.coins, 0); if (pay) addCoins(pay);
   save();
   return fresh;

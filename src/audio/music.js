@@ -23,7 +23,7 @@ export const TRACKS = [
   // the TROPHY HALL (tools/audio/trophy_hall_music.py)
   'trophy_hall',
   // costume outro music (tools/audio/outro_music.py)
-  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember', 'devoted', 'surf', 'tide'].map((n) => 'outro_' + n),
+  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember', 'devoted', 'surf', 'tide', 'aero64'].map((n) => 'outro_' + n),
 ];
 const KNOWN = new Set(TRACKS.map((n) => 'bgm_' + n));
 // tracks whose file name isn't simply the key without 'bgm_'

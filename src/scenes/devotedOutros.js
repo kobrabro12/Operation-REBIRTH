@@ -9,7 +9,7 @@
 //   EMBER SAINT   MARTYRDOM - a ruined cathedral, she stands on a pyre while the beaten close in with torches; the fire
 //                 catches and her eyes burn through it; she rises out of the flames as the burning DROWNED, the windows
 //                 burst into embers; she hangs in a shaft of light over the beaten, kneeling in the ash
-import { n64Gem } from '../fighters/n64Draw.js';
+import { n64Gem, n64Star } from '../fighters/n64Draw.js';
 import { VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { skinInfo, skinTexture } from '../fighters/skins.js';
@@ -25,6 +25,9 @@ export const DEVOTED_CUTS = {
     color: '#f6f2e6', stroke: '#0a0810', shots: [[0, 'aisle'], [210, 'veil'], [380, 'vows'], [470, 'cuts'], [560, 'bouquet'], [690, 'tableau']] },
   'devoted:EMBER SAINT': { fn: 'dv_ember', len: 960, card: 880, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
     color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment'], [660, 'throw'], [700, 'burn']] },
+  // AERO64 (AERO's 3D costume) shares CARTRIDGE's console world: boot, the field, the golden shard, then a party
+  'aero:AERO64': { fn: 'a64', len: 780, card: 660, name: 'AERO', sub: 'AERO64', line: 'THANKS FOR PLAYING!', music: 'bgm_outro_aero64',
+    color: '#5ad8ff', stroke: '#101830', shots: [[0, 'boot'], [150, 'field'], [420, 'shard'], [560, 'party']] },
   // her own outro (no drawn costume; recolours wear it too - WinScene falls back to SKIN_CUTS[id])
   devoted: { fn: 'dv_own', len: 900, card: 740, name: 'THE DEVOTED', sub: 'THE OFFERING', line: 'SHE LISTENS.', music: 'bgm_outro_devoted',
     color: '#c890ff', stroke: '#06040a', shots: [[0, 'field'], [170, 'pray'], [340, 'swallow'], [520, 'taken'], [720, 'eyes']] },
@@ -71,21 +74,22 @@ export class DevotedShots {
 
   // ================================================================= CARTRIDGE - POWER ON
   /** [0] A console boot: stars, a spinning gem logo growing out of the dark, DEVOTED 64 bouncing in, PRESS START. */
-  shot_dv_cart_boot(t, k, s) {
+  shot_dv_cart_boot(t, k, s) { this.dvBoot(t, s, 'DEVOTED 64', ['#2ac8c0', '#ffe848', '#c070f0', '#ff9420'], [0x2ac8c0, 0xffe848, 0x9038c0, 0xff9420, 0x109098, 0xf0c81a, 0x641c90, 0xc85a0c]); }
+  /** A 64-bit console boot screen: stars, a spinning gem logo, the word bouncing in letter by letter, PRESS START. */
+  dvBoot(t, s, word, cols, gem) {
     const g = this.bg; this.hideLosers(); this.hero.setVisible(false); this.dvHideField();
     g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, H);
     for (let i = 0; i < 40; i++) { const sp = this.spots[i]; g.fillStyle(0xffffff, 0.3 + 0.7 * Math.abs(Math.sin(t * 0.05 + i))); g.fillRect(sp[0] * W, sp[1] * H, 1 + (i % 7 === 0), 1 + (i % 7 === 0)); }
     const grow = ease(s / 50), ang = s * 0.07;
     if (s > 4) {
       this.glow(this.mid, W / 2, 140, 90 * grow, 0x20e8ff, 0.35);
-      this.dvGem(this.fx, W / 2, 140, 54 * grow, ang, [0x2ac8c0, 0xffe848, 0x9038c0, 0xff9420, 0x109098, 0xf0c81a, 0x641c90, 0xc85a0c]);
+      this.dvGem(this.fx, W / 2, 140, 54 * grow, ang, gem);
     }
     if (s === 6) sfx('glass', 0.5, 1.4);
-    const word = 'DEVOTED 64';
     for (let i = 0; i < word.length; i++) {                                     // the letters drop in one by one and bounce
       const d = s - 50 - i * 4; if (d < 0) continue;
       const y = 238 - Math.max(0, 40 - d * 4) * Math.abs(Math.cos(d * 0.3)) * (d < 10 ? 1 : 0.3 * Math.exp(-(d - 10) / 6));
-      const L = this.dvText(i, word[i], W / 2 - 115 + i * 25, y, 26, ['#2ac8c0', '#ffe848', '#c070f0', '#ff9420'][i % 4], { stroke: '#0c0418', sw: 6 });
+      const L = this.dvText(i, word[i], W / 2 - (word.length - 1) * 12.5 + i * 25, y, 26, cols[i % 4], { stroke: '#0c0418', sw: 6 });
       if (d === 0 && word[i] !== ' ') sfx('menu', 0.3, 1.2 + i * 0.05); L.setScale(1);
     }
     if (s > 100 && (s >> 4) % 2 === 0) this.dvText(9, 'PRESS START', W / 2, 288, 9, '#ffffff');
@@ -195,6 +199,88 @@ export class DevotedShots {
       this.dvGem(front ? this.fx : this.mid, x, y, 5 + (i % 3) * 2, s * 0.1 + i, [0xffe848, 0xff3ad8, 0x20e8ff], front ? 1 : 0.6);
     }
     this.vignette(this.over, 0.6);
+  }
+
+  // ================================================================= AERO64 - in CARTRIDGE's world
+  /** AERO64 in a frame of one of his 3D strips (idle / run / jump / fall). */
+  a64Pose(strip, frame, x, y, sc, flip = false) {
+    const key = 'aero_n64_' + strip, n = Math.max(1, (this.textures.get(key).frameTotal || 2) - 1);
+    return this.hero.setTexture(key, Math.floor(frame) % n).setOrigin(0.5, this.def.originY).setPosition(x, y).setScale(sc).setFlipX(flip)
+      .setRotation(0).setAlpha(1).clearTint().setVisible(true);
+  }
+  /** AERO64 in frame i of one of his moves. */
+  a64Move(name, i, x, y, sc, flip = false) {
+    const A = this.def.moveAnims[name];
+    return this.hero.setTexture('aero_n64_moves', A[0] + Math.max(0, Math.min(A[1] - 1, Math.floor(i)))).setOrigin(this.def.movesOrigin[0], this.def.movesOrigin[1])
+      .setPosition(x, y).setScale(sc).setFlipX(flip).setRotation(0).setAlpha(1).clearTint().setVisible(true);
+  }
+  /** [0] The console boots: AERO 64. */
+  shot_a64_boot(t, k, s) { this.dvBoot(t, s, 'AERO 64', ['#5ad8ff', '#ffe848', '#8ae83a', '#ff6a10'], [0x5ad8ff, 0xffe848, 0x8ae83a, 0xff6a10, 0x1aa8e0, 0xf0c81a, 0x4ab81a, 0xc84a0c]); }
+  /** [150] The field: he bounds across the low-poly world, the camera panning with him, collecting shards. */
+  shot_a64_field(t, k, s) {
+    const g = this.bg; this.hideLosers();
+    this.sky(g, 0x1858e8, 0xb8ecff, 12);
+    const R = this.dvMakeField(), cx = s * 3.4;
+    R.scene = { cameras: { main: { midPoint: { x: cx + W / 2, y: H / 2 }, worldView: { x: cx, y: 0, width: W, height: H } } } };
+    R.g.setPosition(-cx, 0); R.render([]);
+    const hx = 230, jumpAt = [60, 150, 220], shards = [[290, 270], [520, 190], [810, 260], [1050, 180], [1250, 260]];
+    let hy = 300, air = -1;
+    for (const j of jumpAt) { const d = s - j; if (d >= 0 && d < 44) { hy = 300 - Math.sin(d / 44 * Math.PI) * 120; air = d; } }
+    if (air < 0) this.a64Pose('run', s / 4, hx, hy, 3); else this.a64Pose(air < 22 ? 'jump' : 'fall', air / 6, hx, hy, 3);
+    if (air === 0) sfx('jump', 0.5, 1.3);
+    let got = 58;
+    for (const [wx, wy] of shards) {
+      const sx = wx - cx; if (sx < hx + 10) { got++; if (sx > hx + 6.6) sfx('ding', 0.4, 1.7); continue; }
+      if (sx < W + 40) { this.glow(this.mid, sx, wy, 18, 0x5ad8ff, 0.4); this.dvGem(this.fx, sx, wy, 10, t * 0.12 + wx, [0x5ad8ff, 0x1aa8e0, 0xffe848, 0xc8f4ff]); }
+    }
+    this.dvText(0, 'SHARDS ' + Math.min(63, got) + ' / 64', 30, 50, 10, '#5ad8ff', { ox: 0, oy: 0, stroke: '#101830', sw: 4 });
+    this.vignette(this.over, 0.25);
+  }
+  /** [420] THE GOLDEN SHARD: it spins above him in a sunburst; he leaps and catches it, his goldfish doing a flip. */
+  shot_a64_shard(t, k, s) {
+    const g = this.bg; this.hideLosers();
+    this.sky(g, 0x0c3cd8, 0x58a4ff, 10);
+    const R = this.dvMakeField(), cx = 918 + s * 0.3;
+    R.scene = { cameras: { main: { midPoint: { x: cx + W / 2, y: H / 2 - 20 }, worldView: { x: cx, y: -20, width: W, height: H } } } };
+    R.g.setPosition(-cx, 20); R.render([]);
+    const caught = s >= 70, gx = W / 2, gy = 130 + Math.sin(s * 0.08) * 6;
+    this.dvRays(this.mid, gx, caught ? 140 : gy, 14, 420, t * 0.01, 0xfff8a0, caught ? 0.22 : 0.12);
+    if (s < 36) this.a64Pose('idle', s / 6, gx, 300, 3);
+    else if (s < 70) { const d = s - 36, y = 300 - Math.sin(d / 68 * Math.PI) * 150; this.a64Pose('jump', d / 6, gx, y, 3); if (d === 0) sfx('jump', 0.5, 1.1); }
+    else { const d = s - 70; this.a64Move('upb', Math.min(9, d / 3), gx, 300 - Math.max(0, 40 - d * 2), 3); }
+    if (!caught) { this.glow(this.fx, gx, gy, 36, 0xffe848, 0.5); this.dvGem(this.fx, gx, gy, 22, t * 0.1, [0xffe848, 0xf0c81a, 0xff9420, 0xfff8a0, 0xffffff]); }
+    else {
+      const d = s - 70, hx = gx + 26, hy = 300 - Math.max(0, 40 - d * 2) - 190;
+      this.glow(this.fx, hx, hy, 40 + Math.sin(d * 0.2) * 4, 0xffe848, 0.55); this.dvGem(this.fx, hx, hy, 18, t * 0.14, [0xffe848, 0xf0c81a, 0xff9420, 0xfff8a0, 0xffffff]);
+      if (d === 0) { this.flash = 6; sfx('limitready', 0.6, 1.25); this.cameras.main.shake(140, 0.006); }
+      for (let i = 0; i < 16; i++) { const sp = this.spots[i], q = sp[0] * 6.28 + d * 0.02, r = 20 + ((d * 1.6 + sp[1] * 200) % 200); n64Star(this.fx, hx + Math.cos(q) * r, hy + Math.sin(q) * r, 3, d * 0.2 + i, i % 2 ? 0xffe848 : 0x5ad8ff, Math.max(0, 1 - r / 200)); }
+      if (d > 14) this.dvText(0, 'THE GOLDEN SHARD!', W / 2, 74, 18, '#ffe848', { stroke: '#101830', sw: 6 }).setScale(Math.min(1, 0.4 + (d - 14) * 0.06));
+      if (d > 30) this.dvText(1, 'SHARDS 64 / 64', W / 2, 98, 9, '#ffffff', { stroke: '#101830', sw: 3 });
+    }
+    this.vignette(this.over, 0.3);
+  }
+  /** [560] The party: sunset on the field, AERO dances on a grass block, 3D stars burst like fireworks, the beaten flattened below. */
+  shot_a64_party(t, k, s) {
+    const g = this.bg;
+    this.sky(g, 0x3a1a8a, 0xff9a5a, 12);
+    const R = this.dvMakeField(), cx = 560;
+    R.scene = { cameras: { main: { midPoint: { x: cx + W / 2, y: H / 2 }, worldView: { x: cx, y: 0, width: W, height: H } } } };
+    R.g.setPosition(-cx, 0); R.render([]);
+    for (let f = 0; f < 6; f++) {                                               // fireworks: rings of spinning 3D stars
+      const st = f * 34, d = s - st; if (d < 0 || d > 60) continue;
+      const sp = this.spots[f * 3], fx = 80 + sp[0] * (W - 160), fy = 60 + sp[1] * 90, r = d * 1.6, col = [0xffe848, 0x5ad8ff, 0xff6a10, 0x8ae83a, 0xff3ad8, 0xffffff][f];
+      for (let i = 0; i < 10; i++) { const q = i * 0.628; n64Star(this.fx, fx + Math.cos(q) * r, fy + Math.sin(q) * r + d * d * 0.01, 3.5, d * 0.25 + i, col, Math.max(0, 1 - d / 60)); }
+      if (d === 0) sfx('ding', 0.4, 0.8 + f * 0.08);
+    }
+    const tA = this.def.moveAnims.taunt, x = W / 2, y = 250;
+    this.a64Move('taunt', (s * 1.2) % tA[1], x, y, 3);
+    this.posLosers([[120, 300, 1.4, 1.5, 0.95], [520, 300, 1.4, -1.5, 0.95], [430, 304, 1.3, 1.52, 0.95]], 0x101830);
+    const word = 'AERO 64';
+    if (s < 96) for (let i = 0; i < word.length; i++) {                         // the title, each letter bobbing (gone before the title card)
+      const L = this.dvText(i, word[i], W / 2 - 75 + i * 25, 46 + Math.sin(s * 0.12 + i * 0.6) * 5, 24, ['#5ad8ff', '#ffe848', '#8ae83a', '#ff6a10'][i % 4], { stroke: '#101830', sw: 6 });
+      L.setScale(Math.min(1, s / 20));
+    }
+    this.vignette(this.over, 0.3);
   }
 
   // ================================================================= HOLLOW BRIDE - THE WEDDING
