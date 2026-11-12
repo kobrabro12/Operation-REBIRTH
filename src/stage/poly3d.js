@@ -167,6 +167,8 @@ export class Poly3D {
     this.fogMax = o.fogMax ?? 0.55;                            // the most the fog ever covers (far things keep their colour)
     this.gouraud = o.gouraud ?? true;                          // smooth per-corner shading inside each facet, like the N64
     const L = o.light || [-0.45, -1, -0.55], l = Math.hypot(...L); this.light = L.map((v) => -v / l);
+    this.camZ = 0;                                             // how far the eye has walked into the scene (TROPHY HALL; stages keep 0)
+    this.near = o.near ?? 0;                                   // >0: drop faces with any corner closer than this to the eye (walking through a room)
     this.faces = [];
     this.g = scene.add.graphics().setDepth(-5); layer.push(this.g);
   }
@@ -196,17 +198,18 @@ export class Poly3D {
     g.clear();
     const list = [];
     
+    const cz = this.camZ, near = this.near ? this.near - f : -Infinity;
     for (const F of this.faces.length ? this.faces.concat(dyn) : dyn) {
       const P = F.p;
-      let zs = 0, cx = 0, cy = 0;
-      for (const v of P) { zs += v[2]; cx += v[0]; cy += v[1]; }
-      const n = P.length, z = zs / n;
-      if (z < -f + 40) continue;
+      let zs = 0, cx = 0, cy = 0, zmin = Infinity;
+      for (const v of P) { zs += v[2]; cx += v[0]; cy += v[1]; if (v[2] < zmin) zmin = v[2]; }
+      const n = P.length, z = zs / n - cz;
+      if (z < -f + 40 || zmin - cz < near) continue;
       if (F.n) {                                            // facing away from the eye: skip it
         const dx = cx / n - ex, dy = cy / n - ey, dz = z + f;
         if (F.n[0] * dx + F.n[1] * dy + F.n[2] * dz > 0) continue;
       }
-      const pts = P.map(([x, y, zz]) => { const s = f / (f + Math.max(-f + 20, zz)); return { x: ex + (x - ex) * s, y: ey + (y - ey) * s }; });
+      const pts = P.map(([x, y, zz]) => { const s = f / (f + Math.max(-f + 20, zz - cz)); return { x: ex + (x - ex) * s, y: ey + (y - ey) * s }; });
       let ax = Infinity, bx = -Infinity, ay = Infinity, by = -Infinity;
       for (const q of pts) { if (q.x < ax) ax = q.x; if (q.x > bx) bx = q.x; if (q.y < ay) ay = q.y; if (q.y > by) by = q.y; }
       if (bx < vx1 || ax > vx2 || by < vy1 || ay > vy2) continue;              // off screen
@@ -214,10 +217,10 @@ export class Poly3D {
       const wob = 1 + (hash(Math.round(cx), Math.round(cy), Math.round(zs)) - 0.5) * 0.1;
       const b = Math.min(1.15, (F.n ? 0.62 + 0.42 * Math.max(0, F.n[0] * this.light[0] + F.n[1] * this.light[1] + F.n[2] * this.light[2]) : 0.88) * wob);
       const fogK = (zz) => clamp((zz - this.zNear) / (this.zFar - this.zNear)) * this.fogMax;
-      const fog = fogK(z), col = shade(F.c, b, this.fog, fog, this.sat);
+      const fog = F.nofog ? 0 : fogK(z), col = shade(F.c, b, this.fog, fog, this.sat);   // (nofog: something glowing, like a lit window)
       // each corner gets its own shade (lit a touch brighter higher up, plus a fixed wobble), blended across the
       // facet by the GPU - the soft vertex-coloured look of 64-bit games
-      const vc = this.gouraud ? P.map(([x, y, zz]) => shade(F.c, b * (1 + (hash(Math.round(x), Math.round(y), Math.round(zz) + 7) - 0.5) * 0.16 - y * 0.00012), this.fog, fogK(zz), this.sat)) : null;
+      const vc = this.gouraud ? P.map(([x, y, zz]) => shade(F.c, b * (1 + (hash(Math.round(x), Math.round(y), Math.round(zz) + 7) - 0.5) * 0.16 - y * 0.00012), this.fog, F.nofog ? 0 : fogK(zz - cz), this.sat)) : null;
       list.push({ z: z + (F.bias || 0), pts, col, vc, edge: shade(F.c, b * 0.6, this.fog, fog, this.sat), a: F.a ?? 1 });
     }
     list.sort((a, b) => b.z - a.z);

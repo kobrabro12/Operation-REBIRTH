@@ -1,5 +1,5 @@
-// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP and ACHIEVEMENTS (with
-// the PROGRESS page: lifetime stats and each fighter's record).
+// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP, ACHIEVEMENTS (with
+// the PROGRESS page: lifetime stats and each fighter's record) and the TROPHY HALL.
 // W/S or arrows pick, J / Enter / A opens, K / Esc / B goes back; or use the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic } from '../audio/music.js';
@@ -16,6 +16,7 @@ const ENTRIES = [
   { name: 'TEST FIGHTERS', icon: 'flask', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
   { name: 'SHOP', icon: 'shop', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
   { name: 'ACHIEVEMENTS', icon: 'trophy', info: 'TROPHIES FOR WHAT YOU\'VE DONE - EACH ONE\nPAYS OUT COINS FOR THE SHOP.\n\nPLUS YOUR PROGRESS: MATCHES, WINS, KOS,\nCOMPLETION AND EVERY FIGHTER\'S RECORD.', scene: 'Achievements' },
+  { name: 'TROPHY HALL', icon: 'hall', info: 'A GRAND MARBLE GALLERY FOR YOUR TROPHIES,\nSTATUES AND ART. WALK ITS LENGTH.\n\nIT STANDS EMPTY FOR NOW -\nEVERY PEDESTAL IS WAITING.', scene: 'TrophyHall' },
   { name: 'BACK', icon: 'back', info: '', back: true },
 ];
 const C = { panel: 0x2a1640, line: 0xc77dff, text: '#e6c8ff' };

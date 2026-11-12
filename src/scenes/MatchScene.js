@@ -1,3 +1,4 @@
+import { n64Gem, n64Star, shadeCol } from '../fighters/n64Draw.js';
 import {soulEncounter} from '../souls/encounters.js';
 import {soulPower,addSoulXP,applySoulAid} from '../souls/progression.js';
 import {awardSoul} from '../souls/collection.js';
@@ -696,6 +697,7 @@ export class MatchScene extends Phaser.Scene {
       case 'note': for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.6, sp = 1 + R() * 2.2; add({ shape: 'note', x: x + (R() - 0.5) * 10, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 30 + R() * 18, color: col(i), grav: -0.01, drag: 0.95, sway: R() * 6 }); } break;
       case 'bat': for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, sp = 1.4 + R() * 2.2; add({ shape: 'bat', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 36 + R() * 20, color: col(i % 2), grav: -0.02, drag: 0.97 }); } break;
       case 'star': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.6 + R() * 3; add({ shape: 'star', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.8, life: 26 + R() * 16, color: col(i), grav: 0.05, drag: 0.94 }); } break;
+      case 'poly': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.6 + R() * 3; add({ shape: i % 3 ? 'polygem' : 'polystar', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.8, life: 26 + R() * 16, color: col(i), grav: 0.05, drag: 0.94, ang: R() * 6, spin: 0.15 + R() * 0.2, r: 3 + R() * 2.5 }); } break;   // CARTRIDGE: spinning 3D gems and stars
       case 'pixel2': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ shape: 'pixel2', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 18 + R() * 14, color: col(i), drag: 0.9, grav: 0 }); } break;
       case 'feather': for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3; add({ shape: 'feather', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 50 + R() * 30, color: col(i), grav: 0.03, drag: 0.93, sway: R() * 6 }); } break;
       default: for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, sp = 1.5 + R() * 3.5; add({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.5, life: 14 + R() * 12, color: col(i), drag: 0.9, size: 2 + (i % 4 === 0) }); }
@@ -778,6 +780,12 @@ export class MatchScene extends Phaser.Scene {
       case 'pixel2': g.fillStyle(p.color, a); g.fillRect(X - 1, Y - 1, 3, 3); g.fillStyle(p.color, a * 0.35); g.fillRect(X - 3, Y - 3, 7, 7); break;   // a neon pixel with a soft glow                        // ink splash
       case 'smoke': { const k = 1 - p.life / p.maxLife; g.fillStyle(p.color, 0.55 * (1 - k)); g.fillCircle(X, Y, p.r + k * 6); break; }
       case 'flash': { const k = p.life / p.maxLife; g.fillStyle(p.color, 0.8 * k); g.fillCircle(X, Y, p.r * (1.5 - k * 0.5)); break; }
+      case 'polygem': case 'polystar': {               // CARTRIDGE: a little Gouraud-shaded gem / 3D star, tumbling (n64Draw.js)
+        p.ang = (p.ang || 0) + (p.spin || 0.2);
+        if (p.shape === 'polygem') n64Gem(g, X, Y, p.r || 3, p.ang, [p.color, shadeCol(p.color, 0.8), 0xffffff, p.color], a);
+        else n64Star(g, X, Y, (p.r || 3) * 1.4, p.ang, p.color, a);
+        break;
+      }
       default: g.fillStyle(p.color, a); g.fillRect(X, Y, p.size, p.size);
     }
   }

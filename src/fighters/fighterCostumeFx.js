@@ -333,7 +333,7 @@ export class FighterCostumeFx {
       if (a.motes && t % a.motes.rate === 0) {
         const c = a.motes.colors[(t / a.motes.rate) % a.motes.colors.length | 0];
         if (a.motes.feathers && t % (a.motes.rate * 3) === 0) P.push({ shape: 'feather', x: cx - f * 6 + (R() - 0.5) * 30, y: this.y - d.body.h, vx: (R() - 0.5) * 0.5, vy: 0.2, life: 70, color: c, grav: 0.004, sway: R() * 6 });
-        else P.push({ x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h, vx: 0, vy: -0.3 - R() * 0.4, life: 30 + R() * 20, color: c, size: 1 + (R() < 0.4), grav: -0.004 });
+        else P.push({ shape: a.motes.shape, x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h, vx: 0, vy: -0.3 - R() * 0.4, life: 30 + R() * 20, color: c, size: 1 + (R() < 0.4), grav: -0.004, ang: t * 0.3, spin: 0.12, r: 2 });   // (motes.shape: e.g. CARTRIDGE's 'polygem')
       }
       if (a.bubbles && t % a.bubbles.rate === 0) P.push({ shape: 'bubble', x: cx + (R() - 0.5) * d.body.w * 1.4, y: this.y - R() * d.body.h * 0.8, vx: 0, vy: -0.4 - R() * 0.4, life: 40 + R() * 20, color: a.bubbles.colors[(t / a.bubbles.rate) % a.bubbles.colors.length | 0], grav: -0.01, r: 1 + Math.floor(R() * 2), sway: R() * 6 });
     }

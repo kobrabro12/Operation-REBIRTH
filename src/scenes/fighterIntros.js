@@ -9,6 +9,7 @@
 //   swarm   things swirl in from all around and gather into them                          (shape, colors, n)
 //   portal  a ring opens on the ground and they come up through it                        (color, color2)
 //   warp    a scan line sweeps, they flicker and glitch into place                        (color)
+//   n64     a smooth-shaded crystal with stars round it spins down, shatters into gems     (color, gem: facet colours)
 //   bubble  a bubble drifts down with them inside, then pops                              (color)
 //   flicker darkness, a light that won't stay on - they're there in the flashes           (color)
 //   bolt    a bolt of lightning strikes the spot and they're standing in it              (color)
@@ -16,6 +17,7 @@
 //   slash   two brush strokes cut across the spot and they're there                       (color)
 //   shapes for swarm/rise: wisp, bat, petal, note, pixel, star, leaf, ember, bubble, drop, coin, ring
 // `sfx`: [name, volume, rate] played on arrival; `pre`: one played as the intro starts.
+import { n64Gem, n64Star, shadeCol } from '../fighters/n64Draw.js';
 import { drawPremiumEntrance } from './premiumEntrances.js';
 import { syncAzureCape } from '../fighters/azureCape.js';
 import { sfx } from '../audio/sfx.js';
@@ -49,7 +51,7 @@ export const SKIN_INTROS = {
   'nu:SURF ROCK': { kind: 'wave', dur: 100, color: 0x2ad0d0, color2: 0xffffff, pre: ['whoosh', 0.5, 0.5], sfx: ['geyser', 0.6, 0.9] },
   'aero:TIDE POOL': { kind: 'pool', dur: 110, pool: { deep: 0x0a6a98, mid: 0x30c8e0, rim: 0xf0d48a, sheen: 0xffffff }, pre: ['geyser', 0.35, 1.1], sfx: ['glass', 0.5, 1.1] },
   // THE DEVOTED's drawn costumes
-  'devoted:CARTRIDGE': { kind: 'warp', color: 0x20e8ff, color2: 0xff3ad8, pre: ['popup', 0.4, 0.8], sfx: ['glass', 0.5, 1.3] },
+  'devoted:CARTRIDGE': { kind: 'n64', color: 0x20e8ff, color2: 0xff3ad8, gem: [0x2ac8c0, 0xffe848, 0x9038c0, 0xff9420], pre: ['glass', 0.4, 1.6], sfx: ['limitready', 0.5, 1.4] },
   'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
   'devoted:EMBER SAINT': { kind: 'pool', dur: 120, lava: true, color: 0xff6a10, pool: { deep: 0x5a1408, mid: 0xff6a10, rim: 0xffe070, sheen: 0xfff4c0, glow: 0xff5a0a }, pre: ['rumble', 0.6, 0.6], sfx: ['flame', 0.7, 0.6] },   // up out of the lava
   'soul-summoner:TRICOLORE': { kind: 'swarm', shape: 'leaf', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 24, pre: ['whoosh', 0.4, 0.8], sfx: ['shing', 0.5, 1.1] },
@@ -155,6 +157,7 @@ export class FighterIntros {
       if (I.feathers) burst(14, [0xffffff, 0xfff4c0], 2.2, 'petal', 0.02);
     } else if (I.kind === 'bubble') { burst(16, [e.col, 0xffffff], 2.6, 'drop', 0.12); }
     else if (I.kind === 'swarm') burst(10, I.colors || [e.col], 2.4, I.shape, 0.03);
+    else if (I.kind === 'n64') { burst(10, I.gem, 3.2, 'polygem', 0.06); burst(8, [0xffe848, 0xffffff], 2.2, 'polystar', 0.02); e.ring = { t: 0, color: e.col }; this.m.shake(3, 5); }
     else burst(12, [e.col, e.col2, 0xffffff], 2.4, I.shape || 'pixel', 0.03);
   }
 
@@ -205,6 +208,19 @@ export class FighterIntros {
           g.fillStyle(c, 0.9); g.fillEllipse(x, y, w, w * 0.28); g.lineStyle(2, c2, 1); g.strokeEllipse(x, y, w, w * 0.28);
           for (let i = 1; i < 3; i++) { g.lineStyle(1, c2, 0.5 / i); g.strokeEllipse(x, y, w + i * 10 * ((this.t >> 2) % 3), (w + i * 10) * 0.28); }
           if (p >= A) { vis = Math.min(1, post * 5); dy = Math.max(0, 50 * (1 - post * 2.5)); }
+          break;
+        }
+        case 'n64': {                                                      // a big smooth-shaded crystal spins down out of the sky with stars round it, shatters, and there she is
+          const ease = (v) => v * v * (3 - 2 * v), gy = y - 40 - 220 * Math.pow(1 - ease(Math.min(1, pre * 1.25)), 2);
+          if (p < A) {
+            g.fillStyle(c, 0.12 + 0.06 * Math.sin(this.t * 0.3)); g.fillCircle(x, gy, 28); g.fillStyle(0xffffff, 0.1); g.fillCircle(x, gy, 16);
+            n64Gem(g, x, gy, 15 + 3 * pre, this.t * 0.12, I.gem || [c, c2]);
+            for (let i = 0; i < 5; i++) { const q = this.t * 0.07 + i * 1.2566, sx = x + Math.cos(q) * 30, sy = gy + Math.sin(q) * 10; n64Star(g, sx, sy, 4.5, this.t * 0.15 + i, i % 2 ? 0xffe848 : 0xffffff, 0.9); }
+            g.fillStyle(0x000000, 0.25 * pre); g.fillEllipse(x, y, 10 + 30 * pre, 5);
+          } else {
+            vis = 1; sc = 1 + 0.22 * Math.sin(Math.min(1, post * 3) * Math.PI) * Math.max(0, 1 - post * 3);   // a little bounce as she pops out
+            if (e.ring) { e.ring.t++; for (let i = 0; i < 8; i++) { const q = i * 0.785 + e.ring.t * 0.03, r = 10 + e.ring.t * 3.2; if (e.ring.t < 26) n64Star(g, x + Math.cos(q) * r, y - 26 + Math.sin(q) * r * 0.55, 4, this.t * 0.2 + i, i % 2 ? c : 0xffe848, Math.max(0, 1 - e.ring.t / 26)); } }
+          }
           break;
         }
         case 'warp': {                                                     // a scan line sweeps; they flicker and glitch in
@@ -313,6 +329,8 @@ export class FighterIntros {
       case 'ring': g.lineStyle(1, col, a); g.strokeCircle(x, y, 3); break;
       case 'bubble': g.lineStyle(1, col, a); g.strokeCircle(x, y, 3); break;
       case 'drop': g.fillCircle(x, y, 2); break;
+      case 'polygem': n64Gem(g, x, y, 3.5, t * 0.2, [col, shadeCol(col, 0.75), 0xffffff], a); break;
+      case 'polystar': n64Star(g, x, y, 4, t * 0.2, col, a); break;
       case 'dust': g.fillStyle(col, a * 0.7); g.fillCircle(x, y, 3); break;
       default: g.fillRect(x - 1, y - 1, 3, 3);
     }

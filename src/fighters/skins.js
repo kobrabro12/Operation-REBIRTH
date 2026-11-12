@@ -755,8 +755,9 @@ SKINS['devoted'] = [
     vfx: { hit: { shape: 'spark', colors: [0xc8202a, 0x3a0608, 0xe4ddce], n: 10 } } },
   // CARTRIDGE: an original low-poly 64-bit-era adventurer (devoted_draw.py --set cartridge): flat-shaded polygons, a teal
   // jacket with a yellow zig-zag, purple trousers, orange boots, a blocky orange ponytail; her sludge is corrupted data
-  { name: 'CARTRIDGE', sheetSet: 'cartridge', swatch: 0x2ac8c0, fx: 0x20e8ff, pal: { outline: 0x10101a, deep: 0x3a1070, mid: 0x109098, light: 0x8af4ea, core: 0xffffff, shade: 0x0c0418, void: 0x000000 },
-    vfx: { hit: { shape: 'star', colors: [0x20e8ff, 0xff3ad8, 0xffe848], n: 10, ring: 0x20e8ff, glint: true }, aura: { motes: { colors: [0x20e8ff, 0xff3ad8, 0xffe848], rate: 9 } } } },
+  // n64: everything the game draws for her (demons, tree, book, wheel, sludge, meter, Limit) comes out N64-style (n64Draw.js)
+  { name: 'CARTRIDGE', sheetSet: 'cartridge', n64: true, swatch: 0x2ac8c0, fx: 0x20e8ff, pal: { outline: 0x10101a, deep: 0x3a1070, mid: 0x109098, light: 0x8af4ea, core: 0xffffff, shade: 0x0c0418, void: 0x000000 },
+    vfx: { hit: { shape: 'poly', colors: [0x20e8ff, 0xff3ad8, 0xffe848], n: 9, ring: 0x20e8ff, glint: true }, aura: { motes: { colors: [0x20e8ff, 0xff3ad8, 0xffe848], rate: 9, shape: 'polygem' } } } },
   // HOLLOW BRIDE: an abandoned bride (--set bride): lace dress, torn veil, black hair, black tears, a bouquet of dead roses
   { name: 'HOLLOW BRIDE', sheetSet: 'bride', swatch: 0xf6f2e6, fx: 0xd6d0c2, pal: { outline: 0x0a0810, deep: 0x5a1420, mid: 0xb8b2a4, light: 0xf6f2e6, core: 0xffffff, shade: 0x050408, void: 0x000000 },
     vfx: { hit: { shape: 'sakura', colors: [0x5a1420, 0xf6f2e6, 0x7a2030], n: 9 }, aura: { motes: { colors: [0xf6f2e6, 0x5a1420], rate: 12 } } } },

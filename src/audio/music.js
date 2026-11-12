@@ -20,6 +20,8 @@ export const TRACKS = [
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
+  // the TROPHY HALL (tools/audio/trophy_hall_music.py)
+  'trophy_hall',
   // costume outro music (tools/audio/outro_music.py)
   ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember', 'devoted', 'surf', 'tide'].map((n) => 'outro_' + n),
 ];

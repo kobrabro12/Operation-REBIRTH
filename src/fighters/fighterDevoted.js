@@ -6,10 +6,13 @@ import { FONT, VIEW_W, VIEW_H } from '../config.js';
 import { showFighter } from './roster.js';
 import { drawDemonFace } from './entities.js';
 import { skinTexture, skinInfo } from './skins.js';
+import { n64 } from './n64Draw.js';
 
 const STAGE_DIRS = ['', 'semi', 'taken', 'drowned'];
 
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
+// CARTRIDGE's sludge is corrupted data: indigo, violet, a few cyan / magenta bits
+const CART_SLUDGE = [0x1c0838, 0x3a1070, 0x20e8ff, 0x1c0838, 0xff3ad8];
 
 /** THE DEVOTED's methods (symbol, devotion, PRAY, sludge stages, stains, BLACK TIDE), attached to Fighter. */
 export class FighterDevoted {
@@ -38,7 +41,7 @@ export class FighterDevoted {
       if (this.grounded) this.hoverLeft = D.hover.hold;
       else if ((this.state === 'air' || this.state === 'attack') && this.ctrl.held('jump') && this.vy > -0.5 && this.hoverLeft > 0) {
         this.hoverLeft--; this.vy = Math.min(this.vy, D.hover.sink);   // (hangs there, sinking slowly - it never climbs)
-        if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
+        if (this.age % 5 === 0 && !m.demo) { const R = Math.random; m.particles.push({ x: this.x - this.facing * 16 + (R() - 0.5) * 16, y: this.y - 30, vx: -this.facing * 0.4, vy: 1.2 + R(), life: 16, color: this.n64 ? CART_SLUDGE[Math.floor(R() * 5)] : SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.1 }); }
       }
     }
     if (this.state !== 'attack') this.perfectHit = this.perfectSeen = false;   // THE WRAITH's PERFECT STEP: an attack started just after a swap hits harder
@@ -57,7 +60,7 @@ export class FighterDevoted {
         this.geyserX = this.x; sfx('bighit', 0.6, 0.55); sfx('curse', 0.4, 0.7); m.shake(4, 8);
         if (this.platform || this.lastPlatform) this.stain(this.x, this.platform || this.lastPlatform, 8 + this.sludge * 2);
       }
-      if (this.t >= U.riseAt) for (let i = 0; i < 3; i++) m.particles.push({ x: gx + (R() - 0.5) * 14, y: (this.geyserY ?? this.y) - R() * 6, vx: (R() - 0.5) * 0.8, vy: -5 - R() * 4, life: 16 + R() * 8, color: SLUDGE[i % 3], size: 3, grav: 0.3 });
+      if (this.t >= U.riseAt) for (let i = 0; i < 3; i++) m.particles.push({ x: gx + (R() - 0.5) * 14, y: (this.geyserY ?? this.y) - R() * 6, vx: (R() - 0.5) * 0.8, vy: -5 - R() * 4, life: 16 + R() * 8, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 3, grav: 0.3 });
       if (this.t === U.riseAt) this.geyserY = this.y;
     }
     if (this.grounded && this.platform) this.lastPlatform = this.platform;
@@ -67,7 +70,7 @@ export class FighterDevoted {
     const drip = D.dripEvery[this.sludge];
     if (drip && !under && this.age % drip === 0 && !m.demo) {
       const R = Math.random;
-      m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - 10 - R() * 36, vx: (R() - 0.5) * 0.3, vy: 0.3, life: 30, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.16 });
+      m.particles.push({ x: this.x + (R() - 0.5) * 18, y: this.y - 10 - R() * 36, vx: (R() - 0.5) * 0.3, vy: 0.3, life: 30, color: this.n64 ? CART_SLUDGE[Math.floor(R() * 5)] : SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.16 });
     }
   }
 
@@ -185,7 +188,7 @@ export class FighterDevoted {
     let plat = null;
     for (const p of this.match.stage.platforms) if (x >= p.x1 + 4 && x <= p.x2 - 4 && p.y >= this.y - 40 && (!plat || p.y < plat.y)) plat = p;
     const R = Math.random;
-    for (let i = 0; i < 8; i++) this.match.particles.push({ x: this.x + this.facing * 12, y: this.y - 36, vx: this.facing * (2 + R() * 3), vy: -1 + R() * 2, life: 16, color: SLUDGE[i % 3], size: 2, grav: 0.25 });
+    for (let i = 0; i < 8; i++) this.match.particles.push({ x: this.x + this.facing * 12, y: this.y - 36, vx: this.facing * (2 + R() * 3), vy: -1 + R() * 2, life: 16, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 2, grav: 0.25 });
     if (plat) this.match.spawnMaw(this, plat, x, { ...M, r: M.r[st], hit: { ...M.hit, dmg: M.hit.dmg + M.perStage * st } });
   }
 
@@ -206,6 +209,7 @@ export class FighterDevoted {
   setSludge(n) {
     const D = this.def.devoted;
     this.sludge = n;
+    this.n64 = !!skinInfo(this.def.id, this.skin || 0).n64;                 // (CARTRIDGE: everything drawn for her comes out N64-style - n64Draw.js)
     const set = skinInfo(this.def.id, this.skin || 0).sheetSet, cs = set && this.def.costumeSheets && this.def.costumeSheets[set];
     if (cs) this.sheets = Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, cs[(n ? STAGE_DIRS[n] + '_' : '') + k]]));   // (a drawn costume: its own strips for this stage)
     else this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in her costume's colours)
@@ -248,13 +252,13 @@ export class FighterDevoted {
     if (this.t === D.stabAt) {                            // the karambit hits the ground: a thud and a splash of sludge
       const kx = this.x + this.facing * 14, R = Math.random;
       sfx('hit', 0.5, 0.6); sfx('clang', 0.25, 0.7); m.shake(this.prayAnswered ? 4 : 2, 6);
-      for (let i = 0; i < 10; i++) m.particles.push({ x: kx, y: this.y - 2, vx: (R() - 0.5) * 3, vy: -1 - R() * 2.5, life: 22, color: SLUDGE[i % 3], size: 2, grav: 0.2 });
+      for (let i = 0; i < 10; i++) m.particles.push({ x: kx, y: this.y - 2, vx: (R() - 0.5) * 3, vy: -1 - R() * 2.5, life: 22, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 2, grav: 0.2 });
       if (this.platform) this.stain(kx, this.platform, 4 + this.sludge * 2);
     }
     if (this.prayAnswered) {
       if (this.t < D.ascendAt && this.t % 3 === 0) {      // the sludge rises out of the floor round her
         const R = Math.random;
-        m.particles.push({ x: this.x + (R() - 0.5) * 40, y: this.y, vx: 0, vy: -1 - R() * 1.5, life: 24, color: SLUDGE[Math.floor(R() * 3)], size: 3, grav: -0.02 });
+        m.particles.push({ x: this.x + (R() - 0.5) * 40, y: this.y, vx: 0, vy: -1 - R() * 1.5, life: 24, color: this.n64 ? CART_SLUDGE[Math.floor(R() * 5)] : SLUDGE[Math.floor(R() * 3)], size: 3, grav: -0.02 });
       }
       if (this.t === D.ascendAt) this.ascend();
     } else if (this.t >= D.failLength) this.setState(this.grounded ? 'idle' : 'air');
@@ -267,7 +271,7 @@ export class FighterDevoted {
     m.popText(this, D.names[this.sludge], '#f8f4ec');
     sfx('bighit', 0.8, 0.5); sfx('curse', 0.8, 0.45); m.shake(8, 14);
     const R = Math.random;
-    for (let i = 0; i < 26; i++) m.particles.push({ x: this.x, y: this.y - 28, vx: (R() - 0.5) * 7, vy: -2 - R() * 4, life: 34, color: SLUDGE[i % 3], size: 3, grav: 0.22 });
+    for (let i = 0; i < 26; i++) m.particles.push({ x: this.x, y: this.y - 28, vx: (R() - 0.5) * 7, vy: -2 - R() * 4, life: 34, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 3, grav: 0.22 });
     m.particles.push({ shape: 'ring', x: this.x, y: this.y - 28, vx: 0, vy: 0, life: 16, maxLife: 16, r: 10, dr: 5, color: 0x2e2a38, grav: 0 });
     if (this.platform) for (let i = 0; i < 4 + this.sludge * 2; i++) this.stain(this.x + (R() - 0.5) * (40 + this.sludge * 20), this.platform, 4 + this.sludge * 2);
   }
@@ -288,15 +292,17 @@ export class FighterDevoted {
   /** Draws her symbol (the dying tree) and (for the first DEVOTED) every sludge stain. Her meter is on the HUD (drawDevotionHud). */
   drawDevoted() {
     if (this.sludge === undefined) return;
-    const g = this.sigilG, D = this.def.devoted, m = this.match;
+    const g = this.n64 ? n64(this.sigilG) : this.sigilG, D = this.def.devoted, m = this.match;
     g.clear();
     if (this.stainOwner) {
-      const sg = m.sludgeG; sg.clear();
+      m.sludgeG.clear();
       for (const s of m.sludgeStains) {
+        const sg = s.owner && s.owner.n64 ? n64(m.sludgeG) : m.sludgeG;
         const x = s.plat.x1 + s.dx, y = s.plat.y;
         sg.fillStyle(0x060508, 0.92); sg.fillEllipse(x, y + 1, s.w * 2, 3 + s.w * 0.12);
         sg.fillStyle(0x2e2a38, 0.6); sg.fillRect(x - s.w * 0.4, y, Math.max(1, s.w * 0.3), 1);   // an oily sheen
       }
+      const sg = this.n64 ? n64(m.sludgeG) : m.sludgeG;
       for (const f of this.sludgeFalls()) {                 // INK FALLS pouring off the edges
         const x = f.x + f.side * 2, len = f.bot - f.top, a = this.age;
         sg.fillStyle(0x060508, 0.92); sg.fillRect(x - 3, f.top, 6, len - 10);
@@ -319,7 +325,7 @@ export class FighterDevoted {
     if (this.state === 'demonpick') this.drawDemonWheel(g);
     if (!this.bookG) { this.bookG = this.scene.add.graphics(); m.addWorld(this.bookG); }   // (made after her sprite, so it's in front)
     this.bookG.clear();
-    if (this.state === 'demonpick' && this.alive) this.drawSpellbook(this.bookG);
+    if (this.state === 'demonpick' && this.alive) this.drawSpellbook(this.n64 ? n64(this.bookG) : this.bookG);
     if (this.pickText) this.pickText.setVisible(this.state === 'demonpick' && this.alive);
     const ready = this.sludge < 3 && this.devotion >= D.need[this.sludge];
     if (this.sigil) this.drawTree(g, this.sigil.x, this.sigil.y, Math.min(1, (this.age - this.sigil.born) / 30), ready);
@@ -373,7 +379,7 @@ export class FighterDevoted {
     this.setState('sludgeswim'); this.vx = 0; this.swimFrom = this.x;
     sfx('geyser', 0.3, 1.4); sfx('curse', 0.2, 1.6);
     const R = Math.random;
-    for (let i = 0; i < 10; i++) this.match.particles.push({ x: this.x + (R() - 0.5) * 20, y: this.y - 2, vx: (R() - 0.5) * 2.5, vy: -1 - R() * 2, life: 18, color: SLUDGE[i % 3], size: 2, grav: 0.2 });
+    for (let i = 0; i < 10; i++) this.match.particles.push({ x: this.x + (R() - 0.5) * 20, y: this.y - 2, vx: (R() - 0.5) * 2.5, vy: -1 - R() * 2, life: 18, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 2, grav: 0.2 });
   }
 
   /**
@@ -394,7 +400,7 @@ export class FighterDevoted {
       if (fall && Math.abs(nx - fall.x) < 3) { this.enterFall(fall, plat.y + 8); return; }   // (...unless an ink fall takes her over the edge)
       if (this.stainAt(nx, plat)) this.x = nx;             // (never out past the sludge's edge)
       else for (let k = 1; k <= 6; k++) { const px = this.x + Math.sign(c.x) * k; if (this.stainAt(px, plat)) this.x = px; else break; }
-      if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
+      if (this.t % 3 === 0) m.particles.push({ x: this.x - this.facing * 8, y: this.y - 1, vx: -this.facing * (0.5 + R()), vy: -0.6 - R() * 1.2, life: 14, color: this.n64 ? CART_SLUDGE[Math.floor(R() * 5)] : SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
     }
     const leap = this.buffer.jump;
     if (this.buffer.attack) { this.swimPop(W.cutRise, 0, 'swimCut'); return; }   // attack: up out of it, knife first
@@ -429,7 +435,7 @@ export class FighterDevoted {
     if (this.buffer.jump) { this.buffer.jump = 0; this.climbRush = true; sfx('geyser', 0.35, 1.8); }   // jump: shoots up the fall and out on top
     if (this.climbRush || Math.abs(c.y) > 0.25) {
       this.y += (this.climbRush ? -W.climb * 2.6 : c.y * W.climb) * this.speedMult;
-      if (this.t % 3 === 0) m.particles.push({ x: fall.x + (R() - 0.5) * 6, y: this.y - 4, vx: fall.side * R(), vy: 0.5 + R(), life: 14, color: SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
+      if (this.t % 3 === 0) m.particles.push({ x: fall.x + (R() - 0.5) * 6, y: this.y - 4, vx: fall.side * R(), vy: 0.5 + R(), life: 14, color: this.n64 ? CART_SLUDGE[Math.floor(R() * 5)] : SLUDGE[Math.floor(R() * 3)], size: 2, grav: 0.15 });
     }
     if (this.y < fall.top + 8) {                                // at the top: out onto the platform
       this.y = fall.top + 8;
@@ -455,7 +461,7 @@ export class FighterDevoted {
     this.vy = vy; this.vx = vx; if (vx) this.facing = Math.sign(vx);
     this.grounded = false; this.platform = null; this.y -= 1;
     sfx('geyser', 0.45, 1.1); m.shake(2, 6);
-    for (let i = 0; i < 16; i++) m.particles.push({ x: this.x + (R() - 0.5) * 16, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -2 - R() * 4, life: 22, color: SLUDGE[i % 3], size: 3, grav: 0.25 });
+    for (let i = 0; i < 16; i++) m.particles.push({ x: this.x + (R() - 0.5) * 16, y: this.y - 2, vx: (R() - 0.5) * 4, vy: -2 - R() * 4, life: 22, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 3, grav: 0.25 });
   }
 
   /**
@@ -499,6 +505,7 @@ export class FighterDevoted {
    * smile peeking out, rippling as she moves.
    */
   drawSwim(spr, g) {
+    if (this.n64) g = n64(g);
     const W = this.def.moves.downB.swim, k = Math.min(1, this.t / W.sink);
     if (this.state === 'sludgeclimb') {                     // in an ink fall: a bulge in the column, eyes looking out
       spr.setAlpha(0);
@@ -529,6 +536,7 @@ export class FighterDevoted {
    * @param {number} frame - for the animation
    */
   drawDevotionHud(g, cx, by, frame) {
+    if (this.n64) g = n64(g);
     const D = this.def.devoted, need = this.sludge < 3 ? D.need[this.sludge] : 0;
     const frac = need ? Math.min(1, this.devotion / need) : 1, ready = !need || this.devotion >= need;
     const Hh = 72, top = by - Hh, half = (y) => 6 + 1.6 * Math.sin(y * 0.33 + frame * 0.09) + 0.8 * Math.sin(y * 0.11 - frame * 0.05);
@@ -705,7 +713,7 @@ export class FighterDevoted {
         m.frozen = 0; m.cutscene = null; this.x = U.origin.x; this.y = U.origin.y;
         T.hitstun = 0; T.setState('air'); T.lastHitBy = this; T.lastHitTimer = 120;
         const R = Math.random;
-        for (let i = 0; i < 30; i++) m.particles.push({ x: T.x, y: T.y - 30, vx: (R() - 0.5) * 8, vy: -1 - R() * 5, life: 40, color: SLUDGE[i % 3], size: 3, grav: 0.22 });
+        for (let i = 0; i < 30; i++) m.particles.push({ x: T.x, y: T.y - 30, vx: (R() - 0.5) * 8, vy: -1 - R() * 5, life: 40, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 3, grav: 0.22 });
         m.popText(T, 'FED TO THE DARK', '#c890ff'); m.shake(14, 12);
         m.onKO(T);
         U.phase = 'out'; U.outEnd = this.t + 20;
@@ -739,7 +747,7 @@ export class FighterDevoted {
       this.riteBot = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteBot);
       this.riteText = this.scene.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '10px', color: '#c890ff' }).setOrigin(0.5).setDepth(43).setVisible(false); m.addUI(this.riteText);
     }
-    const g = this.riteG, ui = this.riteUI, mid = this.riteMid, fr = this.riteFront;
+    const g = this.n64 ? n64(this.riteG) : this.riteG, ui = this.riteUI, mid = this.n64 ? n64(this.riteMid) : this.riteMid, fr = this.riteFront;
     g.clear(); ui.clear(); mid.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false);
     if (!U) return;
     if (U.phase === 'throw' || U.phase === 'miss') {        // the knife, spinning through the air
@@ -918,6 +926,13 @@ export class FighterDevoted {
   /** Her karambit, drawn on its own (thrown, or stuck in someone): a curved hooked blade with a ring at the grip. */
   drawKarambit(g, x, y, ang, s) {
     const c = Math.cos(ang), sn = Math.sin(ang), P = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+    if (this.n64) {                                         // CARTRIDGE: a smooth-shaded crystal blade (g is already n64-wrapped)
+      const pt = (u, v) => { const q = P(u, v); return { x: q[0], y: q[1] }; };
+      g.fillStyle(0x30b8f0, 1); g.fillPoints([pt(1, -1.2), pt(5, -4.2), pt(9.5, -4.8), pt(8, -2.2), pt(4, 0.8), pt(1, 1.2)], true);
+      g.lineStyle(1, 0xffffff, 0.9); g.lineBetween(...P(2, -1.4), ...P(9, -4.5));
+      g.lineStyle(2 * s, 0xffe848, 1); g.strokeCircle(...P(-6, 0), 2.5 * s); g.lineStyle(2 * s, 0x7a2ab0, 1); g.lineBetween(...P(-4, 0), ...P(1, 0));
+      return;
+    }
     g.lineStyle(2 * s, 0x1a1418, 1); g.strokeCircle(...P(-6, 0), 2.5 * s);
     g.lineStyle(2 * s, 0x2e2a38, 1); g.lineBetween(...P(-4, 0), ...P(1, 0));
     g.lineStyle(2 * s, 0xd8dce4, 1);
@@ -939,7 +954,7 @@ export class FighterDevoted {
         if (Math.hypot(o.x - this.x, o.y - this.y) <= L.radius) m.applyHit(o, { h: blast, owner: this, facing: Math.sign(o.x - this.x) || this.facing, id: 'tide' + this.slot + ':' + o.slot + ':' + this.age, pillar: true }, this.x);
       }
       const R = Math.random;
-      for (let i = 0; i < 40; i++) m.particles.push({ x: this.x, y: this.y - 24, vx: (R() - 0.5) * 12, vy: -1 - R() * 6, life: 40, color: SLUDGE[i % 3], size: 3, grav: 0.25 });
+      for (let i = 0; i < 40; i++) m.particles.push({ x: this.x, y: this.y - 24, vx: (R() - 0.5) * 12, vy: -1 - R() * 6, life: 40, color: this.n64 ? CART_SLUDGE[(i + this.t) % 5] : SLUDGE[i % 3], size: 3, grav: 0.25 });
       for (const p of m.stage.platforms) for (let i = 0; i < 6; i++) { const x = this.x + (R() - 0.5) * L.radius * 2; if (Math.abs(p.y - this.y) < L.radius) this.stain(x, p, 6 + R() * 6); }
       if (this.sludge < 3) this.devotion = this.def.devoted.need[this.sludge];
     }

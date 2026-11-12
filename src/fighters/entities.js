@@ -1,3 +1,4 @@
+import { n64 } from './n64Draw.js';
 import { drawThemeFireball,drawThemeBolt,drawThemeSword,drawThemePool } from './skinThemeFx.js';
 import { drawMasterSwordHilt } from './masterSword.js';
 // Things fighters create: fireballs and summoned souls.
@@ -1852,7 +1853,7 @@ export class DemonPet {
   /** Draws it (each its own body and movement), its 20 s ring, and what its attack leaves in the air. */
   render() {
     if (!this.alive) return;
-    const g = this.g, x = Math.round(this.x), y = Math.round(this.y), t = this.t, c = this.spec.color, B = 0x060508, A = this.atk, W = 0xf4eefc;
+    const g = this.owner.n64 ? n64(this.g) : this.g, x = Math.round(this.x), y = Math.round(this.y), t = this.t, c = this.spec.color, B = 0x060508, A = this.atk, W = 0xf4eefc;   // (CARTRIDGE's demons: N64-style, n64Draw.js)
     g.clear();
     g.setAlpha(this.life < 90 && (t >> 2) % 2 ? 0.5 : 1);    // (flickering when it's about to leave)
     let ringY = y - 20;

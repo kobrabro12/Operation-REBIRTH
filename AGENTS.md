@@ -60,6 +60,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Costume outros | `src/scenes/winSkins.js` | `src/scenes/AGENTS.md`. |
 | Shop costumes | `tools/sprites/shop_costumes.py` (+ helpers `costume_kit.py`) | `tools/sprites/AGENTS.md`. |
 | Voice lines | `src/data/voiceLines.js`, `src/audio/voiceLines.js`, files `public/assets/audio/voice/custom/` | Mason's own lines from the VOICE STUDIO; how to add them: `src/audio/AGENTS.md`. |
+| Trophy Hall | `src/scenes/TrophyHallScene.js`, slots `src/data/trophyHall.js` | Trinkets > TROPHY HALL: an empty 3D marble gallery you walk; `src/scenes/AGENTS.md`. |
 | Achievements | `src/achievements.js` (`ACHIEVEMENTS` list - each `{ goal, have(stats), coins }`, lifetime `stats` saved as `rebirth.stats`, unlocked as `rebirth.ach`; `recordMatch` from MatchScene.toResults, `stat()` for taunts/limits/shop actions; `checkAchievements()` pays coins and returns new ones), banners `src/ui/toast.js`, page `AchievementsScene.js` (Trinkets > ACHIEVEMENTS: cards + PROGRESS page with stats, completion %, each fighter's record and next milestone) | Test: `?ach=reset`. Checked on Results, in the shop, and when the page opens. |
 | Save/progress/unlocks | `src/progress.js`, `src/settings.js` | |
 | Lore text | `src/data/lore.js` | |

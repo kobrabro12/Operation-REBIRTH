@@ -9,6 +9,7 @@
 //   EMBER SAINT   MARTYRDOM - a ruined cathedral, she stands on a pyre while the beaten close in with torches; the fire
 //                 catches and her eyes burn through it; she rises out of the flames as the burning DROWNED, the windows
 //                 burst into embers; she hangs in a shaft of light over the beaten, kneeling in the ash
+import { n64Gem } from '../fighters/n64Draw.js';
 import { VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { skinInfo, skinTexture } from '../fighters/skins.js';
@@ -58,26 +59,8 @@ export class DevotedShots {
     if (o.stroke) L.setStroke(o.stroke, o.sw || 4);
     return L;
   }
-  /** A spinning faceted gem (an octahedron), flat-shaded - CARTRIDGE's shards and its boot logo. */
-  dvGem(g, cx, cy, r, ang, cols, a = 1, tilt = 0.35) {
-    const V = [[0, -1.35, 0], [0, 1.35, 0], [1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, 0, -1]].map(([x, y, z]) => {
-      const c = Math.cos(ang), s = Math.sin(ang), x1 = x * c + z * s, z1 = -x * s + z * c;
-      const y2 = y * Math.cos(tilt) - z1 * Math.sin(tilt), z2 = y * Math.sin(tilt) + z1 * Math.cos(tilt);
-      return [cx + x1 * r, cy + y2 * r, z2];
-    });
-    const F = [[0, 2, 3], [0, 3, 4], [0, 4, 5], [0, 5, 2], [1, 3, 2], [1, 4, 3], [1, 5, 4], [1, 2, 5]];
-    const faces = F.map((f, i) => {
-      const [p, q, w] = f.map((j) => V[j]);
-      const nz = (q[0] - p[0]) * (w[1] - p[1]) - (q[1] - p[1]) * (w[0] - p[0]);
-      return { f, i, nz, z: (p[2] + q[2] + w[2]) / 3 };
-    }).filter((o) => o.nz < 0).sort((a1, b1) => b1.z - a1.z);
-    for (const o of faces) {
-      const [p, q, w] = o.f.map((j) => V[j]), lit = 0.55 + 0.45 * Math.max(0, -o.z);
-      const c = Phaser.Display.Color.IntegerToColor(cols[o.i % cols.length]);
-      g.fillStyle(Phaser.Display.Color.GetColor(Math.min(255, c.r * lit + 30 * (o.i < 4)), Math.min(255, c.g * lit + 30 * (o.i < 4)), Math.min(255, c.b * lit)), a);
-      g.fillTriangle(p[0], p[1], q[0], q[1], w[0], w[1]);
-    }
-  }
+  /** A spinning faceted gem (an octahedron), smooth-shaded like the N64 - CARTRIDGE's shards and its boot logo. */
+  dvGem(g, cx, cy, r, ang, cols, a = 1, tilt = 0.35) { n64Gem(g, cx, cy, r, ang, cols, a, tilt); }   // (Gouraud-shaded, n64Draw.js)
   /** Rays fanning out from a point (a sunburst behind something glorious). */
   dvRays(g, x, y, n, len, ang, col, a) {
     for (let i = 0; i < n; i++) {
@@ -109,11 +92,11 @@ export class DevotedShots {
     if (s > 128) { this.over.fillStyle(0xffffff, (s - 128) / 22); this.over.fillRect(0, 0, W, H); }
   }
   /** Puts away the 3D field (other shots). */
-  dvHideField() { if (this.dvField && this.dvField.g.scene) this.dvField.g.clear(); }
+  dvHideField() { if (this.dvPoly && this.dvPoly.g.scene) this.dvPoly.g.clear(); }
   /** Builds CARTRIDGE's low-poly 3D field once (a real Poly3D scene, drawn with a camera of our own). */
   dvMakeField() {
-    if (this.dvField && this.dvField.g.scene) return this.dvField;
-    const R = this.dvField = new Poly3D(this, [], { fog: 0xb8ecff, zFar: 3400, zNear: 400, f: 520, lift: 40, edge: 0.1 });
+    if (this.dvPoly && this.dvPoly.g.scene) return this.dvPoly;
+    const R = this.dvPoly = new Poly3D(this, [], { fog: 0xb8ecff, zFar: 3400, zNear: 400, f: 520, lift: 40, edge: 0.1 });
     R.g.setDepth(0); this.children.moveBelow(R.g, this.losers.length ? this.losers[0].s : this.mid);   // (just over the sky, under everything else)
     R.terrain({ x1: -800, x2: 4400, z1: -40, z2: 3200, y: 300, nx: 40, nz: 14, amp: 9, seed: 5,
       col: (i, j, x, z, kk) => ((i + j) % 2 ? [0x30d038, 0x38dc40] : [0x58ec50, 0x60f058])[kk],
