@@ -25,7 +25,7 @@ export const BOSSES = [
     blurb: 'A STEAM-DRIVEN GIANT OF BRASS AND RIVETS,\nBUILT TO GUARD THE FOUNDRY. ITS FURNACE\nHEART OVERHEATS - THAT IS WHEN IT BREAKS.',
     hazards: 'PIPE BURSTS / CRANE DROPS' },
   { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', title: 'RULER OF THE 64-BIT SKY', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
-    blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD - THE HANDS ONLY GET ANNOYED.',
+    blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD. NEAR THE END, HE BATS IT AT YOU.',
     hazards: 'PYLON ZAPS / QUAKE RINGS' },
   { id: 'demon', name: 'KARNAX, THE MAD BLADE', short: 'KARNAX', title: 'THE MAD BLADE', stage: 'burning-keep', arena: 'THE BURNING KEEP', hp: 430, coins: 260, color: 0xff3a2a, trophy: 'mad-blade',
     blurb: 'A HORNED DEMON WITH A GRIN TOO WIDE AND\nA SWORD TOO BIG, LAUGHING AS THE KEEP\nBURNS. AT HALF HEALTH HE GOES MAD.',
