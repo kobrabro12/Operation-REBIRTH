@@ -5,10 +5,10 @@
             brass stabs and a brass melody over it; a breakdown with just the ticking and the anvil, then it all comes back.
   polygon   "Frame Rate King" - KING POLYGON (64-bit era): 150 BPM in E minor. Bright sampled-style synth brass, an
             orchestra-hit on the downbeats, a slap-ish pulse bass, a square-wave lead with vibrato, punchy drums, lots of reverb.
-  dragon    "Ashwing" - ASHWING, THE ELDER DRAGON (medieval): 128 BPM in C minor. War drums and timpani, a low choir, a
+  demon     "The Mad Blade" - KARNAX, THE MAD BLADE (medieval demon): 128 BPM in C minor. War drums and timpani, a low choir, a
             horn melody, string pads, a chanting bridge, and a final phrase with everything at full force.
 
-Run:  python3 tools/audio/boss_music.py [colossus polygon dragon]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
+Run:  python3 tools/audio/boss_music.py [colossus polygon demon]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
 import numpy as np
@@ -126,7 +126,7 @@ def polygon():
     save(reverb(out, 2.0, 3.4, 0.3), 'polygon', bars * 4 * b)
 
 
-def dragon():
+def demon():
     b = 60 / 128; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     prog = [(36, [60, 63, 67]), (32, [60, 63, 68]), (34, [58, 62, 65]), (31, [59, 62, 67]), (36, [60, 63, 67]), (29, [60, 65, 68]), (31, [59, 62, 67]), (31, [59, 62, 65])]
     for bar in range(bars):
@@ -143,9 +143,9 @@ def dragon():
             (16, 72, 2), (18, 75, 1.5), (19.5, 74, 0.5), (20, 72, 2), (22, 70, 2), (24, 68, 1), (25, 67, 1), (26, 65, 2), (28, 67, 4)]
     for rep in (0, 2):
         for beat, m, d in horn: add(out, brass(m - (12 if rep == 0 else 0), d * b * 0.95, 0.8, 0.8), rep * 32 * b + beat * b)
-    save(reverb(out, 2.8, 2.6, 0.32), 'dragon', bars * 4 * b)
+    save(reverb(out, 2.8, 2.6, 0.32), 'demon', bars * 4 * b)
 
 
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'dragon']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon']
     for w in which: globals()[w]()

@@ -66,6 +66,9 @@ import { Training, DummyController } from './training.js';
 import { TouchPad, TouchController, touchEnabled } from '../input/touch.js';
 import { Recorder, recordingWanted } from '../debug/recorder.js';
 
+/** Whether any controller's A button is down (to skip a boss intro). */
+function readPadA() { const pads = navigator.getGamepads ? navigator.getGamepads() : []; for (let i = 0; i < (pads ? pads.length : 0); i++) { const p = readPad(i); if (p && p.buttons[0] && p.buttons[0].pressed) return true; } return false; }
+
 export class MatchScene extends Phaser.Scene {
   constructor() { super('Match'); }
 
@@ -182,7 +185,14 @@ export class MatchScene extends Phaser.Scene {
     this.hud = new Hud(this);
     this.training = this.isTraining ? new Training(this) : null;
     this.timeLeft = S.minutes * 3600;
-    if (this.bossFight) { const B = bossById(this.bossFight.id); this.stage.startBoss(this, { boss: B, tier: this.bossFight.tier, T: TIERS[this.bossFight.tier] }); }
+    if (this.bossFight) {
+      const B = bossById(this.bossFight.id); this.stage.startBoss(this, { boss: B, tier: this.bossFight.tier, T: TIERS[this.bossFight.tier] });
+      if (!this.bossFight.cpu) {                         // the boss's entrance and freeze frame, before the countdown (bossBase.js)
+        this.stage.startIntro(this);
+        this.skipKeys = ['ENTER', 'J', 'SPACE'].map((k) => this.input.keyboard.addKey(k));
+        this.input.on('pointerdown', () => { this.skipClick = true; });
+      }
+    }
 
     // overlays (UI camera)
     this.overlay = this.add.graphics().setDepth(5); this.addUI(this.overlay);
@@ -298,6 +308,14 @@ export class MatchScene extends Phaser.Scene {
 
   tick() {
     this.frame++;
+    if (this.stage.intro) {                              // a boss's intro: only it moves (J / Enter / a click skips)
+      for (const f of this.fighters) { f.ctrl.beginFrame(); f.ctrl.poll(); }
+      const skip = this.skipClick || (this.skipKeys || []).some((k) => Phaser.Input.Keyboard.JustDown(k)) || readPadA();
+      this.skipClick = false;
+      if (skip && this.stage.intro.t > 20) this.stage.skipIntro(this); else this.stage.introStep(this);
+      this.stepEffects();
+      return;
+    }
     // countdown
     if (this.countdown > 0) {
       this.countdown--;
@@ -1180,6 +1198,8 @@ export class MatchScene extends Phaser.Scene {
     const w = x2 - x1 + 160, h = y2 - y1 + 150;
     let zoom = Phaser.Math.Clamp(Math.min(VIEW_W / w, (VIEW_H - 40) / h), 0.55, 1.35);
     let cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 + 18;
+    const ic = this.stage.introCam && this.stage.introCam();   // a boss's intro frames the boss itself
+    if (ic) { zoom = ic.zoom; cx = ic.x; cy = ic.y; if (ic.snap) cam.setZoom(zoom); }
     const limiter = this.fighters.find((f) => f.state === 'limit' && f.t < 34);
     if (limiter) { zoom = 1.5; cx = limiter.x; cy = limiter.y - 40; }
     if (this.cutscene && this.cutscene.ult && this.cutscene.ult.victims[0]) { const v = this.cutscene.ult.victims[0]; zoom = 1.7; cx = v.x; cy = v.y - 26; }
@@ -1187,6 +1207,7 @@ export class MatchScene extends Phaser.Scene {
     cam.setZoom(cam.zoom + (zoom - cam.zoom) * 0.08);
     const cur = cam.midPoint;
     let nx = cur.x + (cx - cur.x) * 0.1, ny = cur.y + (cy - cur.y) * 0.1;
+    if (ic && ic.snap) { nx = cx; ny = cy; }
     if (this.shakeTime > 0) { nx += (Math.random() - 0.5) * this.shakeAmt; ny += (Math.random() - 0.5) * this.shakeAmt; }
     else this.shakeAmt = 0;
     cam.centerOn(nx, ny);

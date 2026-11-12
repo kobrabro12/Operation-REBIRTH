@@ -62,7 +62,7 @@ export class BossRewardScene extends Phaser.Scene {
   tip() {
     return { colossus: 'TIP: AFTER ITS STEAM VENT IT OVERHEATS - ITS GLOWING HEART TAKES EXTRA DAMAGE. HIT IT THEN.',
       polygon: 'TIP: EVERY FEW ATTACKS THE KING FRAME-DROPS AND SINKS LOW. HIS HEAD TAKES EXTRA DAMAGE WHILE HE STUTTERS.',
-      dragon: 'TIP: HER HEAD IS THE WEAK POINT. WHEN THE RED STREAK APPEARS, GET OFF THAT HEIGHT - SHE IS DIVING.' }[this.R.id] || '';
+      demon: 'TIP: WHEN HE STOPS TO LAUGH, GO FOR HIS HEAD - IT TAKES EXTRA DAMAGE. RED EYES BEHIND YOU MEAN MOVE.' }[this.R.id] || '';
   }
 
   /** The backdrop: rays in the boss's colour (dim red when you lost), a panel for the rewards. */

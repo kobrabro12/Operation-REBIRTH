@@ -48,7 +48,7 @@ export class SteamBossStage extends BossArena {
     this.spawns = [{ x: -110, y: 0 }, { x: 110, y: 0 }, { x: -40, y: 0 }, { x: 40, y: 0 }];
     this.cycle = new HazardCycle(this, ['pipe', 'crane'], { color: '#ffc860', stroke: '#2a1408', gap: 720 });
     this.fists = [{ x: -COL.rest[0], y: COL.rest[1], s: -1 }, { x: COL.rest[0], y: COL.rest[1], s: 1 }];
-    this.lean = 0; this.hot = 0; this.chest = 0; this.cogs = []; this.rivets = []; this.puffs = []; this.crane = null; this.jet = null;
+    this.lean = 0; this.sink = 0; this.dark = false; this.hot = 0; this.chest = 0; this.cogs = []; this.rivets = []; this.puffs = []; this.crane = null; this.jet = null;
     this.sparkColor = 0xffa020; this.bodyW = 190; this.bodyH = 170;
   }
 
@@ -141,7 +141,7 @@ export class SteamBossStage extends BossArena {
   /** The boss's own state when the fight starts. */
   makeBoss() { this.cycle.gap = 1200; this.cycle.next = 1500; }
   /** The chest (its furnace heart): what the camera, the death and the CPU aim at. */
-  core() { return { x: 0, y: COL.coreY + this.lean * COL.lean }; }
+  core() { return { x: 0, y: COL.coreY + this.lean * COL.lean + this.sink }; }
   /** Where the Colossus can be hit: its heart (white-hot = x1.6 while overheated), its head, a fist resting on the deck. */
   hurt() {
     const c = this.core(), hy = COL.headY + this.lean * (COL.lean + 10), out = [];
@@ -157,6 +157,32 @@ export class SteamBossStage extends BossArena {
   /** Moves a fist part of the way toward a point. */
   toward(f, x, y, k) { f.x += (x - f.x) * k; f.y += (y - f.y) * k; }
   rageLine() { return 'PRESSURE CRITICAL!'; }
+  /** The freeze frame frames its head and both raised fists. */
+  introAt() { return { x: 0, y: COL.headY + 40, zoom: 1.0 }; }
+
+  /**
+   * THE ENTRANCE (k = 0..1 through it): it rises from below the deck, dark, the floor rumbling and steam pouring
+   * off the edge; its eyes and furnace ignite; then it throws both fists up overhead, its stacks blasting steam -
+   * the pose the freeze frame stops on.
+   */
+  introPose(match, k, t) {
+    this.t++;
+    const e = (a, b) => Phaser.Math.Clamp((k - a) / (b - a), 0, 1), ease = (q) => 1 - (1 - q) * (1 - q);
+    const rise = ease(e(0.05, 0.55));
+    this.sink = 300 * (1 - rise); this.lean = 0.6 * (1 - e(0.55, 0.7)); this.dark = k < 0.62;
+    if (k < 0.55 && t % 10 === 0) { match.shake(4, 8); sfx('rumble', 0.4, 0.8); }
+    if (k < 0.6 && t % 3 === 0) for (const x of [-250, 250]) this.puff(x + (Math.random() - 0.5) * 40, 4, 1.2, -1.6);
+    if (t === Math.round(0.62 * 140)) { sfx('clang', 1, 0.5); sfx('flame', 0.7, 0.6); }
+    const up = ease(e(0.7, 0.92));
+    for (const f of this.fists) {
+      const hx = f.s * 150, hy = -110 + this.sink, px = f.s * 120, py = -268;
+      f.x = hx + (px - hx) * up; f.y = hy + (py - hy) * up; f.resting = false;
+    }
+    this.chest = 0.5 * up;
+    if (t === Math.round(0.9 * 140)) { sfx('geyser', 1, 0.6); for (let i = 0; i < 16; i++) this.puff((i % 2 ? -1 : 1) * 90 + (Math.random() - 0.5) * 20, COL.shoulderY - 70, 1.5, -2.5); }
+    for (const p of this.puffs) { p.t++; p.x += p.vx; p.y += p.vy; p.r += 0.25; }
+    this.puffs = this.puffs.filter((p) => p.t < p.life);
+  }
 
   /** PISTON SLAM: a fist tracks the nearest player from high above (a shadow on the deck), slams down, rests a moment. */
   start_slam(match, a) {
@@ -313,12 +339,12 @@ export class SteamBossStage extends BossArena {
   render() {
     const t = this.t, B = this.boss, dk = this.deathK(), off = !B || dk > 0.6;
     this.drawGears(this.gearG, t);
-    const g = this.bossG; g.clear();
-    this.drawBody(g, off, B ? B.flash : 0);
+    const g = this.bossG; g.clear(); g.setY(this.sink);
+    this.drawBody(g, off || this.dark, B ? B.flash : 0);
     const a = this.armG; a.clear();
     for (const f of this.fists) {
       if (f.shadow) { a.fillStyle(0x000000, 0.25 + 0.3 * f.shadow.k); a.fillEllipse(f.shadow.x, 0, 30 + 30 * f.shadow.k, 8); }
-      this.drawArm(a, f, B ? B.flash : 0, off);
+      this.drawArm(a, f, B ? B.flash : 0, off || this.dark);
     }
     const x = this.fxG; x.clear();
     if (this.crane) {
@@ -420,7 +446,7 @@ export class SteamBossStage extends BossArena {
 
   /** One arm: a brass upper arm, an elbow gear, a piston forearm, a riveted gauntlet fist. */
   drawArm(g, f, flash, off) {
-    const L = this.lean, sx = f.s * COL.shoulderX, sy = COL.shoulderY + L * COL.lean + 6;
+    const L = this.lean, sx = f.s * COL.shoulderX, sy = COL.shoulderY + L * COL.lean + 6 + this.sink;
     const dx = f.x - sx, dy = f.y - sy, d = Math.hypot(dx, dy) || 1, A = COL.upper, Bn = COL.fore;
     const reach = Math.min(d, A + Bn - 1), cosA = (A * A + reach * reach - Bn * Bn) / (2 * A * reach), ang = Math.atan2(dy, dx) - f.s * Math.acos(Phaser.Math.Clamp(cosA, -1, 1));   // (elbows out and up: hunched, gorilla arms)
     const ex = sx + Math.cos(ang) * A, ey = sy + Math.sin(ang) * A;

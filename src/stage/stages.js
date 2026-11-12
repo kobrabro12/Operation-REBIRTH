@@ -21,7 +21,7 @@ import { JungleFallsStage, drawJungleFallsPreview } from './jungleFallsStage.js'
 import { StarlightFountainStage, drawStarlightFountainPreview } from './starlightFountainStage.js';
 import { SteamBossStage, drawBrassFoundryPreview } from './steamBossStage.js';
 import { PolyBossStage, drawPolygonPeakPreview } from './polyBossStage.js';
-import { DragonBossStage, drawDragonsKeepPreview } from './dragonBossStage.js';
+import { DemonBossStage, drawBurningKeepPreview } from './demonBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -148,9 +148,9 @@ export const STAGES = [
   { id: 'polygon-peak', music: 'bgm_boss_polygon', name: 'POLYGON PEAK', available: true, bossArena: 'polygon', make: (scene) => new PolyBossStage(scene),
     blurb: ['A checkerboard arena floating in a 64-bit sky,', 'the King\'s empty crown drifting overhead.'],
     hazard: 'PYLON ZAP: ARCS CRACKLE ALONG BOTH LEDGES.\nQUAKE RING: A SHOCKWAVE RUNS OUT - JUMP IT.', preview: drawPolygonPeakPreview },
-  { id: 'dragons-keep', music: 'bgm_boss_dragon', name: "DRAGON'S KEEP", available: true, bossArena: 'dragon', make: (scene) => new DragonBossStage(scene),
-    blurb: ['The battlements of a keep under a red moon,', 'the town below burning, a dragon far off.'],
-    hazard: 'CATAPULT STONE: A BOULDER LANDS ON THE MARK.\nBRAZIER FLARE: THE TOWER FIRES ERUPT.', preview: drawDragonsKeepPreview },
+  { id: 'burning-keep', music: 'bgm_boss_demon', name: 'THE BURNING KEEP', available: true, bossArena: 'demon', make: (scene) => new DemonBossStage(scene),
+    blurb: ['The battlements of a keep under a red moon,', 'a demon\'s sword planted in the stone.'],
+    hazard: 'CATAPULT STONE: A BOULDER LANDS ON THE MARK.\nBRAZIER FLARE: THE TOWER FIRES ERUPT.', preview: drawBurningKeepPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

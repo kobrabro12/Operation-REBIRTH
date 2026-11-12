@@ -311,7 +311,7 @@ export class TrophyHallScene extends Phaser.Scene {
    * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
    * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
    * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire),
-   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), dragon (a dragon's head on a shield).
+   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone).
    * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
   trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
@@ -356,11 +356,12 @@ export class TrophyHallScene extends Phaser.Scene {
       T.push(...boxFaces(-13, -38, -3, 13, -4, 3, 0xf0b020, 0xffd040), ...boxFaces(-11, -4, -2.4, 11, 0, 2.4, 0xd89818), ...boxFaces(-9, -36, -3.4, 9, -16, -3, 0xa070f0, 0xb888ff));
       for (let i = 0; i < 5; i++) T.push(...pyramidFaces(-6 + i * 3, -26, -3.5, 2.4, 0.5, 4 + (i % 2) * 2, 0xffe070));
       for (let i = 0; i < 4; i++) T.push(...boxFaces(-10, -14 + i * 2.4, -3.2, 10, -13 + i * 2.4, -3, 0xb07a10));
-    } else if (model === 'dragon') {                                  // THE DRAGON CREST: a red-gold dragon's head on a knight's shield
-      flat([[-14, -42], [14, -42], [14, -20], [0, -4], [-14, -20]], 2, 0x6a0a12); flat([[-12, -40], [12, -40], [12, -21], [0, -7], [-12, -21]], 1.6, 0x9a1418);
-      T.push(...boxFaces(-14, -43, -0.5, 14, -41, 2.4, 0xd8a838));
-      T.push(...blobFaces(0, -26, -3, 7, 6, 5, [0xb83226, 0x8a1e1c], 5, 0xd84a30, 0.12), ...blobFaces(0, -21, -7, 4.5, 3, 4, [0xb83226, 0xc8402a], 6, null, 0.08));
-      for (const sx of [-1, 1]) { T.push(...xyz(pyramidFaces(0, 0, 0, 3, 3, 12, 0xf0e4c8), sx * 5, -31, -2, 0, sx * 0.7)); T.push(...boxFaces(sx * 3 - 1.4, -29, -8.2, sx * 3 + 1.4, -27.6, -7.6, 0xffd040)); }
+    } else if (model === 'blade') {                                   // THE MAD BLADE: the demon's jagged greatsword driven into a stone
+      T.push(...blobFaces(0, -5, 0, 11, 6, 9, [0x585060, 0x787080, 0x403848], 9, 0x8a8292, 0.25));
+      T.push(...boxFaces(-2.4, -34, -1, 2.4, -7, 1, 0x2a2630, 0x48444e), ...boxFaces(-0.9, -32, -1.3, 0.9, -9, -1, 0xff2a10, 0xff7a2a));
+      for (let i = 0; i < 4; i++) T.push(...xyz(pyramidFaces(0, 0, 0, 1.8, 1.4, 3.4, 0x2a2630), 2.4, -12 - i * 6, 0, Math.PI / 2));
+      T.push(...boxFaces(-7, -37, -1.4, 7, -34, 1.4, 0xf0e4c8, 0xc8b898), ...boxFaces(-1.2, -44, -1, 1.2, -37, 1, 0x3a1a14), ...blobFaces(0, -46, 0, 2.4, 2.4, 2.4, [0xf0e4c8, 0xc8b898], 3, null, 0.05));
+      for (const sx of [-1, 1]) T.push(...xyz(pyramidFaces(0, 0, 0, 1.8, 1.8, 6, 0xf0e4c8), sx * 7, -35.5, 0, sx * -1.3));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));

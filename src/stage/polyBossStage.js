@@ -7,8 +7,9 @@
 //   Weak point: the HEAD (x1). The gauntlets take x0.4 (x0.6 resting on the floor). Every few attacks the King
 //   FRAME-DROPS: he glitches, sinks low and his head takes x1.5 while he stutters.
 //   Attacks: PALM SLAM (a gauntlet follows you from above, slams flat; ENRAGED: both), GROUND SWIPE (sweeps the
-//   floor - jump it), STAR SPREAD (spinning 3D stars from his mouth), POLYGON RAIN (cubes fall on marked spots),
-//   EYE BEAM (ENRAGED: a beam from his eyes sweeps across the floor).
+//   floor - jump it), FINGER GUN (a gauntlet turns into a finger gun, aims and fires - PEW; ENRAGED: both hands),
+//   POLY GOONS (he summons little low-poly minions through warp rings that waddle after you - smash them),
+//   POLYGON RAIN (cubes fall on marked spots), EYE BEAM (ENRAGED: a beam from his eyes sweeps across the floor).
 // Stage hazards (also in VS, where the King's empty crown floats overhead): PYLON ZAP (arcs crackle along both ledges)
 // and QUAKE RING (a shockwave ring runs out along the floor from the middle - jump it).
 import { HazardCycle } from './hazardCycle.js';
@@ -25,8 +26,12 @@ const KING = { x: 0, y: -206, z: 14, low: -112, rest: [168, -120] };
 const PALM = { track: 54, high: -240, drop: 8, rest: 46, hit: [13, [60, 6.4, 1.0]], wave: [6, [28, 4.4, 0.6]] };
 // GROUND SWIPE: wind-up frames, the sweep, the edge it starts from, its hit
 const SWIPE = { wind: 46, cross: 40, edge: 330, hit: [12, [40, 6.2, 0.9]] };
-// STAR SPREAD: stars per volley (normal / enraged), volleys, spread (radians), speed, size, hit
-const STARS = { n: [3, 5], volleys: [2, 3], spread: 0.32, speed: 3.6, r: 11, hit: [8, [45, 5, 0.6]] };
+// FINGER GUN: shots per hand (normal / enraged - enraged fires with both hands), frames to aim, between shots,
+// the shot's speed, size, hit
+const GUN = { shots: [3, 4], aim: 34, every: 16, speed: 6.5, r: 7, hit: [7, [32, 4.6, 0.6]] };
+// POLY GOONS (summoned minions): how many (normal / enraged), most at once, walk speed, health, how long they last,
+// their touch's hit (once every `bite` frames), how big
+const GOON = { n: [3, 4], max: 6, speed: 1.25, hp: 10, life: 1100, bite: 40, s: 13, hit: [6, [55, 5, 0.6]] };
 // POLYGON RAIN: cubes, frames between them, the warning per cube, size, hit
 const RAIN = { n: 6, every: 12, warn: 44, s: 20, hit: [10, [80, 5, 0.7]] };
 // EYE BEAM (enraged): charge, sweep, its hit (ticks)
@@ -60,7 +65,7 @@ export class PolyBossStage extends BossArena {
     this.cycle = new HazardCycle(this, ['zap', 'quake'], { color: '#7ae8ff', stroke: '#1a1050', gap: 660 });
     this.hands = [{ x: -KING.rest[0], y: KING.rest[1], s: -1, roll: 0 }, { x: KING.rest[0], y: KING.rest[1], s: 1, roll: 0 }];
     this.head = { x: KING.x, y: KING.y, yaw: 0, jaw: 0 };
-    this.drop = 0; this.count = 0; this.stars = []; this.cubes = []; this.beam = null; this.zap = null; this.ring = null;
+    this.drop = 0; this.count = 0; this.shots = []; this.goons = []; this.warps = []; this.cubes = []; this.beam = null; this.zap = null; this.ring = null;
     this.sparkColor = 0x5af0ff; this.bodyW = 120; this.bodyH = 120;
   }
 
@@ -98,15 +103,38 @@ export class PolyBossStage extends BossArena {
   /** What he can do next: every few attacks a FRAME DROP; ENRAGED adds the EYE BEAM. */
   pattern(phase) {
     if (this.count % DROP.every === DROP.every - 1) return ['frame'];
-    return phase === 1 ? ['palm', 'swipe', 'stars', 'rain'] : ['palm', 'swipe', 'stars', 'rain', 'beam'];
+    return phase === 1 ? ['palm', 'swipe', 'gun', 'goons', 'rain'] : ['palm', 'swipe', 'gun', 'goons', 'rain', 'beam', 'gun'];
   }
   start_palm(match, a) { this.count++; const tg = this.nearest(match); a.hands = this.boss.phase === 2 ? [0, 1] : [tg && tg.x > 0 ? 1 : 0]; a.i = 0; a.p = 0; a.tx = tg ? tg.x : 0; }
   start_swipe(match, a) { this.count++; const tg = this.nearest(match); a.s = tg && tg.x > 0 ? -1 : 1; a.h = this.hands[a.s < 0 ? 0 : 1]; }
-  start_stars(match, a) { this.count++; }
+  start_gun(match, a) { this.count++; const tg = this.nearest(match); a.hands = this.boss.phase === 2 ? [0, 1] : [tg && tg.x > this.head.x ? 0 : 1]; for (const i of a.hands) this.hands[i].mode = 'gun'; }
+  start_goons(match, a) { this.count++; a.h = this.hands[Math.random() < 0.5 ? 0 : 1]; }
   start_rain(match, a) { this.count++; }
   start_beam(match, a) { this.count++; a.s = Math.random() < 0.5 ? -1 : 1; }
   start_frame(match, a) { this.count++; }
   rageLine() { return 'SYSTEM OVERCLOCKED!'; }
+
+  /**
+   * THE ENTRANCE (k = 0..1): his head drops out of the sky spinning, growing as it comes, and bounces into place;
+   * his gauntlets fly in from either side; then both turn into finger guns, pointed out and up, jaw dropped in a
+   * grin - the pose the freeze frame stops on.
+   */
+  introPose(match, k, t) {
+    this.t++;
+    const e = (a, b) => Phaser.Math.Clamp((k - a) / (b - a), 0, 1), H = this.head, drop = e(0.05, 0.45);
+    H.y = -560 + (KING.y + 560) * drop - Math.sin(e(0.45, 0.6) * Math.PI) * 26; H.x = 0;
+    H.yaw = (1 - drop) * Math.PI * 6; H.k = 0.3 + 0.7 * drop; H.jaw = e(0.75, 0.85) * 0.9;
+    if (t === Math.round(0.45 * 140)) { sfx('bighit', 0.8, 1.2); match.shake(6, 8); this.burst(match, 0, KING.y + 40, [C.gold, C.crystal[0], 0xffffff], 16); }
+    const fly = 1 - Math.pow(1 - e(0.45, 0.72), 2);
+    for (const h of this.hands) {
+      h.x = h.s * (620 - (620 - 175) * fly); h.y = KING.rest[1] - 40 * e(0.75, 0.9); h.resting = false;
+      h.mode = k > 0.75 ? 'gun' : null; h.roll = h.mode ? h.s * 0.6 : (1 - fly) * h.s * 3; h.flashT = 0;
+    }
+    if (t === Math.round(0.76 * 140)) { sfx('laser', 0.8, 1.7); sfx('ding', 0.6, 1.2); }
+    if (k >= 1) for (const h of this.hands) h.mode = 'gun';
+  }
+  /** After the intro: the gauntlets go back to open hands. */
+  endIntro() { super.endIntro(); for (const h of this.hands) { h.mode = null; h.roll = 0; } this.head.k = 1; }
 
   /** At rest: his head bobs and turns toward the nearest player; the gauntlets hover by his sides. */
   idle(match) {
@@ -151,26 +179,90 @@ export class PolyBossStage extends BossArena {
     return false;
   }
 
-  /** STAR SPREAD: his jaw drops and he spits fans of spinning 3D stars at the nearest player. */
-  atk_stars(match, a, out) {
-    const ph = this.boss.phase - 1, n = STARS.n[ph], vol = STARS.volleys[ph], gap = this.sp(34);
-    this.head.jaw = Math.min(1, this.head.jaw + 0.08);
-    if (a.t >= 24 && (a.t - 24) % gap === 0 && (a.t - 24) / gap < vol) {
-      const tg = this.nearest(match, this.head.x), mx = this.head.x, my = this.head.y + 26, base = tg ? Math.atan2(tg.y - 24 - my, tg.x - mx) : Math.PI / 2;
-      for (let i = 0; i < n; i++) { const q = base + (i - (n - 1) / 2) * STARS.spread; this.stars.push({ x: mx, y: my, vx: Math.cos(q) * STARS.speed, vy: Math.sin(q) * STARS.speed, a: 0, id: this.sid('star') }); }
-      sfx('ding', 0.6, 1.4); sfx('laser', 0.4, 1.5);
-    }
-    if (a.t > 24 + gap * vol) this.head.jaw = Math.max(0, this.head.jaw - 0.12);
-    return a.t > 24 + gap * vol + 30;
+  /**
+   * FINGER GUN: a gauntlet curls into a finger gun (thumb up, index out), hovers off to one side, aims at the nearest
+   * player and fires shot after shot - each with a muzzle flash and a kick. ENRAGED: both hands, staggered.
+   */
+  atk_gun(match, a, out) {
+    const n = GUN.shots[this.boss.phase - 1], aim = this.sp(GUN.aim), every = this.sp(GUN.every);
+    let done = true;
+    a.hands.forEach((hi, j) => {
+      const h = this.hands[hi], start = aim + j * Math.round(every / 2), tg = this.nearest(match, h.x);
+      const px = Phaser.Math.Clamp(this.head.x + h.s * 205, -300, 300), py = -170 + j * 50;
+      this.toward(h, px, py + Math.sin(a.t * 0.1) * 6, 0.12); h.resting = false;
+      const tx = tg ? tg.x : 0, ty = tg ? tg.y - 26 : 0, ang = Math.atan2(ty - h.y, tx - h.x);
+      const want = h.s < 0 ? ang : Math.atan2(-(ty - h.y), -(tx - h.x));                       // (the right hand points the other way)
+      h.kick = Math.max(0, (h.kick || 0) - 0.12); h.roll += (want + h.s * h.kick - h.roll) * 0.25;
+      const k = a.t - start;
+      if (k >= 0 && k % every === 0 && k / every < n) {
+        const d = Math.hypot(tx - h.x, ty - h.y) || 1, mx = h.x + (tx - h.x) / d * 64, my = h.y + (ty - h.y) / d * 64 - 14;
+        this.shots.push({ x: mx, y: my, vx: (tx - h.x) / d * GUN.speed, vy: (ty - h.y) / d * GUN.speed, id: this.sid('shot'), a: 0 });
+        h.kick = 0.5; h.flashT = 5; sfx('laser', 0.7, 1.7); sfx('clang', 0.25, 2);
+      }
+      if (h.flashT > 0) h.flashT--;
+      if (k < n * every + 20) done = false;
+    });
+    if (done) { for (const i of a.hands) this.hands[i].mode = null; return true; }
+    return false;
   }
-  /** Stars fly straight and spin; gone off the screen or on the floor. */
-  stepStars(match, out) {
-    for (const s of this.stars) {
-      s.x += s.vx; s.y += s.vy; s.a += 0.2;
-      out.push(this.bhit(s.id, s.x - STARS.r, s.y - STARS.r, s.x + STARS.r, s.y + STARS.r, ...STARS.hit, { dirX: Math.sign(s.vx) || 1 }));
-      if (s.y > -4 && Math.abs(s.x) < 250) { s.dead = true; this.burst(match, s.x, -4, [C.gold, 0xffffff], 6); }
+  /** The finger gun's shots: glowing gems flying straight; gone off screen or into the floor. */
+  stepShots(match, out) {
+    for (const s of this.shots) {
+      s.x += s.vx; s.y += s.vy; s.a += 0.3;
+      out.push(this.bhit(s.id, s.x - GUN.r, s.y - GUN.r, s.x + GUN.r, s.y + GUN.r, ...GUN.hit, { dirX: Math.sign(s.vx) || 1 }));
+      if (s.y > -2 && Math.abs(s.x) < 250) { s.dead = true; this.burst(match, s.x, -3, [0xff5a3a, 0xffd040], 5); }
     }
-    this.stars = this.stars.filter((s) => !s.dead && Math.abs(s.x) < 700 && s.y < 400 && s.y > -600);
+    this.shots = this.shots.filter((s) => !s.dead && Math.abs(s.x) < 700 && s.y < 400 && s.y > -600);
+  }
+
+  /** POLY GOONS: he raises a gauntlet, warp rings open over the arena and little low-poly minions drop out of them. */
+  atk_goons(match, a) {
+    const h = a.h, n = GOON.n[this.boss.phase - 1];
+    this.toward(h, this.head.x + h.s * 150, -260, 0.1); h.roll = h.s * -0.4; h.resting = false;
+    if (a.t === 20) { sfx('limit', 0.5, 1.6); for (let i = 0; i < n; i++) this.warps.push({ x: Phaser.Math.Clamp(-200 + 400 * (i + 0.5) / n + (Math.random() - 0.5) * 50, -230, 230), y: -230, t: 0 }); }
+    if (a.t === 60) {
+      for (const w of this.warps) if (this.goons.length < GOON.max) this.goons.push({ x: w.x, y: w.y, vx: 0, vy: 0, hp: GOON.hp, t: 0, id: this.sid('goon'), seen: new Set(), col: C.gem[this.goons.length % 3], flash: 0, dir: 1 });
+      sfx('ding', 0.6, 0.8); this.warps = [];
+    }
+    for (const w of this.warps) w.t++;
+    return a.t > 80;
+  }
+  /** Goons fall, land, waddle after the nearest player and hop now and then; touching one hurts; they time out or fall off. */
+  stepGoons(match, out) {
+    for (const g of this.goons) {
+      g.t++; if (g.flash > 0) g.flash--;
+      const tg = this.nearest(match, g.x), floor = Math.abs(g.x) < 250 ? 0 : 999;
+      g.vy += 0.4; g.y += g.vy; g.x += g.vx;
+      if (g.y >= floor && g.vy >= 0) {
+        g.y = floor; g.vy = 0;
+        if (tg) { g.dir = Math.sign(tg.x - g.x) || g.dir; g.vx += (g.dir * GOON.speed - g.vx) * 0.15; }
+        if (g.t % 90 === 45 && tg && Math.abs(tg.x - g.x) < 90) g.vy = -6.5;                     // a hop at you
+      }
+      if (g.t > 30) out.push(this.bhit(g.id + 'b' + Math.floor(g.t / GOON.bite), g.x - GOON.s, g.y - GOON.s * 2, g.x + GOON.s, g.y, ...GOON.hit, { dirX: g.dir }));
+      if (g.t > GOON.life || g.y > 400) { g.dead = true; if (g.y < 400) this.burst(match, g.x, g.y - GOON.s, [g.col, 0xffffff], 8); }
+    }
+    this.goons = this.goons.filter((g) => !g.dead);
+  }
+  /** The players' attacks hit the King (BossArena) and smash his goons (two or three hits each). */
+  strikeTargets(match, hbs) {
+    super.strikeTargets(match, hbs);
+    for (const g of this.goons) for (const hb of hbs) {
+      if (!hb.owner || g.seen.has(hb.id) || !(hb.x1 < g.x + GOON.s && hb.x2 > g.x - GOON.s && hb.y1 < g.y && hb.y2 > g.y - GOON.s * 2)) continue;
+      g.seen.add(hb.id); g.hp -= hb.h.dmg || 4; g.flash = 6; g.vx = (hb.facing || Math.sign(g.x - hb.owner.x) || 1) * 4; g.vy = -4; sfx('hit', 0.5, 1.5);
+      if (g.hp <= 0 && !g.dead) { g.dead = true; this.burst(match, g.x, g.y - GOON.s, [g.col, 0xffffff, C.gold], 14); sfx('glass', 0.6, 1.4); }
+    }
+  }
+  /** One goon's faces: a cube body, angry eyes, a spike on top, two waddling feet. */
+  goonFaces(g) {
+    const S = GOON.s, c = g.flash ? 0xffffff : g.col, step = Math.sin(g.t * 0.4) * 3, out = [];
+    out.push(...boxFaces(-S, -S * 2, -S, S, 0, S, c, 0xffffff));
+    out.push(...pyramidFaces(0, -S * 2, 0, S, S, 9, C.gold));
+    for (const e of [-1, 1]) {
+      out.push({ p: [[e * 4 - 3, -S * 1.4 + (e < 0 ? -2 : 0), -S - 0.5], [e * 4 + 3, -S * 1.4 + (e > 0 ? -2 : 0), -S - 0.5], [e * 4 + 3, -S * 1.4 + 4, -S - 0.5], [e * 4 - 3, -S * 1.4 + 4, -S - 0.5]], n: [0, 0, -1], c: 0xffffff, nofog: true, bias: -3 });
+      out.push({ p: [[e * 4 - 1, -S * 1.4, -S - 0.8], [e * 4 + 2, -S * 1.4, -S - 0.8], [e * 4 + 2, -S * 1.4 + 3.5, -S - 0.8], [e * 4 - 1, -S * 1.4 + 3.5, -S - 0.8]], n: [0, 0, -1], c: 0x1a1030, nofog: true, bias: -4 });
+      out.push(...boxFaces(e * 6 - 3, -4, -6, e * 6 + 3, 2, 6, 0x1a1030));
+    }
+    return xf(out, g.x + (g.vx ? step * 0.2 : 0), g.y - Math.abs(step) * 0.6, 0, g.dir < 0 ? Math.PI : 0, 0, 1);
   }
 
   /** POLYGON RAIN: cubes fall from the sky on marked spots, bounce once and shatter. */
@@ -258,8 +350,8 @@ export class PolyBossStage extends BossArena {
     if (this.boss) {
       this.bossStep(match, out);
       if (this.drop > 0) this.drop--;
-      this.stepStars(match, out); this.stepCubes(match, out);
-      if (this.boss.atk && !['stars', 'rain'].includes(this.boss.atk.name)) this.head.jaw = Math.max(0, this.head.jaw - 0.1);
+      this.stepShots(match, out); this.stepGoons(match, out); this.stepCubes(match, out);
+      if (this.boss.atk && !['gun', 'rain'].includes(this.boss.atk.name)) this.head.jaw = Math.max(0, this.head.jaw - 0.1);
       for (const h of this.hands) if (this.boss.atk && !h.resting && h.shadow && this.boss.atk.name !== 'palm') h.shadow = null;
       if (!this.boss.atk) for (const h of this.hands) h.shadow = null;
     }
@@ -284,12 +376,20 @@ export class PolyBossStage extends BossArena {
     }
     face.push(...prismFaces(0, -50, -30, 0, 34, 8, C.gold, 0xffe070));         // the crown: a gold band, spikes, gems
     for (let i = 0; i < 8; i++) { const q = (i + 0.5) / 8 * Math.PI * 2; face.push(...pyramidFaces(Math.cos(q) * 30, -50, Math.sin(q) * 30, 12, 12, 16 + (i % 2) * 8, i % 2 ? C.gold : 0xffe070)); if (i % 2 === 0) face.push(...blobFaces(Math.cos(q) * 34, -40, Math.sin(q) * 34, 4, 4, 4, [C.gem[i / 2 % 3]], i, null, 0)); }
-    out.push(...xf(face, H.x + glitch, H.y - apart * 0.5, KING.z, H.yaw, glitch * 0.02 + dk * 0.6, 1 + dk * 0.2));
+    out.push(...xf(face, H.x + glitch, H.y - apart * 0.5, KING.z, H.yaw, glitch * 0.02 + dk * 0.6 + (H.roll || 0), (1 + dk * 0.2) * (H.k ?? 1)));
     for (const h of this.hands) {                                               // the gauntlets: palm, four fingers, a thumb, a gold cuff with a gem
       const gc = fl ? [0xffffff, 0xf0f4ff, 0xffffff] : C.glove, hand = [];
-      hand.push(...boxFaces(-22, -9, -18, 18, 9, 18, gc[0], gc[1]));
-      for (let k = 0; k < 4; k++) hand.push(...boxFaces(18, -8, -16 + k * 9, 38 - Math.abs(k - 1.5) * 3, 6, -9 + k * 9, gc[k % 2], gc[1]));
-      hand.push(...boxFaces(0, -6, -26, 16, 6, -18, gc[2], gc[1]));
+      if (h.mode === 'gun') {                                                   // a finger gun, seen from the side: index out, thumb up, the rest curled
+        hand.push(...boxFaces(-22, -12, -14, 16, 12, 14, gc[0], gc[1]));
+        hand.push(...boxFaces(16, -12, -5, 44, -3, 5, gc[1], gc[1]), ...boxFaces(42, -11, -4, 46, -4, 4, C.gold, C.gold));
+        hand.push(...boxFaces(-2, -30, -5, 9, -12, 5, gc[2], gc[1]));
+        for (let k = 0; k < 3; k++) hand.push(...boxFaces(16, -3 + k * 5, -11 + k, 25, 2 + k * 5, 11 - k, gc[k % 2], gc[1]));
+        if (h.flashT > 0) hand.push(...blobFaces(54, -8, 0, 9, 9, 6, [0xffffff, 0xffe070, 0xff8a3a], 4, null, 0.3).map((f) => ({ ...f, nofog: true })));
+      } else {
+        hand.push(...boxFaces(-22, -9, -18, 18, 9, 18, gc[0], gc[1]));
+        for (let k = 0; k < 4; k++) hand.push(...boxFaces(18, -8, -16 + k * 9, 38 - Math.abs(k - 1.5) * 3, 6, -9 + k * 9, gc[k % 2], gc[1]));
+        hand.push(...boxFaces(0, -6, -26, 16, 6, -18, gc[2], gc[1]));
+      }
       hand.push(...xf(prismFaces(0, -12, 12, 0, 16, 8, C.gold, 0xffe070), -28, 0, 0, 0, Math.PI / 2));
       hand.push(...blobFaces(-4, -11, 0, 6, 3, 6, [C.gem[h.s < 0 ? 0 : 1]], 3, null, 0));
       out.push(...xf(hand, h.x + glitch, h.y + apart * 0.4, 10, h.s < 0 ? 0 : Math.PI, h.roll + dk * h.s, HAND));
@@ -302,7 +402,9 @@ export class PolyBossStage extends BossArena {
     const t = this.t, dyn = [], B = this.boss;
     if (B && this.deathK() < 0.95) dyn.push(...this.kingFaces());
     else if (!B) dyn.push(...xf(prismFaces(0, -50, -30, 0, 34, 8, C.gold, 0xffe070), Math.sin(t * 0.01) * 40, -210 + Math.sin(t * 0.03) * 8, 30, t * 0.01));   // VS: his empty crown drifts overhead
-    for (const s of this.stars) { const r = STARS.r, pts = []; for (let i = 0; i < 10; i++) { const q = s.a + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; pts.push([Math.cos(q) * rr, Math.sin(q) * rr, 0]); } dyn.push(...xf([{ p: pts, n: null, c: C.gold, nofog: true }, { p: pts.map(([x, y]) => [x * 0.6, y * 0.6, -2]), n: null, c: 0xfff4a0, nofog: true }], s.x, s.y, 0, s.a * 0.7)); }
+    for (const s of this.shots) dyn.push(...blobFaces(s.x, s.y, 0, GUN.r, GUN.r, GUN.r, [0xff5a3a, 0xffd040, 0xffffff], Math.floor(s.a), null, 0.2).map((f) => ({ ...f, nofog: true })));
+    for (const g of this.goons) dyn.push(...this.goonFaces(g));
+    for (const w of this.warps) { const r = Math.min(1, w.t / 20) * 26, pts = [], inner = []; for (let i = 0; i < 12; i++) { const q = i / 12 * Math.PI * 2 + t * 0.1; pts.push([w.x + Math.cos(q) * r, w.y + Math.sin(q) * r * 0.35, 0]); inner.push([w.x + Math.cos(q) * r * 0.7, w.y + Math.sin(q) * r * 0.25, -1]); } dyn.push({ p: pts, n: null, c: C.crystal[0], nofog: true }, { p: inner, n: null, c: 0x2a1a8a, nofog: true }); }
     for (const c of this.cubes) if (c.t >= this.sp(RAIN.warn)) dyn.push(...xf(boxFaces(-RAIN.s, -RAIN.s, -RAIN.s, RAIN.s, RAIN.s, RAIN.s, c.col, 0xffffff), c.x, c.y, 20, c.a, c.a * 0.6));
     for (const sx of [-1, 1]) dyn.push(...xf(pyramidFaces(0, 0, 0, 16, 16, 30, this.zap && this.zap.on ? 0xffffff : C.crystal[t % 40 < 20 ? 0 : 1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03), ...xf(pyramidFaces(0, 0, 0, 16, 16, -18, C.crystal[1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03));
     this.R.render(dyn);

@@ -13,6 +13,9 @@
 //   - shows a health bar with its name at the top of the screen, and when its health runs out plays its death
 //     (onDeath / the explosions here) and the match ends in a win (MatchScene.bossDefeated).
 // For the CPU (the sim) it offers match.bossProxy: something to walk to and swing at.
+// THE INTRO (startIntro / introStep, run by MatchScene before the 3-2-1): the boss makes its entrance (the arena's
+// introPose(match, k, t), k = 0..1), then a FREEZE FRAME - everything stops on its pose, a flash, letterbox bars,
+// speed lines and a slanted band with its name and title (BOSSES `title`), the camera pushed in on it (introCam).
 import { FONT, VIEW_W } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -26,6 +29,8 @@ const HITSTOP = 4;
 const DEATH = 150;
 // the arenas write knockback growth small (1 = a heavy hit); this turns it into the fighters' scale (a smash is ~6)
 const GROWTH = 5.5;
+// the intro: frames of entrance, then of the freeze frame; how far the camera pushes in on the pose
+const INTRO = { enter: 140, freeze: 120, zoom: 1.25 };
 
 /** The base of every boss arena: health, being hit, picking attacks, the health bar and the death. */
 export class BossArena {
@@ -45,6 +50,66 @@ export class BossArena {
     s.addUI(this.barG, this.barName, this.barTier, this.rageText);
     match.bossProxy = { x: 0, y: -100, alive: true, state: 'idle', percent: 50, attackId: 0, possessImmune: true, possessed: false, team: 99 };
     this.makeBoss(match);
+  }
+
+  /** Starts the intro (MatchScene, a real player's boss fight): the name card's pieces on the UI camera, hidden. */
+  startIntro(match) {
+    const s = match, B = this.boss.cfg.boss;
+    this.intro = { t: 0 };
+    this.introG = s.add.graphics().setDepth(40);
+    this.introName = s.add.text(0, 0, B.short || B.name, { fontFamily: FONT, fontSize: '26px', color: '#ffffff', stroke: '#07060e', strokeThickness: 7 }).setOrigin(0.5).setDepth(41).setVisible(false);
+    this.introSub = s.add.text(0, 0, B.title || '', { fontFamily: FONT, fontSize: '9px', color: '#' + B.color.toString(16).padStart(6, '0'), stroke: '#07060e', strokeThickness: 4 }).setOrigin(0.5).setDepth(41).setVisible(false);
+    s.addUI(this.introG, this.introName, this.introSub);
+    this.barG.setVisible(false); this.barName.setVisible(false); this.barTier.setVisible(false);
+  }
+  /** One frame of the intro: the entrance, then the freeze frame. Returns true when it's over (the countdown starts). */
+  introStep(match) {
+    const I = this.intro; if (!I) return true;
+    I.t++;
+    if (I.t <= INTRO.enter) { this.introPose(match, I.t / INTRO.enter, I.t); return false; }
+    const f = I.t - INTRO.enter;
+    if (f === 1) { sfx('bighit', 1, 0.6); sfx('shing', 0.9, 0.7); match.shake(10, 8); }
+    this.drawIntro(f);
+    if (f >= INTRO.freeze) { this.endIntro(); return true; }
+    return false;
+  }
+  /** Skips the rest of the intro (J / Enter / a click): straight to its pose and the countdown. */
+  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.enter) this.introPose(match, 1, INTRO.enter); this.endIntro(); }
+  /** Clears the name card and shows the health bar. */
+  endIntro() {
+    this.intro = null; this.introG.clear(); this.introName.setVisible(false); this.introSub.setVisible(false);
+    this.barG.setVisible(true); this.barName.setVisible(true); this.barTier.setVisible(true);
+  }
+  /** Where the match camera looks during the intro (null after): the arena, then pushed in on the boss's pose. */
+  introCam() {
+    if (!this.intro) return null;
+    const c = this.core(), f = this.intro.t - INTRO.enter, at = this.introAt ? this.introAt() : { x: c.x, y: c.y + 10, zoom: INTRO.zoom };   // (an arena can aim it elsewhere: introAt)
+    if (f < 0) return { x: c.x * 0.5, y: -110, zoom: 0.8 };
+    return { x: at.x, y: at.y, zoom: at.zoom, snap: f < 3 };
+  }
+  /**
+   * The freeze frame, f frames in: a white flash, letterbox bars sliding in, speed lines round the middle, a slanted
+   * band in the boss's colour with its name stamping in and its title under it.
+   */
+  drawIntro(f) {
+    const g = this.introG, B = this.boss.cfg.boss, W = VIEW_W, H = 360, k = Math.min(1, f / 10), out = f > INTRO.freeze - 12 ? (f - (INTRO.freeze - 12)) / 12 : 0;
+    g.clear();
+    g.fillStyle(B.color, 0.16 * (1 - out)); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 36; i++) {                                              // speed lines toward the boss
+      const a = i / 36 * Math.PI * 2 + (i % 3) * 0.05, r1 = 150 + (i * 37) % 60, r2 = 420;
+      g.lineStyle(i % 4 ? 1 : 3, 0xffffff, (0.25 + (i % 3) * 0.1) * (1 - out)); g.lineBetween(W / 2 + Math.cos(a) * r1, H / 2 + Math.sin(a) * r1 * 0.7, W / 2 + Math.cos(a) * r2, H / 2 + Math.sin(a) * r2 * 0.7);
+    }
+    g.lineStyle(0);
+    const bar = 46 * k * (1 - out);                                             // letterbox
+    g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, bar); g.fillRect(0, H - bar, W, bar);
+    const by = 262, bx = W * (1 - k) * 0.8 + (out ? -W * out : 0);              // the name band, sliding in from the right
+    g.fillStyle(0x000000, 0.75); g.fillPoints([{ x: bx - 30, y: by - 26 }, { x: bx + W + 40, y: by - 36 }, { x: bx + W + 40, y: by + 22 }, { x: bx - 30, y: by + 32 }], true);
+    g.fillStyle(B.color, 1); g.fillPoints([{ x: bx - 30, y: by - 30 }, { x: bx + W + 40, y: by - 40 }, { x: bx + W + 40, y: by - 34 }, { x: bx - 30, y: by - 24 }], true);
+    g.fillPoints([{ x: bx - 30, y: by + 28 }, { x: bx + W + 40, y: by + 18 }, { x: bx + W + 40, y: by + 22 }, { x: bx - 30, y: by + 32 }], true);
+    if (f < 8) { g.fillStyle(0xffffff, 1 - f / 8); g.fillRect(0, 0, W, H); }
+    const stamp = f < 14 ? 1 + (14 - f) * 0.12 : 1;
+    this.introName.setVisible(f > 4).setPosition(W / 2 + (out ? -W * out : 0), by - 6).setScale(stamp).setAngle(-1.5).setAlpha(1 - out);
+    this.introSub.setVisible(f > 14).setPosition(W / 2 + 10 + (out ? -W * out : 0), by + 15).setAngle(-1.5).setAlpha(1 - out);
   }
 
   /** Frames scaled by the difficulty's speed (wind-ups and pauses get shorter on HARD / NIGHTMARE). */

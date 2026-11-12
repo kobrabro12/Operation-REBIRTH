@@ -2,7 +2,7 @@
 // its own hazards, each harder than the last (boss II opens when you beat boss I, III when you beat II), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
-// dragonBossStage.js.
+// demonBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -21,14 +21,14 @@ export const FIRST_BONUS = 1.0;
 // The bosses, easiest first. hp = health on NORMAL; coins = what a NORMAL win pays; stage = its arena (stages.js);
 // trophy = the TROPHY HALL trophy for beating it on NIGHTMARE (TROPHY_GOALS in achievements.js).
 export const BOSSES = [
-  { id: 'colossus', name: 'THE CLOCKWORK COLOSSUS', short: 'COLOSSUS', stage: 'brass-foundry', arena: 'BRASS FOUNDRY', hp: 300, coins: 120, color: 0xe0a040, trophy: 'brass-heart',
+  { id: 'colossus', name: 'THE CLOCKWORK COLOSSUS', short: 'THE COLOSSUS', title: 'THE CLOCKWORK GUARDIAN OF THE FOUNDRY', stage: 'brass-foundry', arena: 'BRASS FOUNDRY', hp: 300, coins: 120, color: 0xe0a040, trophy: 'brass-heart',
     blurb: 'A STEAM-DRIVEN GIANT OF BRASS AND RIVETS,\nBUILT TO GUARD THE FOUNDRY. ITS FURNACE\nHEART OVERHEATS - THAT IS WHEN IT BREAKS.',
     hazards: 'PIPE BURSTS / CRANE DROPS' },
-  { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
+  { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', title: 'RULER OF THE 64-BIT SKY', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
     blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD - THE HANDS ONLY GET ANNOYED.',
     hazards: 'PYLON ZAPS / QUAKE RINGS' },
-  { id: 'dragon', name: 'ASHWING, THE ELDER DRAGON', short: 'ASHWING', stage: 'dragons-keep', arena: "DRAGON'S KEEP", hp: 430, coins: 260, color: 0xff5a2a, trophy: 'dragon-crest',
-    blurb: 'THE LAST DRAGON, COME TO BURN THE KEEP.\nFIRE, CLAWS, A TAIL LIKE A CASTLE WALL.\nAT HALF HEALTH IT FLIES INTO A RAGE.',
+  { id: 'demon', name: 'KARNAX, THE MAD BLADE', short: 'KARNAX', title: 'THE MAD BLADE', stage: 'burning-keep', arena: 'THE BURNING KEEP', hp: 430, coins: 260, color: 0xff3a2a, trophy: 'mad-blade',
+    blurb: 'A HORNED DEMON WITH A GRIN TOO WIDE AND\nA SWORD TOO BIG, LAUGHING AS THE KEEP\nBURNS. AT HALF HEALTH HE GOES MAD.',
     hazards: 'CATAPULT STONES / BRAZIER FLARES' },
 ];
 /** The boss with this id (a BOSSES entry). */
