@@ -7,7 +7,8 @@
 //   STEAM VENT attack it OVERHEATS: it slumps forward and the white-hot heart takes x1.6.
 //   Attacks: PISTON SLAM (a fist tracks you overhead, then slams; ENRAGED: both fists), FLOOR SWEEP (a fist sweeps the
 //   deck - jump it), COG SAWS (spinning cogs bounce out of its chest and roll across), STEAM VENT (the floor grates
-//   blast steam, then it overheats), RIVET RAIN (ENRAGED: hot rivets fall on marked spots).
+//   blast steam, then it overheats), RIVET RAIN (ENRAGED: hot rivets fall on marked spots), CUCKOO! (its top hat flips
+//   open and a wooden cuckoo bird springs out on a coiled spring - CUCKOO! - and pecks at you, lunging across the arena).
 // Stage hazards (also in VS, where the Colossus stands switched off): PIPE BURST (a wall pipe blasts steam across the
 // catwalks) and CRANE DROP (the overhead crane drops a crate on a marked spot).
 import { HazardCycle } from './hazardCycle.js';
@@ -33,7 +34,12 @@ const RIVETS = { n: 7, every: 9, warn: 46, hit: [7, [80, 4.5, 0.5]] };
 // PIPE BURST hazard: the jet's height band, how long it builds and blasts, its hit (it ticks every `tick` frames)
 const PIPE = { y1: -118, y2: -78, build: 60, blast: 80, tick: 20, hit: [5, [18, 4.5, 0.4]] };
 // CRANE DROP hazard: the rail's height, travel frames, the crate's size, its hit
+// CUCKOO!: the bird's size, the hat door opening, pecks (normal / enraged), aiming frames, the lunge, hold and pull-back, reach, the peck's hit
+const CUCKOO = { size: 1.7, open: 26, pecks: [2, 4], aim: 38, lunge: 8, hold: 12, back: 14, reach: 380, r: 22, hit: [9, [45, 5.2, 0.75]] };
 const CRANE = { rail: -300, travel: 90, w: 46, h: 40, hit: [13, [80, 6, 0.9]] };
+
+/** A point along the way from a to b (k = 0..1). */
+const lerpY = (a, b, k) => a + (b - a) * k;
 
 /** BRASS FOUNDRY and its Colossus (see the top of the file). */
 export class SteamBossStage extends BossArena {
@@ -140,6 +146,8 @@ export class SteamBossStage extends BossArena {
   // ------------------------------------------------------------------ the Colossus
   /** The boss's own state when the fight starts. */
   makeBoss() { this.cycle.gap = 1200; this.cycle.next = 1500; }
+  /** The camera keeps the Colossus in view - and the cuckoo, while it's out. */
+  camPoints() { const pts = super.camPoints(); if (this.cuckoo && pts.length) pts.push({ x: this.cuckoo.x, y: this.cuckoo.y - 30 }, { x: 0, y: this.hatTop().y - 70 }); return pts; }
   /** The chest (its furnace heart): what the camera, the death and the CPU aim at. */
   core() { return { x: 0, y: COL.coreY + this.lean * COL.lean + this.sink }; }
   /** Where the Colossus can be hit: its heart (white-hot = x1.6 while overheated), its head, a fist resting on the deck. */
@@ -151,7 +159,7 @@ export class SteamBossStage extends BossArena {
     return out;
   }
   /** Attacks it can pick: normal, then enraged. */
-  pattern(phase) { return phase === 1 ? ['slam', 'sweep', 'cogs', 'vent', 'slam'] : ['slam', 'sweep', 'cogs', 'vent', 'rivets', 'slam']; }
+  pattern(phase) { return phase === 1 ? ['slam', 'sweep', 'cogs', 'vent', 'slam', 'cuckoo'] : ['slam', 'sweep', 'cogs', 'vent', 'rivets', 'slam', 'cuckoo']; }
   /** At rest: fists hover by its sides, bobbing. */
   idle() { for (const f of this.fists) this.toward(f, f.s * COL.rest[0] + Math.sin(this.t * 0.04 + f.s) * 6, COL.rest[1] + Math.sin(this.t * 0.05 + f.s * 2) * 8, 0.08); }
   /** Moves a fist part of the way toward a point. */
@@ -284,13 +292,81 @@ export class SteamBossStage extends BossArena {
     return false;
   }
 
+  /** Where the cuckoo's spring comes out: the top of its top hat (it moves when the Colossus slumps or sinks). */
+  hatTop() { return { x: 0, y: COL.headY + this.lean * (COL.lean + 18) - 74 + this.sink }; }
+  /**
+   * CUCKOO!: the top hat's lid flips open and a carved wooden cuckoo bird springs out on a coiled brass spring with a
+   * chime - CUCKOO! - then pecks: it eyes the nearest player, bobbing, locks on, and lunges along its spring across
+   * the arena (up to `CUCKOO.reach`), holds, and springs back. Two pecks (four enraged), then it pops back in.
+   */
+  atk_cuckoo(match, a, out) {
+    const o = this.hatTop(), n = CUCKOO.pecks[this.boss.phase - 1], aim = this.sp(CUCKOO.aim), cyc = aim + CUCKOO.lunge + CUCKOO.hold + CUCKOO.back;
+    const K = this.cuckoo || (this.cuckoo = { door: 0, x: o.x, y: o.y, dx: -1, dy: -0.3, up: 0 });
+    const rest = { x: o.x, y: o.y - 46 };
+    if (a.t <= CUCKOO.open) {                                                       // the lid flips, it springs up
+      K.door = a.t / CUCKOO.open; K.up = Math.max(0, (a.t - 10) / (CUCKOO.open - 10));
+      K.x = o.x; K.y = o.y - 46 * (1 - Math.pow(1 - K.up, 3)) + Math.sin(a.t) * 4 * K.up;
+      if (a.t === 12) { sfx('ding', 0.8, 1.5); sfx('ding', 0.6, 1.2); match.popText({ x: o.x, y: o.y - 20 }, 'CUCKOO!', '#ffe08a'); }
+      return false;
+    }
+    const k = a.t - CUCKOO.open, i = Math.floor(k / cyc), q = k % cyc;
+    if (i >= n) {                                                                   // back in the hat
+      const r = Math.min(1, (k - n * cyc) / 18); K.x += (o.x - K.x) * 0.3; K.y = lerpY(K.y, o.y, 0.3); K.door = 1 - r; K.up = 1 - r;
+      if (r >= 1) { this.cuckoo = null; return true; }
+      return false;
+    }
+    if (q < aim) {                                                                  // eyeing you, bobbing
+      const tg = this.nearest(match, K.x);
+      if (tg) { const dx = tg.x - rest.x, dy = tg.y - 24 - rest.y, d = Math.hypot(dx, dy) || 1; K.dx += (dx / d - K.dx) * 0.2; K.dy += (dy / d - K.dy) * 0.2; K.tx = tg.x; K.ty = tg.y - 24; }
+      K.x += (rest.x - K.dx * 10 - K.x) * 0.3; K.y += (rest.y - K.dy * 10 + Math.sin(q * 0.5) * 3 - K.y) * 0.3;
+      if (q === 2) { sfx('ding', 0.6, 1.6 - i * 0.05); sfx('ding', 0.5, 1.25 - i * 0.05); match.popText({ x: K.x, y: K.y + 30 }, 'CUCKOO!', '#ffe08a'); }
+      if (q === aim - 1) {                                                          // locks on
+        const dx = (K.tx ?? 0) - rest.x, dy = (K.ty ?? 0) - rest.y, d = Math.hypot(dx, dy) || 1, L = Math.min(CUCKOO.reach, d);
+        K.lx = rest.x + dx / d * L; K.ly = Math.min(-14, rest.y + dy / d * L); K.dx = dx / d; K.dy = dy / d; sfx('whoosh', 0.8, 1.4);
+      }
+      return false;
+    }
+    const e = q - aim;
+    if (e < CUCKOO.lunge) { const u = (e + 1) / CUCKOO.lunge; K.x = lerpY(rest.x, K.lx, u); K.y = lerpY(rest.y, K.ly, u); }
+    else if (e < CUCKOO.lunge + CUCKOO.hold) { if (e === CUCKOO.lunge) { sfx('clang', 0.6, 1.9); if (K.ly > -30) { match.shake(4, 6); for (let j = 0; j < 8; j++) match.particles.push({ x: K.x, y: -3, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 16, color: j % 2 ? 0xc8b090 : C.brass[3], size: 2 }); } } K.x = K.lx + Math.sin(e * 2) * 1.5; K.y = K.ly; }
+    else { const u = (e - CUCKOO.lunge - CUCKOO.hold + 1) / CUCKOO.back; K.x = lerpY(K.lx, rest.x, u); K.y = lerpY(K.ly, rest.y, u); }
+    if (e < CUCKOO.lunge + 4) out.push(this.bhit('cuckoo' + a.id + i, K.x - CUCKOO.r - 6, K.y - CUCKOO.r, K.x + CUCKOO.r + 6, K.y + CUCKOO.r, ...CUCKOO.hit, { dirX: Math.sign(K.dx) || 1 }));
+    return false;
+  }
+  /** The cuckoo, its spring and the open hat lid (drawn while it's out). */
+  drawCuckoo(g) {
+    const K = this.cuckoo; if (!K) return;
+    const o = this.hatTop(), B = C.brass, t = this.t;
+    // the lid, flipped open on its back hinge
+    const la = -K.door * 1.9, hx = 17, lx = Math.cos(Math.PI + la) * 34, ly = Math.sin(Math.PI + la) * 34;
+    g.lineStyle(6, C.out, 1); g.lineBetween(o.x + hx, o.y, o.x + hx + lx, o.y + ly); g.lineStyle(4, C.iron[1], 1); g.lineBetween(o.x + hx, o.y, o.x + hx + lx, o.y + ly); g.lineStyle(0);
+    if (K.up <= 0) return;
+    // the spring: a brass zigzag from the hat to the bird
+    const dx = K.x - o.x, dy = K.y - o.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, coils = Math.max(5, Math.round(L / 9));
+    const pts = []; for (let i = 0; i <= coils; i++) { const q = i / coils, w = i === 0 || i === coils ? 0 : (i % 2 ? 7 : -7); pts.push({ x: o.x + dx * q + nx * w, y: o.y + dy * q + ny * w }); }
+    for (const [lw, c] of [[5, C.out], [3, B[2]], [1, B[4]]]) { g.lineStyle(lw, c, 1); for (let i = 1; i < pts.length; i++) g.lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y); }
+    g.lineStyle(0);
+    // the bird: a carved wooden cuckoo facing where it pecks
+    const fx = K.dx >= 0 ? 1 : -1, ang = Math.atan2(K.dy, Math.abs(K.dx) || 0.01) * fx, ca = Math.cos(ang), sa = Math.sin(ang);
+    const Z = CUCKOO.size, P = (lx2, ly2) => ({ x: K.x + (lx2 * ca - ly2 * sa) * fx * Z, y: K.y + (lx2 * sa * fx + ly2 * ca) * Z });
+    const tri = (a, b, c, col) => { g.fillStyle(col, 1); g.fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y); };
+    tri(P(-14, -2), P(-30, -12), P(-28, 6), C.out); tri(P(-14, -1), P(-27, -9), P(-25, 4), 0x5a3418);       // tail
+    g.fillStyle(C.out, 1); g.fillEllipse(K.x, K.y, 34 * Z, 24 * Z); g.fillStyle(0x8a5a2a, 1); g.fillEllipse(K.x, K.y, 30 * Z, 20 * Z); g.fillStyle(0xb07a3a, 1); g.fillEllipse(K.x + fx * 2 * Z, K.y + 3 * Z, 18 * Z, 10 * Z);
+    tri(P(-8, -4), P(6, -2), P(-4, 6), 0x5a3418);                                                            // wing
+    const hd = P(13, -8); g.fillStyle(C.out, 1); g.fillCircle(hd.x, hd.y, 11 * Z); g.fillStyle(0x9a6a32, 1); g.fillCircle(hd.x, hd.y, 9 * Z);
+    tri(P(19, -11), P(19, -5), P(32, -8), C.out); tri(P(20, -10), P(20, -6), P(30, -8), 0xf0a020);           // beak
+    const ey = P(15, -11); g.fillStyle(0xffffff, 1); g.fillCircle(ey.x, ey.y, 3 * Z); g.fillStyle(0x101010, 1); g.fillCircle(ey.x + fx * Z, ey.y, 1.6 * Z);
+    g.fillStyle(0xd83020, 1); const ch = P(14, -4); g.fillCircle(ch.x, ch.y, 2 * Z);                             // a painted cheek
+    if (t % 30 < 4) { g.fillStyle(0xffffff, 0.6); g.fillCircle(hd.x - 2 * Z, hd.y - 3 * Z, 2 * Z); }
+  }
+
   /** A puff of steam (drawn by render), rising. */
   puff(x, y, k = 1, vy = -0.8) { if (this.puffs.length < 160) this.puffs.push({ x, y, vx: (Math.random() - 0.5) * 0.8, vy: vy * (0.6 + Math.random() * 0.6), r: 5 + Math.random() * 6 * k, life: 30 + Math.random() * 20, t: 0 }); }
 
   /** The furnace heart takes a hit: sparks fly, and a fist resting in the deck jerks back up. */
   onHurt(match, r) { if (r.mult >= 1) for (let i = 0; i < 3; i++) this.puff(this.core().x + (Math.random() - 0.5) * 30, this.core().y, 0.5, -1.2); }
   /** The death: it slumps, its eyes go out, steam pours from every joint. */
-  onDeath() { this.hot = 0; }
+  onDeath() { this.hot = 0; this.cuckoo = null; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_pipe(match, h) { h.title = 'PIPE BURST!'; h.s = Math.random() < 0.5 ? -1 : 1; sfx('geyser', 0.5, 1.5); }
@@ -365,6 +441,7 @@ export class SteamBossStage extends BossArena {
       if (r.y !== undefined && !r.done) { x.fillStyle(C.glow[0], 0.5); x.fillRect(r.x - 2, r.y - 26, 4, 22); x.fillStyle(C.glow[2], 1); x.fillCircle(r.x, r.y, 6); x.fillStyle(C.glow[3], 1); x.fillCircle(r.x - 1, r.y - 1, 3); }
     }
     for (const c of this.cogs) this.cog(x, c.x, c.y, COGS.r, c.a, C.brass);
+    this.drawCuckoo(x);
     for (const p of this.puffs) { const k = p.t / p.life; x.fillStyle(C.steam, 0.55 * (1 - k)); x.fillCircle(p.x, p.y, p.r); }
     if (B) this.drawBar();
   }

@@ -11,7 +11,9 @@
 //   Attacks: BLADE COMBO (stalks up, then slash - upswing - overhead slam), DEMON LEAP (crouches, leaps onto you, a
 //   fire shockwave both ways - jump it), SWORD THROW (hurls the sword spinning out like a boomerang, laughing, and
 //   catches it), BEHIND YOU (vanishes in smoke, red eyes glint behind you, then a lunging thrust), HELLFIRE (MAD: stabs
-//   the walk and pillars of fire erupt outward).
+//   the walk and pillars of fire erupt outward), BLADE STORM (he hurls the sword into the sky, it splits into a storm of
+//   ghost blades that rain down point-first and stick in the walk - then he clenches his fist and every blade rips free
+//   and flies back to his hand in a straight line, through anyone in the way).
 // Stage hazards (also in VS, where his sword stands planted in the walk): CATAPULT STONE (a boulder lobbed in on a
 // marked spot, then rolling) and BRAZIER FLARE (the tower braziers erupt into pillars of fire).
 import { HazardCycle } from './hazardCycle.js';
@@ -55,6 +57,9 @@ const BEHIND = { fade: 12, warn: 36, lunge: 9, hit: [13, [35, 6.4, 0.9]] };
 // HELLFIRE (MAD): pillars each side, spacing, delay between, warning, burning frames, hit
 const HELL = { n: 5, gap: 62, every: 8, warn: 20, burn: 26, hit: [9, [86, 5.2, 0.6]] };
 // HE LAUGHS every `every` attacks, for `dur` frames (head x1.7)
+// BLADE STORM: wind-up, the throw up, blades (normal / MAD), frames between them landing, the marks' warning, fall speed,
+// how long they stay stuck, the recall (frames), the falling and returning hits
+const STORM = { wind: 22, up: 26, n: [5, 7], every: 7, warn: 30, fall: 18, stuck: 46, recall: 20, hit: [10, [80, 5.4, 0.7]], back: [9, [40, 5.6, 0.75]] };
 const LAUGH = { every: 4, dur: 110 };
 // CATAPULT STONE hazard: flight frames, size, hit; BRAZIER FLARE: warning, flare frames, its hit (ticks)
 const STONE = { flight: 70, r: 18, hit: [12, [60, 6, 0.8]] };
@@ -201,8 +206,9 @@ export class DemonBossStage extends BossArena {
   /** What he'll do: every few attacks he stops to LAUGH; MAD adds HELLFIRE. */
   pattern(phase) {
     if (this.count % LAUGH.every === LAUGH.every - 1) return ['laugh'];
-    return phase === 1 ? ['combo', 'leap', 'throw', 'behind', 'combo'] : ['combo', 'leap', 'throw', 'behind', 'hellfire', 'combo'];
+    return phase === 1 ? ['combo', 'leap', 'throw', 'behind', 'combo', 'storm'] : ['combo', 'leap', 'throw', 'behind', 'hellfire', 'combo', 'storm'];
   }
+  start_storm() { this.count++; }
   start_combo() { this.count++; } start_leap() { this.count++; } start_throw() { this.count++; } start_behind() { this.count++; } start_hellfire() { this.count++; } start_laugh() { this.count++; }
   rageLine() { return 'KARNAX HAS GONE MAD!'; }
   /** MAD: a burst of fire round him and a scream of laughter. */
@@ -285,6 +291,52 @@ export class DemonBossStage extends BossArena {
     return a.caught && a.t > a.caught + 16;
   }
 
+  /**
+   * BLADE STORM: he winds up and hurls his sword straight up into the sky - it splits into a storm of ghost blades
+   * (one on each player, the rest spread across the walk), each falling point-first onto its glowing mark and
+   * sticking in the stone. He laughs, then clenches his fist: every blade rips free and flies straight back to his
+   * hand - hilt first, cutting through anyone between - and they merge into his sword again.
+   */
+  atk_storm(match, a, out) {
+    const D = this.dm, wind = this.sp(STORM.wind), up = wind + STORM.up, n = STORM.n[this.boss.phase - 1], every = this.sp(STORM.every), warn = this.sp(STORM.warn);
+    if (a.t === 1) { const tg = this.nearest(match, D.x); if (tg) D.dir = Math.sign(tg.x - D.x) || D.dir; }
+    if (a.t < wind) { this.aim('crouch', 0.2); return false; }
+    if (a.t === wind) { const j = this.joints(); this.toss = { x: j.h1.x, y: j.h1.y }; D.held = false; sfx('whoosh', 1, 0.6); }
+    if (a.t < up) { this.aim('up', 0.3); this.toss.y -= 22; return false; }
+    if (a.t === up) {                                                              // it splits into the storm
+      this.toss = null; sfx('shing', 1, 0.6); sfx('laugh', 0.6, 0.9); match.shake(3, 10);
+      const xs = match.fighters.filter((f) => f.alive).map((f) => Phaser.Math.Clamp(f.x, -250, 250));
+      while (xs.length < n) xs.push((Math.random() - 0.5) * 500);
+      this.storm = xs.slice(0, n).sort(() => Math.random() - 0.5).map((x, i) => ({ x, y: -520, t: -i * every, st: 'mark', id: this.sid('storm'), tilt: (Math.random() - 0.5) * 0.25 }));
+    }
+    const S = this.storm || [];
+    this.aim(a.recall ? 'thrust' : 'laugh', 0.15); this.laughing = !a.recall;
+    if (!a.recall && a.t % 24 === 0) this.ha(match);
+    for (const b of S) {
+      b.t++;
+      if (b.st === 'mark' && b.t >= warn) { b.st = 'fall'; sfx('whoosh', 0.4, 1.5); }
+      if (b.st === 'fall') {
+        b.y += STORM.fall;
+        out.push(this.bhit(b.id, b.x - 14, b.y - 60, b.x + 14, b.y, ...STORM.hit));
+        if (b.y >= 6) { b.y = 6; b.st = 'stuck'; b.t = 0; sfx('clang', 0.7, 0.8 + Math.random() * 0.3); match.shake(3, 4); for (let i = 0; i < 6; i++) match.particles.push({ x: b.x, y: -3, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 16, color: i % 2 ? C.fire[2] : 0x8a7a7a, size: 2 }); }
+      }
+    }
+    if (!a.recall && S.length && S.every((b) => b.st === 'stuck') && Math.min(...S.map((b) => b.t)) >= this.sp(STORM.stuck)) {
+      a.recall = a.t; this.laughing = false; sfx('slash', 1, 0.4); match.popText({ x: D.x, y: -230 }, 'COME BACK!', '#ff7a5a');
+      for (const b of S) { b.st = 'back'; b.x0 = b.x; b.y0 = b.y; b.id = this.sid('stormb'); }
+    }
+    if (a.recall) {
+      const j = this.joints(), u = Math.min(1, (a.t - a.recall) / STORM.recall), e = u * u;
+      for (const b of S) {
+        b.x = b.x0 + (j.h1.x - b.x0) * e; b.y = b.y0 + (j.h1.y + 60 - b.y0) * e;
+        out.push(this.bhit(b.id, b.x - 20, b.y - 70, b.x + 20, b.y, ...STORM.back, { dirX: Math.sign(j.h1.x - b.x0) || 1 }));
+      }
+      if (a.t - a.recall === 2) sfx('whoosh', 1, 0.8);
+      if (u >= 1) { this.storm = null; D.held = true; sfx('clang', 1, 0.6); match.shake(6, 8); return a.t > a.recall + STORM.recall + 20; }
+    }
+    return false;
+  }
+
   /** BEHIND YOU: he fades into smoke; his eyes glint behind the nearest player; then he lunges out with a thrust. */
   atk_behind(match, a, out) {
     const D = this.dm, fade = BEHIND.fade, warn = this.sp(BEHIND.warn);
@@ -332,7 +384,7 @@ export class DemonBossStage extends BossArena {
   /** A puff of black smoke round him. */
   smoke(match) { const j = this.joints(); for (let i = 0; i < 6; i++) match.particles.push({ x: j.chest.x + (Math.random() - 0.5) * 50, y: j.chest.y + (Math.random() - 0.5) * 90, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, life: 30, color: [0x1a0a10, 0x3a1a20, 0x5a1a1a][i % 3], size: 4, drag: 0.95 }); }
   /** His death: he drops to his knees (the explosions come from BossArena). */
-  onDeath() { this.laughing = false; this.blade = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
+  onDeath() { this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
 
   /**
    * THE ENTRANCE (k = 0..1): a pillar of fire bursts up in the middle of the walk; he rises out of it laughing,
@@ -404,6 +456,14 @@ export class DemonBossStage extends BossArena {
     if (B) { if (D.alpha > 0.02) this.drawDemon(g, B.flash > 0); }
     else this.drawSword(g, 0, -150, 0, -150 + DM.blade, false);
     if (this.blade) { const b = this.blade, ca = Math.cos(b.a), sa = Math.sin(b.a); this.drawSword(x, b.x - ca * 70, b.y - sa * 70, b.x + ca * 70, b.y + sa * 70, B && B.phase === 2); x.fillStyle(0xffffff, 0.15); x.fillEllipse(b.x, b.y, THROW.r * 2.4, THROW.r * 0.9); }
+    if (this.toss) this.drawSword(x, this.toss.x, this.toss.y + DM.blade, this.toss.x, this.toss.y, B && B.phase === 2);
+    if (this.storm) for (const b of this.storm) {                                  // BLADE STORM: marks, then ghost blades point-down
+      if (b.st === 'mark') { if (b.t > 0) { const k = b.t / this.sp(STORM.warn); x.fillStyle(0xff2a10, 0.25 + 0.35 * k * (t % 6 < 3 ? 1 : 0.6)); x.fillEllipse(b.x, 0, 24 + 16 * k, 7); } continue; }
+      const len = DM.blade, sk = b.tilt;
+      x.fillStyle(0xff3a1a, b.st === 'stuck' ? 0.18 + 0.1 * Math.sin(t * 0.3 + b.x) : 0.12); x.fillEllipse(b.x, b.y - len / 2, 30, len + 20);
+      if (b.st === 'back') { const j = this.joints(), dx = j.h1.x - b.x, dy = j.h1.y - b.y, d = Math.hypot(dx, dy) || 1; this.drawSword(x, b.x + dx / d * len * 0.6, b.y + dy / d * len * 0.6, b.x - dx / d * len * 0.4, b.y - dy / d * len * 0.4, true); }
+      else this.drawSword(x, b.x + sk * len, b.y - len, b.x, b.y, B && B.phase === 2);
+    }
     if (this.glint) { const k = Math.min(1, this.glint.t / 10), gx = D.x + D.dir * 10, gy = -160; x.fillStyle(0xff2a10, 0.25 * k); x.fillCircle(gx, gy, 26); for (const s of [-1, 1]) { x.fillStyle(0xff3a1a, k); x.fillTriangle(gx + s * 9 - 6, gy - 3, gx + s * 9 + 6, gy - 5, gx + s * 9, gy + 3); } }
     for (const tx of [-110, 0, 110]) this.fire(x, tx, -46, 5, 12, t + tx);                         // torches
     if (this.flare) for (const s of [-1, 1]) { if (this.flare.on) this.fire(x, s * FLARE.x, -128, 34, 130, t + s * 5); else this.fire(x, s * FLARE.x, -128, 8 + 16 * this.flare.k, 14 + 30 * this.flare.k, t); }

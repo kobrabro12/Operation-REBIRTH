@@ -10,6 +10,9 @@
 //   floor - jump it), FINGER GUN (a gauntlet turns into a finger gun, aims and fires - PEW; ENRAGED: both hands),
 //   POLY GOONS (he summons little low-poly minions through warp rings that waddle after you - smash them),
 //   POLYGON RAIN (cubes fall on marked spots), EYE BEAM (ENRAGED: a beam from his eyes sweeps across the floor).
+//   BLOW THE CARTRIDGE: a giant gold game cartridge rises between his hands, he takes a breath and BLOWS into it - a
+//   gale pushes everyone toward the edges (walk into it!) - then he slams it into the arena like a console: RESET!
+//   A huge hit where it lands and a shockwave both ways.
 //   BATTER UP (below 30% health): one gauntlet becomes a baseball bat and he plays ball WITH HIS OWN HEAD - HOME RUN
 //   (tosses it up with one hand, swings with the other and line-drives it at you; it ricochets off the floor and the
 //   bumpers, hits very hard) and POP FLY (bats it sky-high; it comes crashing down on your mark with a shockwave).
@@ -45,6 +48,9 @@ const BEAM = { charge: 50, sweep: 70, hit: [6, [70, 4.8, 0.5]] };
 const DROP = { every: 4, dur: 170 };
 // how big the gauntlets are drawn (x their model)
 const HAND = 1.5;
+// BLOW THE CARTRIDGE: it rising, the breath in, the gale (frames), how hard the wind pushes (px / frame, more in the air),
+// the lift and the slam, the slam's hit and its shockwave
+const BLOW = { rise: 40, breath: 30, gale: 110, push: 1.5, air: 1.25, lift: 26, slam: 8, hit: [17, [85, 7, 1.0]], wave: { speed: 6.5, reach: 270, hit: [9, [65, 5.2, 0.6]] } };
 // BATTER UP: below this much health he starts using his head as a baseball
 const LOW = { at: 0.3 };
 // HOME RUN: wind-up (the toss), swing frames, the head's speed, gravity, bounces, flight frames, its hit (very hard)
@@ -120,8 +126,8 @@ export class PolyBossStage extends BossArena {
   /** What he can do next: every few attacks a FRAME DROP; ENRAGED adds the EYE BEAM. */
   pattern(phase) {
     if (this.count % DROP.every === DROP.every - 1) return ['frame'];
-    if (this.low) return ['homer', 'pop', 'homer', 'swipe', 'palm', 'beam'];
-    return phase === 1 ? ['palm', 'swipe', 'gun', 'goons', 'rain'] : ['palm', 'swipe', 'gun', 'goons', 'rain', 'beam', 'gun'];
+    if (this.low) return ['homer', 'pop', 'homer', 'swipe', 'palm', 'beam', 'blow'];
+    return phase === 1 ? ['palm', 'swipe', 'gun', 'goons', 'rain', 'blow'] : ['palm', 'swipe', 'gun', 'goons', 'rain', 'beam', 'gun', 'blow'];
   }
   start_palm(match, a) { this.count++; const tg = this.nearest(match); a.hands = this.boss.phase === 2 ? [0, 1] : [tg && tg.x > 0 ? 1 : 0]; a.i = 0; a.p = 0; a.tx = tg ? tg.x : 0; }
   start_swipe(match, a) { this.count++; const tg = this.nearest(match); a.s = tg && tg.x > 0 ? -1 : 1; a.h = this.hands[a.s < 0 ? 0 : 1]; }
@@ -130,6 +136,7 @@ export class PolyBossStage extends BossArena {
   start_rain(match, a) { this.count++; }
   start_beam(match, a) { this.count++; a.s = Math.random() < 0.5 ? -1 : 1; }
   start_frame(match, a) { this.count++; }
+  start_blow(match, a) { this.count++; this.cart = { x: this.head.x, y: 120, a: 0, tilt: 0 }; sfx('limit', 0.6, 0.8); }
   start_homer(match, a) { this.count++; this.batUp(match, a); }
   start_pop(match, a) { this.count++; this.batUp(match, a); a.pop = true; }
   /** Picks the batting hand (the one away from the nearest player) and turns it into a bat. */
@@ -424,6 +431,41 @@ export class PolyBossStage extends BossArena {
     return false;
   }
 
+  /**
+   * BLOW THE CARTRIDGE: a giant gold cartridge rises up between his gauntlets, spinning; he breathes in (head back,
+   * jaw shut), then BLOWS into it - jaw wide open, a gale of dust and wind lines - pushing every fighter away from
+   * him toward the edges; then he lifts it high and slams it down into the arena, label first, like a console: RESET!
+   * A huge hit where it lands and a shockwave running out both ways. The cartridge sinks into the floor.
+   */
+  atk_blow(match, a, out) {
+    const H = this.head, K = this.cart, rise = this.sp(BLOW.rise), br = rise + this.sp(BLOW.breath), gale = br + BLOW.gale, lift = gale + BLOW.lift, slam = lift + BLOW.slam;
+    const hold = (x, y) => { for (const h of this.hands) { h.resting = false; this.toward(h, x + h.s * 52, y, 0.25); h.roll += (h.s * -0.25 - h.roll) * 0.2; } };
+    H.x += (0 - H.x) * 0.05;
+    if (a.t < rise) { K.x = H.x; K.y += (H.y + 120 - K.y) * 0.12; K.a += 0.25 * (1 - a.t / rise); hold(K.x, K.y); return false; }
+    if (a.t < br) { K.a *= 0.8; K.y += (H.y + 92 - K.y) * 0.2; hold(K.x, K.y); H.y += (KING.y - 26 - H.y) * 0.1; H.jaw = 0; if (a.t === rise) { sfx('rumble', 0.5, 1.8); match.popText({ x: H.x, y: H.y + 50 }, 'HHHHH...', '#c8d8ff'); } return false; }
+    if (a.t < gale) {                                                          // the gale
+      H.jaw = 1; H.y += (KING.y - H.y) * 0.2; K.tilt = Math.sin(a.t * 0.8) * 0.06; hold(K.x, K.y);
+      if (a.t === br) { sfx('geyser', 1, 0.5); sfx('whoosh', 1, 0.4); match.shake(4, BLOW.gale); match.popText({ x: H.x, y: H.y + 70 }, 'FWOOOSH!', '#ffffff'); }
+      if (a.t % 10 === 0) sfx('whoosh', 0.5, 0.5 + Math.random() * 0.3);
+      for (const f of match.fighters) if (f.alive && f.state !== 'respawn') { const d = Math.sign(f.x - H.x) || 1; f.x += d * BLOW.push * (f.grounded ? 1 : BLOW.air); }
+      this.wind = { k: Math.min(1, (a.t - br) / 10, (gale - a.t) / 10) };
+      if (a.t % 2 === 0) for (const d of [-1, 1]) match.particles.push({ x: K.x + d * 30, y: K.y + (Math.random() - 0.5) * 40, vx: d * (6 + Math.random() * 4), vy: (Math.random() - 0.5), life: 30, color: [0xfff4d0, 0xd8c8a0, 0xffffff][a.t % 3], size: 2 });
+      return false;
+    }
+    this.wind = null; H.jaw = Math.max(0, H.jaw - 0.1);
+    if (a.t < lift) { const tg = this.nearest(match, K.x); if (a.t === gale) a.tx = Phaser.Math.Clamp(tg ? tg.x : 0, -190, 190); K.x += (a.tx - K.x) * 0.15; K.y += (-300 - K.y) * 0.15; K.tilt += (Math.PI - K.tilt) * 0.2; hold(K.x, K.y); a.mark = true; return false; }
+    if (a.t < slam) { const u = (a.t - lift + 1) / BLOW.slam; K.y = -300 + (-48 + 300) * u * u; hold(K.x, K.y); out.push(this.bhit('cart' + a.id, K.x - 44, K.y - 50, K.x + 44, K.y + 50, ...BLOW.hit)); return false; }
+    if (a.t === slam) {
+      a.mark = false; sfx('bighit', 1, 0.5); sfx('ding', 1, 0.6); match.shake(18, 20); this.shock = { x: K.x, r: 0, id: this.sid('cartw'), wave: BLOW.wave };
+      match.popText({ x: K.x, y: -120 }, 'RESET!', '#ffe08a'); this.flashT = 10;
+      this.burst(match, K.x, -6, [C.gold, C.tileA, C.tileB, 0xffffff], 26);
+    }
+    hold(K.x, K.y);
+    if (a.t > slam + 30) K.y += 2.5;                                           // it sinks into the floor
+    if (a.t > slam + 64) { this.cart = null; return true; }
+    return false;
+  }
+
   /** FRAME DROP: he stutters and glitches, sinking low - his head takes x1.5 until he catches up. */
   atk_frame(match, a) {
     if (a.t === 1) { this.drop = this.sp(DROP.dur) + 40; sfx('glitch', 0.9, 0.8); this.frameText(); }
@@ -453,9 +495,9 @@ export class PolyBossStage extends BossArena {
   /** The breaking-down arena (BATTER UP): bumpers bounce you off, glitch tiles warn then burn; the pop fly's shockwave. */
   stepLow(match, out) {
     if (this.shock) {
-      const S = this.shock; S.r += POP.wave.speed;
-      out.push(this.bhit(S.id + 'L', S.x - S.r - 14, -18, S.x - S.r + 14, 0, ...POP.wave.hit, { dirX: -1 }), this.bhit(S.id + 'R', S.x + S.r - 14, -18, S.x + S.r + 14, 0, ...POP.wave.hit, { dirX: 1 }));
-      if (S.r > POP.wave.reach) this.shock = null;
+      const S = this.shock, W = S.wave || POP.wave; S.r += W.speed;
+      out.push(this.bhit(S.id + 'L', S.x - S.r - 14, -18, S.x - S.r + 14, 0, ...W.hit, { dirX: -1 }), this.bhit(S.id + 'R', S.x + S.r - 14, -18, S.x + S.r + 14, 0, ...W.hit, { dirX: 1 }));
+      if (S.r > W.reach) this.shock = null;
     }
     if (!this.low || this.boss.dying) return;
     this.bump.t++;
@@ -483,7 +525,7 @@ export class PolyBossStage extends BossArena {
   /** A burst of tumbling polygon gems. */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ shape: 'polygem', x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 22 + Math.random() * 14, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: the polygons come apart (handled by the drawing, with the explosions). */
-  onDeath() { this.drop = 0; this.beam = null; this.popMark = null; if (this.glitch) this.glitch.tiles = []; }
+  onDeath() { this.drop = 0; this.beam = null; this.popMark = null; this.wind = null; this.cart = null; if (this.glitch) this.glitch.tiles = []; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_zap(match, h) { h.title = 'PYLON ZAP!'; sfx('laser', 0.4, 0.5); }
@@ -584,6 +626,16 @@ export class PolyBossStage extends BossArena {
     for (const w of this.warps) { const r = Math.min(1, w.t / 20) * 26, pts = [], inner = []; for (let i = 0; i < 12; i++) { const q = i / 12 * Math.PI * 2 + t * 0.1; pts.push([w.x + Math.cos(q) * r, w.y + Math.sin(q) * r * 0.35, 0]); inner.push([w.x + Math.cos(q) * r * 0.7, w.y + Math.sin(q) * r * 0.25, -1]); } dyn.push({ p: pts, n: null, c: C.crystal[0], nofog: true }, { p: inner, n: null, c: 0x2a1a8a, nofog: true }); }
     for (const c of this.cubes) if (c.t >= this.sp(RAIN.warn)) dyn.push(...xf(boxFaces(-RAIN.s, -RAIN.s, -RAIN.s, RAIN.s, RAIN.s, RAIN.s, c.col, 0xffffff), c.x, c.y, 20, c.a, c.a * 0.6));
     for (const sx of [-1, 1]) dyn.push(...xf(pyramidFaces(0, 0, 0, 16, 16, 30, this.zap && this.zap.on ? 0xffffff : C.crystal[t % 40 < 20 ? 0 : 1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03), ...xf(pyramidFaces(0, 0, 0, 16, 16, -18, C.crystal[1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03));
+    if (this.cart) {                                                           // the giant cartridge: a gold shell, a purple label with a crowned K, ridges, contacts
+      const K = this.cart, f = [];
+      f.push(...boxFaces(-46, -56, -10, 46, 50, 10, C.gold, 0xffe070), ...boxFaces(-40, 50, -8, 40, 60, 8, C.goldD, C.goldD));
+      f.push(...boxFaces(-34, -48, -10.6, 34, 4, -10, 0xa070f0, 0xb888ff), ...boxFaces(-24, -40, -11, 24, -30, -10.6, C.gold, C.gold));
+      for (let i = 0; i < 5; i++) f.push(...pyramidFaces(-16 + i * 8, -30, -11, 6, 1, 8 + (i % 2) * 4, 0xffe070));
+      f.push(...boxFaces(-6, -24, -11.2, 6, -6, -10.6, 0xfff060, 0xfff060));
+      for (let i = 0; i < 5; i++) f.push(...boxFaces(-34, 14 + i * 6, -10.8, 34, 16 + i * 6, -10, C.goldD, C.goldD));
+      for (let i = 0; i < 8; i++) f.push(...boxFaces(-32 + i * 8, 58, -6, -28 + i * 8, 62, 6, 0xe8c050, 0xe8c050));
+      dyn.push(...xf(f, K.x, K.y, 8, K.a, K.tilt));
+    }
     for (const b of this.bumpers()) {                                          // POLY BUMPERS: spinning gem octahedra with a tilted gold ring
       const c = b.set.flash > 0 ? 0xffffff : C.gem[b.i ? 1 : 0];
       dyn.push(...xf([...pyramidFaces(0, 0, 0, 40, 40, 30, c), ...pyramidFaces(0, 0, 0, 40, 40, -30, C.gem[2])], b.x, b.y, 20, this.t * 0.06, 0, 1 + (b.set.flash > 0 ? 0.3 : 0)));
@@ -608,6 +660,12 @@ export class PolyBossStage extends BossArena {
       for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) { g.fillStyle((i + j + (on ? Math.floor(t / 4) : 0)) % 2 ? 0xff2aa8 : 0x0a0010, on ? 0.95 : (t % 10 < 5 ? 0.85 : 0.45)); g.fillRect(x1 + i * 8.33, -9 + j * 5, 8.4, 5); }
       if (on) { for (let i = 0; i < 3; i++) { const fx = x1 + 6 + ((t * 3 + i * 17) % 38); g.fillStyle([0xff2aa8, 0xffffff, 0x5af0ff][i], 0.8); g.fillRect(fx, -8 - ((t * 2 + i * 9) % 22), 3, 3); } g.fillStyle(0xff2aa8, 0.18); g.fillRect(x1, -26, 50, 22); }
     }
+    if (this.wind) for (let i = 0; i < 16; i++) {                               // the gale: wind lines streaking out both ways
+      const sd = i % 2 ? 1 : -1, y = -260 + (i * 37) % 260, x = sd * ((t * 14 + i * 53) % 340), len = 30 + (i % 3) * 20;
+      g.lineStyle(2, 0xffffff, 0.5 * this.wind.k); g.lineBetween(x, y, x + sd * len, y); g.lineStyle(0);
+    }
+    if (this.cart && this.boss && this.boss.atk && this.boss.atk.mark) { g.fillStyle(0xff2a6a, 0.3 + 0.3 * Math.sin(t * 0.5)); g.fillEllipse(this.cart.x, 0, 100, 10); }
+    if (this.flashT > 0) { this.flashT--; g.fillStyle(0xffffff, this.flashT / 14); g.fillRect(-700, -700, 1400, 1100); }
     if (this.popMark) { const k = Math.min(1, this.popMark.k); g.fillStyle(0xff2a6a, 0.25 + 0.4 * k * (t % 8 < 4 ? 1 : 0.6)); g.fillEllipse(this.popMark.x, 0, 50 + 40 * k, 10); g.lineStyle(2, 0xffffff, 0.7); g.strokeEllipse(this.popMark.x, 0, 90 - 40 * k, 14); g.lineStyle(0); }
     if (this.shock) { g.fillStyle(0xffffff, 0.7); for (const s2 of [-1, 1]) g.fillTriangle(this.shock.x + s2 * this.shock.r - 14, 0, this.shock.x + s2 * this.shock.r + 14, 0, this.shock.x + s2 * this.shock.r, -20); }
     if (this.ring != null) { g.fillStyle(0xffffff, 0.6); for (const s of [-1, 1]) { g.fillTriangle(s * this.ring - 14, 0, s * this.ring + 14, 0, s * this.ring, -18); } g.lineStyle(2, C.crystal[0], 0.7); g.strokeEllipse(0, 0, this.ring * 2, 14); g.lineStyle(0); }

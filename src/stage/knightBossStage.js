@@ -7,7 +7,9 @@
 // (`joints()`, `POSES`, `aim()`), and his SOUL (a green wisp with a face) lives inside the helm.
 //   HIS ARMOUR CAN'T BE HURT (mult 0: hits just clang). Every few attacks his SOUL leaves through the visor and flies
 //   over to taunt you - his body slumps - and that's the only time he can be hurt: hit the soul (x1.2) until it flees
-//   home. Below 25% health the soul stays in his head with the visor torn open (always x0.8) - but he goes BERSERK.
+//   home. From the second time on it plays THE SHELL GAME: two fake souls split off it, all three circle you and
+//   shuffle (spinning round each other); hitting a fake pops it into a burst of thorns. The real one still has the
+//   twinkle in its eyes. Below 25% health the soul stays in his head with the visor torn open (always x0.8) - but he goes BERSERK.
 //   Attacks: MAUL SLAM (stalks in, overhead slam, thorn roots erupt in a line from it), ROOT GRASP (plunges a hand
 //   into the earth; roots burst up under each player after their mark glows), SHIELD CHARGE (shield up, he charges
 //   across the clearing), THORN VOLLEY (thorns burst from the vines on his back and arc onto you), VERDANT FURY
@@ -49,6 +51,9 @@ const FURY = { gap: 40, every: 4, hit: [10, [86, 5.8, 0.7]] };
 // THE SOUL: every `every` attacks it comes out to taunt for `out` frames (shorter on higher difficulties); how fast it
 // flies; what a hit on it does (x mult); below `bare` health it stays in his head for good (and he goes BERSERK)
 const SOUL = { every: 3, out: 250, speed: 0.11, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
+// THE SHELL GAME (from the second soul-out): fakes, the circle round you, how fast it turns, a shuffle every `every`
+// frames lasting `spin`, how long a hit fake takes to burst, the burst's size and hit
+const DECOY = { n: 2, r: 74, turn: 0.018, every: 96, spin: 34, fuse: 10, burst: 56, hit: [9, [60, 5.6, 0.6]] };
 // THORN ROOTS hazard: spikes, spacing, delay; SPORE BURST: warning, cloud frames, size, hit (ticks)
 const THORNS = { gap: 44, every: 5, hit: [8, [80, 5, 0.6]] };
 const SPORES = { warn: 60, on: 110, r: 64, x: 236, hit: [3, [70, 3, 0.25]] };
@@ -232,7 +237,9 @@ export class KnightBossStage extends BossArena {
   start_slam() { this.tally(); } start_grasp() { this.tally(); } start_charge() { this.tally(); } start_volley() { this.tally(); } start_fury() { this.tally(); } start_soul() { this.tally(); }
   rageLine() { return 'THORNWARD GOES BERSERK!'; }
   /** BERSERK: the helm's visor tears open (his soul bared), a burst of leaves and green fire. */
-  onRage(match) { const j = this.joints(); for (let i = 0; i < 34; i++) { const a = i / 34 * Math.PI * 2; match.particles.push({ x: j.head.x, y: j.head.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5, life: 32, color: [C.soul[0], C.soul[1], C.leaf[0], C.leaf[1]][i % 4], size: 3, drag: 0.94 }); } sfx('roar', 1, 1.1); this.soul.st = 'home'; }
+  onRage(match) { this.decoys = null; this.onRage2(match); }
+  /** (BERSERK's burst of leaves and green fire.) */
+  onRage2(match) { const j = this.joints(); for (let i = 0; i < 34; i++) { const a = i / 34 * Math.PI * 2; match.particles.push({ x: j.head.x, y: j.head.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5, life: 32, color: [C.soul[0], C.soul[1], C.leaf[0], C.leaf[1]][i % 4], size: 3, drag: 0.94 }); } sfx('roar', 1, 1.1); this.soul.st = 'home'; }
 
   /** At rest: he faces the nearest player and stalks after them slowly, breathing; the soul glows in his visor. */
   idle(match) {
@@ -313,8 +320,27 @@ export class KnightBossStage extends BossArena {
   atk_soul(match, a) {
     const S = this.soul, out = this.sp(SOUL.out), j = this.joints();
     this.aim('kneel', 0.08);
-    if (a.t === 30) { S.st = 'out'; S.x = j.head.x; S.y = j.head.y; S.t = 0; S.side = Math.random() < 0.5 ? -1 : 1; sfx('soulhit', 0.8, 1.2); sfx('laugh', 0.5, 1.6); }
-    if (S.st === 'out') {
+    if (a.t === 30) {
+      S.st = 'out'; S.x = j.head.x; S.y = j.head.y; S.t = 0; S.side = Math.random() < 0.5 ? -1 : 1; sfx('soulhit', 0.8, 1.2); sfx('laugh', 0.5, 1.6);
+      this.soulN = (this.soulN || 0) + 1;
+      if (this.soulN >= 2) {                                                         // THE SHELL GAME
+        this.decoys = []; for (let i = 0; i < DECOY.n; i++) this.decoys.push({ x: S.x, y: S.y, id: this.sid('decoy'), seen: new Set() });
+        this.ring = { a: Math.random() * 6, slot: Math.floor(Math.random() * (DECOY.n + 1)) };
+        match.popText({ x: S.x, y: S.y + 50 }, 'WHICH ONE IS ME?', '#9affd0'); sfx('glitch', 0.4, 1.8);
+      }
+    }
+    if (S.st === 'out' && this.decoys) {
+      S.t++;
+      const tg = this.nearest(match, S.x) || { x: 0, y: 0 }, R = this.ring, all = DECOY.n + 1, cx = Phaser.Math.Clamp(tg.x, -230, 230), cy = Math.max(-200, tg.y - 64);
+      const spin = S.t % DECOY.every > DECOY.every - DECOY.spin;
+      R.a += spin ? 0.24 : DECOY.turn;
+      if (S.t % DECOY.every === DECOY.every - DECOY.spin) { sfx('whoosh', 0.6, 1.3); sfx('laugh', 0.3, 2); }
+      const at = (k) => ({ x: cx + Math.cos(R.a + k / all * Math.PI * 2) * DECOY.r, y: cy + Math.sin(R.a + k / all * Math.PI * 2) * DECOY.r * 0.6 });
+      const p0 = at(R.slot); S.vx *= 0.85; S.x += (p0.x - S.x) * 0.2 + S.vx; S.y += (p0.y - S.y) * 0.2;
+      let k = 0; for (const d of this.decoys) { if (k === R.slot) k++; const p = at(k++); if (d.fuse == null) { d.x += (p.x - d.x) * 0.2; d.y += (p.y - d.y) * 0.2; } }
+      if (S.t % 55 === 20) { const who = [S, ...this.decoys][Math.floor(Math.random() * (this.decoys.length + 1))]; match.popText({ x: who.x, y: who.y + 46 }, SOUL.lines[Math.floor(Math.random() * SOUL.lines.length)], '#9affd0'); sfx('laugh', 0.35, 1.8); }
+      if (S.t >= out) { S.st = 'back'; sfx('soulhit', 0.6, 0.8); for (const d of this.decoys) this.burst(match, d.x, d.y, [C.soul[0], C.soul[2]], 6); this.decoys = null; }
+    } else if (S.st === 'out') {
       S.t++;
       const tg = this.nearest(match, S.x) || { x: 0, y: 0 };
       if (S.t % 70 === 69) S.side = -S.side;                                          // darts to your other side
@@ -331,10 +357,32 @@ export class KnightBossStage extends BossArena {
     return false;
   }
 
+  /** THE SHELL GAME's fakes: a hit one flashes and swells for `DECOY.fuse` frames, then bursts into thorns. */
+  stepDecoys(match, out) {
+    if (!this.decoys) return;
+    for (const d of this.decoys) {
+      if (d.fuse == null) continue;
+      d.fuse++;
+      if (d.fuse === DECOY.fuse) { sfx('slash', 0.8, 0.8); sfx('rumble', 0.5, 1.6); match.shake(4, 6); for (let i = 0; i < 14; i++) { const q = i / 14 * Math.PI * 2; match.particles.push({ x: d.x, y: d.y, vx: Math.cos(q) * 4, vy: Math.sin(q) * 4, life: 18, color: i % 2 ? C.root[3] : C.moss[3], size: 3, drag: 0.92 }); } }
+      if (d.fuse >= DECOY.fuse && d.fuse < DECOY.fuse + 6) out.push(this.bhit(d.id + 'x', d.x - DECOY.burst, d.y - DECOY.burst, d.x + DECOY.burst, d.y + DECOY.burst, ...DECOY.hit, { radial: true }));
+      if (d.fuse > DECOY.fuse + 6) d.dead = true;
+    }
+    this.decoys = this.decoys.filter((d) => !d.dead);
+  }
+  /** The players' hits: on him (BossArena), and on THE SHELL GAME's fakes - FAKE!, and the fake bursts into thorns. */
+  strikeTargets(match, hbs) {
+    super.strikeTargets(match, hbs);
+    if (!this.decoys) return;
+    for (const d of this.decoys) for (const hb of hbs) {
+      if (!hb.owner || d.fuse != null || d.seen.has(hb.id) || !(hb.x1 < d.x + 20 && hb.x2 > d.x - 20 && hb.y1 < d.y + 20 && hb.y2 > d.y - 20)) continue;
+      d.seen.add(hb.id); d.fuse = 0; match.popText({ x: d.x, y: d.y + 46 }, 'FAKE!', '#ff9a9a'); sfx('laugh', 0.6, 1.5); sfx('soulhit', 0.6, 0.6);
+    }
+  }
+
   /** A burst of bits (stone, leaves, moss). */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 20 + Math.random() * 12, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: he crumbles to his knees, the roots letting go (the explosions come from BossArena). */
-  onDeath() { this.soul.st = 'home'; this.spikes = []; this.marks = []; }
+  onDeath() { this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
 
   /**
    * THE ENTRANCE (k = 0..1): his empty armour kneels in the clearing, dark and overgrown; his soul drifts in out of
@@ -390,7 +438,7 @@ export class KnightBossStage extends BossArena {
     if (this.boss) {
       this.bossStep(match, out);
       if (this.boss.dying) { this.aim('kneel', 0.04); this.soul.st = 'home'; }
-      this.stepMarks(out); this.stepThorns(match, out);
+      this.stepMarks(out); this.stepThorns(match, out); this.stepDecoys(match, out);
       if (this.soul.flash > 0) this.soul.flash--;
     }
     this.stepSpikes(out);
@@ -411,6 +459,10 @@ export class KnightBossStage extends BossArena {
     this.drawKnight(g, B ? B.flash > 0 && this.bare() : false);
     const S = this.soul;
     if (S.st === 'out' || S.st === 'back') this.drawSoul(x, S.x, S.y, 1, S.flash > 0, true);
+    if (this.decoys) for (const d of this.decoys) {
+      if (d.fuse != null) { const k = d.fuse / DECOY.fuse; x.fillStyle(0xff5a5a, 0.3 * k); x.fillCircle(d.x, d.y, 20 + 30 * k); this.drawSoul(x, d.x, d.y, 1 + 0.4 * k, t % 4 < 2, true, true); }
+      else this.drawSoul(x, d.x, d.y, 1, false, true, true);
+    }
     for (const m of this.marks) {
       if (m.t < this.sp(GRASP.warn)) { const q = m.t / this.sp(GRASP.warn); x.fillStyle(C.moss[3], 0.3 + 0.4 * q * (t % 6 < 3 ? 1 : 0.6)); x.fillEllipse(m.x, -1, 40 + 10 * q, 7); for (let i = 0; i < 3; i++) { x.lineStyle(2, C.root[1], 0.8); x.lineBetween(m.x - 18 + i * 12, -1, m.x - 14 + i * 12 + Math.sin(t + i) * 2, -6 * q); x.lineStyle(0); } }
       else { const h = Math.min(1, (m.t - this.sp(GRASP.warn)) / 5) * 110; for (let i = 0; i < 3; i++) this.root(x, m.x - 12 + i * 12, 0, h * (0.8 + (i % 2) * 0.2), (i - 1) * 0.2); }
@@ -448,9 +500,10 @@ export class KnightBossStage extends BossArena {
 
   /**
    * His soul: a glowing green wisp with a flame-tail trailing behind it and a face - big dark eyes, a wide grin;
-   * taunting, it squints and sticks its tongue out every other moment. s = scale; flash = white when hit.
+   * taunting, it squints and sticks its tongue out every other moment. s = scale; flash = white when hit; fake = one
+   * of THE SHELL GAME's fakes (no twinkle in its eyes - the tell).
    */
-  drawSoul(g, x, y, s, flash, taunt) {
+  drawSoul(g, x, y, s, flash, taunt, fake = false) {
     const t = this.t, S = this.soul, back = S.vx ? -Math.sign(S.vx) : (S.side || 1), col = flash ? [0xffffff, 0xffffff, 0xffffff, 0xffffff] : C.soul;
     for (let i = 0; i < 4; i++) { g.fillStyle(col[0], 0.08 + i * 0.04); g.fillCircle(x, y, (34 - i * 6) * s); }
     for (let i = 0; i < 5; i++) { const q = i / 5, tx = x + back * (8 + q * 20) * s + Math.sin(t * 0.3 + i) * 3, ty = y + Math.sin(t * 0.2 + i * 1.3) * 4 * s; g.fillStyle(col[i % 2 ? 1 : 0], 0.7 - q * 0.4); g.fillCircle(tx, ty, (11 - q * 8) * s); }
@@ -458,7 +511,7 @@ export class KnightBossStage extends BossArena {
     const sq = taunt && t % 40 < 20;
     for (const ex of [-5, 5]) {
       if (sq) { g.lineStyle(2 * s, 0x0a3a2a, 1); g.lineBetween(x + (ex - 3) * s, y - 2 * s, x + ex * s, y - 5 * s); g.lineBetween(x + ex * s, y - 5 * s, x + (ex + 3) * s, y - 2 * s); g.lineStyle(0); }
-      else { g.fillStyle(0x0a3a2a, 1); g.fillEllipse(x + ex * s, y - 3 * s, 5 * s, 7 * s); g.fillStyle(0xffffff, 1); g.fillCircle(x + (ex - 1) * s, y - 5 * s, 1.2 * s); }
+      else { g.fillStyle(0x0a3a2a, 1); g.fillEllipse(x + ex * s, y - 3 * s, 5 * s, 7 * s); if (!fake) { g.fillStyle(0xffffff, 1); g.fillCircle(x + (ex - 1) * s, y - 5 * s, 1.2 * s); } }
     }
     g.fillStyle(0x0a3a2a, 1); g.fillEllipse(x, y + 5 * s, 12 * s, 5 * s); g.fillStyle(col[1], 1); g.fillEllipse(x, y + 3.6 * s, 12 * s, 3 * s);
     if (sq) { g.fillStyle(0xff7aa8, 1); g.fillEllipse(x + 1 * s, y + 8 * s, 5 * s, 6 * s); }
