@@ -78,6 +78,9 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('aero_king_moves', 'assets/fighters/aero/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_inf_' + k, 'assets/fighters/aero/king/infected/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('aero_king_inf_moves', 'assets/fighters/aero/king/infected/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
+    // AERO64's FULL AERO (3D, tools/sprites/aero_3d.py --king); all but idle load with the costume (lazySheets)
+    for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_n64_' + k, 'assets/fighters/aero/n64/king/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('aero_king_n64_moves', 'assets/fighters/aero/n64/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_school_amp', 'assets/fighters/nu/school/amp.png', { frameWidth: 32, frameHeight: 64 });   // HOMEROOM's AMP DROP: a locker and a boombox
     // LAST SEEN (test fighter) and SEEN, what she turns into: tools/sprites/last_seen_moves.py

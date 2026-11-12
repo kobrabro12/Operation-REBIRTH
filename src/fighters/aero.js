@@ -134,6 +134,9 @@ export const AERO_FULL = {
   sheets: { idle: 'aero_king_idle', run: 'aero_king_run', jump: 'aero_king_jump', fall: 'aero_king_fall', moves: 'aero_king_moves' },
   // on some stages he transforms into a different look: on INFECTED.EXE, Mason's white-and-navy FULL AERO
   stageSheets: { infected: { idle: 'aero_king_inf_idle', run: 'aero_king_inf_run', jump: 'aero_king_inf_jump', fall: 'aero_king_inf_fall', moves: 'aero_king_inf_moves' } },
+  // costumes with their own FULL AERO (skin sheetSet -> sheets; they win over the stage look): AERO64's is a 3D model
+  // too (tools/sprites/aero_3d.py --king). Loaded with the costume (lazySheets reads these).
+  costumeSheets: { n64: Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'aero_king_n64_' + k])) },
   // his spear attacks (k_* in aero_moves.py) in place of the normal ones
   moveAnims: { ...AERO_MOVES, upb: AERO_MOVES.upb_king, ...Object.fromEntries(Object.keys(SPEAR.dir).map((k) => [k, AERO_MOVES['k_' + k]])) },
   // he floats: falls slowly and hovers a little off the ground

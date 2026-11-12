@@ -2,6 +2,7 @@
 // transformation into his winged form and back. Mixed into the Fighter class (Fighter.js) - `this` is the fighter.
 import { sfx } from '../audio/sfx.js';
 import { drawBubble, popBubble } from './entities.js';
+import { skinInfo } from './skins.js';
 
 export class LimitAero {
   screensaverLimit(L) {
@@ -142,7 +143,8 @@ export class LimitAero {
     if (!(this.fullAero > 0)) { this.baseDef = this.def; this.baseSheets = this.sheets; }
     this.def = this.baseDef.fullAero;
     const onStage = this.def.stageSheets && this.def.stageSheets[this.match.stage.id];   // a stage-specific look (INFECTED.EXE)
-    this.sheets = { ...this.baseSheets, ...(onStage || this.def.sheets) };
+    const set = skinInfo(this.baseDef.id, this.skin).sheetSet, own = set && this.def.costumeSheets && this.def.costumeSheets[set];   // a costume's own FULL AERO (AERO64)
+    this.sheets = { ...this.baseSheets, ...(own || onStage || this.def.sheets) };
     this.fullAero = frames; this.match.setAeroStage(true);
     this.match.puff(this.x, this.y - 30, 0xffffff, 20); this.match.puff(this.x, this.y - 30, 0xf3c358, 12);
   }

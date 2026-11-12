@@ -12,10 +12,11 @@ The model (model()), part by part round AERO's rig (aero_draw.RIG), N64 proporti
   - the LEAF SCARF (rig part `scarf`): a long low-poly leaf with a midrib, streaming from his back.
 Smooth Gouraud shading from one key light, rendered at 3x and averaged down (the soft 64-bit look), a dark outline,
 three-quarter camera. Same rig, keyframes and frame order as aero_moves.py, so src/fighters/aeroMoves.js indexes
-these sheets too (FULL AERO keeps his own form).
+these sheets too. FULL AERO has his own 3D model too (king_model, --king).
 
 Run:  python3 tools/sprites/aero_3d.py [--only idle,run,...] [--preview FILE]
       -> public/assets/fighters/aero/n64/ (idle/run/jump/fall + moves_sheet), the model as tools/sprites/art/aero64.blend
+      python3 tools/sprites/aero_3d.py --king [...]: FULL AERO64 (king_model) -> aero/n64/king/, model art/aero64_full.blend
 """
 import os, sys, math, tempfile
 import numpy as np
@@ -179,6 +180,134 @@ def build(only=None, preview=None):
         print('moves', sum(len(f) for f in mv.values()), 'frames', flush=True)
 
 
+# ---- FULL AERO64: his transformed form as the same 3D model (Mason's FULL AERO drawing, art/full_aero.png, made 3D):
+# gold gloves, belt and soles, an aqua star on the chest, a royal aqua cape with a white fur collar and a gold hem in
+# the scarf's place, a big feathered wing (white feathers, aqua tips) behind him, a gold halo floating over the bowl,
+# the goldfish in a tiny crown, and the GOLDEN SPEAR in his fist. On FULL AERO's rig (aero_king_draw: parts wings /
+# halo / spear) with his spear moves and life (wings beating, halo bobbing).
+import aero_king_draw as K
+GOLD, ROYAL, FEATHER = K.GOLD, K.ROYAL, K.FEATHER
+KOUT = os.path.join(OUT, 'king')
+KBLEND = os.path.join(os.path.dirname(__file__), 'art', 'aero64_full.blend')
+
+
+def torus(g, c, R, r, rgb, major=16, minor=6):
+    """A ring lying flat (a halo): major radius R round centre c, tube radius r."""
+    verts, faces = [], []
+    for i in range(major):
+        a = 2 * math.pi * i / major
+        for j in range(minor):
+            b = 2 * math.pi * j / minor
+            rr = R + r * math.cos(b)
+            verts.append((c[0] + rr * math.cos(a), c[1] - r * math.sin(b), c[2] + rr * math.sin(a)))
+    for i in range(major):
+        for j in range(minor):
+            i2, j2 = (i + 1) % major, (j + 1) % minor
+            faces.append([i * minor + j, i * minor + j2, i2 * minor + j2, i2 * minor + j])
+    g.add(verts, faces, [rgb] * len(faces))
+
+
+def king_model(stage=0):
+    """FULL AERO64 as low-poly parts: model() re-coloured gold where he's gold, plus cape, wing, halo, crown, spear."""
+    G = model(stage)
+    for n in ('ffist', 'bfore'):                                                   # gold gloves
+        G[n].c = [GOLD[1] if c in AQUA else c for c in G[n].c]
+    for n in ('bshoe', 'fshoe'):                                                   # gold soles
+        G[n].c = [GOLD[1] if c == SOLE else GOLD[0] if c == LIME else c for c in G[n].c]
+    t = G['torso']; t.c = [GOLD[1] if c == LIME else c for c in t.c]               # gold belt
+    keep = [i for i, c in enumerate(t.c) if c != AQUA[1]]                         # (the plus on the chest goes...)
+    t.f = [t.f[i] for i in keep]; t.c = [t.c[i] for i in keep]; t.s = [t.s[i] for i in keep]
+    R = {n: K.RIG[n][0] for n in K.ORDER}
+    hips = R['torso']; cx, cy = hips[0] + 2.6, hips[1] - 11                        # (...for an aqua four-point star with a white heart)
+    star = [(cx, cy - 4), (cx + 1, cy - 1), (cx + 4, cy), (cx + 1, cy + 1), (cx, cy + 4), (cx - 1, cy + 1), (cx - 4, cy), (cx - 1, cy - 1)]
+    t.slab(star, 5.0, 6.6, AQUA[1], keep=True)
+    t.ball((cx, cy, 6.6), (1.0, 1.0, 0.6), 0xffffff, 6, 4, keep=True)
+    # the cape, in the scarf's place: aqua velvet hanging down his back, white fur collar, gold hem
+    c = Geo(0); root = R['scarf']
+    c.slab([(31, 21), (26, 21), (21, 25), (17, 33), (15, 42), (18, 47), (24, 44), (27, 38), (29, 30), (31, 25)], -8.6, -6.8, ROYAL[1], keep=True)
+    c.slab([(17.2, 41.5), (15, 42), (18, 47), (24, 44), (25, 41.5), (22, 43.2), (18.4, 45)], -8.9, -6.5, GOLD[1], keep=True)
+    c.slab([(24, 26), (21.5, 29), (19, 36), (18, 40), (20, 39), (23, 31)], -6.8, -6.4, ROYAL[0], keep=True)       # a velvet sheen
+    c.tube((root[0] - 3, root[1] - 0.5), (root[0] + 3.5, root[1] - 0.5), 2.3, 2.3, 0xffffff, 8, 1.6, -4.5)         # the fur collar
+    G['scarf'] = c
+    # the wing: long feathers fanning up and back from between his shoulders, white with aqua tips, two layers
+    w = Geo(0); base = R['wings']
+    for layer, (z0, z1, n, ln, a0, a1) in enumerate(((-12.6, -11.6, 7, 31, -128, -198), (-11.0, -10.0, 6, 22, -135, -192))):
+        for i in range(n):
+            a = math.radians(a0 + (a1 - a0) * i / (n - 1)); L = ln * (1.0 - 0.12 * abs(i - (n - 1) * 0.35) / n)
+            ux, uy = math.cos(a), math.sin(a); px, py = -uy, ux; wd = 3.9 - layer * 0.5
+            p0 = (base[0] - 1, base[1] + 1.5)
+            mid = (p0[0] + ux * L * 0.7, p0[1] + uy * L * 0.7); tip = (p0[0] + ux * L, p0[1] + uy * L)
+            w.slab([p0, (p0[0] + ux * 4 + px * wd * 0.7, p0[1] + uy * 4 + py * wd * 0.7), (mid[0] + px * wd, mid[1] + py * wd),
+                    (mid[0] - px * wd, mid[1] - py * wd), (p0[0] + ux * 4 - px * wd * 0.7, p0[1] + uy * 4 - py * wd * 0.7)],
+                   z0 - i * 0.12, z1 - i * 0.12, FEATHER[1 if (i + layer) % 2 else 0], keep=True)
+            w.slab([(mid[0] + px * wd, mid[1] + py * wd), (tip[0] + px * 0.6, tip[1] + py * 0.6), tip, (mid[0] - px * wd, mid[1] - py * wd)],
+                   z0 - i * 0.12, z1 - i * 0.12, AQUA[1] if layer else AQUA[0], keep=True)
+    w.ball((base[0] - 1, base[1] + 1, -10.5), (3.4, 3.4, 2.4), FEATHER[2], 8, 5, keep=True)                       # its root
+    G['wings'] = w
+    # the halo: a gold ring floating over the bowl
+    h = Geo(0); hc = R['halo']; torus(h, (hc[0] + 0.6, hc[1] + 1.4, 0), 6.6, 0.9, GOLD[1]); G['halo'] = h
+    # the goldfish's tiny crown
+    fc = R['fish']; f = G['fish']
+    f.tube((fc[0] + 0.8, fc[1] - 2.6), (fc[0] + 0.8, fc[1] - 3.8), 2.0, 2.0, GOLD[1], 8, 1.0, 0, keep=True)
+    for dx, dz in ((-1.4, 0), (0.8, 1.2), (0.8, -1.2), (2.4, 0)):
+        f.ball((fc[0] + 0.8 + dx * 0.6, fc[1] - 4.6, dz), (0.55, 1.1, 0.55), GOLD[0], 6, 4, keep=True)
+    # the golden spear: along his forearm through the glove, a leaf-shaped head with a gleam and an aqua tassel
+    s = Geo(0); gx, gy = R['spear']; z = 6.9
+    L = math.hypot(2, 5); ux, uy = 2 / L, -5 / L; px, py = -uy, ux
+    tip = (gx + ux * 25.5, gy + uy * 25.5); butt = (gx - ux * 17, gy - uy * 17); neck = (gx + ux * 16, gy + uy * 16)
+    s.tube(butt, neck, 0.85, 0.85, GOLD[1], 6, 1.0, z, ring_cols=lambda k: GOLD[k % 2], keep=True)
+    m = (neck[0] + ux * 3.4, neck[1] + uy * 3.4)
+    hv = [neck, (m[0] + px * 3.6, m[1] + py * 3.6, ), tip, (m[0] - px * 3.6, m[1] - py * 3.6)]
+    verts = [(hv[0][0], hv[0][1], z), (hv[1][0], hv[1][1], z), (hv[2][0], hv[2][1], z), (hv[3][0], hv[3][1], z), (m[0], m[1], z + 1.4), (m[0], m[1], z - 1.4)]
+    s.add(verts, [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4], [1, 0, 5], [2, 1, 5], [3, 2, 5], [0, 3, 5]],
+          [GOLD[0], 0xffffff, GOLD[0], GOLD[1], GOLD[2], GOLD[1], GOLD[2], GOLD[2]], smooth=False)
+    s.tube((neck[0] - ux * 0.5, neck[1] - uy * 0.5), (neck[0] + ux * 1.0, neck[1] + uy * 1.0), 1.5, 1.5, GOLD[2], 6, 1.0, z, keep=True)
+    s.ball((neck[0] - ux * 2 - px * 1.8, neck[1] - uy * 2 - py * 1.8, z), (1.1, 1.8, 1.1), AQUA[1], 6, 4, keep=True)   # the tassel
+    s.ball((butt[0], butt[1], z), (1.3, 1.3, 1.3), GOLD[2], 6, 4, keep=True)                                       # the butt cap
+    G['spear'] = s
+    return G
+
+
+def build_king(only=None, preview=None):
+    """FULL AERO64: the king model on FULL AERO's rig (cut from Mason's drawing, so the 2D afterimages are his gold
+    ones) with his spear moves and life -> aero/n64/king/. Same frame layout as the other AERO sheets."""
+    import aero_king_mason
+    global model
+    base_model = model
+    D3.place = place
+    D3.model = lambda stage=0: king_model(stage)
+    objs, cam = D3.build_scene(None, 0)
+    if 'dome' in objs:
+        gm = glass_material(); me = objs['dome'].data; me.materials.clear(); me.materials.append(gm)
+    N.GHOST = (243, 195, 88)
+    small, big = N.build_rig(aero_king_mason.source('full_aero.png'), AM.KFOLLOW)
+    life = AM.king_life; k = N.k; J = ((N.JUMP, N.JUMP2), (N.FALL, N.FALL2))
+    if not only:
+        place(objs, small, {}); bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(KBLEND), compress=True)
+    base = {'idle': (AM.idle_keys(), 192), 'run': (N.run_keys(), 48), 'jump': ([k(0, J[0][0]), k(12, J[0][1]), k(24, J[0][0])], 24), 'fall': ([k(0, J[1][0]), k(12, J[1][1]), k(24, J[1][0])], 24)}
+    os.makedirs(KOUT, exist_ok=True)
+    if preview:
+        fr = D3.animate3d(objs, cam, small, base['idle'][0], 192, step=48, life=life)
+        mv = D3.animate3d(objs, cam, big, AM.MOVES['k_fsmash'][1], AM.MOVES['k_fsmash'][0], step=8, smear=('spear', 'ffist'), smear_tint=N.GHOST, life=life)
+        sheet = Image.new('RGBA', (64 * len(fr) + 112 * len(mv), 104), (120, 150, 190, 255))
+        for j, f in enumerate(fr): sheet.alpha_composite(Image.fromarray(f), (j * 64, 20))
+        for j, f in enumerate(mv): sheet.alpha_composite(Image.fromarray(f), (64 * len(fr) + j * 112, 0))
+        sheet.resize((sheet.width * 3, sheet.height * 3), Image.NEAREST).save(preview); return
+    for nm, (keys, ticks) in base.items():
+        if only and nm not in only: continue
+        N.strip(D3.animate3d(objs, cam, small, keys, ticks, step=6, life=life), os.path.join(KOUT, nm + '_sheet.png'))
+        print('king', nm, flush=True)
+    if not only or 'moves' in only:
+        mv = {}
+        for name, (ticks, keys, step, smear, loop, center) in AM.MOVES.items():
+            mv[name] = D3.animate3d(objs, cam, big, keys, ticks, step=step, smear=smear, smear_tint=N.GHOST, center=center, life=life)
+        N.save_atlas(mv, os.path.join(KOUT, 'moves_sheet.png'), cols=24)
+        retile(os.path.join(KOUT, 'moves_sheet.png'))
+        D3.shrink(os.path.join(KOUT, 'moves_sheet.png'))
+        print('king moves', sum(len(f) for f in mv.values()), 'frames', flush=True)
+
+
 if __name__ == '__main__':
     a = sys.argv[1:]
-    build(a[a.index('--only') + 1].split(',') if '--only' in a else None, a[a.index('--preview') + 1] if '--preview' in a else None)
+    only, prev = a[a.index('--only') + 1].split(',') if '--only' in a else None, a[a.index('--preview') + 1] if '--preview' in a else None
+    (build_king if '--king' in a else build)(only, prev)
