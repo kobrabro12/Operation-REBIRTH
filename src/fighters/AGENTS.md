@@ -120,7 +120,13 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   DROWNED's wing): ZEALOT, PALE PILGRIM, MIDNIGHT MASS, ROTWOOD, CHOIRBOY. MAD MURDER is its own drawing (`sheetSet: 'murder'`,
   `devoted_draw.py --set murder` -> `devoted/murder/` + `murder/semi|taken|drowned/`, all four stages in `costumeSheets.murder`
   as `<stage>_<strip>`; setSludge picks them): blood-soaked white shirt, a cracked smiling mask with one wild eye in the crack. `setSludge` passes every stage's sheets through
-  `skinTexture`, so the costume carries through all four stages.
+  `skinTexture`, so the costume carries through all four stages. More drawn costumes the same way (`DV_SETS` in devoted.js lists them for
+  costumeSheets + BootScene; `VARIANTS` in devoted_draw.py): CARTRIDGE (`cartridge`: an original low-poly 64-bit-era adventurer -
+  flat-shaded polygons via `facet`, teal jacket with a yellow zig-zag, purple trousers, orange boots, painted eyes, crystal blade; sludge
+  = corrupted data, cyan/magenta glitch), HOLLOW BRIDE (`bride`: lace dress + skirt, torn veil, black hair, black tears, dead-rose
+  bouquet in her back hand, a tattered ivory veil-wing when DROWNED), EMBER SAINT (`ember`: charred skin with glowing cracks, crimson
+  robe with gold trim, fire hair, gold halo, coal eyes, gold rosary, white-hot blade; sludge = magma, burning wing). Each has an arrival
+  (SKIN_INTROS) and a cinematic outro (`src/scenes/devotedOutros.js`).
   Rosemary's RED ARMY costume (shop, PAPERSPLEASE; `ss`-style drawing `draw_soviet()` in last_seen_draw.py, sheets `last-seen/soviet/`) has
   its own other form: skin `form: 'tank'` -> `LAST_SEEN.forms.tank` (TANK in lastSeen.js) instead of SEEN - a T-34-style tank with her in
   the hatch (`tools/sprites/rosemary_tank.py` -> `last-seen/tank/` + `lsTankMoves.js`): MG jab, CANNON neutral-B (`TankShell` in entities.js,

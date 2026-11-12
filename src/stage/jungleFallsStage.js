@@ -21,7 +21,7 @@ const BARREL = { y: 220, swing: 150, period: 420, hold: 40, launch: -14.5, r: 22
 /** JUNGLE FALLS: the deck, the circling log rafts and THE BARREL (see the top of the file). */
 export class JungleFallsStage {
   constructor(scene) {
-    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_spires';
+    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_jungle_falls';
     this.platforms = [
       { x1: -230, x2: 230, y: 0, solid: true, bottom: 30 },
       { x1: -230, x2: -140, y: -90, solid: false },          // the log rafts (they move: step)

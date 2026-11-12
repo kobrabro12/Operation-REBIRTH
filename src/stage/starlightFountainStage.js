@@ -20,7 +20,7 @@ const FOUNT = { z: 620, spout: -175, bowl: -130, mid: 50, low: 330 };
 /** STARLIGHT FOUNTAIN: the marble stage, its rising and sinking side platforms, the fountain, DREAM GEYSER. */
 export class StarlightFountainStage {
   constructor(scene) {
-    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_aero';
+    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_starlight_fountain';
     this.platforms = [
       { x1: -240, x2: 240, y: 0, solid: true, bottom: 60 },
       { x1: -195, x2: -95, y: -88, solid: false },

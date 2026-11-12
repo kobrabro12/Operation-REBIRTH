@@ -114,19 +114,19 @@ export const STAGES = [
   },
   // three stages in real low-poly 3D (poly3d.js), original homages to the 64-bit era's stages
   {
-    id: 'castle-court', music: 'bgm_sky', name: 'CASTLE COURT', available: true, make: (scene) => new CastleCourtStage(scene),
+    id: 'castle-court', music: 'bgm_castle_court', name: 'CASTLE COURT', available: true, make: (scene) => new CastleCourtStage(scene),
     blurb: ['A stone court floating over a white castle,', 'in real 64-bit-style 3D.'],
     hazard: 'THE BUMPER: A RED BUMPER SLIDES ON THE\nTOP LEDGE AND KNOCKS AWAY ANYONE IT TOUCHES.',
     preview: drawCastleCourtPreview,
   },
   {
-    id: 'jungle-falls', music: 'bgm_spires', name: 'JUNGLE FALLS', available: true, make: (scene) => new JungleFallsStage(scene),
+    id: 'jungle-falls', music: 'bgm_jungle_falls', name: 'JUNGLE FALLS', available: true, make: (scene) => new JungleFallsStage(scene),
     blurb: ['A plank deck over a jungle waterfall, with', 'two circling log rafts. Low-poly 3D.'],
     hazard: 'THE BARREL: FALL INTO IT AND IT\nFIRES YOU STRAIGHT BACK UP.',
     preview: drawJungleFallsPreview,
   },
   {
-    id: 'starlight-fountain', music: 'bgm_aero', name: 'STARLIGHT FOUNTAIN', available: true, make: (scene) => new StarlightFountainStage(scene),
+    id: 'starlight-fountain', music: 'bgm_starlight_fountain', name: 'STARLIGHT FOUNTAIN', available: true, make: (scene) => new StarlightFountainStage(scene),
     blurb: ['A marble stage under a starry twilight sky,', 'before a great glittering fountain. Low-poly 3D.'],
     hazard: 'SIDE PLATFORMS RISE AND SINK.\nDREAM GEYSER: BUBBLES, THEN BURSTS UP.',
     preview: drawStarlightFountainPreview,

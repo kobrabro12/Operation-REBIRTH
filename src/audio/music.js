@@ -15,11 +15,13 @@ import { settings } from '../settings.js';
 export const TRACKS = [
   'title', 'select', 'arcade', 'sky', 'spires', 'forest', 'gravemoon', 'backrooms', 'aero', 'desert', 'slasher',
   'fractured', 'infected', 'endless_castle', 'construct', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
+  // the 3D stages (tools/audio/n64_stage_music.py)
+  'castle_court', 'jungle_falls', 'starlight_fountain',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
   // costume outro music (tools/audio/outro_music.py)
-  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather'].map((n) => 'outro_' + n),
+  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember'].map((n) => 'outro_' + n),
 ];
 const KNOWN = new Set(TRACKS.map((n) => 'bgm_' + n));
 // tracks whose file name isn't simply the key without 'bgm_'

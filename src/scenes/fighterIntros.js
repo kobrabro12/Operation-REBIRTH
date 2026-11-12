@@ -43,6 +43,10 @@ export const SKIN_INTROS = {
   'hero-knight:PRISM REGENT':{kind:'prism-shell',dur:100,shape:'star',color:0xa2eee7,color2:0xe4b5f5,pre:['glass',.3,.8],sfx:['glass',.4,1.2]},
   'mr-wake:ABYSSAL CHOIR':{kind:'choir-tide',dur:100,shape:'bubble',color:0x123347,color2:0x8cebd4,pre:['glass',.25,.6],sfx:['ding',.35,.5]},
   // the nesting-doll costumes (code PAPERSPLEASE)
+  // THE DEVOTED's drawn costumes
+  'devoted:CARTRIDGE': { kind: 'warp', color: 0x20e8ff, color2: 0xff3ad8, pre: ['popup', 0.4, 0.8], sfx: ['glass', 0.5, 1.3] },
+  'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
+  'devoted:EMBER SAINT': { kind: 'rise', color: 0xff6a10, shape: 'ember', pre: ['flame', 0.5, 0.7], sfx: ['bighit', 0.45, 0.9] },
   'soul-summoner:TRICOLORE': { kind: 'swarm', shape: 'leaf', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 24, pre: ['whoosh', 0.4, 0.8], sfx: ['shing', 0.5, 1.1] },
   'mr-wake:TEATIME': { kind: 'portal', color: 0x1a2a6a, color2: 0xd8203a, pre: ['glass', 0.4, 1.4], sfx: ['ding', 0.4, 1.6] },
   'hero-knight:LIBERTY': { kind: 'drop', color: 0xffd860, trail: 0xffffff, sfx: ['shing', 0.7, 1.2] },

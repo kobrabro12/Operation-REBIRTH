@@ -7,6 +7,7 @@ import {KEEPER_SCAR_ASSET,NOLI_TAP_FACE_ASSET} from '../data/shopFacePolicy.js';
 import { loadFairyVoice } from '../audio/fairyVoice.js';
 import { NOLI_MOODS } from './ShopScene.js';
 import { loadVoiceLines } from '../audio/voiceLines.js';
+import { DV_SETS } from '../fighters/devoted.js';
 import { initSfx } from '../audio/sfx.js';
 import { makeItemTextures, SOUL_HEART } from '../items/items.js';
 import flagEmblemUrl from './flag_emblem.png?inline';
@@ -123,7 +124,7 @@ export class BootScene extends Phaser.Scene {
     }
     for (const [k, url] of [['idle', scIdle], ['run', scRun], ['jump', scJump], ['fall', scFall]]) this.load.spritesheet('aero_scorched_' + k, url, { frameWidth: 64, frameHeight: 64 });
     // THE DEVOTED (WIP test fighter): one set per sludge stage (tools/sprites/devoted_draw.py)
-    for (const dir of ['', 'semi', 'taken', 'drowned', 'murder', 'murder/semi', 'murder/taken', 'murder/drowned']) {   // (+ MAD MURDER's, loaded per match)
+    for (const dir of ['', 'semi', 'taken', 'drowned', ...DV_SETS.flatMap((s) => [s, s + '/semi', s + '/taken', s + '/drowned'])]) {   // (+ the drawn costumes', loaded per match)
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('dv_' + (dir ? dir.replace('/', '_') + '_' : '') + k, 'assets/fighters/devoted/' + (dir ? dir + '/' : '') + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet('dv_' + (dir ? dir.replace('/', '_') + '_' : '') + 'moves', 'assets/fighters/devoted/' + (dir ? dir + '/' : '') + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     }

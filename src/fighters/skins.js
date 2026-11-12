@@ -738,5 +738,15 @@ SKINS['devoted'] = [
   // a smiling mask with a crack through it and one wild eye staring out
   { name: 'MAD MURDER', sheetSet: 'murder', swatch: 0x8e1a1e, fx: 0xc8202a, pal: { outline: 0x1a0608, deep: 0x3a0608, mid: 0x861418, light: 0xe4ddce, core: 0xffffff, shade: 0x0e0204, void: 0x000000 },
     vfx: { hit: { shape: 'spark', colors: [0xc8202a, 0x3a0608, 0xe4ddce], n: 10 } } },
+  // CARTRIDGE: an original low-poly 64-bit-era adventurer (devoted_draw.py --set cartridge): flat-shaded polygons, a teal
+  // jacket with a yellow zig-zag, purple trousers, orange boots, a blocky orange ponytail; her sludge is corrupted data
+  { name: 'CARTRIDGE', sheetSet: 'cartridge', swatch: 0x2ac8c0, fx: 0x20e8ff, pal: { outline: 0x10101a, deep: 0x3a1070, mid: 0x109098, light: 0x8af4ea, core: 0xffffff, shade: 0x0c0418, void: 0x000000 },
+    vfx: { hit: { shape: 'star', colors: [0x20e8ff, 0xff3ad8, 0xffe848], n: 10, ring: 0x20e8ff, glint: true }, aura: { motes: { colors: [0x20e8ff, 0xff3ad8, 0xffe848], rate: 9 } } } },
+  // HOLLOW BRIDE: an abandoned bride (--set bride): lace dress, torn veil, black hair, black tears, a bouquet of dead roses
+  { name: 'HOLLOW BRIDE', sheetSet: 'bride', swatch: 0xf6f2e6, fx: 0xd6d0c2, pal: { outline: 0x0a0810, deep: 0x5a1420, mid: 0xb8b2a4, light: 0xf6f2e6, core: 0xffffff, shade: 0x050408, void: 0x000000 },
+    vfx: { hit: { shape: 'sakura', colors: [0x5a1420, 0xf6f2e6, 0x7a2030], n: 9 }, aura: { motes: { colors: [0xf6f2e6, 0x5a1420], rate: 12 } } } },
+  // EMBER SAINT: a burning martyr (--set ember): charred skin with glowing cracks, crimson robe, hair of fire, a gold halo
+  { name: 'EMBER SAINT', sheetSet: 'ember', swatch: 0xff6a10, fx: 0xffb040, pal: { outline: 0x140604, deep: 0x5a1408, mid: 0xff6a10, light: 0xffe070, core: 0xfff8c0, shade: 0x140604, void: 0x000000 },
+    vfx: { hit: { shape: 'flame', colors: [0xff6a10, 0xffe070, 0xa81808], n: 10, ring: 0xffb040 }, aura: { motes: { colors: [0xff9a20, 0xffe070, 0xff5a0a], rate: 5 } } } },
   { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
 ];

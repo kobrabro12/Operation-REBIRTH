@@ -14,7 +14,7 @@ const BUMPER = { swing: 50, period: 300, r: 13, hit: { dmg: 4, angle: 50, base: 
 /** CASTLE COURT: the floating court, its ledges and the sliding BUMPER (see the top of the file). */
 export class CastleCourtStage {
   constructor(scene) {
-    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_sky';
+    this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_castle_court';
     this.platforms = [
       { x1: -250, x2: 250, y: 0, solid: true, bottom: 46 },
       { x1: -210, x2: -110, y: -86, solid: false },

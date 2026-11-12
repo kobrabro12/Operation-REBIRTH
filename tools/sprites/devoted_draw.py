@@ -40,6 +40,33 @@ MURDER_SHIRT = [0x7e786c, 0x9c9688, 0xbab4a4, 0xd4cfc0]
 BLOOD = [0x3a0608, 0x5e0c10, 0x861418, 0xa8201e]
 MASK = [0xb8b0a0, 0xd0c8b8, 0xe4ddce, 0xf4efe4]
 
+# ---- the drawn costumes (`--set NAME`): each swaps her palettes, may shade her in flat polygons (`facet`, px),
+# repaints its sludge (`sludge` ramp + `sheen`), recolours DROWNED's wing (`wing`: base, alt, bone, claw) and has
+# its own touches in head() / knife() / dress() below.
+#   CARTRIDGE    an original low-poly 64-bit-era adventurer: flat-shaded polygons, bold primaries - a teal jacket with a
+#                yellow zig-zag, purple trousers, chunky orange boots, a blocky orange ponytail, big texture-painted eyes
+#                and a crystal blade; her sludge is CORRUPTED DATA (black-violet polygons with cyan glitch edges)
+#   HOLLOW BRIDE an abandoned bride: a lace wedding dress gone grey at the hem, a torn veil, jet-black hair, pale skin,
+#                black tears, a bouquet of dead roses in her free hand and a red rose at her breast; DROWNED's wing is a
+#                tattered ivory veil-wing
+#   EMBER SAINT  a burning martyr: charred skin split by glowing cracks, a crimson robe with gold trim, hair of fire, a
+#                floating gold halo, eyes like coals and a white-hot blade; her sludge is MAGMA, her wing a burnt ember wing
+VARIANTS = {
+    'cartridge': dict(shirt=[0x0a5a64, 0x109098, 0x2ac8c0, 0x8af4ea], stripe=None, pants=[0x3a0e5a, 0x641c90, 0x9038c0, 0xc070f0],
+                      shoe=[0x7a2a04, 0xc85a0c, 0xff9420, 0xffd060], skin=[0xb8704a, 0xe09464, 0xf8b884, 0xffdcb0],
+                      hair=[0x8a2a04, 0xc8480c, 0xf47a1c, 0xffb050], sludge=[0x0c0418, 0x1c0838, 0x3a1070, 0x20e8ff], sheen=0xff3ad8,
+                      facet=7, wing=(0x1c0838, 0x3a1070, 0x20e8ff, 0xff3ad8), blade=[0x0a6aa0, 0x30b8f0, 0x90f0ff, 0xffffff]),
+    'bride': dict(shirt=[0x7a7468, 0xaaa496, 0xd6d0c2, 0xf6f2e6], stripe=None, pants=[0x6a645a, 0x9a9488, 0xc8c2b4, 0xeae6da],
+                  shoe=[0x8a8478, 0xb4ae9e, 0xdcd6c6, 0xfaf6ea], skin=[0x7a8690, 0x9aa6b0, 0xbcc6ce, 0xdae2e8],
+                  hair=[0x08080e, 0x121218, 0x1e1e28, 0x343442], sludge=[0x050408, 0x0c0a10, 0x18151e, 0x3a3448], sheen=0x5a5068,
+                  wing=(0xd6d0c2, 0xb4ae9e, 0x7a7468, 0xf6f2e6), blade=[0x5a5e6a, 0x9aa0ac, 0xd4d8e0, 0xffffff]),
+    'ember': dict(shirt=[0x4a0806, 0x7a120c, 0xae2214, 0xd8422a], stripe=[0x8a5a0a, 0xc8901a, 0xf0c03a, 0xfff07a], pants=[0x1a0e0c, 0x2a1814, 0x3a2420, 0x4e322a],
+                  shoe=[0x120a08, 0x1e1210, 0x2c1c18, 0x3c2820], skin=[0x2a1a16, 0x40281e, 0x5a3626, 0x7a4c34],
+                  hair=[0xa81808, 0xe84a10, 0xff9a20, 0xffe070], sludge=[0x140604, 0x2a0a06, 0x5a1408, 0xff6a10], sheen=0xffb040,
+                  wing=(0x140604, 0x2a0a06, 0xff6a10, 0xffe070), blade=[0xa82808, 0xf06010, 0xffb040, 0xfff4c0]),
+}
+FACET = 0
+
 def bloody(x, y, seed, heavy=0.0):
     """Is this pixel splashed with blood? (MAD MURDER) - spatters, plus heavier soaking lower down."""
     return blob(x, y, seed + 21) + heavy * (y / 64) > 0.78 or noise(x, y, seed + 22) > 0.95
@@ -49,6 +76,20 @@ COVER = [0.0, 0.34, 0.6, 1.0]
 # which parts are what (the shading ramp they get)
 KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
         'bthigh': PANTS, 'fthigh': PANTS, 'bshin': PANTS, 'fshin': PANTS, 'bshoe': SHOE, 'fshoe': SHOE}
+
+def apply_variant(name):
+    """Switches the module's palettes to a drawn costume's (see VARIANTS) - before anything is drawn."""
+    global VARIANT, SHIRT, STRIPE, PANTS, SHOE, SKIN, HAIR, SLUDGE, SHEEN, KIND, FACET
+    VARIANT = name; v = VARIANTS.get(name)
+    if not v: return
+    SHIRT, PANTS, SHOE, SKIN, HAIR = v['shirt'], v['pants'], v['shoe'], v['skin'], v['hair']
+    STRIPE = SHIRT; SLUDGE = v['sludge']; SHEEN = v['sheen']; FACET = v.get('facet', 0)
+    KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
+            'bthigh': PANTS, 'fthigh': PANTS, 'bshin': PANTS, 'fshin': PANTS, 'bshoe': SHOE, 'fshoe': SHOE}
+
+def facet_id(x, y):
+    """Which flat polygon (a triangle of a FACET-px grid, split along a diagonal) this pixel belongs to."""
+    c = FACET; return (x // c, y // c, (x % c) > (y % c) if (x // c + y // c) % 2 else (x % c) + (y % c) >= c)
 
 def sh(m, dy, dx):
     H, W = m.shape; o = np.zeros_like(m)
@@ -78,6 +119,21 @@ def sludged(x, y, stage, seed=0):
     reach = 4 + c * 60 + (run - 0.5) * 20 * c        # how far down from the top of the head it has run, in pixels
     return y + (blob(x, y, seed) - 0.5) * 10 < reach
 
+def vpaint(x, y, ramp, v, stage, seed):
+    """A drawn costume's own pattern on its clothes and skin (or None for the plain shade)."""
+    k = min(3, int(v * 3.99))
+    if VARIANT == 'cartridge':
+        if ramp is SHIRT and (y + (x // 3) % 2 * 2) % 9 in (4, 5): return [0xc89a08, 0xf0c81a, 0xffe848, 0xfff8a0][k]   # the yellow zig-zag band
+        if ramp is PANTS and x % 7 == 3: return PANTS[max(0, k - 1)]                  # (a seam)
+    if VARIANT == 'bride':
+        if ramp in (SHIRT, PANTS) and (x * 3 + y * 5) % 7 == 0 and k >= 1: return SHIRT[min(3, k + 1)] if (x + y) % 2 else SHIRT[k - 1]   # lace
+        if ramp is PANTS and y > 52 - (noise(x, 0, seed) * 6): return [0x5a544a, 0x7a7466, 0x9a9484, 0xb8b2a2][k]   # the hem, gone grey
+    if VARIANT == 'ember':
+        if ramp is SKIN and blob(x, y, seed + 60) > 0.72: return [0xff5a0a, 0xff8a1a, 0xffc040, 0xfff090][k]       # glowing cracks in the char
+        if ramp is SHIRT and y % 8 == 0: return VARIANTS['ember']['stripe'][k]                                 # gold trim on the robe
+        if ramp is SHIRT and noise(x, y, seed + 61) > 0.96: return 0xff7a1a                                     # ...and the odd ember
+    return None
+
 def repaint(a, ramp, stage, seed):
     """One of AERO's body parts as THE DEVOTED's clothes, with the sludge over it."""
     a = a.copy(); s = a[..., 3] > 0
@@ -86,12 +142,20 @@ def repaint(a, ramp, stage, seed):
     if fill.any():
         lo, hi = np.percentile(lum[fill], 5), np.percentile(lum[fill], 95)
         v = np.clip((lum - lo) / max(1e-3, hi - lo), 0, 1)
+    if FACET and fill.any():                                   # CARTRIDGE: every triangle one flat shade (low-poly)
+        acc = {}
+        for y, x in zip(*np.nonzero(fill)): acc.setdefault(facet_id(x, y), []).append(v[y, x])
+        fv = {f: min(1, max(0, sum(l) / len(l) + (noise(f[0], f[1] * 2 + f[2], seed + 40) - 0.5) * 0.4)) for f, l in acc.items()}
+        for y, x in zip(*np.nonzero(fill)): v[y, x] = fv[facet_id(x, y)]
     for y, x in zip(*np.nonzero(fill)):
+        tone = vpaint(x, y, ramp, v[y, x], stage, seed)
         if sludged(x, y, stage, seed):
             k = 3 if noise(x, y, seed + 5) > 0.93 else int(v[y, x] * 2.99)
             a[y, x] = hx(SLUDGE[k])
         elif VARIANT == 'murder' and ramp in (SHIRT, SKIN, PANTS) and bloody(x, y, seed, 0.5 if ramp is SHIRT else 0.2):
             a[y, x] = hx(BLOOD[min(3, int(v[y, x] * 3.99))])
+        elif tone is not None:
+            a[y, x] = hx(tone)
         else:
             if VARIANT == 'murder' and ramp is SHIRT: r = MURDER_SHIRT
             else: r = STRIPE if ramp is SHIRT and y % 4 == 1 else ramp          # (the shirt's stripes)
@@ -168,8 +232,63 @@ def head(stage):
         if stage == 3:
             for x, y in smile[2:-2]: a[y + 1, x] = hx(0xd8d4cc)
     if VARIANT == 'murder': a = mask(a, stage)
+    a = vhead(a, stage)
     a = outline(a)
     a[22, 31:36] = np.where(a[22, 31:36, 3:4] > 0, a[22, 31:36], hx(LINE))   # (neck shadow)
+    return a
+
+def vhead(a, stage):
+    """A drawn costume's head: CARTRIDGE's flat polygons and painted eyes, HOLLOW BRIDE's veil and black tears, EMBER
+    SAINT's fire hair, coal eyes and halo."""
+    v = VARIANT
+    if v == 'cartridge':
+        face = lambda x, y: 32 <= x <= 43 and 10 <= y <= 19
+        groups = {}
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):
+            if not face(x, y): groups.setdefault(facet_id(x, y), []).append((y, x))
+        for f, px in groups.items():                                         # every polygon one flat colour (its most common)
+            cols = [tuple(a[y, x]) for y, x in px]; best = max(set(cols), key=cols.count)
+            for y, x in px: a[y, x] = best
+        if stage < 3:
+            for x0 in (35, 39):                                               # big texture-painted eyes: white, a black pupil, a glint
+                for y in (11, 12, 13): a[y, x0] = hx(0xffffff); a[y, x0 + 1] = hx(0x101018)
+                a[11, x0 + 1] = hx(0x2a6af0); a[12, x0] = hx(0xffffff); a[10, x0:x0 + 2] = hx(HAIR[0])
+            for x, y in [(36, 17), (37, 17), (38, 17), (35, 16), (39, 16)]: a[y, x] = hx(0x7a1a1a)   # a wide cartoon grin
+            a[15, 41] = hx(0xff8a8a)                                            # (a rosy cheek)
+        else:
+            for x0 in (35, 39):
+                a[12, x0] = hx(0x20e8ff); a[12, x0 + 1] = hx(0xff3ad8); a[13, x0] = hx(0xffffff)   # glitching eyes
+    elif v == 'bride':
+        im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
+        d.polygon([(27, 5), (31, 4), (30, 12), (29, 22), (28, 31), (24, 37), (20, 35), (22, 24), (24, 12)], fill=(255, 255, 255, 255))   # (from her crown, down her back)
+        vm = np.array(im)[..., 3] > 0
+        for y, x in zip(*np.nonzero(vm)):                                     # the veil: sheer lace, dithered over what's under it
+            if (x + y) % 2 and a[y, x, 3]: continue
+            if noise(x, y, 70) > 0.9 and y > 14: continue                      # (torn)
+            a[y, x] = hx([0xb8b2a4, 0xd6d0c2, 0xf6f2e6][(x * 2 + y) % 3])
+        for x, y in [(28, 5), (30, 4), (32, 4)]: a[y, x] = hx(0xffffff); a[y - 1, x] = hx(0xe8e0f0)   # a little comb of wax flowers holding it
+        if stage < 3:
+            for x0, n in ((35, 4 + stage), (39, 5 + stage)):                    # black tears running from both eyes
+                for y in range(14, 14 + n):
+                    if a[y, x0, 3]: a[y, x0] = hx(0x0a0810)
+                a[13, x0 - 1] = hx(0x3a3448)                                       # (dark under the eyes)
+    elif v == 'ember':
+        if stage < 3:
+            for y, x in zip(*np.nonzero(a[..., 3] > 0)):                      # fire licking up off the top of her hair
+                if y < 12 and not a[y - 1, x, 3] and noise(x, 0, 80) > 0.25:
+                    h = 1 + int(noise(x, 1, 80) * 4)
+                    for d2 in range(1, h + 1):
+                        if y - d2 > 2: a[y - d2, x] = hx([0xffe070, 0xff9a20, 0xe84a10, 0xa81808][min(3, d2 - 1)])
+        for x0 in (34, 38):                                                    # eyes like coals
+            a[12, x0:x0 + 3] = hx(0x2a0a04); a[13, x0:x0 + 3] = hx(0x2a0a04)
+            a[12, x0 + 1] = hx(0xffd040); a[12, x0 + 2] = hx(0xfff8c0); a[13, x0 + 1] = hx(0xff7a1a); a[13, x0 + 2] = hx(0xffb040)
+        for x in range(30, 43):                                                # the halo: a thin gold ring floating over her head
+            dx = (x - 36) / 6.5
+            if abs(dx) <= 1:
+                y = 1 + (1 - math.sqrt(max(0, 1 - dx * dx))) * 0
+                a[1, x] = hx(0xfff07a if abs(dx) < 0.6 else 0xf0c03a)
+                if abs(dx) > 0.85: a[2, x] = hx(0xc8901a)
+        a[0, 34:39] = hx(0xfff8c0)
     return a
 
 def mask(a, stage):
@@ -202,6 +321,15 @@ def mask(a, stage):
 
 def knife(a):
     a = _knife(a)
+    bl = VARIANTS.get(VARIANT, {}).get('blade')
+    if bl:                                                    # a drawn costume's blade: the steel in its own colours
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):
+            if x < 46 or y < 26: continue
+            r, g, b = (int(c) for c in a[y, x, :3])
+            if r > 150 and g > 150: a[y, x] = hx(bl[3] if r > 230 else bl[2])
+            elif (r, g, b) in ((0x16, 0x16, 0x1c), (0x3a, 0x3a, 0x46)): a[y, x] = hx(bl[0] if r < 0x20 else bl[1])
+        if VARIANT == 'bride':                               # a white ribbon tied through the finger ring
+            for x, y in [(41, 21), (40, 22), (40, 23), (42, 22), (39, 24)]: a[y, x] = hx(0xf6f2e6)
     if VARIANT == 'murder':                                   # MAD MURDER: the blade's red
         for y, x in zip(*np.nonzero(a[..., 3] > 0)):
             r, g, b = a[y, x, :3]
@@ -247,12 +375,16 @@ def wing(stage):
         d.polygon([root, (24, 4), (12, 0), tips[0], (5, 8), tips[1], (6, 22), tips[2], (13, 30), tips[3], (22, 33)], fill=(255, 255, 255, 255))
         m = np.array(im)[..., 3] > 0
         for y, x in zip(*np.nonzero(m)):
-            a[y, x] = hx(0x1a0e1e if noise(x, y, 2) > 0.2 else 0x2a1630)
+            W_ = VARIANTS.get(VARIANT, {}).get('wing')
+            if W_ and VARIANT == 'bride' and noise(x, y, 71) > 0.84: continue                  # (a torn veil-wing: holes)
+            a[y, x] = hx((W_[0] if noise(x, y, 2) > 0.2 else W_[1]) if W_ else (0x1a0e1e if noise(x, y, 2) > 0.2 else 0x2a1630))
         for t in tips + [(12, 0)]:                                          # the bones
             bi = Image.new('RGBA', (64, 64)); ImageDraw.Draw(bi).line([root, t], fill=(255, 255, 255, 255), width=1)
-            for y, x in zip(*np.nonzero(np.array(bi)[..., 3] > 0)): a[y, x] = hx(0x4a3248)
-        for t in tips: a[t[1], t[0]] = hx(0xc8b8c0)                          # claws at the tips
-        for y in range(1, 4): a[y, 12] = hx(0xc8b8c0)
+            W_ = VARIANTS.get(VARIANT, {}).get('wing')
+            for y, x in zip(*np.nonzero(np.array(bi)[..., 3] > 0)): a[y, x] = hx(W_[2] if W_ else 0x4a3248)
+        cl = VARIANTS.get(VARIANT, {}).get('wing', (0, 0, 0, 0xc8b8c0))[3]
+        for t in tips: a[t[1], t[0]] = hx(cl)                          # claws at the tips
+        for y in range(1, 4): a[y, 12] = hx(cl)
         # sludge running off the wing's lower edge
         for x in range(8, 28, 3):
             col = [y for y in range(64) if a[y, x, 3]]
@@ -268,6 +400,42 @@ def wing(stage):
     a[24, 29] = hx(SHIRT[1])                                               # (hidden behind her back)
     return a
 
+def dress(P, stage):
+    """A drawn costume's extra pieces on her body: HOLLOW BRIDE's bouquet of dead roses and the red rose at her breast,
+    EMBER SAINT's gold rosary."""
+    if VARIANT == 'bride':
+        a = P['bfore']; ys, xs = np.nonzero(a[..., 3] > 0); cy = int(ys.max()) - 1; cx = int(xs[ys >= cy - 1].mean())   # (her back hand: the end of the forearm)
+        for dx, dy in [(0, 3), (-1, 5), (1, 6), (0, 7)]: a[cy + dy, cx + dx] = hx(0x2a3a1a)                    # stems hanging below
+        for i, (dx, dy) in enumerate([(-2, -1), (1, -2), (2, 1), (-1, 1), (0, -3), (-3, 1), (3, -1)]):          # the dead roses
+            col = [0x3a0a14, 0x5a1420, 0x7a2030][i % 3]
+            for ex, ey in [(0, 0), (1, 0), (0, 1), (1, 1)]: a[cy + dy + ey, cx + dx + ex] = hx(col)
+            a[cy + dy, cx + dx] = hx(0x9a3040)
+        for dx, dy in [(-3, 3), (3, 2), (-4, 0)]: a[cy + dy, cx + dx] = hx(0x3a4a20)                            # withered leaves
+        P['bfore'] = outline(a)
+        t = P['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+        bot, l0, r0 = int(ys.max()), int(xs[ys >= ys.max() - 1].min()), int(xs[ys >= ys.max() - 1].max())
+        for dy in range(-1, 11):                                                                             # the skirt: lace, flaring out to a torn hem
+            w = 1 + dy * 0.45
+            for x in range(int(l0 - w), int(r0 + w) + 1):
+                y = bot + dy
+                if y > 63 or (dy > 7 and noise(x, 9, 72) > 0.55): continue
+                v_ = 0.75 - 0.5 * abs(x - (l0 + r0) / 2) / ((r0 - l0) / 2 + w) - dy * 0.03
+                c = SHIRT[max(0, min(3, int(v_ * 3.99)))] if (x * 3 + y * 5) % 7 else SHIRT[3]
+                if dy > 6: c = [0x5a544a, 0x7a7466, 0x9a9484][(x + dy) % 3]                                   # (grey, dragged hem)
+                t[y, x] = hx(c)
+        P['torso'] = t = outline(t)
+        rx, ry = int(np.percentile(xs, 75)), int(np.percentile(ys, 30))
+        for dx, dy, c in [(0, 0, 0xc8202a), (1, 0, 0xa81420), (0, 1, 0x8a1018), (1, 1, 0xe83a3a), (-1, 1, 0x2a4a1a)]: t[ry + dy, rx + dx] = hx(c)
+    if VARIANT == 'ember':
+        t = P['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+        x0, x1, y0, y1 = xs.min() + 2, xs.max() - 2, ys.min() + 3, ys.max() - 4
+        for i in range(0, 12):                                                                               # a rosary across her chest
+            x = int(x0 + (x1 - x0) * i / 11); y = int(y0 + (y1 - y0) * (i / 11) ** 1.2)
+            if t[y, x, 3]: t[y, x] = hx(0xf0c03a if i % 2 else 0xfff07a)
+        x, y = x1, y1
+        for dy in range(0, 4): t[min(63, y + dy), x] = hx(0xf0c03a)
+        t[min(63, y + 1), x - 1] = hx(0xf0c03a); t[min(63, y + 1), x + 1] = hx(0xf0c03a)                        # its little cross
+
 def draw_parts(stage):
     base = D.draw_parts()
     P = {}
@@ -275,6 +443,7 @@ def draw_parts(stage):
         if n in ('head', 'fish', 'scarf'): continue
         P[n] = repaint(l, KIND.get(n, SHIRT), stage, hash(n) % 97)
     P['ffist'] = knife(P['ffist'])
+    dress(P, stage)
     P['head'] = head(stage)
     f = np.zeros((64, 64, 4), np.uint8); f[16, 33] = P['head'][16, 33] if P['head'][16, 33, 3] else hx(SKIN[2])   # (the goldfish slot: a still pixel of her cheek)
     P['fish'] = f
@@ -384,7 +553,7 @@ def composite(layers, hide=()):
 
 if __name__ == '__main__':
     if '--set' in sys.argv:                                          # a costume's look: --set murder
-        i = sys.argv.index('--set'); VARIANT = sys.argv[i + 1]; del sys.argv[i:i + 2]
+        i = sys.argv.index('--set'); apply_variant(sys.argv[i + 1]); del sys.argv[i:i + 2]
     if '--move' in sys.argv:                                         # a contact sheet of one move: --move NAME FILE
         sys.argv[sys.argv.index('--move'):sys.argv.index('--move') + 1] = []
     if '--pray' in sys.argv or len(sys.argv) == 3:

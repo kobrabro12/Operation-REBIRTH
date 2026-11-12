@@ -21,6 +21,7 @@ import { SEEN } from '../fighters/lastSeen.js';
 import { PremiumShots } from './premiumOutros.js';
 import { ShowcaseShots } from './skinShowcase.js';
 import { SKIN_CUTS, SkinShots } from './winSkins.js';
+import { DevotedShots } from './devotedOutros.js';
 import { sfx } from '../audio/sfx.js';
 import { stopMusic, playMusic } from '../audio/music.js';
 
@@ -47,7 +48,7 @@ const CUTS = {
 // where each fighter's head is in its idle frame (for the close-ups), and its feet (the sprite origin)
 // (by idle sheet, so a fighter's other forms - FULL AERO, SEEN - have their own)
 const HEAD = { ss_idle: [34, 11, 32, 59], wake_idle: [32, 10, 36, 62], hk_idle: [67, 47, 66, 86], nu_idle: [35, 14, 32, 59], aero_idle: [33, 12, 32, 59],
-  aero_king_idle: [32, 12, 32, 59], ls_idle: [34, 11, 32, 59], ls_wrong_idle: [47, 17, 32, 59], wow_idle: [36, 9, 32, 59] };
+  aero_king_idle: [32, 12, 32, 59], ls_idle: [34, 11, 32, 59], ls_wrong_idle: [47, 17, 32, 59], wow_idle: [36, 9, 32, 59], dv_idle: [37, 12, 32, 59] };
 const ALL = () => [...ROSTER, ...TEST_ROSTER];
 
 export function hasWinCutscene(id) { return !!CUTS[id]; }
@@ -915,5 +916,8 @@ export class WinScene extends Phaser.Scene {
 for (const n of Object.getOwnPropertyNames(SkinShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = SkinShots.prototype[n];
 
 for(const n of Object.getOwnPropertyNames(ShowcaseShots.prototype))if(n!=='constructor')WinScene.prototype[n]=ShowcaseShots.prototype[n];
+
+// THE DEVOTED's drawn costumes' outros (devotedOutros.js)
+for (const n of Object.getOwnPropertyNames(DevotedShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = DevotedShots.prototype[n];
 
 for(const n of Object.getOwnPropertyNames(PremiumShots.prototype))if(n!=='constructor')WinScene.prototype[n]=PremiumShots.prototype[n];
