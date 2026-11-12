@@ -1,4 +1,4 @@
-// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP, ACHIEVEMENTS (with
+// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP, BOSS FIGHTS, ACHIEVEMENTS (with
 // the PROGRESS page: lifetime stats and each fighter's record) and the TROPHY HALL.
 // W/S or arrows pick, J / Enter / A opens, K / Esc / B goes back; or use the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -15,6 +15,7 @@ const ENTRIES = [
   { name: 'CHARACTER FILES', icon: 'files', info: 'THE FILES ON EVERY FIGHTER: WHO THEY ARE,\nWHERE THEY COME FROM, THEIR MOVES -\nAND THE STORIES BEHIND THEIR COSTUMES.', scene: 'Files' },
   { name: 'TEST FIGHTERS', icon: 'flask', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
   { name: 'SHOP', icon: 'shop', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
+  { name: 'BOSS FIGHTS', icon: 'boss', info: 'THREE GIANTS, EACH HARDER THAN THE LAST,\nEACH IN ITS OWN ARENA: A STEAM COLOSSUS,\nA 64-BIT KING AND AN ELDER DRAGON.\n\nHARDER DIFFICULTIES PAY BIGGER REWARDS.', scene: 'BossFights' },
   { name: 'TROPHY HALL', icon: 'hall', info: 'A GRAND MARBLE GALLERY: PAINTINGS, YOUR\nTROPHIES (EACH HARDER TO EARN) AND THE\nLEDGER OF ACHIEVEMENTS BY THE DOOR.\n\nQ OPENS THE ACHIEVEMENTS ANYWHERE IN IT.', scene: 'TrophyHall' },
   { name: 'BACK', icon: 'back', info: '', back: true },
 ];

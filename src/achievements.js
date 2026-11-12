@@ -9,7 +9,7 @@ import { SHOP } from './data/shop.js';
 import { STAGES, setSecretCheck } from './stage/stages.js';
 
 const STATS_KEY = 'rebirth.stats', ACH_KEY = 'rebirth.ach', TROPHY_KEY = 'rebirth.trophies';
-const blank = () => ({ matches: 0, wins: 0, flawless: 0, limits: 0, taunts: 0, spins: 0, spent: 0, bells: 0, previews: 0, played: {}, won: {}, stages: [], secrets: [], bestCoins: 0 });
+const blank = () => ({ matches: 0, wins: 0, flawless: 0, limits: 0, taunts: 0, spins: 0, spent: 0, bells: 0, previews: 0, played: {}, won: {}, stages: [], secrets: [], bestCoins: 0, bosses: {} });
 let stats = blank(), got = {};
 try { stats = { ...blank(), ...(JSON.parse(localStorage.getItem(STATS_KEY) || '{}') || {}) }; } catch (e) { /* defaults */ }
 try { got = JSON.parse(localStorage.getItem(ACH_KEY) || '{}') || {}; } catch (e) { got = {}; }
@@ -34,12 +34,16 @@ export function recordMatch({ fighter, stage, won, flawless }) {
   save();
 }
 
+/** A boss fight won (src/data/bosses.js): remembers the hardest difficulty each boss has been beaten on (1-3). */
+export function recordBoss(id, tier) { stats.bosses = stats.bosses || {}; stats.bosses[id] = Math.max(stats.bosses[id] || 0, tier + 1); save(); }
+const bossTier = (s, id) => (s.bosses && s.bosses[id]) || 0;
+
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
 const TESTS = ['young-link', 'what-once-was', 'last-seen'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
-const stageCount = () => STAGES.filter((s) => s.available && !s.shop && !s.secret).length;   // (stages bought in the shop or opened by a code don't count)
+const stageCount = () => STAGES.filter((s) => s.available && !s.shop && !s.secret && !s.bossArena).length;   // (stages bought in the shop, opened by a code or won from a boss don't count)
 
 // the list. group = which page section it's shown under; secret = name and how-to hidden until it's unlocked
 export const ACHIEVEMENTS = [
@@ -54,6 +58,8 @@ export const ACHIEVEMENTS = [
   { id: 'limits-10', group: 'FIGHTING', name: 'LIMIT BREAKER', info: 'FIRE 10 LIMITS.', goal: 10, have: (s) => s.limits, coins: 80 },
   { id: 'taunts-50', group: 'FIGHTING', name: 'SHOWBOAT', info: 'TAUNT 50 TIMES IN MATCHES.', goal: 50, have: (s) => s.taunts, coins: 60 },
   { id: 'matches-50', group: 'FIGHTING', name: 'REGULAR', info: 'PLAY 50 MATCHES.', goal: 50, have: (s) => s.matches, coins: 150 },
+  { id: 'boss-1', group: 'FIGHTING', name: 'GIANT SLAYER', info: 'BEAT A BOSS (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => ['colossus', 'polygon', 'dragon'].filter((b) => bossTier(s, b)).length, coins: 100 },
+  { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT ALL THREE BOSSES.', goal: 3, have: (s) => ['colossus', 'polygon', 'dragon'].filter((b) => bossTier(s, b)).length, coins: 400 },
   { id: 'matches-250', group: 'FIGHTING', name: 'VETERAN', info: 'PLAY 250 MATCHES.', goal: 250, have: (s) => s.matches, coins: 500 },
   // ---- ROSTER
   { id: 'ss-50', group: 'ROSTER', name: 'SOUL BOUND', info: 'SCORE 50 KOS AS SOUL SUMMONER.', goal: 50, have: () => getKOs('soul-summoner'), coins: 120 },
@@ -83,12 +89,16 @@ export const ACHIEVEMENTS = [
 ];
 
 // TROPHIES (shown in the TROPHY HALL, src/scenes/TrophyHallScene.js; their look and story in src/data/trophyHall.js):
-// five big goals, each harder than the last, paying more coins. (THE YOU DID IT TROPHY is free - it isn't here.)
+// five big goals, each harder than the last, paying more coins, and one for beating each boss on NIGHTMARE. (THE YOU DID IT TROPHY is free - it isn't here.)
 export const TROPHY_GOALS = [
   { id: 'first-sword', name: 'THE FIRST SWORD', info: 'WIN YOUR FIRST MATCH.', goal: 1, have: (s) => s.wins, coins: 50 },
   { id: 'bronze-boot', name: 'THE BRONZE BOOT', info: 'SCORE 100 KOS.', goal: 100, have: () => totalKOs(), coins: 250 },
   { id: 'silver-fish', name: 'THE SILVER GOLDFISH', info: 'WIN 50 MATCHES.', goal: 50, have: (s) => s.wins, coins: 600 },
   { id: 'crystal-crown', name: 'THE CRYSTAL CROWN', info: 'WIN 10 STOCK MATCHES WITHOUT FALLING ONCE.', goal: 10, have: (s) => s.flawless, coins: 1200 },
+  // the boss trophies: beat each boss on NIGHTMARE (src/data/bosses.js)
+  { id: 'brass-heart', name: 'THE BRASS HEART', info: 'BEAT THE CLOCKWORK COLOSSUS ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'colossus') >= 3), coins: 500 },
+  { id: 'golden-cartridge', name: 'THE GOLDEN CARTRIDGE', info: 'BEAT KING POLYGON ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'polygon') >= 3), coins: 750 },
+  { id: 'dragon-crest', name: 'THE DRAGON CREST', info: 'BEAT ASHWING ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'dragon') >= 3), coins: 1000 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

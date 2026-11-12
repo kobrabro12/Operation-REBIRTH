@@ -19,6 +19,9 @@ import { MatrixStage, drawMatrixPreview } from './matrixStage.js';
 import { CastleCourtStage, drawCastleCourtPreview } from './castleCourtStage.js';
 import { JungleFallsStage, drawJungleFallsPreview } from './jungleFallsStage.js';
 import { StarlightFountainStage, drawStarlightFountainPreview } from './starlightFountainStage.js';
+import { SteamBossStage, drawBrassFoundryPreview } from './steamBossStage.js';
+import { PolyBossStage, drawPolygonPeakPreview } from './polyBossStage.js';
+import { DragonBossStage, drawDragonsKeepPreview } from './dragonBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -137,6 +140,17 @@ export const STAGES = [
     hazard: 'MOVING LEDGES AND ARENA REWRITES.\nMARKED LANES WARN BEFORE SCAN BEAMS FIRE.',
     preview: drawMatrixPreview,
   },
+  // BOSS ARENAS (Trinkets > BOSS FIGHTS, src/data/bosses.js): `bossArena` = locked until that boss is beaten on HARD
+  // or NIGHTMARE (then playable in VS with just its hazards); never RANDOM while locked.
+  { id: 'brass-foundry', music: 'bgm_boss_colossus', name: 'BRASS FOUNDRY', available: true, bossArena: 'colossus', make: (scene) => new SteamBossStage(scene),
+    blurb: ['A riveted iron deck in a giant steam foundry,', 'the switched-off Colossus standing behind it.'],
+    hazard: 'PIPE BURST: STEAM BLASTS ACROSS THE CATWALKS.\nCRANE DROP: A CRATE FALLS ON THE MARKED SPOT.', preview: drawBrassFoundryPreview },
+  { id: 'polygon-peak', music: 'bgm_boss_polygon', name: 'POLYGON PEAK', available: true, bossArena: 'polygon', make: (scene) => new PolyBossStage(scene),
+    blurb: ['A checkerboard arena floating in a 64-bit sky,', 'the King\'s empty crown drifting overhead.'],
+    hazard: 'PYLON ZAP: ARCS CRACKLE ALONG BOTH LEDGES.\nQUAKE RING: A SHOCKWAVE RUNS OUT - JUMP IT.', preview: drawPolygonPeakPreview },
+  { id: 'dragons-keep', music: 'bgm_boss_dragon', name: "DRAGON'S KEEP", available: true, bossArena: 'dragon', make: (scene) => new DragonBossStage(scene),
+    blurb: ['The battlements of a keep under a red moon,', 'the town below burning, a dragon far off.'],
+    hazard: 'CATAPULT STONE: A BOULDER LANDS ON THE MARK.\nBRAZIER FLARE: THE TOWER FIRES ERUPT.', preview: drawDragonsKeepPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet
@@ -144,7 +158,11 @@ export const STAGES = [
 // can't import it back)
 let foundSecret = () => false;
 export function setSecretCheck(fn) { foundSecret = fn; }
-export function stageLocked(st) { return !!(st && ((st.shop && !owns(st.shop)) || (st.secret && !foundSecret(st.secret)))); }   // (or a code you haven't found: `secret`)
+/** Whether a stage can't be played yet: a shop item not bought, a secret code not found, a boss arena not won. */
+export function stageLocked(st) { return !!(st && ((st.shop && !owns(st.shop)) || (st.secret && !foundSecret(st.secret)) || (st.bossArena && !arenaWon(st.bossArena)))); }
+// a boss arena opens once its boss is beaten on HARD or NIGHTMARE (read straight from the save: src/data/bosses.js
+// imports achievements.js, which imports this file, so this file can't import it)
+function arenaWon(id) { try { const r = (JSON.parse(localStorage.getItem('rebirth.bosses') || '{}') || {})[id]; return !!(r && (r.won[1] || r.won[2])); } catch (e) { return false; } }   // (or a code you haven't found: `secret`)
 
 // The tracks you can pick on the stage select screen (settings.track): AUTO (the stage's own music - or the shop track
 // you switched on), any stage's music, the shop's tracks you own, or a random one. Stages above carry `music` / `musicList`

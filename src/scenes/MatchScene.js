@@ -16,6 +16,7 @@ import { FighterIntros } from './fighterIntros.js';
 import { recordChallenge, CHALLENGE_REWARD } from '../challenges.js';
 import { recordMatch } from '../achievements.js';
 import { voiceLine } from '../audio/voiceLines.js';
+import { bossById, TIERS, claimBossRewards } from '../data/bosses.js';
 
 // Hit effects for the costumes that reshape a fighter's abilities (skins.js style)
 const STYLE_HIT = {
@@ -76,7 +77,7 @@ export class MatchScene extends Phaser.Scene {
   preload() {
     const data = this.sys.settings.data || {};
     const soul = data.soulBattle && soulEncounter(data.soulBattle.soulId);
-    const demo = !data.shopPreview && !soul && demoRequest.next;
+    const demo = !data.shopPreview && !soul && !data.boss && demoRequest.next;
     if (demo && !demoRequest.settings) {
       demoRequest.settings = demoSettings();
       // the title demo only wears costumes that are already loaded: it starts at once, downloads nothing,
@@ -90,19 +91,20 @@ export class MatchScene extends Phaser.Scene {
         u.add(sk); return sk;
       });
     }
-    const S = (soul && data.soulBattle.setup) || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
+    const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
   }
 
   create(data={}) {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
     this.sys.settings.data={};
+    this.bossFight = data.boss || null; this.bossOutcome = null;   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
     this.shopPreview=data.shopPreview||null;
     if(this.shopPreview)this.sys.settings.data={}; // consume preview data; later ordinary matches use player settings
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
     // demoRequest.settings: a fixed all-CPU setup instead of a random one (used by tools/sim)
-    this.demo = !this.shopPreview && !this.soulBattle && demoRequest.next; demoRequest.next = false; this.demoTime = 0;
-    const S = this.soulBattle?.setup || this.shopPreview?.setup || (this.demo ? (demoRequest.settings || demoSettings()) : settings); demoRequest.settings = null;
+    this.demo = !this.shopPreview && !this.soulBattle && !this.bossFight && demoRequest.next; demoRequest.next = false; this.demoTime = 0;
+    const S = this.soulBattle?.setup || this.bossFight?.setup || this.shopPreview?.setup || (this.demo ? (demoRequest.settings || demoSettings()) : settings); demoRequest.settings = null;
     // DEBUG RECORDING (training button 8, or ?debug=1): starts before anything uses Math.random (src/debug/recorder.js)
     this.recorder = recordingWanted(this) ? new Recorder(this, S) : null;
     this.mode = S.mode;
@@ -134,6 +136,7 @@ export class MatchScene extends Phaser.Scene {
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
     else if (this.soulEncounter?.music) playMusic(this,this.soulEncounter.music,0.55);
+    else if (this.bossFight) playMusic(this, this.stage.music, 0.55);   // a boss always fights to its own theme
     else if (this.pickedTrack()) { const tr = this.pickedTrack(); if (tr.musicList) playPlaylist(this, tr.musicList, 0.55); else playMusic(this, tr.music, 0.55); }   // picked on the stage select screen
     else if (equippedMusic()) playMusic(this, 'bgm_shop_' + equippedMusic().slice(4), 0.55);   // a track bought in the shop and switched on
     else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
@@ -149,7 +152,7 @@ export class MatchScene extends Phaser.Scene {
     const p1Parts = [kb];
     if (S.p1Pad !== null) p1Parts.push(new GamepadController(S.p1Pad));
     if (this.touchPad) p1Parts.push(new TouchController(this.touchPad));
-    if (!this.demo) humans.push({ ctrl: new MergedController(p1Parts), label: 'P1' });
+    if (!this.demo && !(this.bossFight && this.bossFight.cpu)) humans.push({ ctrl: new MergedController(p1Parts), label: 'P1' });   // (the sim's boss fights: a CPU fights it)
     for (const pad of S.extraPads) humans.push({ ctrl: new GamepadController(pad), label: 'P' + (humans.length + 1) });
     const slots = Math.min(4, humans.length + S.cpuCount);
     this.isTraining = this.mode === 'training';
@@ -179,12 +182,13 @@ export class MatchScene extends Phaser.Scene {
     this.hud = new Hud(this);
     this.training = this.isTraining ? new Training(this) : null;
     this.timeLeft = S.minutes * 3600;
+    if (this.bossFight) { const B = bossById(this.bossFight.id); this.stage.startBoss(this, { boss: B, tier: this.bossFight.tier, T: TIERS[this.bossFight.tier] }); }
 
     // overlays (UI camera)
     this.overlay = this.add.graphics().setDepth(5); this.addUI(this.overlay);
     this.bigText = this.add.text(VIEW_W / 2, VIEW_H / 2 - 30, '', { fontFamily: FONT, fontSize: '28px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 6, align: 'center' }).setOrigin(0.5);
     this.smallText = this.add.text(VIEW_W / 2, VIEW_H / 2 + 10, '', { fontFamily: FONT, fontSize: '8px', color: '#c9c4dc', stroke: '#0b0a14', strokeThickness: 4, align: 'center', lineSpacing: 6 }).setOrigin(0.5);
-    this.modeText = this.add.text(12, 8, this.soulEncounter?'SOUL BATTLE / '+this.soulEncounter.soul.name.toUpperCase()+' / '+this.soulEncounter.stars+' STARS':MODE_NAMES[this.mode], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setDepth(6);
+    this.modeText = this.add.text(12, 8, this.bossFight ? 'BOSS FIGHT / ' + TIERS[this.bossFight.tier].name : this.soulEncounter?'SOUL BATTLE / '+this.soulEncounter.soul.name.toUpperCase()+' / '+this.soulEncounter.stars+' STARS':MODE_NAMES[this.mode], { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setDepth(6);
     this.modeChip = this.add.graphics().setDepth(5.5); slant(this.modeChip, 4, 5, this.modeText.width + 18, 14, 0x000000, 0.55, 5); slant(this.modeChip, 4, 5, 4, 14, ARC.sections.title, 1, 5); this.addUI(this.modeChip);
     this.bigText.setDepth(20); this.smallText.setDepth(20); this.addUI(this.bigText, this.smallText, this.modeText);
     if (S.crt) this.makeCrt();
@@ -197,7 +201,7 @@ export class MatchScene extends Phaser.Scene {
     this.mouseToggle = false; this.mouseQuit = false;
     this.pauseBtn = makeButton(this, VIEW_W - 8, 6, 'II  PAUSE', () => { this.mouseToggle = true; }, { originX: 1, depth: 25, size: '6px' });
     this.resumeBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 34, 'RESUME', () => { this.mouseToggle = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
-    this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, settings.from === 'TestFighters' ? 'QUIT TO LAB' : 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
+    this.quitBtn = makeButton(this, VIEW_W / 2, VIEW_H / 2 + 60, this.bossFight ? 'GIVE UP' : settings.from === 'TestFighters' ? 'QUIT TO LAB' : 'QUIT TO SETUP', () => { this.mouseQuit = true; }, { originX: 0.5, depth: 25, size: '8px' }).setVisible(false);
     this.fullBtn = addFullscreenButton(this, VIEW_W - 80, 6, { depth: 25 });
     this.addUI(this.pauseBtn, this.resumeBtn, this.quitBtn, this.fullBtn);
     this.qKey = this.input.keyboard.addKey('Q');
@@ -286,7 +290,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.paused) {
       let quit = Phaser.Input.Keyboard.JustDown(this.qKey) || this.mouseQuit;
       for (const i of pads) { const pad = readPad(i); if (pad && pad.buttons[8] && pad.buttons[8].pressed) quit = true; }
-      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':settings.from || 'Setup'); return true; }   // back to wherever the match was started from
+      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':this.bossFight ? 'BossFights' : settings.from || 'Setup'); return true; }   // back to wherever the match was started from
       this.draw();
     }
     return this.paused;
@@ -513,7 +517,9 @@ export class MatchScene extends Phaser.Scene {
       if (f.stocks <= 0) { f.eliminated = true; for (const s of f.souls) s.kill(true); }
     }
     f.ko();
-    if (this.mode !== 'time' && !this.isTraining) {
+    if (this.mode !== 'time' && !this.isTraining && this.bossFight) {   // a boss fight is lost when every player is out
+      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.endMatch('DEFEATED...'); }
+    } else if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
       if (left.length <= 1 && !this.over) { this.endMatch('GAME!'); this.extras.onFinalKO(); }
     }
@@ -526,8 +532,20 @@ export class MatchScene extends Phaser.Scene {
     for (const f of this.fighters) f.stopChargeSound();
   }
 
+  /** The boss's health ran out (src/stage/bossBase.js): the fight is won. */
+  bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.over = 210; }
+
+  /** A boss fight is over: pays out a win (bosses.js) and goes to the reward / defeat screen (BossRewardScene). */
+  toBossReward() {
+    const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
+    const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
+    this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup }, rewards });
+  }
+
   toResults() {
     if(this.resultSent)return;this.resultSent=true;
+    if (this.bossFight) return this.toBossReward();
     this.rematchSetup.stage = this.stageId;
     this.rematchSetup.picks = this.fighters.map((f) => (f.baseDef || f.def).id);
     this.rematchSetup.skins = this.fighters.map((f) => f.skin);
@@ -1043,6 +1061,7 @@ export class MatchScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ drawing
   draw() {
+    if (this.stage.render) this.stage.render(this);   // stages that draw every frame (the boss arenas)
     this.renderAeroStage();
     this.extras.draw();
     for (const f of this.fighters) f.render(this.frame);
@@ -1152,6 +1171,7 @@ export class MatchScene extends Phaser.Scene {
   updateCamera() {
     const cam = this.worldCam;
     const pts = this.fighters.filter((f) => f.alive).map((f) => ({ x: f.x, y: f.y - 25 }));
+    if (this.stage.camPoints) pts.push(...this.stage.camPoints());   // (a boss arena keeps its boss in view)
     if (!pts.length) pts.push({ x: 0, y: -60 });
     let x1 = Math.min(...pts.map((p) => p.x)), x2 = Math.max(...pts.map((p) => p.x));
     let y1 = Math.min(...pts.map((p) => p.y)), y2 = Math.max(...pts.map((p) => p.y));

@@ -61,6 +61,10 @@ export const TROPHIES = [
   { id: 'bronze-boot', model: 'boot', plaque: '100 KOS', title: 'THE BRONZE BOOT', text: 'A winged boot cast in bronze, for kicking a hundred fighters off the edge of the world.' },
   { id: 'silver-fish', model: 'goldfish', plaque: '50 WINS', title: 'THE SILVER GOLDFISH', text: "AERO's goldfish, in solid silver, leaping a silver wave. Fifty wins. The real one is not impressed." },
   { id: 'crystal-crown', model: 'crown', plaque: 'FLAWLESS', title: 'THE CRYSTAL CROWN', text: 'Ten wins without falling once. The crown is cut from the same crystal as the galaxy shard. Wear it carefully.' },
+  // the boss trophies (beat each boss on NIGHTMARE - Trinkets > BOSS FIGHTS)
+  { id: 'brass-heart', model: 'gear', plaque: 'COLOSSUS', title: 'THE BRASS HEART', text: "The Clockwork Colossus's furnace heart, still warm, set in a brass cog. It beat for a hundred years. You stopped it on NIGHTMARE." },
+  { id: 'golden-cartridge', model: 'cartridge', plaque: 'KING POLYGON', title: 'THE GOLDEN CARTRIDGE', text: 'A solid gold game cartridge with a crown on its label. Blow on the contacts for luck. King Polygon fell on NIGHTMARE.' },
+  { id: 'dragon-crest', model: 'dragon', plaque: 'ASHWING', title: 'THE DRAGON CREST', text: "Ashwing's horned head in red-gold, mounted on a knight's shield. The last dragon, beaten on NIGHTMARE. The keep is safe." },
   { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 
@@ -68,6 +72,7 @@ export const TROPHIES = [
 export const DISPLAY = {
   'pedestal-l1': { trophy: 'you-did-it' }, 'pedestal-r1': { trophy: 'first-sword' }, 'pedestal-l2': { trophy: 'bronze-boot' },
   'pedestal-r2': { trophy: 'silver-fish' }, 'pedestal-l3': { trophy: 'crystal-crown' }, 'plinth': { trophy: 'phoenix' },
+  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'dragon-crest' },
   'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
   'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },

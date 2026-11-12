@@ -286,6 +286,6 @@ export class CpuController extends Controller {
       const d = Math.abs(f.x - me.x) + Math.abs(f.y - me.y) * 1.5;
       if (d < bd) { bd = d; best = f; }
     }
-    return best;
+    return best || this.match.bossProxy || null;   // a boss fight: go for the boss (src/stage/bossBase.js)
   }
 }

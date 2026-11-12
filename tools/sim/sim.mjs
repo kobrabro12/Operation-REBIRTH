@@ -4,7 +4,8 @@
 //
 //   npm run sim                                   4 random fighters, random stage, seed 1
 //   npm run sim -- --fighters soul-summoner,mr-wake --stage sky-sanctum --matches 5
-//   npm run sim -- --smoke                        every stage, every fighter, every costume: short matches
+//   npm run sim -- --smoke                        every stage, every fighter, every costume: short matches (and each boss)
+//   npm run sim -- --boss dragon:2 [--fighters a,b]   boss fights (id[:difficulty 0-2] or 'all'): one CPU per fighter against it
 //   npm run sim -- --json > out.json              machine-readable result
 //
 // Options: --fighters a,b[,c,d]  --stage id|random  --seed N  --matches N  --frames N (cap per match)
@@ -27,7 +28,7 @@ const flag = (name) => argv.includes('--' + name);
 const O = {
   fighters: opt('fighters', null), stage: opt('stage', 'random'), seed: +opt('seed', 1), matches: +opt('matches', 1),
   frames: +opt('frames', 60 * 60 * 4), level: +opt('level', 2), stocks: +opt('stocks', 2),
-  items: !flag('no-items'), hazards: !flag('no-hazards'), drawEvery: +opt('draw-every', 3), json: flag('json'), smoke: flag('smoke'),
+  items: !flag('no-items'), hazards: !flag('no-hazards'), drawEvery: +opt('draw-every', 3), json: flag('json'), smoke: flag('smoke'), boss: opt('boss', null),
 };
 
 // ---------------------------------------------------------------- browser + dev server
@@ -62,7 +63,8 @@ const info = await page.evaluate(async () => {
   const { STAGES } = await import('/src/stage/stages.js');
   const { skinsFor } = await import('/src/fighters/skins.js');
   const fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER].map((f) => f.id);   // test fighters too (Trinkets > TEST FIGHTERS)
-  return { fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
+  const { BOSSES } = await import('/src/data/bosses.js');
+  return { bosses: BOSSES.map((b) => ({ id: b.id, stage: b.stage })), fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
 });
 
 // ---------------------------------------------------------------- one match, run inside the page
@@ -78,6 +80,13 @@ async function runMatch(spec) {
     game.loop.wake();
     for (const k of ['Title', 'Match']) if (game.scene.isActive(k) || game.scene.isPaused(k)) game.scene.stop(k);
     await new Promise((r) => setTimeout(r, 50));
+    if (spec.boss) {                                    // a boss fight (src/data/bosses.js): one CPU against the boss
+      const { bossById, TIERS } = await import('/src/data/bosses.js');
+      demoRequest.next = false; demoRequest.settings = null;
+      const setup = { mode: 'stock', stocks: TIERS[spec.boss.tier].stocks, hp: 150, minutes: 3, items: false, hazards: spec.hazards, crt: false, stage: bossById(spec.boss.id).stage, track: 'auto',
+        picks: spec.fighters.slice(0, 1), skins: (spec.skins || [0]).slice(0, 1), cpuCount: 1, difficulty: spec.level, cpuLevels: [spec.level], p1Pad: null, extraPads: [], from: 'BossFights' };
+      game.scene.start('Match', { boss: { id: spec.boss.id, tier: spec.boss.tier, cpu: true, setup } });
+    } else {
     demoRequest.next = true;
     demoRequest.settings = {
       mode: 'stock', stocks: spec.stocks, hp: 150, minutes: 3, items: spec.items, hazards: spec.hazards, crt: false,
@@ -85,6 +94,7 @@ async function runMatch(spec) {
       difficulty: spec.level, cpuLevels: spec.fighters.map(() => spec.level), p1Pad: null, extraPads: [],
     };
     game.scene.start('Match');
+    }
     const t0 = performance.now();
     while (!(game.scene.isActive('Match') && game.scene.getScene('Match').fighters)) {
       if (performance.now() - t0 > 20000) return { error: { frame: 0, message: 'Match scene never started' } };
@@ -106,6 +116,7 @@ async function runMatch(spec) {
     } catch (e) { error = { frame, message: String(e && e.message || e), stack: String(e && e.stack || '').split('\n').slice(0, 6).join('\n') }; }
     const ms = performance.now() - start;
     return {
+      boss: m.stage.boss ? { hp: Math.round(m.stage.boss.hp), max: m.stage.boss.max, outcome: m.bossOutcome } : undefined,
       stage: m.stage.constructor.name, frames: frame, seconds: +(frame / 60).toFixed(1), simMs: Math.round(ms), ended: m.over === 1, error,
       kos: koAt,
       fighters: m.fighters.map((f) => ({ id: f.def.id, kos: f.kos, falls: f.falls, stocks: f.stocks, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), out: f.eliminated, state: f.state })),
@@ -128,6 +139,13 @@ if (O.smoke) {
     const skins = [0, 1, 2, 3].map((i) => (k + i) % info.skins[f]);
     specs.push({ ...base, stage: info.stages[(k / 4) % info.stages.length], fighters: [f, f, f, f], skins, seed: s++, frames: Math.min(O.frames, 60 * 30) });
   }
+  // each boss once, on NIGHTMARE (src/data/bosses.js)
+  for (const [i, b] of info.bosses.entries()) specs.push({ ...base, boss: { id: b.id, tier: 2 }, stage: b.stage, fighters: [info.fighters[i % info.fighters.length]], seed: s++, frames: Math.min(O.frames, 60 * 75) });
+} else if (O.boss) {
+  const [bid, tier] = O.boss.split(':'), list = bid === 'all' ? info.bosses : info.bosses.filter((b) => b.id === bid);
+  if (!list.length) { console.error(`Unknown boss "${bid}". Available: ${info.bosses.map((b) => b.id).join(', ')}, all`); process.exit(2); }
+  let s = O.seed;
+  for (const b of list) for (const f of O.fighters ? O.fighters.split(',') : info.fighters) for (let i = 0; i < O.matches; i++) specs.push({ ...base, boss: { id: b.id, tier: +(tier || 0) }, stage: b.stage, fighters: [f], seed: s++, frames: O.frames });
 } else {
   for (let i = 0; i < O.matches; i++) {
     const fighters = O.fighters ? O.fighters.split(',') : [0, 1, 2, 3].map(() => pick(info.fighters));
@@ -152,8 +170,9 @@ for (const f of info.fighters) for (let k = 0; k < info.skins[f]; k += 4) {
 const results = [];
 for (const sp of specs) {
   const r = await runMatch(sp);
-  results.push({ spec: { stage: sp.stage, fighters: sp.fighters, skins: sp.skins, seed: sp.seed }, ...r });
+  results.push({ spec: { stage: sp.stage, fighters: sp.fighters, skins: sp.skins, seed: sp.seed, boss: sp.boss }, ...r });
   if (!O.json) {
+    if (r.boss) console.log(`\nBOSS ${sp.boss.id} (difficulty ${sp.boss.tier}): ${r.boss.outcome || 'unfinished'}, boss health ${r.boss.hp} / ${r.boss.max}`);
     console.log(`\n${sp.stage}  seed ${sp.seed}${sp.skins ? '  costumes ' + sp.skins.join(',') : ''}  ${r.seconds}s game time in ${r.simMs}ms  ${r.error ? 'ERROR' : r.ended ? 'finished' : 'frame cap'}`);
     for (const f of r.fighters || []) console.log(`  ${f.id.padEnd(15)} KOs ${String(f.kos).padStart(2)}  falls ${String(f.falls).padStart(2)}  dealt ${String(f.dealt).padStart(4)}%  taken ${String(f.taken).padStart(4)}%${f.out ? '  (out)' : ''}`);
     if (r.error) console.log(`  !! frame ${r.error.frame}: ${r.error.message}\n${r.error.stack || ''}`);

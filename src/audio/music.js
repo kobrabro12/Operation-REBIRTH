@@ -17,6 +17,8 @@ export const TRACKS = [
   'fractured', 'infected', 'endless_castle', 'construct', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
   // the 3D stages (tools/audio/n64_stage_music.py)
   'castle_court', 'jungle_falls', 'starlight_fountain',
+  // the BOSS FIGHTS themes (tools/audio/boss_music.py)
+  'boss_colossus', 'boss_polygon', 'boss_dragon',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),

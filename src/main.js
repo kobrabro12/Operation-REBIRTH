@@ -19,6 +19,8 @@ import { OtherScene } from './scenes/OtherScene.js';
 import { TrinketsScene } from './scenes/TrinketsScene.js';
 import { AchievementsScene } from './scenes/AchievementsScene.js';
 import { TrophyHallScene } from './scenes/TrophyHallScene.js';
+import { BossFightsScene } from './scenes/BossFightsScene.js';
+import { BossRewardScene } from './scenes/BossRewardScene.js';
 import { FilesScene } from './scenes/FilesScene.js';
 import { TestFightersScene } from './scenes/TestFightersScene.js';
 import { ShopScene } from './scenes/ShopScene.js';
@@ -42,7 +44,7 @@ const config = {
   audio:{disableWebAudio:PHONE_DEVICE},
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, TrophyHallScene, FilesScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, TrophyHallScene, BossFightsScene, BossRewardScene, FilesScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.

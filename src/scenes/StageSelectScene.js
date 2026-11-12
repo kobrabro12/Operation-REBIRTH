@@ -176,6 +176,6 @@ export class StageSelectScene extends Phaser.Scene {
     this.name.setText(st.id === 'random' ? 'RANDOM' : st.available ? st.name : '???  COMING SOON');
     this.blurb.setText(st.blurb ? st.blurb.join('\n') : st.id === 'random' ? 'Picks one of the unlocked stages\nfor you when the match starts.' : 'This stage is still being built.');
     const key = st.shop && SHOP.flatMap((t) => t.items).find((it) => it.id === st.shop);
-    this.hazard.setText(stageLocked(st) && st.secret ? (st.id === 'willow-lane' ? 'LOCKED: THE SHOPKEEPER KNOWS THE HOUSE NUMBER.' : 'LOCKED: THE SHOPKEEPER KNOWS A NAME.') + '\n(RING HIS BELL THREE TIMES)' : stageLocked(st) ? 'LOCKED: BUY THE ' + (key ? key.name : 'KEY') + ' IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
+    this.hazard.setText(stageLocked(st) && st.bossArena ? 'LOCKED: BEAT ITS BOSS ON HARD OR NIGHTMARE\n(TRINKETS > BOSS FIGHTS)' : stageLocked(st) && st.secret ? (st.id === 'willow-lane' ? 'LOCKED: THE SHOPKEEPER KNOWS THE HOUSE NUMBER.' : 'LOCKED: THE SHOPKEEPER KNOWS A NAME.') + '\n(RING HIS BELL THREE TIMES)' : stageLocked(st) ? 'LOCKED: BUY THE ' + (key ? key.name : 'KEY') + ' IN THE SHOP\n(TRINKETS > SHOP > EXTRAS)' : st.hazard ? (settings.hazards ? st.hazard : 'STAGE HAZARDS ARE OFF') : '');
   }
 }

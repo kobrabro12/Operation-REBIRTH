@@ -310,7 +310,8 @@ export class TrophyHallScene extends Phaser.Scene {
    * slowly (built round 0,0,0 = the middle of the base's top, then turned by ang, scaled by k and set at x, y, z).
    * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
    * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
-   * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire).
+   * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire),
+   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), dragon (a dragon's head on a shield).
    * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
   trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
@@ -320,6 +321,12 @@ export class TrophyHallScene extends Phaser.Scene {
     out.push({ p: [[x - 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 6.5 * k, z - 10.4 * k], [x + 8 * k, y - 1.5 * k, z - 10.4 * k], [x - 8 * k, y - 1.5 * k, z - 10.4 * k]], n: [0, 0, -1], c: locked ? 0x5a5060 : 0xe0b040, bias: -1 });   // the plaque
     const T = [], flat = (pts, zz, c) => T.push({ p: pts.map(([px, py]) => [px, py, zz]), n: null, c });
     const G = [0xffd040, 0xf0b020, 0xffe070, 0xd89818];
+    // faces moved to (px, py, pz) and turned: q about the view axis (a cog's teeth), r about the x axis (stand a disc up)
+    const xyz = (faces, px, py, pz, q = 0, r = 0) => faces.map((f) => {
+      const tf = ([x, y, z]) => { const y1 = y * Math.cos(r) - z * Math.sin(r), z1 = y * Math.sin(r) + z * Math.cos(r); return [x * Math.cos(q) - y1 * Math.sin(q) + px, x * Math.sin(q) + y1 * Math.cos(q) + py, z1 + pz]; };
+      const tn = (n) => { const y1 = n[1] * Math.cos(r) - n[2] * Math.sin(r), z1 = n[1] * Math.sin(r) + n[2] * Math.cos(r); return [n[0] * Math.cos(q) - y1 * Math.sin(q), n[0] * Math.sin(q) + y1 * Math.cos(q), z1]; };
+      return { ...f, p: f.p.map(tf), n: f.n && tn(f.n) };
+    });
     if (model === 'gold-rock') {
       T.push(...prismFaces(0, -10, 0, 0, 2.6, 6, G[1], G[0]), ...prismFaces(0, -13, -10, 0, 9, 8, G[3], G[2]), ...blobFaces(0, -22, 0, 11, 9, 10, G, 7, 0xfff0a0, 0.48));
     } else if (model === 'sword') {
@@ -341,6 +348,19 @@ export class TrophyHallScene extends Phaser.Scene {
       for (let i = 0; i < 10; i++) { const q = i / 10 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 7.5, -17, Math.sin(q) * 7.5, 3, 3, 7 + (i % 2) * 5, i % 2 ? 0x3ab0e8 : 0x7ae8ff)); }
       T.push(...pyramidFaces(0, -17, 0, 5, 5, 17, 0xc8f4ff));
       for (let i = 0; i < 5; i++) { const q = i / 5 * Math.PI * 2; T.push(...boxFaces(Math.cos(q) * 8.6 - 1, -13.5, Math.sin(q) * 8.6 - 1, Math.cos(q) * 8.6 + 1, -11.5, Math.sin(q) * 8.6 + 1, 0xe83a5a)); }
+    } else if (model === 'gear') {                                    // THE BRASS HEART: a glowing furnace heart in a brass cog
+      for (let i = 0; i < 12; i++) { const q = i / 12 * Math.PI * 2; T.push(...xyz(boxFaces(-2.4, -2, -2.4, 2.4, 2, 2.4, 0xc8962e, 0xf0c860), Math.cos(q) * 15, -22 + Math.sin(q) * 15, 0, q)); }
+      T.push(...xyz(prismFaces(0, -3, 3, 0, 14, 12, 0xc8962e, 0xf0c860), 0, -22, 0, 0, Math.PI / 2), ...xyz(prismFaces(0, -3.4, 3.4, 0, 8, 10, 0x9a6a20, 0xc8962e), 0, -22, 0, 0, Math.PI / 2));
+      T.push(...blobFaces(0, -22, -2.5, 6.5, 6.5, 4, [0xff7a1a, 0xffa020, 0xffd060], 4, null, 0.1), ...prismFaces(0, -8, 0, 0, 3, 6, 0x6a4210, 0x9a6a20));
+    } else if (model === 'cartridge') {                               // THE GOLDEN CARTRIDGE: a gold game cartridge with a crowned label
+      T.push(...boxFaces(-13, -38, -3, 13, -4, 3, 0xf0b020, 0xffd040), ...boxFaces(-11, -4, -2.4, 11, 0, 2.4, 0xd89818), ...boxFaces(-9, -36, -3.4, 9, -16, -3, 0xa070f0, 0xb888ff));
+      for (let i = 0; i < 5; i++) T.push(...pyramidFaces(-6 + i * 3, -26, -3.5, 2.4, 0.5, 4 + (i % 2) * 2, 0xffe070));
+      for (let i = 0; i < 4; i++) T.push(...boxFaces(-10, -14 + i * 2.4, -3.2, 10, -13 + i * 2.4, -3, 0xb07a10));
+    } else if (model === 'dragon') {                                  // THE DRAGON CREST: a red-gold dragon's head on a knight's shield
+      flat([[-14, -42], [14, -42], [14, -20], [0, -4], [-14, -20]], 2, 0x6a0a12); flat([[-12, -40], [12, -40], [12, -21], [0, -7], [-12, -21]], 1.6, 0x9a1418);
+      T.push(...boxFaces(-14, -43, -0.5, 14, -41, 2.4, 0xd8a838));
+      T.push(...blobFaces(0, -26, -3, 7, 6, 5, [0xb83226, 0x8a1e1c], 5, 0xd84a30, 0.12), ...blobFaces(0, -21, -7, 4.5, 3, 4, [0xb83226, 0xc8402a], 6, null, 0.08));
+      for (const sx of [-1, 1]) { T.push(...xyz(pyramidFaces(0, 0, 0, 3, 3, 12, 0xf0e4c8), sx * 5, -31, -2, 0, sx * 0.7)); T.push(...boxFaces(sx * 3 - 1.4, -29, -8.2, sx * 3 + 1.4, -27.6, -7.6, 0xffd040)); }
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));
