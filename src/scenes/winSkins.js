@@ -22,6 +22,7 @@
 import { PREMIUM_CUTS } from './premiumOutros.js';
 import { SHOWCASE_CUTS } from './skinShowcase.js';
 import { DEVOTED_CUTS } from './devotedOutros.js';
+import { BEACH_CUTS } from './beachOutros.js';
 import { VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { SEEN } from '../fighters/lastSeen.js';
@@ -33,6 +34,7 @@ export const SKIN_CUTS = {
   ...SHOWCASE_CUTS,
   ...PREMIUM_CUTS,
   ...DEVOTED_CUTS,
+  ...BEACH_CUTS,
   "soul-summoner:JACK-O'-LANTERN": { fn: 'ss_pumpkin', len: 420, card: 262, name: 'SOUL SUMMONER', sub: "JACK-O'-LANTERN", line: 'TRICK OR TREAT? YOU GOT TRICKED.',
     color: '#ffa63a', stroke: '#2a0a04', shots: [[0, 'patch'], [128, 'carve'], [214, 'parade']] },
   'mr-wake:NEON': { fn: 'wake_neon', len: 440, card: 300, name: 'MR WAKE', sub: 'NEON - HIGH SCORE', line: 'INSERT COIN TO TRY AGAIN.',

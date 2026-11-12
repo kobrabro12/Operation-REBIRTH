@@ -18,6 +18,9 @@ LINES = {
     'soul-summoner': 'Soul Summoner!',
     'mr-wake': 'Mister Wake!',
     'hero-knight': 'Lacy!',
+    'nu': 'Nu!',
+    'aero': 'Aero!',
+    'new-challenger': 'Here come new challengers!',
     'random': 'Random!',
     'unlock': 'New costume, unlocked!',
     # stages, called out when one is picked on the stage select screen

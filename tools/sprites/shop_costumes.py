@@ -17,6 +17,7 @@ Output: public/assets/fighters/<fighter>/<costume>/<strip>_sheet.png - the same 
 game's frame indexes work for both. In the game each costume is a skin with `sheetSet` (src/fighters/skins.js).
 """
 import os, sys, math
+import math
 import numpy as np
 from PIL import Image
 sys.path.insert(0, os.path.dirname(__file__))
@@ -686,14 +687,135 @@ def aero_amber(N):
         elif k == 4: sc[y, x, :3] = (40, 140, 60)
         elif k == 8: sc[y, x, :3] = (40, 90, 200)
 
+def nu_surf(N):
+    """SURF ROCK (beach): an open coral Hawaiian shirt covered in white hibiscus and palm leaves over a white tank,
+    turquoise board shorts with a white side stripe, bare shins and flip-flops, sun-bleached spikes with aqua tips,
+    mirrored sunset shades, and a mic wrapped in a pink seashell."""
+    CORAL = [0x8a2a1a, 0xc8462a, 0xff6a3a, 0xff9a6a, 0xffc8a0]
+    TURQ = [0x0a5a6a, 0x109aa8, 0x2ad0d0, 0x8af4ec]
+    SKIN = [0x8a4a2a, 0xb87048, 0xd89a6a, 0xf0c090]
+    def paint(lay, ramp, pattern=None):
+        ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if vv < 0.16: continue                                             # (outline stays)
+            c = K.ramp_pick(ramp, vv, 0.12, 0.55)
+            if pattern: c = pattern(x, y, vv) or c
+            lay[y, x, :3] = K.hexrgb(c)
+    def hibiscus(x, y, v):                                                     # the shirt's print: white flowers, green leaves
+        u, w = (x + y * 3) % 9, (x * 3 - y) % 10
+        if u in (0, 1, 2) and w in (0, 1, 2): return 0xffd23a if (u, w) == (1, 1) else (0xfff4f0 if v > 0.3 else 0xe8c8c0)
+        if u in (5, 6) and w in (5, 6, 7): return 0x2a9a4a if v > 0.3 else 0x1a6a34
+        return None
+    for n in ('bupper', 'fupper', 'bfore', 'ffore'): paint(N[n], CORAL, hibiscus)
+    t = N['torso']; ys, xs = np.nonzero(t[..., 3] > 0); cx = int(np.median(xs)) if len(xs) else 32
+    top = ys.min() if len(ys) else 20
+    ys2, xs2 = np.nonzero(t[..., 3] > 0)
+    for x, y in zip(xs2, ys2):                                                 # open shirt over a white tank, the NU gone
+        r, g_, b = (int(c) for c in t[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+        if vv < 0.16 and abs(x - cx) > 5: continue
+        if abs(x - cx - 1) <= 3 and y < ys.max() - 3: t[y, x, :3] = K.hexrgb(0xf4f4ec if (x - cx) % 3 else 0xd8d8d0)
+        elif abs(x - cx - 1) == 4: t[y, x, :3] = K.hexrgb(0xc8462a)               # the shirt's open edge
+        else: t[y, x, :3] = K.hexrgb(hibiscus(x, y, vv) or K.ramp_pick(CORAL, vv, 0.12, 0.55))
+    K.stamp(t, cx - 2, top + 1, ["s.s", ".s."], {'s': 0xf0c090})                  # (a tanned neck in the V)
+    def shorts(x, y, v):
+        if x % 9 == 4: return 0xffffff                                         # the side stripe
+        return None
+    for n in ('bthigh', 'fthigh'): paint(N[n], TURQ, shorts)
+    for n in ('bshin', 'fshin'): paint(N[n], SKIN)
+    for n in ('bshoe', 'fshoe'):                                               # flip-flops: tan feet, a yellow strap, a blue sole
+        lay = N[n]; ys, xs = np.nonzero(lay[..., 3] > 0)
+        if not len(ys): continue
+        bot = ys.max()
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if vv < 0.16: continue
+            lay[y, x, :3] = K.hexrgb(0x1a6ad8 if y >= bot - 1 else 0xffd23a if y == bot - 3 else K.ramp_pick(SKIN, vv, 0.2, 0.9))
+    h = N['hair']; ys, xs = np.nonzero(h[..., 3] > 0); top = ys.min() if len(ys) else 0
+    for x, y in zip(xs, ys):
+        v = K.shade_of(h[y, x])
+        h[y, x, :3] = K.hexrgb(K.ramp_pick([0x2a9ab0, 0x4ad8e0, 0x9af4f4, 0xe8ffff] if y <= top + 3 else [0xb88a4a, 0xe8c070, 0xfff0b0, 0xffffff], v, 0.3, 1.0))
+    hd = N['head']
+    for y in range(9, 16):                                                     # mirrored sunset shades
+        for x in range(24, 42):
+            if hd[y, x, 3] and K.shade_of(hd[y, x]) < 0.32: hd[y, x, :3] = K.hexrgb([0xff3a8a, 0xff6a5a, 0xff9a3a, 0xffd23a, 0xfff4a0, 0xffd23a, 0xff9a3a][(y - 9) % 7])
+    for y in range(9, 16):
+        for x in range(24, 42):
+            if hd[y, x, 3] and (x + y) % 9 == 0 and tuple(hd[y, x, :3]) == K.hexrgb(0xffd23a): K.put(hd, x, y, 0xffffff)
+    m = N['mic']; ys, xs = np.nonzero(m[..., 3] > 0)                          # the mic's head wrapped in a pink seashell
+    if len(ys):
+        cy_ = int(np.percentile(ys, 25))
+        for x, y in zip(xs, ys):
+            if y <= cy_ + 1:
+                r, g_, b = (int(c) for c in m[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+                if vv > 0.16: m[y, x, :3] = K.hexrgb(0xffd8e0 if (x + y) % 2 else 0xff9ab8)
+
+def aero_tide(N):
+    """TIDE POOL (beach): his dome is a little tropical sea - turquoise water over sand, pink coral and a starfish -
+    with a clownfish where the goldfish was; a white swim-suit with turquoise waves, a striped beach-towel scarf, coral
+    flippers, a seashell on his chest."""
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    SEA = [0x0a8ab8, 0x18a8d0, 0x30c8e0, 0x58e0ea, 0x90f4f0]
+    glass = (hd[..., 3] > 0) & (hd[..., :3].max(-1) > 80) & ~np.all(hd[..., :3] >= 240, -1) & (yy >= 3) & (yy <= 20)
+    ys, xs = np.nonzero(glass)
+    if len(ys):
+        g0, g1 = 3, 20
+        for y, x in zip(ys, xs):
+            k = (y - g0) / (g1 - g0)
+            if y >= 18: hd[y, x, :3] = K.hexrgb(0xf0d48a if (x + y) % 3 else 0xd8b468)          # sand on the bottom
+            else: hd[y, x, :3] = K.hexrgb(SEA[min(4, int((1 - k) * 4.9))])
+            if y < 17 and (x * 13 + y * 7) % 29 == 0: hd[y, x, :3] = (255, 255, 255)           # bubbles
+        bx = int(np.percentile(xs, 15)); by = 18
+        K.stamp(hd, bx, by - 3, ["p.p.", "pppp", ".pp."], {'p': 0xff6a9a}, only_full=True)      # pink coral
+        K.stamp(hd, bx + 9, by - 1, [".s.", "sss", "s.s"], {'s': 0xffa03a}, only_full=True)     # a starfish
+    f = N['fish']; ys, xs = np.nonzero(f[..., 3] > 0)                          # the clownfish: orange, white bands edged black
+    for x, y in zip(xs, ys):
+        r, g_, b = (int(c) for c in f[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+        if vv < 0.2: continue
+        f[y, x, :3] = K.hexrgb(0xff7a1a if vv < 0.85 else 0xffa04a)
+    if len(xs):
+        x0, x1 = xs.min(), xs.max()
+        for bxx in (x0 + (x1 - x0) // 3, x0 + 2 * (x1 - x0) // 3 + 1):
+            for y in range(ys.min(), ys.max() + 1):
+                if f[y, bxx, 3] and K.shade_of(f[y, bxx]) > 0.2: f[y, bxx, :3] = (255, 255, 255)
+                if bxx + 1 <= 63 and f[y, bxx + 1, 3] and K.shade_of(f[y, bxx + 1]) > 0.2: f[y, bxx + 1, :3] = (20, 16, 28)
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore', 'bthigh', 'fthigh', 'bshin', 'fshin'):   # turquoise waves on the white suit
+        lay = N.get(n)
+        if lay is None: continue
+        ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if ss < 0.18 and vv > 0.6 and (y + int(2 * math.sin(x * 0.9))) % 7 == 0: lay[y, x, :3] = K.hexrgb(0x2ad0d0 if vv > 0.8 else 0x109aa8)
+    K.stamp(N['torso'], 30, 25, [".www.", "wpwpw", "wwwww", ".w.w."], {'w': 0xfff0e8, 'p': 0xff9ab8}, only_full=True)   # a scallop shell on his chest
+    for n in ('bshoe', 'fshoe', 'ffist'):                                       # coral flippers and glove (the outline stays navy)
+        lay = N.get(n); ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+            if 170 <= hh <= 220 and ss > 0.3 and vv > 0.45: lay[y, x, :3] = K.hexrgb(K.ramp_pick([0xa8281a, 0xe84a3a, 0xff7a5a, 0xffb090], vv, 0.45, 1.0))
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)                       # a striped beach towel
+    for x, y in zip(xs, ys):
+        if K.shade_of(sc[y, x]) < 0.15: continue
+        sc[y, x, :3] = K.hexrgb([0xff4a4a, 0xffffff, 0xffd23a, 0xffffff, 0x2ab0e8, 0xffffff][(x + y) // 2 % 6])
+
 PART_LOOKS = {
     'luckyred': ('nu', 'nu_draw', NUG, {'acid': {'to': 44, 'sat': 1.2, 'val': 1.1}, 'hair': {'sat': 0.2, 'val': 0.3}, 'cloth': {'to': 356, 'sat': 3.2, 'val': 1.7}}, nu_luckyred, (255, 64, 56)),
     'amber': ('aero', 'aero_draw', AEG, {'aqua': {'to': 30, 'sat': 0.9, 'val': 1.0}, 'lime': {'to': 44, 'sat': 0.8, 'val': 1.1}, 'fish': {'to': 46, 'sat': 1.1, 'val': 1.2}}, aero_amber, (255, 176, 70)),
     'vapor': ('nu', 'nu_draw', NUG, {'acid': {'to': 318, 'sat': 0.8, 'val': 1.1}, 'hair': {'hue': 184, 'sat': 0.9, 'val': 1.05}, 'cloth': {'to': 270, 'sat': 1.6, 'val': 1.3}}, nu_vapor, (255, 122, 208)),
     'glam': ('nu', 'nu_draw', NUG, {'acid': {'to': 322, 'sat': 1.1, 'val': 1.15}, 'hair': {'sat': 0.2, 'val': 1.2}, 'cloth': {'to': 44, 'sat': 2.4, 'val': 2.2}}, nu_glam, (255, 74, 184)),
     'midnight': ('aero', 'aero_draw', AEG, {'aqua': {'to': 232, 'sat': 1.0, 'val': 0.6}, 'lime': {'to': 268, 'sat': 0.5, 'val': 1.1}, 'fish': {'to': 44, 'sat': 0.9, 'val': 1.15}}, aero_midnight, (122, 150, 255)),
+    'surf': ('nu', 'nu_draw', NUG, {}, nu_surf, (42, 208, 208)),
+    'tide': ('aero', 'aero_draw', AEG, {'lime': {'to': 48, 'sat': 1.2, 'val': 1.15}}, aero_tide, (42, 208, 224)),
     'sunset': ('aero', 'aero_draw', AEG, {'aqua': {'to': 24, 'sat': 1.0, 'val': 1.05}, 'lime': {'to': 322, 'sat': 0.9}, 'fish': {'to': 2, 'sat': 1.1, 'val': 1.0}}, aero_sunset, (255, 154, 90)),
 }
+
+def retile(path, cols=36, fw=112, fh=104):
+    """Re-lays a moves sheet with more frames per row so neither side passes 4096 px (frame numbers don't change)."""
+    im = Image.open(path).convert('RGBA'); c0 = im.width // fw
+    frames = [im.crop((i % c0 * fw, i // c0 * fh, i % c0 * fw + fw, i // c0 * fh + fh)) for i in range(c0 * (im.height // fh))]
+    while frames and not frames[-1].getbbox(): frames.pop()
+    out = Image.new('RGBA', (cols * fw, math.ceil(len(frames) / cols) * fh))
+    for i, f in enumerate(frames): out.paste(f, (i % cols * fw, i // cols * fh))
+    out.save(path)
 
 def build_parts(name):
     import importlib, types
@@ -708,15 +830,19 @@ def build_parts(name):
         import nu_moves as M
         small, big = M.build_rig(look, M.FOLLOW)
         M.GHOST = ghost
-        return M.build_all(small, big, M.MOVES, out, os.devnull, 'NU_MOVES', 'nu_moves.py')
+        res = M.build_all(small, big, M.MOVES, out, os.devnull, 'NU_MOVES', 'nu_moves.py')
+        if name == 'surf': retile(os.path.join(out, 'moves_sheet.png'))      # (new sheets must stay under 4096 px)
+        return res
     import aero_moves as A
     small, big = A.N.build_rig(look, A.FOLLOW)
     A.N.GHOST = ghost
-    return A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
+    res = A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
+    if name == 'tide': retile(os.path.join(out, 'moves_sheet.png'))
+    return res
 
 # ====================================================================== run
 LOOKS = {'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
-         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts}
+         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts}
 
 if __name__ == '__main__':
     names = [a for a in sys.argv[1:] if a in LOOKS] or list(LOOKS)

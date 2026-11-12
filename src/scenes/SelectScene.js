@@ -24,10 +24,36 @@ const CARD_Y = 148, CARD_H = 196, CARD_GAP = 8;
 export class SelectScene extends Phaser.Scene {
   constructor() { super('Select'); }
 
+  /**
+   * HERE COME NEW CHALLENGERS: the first time the select screen opens after NU and AERO joined the roster, a banner
+   * sweeps across with the two of them in their beach costumes and the announcer calls it (once per browser).
+   */
+  newChallengers() {
+    const KEY = 'rebirth.newcomers.nu-aero';
+    try { if (localStorage.getItem(KEY)) return; localStorage.setItem(KEY, '1'); } catch (e) { return; }
+    const c = this.add.container(0, 0).setDepth(300), g = this.add.graphics();
+    g.fillStyle(0x000000, 0.7); g.fillRect(0, 0, VIEW_W, VIEW_H);
+    slant(g, -20, VIEW_H / 2 - 48, VIEW_W + 40, 96, 0x2ad0d0, 1, 18); slant(g, -20, VIEW_H / 2 - 42, VIEW_W + 40, 84, 0x0a2a3a, 1, 16);
+    const t1 = this.add.text(VIEW_W / 2, VIEW_H / 2 - 30, 'HERE COME NEW CHALLENGERS!', { fontFamily: FONT, fontSize: '14px', color: '#fff4a0', stroke: '#0a2a3a', strokeThickness: 5 }).setOrigin(0.5);
+    const t2 = this.add.text(VIEW_W / 2, VIEW_H / 2 + 30, 'NU  &  AERO  JOIN THE ROSTER  -  BEACH COSTUMES INCLUDED', { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setOrigin(0.5);
+    const pick = (id, name) => { const f = ROSTER.find((r) => r.id === id); const i2 = f ? skinsFor(id).findIndex((sk) => sk.name === name) : -1; return f ? { f, skin: Math.max(0, i2) } : null; };
+    const spr = [pick('nu', 'SURF ROCK'), pick('aero', 'TIDE POOL')].filter(Boolean).map((p, i) => {
+      const sp = this.add.sprite(i ? VIEW_W + 60 : -60, VIEW_H / 2 + 22, p.f.def.sheets.idle, 0); showFighter(sp, p.f.def, 0, p.skin); sp.setScale(2.2).setFlipX(i === 1);
+      this.tweens.add({ targets: sp, x: i ? VIEW_W - 70 : 70, duration: 420, ease: 'Back.Out', delay: 150 });
+      return sp;
+    });
+    c.add([g, t1, t2, ...spr]);
+    c.setAlpha(0); this.tweens.add({ targets: c, alpha: 1, duration: 200 });
+    t1.setScale(2.5); this.tweens.add({ targets: t1, scale: 1, duration: 260, ease: 'Back.Out' });
+    sfx('limitready', 0.6, 1); this.time.delayedCall(250, () => announce(this, 'new-challenger'));
+    this.time.delayedCall(3400, () => this.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() }));
+  }
+
   create() {
     this.t = 0;
     const s = settings;
     playMusic(this, 'bgm_select');
+    this.newChallengers();
     // portrait crops (head and shoulders) of each fighter's idle frame
     for (const r of ROSTER) {
       if (!r.def) continue;

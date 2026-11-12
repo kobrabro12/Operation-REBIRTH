@@ -22,6 +22,7 @@ import { PremiumShots } from './premiumOutros.js';
 import { ShowcaseShots } from './skinShowcase.js';
 import { SKIN_CUTS, SkinShots } from './winSkins.js';
 import { DevotedShots } from './devotedOutros.js';
+import { BeachShots } from './beachOutros.js';
 import { sfx } from '../audio/sfx.js';
 import { stopMusic, playMusic } from '../audio/music.js';
 
@@ -917,6 +918,8 @@ for (const n of Object.getOwnPropertyNames(SkinShots.prototype)) if (n !== 'cons
 
 for(const n of Object.getOwnPropertyNames(ShowcaseShots.prototype))if(n!=='constructor')WinScene.prototype[n]=ShowcaseShots.prototype[n];
 
+// NU's and AERO's beach costumes' outros (beachOutros.js)
+for (const n of Object.getOwnPropertyNames(BeachShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = BeachShots.prototype[n];
 // THE DEVOTED's drawn costumes' outros (devotedOutros.js)
 for (const n of Object.getOwnPropertyNames(DevotedShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = DevotedShots.prototype[n];
 

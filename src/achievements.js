@@ -31,8 +31,8 @@ export function recordMatch({ fighter, stage, won, flawless }) {
   save();
 }
 
-const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight'];
-const TESTS = ['young-link', 'nu', 'aero', 'what-once-was', 'last-seen'];
+const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
+const TESTS = ['young-link', 'what-once-was', 'last-seen'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;

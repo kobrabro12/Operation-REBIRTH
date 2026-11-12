@@ -66,6 +66,7 @@ VARIANTS = {
                   wing=(0x140604, 0x2a0a06, 0xff6a10, 0xffe070), blade=[0xa82808, 0xf06010, 0xffb040, 0xfff4c0]),
 }
 FACET = 0
+FLAT3D = False          # set by devoted_3d.py: paint CARTRIDGE flat (its 3D model does the lighting)
 
 def bloody(x, y, seed, heavy=0.0):
     """Is this pixel splashed with blood? (MAD MURDER) - spatters, plus heavier soaking lower down."""
@@ -189,7 +190,7 @@ def repaint(a, ramp, stage, seed):
     if fill.any():
         lo, hi = np.percentile(lum[fill], 5), np.percentile(lum[fill], 95)
         v = np.clip((lum - lo) / max(1e-3, hi - lo), 0, 1)
-    if VARIANT == 'cartridge' and fill.any():                 # CARTRIDGE: lit as a real low-poly 3D solid (poly_light)
+    if VARIANT == 'cartridge' and fill.any() and not FLAT3D:  # CARTRIDGE: lit as a real low-poly 3D solid (poly_light)
         sides = 4 if (ramp is SHIRT and fill.sum() > 150) or ramp is SHOE else 5
         v = poly_light(s, sides, 4)
     for y, x in zip(*np.nonzero(fill)):
@@ -287,7 +288,7 @@ def vhead(a, stage):
     SAINT's fire hair, coal eyes and halo."""
     v = VARIANT
     if v == 'cartridge':
-        ramps = [(r, {tuple(hx(c)[:3]) for c in r}) for r in (HAIR, SKIN, SLUDGE[:3])]
+        ramps = [] if FLAT3D else [(r, {tuple(hx(c)[:3]) for c in r}) for r in (HAIR, SKIN, SLUDGE[:3])]
         for y, x in zip(*np.nonzero(a[..., 3] > 0)):                         # relit as a low-poly sphere (the skull) + ponytail
             col = tuple(a[y, x, :3]); r = next((R_ for R_, S_ in ramps if col in S_), None)
             if r is None: continue                                             # (eyes, mouth, glitch pixels keep their colour)

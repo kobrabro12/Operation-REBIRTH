@@ -65,7 +65,7 @@ Owner: Mason (artist; does the sprites and design). Live build: https://kobrabro
 | Lore text | `src/data/lore.js` | |
 
 ## Fighters (current)
-- Soul Summoner (`soul-summoner`, keys `ss_*`), Mr Wake (`mr-wake`, `wake_*`), Lacy / Hero Knight (`hero-knight`, `hk_*`); test fighters (`TEST_ROSTER` in `roster.js`, Trinkets > TEST FIGHTERS, never on the select grid): NU, AERO, WHAT ONCE WAS, ROSEMARY (`last-seen`), FISTS, YOUNG LINK, THE DEVOTED (`devoted`, WIP). Sheets, frame sizes, mechanics and costumes of each: `src/fighters/AGENTS.md`.
+- Soul Summoner (`soul-summoner`, keys `ss_*`), Mr Wake (`mr-wake`, `wake_*`), Lacy / Hero Knight (`hero-knight`, `hk_*`), NU (`nu`, `nu_*`) and AERO (`aero`, `aero_*`) - NU and AERO graduated from TEST FIGHTERS with the beach costumes SURF ROCK / TIDE POOL and a one-time HERE COME NEW CHALLENGERS banner on the select screen (`SelectScene.newChallengers`); test fighters (`TEST_ROSTER` in `roster.js`, Trinkets > TEST FIGHTERS, never on the select grid): WHAT ONCE WAS, ROSEMARY (`last-seen`), FISTS, YOUNG LINK, THE DEVOTED (`devoted`, WIP). Sheets, frame sizes, mechanics and costumes of each: `src/fighters/AGENTS.md`.
 - Every fighter has a taunt (`def.taunt`, 1 key / stick click); training hotkeys are 2–7, plus 8 / 9 for debug recording.
 
 ## How to add things

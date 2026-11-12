@@ -115,7 +115,7 @@ export class BootScene extends Phaser.Scene {
       ['wake_choir_', 'mr-wake/choir/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_vampire_', 'mr-wake/vampire/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['wake_sakura_', 'mr-wake/sakura/', ['idle', 'run', 'jump', 'fall'], 176, 120],
       ['nu_vapor_', 'nu/vapor/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_sunset_', 'aero/sunset/', ['idle', 'run', 'jump', 'fall'], 112, 104],
       ['ss_orrery_', 'soul-summoner/orrery/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_celestial_', 'soul-summoner/celestial/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['ss_olive_', 'soul-summoner/olive/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_plague_', 'mr-wake/plague/', ['idle', 'run', 'jump', 'fall'], 176, 120],
-      ['nu_glam_', 'nu/glam/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_midnight_', 'aero/midnight/', ['idle', 'run', 'jump', 'fall'], 112, 104],
+      ['nu_glam_', 'nu/glam/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['nu_surf_', 'nu/surf/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_tide_', 'aero/tide/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_midnight_', 'aero/midnight/', ['idle', 'run', 'jump', 'fall'], 112, 104],
       // the nesting-doll costumes (code PAPERSPLEASE)
       ['ss_tricolore_', 'soul-summoner/tricolore/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_teatime_', 'mr-wake/teatime/', ['idle', 'run', 'jump', 'fall'], 176, 120],
       ['nu_luckyred_', 'nu/luckyred/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_amber_', 'aero/amber/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
@@ -142,7 +142,7 @@ export class BootScene extends Phaser.Scene {
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow']) if(CHARACTER_NAME_CALLS||!FIGHTER_ANNOUNCER_IDS.has(id))this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
+    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero', 'new-challenger', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow']) if(CHARACTER_NAME_CALLS||!FIGHTER_ANNOUNCER_IDS.has(id))this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
     // Music (bgm_*) isn't loaded here: each track streams when it's played - its name goes in TRACKS in src/audio/music.js
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');

@@ -260,6 +260,13 @@ export const SKINS = {
     { name: 'GLAM', sheetSet: 'glam', shop: 'cos-glam', swatch: 0xffd23a, fx: 0xff4ab8, groups: NUG, rules: { acid: { to: 322, sat: 1.1, val: 1.15 }, hair: { sat: 0.2, val: 1.2 }, cloth: { to: 44, sat: 2.4, val: 2.2 } },
       pal: { outline: 0x2a0a20, deep: 0xb02a8a, mid: 0xff4ab8, light: 0xffd23a, core: 0xffffff, shade: 0x3a1030, void: 0x10040c },
       vfx: { hit: { shape: 'star', colors: [0xff4ab8, 0xffd23a, 0x3ad8ff, 0xffffff], n: 9, glint: true }, aura: { motes: { colors: [0xffd23a, 0xff4ab8], rate: 5 } } } },
+    // SURF ROCK (arrived with him on the roster - free): an open coral Hawaiian shirt with hibiscus, board shorts, flip-flops,
+    // sun-bleached spikes with aqua tips, mirrored sunset shades, a seashell mic (drawn: shop_costumes.py). Sea spray on
+    // every hit, a shimmer of sun and droplets round him, a wave brings him in (SKIN_INTROS), its own outro (beachOutros.js)
+    { name: 'SURF ROCK', sheetSet: 'surf', swatch: 0xff6a3a, fx: 0x2ad0d0, groups: NUG, rules: {},
+      pal: { outline: 0x0a2a3a, deep: 0x109aa8, mid: 0x2ad0d0, light: 0xfff4a0, core: 0xffffff, shade: 0x0a3a4a, void: 0x041418 },
+      vfx: { hit: { shape: 'drop', colors: [0xffffff, 0x8af4ec, 0x2ad0d0], n: 14, ring: 0x8af4ec, glint: true, flash: true },
+             aura: { motes: { colors: [0xfff4a0, 0x8af4ec, 0xffffff], rate: 4 } }, trail: 0x2ad0d0 } },
     // LUCKY RED (nesting dolls): a red silk jacket with gold cloud swirls and knotted gold buttons, black hair tied with a red
     // ribbon, gold-rimmed shades (drawn: shop_costumes.py)
     { name: 'LUCKY RED', sheetSet: 'luckyred', shop: 'cos-luckyred', swatch: 0xd8201e, fx: 0xffc83a, groups: NUG, rules: { acid: { to: 356, sat: 1.3, val: 1.0 }, hair: { to: 46, sat: 2.4, val: 1.05 }, cloth: { to: 0, sat: 1.6, val: 0.8 } },
@@ -384,6 +391,14 @@ export const SKINS = {
     { name: 'FORECAST', swatch: 0x1a3a8a, fx: 0xffd23a, groups: AEG, rules: { aqua: { to: 226, sat: 1.1, val: 0.62 }, lime: { to: 50, sat: 1.1, val: 1.15 }, fish: { to: 44, sat: 0.9 } },
       pal: { outline: 0x060c26, deep: 0x1a3a8a, mid: 0x3a6ad8, light: 0xffd23a, core: 0xffffff, shade: 0x0a1640, void: 0x02040e },
       vfx: { hit: { shape: 'star', colors: [0xffd23a, 0xffffff, 0x8ab8f0], n: 7, glint: true } } },
+    // TIDE POOL (arrived with him on the roster - free): his dome is a little tropical sea - turquoise water over sand, pink
+    // coral, a starfish, a clownfish where the goldfish was - a white swimsuit with turquoise waves, a striped beach-towel
+    // scarf, coral flippers, a scallop shell on his chest (drawn: shop_costumes.py). Bubbles and sea foam everywhere,
+    // he rises out of a tide pool (SKIN_INTROS), its own outro (beachOutros.js)
+    { name: 'TIDE POOL', sheetSet: 'tide', swatch: 0x2ad0d0, fx: 0xff7a5a, groups: AEG, rules: { lime: { to: 48, sat: 1.2, val: 1.15 } },
+      pal: { outline: 0x0a2a48, deep: 0x0a8ab8, mid: 0x30c8e0, light: 0xf0d48a, core: 0xffffff, shade: 0x06304a, void: 0x02121c },
+      vfx: { hit: { shape: 'bubble', colors: [0xffffff, 0x90f4f0, 0x30c8e0], n: 14, ring: 0x90f4f0, glint: true },
+             aura: { motes: { colors: [0x90f4f0, 0xffffff, 0xff7a5a], rate: 5 } }, trail: 0x30c8e0 } },
     // SUNSET (SHOP): glass gone orange and magenta like the last hour of a summer day; his bubbles glow gold
     { name: 'SUNSET', sheetSet: 'sunset', shop: 'cos-sunset', swatch: 0xff8a3a, fx: 0xff5ab0, groups: AEG, rules: { aqua: { to: 24, sat: 1.0, val: 1.05 }, lime: { to: 322, sat: 0.9 }, fish: { to: 48, sat: 1.0, val: 1.1 } },
       pal: { outline: 0x3a0a14, deep: 0xc0401a, mid: 0xff8a3a, light: 0xffc87a, core: 0xffffff, shade: 0x4a1a1a, void: 0x140404 },

@@ -45,6 +45,9 @@ export const SKIN_INTROS = {
   'hero-knight:PRISM REGENT':{kind:'prism-shell',dur:100,shape:'star',color:0xa2eee7,color2:0xe4b5f5,pre:['glass',.3,.8],sfx:['glass',.4,1.2]},
   'mr-wake:ABYSSAL CHOIR':{kind:'choir-tide',dur:100,shape:'bubble',color:0x123347,color2:0x8cebd4,pre:['glass',.25,.6],sfx:['ding',.35,.5]},
   // the nesting-doll costumes (code PAPERSPLEASE)
+  // the beach costumes NU and AERO arrived on the roster with
+  'nu:SURF ROCK': { kind: 'wave', dur: 100, color: 0x2ad0d0, color2: 0xffffff, pre: ['whoosh', 0.5, 0.5], sfx: ['geyser', 0.6, 0.9] },
+  'aero:TIDE POOL': { kind: 'pool', dur: 110, pool: { deep: 0x0a6a98, mid: 0x30c8e0, rim: 0xf0d48a, sheen: 0xffffff }, pre: ['geyser', 0.35, 1.1], sfx: ['glass', 0.5, 1.1] },
   // THE DEVOTED's drawn costumes
   'devoted:CARTRIDGE': { kind: 'warp', color: 0x20e8ff, color2: 0xff3ad8, pre: ['popup', 0.4, 0.8], sfx: ['glass', 0.5, 1.3] },
   'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
@@ -236,6 +239,20 @@ export class FighterIntros {
             vis = 1; dy = 66 * (1 - up); e.crop = dy;
             if (post < 0.85 && this.t % 2 === 0) e.parts.push({ shape: 'drop', x: x + (R() - 0.5) * 20, y: y - (60 - dy) * R(), vx: 0, vy: 0.5, life: 18, max: 18, color: I.lava ? (R() < 0.5 ? P.mid : P.rim) : P.deep, grav: 0.25 });   // dripping off her
             if (post < 0.6 && this.t % 14 === 0) this.m.shake(2, 4);
+          }
+          break;
+        }
+        case 'wave': {                                                     // a wave rolls in across the stage, curls over the spot and crashes; they're standing in its spray
+          const dir = x < 0 ? -1 : 1, wx = x - dir * (260 - pre * 260), hh = 70 * Math.sin(Math.min(1, pre) * Math.PI * 0.9) + 10;
+          if (p < A) {
+            for (let i = 0; i < 4; i++) { g.fillStyle([0x0a6a98, 0x109aa8, 0x2ad0d0, 0x8af4ec][i], 0.85); g.fillEllipse(wx - dir * i * 6, y - hh / 2 + i * 4, 120 - i * 14, hh - i * 8); }
+            g.fillStyle(0xffffff, 0.9); for (let i = 0; i < 7; i++) g.fillCircle(wx + dir * (40 - i * 8) + Math.sin(this.t * 0.5 + i) * 3, y - hh + 4 + i * 2, 5 - i * 0.5);   // the white curl of foam on its lip
+            if (this.t % 2 === 0) e.parts.push({ shape: 'drop', x: wx + (R() - 0.5) * 60, y: y - hh * R(), vx: dir * (1 + R() * 2), vy: -1 - R() * 2, life: 18, max: 18, color: R() < 0.5 ? 0xffffff : 0x8af4ec, grav: 0.15 });
+          } else {
+            if (post < 0.05) for (let i = 0; i < 26; i++) e.parts.push({ shape: 'drop', x: x + (R() - 0.5) * 40, y: y - 10, vx: (R() - 0.5) * 7, vy: -2 - R() * 5, life: 30, max: 30, color: R() < 0.5 ? 0xffffff : 0x8af4ec, grav: 0.22 });   // the crash
+            g.fillStyle(0x8af4ec, 0.5 * Math.max(0, 1 - post * 1.5)); g.fillEllipse(x, y, 110 * (1 + post), 10);
+            g.fillStyle(0xffffff, 0.6 * Math.max(0, 1 - post * 2)); g.fillEllipse(x, y, 70 * (1 + post), 5);
+            vis = Math.min(1, post * 5);
           }
           break;
         }
