@@ -6,6 +6,9 @@ The root `AGENTS.md` (rules, stack, map) applies too. Keep this file up to date 
 ## THE DEVOTED
 `devoted_draw.py`: THE DEVOTED's four sludge-stage looks (repaints AERO's parts; sludge coverage `COVER`, smile per stage in `head()`, `wing()` = DROWNED's demon wing in the scarf slot, her own `idle_keys`) and her moves table `src/fighters/dvMoves.js`. Rerun it after changing the drawing. `--set murder` builds the MAD MURDER costume instead (`VARIANT`: `MURDER_SHIRT`, `BLOOD`, `bloody()`, `mask()`, a red blade) into `devoted/murder/`. `--set cartridge|bride|ember` build the other drawn costumes: `VARIANTS` (palettes, `facet` = flat low-poly shading, sludge ramp, wing colours, blade) applied by `apply_variant()`, plus their own touches in `vpaint()` (clothes patterns), `vhead()` (eyes, veil, halo, fire hair), `dress()` (skirt, bouquet, rose, rosary) and `knife()`.
 
+## TROPHY HALL paintings
+`hall_paintings.py` paints the ten pictures in the TROPHY HALL (-> `public/assets/hall/paintings.png`, 5x2 of 160x112, palette PNG; titles and stories in `PAINTINGS` in `src/data/trophyHall.js`): each `p_*` builds a background in code (Bayer-dithered sky bands `sky` / `bands`, `radial` glows, `ridge` silhouettes, rays, speed lines, impact `burst`s, sparkles) and stands the fighters in it from their real sheets (`strip` = a frame of an idle/run strip, `move` = a frame of a move, read from the generated `*Moves.js` tables; `put` trims and places by the feet, with a rim of the scene's light; `silhouette` for crowds/shadows), then `grade` (colour wash, contrast, vignette, grain). WHAT ONCE WAS uses `menu_idle_sheet.png` (its other sheets have no head). `--preview FILE` writes a 3x contact sheet.
+
 ## Shop costumes
 Files: `tools/sprites/shop_costumes.py` (+ helpers `costume_kit.py`)
 
