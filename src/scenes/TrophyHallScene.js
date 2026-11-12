@@ -28,8 +28,13 @@ const COL_X = 262;          // the columns' line
 const PED_X = 196;          // the pedestals' line
 const DOOR_Z = -40;         // the entrance (the doors swing open into the hall)
 const LEN = HALL.length;    // the far wall
-// a painting's canvas on the wall: half its width (along the hall), its top and bottom (160x112 pictures)
+// a painting's canvas on the wall: half its width (along the hall), its top and bottom, how many strips it's drawn in
+// (ordinary frames hold 160x112 pictures, the GREAT frames at the far end the 320x224 masterpieces)
 const CANVAS = { half: 78, top: -214, bot: -105, strips: 32 };
+const GREAT = { half: 190, top: -282, bot: -16, strips: 56 };
+const canvasOf = (slot) => (slot.big ? GREAT : CANVAS);
+// a masterpiece's animation: game frames per picture
+const ANIM = 9;
 // walking: how fast, how far, where you start
 const WALK = { speed: 7, accel: 0.12, start: -560, enter: 0, max: LEN - 900, look: 150 };
 // the arrival: doors open over `open` frames, then the camera glides in until `glide`
@@ -51,7 +56,10 @@ export class TrophyHallScene extends Phaser.Scene {
   constructor() { super('TrophyHall'); }
 
   /** Loads the paintings (only this screen uses them). */
-  preload() { this.load.spritesheet('hall_paintings', 'assets/hall/paintings.png', { frameWidth: 160, frameHeight: 112 }); }
+  preload() {
+    this.load.spritesheet('hall_paintings', 'assets/hall/paintings.png', { frameWidth: 160, frameHeight: 112 });
+    for (const P of PAINTINGS) if (P.big) this.load.spritesheet(P.sheet, 'assets/hall/master_' + P.id + '.png', { frameWidth: 320, frameHeight: 224 });
+  }
 
   /** Builds the hall, its lights and its words, and starts the doors opening. */
   create() {
@@ -61,7 +69,7 @@ export class TrophyHallScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x05030a);
     this.bg = this.add.graphics().setDepth(-30);
     // the 3D layers, back to front: the floor, the columns' reflections in it, the hall itself
-    const L = { fog: 0x0e0814, zNear: 500, zFar: 4200, fogMax: 0.78, f: 300, lift: 0, near: 70, sat: 1.15, edge: 0.08, light: [-0.25, 1, 0.45] };
+    const L = { fog: 0x0e0814, zNear: 500, zFar: 4700, fogMax: 0.78, f: 300, lift: 0, near: 70, sat: 1.15, edge: 0.08, light: [-0.25, 1, 0.45] };
     this.floorR = new Poly3D(this, [], { ...L, edge: 0.04 });
     this.reflR = new Poly3D(this, [], { ...L, edge: 0 });
     this.mainR = new Poly3D(this, [], L);                                                  // the room itself: walls, ceiling, frames, the far end
@@ -143,7 +151,7 @@ export class TrophyHallScene extends Phaser.Scene {
     }
     // ---- the picture frames on the walls (a dark canvas inside a deep gold frame; the paintings are drawn over the canvas)
     for (const sl of HALL_SLOTS.filter((q) => q.kind === 'frame')) {
-      const s = sl.side, x = s * (WALL - 2), z = sl.z, n = [-s, 0, 0], w = CANVAS.half + 16, y1 = CANVAS.top - 16, y2 = CANVAS.bot + 16;
+      const C = canvasOf(sl), s = sl.side, x = s * (WALL - 2), z = sl.z, n = [-s, 0, 0], w = C.half + 16, y1 = C.top - 16, y2 = C.bot + 16;
       M.faces.push(face([[x, y1, z - w], [x, y1, z + w], [x, y2, z + w], [x, y2, z - w]], n, P.gold, { bias: 200 }));
       M.faces.push(face([[x - s * 2, y1 + 10, z - w + 10], [x - s * 2, y1 + 10, z + w - 10], [x - s * 2, y2 - 10, z + w - 10], [x - s * 2, y2 - 10, z - w + 10]], n, P.goldD, { bias: 190 }));
       M.faces.push(face([[x - s * 3, y1 + 16, z - w + 16], [x - s * 3, y1 + 16, z + w - 16], [x - s * 3, y2 - 16, z + w - 16], [x - s * 3, y2 - 16, z - w + 16]], n, P.frameIn, { bias: 180 }));
@@ -195,8 +203,8 @@ export class TrophyHallScene extends Phaser.Scene {
       for (const [y1, y2] of [[-196, -60], [-40, 96]]) doors.push({ p: [[ax, y1, az - 0.5], [bx, y1, bz - 0.5], [bx, y2, bz - 0.5], [ax, y2, az - 0.5]], n: null, c: P.woodD, bias: -2 });
       const [gx, gz] = k(0.8); doors.push(...boxFaces(gx - 3, -20, gz - 4, gx + 3, 0, gz - 1, P.gold));
     }
-    for (let i = 0; i < 4; i++) {                                                         // chandeliers: a chain, a gold ring of candles, crystals
-      const z = 240 + i * 960, sw = Math.sin(this.t * 0.02 + i) * 6, y = -190;
+    for (let i = 0; i < 5; i++) {                                                         // chandeliers: a chain, a gold ring of candles, crystals
+      const z = 240 + i * 900, sw = Math.sin(this.t * 0.02 + i) * 6, y = -190;
       out.push(...boxFaces(-2 + sw * 0.3, CEIL + 26, z - 2, 2 + sw * 0.3, y, z + 2, P.goldD));
       out.push(...prismFaces(sw, y, y + 8, z, 46, 10, P.gold, P.gold));
       out.push(...blobFaces(sw, y + 22, z, 14, 20, 14, [0xd8f0ff, 0xa8d0f0, 0xffffff], i, null, 0.15));
@@ -233,14 +241,18 @@ export class TrophyHallScene extends Phaser.Scene {
     const b = this.beams; b.clear();
     const cone = (x, z, top, bot, w1, w2, col, a) => {
       const p1 = this.project(x - w1, top, z), p2 = this.project(x + w1, top, z), p3 = this.project(x + w2, bot, z), p4 = this.project(x - w2, bot, z);
-      if (!p1 || !p2 || !p3 || !p4 || z - this.camZ > 3400) return;
-      const fade = Math.max(0, 1 - (z - this.camZ) / 3400);
+      if (!p1 || !p2 || !p3 || !p4 || z - this.camZ > 3900) return;
+      const fade = Math.max(0, 1 - (z - this.camZ) / 3900);
       b.fillGradientStyle(col, col, col, col, a * fade * 0.3, a * fade * 0.3, a * fade, a * fade); b.fillPoints([p1, p2, p3, p4], true);
       const q = this.project(x, bot + 1, z); if (q) { b.fillStyle(col, a * fade * 0.8); b.fillEllipse(q.x, q.y, w2 * 2.4 * q.s, w2 * 0.6 * q.s); }
     };
     for (const sl of HALL_SLOTS) {
       if (sl.kind === 'pedestal') cone(sl.side * PED_X, sl.z, CEIL + 40, FLOOR - 64, 6, 26, 0xfff0c8, 0.16);
       if (sl.kind === 'plinth') cone(0, sl.z, CEIL + 40, FLOOR - 122, 10, 64, 0xffe8b0, 0.22);
+      if (sl.big) {                                                                     // a brass picture lamp washing light down a masterpiece
+        const q = this.project(sl.side * (WALL - 6), GREAT.top - 4, sl.z), fk = Math.max(0, 1 - (sl.z - this.camZ) / 4000);
+        if (q) for (let r = 0; r < 5; r++) { b.fillStyle(0xffe8b8, 0.045 * fk); b.fillEllipse(q.x, q.y + 30 * q.s, (300 - r * 50) * q.s * 0.6, (180 - r * 26) * q.s); }
+      }
     }
     if (tr) for (let i = 0; i < 5; i++) {                                                   // the trophy's gold glinting
       const a = this.t * 0.05 + i * 1.26, q = this.project(tr.slot.side * PED_X + Math.cos(a) * 16, FLOOR - 98 + Math.sin(a * 1.7) * 8, tr.slot.z + Math.sin(a) * 16);
@@ -250,10 +262,10 @@ export class TrophyHallScene extends Phaser.Scene {
     if (w) { for (let i = 0; i < 4; i++) { b.fillStyle([0xff6a8a, 0x6aa0ff, 0xffd870, 0xc08aff][i], 0.05); b.fillCircle(w.x + (i - 1.5) * 14 * w.s, w.y, (140 - i * 20) * w.s); } }
     const fl = this.project(0, FLOOR, LEN - 500);
     if (w && fl) { b.fillStyle(0xfff0d0, 0.05); b.fillTriangle(w.x - 90 * w.s, w.y, w.x + 90 * w.s, w.y, fl.x + 200 * fl.s, fl.y); b.fillTriangle(w.x - 90 * w.s, w.y, fl.x + 200 * fl.s, fl.y, fl.x - 200 * fl.s, fl.y); }
-    for (let i = 0; i < 4; i++) {
-      const z = 240 + i * 960, sw = Math.sin(this.t * 0.02 + i) * 6, c = this.project(sw, -200, z);
+    for (let i = 0; i < 5; i++) {
+      const z = 240 + i * 900, sw = Math.sin(this.t * 0.02 + i) * 6, c = this.project(sw, -200, z);
       if (!c) continue;
-      const fk = Math.max(0, 1 - (z - this.camZ) / 3600), flick = 0.85 + 0.15 * Math.sin(this.t * 0.3 + i * 2);
+      const fk = Math.max(0, 1 - (z - this.camZ) / 4000), flick = 0.85 + 0.15 * Math.sin(this.t * 0.3 + i * 2);
       for (let r = 0; r < 6; r++) { b.fillStyle(0xffd890, 0.035 * fk * flick); b.fillCircle(c.x, c.y, (120 - r * 18) * c.s); }   // (soft-edged: rings of faint light)
       for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, q = this.project(sw + Math.cos(a) * 44, -204, z + Math.sin(a) * 44); if (q) { b.fillStyle(0xffe070, 0.8 * fk); b.fillCircle(q.x, q.y, Math.max(1, 3 * q.s * flick)); } }
     }
@@ -287,36 +299,38 @@ export class TrophyHallScene extends Phaser.Scene {
     return out;
   }
 
-  /** Cuts every painting on show into thin vertical strips (one Image each), so it can be drawn on the wall in perspective. */
+  /** Cuts every painting on show into thin vertical strips (one Image each, a texture frame per strip and picture), so it can be drawn on the wall in perspective. */
   makePaintings() {
-    const tex = this.textures.get('hall_paintings'), N = CANVAS.strips, SW = 160 / N;
     for (const it of this.items) {
-      if (!it.painting) continue;
-      const f = it.painting.frame, fx = (f % 5) * 160, fy = Math.floor(f / 5) * 112;
-      it.imgs = [];
-      for (let k = 0; k < N; k++) {
-        const name = 'p' + f + '_' + k;
-        if (!tex.has(name)) tex.add(name, 0, fx + k * SW, fy, SW, 112);
-        it.imgs.push(this.add.image(0, 0, 'hall_paintings', name).setOrigin(0, 0).setDepth(-23.2).setVisible(false));
+      const P = it.painting;
+      if (!P) continue;
+      const key = P.big ? P.sheet : 'hall_paintings', tex = this.textures.get(key), pw = P.big ? 320 : 160, phh = P.big ? 224 : 112;
+      const N = canvasOf(it.slot).strips, SW = pw / N, pics = P.big ? P.frames : 1;
+      it.key = key; it.pics = pics; it.imgs = [];
+      for (let af = 0; af < pics; af++) {
+        const fx = P.big ? af * pw : (P.frame % 5) * pw, fy = P.big ? 0 : Math.floor(P.frame / 5) * phh;
+        for (let k = 0; k < N; k++) { const name = (P.big ? P.id : 'p' + P.frame) + '_' + af + '_' + k; if (!tex.has(name)) tex.add(name, 0, fx + k * SW, fy, SW, phh); }
       }
+      for (let k = 0; k < N; k++) it.imgs.push(this.add.image(0, 0, key, (P.big ? P.id : 'p' + P.frame) + '_0_' + k).setOrigin(0, 0).setDepth(-23.2).setVisible(false));
     }
   }
 
-  /** Draws each painting onto its canvas on the wall: every strip is a column of the picture at one distance down the hall. */
+  /** Draws each painting onto its canvas on the wall: every strip is a column of the picture at one distance down the hall; the masterpieces play their animation. */
   drawPaintings() {
-    const N = CANVAS.strips;
     for (const it of this.items) {
       if (!it.imgs) continue;
+      const C = canvasOf(it.slot), N = C.strips, P = it.painting, af = Math.floor(this.t / ANIM) % it.pics;
       const s = it.slot.side, x = s * (WALL - 5), z = it.slot.z, dz = z - this.camZ;
-      const fog = Math.max(0, Math.min(1, (dz - 500) / 3700)) * 0.78, v = Math.round(255 * (1 - fog)), tint = (v << 16) | (v << 8) | v;
+      const fog = Math.max(0, Math.min(1, (dz - 500) / 4200)) * 0.78, v = Math.round(255 * (1 - fog)), tint = (v << 16) | (v << 8) | v;
       for (let k = 0; k < N; k++) {
         const img = it.imgs[k], u0 = k / N, u1 = (k + 1) / N;
-        const z0 = s < 0 ? z - CANVAS.half + 2 * CANVAS.half * u0 : z + CANVAS.half - 2 * CANVAS.half * u0;
-        const z1 = s < 0 ? z - CANVAS.half + 2 * CANVAS.half * u1 : z + CANVAS.half - 2 * CANVAS.half * u1;
-        const a = this.project(x, CANVAS.top, z0), b = this.project(x, CANVAS.bot, z0), c = this.project(x, CANVAS.top, z1), d = this.project(x, CANVAS.bot, z1);
-        if (!a || !b || !c || !d || dz > 3900) { img.setVisible(false); continue; }
+        const z0 = s < 0 ? z - C.half + 2 * C.half * u0 : z + C.half - 2 * C.half * u0;
+        const z1 = s < 0 ? z - C.half + 2 * C.half * u1 : z + C.half - 2 * C.half * u1;
+        const a = this.project(x, C.top, z0), b = this.project(x, C.bot, z0), c = this.project(x, C.top, z1), d = this.project(x, C.bot, z1);
+        if (!a || !b || !c || !d || dz > 4400) { img.setVisible(false); continue; }
         const left = Math.min(a.x, c.x), w = Math.abs(c.x - a.x);
         if (left > VIEW_W || left + w < 0 || w < 0.02) { img.setVisible(false); continue; }
+        if (it.pics > 1) img.setFrame(P.id + '_' + af + '_' + k);
         img.setVisible(true).setPosition(left, (a.y + c.y) / 2).setDisplaySize(w + 0.6, ((b.y - a.y) + (d.y - c.y)) / 2).setFlipX(c.x < a.x).setTint(tint);
       }
     }
@@ -342,7 +356,7 @@ export class TrophyHallScene extends Phaser.Scene {
     this.inspect = { i, t: 0 }; const it = this.items[i], I = this.insp;
     for (const o of [I.bg, I.fx, I.title, I.text, I.hint, I.R.g]) o.setVisible(true);
     I.img.setVisible(!!it.painting);
-    if (it.painting) I.img.setTexture('hall_paintings', it.painting.frame).setScale(2.25);
+    if (it.painting) I.img.setTexture(it.painting.big ? it.painting.sheet : 'hall_paintings', it.painting.big ? 0 : it.painting.frame).setScale(it.painting.big ? 1.1 : 2.25);
     I.title.setText((it.painting || it.trophy).title); I.text.setText((it.painting || it.trophy).text);
     sfx('menu', 0.5, 0.8);
   }
@@ -361,7 +375,8 @@ export class TrophyHallScene extends Phaser.Scene {
     g.clear(); g.fillStyle(0x07040c, 0.94); g.fillRect(0, 0, VIEW_W, VIEW_H);
     I.fx.clear();
     if (it.painting) {
-      const w = 360, h = 252, x = VIEW_W / 2 - w / 2, y = 168 - h / 2;
+      const big = it.painting.big, w = big ? 352 : 360, h = big ? 246 : 252, x = VIEW_W / 2 - w / 2, y = 168 - h / 2;
+      if (big) I.img.setFrame(Math.floor(t / ANIM) % it.painting.frames);                    // (a masterpiece moves)
       g.fillStyle(0x7a4a10, 1); g.fillRect(x - 12, y - 12, w + 24, h + 24);                  // the frame: dark gold, bright gold, a bevel
       g.fillStyle(0xe0b040, 1); g.fillRect(x - 9, y - 9, w + 18, h + 18);
       g.fillStyle(0xfff0a0, 1); g.fillRect(x - 9, y - 9, w + 18, 2); g.fillRect(x - 9, y - 9, 2, h + 18);

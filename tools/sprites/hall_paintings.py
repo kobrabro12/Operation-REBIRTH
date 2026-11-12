@@ -8,7 +8,7 @@ sheets, so the fighters look exactly like themselves) over backgrounds painted i
 colour grade per picture and a soft vignette. Fighters get a 1 px rim of the scene's light so they sit in the
 picture instead of on it.
 
-Run:  python3 tools/sprites/hall_paintings.py [--preview FILE]   -> public/assets/hall/paintings.png (5 x 2 sheet)
+Run:  python3 tools/sprites/hall_paintings.py [--preview FILE]   -> public/assets/hall/paintings.png (5 to a row)
 """
 import os, re, sys, json, math
 import numpy as np
@@ -418,12 +418,212 @@ def p_surf():
     d = draw(cv); d.rectangle((140, 100, 148, 104), fill=hexc(0xe84a2a)); d.point((141, 99), fill=(0, 0, 0)); d.point((146, 99), fill=(0, 0, 0))   # the crab
     return grade(cv, 0xffa860, 0.06, vig=0.3)
 
+SHOP = os.path.join(ROOT, 'public/assets/shop')
+def shop(name, i=0, fw=64, fh=64):
+    s = Image.open(os.path.join(SHOP, name)).convert('RGBA'); n = max(1, s.width // fw); i %= n
+    return s.crop((i * fw, 0, i * fw + fw, fh))
 
-PAINTINGS = [p_gates, p_star, p_tea, p_burned, p_encore, p_purge, p_level0, p_birthday, p_listens, p_surf]
+def demon(cv, x, y, kind, col=0x060508, eye=0xd8b0ff, s=1.0):
+    """One of THE DEVOTED's sludge demons, drawn small: glutton (a fat maw), wraith (a hooded drape), weeper (an eye-ball)."""
+    d = draw(cv); C = hexc(col); E = hexc(eye)
+    if kind == 'glutton':
+        d.ellipse((x - 9 * s, y - 14 * s, x + 9 * s, y), fill=C); d.rectangle((x - 6 * s, y - 6 * s, x + 6 * s, y - 3 * s), fill=hexc(0x5a0a1a))
+        for k in range(-5, 6, 3): d.polygon([(x + k * s, y - 6 * s), (x + (k + 1.5) * s, y - 6 * s), (x + (k + 0.7) * s, y - 4 * s)], fill=(240, 236, 224))
+        d.rectangle((x - 4 * s, y - 11 * s, x - 3 * s, y - 10 * s), fill=E); d.rectangle((x + 3 * s, y - 11 * s, x + 4 * s, y - 10 * s), fill=E)
+    elif kind == 'wraith':
+        d.polygon([(x, y - 22 * s), (x + 8 * s, y - 12 * s), (x + 10 * s, y), (x + 4 * s, y - 3 * s), (x, y), (x - 4 * s, y - 3 * s), (x - 10 * s, y), (x - 8 * s, y - 12 * s)], fill=C)
+        d.ellipse((x - 4 * s, y - 18 * s, x + 4 * s, y - 11 * s), fill=(232, 226, 236)); d.point((x - 2 * s, y - 15 * s), fill=(0, 0, 0)); d.point((x + 2 * s, y - 15 * s), fill=(0, 0, 0))
+    else:
+        d.ellipse((x - 8 * s, y - 16 * s, x + 8 * s, y), fill=C)
+        for k in range(8): a = k * 0.785; d.line([(x + math.cos(a) * 8 * s, y - 8 * s + math.sin(a) * 8 * s), (x + math.cos(a) * 11 * s, y - 8 * s + math.sin(a) * 11 * s)], fill=C)
+        d.ellipse((x - 4 * s, y - 12 * s, x + 4 * s, y - 4 * s), fill=(240, 236, 224)); d.ellipse((x - 2 * s, y - 10 * s, x + 2 * s, y - 6 * s), fill=E)
+        d.line([(x - 1, y - 4 * s), (x - 1, y + 3 * s)], fill=hexc(0x8a6ad8))
+
+def p_shop():
+    """THE BELL: three rings and the shopkeeper's screen lights up. Everyone wants the GOLDEN capsule."""
+    img = sky(0x2a1a14, 0x4a2a1a, 0x5a3420); cv = to_im(img); d = draw(cv)
+    for y in range(10, 72, 20):                                                    # shelves of wares
+        d.rectangle((0, y + 14, W, y + 16), fill=hexc(0x6a4020))
+        for x in range(6, W, 14): d.rectangle((x, y + 4, x + 8, y + 14), fill=hexc([0x3a8aff, 0xffd040, 0xff3a5a, 0x5aff8a, 0xb04aff][(x + y) % 5]))
+    d.rectangle((44, 66, 116, 112), fill=hexc(0x6a3a1a)); d.rectangle((44, 66, 116, 70), fill=hexc(0x8a5a2a))   # the desk
+    d.rectangle((56, 26, 104, 66), fill=hexc(0x2a2a2a)); d.rectangle((60, 30, 100, 60), fill=hexc(0x0a1a10))   # the CRT
+    face = trim(shop('face_happy.png', 0)).resize((34, 26), Image.NEAREST); cv.alpha_composite(face, (63, 32))
+    d = draw(cv); d.rectangle((58, 62, 66, 64), fill=hexc(0x1a1a1a)); d.ellipse((96, 61, 102, 65), fill=hexc(0xe83a3a))
+    d.polygon([(110, 60), (116, 60), (118, 66), (108, 66)], fill=hexc(0xffd040))   # the bell
+    burst(cv, 113, 56, 6, 0xffffff, None, 6, 180)
+    put(cv, strip('nu/idle_sheet.png', 2), 26, 112, side=1, light=hexc(0xffd890))
+    put(cv, strip('aero/idle_sheet.png', 4), 136, 112, flip=True, light=hexc(0xffd890))
+    put(cv, strip('soul-summoner/idle_sheet.png', 1), 150, 112, flip=True, shade=((20, 10, 6), 0.35))
+    d = draw(cv)
+    for i in range(14): x, y = 30 + i * 8, 20 + (i * 37) % 30; d.ellipse((x, y, x + 4, y + 4), fill=hexc(0xffd040)); d.point((x + 1, y + 1), fill=(255, 255, 255))   # coins flying
+    return grade(cv, 0xffb060, 0.08, vig=0.45)
+
+def p_spar():
+    """MORNING DRILLS: NU swears he can beat Lacy before breakfast. He cannot."""
+    img = sky(0xffb07a, 0xffd8a0, 0xfff0d0); img = radial(30, 70, 22, [0xffffff, 0xfff0b0], img, 1.0)
+    img = ridge(img, 74, 3, 0x9a6a8a, 4, step=3); cv = to_im(img); d = draw(cv)
+    d.rectangle((0, 90, W, H), fill=hexc(0xc89a6a))
+    for x in range(0, W, 16): d.line([(x, 90), (x - 8, H)], fill=hexc(0xa87a4a))   # the dojo boards
+    d.rectangle((0, 88, W, 90), fill=hexc(0x6a3a1a))
+    for x in (6, 150): d.rectangle((x, 20, x + 4, 90), fill=hexc(0x6a2a1a)); d.rectangle((x - 3, 20, x + 7, 24), fill=hexc(0x3a1a0a))
+    d.rectangle((0, 14, W, 18), fill=hexc(0x3a1a0a))
+    put(cv, move('nu', 'fsmash', 0.5), 62, 92, light=(255, 240, 210), side=1)
+    put(cv, move('hk', 'ftilt', 0.45), 104, 92, flip=True, light=(255, 240, 210))
+    burst(cv, 82, 64, 9, 0xffffff, 0xffe070, 7); speed(cv, 82, 64, 0xffffff, 20, 90, 18, 11)
+    d = draw(cv); d.text((52, 30), '?!', fill=hexc(0xe83a3a))
+    return grade(cv, 0xffc890, 0.06, vig=0.25)
+
+def p_demons():
+    """THE PAGES TURN: THE DEVOTED reads aloud from the shadow book, and they come when they are called."""
+    img = sky(0x060408, 0x140a1a, 0x24122a); cv = to_im(img); d = draw(cv)
+    d.rectangle((0, 94, W, H), fill=hexc(0x0a080c))
+    glow(cv, 80, 58, 34, 0x7a2ad8, 120)
+    put(cv, move('dv', 'demonpick', 0.3), 80, 98, light=hexc(0xc89aff), side=1)
+    d = draw(cv)
+    d.polygon([(84, 58), (98, 54), (98, 64), (84, 68)], fill=hexc(0x1a1020)); d.line([(91, 56), (91, 66)], fill=hexc(0x8a5ad8))   # the book, glowing script
+    for k in range(4): d.line([(86, 59 + k * 2), (90, 58 + k * 2)], fill=hexc(0xc89aff))
+    demon(cv, 30, 98, 'glutton', s=1.2); demon(cv, 128, 96, 'wraith', s=1.2); demon(cv, 50, 40, 'weeper', s=1.0); demon(cv, 120, 44, 'weeper', s=0.8)
+    for i in range(30): x, y = int(rng.integers(0, W)), int(rng.integers(0, 90)); cv.putpixel((x, y), hexc([0x7a2ad8, 0xc89aff, 0x3a1a4a][i % 3]) + (255,))
+    return grade(cv, 0x4a2a6a, 0.1, vig=0.6)
+
+def p_fountain():
+    """WISHES IN THE WATER: AERO and NU at the Starlight Fountain after a match. NU wished for a record deal. AERO wished for NU to stop talking."""
+    img = sky(0x0a0a2a, 0x2a1a5a, 0x6a3a8a, 0xb07ab0); img = stars(img, 60, 21, ymax=0.5); cv = to_im(img); d = draw(cv)
+    d.ellipse((110, 8, 128, 26), fill=hexc(0xf0e8ff)); glow(cv, 119, 17, 16, 0xd0c0ff, 60); d = draw(cv)
+    d.rectangle((0, 86, W, H), fill=hexc(0xd8d0e8)); d.rectangle((0, 86, W, 88), fill=hexc(0xffffff))
+    d.ellipse((40, 66, 120, 92), fill=hexc(0xb8b0d0)); d.ellipse((46, 68, 114, 86), fill=hexc(0x4a8ad8))   # the fountain
+    d.rectangle((76, 38, 84, 74), fill=hexc(0xd8d0e8)); d.ellipse((62, 34, 98, 44), fill=hexc(0xb8b0d0)); d.ellipse((66, 35, 94, 41), fill=hexc(0x6aaaf0))
+    for i in range(10):
+        a = -math.pi / 2 + (i - 4.5) * 0.25
+        for t in range(14): x, y = 80 + math.cos(a) * t * 2.4, 34 + math.sin(a) * t * 2 + t * t * 0.18; d.point((x, y), fill=hexc(0xc8e8ff))
+    put(cv, strip('aero/idle_sheet.png', 3), 34, 98, light=hexc(0xc8b0ff), side=1)
+    put(cv, strip('nu/idle_sheet.png', 5), 128, 98, flip=True, light=hexc(0xc8b0ff))
+    for x, y in ((60, 80), (96, 78), (80, 84)): d.ellipse((x, y, x + 3, y + 2), fill=hexc(0xffd040))   # coins in the water
+    for i in range(12): sparkle(cv, int(rng.integers(20, 140)), int(rng.integers(20, 80)), 0xe0d0ff, 1)
+    return grade(cv, 0x8a6ad8, 0.08, vig=0.4)
+
+def p_willow():
+    """DON'T ANSWER IT: 13 Willow Lane, 1996. The phone on the porch is ringing. Rosemary is going to answer it."""
+    img = sky(0x04060c, 0x0c1424, 0x1a2434); cv = to_im(img); d = draw(cv)
+    for i in range(3): d.line([(20 + i * 50, 0), (28 + i * 50, 20), (22 + i * 50, 30)], fill=hexc(0xd0e0ff) if i == 1 else hexc(0x2a3448))   # lightning
+    glow(cv, 78, 10, 40, 0xd0e0ff, 50); d = draw(cv)
+    d.polygon([(30, 50), (80, 18), (130, 50)], fill=hexc(0x2a2a30)); d.rectangle((36, 50, 124, 100), fill=hexc(0x6a6a70))   # the house
+    for x in range(36, 124, 4): d.line([(x, 50), (x, 100)], fill=hexc(0x5a5a60))
+    d.rectangle((48, 58, 62, 72), fill=hexc(0xffd890)); d.rectangle((98, 58, 112, 72), fill=hexc(0x1a1a20))
+    d.ellipse((102, 60, 108, 66), fill=hexc(0xe8e0d0)); d.point((104, 62), fill=(0, 0, 0)); d.point((106, 62), fill=(0, 0, 0))   # someone in the window
+    d.rectangle((72, 78, 86, 100), fill=hexc(0x2a1a10)); d.rectangle((30, 76, 130, 78), fill=hexc(0x3a3a40))
+    d.rectangle((0, 100, W, H), fill=hexc(0x1a2a14))
+    d.rectangle((92, 84, 98, 90), fill=hexc(0xe83a3a)); d.text((99, 78), ')))', fill=(255, 255, 255))   # the ringing phone
+    put(cv, strip('last-seen/idle_sheet.png', 4), 112, 104, flip=True, light=hexc(0xd0e0ff), side=-1)
+    arr = np.array(cv)
+    for _ in range(220): x, y = int(rng.integers(0, W)), int(rng.integers(0, H - 3)); arr[y:y + 3, x, :3] = (120, 140, 180)   # rain
+    return grade(Image.fromarray(arr), 0x3a5a8a, 0.12, vig=0.55)
+
+def p_desert():
+    """ROOF RIDE: Soul Summoner and Mr Wake settle it on the roof of a speeding motorhome. The DEA would like a word."""
+    img = sky(0x3a8ad8, 0xffb87a, 0xffe0a0); img = ridge(img, 70, 6, 0xc86a3a, 13, step=4); cv = to_im(img); d = draw(cv)
+    d.rectangle((0, 84, W, H), fill=hexc(0xe0b070)); d.rectangle((0, 96, W, 104), fill=hexc(0x3a3a3a))
+    for x in range(0, W, 16): d.rectangle((x, 99, x + 8, 100), fill=hexc(0xffe070))
+    d.rectangle((28, 62, 140, 96), fill=hexc(0xf0e8d0)); d.rectangle((28, 72, 140, 76), fill=hexc(0x8a4a2a)); d.rectangle((28, 78, 140, 80), fill=hexc(0xd8a040))   # the motorhome
+    d.rectangle((126, 64, 140, 74), fill=hexc(0x6ab0e0)); d.ellipse((40, 90, 54, 104), fill=hexc(0x1a1a1a)); d.ellipse((112, 90, 126, 104), fill=hexc(0x1a1a1a))
+    for x in range(0, 28, 4): d.line([(x, 70 + x % 8), (x + 3, 70 + x % 8)], fill=hexc(0xd8c8a0))   # dust
+    put(cv, move('ss', 'fsmash', 0.5), 64, 62, light=(255, 230, 190), side=1)
+    put(cv, move('wake', 'fsmash', 0.45), 108, 62, flip=True, light=(255, 230, 190))
+    burst(cv, 86, 40, 8, 0xffffff, 0x7ad0ff, 7)
+    d = draw(cv); d.ellipse((128, 10, 156, 22), fill=hexc(0x1a2a4a)); d.line([(124, 8), (160, 8)], fill=hexc(0x3a3a3a)); d.rectangle((150, 14, 158, 16), fill=hexc(0x1a2a4a))   # the helicopter
+    return grade(cv, 0xffb070, 0.06, vig=0.3)
+
+def p_winter():
+    """STALINGRAD, 1942: Rosemary in her greatcoat, alone in the ruins. Snow on her shoulders. She doesn't feel the cold any more."""
+    img = sky(0x4a5468, 0x8a94a8, 0xc8ccd8); cv = to_im(img); d = draw(cv)
+    for x, w, h in ((0, 30, 50), (34, 24, 64), (62, 18, 40), (104, 30, 58), (138, 22, 46)):   # the ruins
+        d.rectangle((x, 112 - h, x + w, 112), fill=hexc(0x3a3a44))
+        for k in range(3): d.rectangle((x + 4 + k * 8, 112 - h + 8, x + 8 + k * 8, 112 - h + 14), fill=hexc(0x1a1a20))
+        d.polygon([(x, 112 - h), (x + w * 0.4, 112 - h - 8), (x + w, 112 - h + 4)], fill=hexc(0x3a3a44))
+    d.rectangle((0, 96, W, H), fill=hexc(0xe8ecf4))
+    put(cv, strip('last-seen/soviet/idle_sheet.png', 6), 80, 100, light=(240, 244, 255), side=-1)
+    d = draw(cv)
+    for i in range(140): x, y = int(rng.integers(0, W)), int(rng.integers(0, H)); d.point((x, y), fill=(255, 255, 255)); d.point((x + 1, y), fill=(220, 226, 240)) if i % 3 == 0 else None
+    return grade(cv, 0x8a9ab8, 0.12, vig=0.5)
+
+def p_throne():
+    """THE KING WHO HAS NO FACE: Lacy stands before the Masked Throne. Every mask on its crown turns to look at her."""
+    img = sky(0x040306, 0x0e0a14, 0x1a1420); cv = to_im(img); d = draw(cv)
+    rays(cv, 80, 0, 1, 0xd8c8a0, 50, start=math.pi / 2, length=130)
+    d = draw(cv)
+    d.polygon([(52, 112), (60, 40), (100, 40), (108, 112)], fill=hexc(0x3a3a44))   # the stone king
+    d.ellipse((66, 18, 94, 46), fill=hexc(0x4a4a54)); d.rectangle((58, 40, 102, 48), fill=hexc(0x4a4a54))
+    crown = trim(Image.open(os.path.join(SHOP, 'crown.png')).convert('RGBA')); crown = crown.resize((crown.width // 2, crown.height // 2), Image.NEAREST)
+    cv.alpha_composite(crown, (80 - crown.width // 2, 6))
+    d = draw(cv); d.rectangle((0, 100, W, H), fill=hexc(0x2a2a30))
+    for x in range(0, W, 12): d.line([(x, 100), (x, H)], fill=hexc(0x1a1a20))
+    glow(cv, 80, 92, 18, 0xffd890, 70)
+    put(cv, strip('hero-knight/idle_sheet.png', 5, 150, 90), 80, 104, light=hexc(0xffe0a0), side=1)
+    return grade(cv, 0x6a5a4a, 0.08, vig=0.65)
+
+def p_fractured():
+    """FRACTURED: Soul Summoner on the galaxy shard, the last light for a thousand miles. The stars here are cracks."""
+    img = sky(0x02020a, 0x0a0820, 0x1a0a3a); img = stars(img, 120, 33, cols=(0xffffff, 0xc8a8ff, 0x8ad8ff), ymax=1.0)
+    img = radial(120, 30, 40, [0x8a4ad8, 0x3a1a6a], img, 0.6, 0.6); cv = to_im(img)
+    frag = trim(Image.open(os.path.join(SHOP, 'fragment.png')).convert('RGBA')); frag = frag.resize((frag.width * 2, frag.height * 2), Image.NEAREST)
+    cv.alpha_composite(frag, (80 - frag.width // 2, 62))
+    d = draw(cv)
+    for i in range(6): x = 30 + i * 22; d.line([(x, 0), (x + 10, 30)], fill=hexc(0xe0d0ff)); d.line([(x + 10, 30), (x + 6, 40)], fill=hexc(0xe0d0ff))   # cracks in the sky
+    glow(cv, 80, 52, 20, 0x7ad0ff, 110)
+    put(cv, strip('soul-summoner/idle_sheet.png', 6), 80, 70, light=hexc(0xb8e8ff), side=1)
+    return grade(cv, 0x4a3a9a, 0.08, vig=0.5)
+
+def p_baseplate():
+    """BASEPLATE 2012: AERO built a house out of bricks. WHAT ONCE WAS is standing inside it, and nobody let it in."""
+    img = sky(0x5aa8ff, 0x9ad0ff, 0xd8f0ff); cv = to_im(img); d = draw(cv)
+    d.rectangle((0, 90, W, H), fill=hexc(0x3aa83a))
+    for x in range(0, W, 6):
+        for y in range(90, H, 6): d.ellipse((x + 1, y + 1, x + 4, y + 3), fill=hexc(0x4ac84a))   # studs
+    for bx, by, c in ((90, 78, 0xe83a3a), (102, 78, 0xe83a3a), (114, 78, 0xe83a3a), (90, 66, 0xffd040), (114, 66, 0xffd040), (90, 54, 0x3a8aff), (102, 54, 0x3a8aff), (114, 54, 0x3a8aff)):
+        d.rectangle((bx, by, bx + 11, by + 11), fill=hexc(c), outline=hexc(0x1a1a1a)); d.rectangle((bx + 3, by - 2, bx + 8, by), fill=hexc(c))
+    d.rectangle((102, 66, 113, 77), fill=hexc(0x2a2a2a))
+    put(cv, strip('what-once-was/menu_idle_sheet.png', 2), 108, 80, shade=((0, 0, 0), 0.2))
+    put(cv, strip('aero/idle_sheet.png', 8), 50, 94, light=(255, 255, 255), side=1)
+    d = draw(cv); d.rectangle((24, 30, 64, 44), fill=(255, 255, 255), outline=hexc(0x3a3a3a)); d.text((27, 33), 'nice', fill=hexc(0x2a2a2a))
+    d.ellipse((132, 20, 152, 30), fill=(255, 255, 255)); d.ellipse((20, 10, 44, 20), fill=(255, 255, 255))
+    return grade(cv, 0xd0f0ff, 0.04, vig=0.2)
+
+def p_photo():
+    """PICTURE DAY: everyone, smile! WHAT ONCE WAS's screen says :) - THE DEVOTED's glutton ate the photographer's sandwich."""
+    img = sky(0x3a2a5a, 0x6a4a8a, 0x8a6aa8); cv = to_im(img); d = draw(cv)
+    d.rectangle((0, 92, W, H), fill=hexc(0x4a3a5a))
+    for i, (pth, f, fw, fh, x, fl) in enumerate((
+        ('hero-knight/idle_sheet.png', 2, 150, 90, 18, False), ('soul-summoner/idle_sheet.png', 4, 64, 64, 38, False), ('mr-wake/idle_sheet.png', 1, 64, 64, 58, False),
+        ('nu/idle_sheet.png', 6, 64, 64, 78, False), ('aero/idle_sheet.png', 2, 64, 64, 98, True), ('last-seen/idle_sheet.png', 0, 64, 64, 116, True),
+        ('what-once-was/menu_idle_sheet.png', 3, 64, 64, 134, True), ('devoted/idle_sheet.png', 4, 64, 64, 150, True))):
+        put(cv, strip(pth, f, fw, fh), x, 100 - (i % 2) * 3, flip=fl, light=(255, 255, 255), side=1)
+    demon(cv, 150, 104, 'glutton', s=0.8)
+    d = draw(cv); d.rectangle((146, 96, 152, 99), fill=hexc(0xf0d090))
+    d.rectangle((126, 50, 138, 58), fill=hexc(0x2a2a2a)); d.text((127, 49), ':)', fill=hexc(0x5aff8a))
+    ov = Image.new('RGBA', cv.size, (255, 255, 255, 60)); cv.alpha_composite(ov)   # the flash
+    glow(cv, 80, 10, 50, 0xffffff, 90)
+    return grade(cv, 0xffffff, 0.04, vig=0.35)
+
+def p_ascend():
+    """FULL AERO: the fishbowl cracks, the light pours out, and a king floats up with a golden spear. Everyone covers their eyes."""
+    img = sky(0x1a2a6a, 0x5a7ad8, 0xc8d8ff); img = radial(80, 40, 50, [0xffffff, 0xfff6c8, 0xffd870], img, 1.0); cv = to_im(img)
+    rays(cv, 80, 40, 18, 0xfff0b0, 50, start=0.05)
+    glow(cv, 80, 44, 30, 0xffffff, 140)
+    put(cv, strip('aero/king/idle_sheet.png', 4), 80, 74, light=(255, 255, 220), side=1)
+    d = draw(cv); d.rectangle((0, 96, W, H), fill=hexc(0x4a5a8a))
+    for i, (pth, f, fw, fh, x, fl) in enumerate((('soul-summoner/idle_sheet.png', 7, 64, 64, 22, False), ('mr-wake/idle_sheet.png', 3, 64, 64, 46, False),
+                                                  ('hero-knight/idle_sheet.png', 6, 150, 90, 116, True), ('nu/idle_sheet.png', 1, 64, 64, 140, True))):
+        put(cv, strip(pth, f, fw, fh), x, 104, flip=fl, shade=((255, 240, 200), 0.25), light=(255, 255, 230), side=1 if x < 80 else -1)
+    for i in range(16): sparkle(cv, int(rng.integers(30, 130)), int(rng.integers(10, 80)), 0xffffff, 2)
+    return grade(cv, 0xffe8a0, 0.06, vig=0.3)
+
+
+PAINTINGS = [p_gates, p_star, p_tea, p_burned, p_encore, p_purge, p_level0, p_birthday, p_listens, p_surf,
+             p_shop, p_spar, p_demons, p_fountain, p_willow, p_desert, p_winter, p_throne, p_fractured, p_baseplate, p_photo, p_ascend]
 
 
 def build(preview=None):
-    out = Image.new('RGBA', (W * 5, H * 2))
+    out = Image.new('RGBA', (W * 5, H * ((len(PAINTINGS) + 4) // 5)))
     for i, fn in enumerate(PAINTINGS):
         im = fn().convert('RGB').convert('RGBA')
         out.paste(im, ((i % 5) * W, (i // 5) * H))

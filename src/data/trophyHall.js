@@ -4,20 +4,25 @@
 //   kind: 'pedestal' (a trophy or a small statue), 'frame' (a painting on the wall), 'plinth' (the one big statue)
 //   side: -1 left wall / 1 right wall / 0 the middle; z: how far down the hall (px)
 
-// how long the hall is, and the spacing of its bays (a column every BAY px down each side)
-export const HALL = { length: 3600, bay: 480, bays: 7 };
+// how long the hall is, and the spacing of its bays (a column every BAY px down each side); the last `great` bays
+// hold one GREAT frame a side (the masterpieces) instead of two ordinary ones
+export const HALL = { length: 4080, bay: 480, bays: 8, great: 2 };
 
-/** Every slot in the hall, built from its layout: a pedestal and a picture frame per bay on each side, and the plinth. */
+/** Every slot in the hall, built from its layout: per bay and side a pedestal and two frames (a / b) - or one great frame in the last bays - and the plinth. */
 export const HALL_SLOTS = [
-  ...[-1, 1].flatMap((side) => Array.from({ length: HALL.bays }, (_, i) => [
-    { id: `pedestal-${side < 0 ? 'l' : 'r'}${i + 1}`, kind: 'pedestal', side, z: 240 + i * HALL.bay },
-    { id: `frame-${side < 0 ? 'l' : 'r'}${i + 1}`, kind: 'frame', side, z: 240 + i * HALL.bay },
-  ]).flat()),
+  ...[-1, 1].flatMap((side) => Array.from({ length: HALL.bays }, (_, i) => {
+    const s = side < 0 ? 'l' : 'r', z = 240 + i * HALL.bay;
+    const frames = i >= HALL.bays - HALL.great ? [{ id: `great-${s}${i + 1}`, kind: 'frame', big: true, side, z }]
+      : [{ id: `frame-${s}${i + 1}a`, kind: 'frame', side, z: z - 112 }, { id: `frame-${s}${i + 1}b`, kind: 'frame', side, z: z + 112 }];
+    return [{ id: `pedestal-${s}${i + 1}`, kind: 'pedestal', side, z }, ...frames];
+  }).flat()),
   { id: 'plinth', kind: 'plinth', side: 0, z: HALL.length - 260 },
 ];
 
 // THE PAINTINGS (public/assets/hall/paintings.png, 160x112 each, 5 to a row - tools/sprites/hall_paintings.py):
 // the fighters together and moments from their lore. frame = its picture on the sheet.
+// The MASTERPIECES (`big`: 320x224, animated - `sheet` hall_master_<id> with `frames` pictures in a row,
+// tools/sprites/hall_masterpieces.py) hang in the great frames at the far end.
 export const PAINTINGS = [
   { id: 'gates', frame: 0, title: 'GATES OF THE SANCTUM', text: 'He died holding these gates. The souls of every friend who fell beside him rose with him - and they are still holding them.' },
   { id: 'star', frame: 1, title: 'THE NIGHT THE STAR FELL', text: 'A purple star fell into the black water under Gravemoon Bridge. The fisherman who saw what climbed out says it tipped its hat to him.' },
@@ -29,6 +34,21 @@ export const PAINTINGS = [
   { id: 'birthday', frame: 7, title: 'HAPPY BIRTHDAY, ROSEMARY', text: 'The old mascot remembered her birthday. It brought a cake. Make a wish, Rosemary. Do not look at its eyes.' },
   { id: 'listens', frame: 8, title: 'SHE LISTENS', text: 'She kneels at her dying tree and prays. Something enormous kneels in the dark behind her, and it is listening too.' },
   { id: 'surf', frame: 9, title: "SURF'S UP", text: 'NU caught the biggest wave of the summer. AERO floated past and waved. The crab was not impressed.' },
+  { id: 'shop', frame: 10, title: 'THE BELL', text: 'Ring three times and the shopkeeper lights up. Everybody wants the golden capsule. Nobody has ever got the golden capsule.' },
+  { id: 'spar', frame: 11, title: 'MORNING DRILLS', text: 'NU swears he can beat Lacy before breakfast. He has said this every morning for a year. Lacy has never missed breakfast.' },
+  { id: 'demons', frame: 12, title: 'THE PAGES TURN', text: 'She reads aloud from the book of shadow sludge, and they come when they are called. They always come.' },
+  { id: 'fountain', frame: 13, title: 'WISHES IN THE WATER', text: 'NU wished for a record deal. AERO wished for NU to stop talking about the record deal. Only one wish came true.' },
+  { id: 'willow', frame: 14, title: "DON'T ANSWER IT", text: '13 Willow Lane, 1996. The phone on the porch has been ringing all night. Someone is watching from the upstairs window.' },
+  { id: 'desert', frame: 15, title: 'ROOF RIDE', text: 'Soul Summoner and Mr Wake settle it on the roof of a speeding motorhome. Somewhere behind them, a helicopter would like a word.' },
+  { id: 'winter', frame: 16, title: 'STALINGRAD, 1942', text: "Rosemary in a greatcoat, alone in the ruins, snow on her shoulders. She stopped feeling the cold a long time ago." },
+  { id: 'throne', frame: 17, title: 'THE KING WHO HAS NO FACE', text: 'Lacy stands before the Masked Throne. The king has no face. Every mask on its crown turns to look at her.' },
+  { id: 'fractured', frame: 18, title: 'FRACTURED', text: 'A galaxy shard, cracked off something enormous. Soul Summoner keeps watch on it. The stars out here are not stars. They are cracks.' },
+  { id: 'baseplate', frame: 19, title: 'BASEPLATE 2012', text: 'AERO built a little house out of bricks. WHAT ONCE WAS is standing inside it. Nobody let it in. Nobody built a door.' },
+  { id: 'photo', frame: 20, title: 'PICTURE DAY', text: "Everybody smile! The glutton ate the photographer's sandwich, so this is the only picture there is." },
+  { id: 'ascend', frame: 21, title: 'FULL AERO', text: 'The fishbowl cracks, the light pours out, and a king floats up with a golden spear. Everyone covers their eyes. Except NU.' },
+  { id: 'clash', big: true, sheet: 'hall_master_clash', frames: 8, title: 'THE CLASH AT SKY SANCTUM', text: "A MASTERPIECE. The whole roster, one sunset, one fight for the sanctum: fire meets water, Lacy dives in, NU hits the chord, and FULL AERO shines over all of it while the souls of the fallen circle the dome." },
+  { id: 'feast', big: true, sheet: 'hall_master_feast', frames: 8, title: 'THE FEAST OF FIGHTERS', text: "A MASTERPIECE. Once a year they put down their weapons (mostly) and eat. Soul Summoner makes the toast, Mr Wake pours the tea, NU won't stop playing, and the glutton is going for the roast again." },
+  { id: 'drowned', big: true, sheet: 'hall_master_drowned', frames: 8, title: 'THE DROWNED HOUR', text: "A MASTERPIECE. The storm breaks over a sea of sludge. THE DEVOTED rises, drowned, with her demons - and what she will become rises behind her. On the last cliff, two stand their ground. Mr Wake holds back the tide." },
 ];
 
 // THE TROPHIES: drawn in 3D on their pedestals by the scene (`model` = which one: TrophyHallScene.trophyFaces)
@@ -39,7 +59,11 @@ export const TROPHIES = [
 // slot id -> what's displayed there ({ painting } or { trophy } id)
 export const DISPLAY = {
   'pedestal-l1': { trophy: 'you-did-it' },
-  'frame-l1': { painting: 'gates' }, 'frame-r1': { painting: 'star' }, 'frame-l2': { painting: 'tea' }, 'frame-r2': { painting: 'burned' },
-  'frame-l3': { painting: 'encore' }, 'frame-r3': { painting: 'purge' }, 'frame-l4': { painting: 'level0' }, 'frame-r4': { painting: 'birthday' },
-  'frame-l5': { painting: 'listens' }, 'frame-r5': { painting: 'surf' },
+  'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
+  'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
+  'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },
+  'frame-l4a': { painting: 'listens' }, 'frame-l4b': { painting: 'demons' }, 'frame-r4a': { painting: 'surf' }, 'frame-r4b': { painting: 'fountain' },
+  'frame-l5a': { painting: 'shop' }, 'frame-l5b': { painting: 'photo' }, 'frame-r5a': { painting: 'desert' }, 'frame-r5b': { painting: 'winter' },
+  'frame-l6a': { painting: 'throne' }, 'frame-r6a': { painting: 'fractured' },
+  'great-l7': { painting: 'clash' }, 'great-r7': { painting: 'feast' }, 'great-l8': { painting: 'drowned' },
 };
