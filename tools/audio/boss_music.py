@@ -7,8 +7,11 @@
             orchestra-hit on the downbeats, a slap-ish pulse bass, a square-wave lead with vibrato, punchy drums, lots of reverb.
   demon     "The Mad Blade" - KARNAX, THE MAD BLADE (medieval demon): 128 BPM in C minor. War drums and timpani, a low choir, a
             horn melody, string pads, a chanting bridge, and a final phrase with everything at full force.
+  knight    "Rootbound" - THORNWARD, THE ROOTBOUND KNIGHT (forest guardian): 112 BPM in A dorian. Rolling harp plucks, frame
+            drums and timpani, a deep choir under a breathy wooden-flute lead; a hushed middle with just plucks and wind,
+            then the drums come crashing back with the choir up high.
 
-Run:  python3 tools/audio/boss_music.py [colossus polygon demon]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
+Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
 import numpy as np
@@ -146,6 +149,49 @@ def demon():
     save(reverb(out, 2.8, 2.6, 0.32), 'demon', bars * 4 * b)
 
 
+def pluck(midi, dur, vel=1.0):
+    """A harp / koto pluck (Karplus-Strong): a burst of noise in a short delay line, decaying."""
+    n = secs(dur); per = max(2, int(SR / hz(midi))); buf = np.random.uniform(-1, 1, per); x = np.zeros(n)
+    for i in range(n):
+        x[i] = buf[i % per]; buf[i % per] = 0.996 * 0.5 * (buf[i % per] + buf[(i + 1) % per])
+    return lp(x, 4000) * vel * 0.45
+
+
+def flute(midi, dur, vel=1.0):
+    """A breathy wooden flute: a sine with a little octave, slow vibrato, a puff of breath noise."""
+    n = secs(dur); t = np.arange(n) / SR
+    f = hz(midi) * (1 + 0.006 * np.sin(2 * np.pi * 5 * t) * np.clip(t * 3, 0, 1))
+    ph = np.cumsum(f) / SR * 2 * np.pi
+    x = np.sin(ph) + 0.2 * np.sin(2 * ph) + 0.25 * bp(noise(n), hz(midi) * 0.8, hz(midi) * 3) * np.exp(-t * 6)
+    return x * adsr(n, 0.06, 0.1, 0.85, 0.12) * vel * 0.32
+
+
+def knight():
+    b = 60 / 112; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    prog = [(33, [57, 60, 64]), (31, [55, 59, 62]), (38, [57, 62, 66]), (33, [57, 60, 64]), (29, [57, 60, 65]), (31, [55, 59, 62]), (28, [56, 59, 64]), (33, [57, 60, 64])]
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b
+        hush = 8 <= bar < 12
+        arp = [ch[0], ch[1], ch[2], ch[0] + 12, ch[2], ch[1], ch[0] + 12, ch[2]]
+        for i, m in enumerate(arp): add(out, pluck(m, 1.2, 0.7), t0 + i * b / 2)                      # the rolling harp
+        if not hush:
+            add(out, saw_bass(root - 12, 4 * b * 0.95, 0.5, 260), t0)
+            add(out, choir(ch if bar < 16 else [m + 12 for m in ch], 4 * b + 0.3, 0.8 if bar < 16 else 1.0), t0)
+            for st in (0, 2.5): add(out, timpani(root + 12, 0.9, 0.8), t0 + st * b)
+        else:
+            add(out, bp(noise(secs(4 * b)), 300, 1400) * 0.05 * np.sin(np.linspace(0, np.pi, secs(4 * b))), t0)   # the wind
+    drums(out, b, 8, 'k.......k.s.....|h...h...h...h...', 0.9)
+    drums(out, b, 4, 'k.k.k.k.s.s.sss.|T...T...T.T.TTTT', 1.0, 12 * 4 * b)
+    drums(out, b, 8, 'k..k..k.s..k.k.s|h.hhh.hhh.hhh.hh|x...............', 1.05, 16 * 4 * b)
+    tune = [(0, 69, 1.5), (1.5, 71, 0.5), (2, 72, 1), (3, 74, 1), (4, 76, 3), (7, 74, 1), (8, 72, 1.5), (9.5, 71, 0.5), (10, 69, 2), (12, 67, 2), (14, 69, 2),
+            (16, 76, 1.5), (17.5, 78, 0.5), (18, 79, 2), (20, 78, 1), (21, 76, 1), (22, 74, 2), (24, 72, 1), (25, 74, 1), (26, 76, 2), (28, 69, 4)]
+    for rep in (0, 2):
+        for beat, m, d in tune:
+            add(out, flute(m, d * b * 0.95, 0.9), rep * 32 * b + beat * b)
+            if rep == 2: add(out, brass(m - 12, d * b * 0.9, 0.35, 0.9), rep * 32 * b + beat * b)
+    save(reverb(out, 2.6, 2.8, 0.34), 'knight', bars * 4 * b)
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight']
     for w in which: globals()[w]()

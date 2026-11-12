@@ -65,6 +65,7 @@ export const TROPHIES = [
   { id: 'brass-heart', model: 'gear', plaque: 'COLOSSUS', title: 'THE BRASS HEART', text: "The Clockwork Colossus's furnace heart, still warm, set in a brass cog. It beat for a hundred years. You stopped it on NIGHTMARE." },
   { id: 'golden-cartridge', model: 'cartridge', plaque: 'KING POLYGON', title: 'THE GOLDEN CARTRIDGE', text: 'A solid gold game cartridge with a crown on its label. Blow on the contacts for luck. King Polygon fell on NIGHTMARE.' },
   { id: 'mad-blade', model: 'blade', plaque: 'KARNAX', title: 'THE MAD BLADE', text: "Karnax's jagged greatsword, driven into a stone. The runes still glow. Sometimes, late at night, you can hear it laughing." },
+  { id: 'verdant-helm', model: 'helm', plaque: 'THORNWARD', title: 'THE VERDANT HELM', text: 'The antlered great helm of the Rootbound Knight, moss still growing in its visor. Something small and green peeks out of it when nobody is looking.' },
   { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 
@@ -72,7 +73,7 @@ export const TROPHIES = [
 export const DISPLAY = {
   'pedestal-l1': { trophy: 'you-did-it' }, 'pedestal-r1': { trophy: 'first-sword' }, 'pedestal-l2': { trophy: 'bronze-boot' },
   'pedestal-r2': { trophy: 'silver-fish' }, 'pedestal-l3': { trophy: 'crystal-crown' }, 'plinth': { trophy: 'phoenix' },
-  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' },
+  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' }, 'pedestal-l5': { trophy: 'verdant-helm' },
   'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
   'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },

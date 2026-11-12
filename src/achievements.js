@@ -58,8 +58,8 @@ export const ACHIEVEMENTS = [
   { id: 'limits-10', group: 'FIGHTING', name: 'LIMIT BREAKER', info: 'FIRE 10 LIMITS.', goal: 10, have: (s) => s.limits, coins: 80 },
   { id: 'taunts-50', group: 'FIGHTING', name: 'SHOWBOAT', info: 'TAUNT 50 TIMES IN MATCHES.', goal: 50, have: (s) => s.taunts, coins: 60 },
   { id: 'matches-50', group: 'FIGHTING', name: 'REGULAR', info: 'PLAY 50 MATCHES.', goal: 50, have: (s) => s.matches, coins: 150 },
-  { id: 'boss-1', group: 'FIGHTING', name: 'GIANT SLAYER', info: 'BEAT A BOSS (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => ['colossus', 'polygon', 'demon'].filter((b) => bossTier(s, b)).length, coins: 100 },
-  { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT ALL THREE BOSSES.', goal: 3, have: (s) => ['colossus', 'polygon', 'demon'].filter((b) => bossTier(s, b)).length, coins: 400 },
+  { id: 'boss-1', group: 'FIGHTING', name: 'GIANT SLAYER', info: 'BEAT A BOSS (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => ['colossus', 'polygon', 'demon', 'knight'].filter((b) => bossTier(s, b)).length, coins: 100 },
+  { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT ALL FOUR BOSSES.', goal: 4, have: (s) => ['colossus', 'polygon', 'demon', 'knight'].filter((b) => bossTier(s, b)).length, coins: 400 },
   { id: 'matches-250', group: 'FIGHTING', name: 'VETERAN', info: 'PLAY 250 MATCHES.', goal: 250, have: (s) => s.matches, coins: 500 },
   // ---- ROSTER
   { id: 'ss-50', group: 'ROSTER', name: 'SOUL BOUND', info: 'SCORE 50 KOS AS SOUL SUMMONER.', goal: 50, have: () => getKOs('soul-summoner'), coins: 120 },
@@ -99,6 +99,7 @@ export const TROPHY_GOALS = [
   { id: 'brass-heart', name: 'THE BRASS HEART', info: 'BEAT THE CLOCKWORK COLOSSUS ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'colossus') >= 3), coins: 500 },
   { id: 'golden-cartridge', name: 'THE GOLDEN CARTRIDGE', info: 'BEAT KING POLYGON ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'polygon') >= 3), coins: 750 },
   { id: 'mad-blade', name: 'THE MAD BLADE', info: 'BEAT KARNAX ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'demon') >= 3), coins: 1000 },
+  { id: 'verdant-helm', name: 'THE VERDANT HELM', info: 'BEAT THORNWARD ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'knight') >= 3), coins: 1250 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

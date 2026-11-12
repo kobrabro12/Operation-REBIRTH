@@ -338,7 +338,7 @@ export class DemonBossStage extends BossArena {
    * THE ENTRANCE (k = 0..1): a pillar of fire bursts up in the middle of the walk; he rises out of it laughing,
    * drags his sword up over his head - and swings it into his pose, fire bursting off it.
    */
-  introPose(match, k, t) {
+  introPose(match, k, t, n) {
     this.t++;
     const D = this.dm, e = (a, b) => Phaser.Math.Clamp((k - a) / (b - a), 0, 1);
     D.x = 30; D.dir = -1; D.y = 0;
@@ -349,11 +349,13 @@ export class DemonBossStage extends BossArena {
     if (k < 0.65) { this.aim('laugh', 0.2); this.laughing = true; if (t % 22 === 10 && k > 0.25) this.ha(match); }
     else if (k < 0.82) { this.aim('over', 0.25); this.laughing = false; }
     else this.aim('pose', 0.45);
-    if (t === Math.round(0.82 * 140)) { sfx('slash', 1, 0.5); sfx('bighit', 0.8, 0.7); match.shake(8, 10); const j = this.joints(); for (let i = 0; i < 24; i++) { const q = i / 24 * Math.PI * 2; match.particles.push({ x: j.tip.x, y: j.tip.y, vx: Math.cos(q) * 4, vy: Math.sin(q) * 4, life: 26, color: C.fire[1 + i % 4], size: 3, drag: 0.93 }); } }
+    if (t === Math.round(0.82 * n)) { sfx('slash', 1, 0.5); sfx('bighit', 0.8, 0.7); match.shake(8, 10); const j = this.joints(); for (let i = 0; i < 24; i++) { const q = i / 24 * Math.PI * 2; match.particles.push({ x: j.tip.x, y: j.tip.y, vx: Math.cos(q) * 4, vy: Math.sin(q) * 4, life: 26, color: C.fire[1 + i % 4], size: 3, drag: 0.93 }); } }
     if (k >= 1) { D.sink = 0; D.alpha = 1; }
   }
   /** The freeze frame looks at his chest (he's tall: the head would put the name band over his body), less zoomed. */
   introAt() { const j = this.joints(); return { x: j.chest.x, y: j.chest.y - 10, zoom: 1.05 }; }
+  /** The entrance's camera: close on the fire pillar, tilting up with him as he rises, pulling back for the swing. */
+  introShot(k) { return k < 0.3 ? { x: 30, y: -90, zoom: 1.25 } : k < 0.66 ? { x: 30, y: -70 - 110 * (k - 0.3) / 0.36, zoom: 1.2 } : { x: 30, y: -130, zoom: 0.95 }; }
   /** After the intro the fire pillar is gone. */
   endIntro() { super.endIntro(); this.introFire = 0; this.dm.sink = 0; this.dm.alpha = 1; this.laughing = false; }
 

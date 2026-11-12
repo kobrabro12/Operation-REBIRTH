@@ -190,7 +190,7 @@ export class MatchScene extends Phaser.Scene {
       if (!this.bossFight.cpu) {                         // the boss's entrance and freeze frame, before the countdown (bossBase.js)
         this.stage.startIntro(this);
         this.skipKeys = ['ENTER', 'J', 'SPACE'].map((k) => this.input.keyboard.addKey(k));
-        this.input.on('pointerdown', () => { this.skipClick = true; });
+        this.input.on('pointerdown', () => { if (this.skipReady) this.skipClick = true; });
       }
     }
 
@@ -310,9 +310,11 @@ export class MatchScene extends Phaser.Scene {
     this.frame++;
     if (this.stage.intro) {                              // a boss's intro: only it moves (J / Enter / a click skips)
       for (const f of this.fighters) { f.ctrl.beginFrame(); f.ctrl.poll(); }
-      const skip = this.skipClick || (this.skipKeys || []).some((k) => Phaser.Input.Keyboard.JustDown(k)) || readPadA();
+      const held = (this.skipKeys || []).some((k) => k.isDown) || readPadA();
+      if (!held) this.skipReady = true;                  // (a skip needs a fresh press: not the one that started the fight)
+      const skip = this.skipReady && this.stage.intro.t > 30 && (this.skipClick || (this.skipKeys || []).some((k) => Phaser.Input.Keyboard.JustDown(k)) || readPadA());
       this.skipClick = false;
-      if (skip && this.stage.intro.t > 20) this.stage.skipIntro(this); else this.stage.introStep(this);
+      if (skip) this.stage.skipIntro(this); else this.stage.introStep(this);
       this.stepEffects();
       return;
     }
@@ -1199,6 +1201,9 @@ export class MatchScene extends Phaser.Scene {
     let zoom = Phaser.Math.Clamp(Math.min(VIEW_W / w, (VIEW_H - 40) / h), 0.55, 1.35);
     let cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 + 18;
     const ic = this.stage.introCam && this.stage.introCam();   // a boss's intro frames the boss itself
+    if (ic && ic.exact) {                                // the intro moves the camera itself, exactly
+      cam.setZoom(ic.zoom); cam.centerOn(ic.x, ic.y); this.bgCam.scrollX = ic.x; this.bgCam.scrollY = ic.y + 80; return;
+    }
     if (ic) { zoom = ic.zoom; cx = ic.x; cy = ic.y; if (ic.snap) cam.setZoom(zoom); }
     const limiter = this.fighters.find((f) => f.state === 'limit' && f.t < 34);
     if (limiter) { zoom = 1.5; cx = limiter.x; cy = limiter.y - 40; }

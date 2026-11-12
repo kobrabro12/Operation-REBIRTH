@@ -1,5 +1,5 @@
-// Trinkets > BOSS FIGHTS: pick a boss (three, each harder than the last - boss II opens once boss I is beaten, III
-// once II is), a difficulty (NORMAL / HARD / NIGHTMARE: the harder, the bigger the rewards), then your fighter and
+// Trinkets > BOSS FIGHTS: pick a boss (four, each harder than the last - each opens once the one before it is
+// beaten), a difficulty (NORMAL / HARD / NIGHTMARE: the harder, the bigger the rewards), then your fighter and
 // costume, and fight it in its own arena (MatchScene with data.boss). The bosses, rewards and saves are in
 // src/data/bosses.js; the reward / defeat screen is BossRewardScene.
 // Keys: A/D (or left/right) boss, W/S difficulty, J / Enter / pad A choose; on the fighter step A/D fighter, W/S
@@ -19,9 +19,9 @@ import { skinsFor, skinUnlocked, skinInfo } from '../fighters/skins.js';
 import { settings } from '../settings.js';
 
 const ACC = 0xff5a3a;                                            // the section colour: boss red
-// the three boss cards: where they are and how big; the arena picture inside each
-const CARD = { x: 22, y: 52, w: 190, h: 150, gap: 8, pic: { x: 10, y: 22, w: 162, h: 70 } };
-const ROMAN = ['I', 'II', 'III'];
+// the four boss cards: where they are and how big; the arena picture inside each
+const CARD = { x: 20, y: 52, w: 146, h: 150, gap: 6, pic: { x: 8, y: 22, w: 130, h: 70 } };
+const ROMAN = ['I', 'II', 'III', 'IV'];
 // remembered between visits (this session): the last boss, difficulty, fighter and costume
 const last = { boss: 0, tier: 0, fighter: null, skin: 0 };
 
@@ -79,7 +79,7 @@ export class BossFightsScene extends Phaser.Scene {
   /** Clicks: a boss card, a difficulty chip; on the fighter step the arrows either side of the fighter. */
   click(x, y) {
     if (this.step === 'boss') {
-      for (let i = 0; i < 3; i++) { const cx = CARD.x + i * (CARD.w + CARD.gap); if (x > cx && x < cx + CARD.w && y > CARD.y && y < CARD.y + CARD.h) { if (this.sel === i) this.choose(); else { this.sel = i; sfx('menu', 0.5); this.refresh(); } return; } }
+      for (let i = 0; i < BOSSES.length; i++) { const cx = CARD.x + i * (CARD.w + CARD.gap); if (x > cx && x < cx + CARD.w && y > CARD.y && y < CARD.y + CARD.h) { if (this.sel === i) this.choose(); else { this.sel = i; sfx('menu', 0.5); this.refresh(); } return; } }
       for (let k = 0; k < 3; k++) if (x > 326 + k * 96 && x < 416 + k * 96 && y > 210 && y < 230) { this.tier = k; sfx('menu', 0.5); this.refresh(); return; }
     } else {
       if (y > 180 && y < 300) { if (x < VIEW_W / 2 - 40) this.cycleFighter(-1); else if (x > VIEW_W / 2 + 40) this.cycleFighter(1); }
@@ -134,7 +134,7 @@ export class BossFightsScene extends Phaser.Scene {
     this.draw();
   }
 
-  /** The panels: three boss cards (arena picture, clear pips per difficulty), the details, the difficulty chips. */
+  /** The panels: four boss cards (arena picture, clear pips per difficulty), the details, the difficulty chips. */
   draw() {
     const g = this.g, p = this.pics; g.clear(); p.clear();
     if (this.step === 'boss') {
@@ -166,8 +166,8 @@ export class BossFightsScene extends Phaser.Scene {
     this.t++;
     const m = this.menu.poll(), A = m.pads.some((q) => q.button === 'a'), Bk = m.pads.some((q) => q.button === 'b');
     if (this.step === 'boss') {
-      if (m.left) { this.sel = (this.sel + 2) % 3; sfx('menu', 0.5); this.refresh(); }
-      if (m.right) { this.sel = (this.sel + 1) % 3; sfx('menu', 0.5); this.refresh(); }
+      if (m.left) { this.sel = (this.sel + BOSSES.length - 1) % BOSSES.length; sfx('menu', 0.5); this.refresh(); }
+      if (m.right) { this.sel = (this.sel + 1) % BOSSES.length; sfx('menu', 0.5); this.refresh(); }
       if (m.up) { this.tier = (this.tier + 2) % 3; sfx('menu', 0.5); this.refresh(); }
       if (m.down) { this.tier = (this.tier + 1) % 3; sfx('menu', 0.5); this.refresh(); }
     } else {

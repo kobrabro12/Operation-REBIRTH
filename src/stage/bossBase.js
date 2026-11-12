@@ -5,7 +5,7 @@
 //
 // The boss isn't a Fighter. It's drawn and moved by its arena, has health instead of a %, and:
 //   - is hit by the players' attacks through strikeTargets (MatchScene hands it every attack hitbox): each region
-//     in hurt() takes the hit's damage x its `mult` (weak points more, armour less), once per hit;
+//     in hurt() takes the hit's damage x its `mult` (weak points more, armour less; 0 = can't be hurt: a clang), once per hit;
 //   - attacks with hazard hitboxes (unblockable - dodge them) that its arena pushes from atk_<name>(match, a, out),
 //     each strike with its own id; how hard they hit scales with the difficulty (TIERS in bosses.js);
 //   - picks its next attack from pattern() after a pause (shorter on higher difficulties), and turns ENRAGED at half
@@ -13,9 +13,10 @@
 //   - shows a health bar with its name at the top of the screen, and when its health runs out plays its death
 //     (onDeath / the explosions here) and the match ends in a win (MatchScene.bossDefeated).
 // For the CPU (the sim) it offers match.bossProxy: something to walk to and swing at.
-// THE INTRO (startIntro / introStep, run by MatchScene before the 3-2-1): the boss makes its entrance (the arena's
-// introPose(match, k, t), k = 0..1), then a FREEZE FRAME - everything stops on its pose, a flash, letterbox bars,
-// speed lines and a slanted band with its name and title (BOSSES `title`), the camera pushed in on it (introCam).
+// THE INTRO (startIntro / introStep, run by MatchScene before the 3-2-1), in letterbox: a WIDE establishing shot of
+// the arena, the boss's ENTRANCE (the arena's introPose(match, k, t, n) with its own camera shots, introShot(k)), then
+// a FREEZE FRAME on its pose - a flash, the camera punching in (introAt) and pushing slowly, its name wiping on over a
+// line with its title (BOSSES `title`) under it. A fresh J / Enter / A / click skips it.
 import { FONT, VIEW_W } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -30,7 +31,11 @@ const DEATH = 150;
 // the arenas write knockback growth small (1 = a heavy hit); this turns it into the fighters' scale (a smash is ~6)
 const GROWTH = 5.5;
 // the intro: frames of entrance, then of the freeze frame; how far the camera pushes in on the pose
-const INTRO = { enter: 140, freeze: 120, zoom: 1.25 };
+const INTRO = { wide: 90, enter: 220, freeze: 170, zoom: 1.2 };
+/** A point along the way from a to b (k = 0..1). */
+const lerp = (a, b, k) => a + (b - a) * k;
+/** A boss's number in the roman order of BOSS FIGHTS (I, II, III, IV). */
+const BOSS_ORDER = (id) => ['I', 'II', 'III', 'IV', 'V'][Math.max(0, ['colossus', 'polygon', 'demon', 'knight'].indexOf(id))];
 
 /** The base of every boss arena: health, being hit, picking attacks, the health bar and the death. */
 export class BossArena {
@@ -52,64 +57,107 @@ export class BossArena {
     this.makeBoss(match);
   }
 
-  /** Starts the intro (MatchScene, a real player's boss fight): the name card's pieces on the UI camera, hidden. */
+  /** Starts the intro (MatchScene, a real player's boss fight): the letterbox, the name card's pieces (hidden), the camera. */
   startIntro(match) {
-    const s = match, B = this.boss.cfg.boss;
+    const s = match, B = this.boss.cfg.boss, hex = '#' + B.color.toString(16).padStart(6, '0');
     this.intro = { t: 0 };
     this.introG = s.add.graphics().setDepth(40);
-    this.introName = s.add.text(0, 0, B.short || B.name, { fontFamily: FONT, fontSize: '26px', color: '#ffffff', stroke: '#07060e', strokeThickness: 7 }).setOrigin(0.5).setDepth(41).setVisible(false);
-    this.introSub = s.add.text(0, 0, B.title || '', { fontFamily: FONT, fontSize: '9px', color: '#' + B.color.toString(16).padStart(6, '0'), stroke: '#07060e', strokeThickness: 4 }).setOrigin(0.5).setDepth(41).setVisible(false);
-    s.addUI(this.introG, this.introName, this.introSub);
+    const T = (str, size, color, o = {}) => s.add.text(0, 0, str, { fontFamily: FONT, fontSize: size + 'px', color, stroke: '#07060e', strokeThickness: Math.round(size / 4), ...o }).setOrigin(0.5).setDepth(41).setVisible(false);
+    this.introGlow = T(B.short || B.name, 30, hex, { strokeThickness: 12 }).setAlpha(0.35);
+    this.introName = T(B.short || B.name, 30, '#ffffff');
+    this.introSub = T(B.title || '', 8, hex).setLetterSpacing(3);
+    const n = BOSS_ORDER(B.id);
+    this.introTag = T('-  BOSS ' + n + '  -', 7, '#ffffff').setLetterSpacing(4);
+    this.introTier = T(this.boss.cfg.T.name, 6, '#' + this.boss.cfg.T.color.toString(16).padStart(6, '0')).setLetterSpacing(3);
+    this.introParts = [this.introG, this.introGlow, this.introName, this.introSub, this.introTag, this.introTier];
+    s.addUI(...this.introParts);
     this.barG.setVisible(false); this.barName.setVisible(false); this.barTier.setVisible(false);
+    this.icam = null;
   }
-  /** One frame of the intro: the entrance, then the freeze frame. Returns true when it's over (the countdown starts). */
+  /** Which phase of the intro, and how far into it: { ph: 'wide' | 'enter' | 'freeze', f (frames into it), k (0..1) }. */
+  introPhase() {
+    const t = this.intro.t;
+    if (t <= INTRO.wide) return { ph: 'wide', f: t, k: t / INTRO.wide };
+    if (t <= INTRO.wide + INTRO.enter) return { ph: 'enter', f: t - INTRO.wide, k: (t - INTRO.wide) / INTRO.enter };
+    return { ph: 'freeze', f: t - INTRO.wide - INTRO.enter, k: (t - INTRO.wide - INTRO.enter) / INTRO.freeze };
+  }
+  /**
+   * One frame of the intro. WIDE: an establishing shot drifting across the empty arena (the boss not there yet).
+   * ENTER: the arena's introPose(match, k, t, n) (k = 0..1, t = frame, n = INTRO.enter frames) with its camera shots
+   * (introShot(k)). FREEZE: everything stops on the pose and the name card comes in. Returns true when it's over.
+   */
   introStep(match) {
     const I = this.intro; if (!I) return true;
     I.t++;
-    if (I.t <= INTRO.enter) { this.introPose(match, I.t / INTRO.enter, I.t); return false; }
-    const f = I.t - INTRO.enter;
-    if (f === 1) { sfx('bighit', 1, 0.6); sfx('shing', 0.9, 0.7); match.shake(10, 8); }
-    this.drawIntro(f);
-    if (f >= INTRO.freeze) { this.endIntro(); return true; }
+    const P = this.introPhase();
+    if (P.ph === 'wide') { if (P.f === 1) this.introPose(match, 0, 0, INTRO.enter); }
+    else if (P.ph === 'enter') this.introPose(match, P.k, P.f, INTRO.enter);
+    else if (P.f === 1) { sfx('bighit', 0.9, 0.55); sfx('shing', 0.8, 0.6); }
+    this.drawIntro(P);
+    if (P.ph === 'freeze' && P.f >= INTRO.freeze) { this.endIntro(); return true; }
     return false;
   }
-  /** Skips the rest of the intro (J / Enter / a click): straight to its pose and the countdown. */
-  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.enter) this.introPose(match, 1, INTRO.enter); this.endIntro(); }
-  /** Clears the name card and shows the health bar. */
+  /** Skips the rest of the intro (a fresh J / Enter / A / click): straight to its pose and the countdown. */
+  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.wide + INTRO.enter) this.introPose(match, 1, INTRO.enter, INTRO.enter); this.endIntro(); }
+  /** The intro is over: the letterbox and the card fade away, the health bar comes in, the camera eases back into play. */
   endIntro() {
-    this.intro = null; this.introG.clear(); this.introName.setVisible(false); this.introSub.setVisible(false);
-    this.barG.setVisible(true); this.barName.setVisible(true); this.barTier.setVisible(true);
-  }
-  /** Where the match camera looks during the intro (null after): the arena, then pushed in on the boss's pose. */
-  introCam() {
-    if (!this.intro) return null;
-    const c = this.core(), f = this.intro.t - INTRO.enter, at = this.introAt ? this.introAt() : { x: c.x, y: c.y + 10, zoom: INTRO.zoom };   // (an arena can aim it elsewhere: introAt)
-    if (f < 0) return { x: c.x * 0.5, y: -110, zoom: 0.8 };
-    return { x: at.x, y: at.y, zoom: at.zoom, snap: f < 3 };
+    this.intro = null; this.icam = null;
+    this.match.tweens.add({ targets: this.introParts.filter((o) => o.visible), alpha: 0, duration: 420, onComplete: () => this.introParts.forEach((o) => o.setVisible(false)) });
+    for (const o of [this.barG, this.barName, this.barTier]) { o.setVisible(true).setAlpha(0); this.match.tweens.add({ targets: o, alpha: 1, duration: 500, delay: 200 }); }
   }
   /**
-   * The freeze frame, f frames in: a white flash, letterbox bars sliding in, speed lines round the middle, a slanted
-   * band in the boss's colour with its name stamping in and its title under it.
+   * The intro's camera (null once it's over), moved exactly (MatchScene doesn't smooth it): WIDE drifts across the
+   * arena; ENTER follows the arena's introShot(k) (default: framing the boss), eased toward it so cuts glide; FREEZE
+   * punches in on the pose (the arena's introAt) and then pushes in slowly.
    */
-  drawIntro(f) {
-    const g = this.introG, B = this.boss.cfg.boss, W = VIEW_W, H = 360, k = Math.min(1, f / 10), out = f > INTRO.freeze - 12 ? (f - (INTRO.freeze - 12)) / 12 : 0;
-    g.clear();
-    g.fillStyle(B.color, 0.16 * (1 - out)); g.fillRect(0, 0, W, H);
-    for (let i = 0; i < 36; i++) {                                              // speed lines toward the boss
-      const a = i / 36 * Math.PI * 2 + (i % 3) * 0.05, r1 = 150 + (i * 37) % 60, r2 = 420;
-      g.lineStyle(i % 4 ? 1 : 3, 0xffffff, (0.25 + (i % 3) * 0.1) * (1 - out)); g.lineBetween(W / 2 + Math.cos(a) * r1, H / 2 + Math.sin(a) * r1 * 0.7, W / 2 + Math.cos(a) * r2, H / 2 + Math.sin(a) * r2 * 0.7);
+  introCam() {
+    if (!this.intro) return null;
+    const P = this.introPhase(), c = this.core(), ease = (q) => 1 - Math.pow(1 - q, 3);
+    let want;
+    if (P.ph === 'wide') { const k = ease(P.k); want = { x: -170 + 150 * k, y: -120 + 20 * k, zoom: 0.92 - 0.06 * k }; }
+    else if (P.ph === 'enter') want = this.introShot ? this.introShot(P.k) : { x: c.x, y: c.y + 20, zoom: 1.0 };
+    else {
+      const at = this.introAt ? this.introAt() : { x: c.x, y: c.y + 10, zoom: INTRO.zoom }, punch = ease(Math.min(1, P.f / 14)), push = P.f / INTRO.freeze;
+      const from = this.icamFreeze || (this.icamFreeze = { ...(this.icam || at) });
+      this.icam = { x: lerp(from.x, at.x, punch) + push * 8, y: lerp(from.y, at.y, punch), zoom: lerp(from.zoom, at.zoom, punch) + push * 0.07 };
+      return { ...this.icam, exact: true };
     }
-    g.lineStyle(0);
-    const bar = 46 * k * (1 - out);                                             // letterbox
+    this.icamFreeze = null;
+    if (!this.icam) this.icam = { ...want };
+    const k = P.ph === 'wide' ? 1 : 0.07;                                               // (shots glide into each other)
+    this.icam = { x: lerp(this.icam.x, want.x, k), y: lerp(this.icam.y, want.y, k), zoom: lerp(this.icam.zoom, want.zoom, k) };
+    return { ...this.icam, exact: true };
+  }
+  /**
+   * The intro's overlay. Always: letterbox bars (thin, thicker on the freeze) and a soft vignette. FREEZE: a quick
+   * flash, the screen tinted toward the boss's colour, a dark band under the title, a thin line drawing out from the
+   * middle, the name wiping on (with a glow behind it and a shine sweeping across), the title fading up under it,
+   * "BOSS N" and the difficulty in the bars.
+   */
+  drawIntro(P) {
+    const g = this.introG, B = this.boss.cfg.boss, W = VIEW_W, H = 360, ease = (q) => 1 - Math.pow(1 - Math.min(1, Math.max(0, q)), 3);
+    const fz = P.ph === 'freeze', f = fz ? P.f : 0;
+    g.clear();
+    const bar = 22 * ease(this.intro.t / 24) + (fz ? 22 * ease(f / 16) : 0);
+    for (let i = 0; i < 6; i++) { g.fillStyle(0x000000, 0.08); g.fillRect(0, 0, W, bar + 30 - i * 5); g.fillRect(0, H - bar - 30 + i * 5, W, bar + 30 - i * 5); }   // soft edges
     g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, bar); g.fillRect(0, H - bar, W, bar);
-    const by = 262, bx = W * (1 - k) * 0.8 + (out ? -W * out : 0);              // the name band, sliding in from the right
-    g.fillStyle(0x000000, 0.75); g.fillPoints([{ x: bx - 30, y: by - 26 }, { x: bx + W + 40, y: by - 36 }, { x: bx + W + 40, y: by + 22 }, { x: bx - 30, y: by + 32 }], true);
-    g.fillStyle(B.color, 1); g.fillPoints([{ x: bx - 30, y: by - 30 }, { x: bx + W + 40, y: by - 40 }, { x: bx + W + 40, y: by - 34 }, { x: bx - 30, y: by - 24 }], true);
-    g.fillPoints([{ x: bx - 30, y: by + 28 }, { x: bx + W + 40, y: by + 18 }, { x: bx + W + 40, y: by + 22 }, { x: bx - 30, y: by + 32 }], true);
-    if (f < 8) { g.fillStyle(0xffffff, 1 - f / 8); g.fillRect(0, 0, W, H); }
-    const stamp = f < 14 ? 1 + (14 - f) * 0.12 : 1;
-    this.introName.setVisible(f > 4).setPosition(W / 2 + (out ? -W * out : 0), by - 6).setScale(stamp).setAngle(-1.5).setAlpha(1 - out);
-    this.introSub.setVisible(f > 14).setPosition(W / 2 + 10 + (out ? -W * out : 0), by + 15).setAngle(-1.5).setAlpha(1 - out);
+    if (!fz) { for (const o of this.introParts.slice(1)) o.setVisible(false); return; }
+    g.fillStyle(B.color, 0.1 * ease(f / 10)); g.fillRect(0, bar, W, H - bar * 2);
+    if (f < 9) { g.fillStyle(0xffffff, 0.55 * (1 - f / 9)); g.fillRect(0, 0, W, H); }
+    const cy = 252, band = ease((f - 4) / 14);
+    for (let i = 0; i < 10; i++) { g.fillStyle(0x000000, 0.07 * band); g.fillRect(0, cy - 34 + i * 3, W, 76 - i * 6); }
+    const lw = (W / 2 - 40) * ease((f - 6) / 16);
+    g.fillStyle(B.color, 1); g.fillRect(W / 2 - lw, cy + 18, lw * 2, 2); g.fillStyle(0xffffff, 0.8); g.fillRect(W / 2 - lw * 0.4, cy + 18, lw * 0.8, 1);
+    const wipe = ease((f - 8) / 18), N = this.introName, Gl = this.introGlow;
+    for (const t of [N, Gl]) { t.setVisible(f > 8).setPosition(W / 2, cy - 4 + (1 - wipe) * 4).setAlpha(t === Gl ? 0.35 : 1); t.setCrop(0, 0, t.width * wipe, t.height); }
+    Gl.setScale(1 + 0.04 * Math.sin(f * 0.2));
+    const sh = (f - 28) / 16;                                                            // a shine sweeping across the name
+    if (sh > 0 && sh < 1) { const x = W / 2 - N.width / 2 - 20 + (N.width + 40) * sh; g.fillStyle(0xffffff, 0.5); g.fillPoints([{ x: x - 4, y: cy - 22 }, { x: x + 6, y: cy - 22 }, { x: x - 2, y: cy + 14 }, { x: x - 12, y: cy + 14 }], true); }
+    const sub = ease((f - 22) / 14);
+    this.introSub.setVisible(f > 22).setPosition(W / 2, cy + 32 - (1 - sub) * 6).setAlpha(sub);
+    const tag = ease((f - 14) / 12);
+    this.introTag.setVisible(f > 14).setPosition(W / 2, bar / 2).setAlpha(tag);
+    this.introTier.setVisible(f > 20).setPosition(W / 2, H - bar / 2).setAlpha(ease((f - 20) / 12));
   }
 
   /** Frames scaled by the difficulty's speed (wind-ups and pauses get shorter on HARD / NIGHTMARE). */
@@ -148,7 +196,7 @@ export class BossArena {
     const P = match.bossProxy, c = this.core();
     P.x = c.x; P.y = c.y + 26; P.state = B.atk ? 'attack' : 'idle'; P.attackId = B.atk ? B.atk.id : 0;
     if (match.over) return out;
-    if (B.phase === 1 && B.hp <= B.max / 2) {                               // half health: ENRAGED
+    if (B.phase === 1 && B.hp <= B.max * (this.rageAt || 0.5)) {           // half health (or the arena's rageAt): ENRAGED
       B.phase = 2; B.rage = 90; B.atk = null; B.wait = 80;
       this.rageText.setText(this.rageLine ? this.rageLine() : 'ENRAGED!');
       sfx('roar', 0.9, 0.8); match.shake(10, 40);
@@ -183,6 +231,13 @@ export class BossArena {
       const r = regions.find((q) => hb.x1 < q.x2 && hb.x2 > q.x1 && hb.y1 < q.y2 && hb.y2 > q.y1);
       if (!r) continue;
       B.seen.add(hb.id);
+      if (!r.mult) {                                                         // armour that can't be hurt: a clang and sparks, nothing more
+        const o = hb.owner, x = (Math.max(hb.x1, r.x1) + Math.min(hb.x2, r.x2)) / 2, y = (Math.max(hb.y1, r.y1) + Math.min(hb.y2, r.y2)) / 2;
+        if (!hb.projectile && o.hitstop < 2) o.hitstop = 2;
+        match.puff(x, y, 0xd8e0e8, 4); sfx('clang', 0.5, 1.5 + Math.random() * 0.3);
+        if (this.onArmor) this.onArmor(match, x, y, o);
+        continue;
+      }
       const o = hb.owner, d = Math.max(1, (hb.h.dmg || 3) * (o.dmgMult || 1) * r.mult);
       B.hp = Math.max(0, B.hp - d); B.flash = FLASH;
       o.stats.damageDealt += d;

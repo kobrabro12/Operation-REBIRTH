@@ -311,7 +311,7 @@ export class TrophyHallScene extends Phaser.Scene {
    * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
    * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
    * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire),
-   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone).
+   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone), helm (THORNWARD's antlered helm on a mossy stump).
    * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
   trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
@@ -362,6 +362,17 @@ export class TrophyHallScene extends Phaser.Scene {
       for (let i = 0; i < 4; i++) T.push(...xyz(pyramidFaces(0, 0, 0, 1.8, 1.4, 3.4, 0x2a2630), 2.4, -12 - i * 6, 0, Math.PI / 2));
       T.push(...boxFaces(-7, -37, -1.4, 7, -34, 1.4, 0xf0e4c8, 0xc8b898), ...boxFaces(-1.2, -44, -1, 1.2, -37, 1, 0x3a1a14), ...blobFaces(0, -46, 0, 2.4, 2.4, 2.4, [0xf0e4c8, 0xc8b898], 3, null, 0.05));
       for (const sx of [-1, 1]) T.push(...xyz(pyramidFaces(0, 0, 0, 1.8, 1.8, 6, 0xf0e4c8), sx * 7, -35.5, 0, sx * -1.3));
+    } else if (model === 'helm') {                                    // THE VERDANT HELM: THORNWARD's antlered great helm on a mossy stump, its visor glowing
+      const from = T.length;
+      T.push(...prismFaces(0, -2, -9, 0, 9, 8, 0x4a3018, 0x6a4a28), ...blobFaces(0, -10, 0, 9, 2.4, 9, [0x2e6a22, 0x48902e], 6, 0x6ab840, 0.1));
+      T.push(...boxFaces(-7, -30, -7, 7, -11, 7, 0x3a4640, 0x56665c), ...boxFaces(-7.4, -24, -7.4, 7.4, -22.6, 7.4, 0xb89a58, 0xd8b870));
+      T.push(...boxFaces(-5, -20, -7.6, 5, -18.6, -7.2, 0x5affb8, 0xb0ffe0), ...boxFaces(-6, -32, -6, 6, -30, 6, 0x56665c, 0x7a8c80));
+      for (const sx of [-1, 1]) {
+        T.push(...xyz(boxFaces(-0.9, -9, -0.9, 0.9, 0, 0.9, 0x5e4428, 0x7a5c38), sx * 4, -31, 0, sx * 0.5), ...xyz(boxFaces(-0.8, -8, -0.8, 0.8, 0, 0.8, 0x5e4428, 0x7a5c38), sx * 8.5, -38.5, 0, sx * 1.1));
+        T.push(...xyz(boxFaces(-0.7, -6, -0.7, 0.7, 0, 0.7, 0x5e4428, 0x7a5c38), sx * 6, -38, 0, sx * -0.2), ...blobFaces(sx * 12, -42, 0, 2, 1.2, 1.4, [0x6ab840, 0x3a8a2a], 3, null, 0.05));
+      }
+      T.push(...blobFaces(-4, -30, -3, 4, 1.4, 4, [0x48902e, 0x6ab840], 4, null, 0.1));
+      for (let i = from; i < T.length; i++) T[i] = { ...T[i], p: T[i].p.map(([px, py, pz]) => [px * 0.8, py * 0.78, pz * 0.8]) };   // (built a bit big: shrunk to fit the close-up)
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));

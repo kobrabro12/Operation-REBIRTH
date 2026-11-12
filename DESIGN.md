@@ -102,6 +102,7 @@ Arcade's hazards use their own timers in the same spirit. Hazards can be turned 
 | Brass Foundry (boss arena) | riveted iron deck in a steam foundry, two catwalks; THE CLOCKWORK COLOSSUS stands behind it (switched off in VS) | PIPE BURST (steam across the catwalks); CRANE DROP (a crate on a marked spot) |
 | Polygon Peak (boss arena) | real low-poly 3D checkerboard arena in a 64-bit sky, two ledges, crystal pylons; KING POLYGON (his empty crown in VS) | PYLON ZAP (arcs along both ledges); QUAKE RING (a floor shockwave - jump it) |
 | The Burning Keep (boss arena) | castle battlement walk at night, two towers with braziers; KARNAX the horned demon fights on the walk (his sword planted in it in VS) | CATAPULT STONE (a boulder on a marked spot, then rolling); BRAZIER FLARE (the tower fires erupt) |
+| The Elder Grove (boss arena) | a misty forest clearing between two giant trees whose roots hold up the ledges, a ruined archway, glowing mushrooms; THORNWARD the rootbound knight (his empty armour kneeling in VS). His armour is immune: hit his soul when it comes out to taunt you; below 25% it's bared for good and he goes BERSERK | THORN ROOTS (a line of thorns erupts across the floor); SPORE BURST (the mushrooms puff stinging spores) |
 
 The three boss arenas (`bossArena` in stages.js) are where Trinkets > BOSS FIGHTS are fought (src/data/bosses.js); each opens for VS once its boss is beaten on HARD or NIGHTMARE.
 

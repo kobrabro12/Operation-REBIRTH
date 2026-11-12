@@ -22,6 +22,7 @@ import { StarlightFountainStage, drawStarlightFountainPreview } from './starligh
 import { SteamBossStage, drawBrassFoundryPreview } from './steamBossStage.js';
 import { PolyBossStage, drawPolygonPeakPreview } from './polyBossStage.js';
 import { DemonBossStage, drawBurningKeepPreview } from './demonBossStage.js';
+import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -151,6 +152,9 @@ export const STAGES = [
   { id: 'burning-keep', music: 'bgm_boss_demon', name: 'THE BURNING KEEP', available: true, bossArena: 'demon', make: (scene) => new DemonBossStage(scene),
     blurb: ['The battlements of a keep under a red moon,', 'a demon\'s sword planted in the stone.'],
     hazard: 'CATAPULT STONE: A BOULDER LANDS ON THE MARK.\nBRAZIER FLARE: THE TOWER FIRES ERUPT.', preview: drawBurningKeepPreview },
+  { id: 'elder-grove', music: 'bgm_boss_knight', name: 'THE ELDER GROVE', available: true, bossArena: 'knight', make: (scene) => new KnightBossStage(scene),
+    blurb: ['A clearing deep in an ancient forest,', 'an empty suit of armour kneeling in the roots.'],
+    hazard: 'THORN ROOTS: A LINE OF THORNS ERUPTS - JUMP IT.\nSPORE BURST: THE GLOWING MUSHROOMS PUFF SPORES.', preview: drawElderGrovePreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

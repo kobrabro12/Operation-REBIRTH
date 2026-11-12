@@ -113,24 +113,28 @@ export class PolyBossStage extends BossArena {
   start_beam(match, a) { this.count++; a.s = Math.random() < 0.5 ? -1 : 1; }
   start_frame(match, a) { this.count++; }
   rageLine() { return 'SYSTEM OVERCLOCKED!'; }
+  /** The entrance's camera: following his falling head, wide as the gauntlets fly in, in close for the finger guns. */
+  introShot(k) { return k < 0.45 ? { x: 0, y: Math.max(-300, this.head.y + 40), zoom: 1.15 } : k < 0.74 ? { x: 0, y: -140, zoom: 0.82 } : { x: 0, y: -185, zoom: 1.0 }; }
+  /** The freeze frame: his head and both finger guns. */
+  introAt() { return { x: 0, y: -180, zoom: 1.05 }; }
 
   /**
    * THE ENTRANCE (k = 0..1): his head drops out of the sky spinning, growing as it comes, and bounces into place;
    * his gauntlets fly in from either side; then both turn into finger guns, pointed out and up, jaw dropped in a
    * grin - the pose the freeze frame stops on.
    */
-  introPose(match, k, t) {
+  introPose(match, k, t, n) {
     this.t++;
     const e = (a, b) => Phaser.Math.Clamp((k - a) / (b - a), 0, 1), H = this.head, drop = e(0.05, 0.45);
     H.y = -560 + (KING.y + 560) * drop - Math.sin(e(0.45, 0.6) * Math.PI) * 26; H.x = 0;
     H.yaw = (1 - drop) * Math.PI * 6; H.k = 0.3 + 0.7 * drop; H.jaw = e(0.75, 0.85) * 0.9;
-    if (t === Math.round(0.45 * 140)) { sfx('bighit', 0.8, 1.2); match.shake(6, 8); this.burst(match, 0, KING.y + 40, [C.gold, C.crystal[0], 0xffffff], 16); }
+    if (t === Math.round(0.45 * n)) { sfx('bighit', 0.8, 1.2); match.shake(6, 8); this.burst(match, 0, KING.y + 40, [C.gold, C.crystal[0], 0xffffff], 16); }
     const fly = 1 - Math.pow(1 - e(0.45, 0.72), 2);
     for (const h of this.hands) {
       h.x = h.s * (620 - (620 - 175) * fly); h.y = KING.rest[1] - 40 * e(0.75, 0.9); h.resting = false;
       h.mode = k > 0.75 ? 'gun' : null; h.roll = h.mode ? h.s * 0.6 : (1 - fly) * h.s * 3; h.flashT = 0;
     }
-    if (t === Math.round(0.76 * 140)) { sfx('laser', 0.8, 1.7); sfx('ding', 0.6, 1.2); }
+    if (t === Math.round(0.76 * n)) { sfx('laser', 0.8, 1.7); sfx('ding', 0.6, 1.2); }
     if (k >= 1) for (const h of this.hands) h.mode = 'gun';
   }
   /** After the intro: the gauntlets go back to open hands. */
