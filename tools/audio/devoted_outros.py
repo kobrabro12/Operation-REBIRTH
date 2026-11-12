@@ -10,6 +10,10 @@ scored to its shots (frame numbers at 60 fps in brackets):
   ember      MARTYRDOM: a low choir and a heartbeat on timpani [0], the fire catching - rising choir, a crackle [180],
              a huge hit as she rises out of the flames [360], a soaring choir chord over a bell [560]
 
+  devoted    her own outro (no costume): wind, her music-box theme, the stab, the beaten sinking, three splashes as the
+             sludge takes her, a whisper, the thing's eyes opening
+Spoken lines (tools/audio/voice_src/dv_*.ogg) were made with Kokoro TTS (kokoro-onnx, voice af_nicole, slowed).
+
 Run:  python3 tools/audio/devoted_outros.py [name ...]  -> public/assets/audio/music/outro_<name>.ogg (bgm_outro_<name>)
 """
 import os, sys
@@ -26,6 +30,29 @@ def mx(*xs):
     out = np.zeros(max(len(x) for x in xs))
     for x in xs: out[:len(x)] += x
     return out
+
+
+VOICE = os.path.join(os.path.dirname(__file__), 'voice_src')
+
+
+def voice(name, semis=-1.0, ghost=0.3):
+    """A spoken line (tools/audio/voice_src/<name>.ogg, made with Kokoro TTS - see the README note at the top) made
+    eerie: pitched down a little, with a ghost of itself an octave below."""
+    import soundfile as sf
+    x, sr = sf.read(os.path.join(VOICE, name + '.ogg'))
+    if x.ndim > 1: x = x.mean(1)
+    def at(rate):
+        n = int(len(x) * SR / sr / rate); return np.interp(np.arange(n) * rate * sr / SR, np.arange(len(x)), x)
+    a, b = at(2 ** (semis / 12)), at(0.5)
+    out = np.zeros(max(len(a), len(b))); out[:len(a)] += a; out[:len(b)] += b * ghost
+    return out / (np.max(np.abs(out)) + 1e-9)
+
+
+def clank(vel=1.0, pitch=1.0):
+    """Metal on stone: a knife landing."""
+    n = secs(0.6); t = np.arange(n) / SR; x = np.zeros(n)
+    for h, d in ((1, 9), (2.76, 14), (5.4, 20), (8.9, 28)): x += np.sin(2 * np.pi * 900 * pitch * h * t) * np.exp(-t * d) / h
+    return (x + hp(noise(n), 3000) * np.exp(-t * 40) * 0.5) * vel * 0.5
 
 
 def organ(mids, dur, vel=1.0):
@@ -156,25 +183,65 @@ def bride():
 
 
 def ember():
-    L = 15.0; out = np.zeros(secs(L))
+    """16 s: the pyre, the fire, the rising, the judgment - then "Ashes to ashes", the knife thrown at the screen, the
+    picture burning, the knife falling."""
+    L = 16.0; out = np.zeros(secs(L))
     # [0] a low choir and a heartbeat
     add(out, choir([45, 52, 57], 3.2, 0.7, (500, 900)), 0.1)
     for i in range(6):
         add(out, timpani(33, 0.8, 0.9), 0.4 + i * 0.5); add(out, timpani(33, 0.6, 0.5), 0.6 + i * 0.5)
     # [180] the fire catches: crackle, the choir rising a step at a time
-    add(out, crackle(12, 0.9), 3.0)
+    add(out, crackle(8.4, 0.9), 3.0)
     for i, ch in enumerate([[45, 52, 57, 60], [47, 53, 59, 62], [48, 55, 60, 64]]): add(out, choir(ch, 1.4, 0.6 + 0.15 * i, (700, 1150)), 3.0 + i * 1.0)
     for i in range(12): add(out, timpani(33 + (i % 2) * 7, 0.4, 0.4 + i * 0.05, roll=0.5), 3.0 + i * 0.25)
     # [360] she rises: a huge hit
     add(out, mx(drum_kick(1.5), timpani(28, 2.0, 1.5)), 6.0); add(out, crash(1.0), 6.0)
-    add(out, choir([52, 59, 64, 68, 71], 4.0, 1.0, (800, 1300)), 6.0)
-    for i, mi in enumerate([64, 68, 71, 76]): add(out, horn(mi, 3.6 - i * 0.5, 0.5, bright=1.2), 6.0 + i * 0.12)
-    # [560] a soaring chord over a bell
-    add(out, choir([52, 59, 64, 68, 76], 5.5, 1.0, (900, 1400)), 9.3)
-    add(out, bell(64, 5.5, 0.8), 9.33); add(out, bell(52, 5.0, 0.6), 11.5)
-    finish(reverb(out, 3.0, 1.9, 0.38), 'ember', fade=1.4)
+    add(out, choir([52, 59, 64, 68, 71], 3.6, 1.0, (800, 1300)), 6.0)
+    for i, mi in enumerate([64, 68, 71, 76]): add(out, horn(mi, 3.2 - i * 0.5, 0.5, bright=1.2), 6.0 + i * 0.12)
+    # [560] judgment: a held chord over a bell...
+    add(out, choir([52, 59, 64, 68], 2.2, 0.7, (900, 1400)), 9.33); add(out, bell(52, 4.0, 0.6), 9.33)
+    # [600] ..."Ashes to ashes."
+    add(out, voice('dv_ashes', -1.2, 0.35) * 0.9, 10.0)
+    # [680] the throw - [700] it hits the screen: glass, a heavy thud; then the picture burns
+    add(out, hp(noise(secs(0.35)), 1500) * np.linspace(0, 0.5, secs(0.35)), 11.33)
+    add(out, mx(drum_kick(1.6), clank(0.8, 1.4), hp(noise(secs(0.4)), 2500) * np.exp(-np.arange(secs(0.4)) / SR * 9) * 0.8), 11.67)
+    add(out, crackle(4.2, 1.6, seed=9), 11.7)
+    roar = lp(noise(secs(4.0)), 400) * np.linspace(0.2, 1.0, secs(4.0)) * 0.5; add(out, roar, 11.7)
+    add(out, choir([40, 47, 52], 3.5, 0.6, (400, 800)), 12.0)
+    # [820] the knife falls and clatters; [880] the title
+    add(out, clank(0.9, 1.0), 13.67); add(out, clank(0.5, 1.1), 13.85); add(out, clank(0.25, 1.2), 13.98)
+    add(out, mx(timpani(28, 2.0, 1.2), bell(40, 2.0, 0.6)), 14.67)
+    finish(reverb(out, 3.0, 1.9, 0.38), 'ember', fade=1.0)
 
 
-PIECES = {'cartridge': cartridge, 'bride': bride, 'ember': ember}
+def devoted():
+    """THE DEVOTED's own outro (15 s): the dead field, her prayer and the stab, the beaten sinking, the sludge taking
+    her stage by stage, a whisper, the thing in the dark opening its eyes."""
+    L = 15.0; out = np.zeros(secs(L))
+    out += lp(noise(secs(L)), 300) * 0.06                                          # wind over the field
+    add(out, pad([38, 45, 50], 5.6, 0.45, detune=0.25), 0.0)
+    motif = seq('D5:1 F5:1 E5:1 A4:2  D5:1 C5:.5 Bb4:.5 A4:3')                      # her theme, on a music box
+    t = 0.3
+    for mi, d in motif: add(out, musicbox(mi, 2.4, 0.55), t); t += d * 0.42
+    # [230] the stab
+    add(out, mx(drum_kick(1.4), timpani(26, 1.6, 1.3)), 3.83); add(out, lp(noise(secs(1.2)), 900) * np.exp(-np.arange(secs(1.2)) / SR * 4) * 0.8, 3.85)
+    add(out, pad([37, 44, 49], 5.0, 0.5, detune=0.35), 4.0)
+    # [340] the beaten sinking: a swelling rumble, bubbles
+    sw = lp(noise(secs(3.2)), 160) * np.linspace(0, 1, secs(3.2)) ** 2; add(out, sw * 1.2, 5.67)
+    for i in range(18): add(out, glass(40 + (i * 7) % 12, 0.15, 0.25), 5.8 + i * 0.16)
+    # [560, 600, 640] the sludge takes her: three splashes, each lower
+    for i, tt in enumerate((9.33, 10.0, 10.67)):
+        add(out, mx(drum_kick(1.0 - i * 0.1), lp(noise(secs(0.6)), 1200) * np.exp(-np.arange(secs(0.6)) / SR * 6)), tt)
+        add(out, pad([38 - i * 2, 45 - i * 2], 0.8, 0.5, detune=0.4), tt)
+    # [660] the whisper; [690] its eyes open
+    add(out, voice('dv_listens', -2.0, 0.45) * 0.9, 11.0)
+    add(out, mx(timpani(26, 2.4, 1.4), bell(38, 3.0, 0.5)), 11.5)
+    # [720] the end: the motif again, detuned, very slow
+    t = 12.0
+    for i, (mi, d) in enumerate(motif[:5]): add(out, musicbox(mi - 0.35 * (i % 2), 2.6, 0.45), t); t += d * 0.5
+    finish(reverb(out, 3.2, 1.8, 0.42), 'devoted', fade=1.2)
+
+
+PIECES = {'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

@@ -33,6 +33,8 @@ export const INTROS = {
   'nu': { kind: 'drop', color: 0xc8ff5a, trail: 0xc8ff5a, notes: true, sfx: ['bighit', 0.5, 1.2] },
   'aero': { kind: 'bubble', color: 0x7ad8f0, pre: ['popup', 0.3, 1.2], sfx: ['glass', 0.5, 1.4] },
   'what-once-was': { kind: 'warp', color: 0x9affd8, pre: ['glitch', 0.5, 0.8], sfx: ['buzz', 0.4, 0.8] },
+  // THE DEVOTED crawls up out of a pool of black sludge (kind 'pool': pool = its colours, lava = glowing + embers)
+  devoted: { kind: 'pool', dur: 120, pool: { deep: 0x060508, mid: 0x1a1720, rim: 0x2e2a38, sheen: 0x4a4458 }, pre: ['geyser', 0.35, 0.45], sfx: ['curse', 0.45, 0.6] },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
 
@@ -46,7 +48,7 @@ export const SKIN_INTROS = {
   // THE DEVOTED's drawn costumes
   'devoted:CARTRIDGE': { kind: 'warp', color: 0x20e8ff, color2: 0xff3ad8, pre: ['popup', 0.4, 0.8], sfx: ['glass', 0.5, 1.3] },
   'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
-  'devoted:EMBER SAINT': { kind: 'rise', color: 0xff6a10, shape: 'ember', pre: ['flame', 0.5, 0.7], sfx: ['bighit', 0.45, 0.9] },
+  'devoted:EMBER SAINT': { kind: 'pool', dur: 120, lava: true, color: 0xff6a10, pool: { deep: 0x5a1408, mid: 0xff6a10, rim: 0xffe070, sheen: 0xfff4c0, glow: 0xff5a0a }, pre: ['rumble', 0.6, 0.6], sfx: ['flame', 0.7, 0.6] },   // up out of the lava
   'soul-summoner:TRICOLORE': { kind: 'swarm', shape: 'leaf', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 24, pre: ['whoosh', 0.4, 0.8], sfx: ['shing', 0.5, 1.1] },
   'mr-wake:TEATIME': { kind: 'portal', color: 0x1a2a6a, color2: 0xd8203a, pre: ['glass', 0.4, 1.4], sfx: ['ding', 0.4, 1.6] },
   'hero-knight:LIBERTY': { kind: 'drop', color: 0xffd860, trail: 0xffffff, sfx: ['shing', 0.7, 1.2] },
@@ -133,7 +135,7 @@ export class FighterIntros {
   }
   finish() {
     this.done = true; this.g.clear();
-    for (const e of this.list) this.show(e.f, 1, 0, 1);
+    for (const e of this.list) { this.show(e.f, 1, 0, 1); if (e.I.kind === 'pool') e.f.sprite.setCrop(); }
   }
   // the moment they're here: a flash, a burst, a sound
   arrive(e) {
@@ -213,6 +215,30 @@ export class FighterIntros {
           if (p < A) { vis = 0.85; dy = by - (y - 30); g.fillStyle(c, 0.18); g.fillCircle(x, by, 34); g.lineStyle(2, 0xffffff, 0.8); g.strokeCircle(x, by, 34); g.lineStyle(2, c, 0.7); g.strokeCircle(x, by, 32); g.fillStyle(0xffffff, 0.8); g.fillEllipse(x - 14, by - 16, 10, 5); if (I.lure) { g.fillStyle(0xfff4a8, 0.6 + 0.4 * Math.sin(this.t * 0.3)); g.fillCircle(x + 20, by - 40, 4); g.lineStyle(1, 0x2a4a5a, 1); g.lineBetween(x + 6, by - 30, x + 20, by - 40); } }
           break;
         }
+        case 'pool': {                                                     // a pool spreads on the floor, bubbling; they crawl up out of it
+          const P = I.pool, ease = (v) => v * v * (3 - 2 * v), open = p < A ? ease(pre) : Math.max(0, 1 - Math.max(0, post - 0.6) * 2.5), w = 84 * open;
+          if (P.glow) { for (let i = 0; i < 4; i++) { g.fillStyle(P.glow, 0.08); g.fillEllipse(x, y - 4, w * (1.4 + i * 0.3), w * (0.5 + i * 0.12)); } g.fillStyle(P.glow, 0.12); g.fillRect(x - w * 0.4, y - 90 * open, w * 0.8, 90 * open); }
+          g.fillStyle(P.deep, 1); g.fillEllipse(x, y + 1, w, w * 0.24);
+          g.fillStyle(P.mid, 0.9); g.fillEllipse(x + Math.sin(this.t * 0.07) * 4, y + 1, w * 0.62, w * 0.13);
+          g.lineStyle(1, P.rim, 0.9); g.strokeEllipse(x, y + 1, w, w * 0.24);
+          g.fillStyle(P.sheen, 0.7); g.fillRect(x - w * 0.22 + Math.sin(this.t * 0.05) * 6, y - 1, w * 0.12, 1);
+          if (open > 0.2 && this.t % 3 === 0) {                              // bubbles (sludge) / spitting sparks (lava)
+            const bx = x + (R() - 0.5) * w * 0.7;
+            if (I.lava) e.parts.push({ shape: 'ember', x: bx, y: y, vx: (R() - 0.5) * 1.2, vy: -2 - R() * 3, life: 26, max: 26, color: R() < 0.5 ? P.mid : P.rim, grav: 0.08 });
+            else e.parts.push({ shape: 'bubble', x: bx, y: y - 1, vx: 0, vy: -0.2, life: 10, max: 10, color: P.rim });
+          }
+          if (p < A && pre > 0.45) for (let i = 0; i < 3; i++) {             // strands reaching up out of it before she comes
+            const sx = x + (i - 1) * 16, h = (pre - 0.45) * 60 * (0.6 + 0.4 * Math.sin(this.t * 0.2 + i));
+            g.lineStyle(2, P.deep, 1); g.beginPath(); g.moveTo(sx, y); for (let k = 1; k <= 5; k++) g.lineTo(sx + Math.sin(this.t * 0.15 + k + i) * 3, y - h * k / 5); g.strokePath();
+          }
+          if (p >= A) {
+            const up = ease(Math.min(1, post / 0.75));
+            vis = 1; dy = 66 * (1 - up); e.crop = dy;
+            if (post < 0.85 && this.t % 2 === 0) e.parts.push({ shape: 'drop', x: x + (R() - 0.5) * 20, y: y - (60 - dy) * R(), vx: 0, vy: 0.5, life: 18, max: 18, color: I.lava ? (R() < 0.5 ? P.mid : P.rim) : P.deep, grav: 0.25 });   // dripping off her
+            if (post < 0.6 && this.t % 14 === 0) this.m.shake(2, 4);
+          }
+          break;
+        }
         case 'flicker': {                                                  // the lights won't stay on; they're there in the flashes
           const on = p >= A ? (post > 0.3 || (this.t >> 1) % 3 !== 0) : (R() < pre * 0.35);
           const dark = p < A ? 0.55 : 0.55 * Math.max(0, 1 - post * 2);
@@ -246,6 +272,11 @@ export class FighterIntros {
       if (p <= 0) vis = 0;
       if (p > 1.05) { vis = 1; dy = 0; sc = 1; }
       this.show(f, vis, dy, sc);
+      if (I.kind === 'pool') {                                            // (the part of them still under the surface isn't drawn)
+        const fr = f.sprite.frame;
+        if (p >= A && p <= 1.05 && e.crop > 0) f.sprite.setCrop(0, 0, fr.width, Math.max(0, fr.height * (f.def.originY ?? 1) - e.crop / Math.abs(f.sprite.scaleY)));
+        else f.sprite.setCrop();
+      }
       // the arrival flash and the burst bits
       if (p >= A && post < 0.12) { g.fillStyle(0xffffff, 0.7 * (1 - post / 0.12)); g.fillCircle(x, y - 28, 30 + post * 120); }
       for (const q of e.parts) this.shape(g, q.shape, q.x, q.y, q.color, Math.min(1, q.life / ((q.max || 30) * 0.5)), this.t + q.x);

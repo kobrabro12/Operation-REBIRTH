@@ -55,7 +55,7 @@ VARIANTS = {
     'cartridge': dict(shirt=[0x0a5a64, 0x109098, 0x2ac8c0, 0x8af4ea], stripe=None, pants=[0x3a0e5a, 0x641c90, 0x9038c0, 0xc070f0],
                       shoe=[0x7a2a04, 0xc85a0c, 0xff9420, 0xffd060], skin=[0xb8704a, 0xe09464, 0xf8b884, 0xffdcb0],
                       hair=[0x8a2a04, 0xc8480c, 0xf47a1c, 0xffb050], sludge=[0x0c0418, 0x1c0838, 0x3a1070, 0x20e8ff], sheen=0xff3ad8,
-                      facet=7, wing=(0x1c0838, 0x3a1070, 0x20e8ff, 0xff3ad8), blade=[0x0a6aa0, 0x30b8f0, 0x90f0ff, 0xffffff]),
+                      facet=0, poly=True, wing=(0x1c0838, 0x3a1070, 0x20e8ff, 0xff3ad8), blade=[0x0a6aa0, 0x30b8f0, 0x90f0ff, 0xffffff]),
     'bride': dict(shirt=[0x7a7468, 0xaaa496, 0xd6d0c2, 0xf6f2e6], stripe=None, pants=[0x6a645a, 0x9a9488, 0xc8c2b4, 0xeae6da],
                   shoe=[0x8a8478, 0xb4ae9e, 0xdcd6c6, 0xfaf6ea], skin=[0x7a8690, 0x9aa6b0, 0xbcc6ce, 0xdae2e8],
                   hair=[0x08080e, 0x121218, 0x1e1e28, 0x343442], sludge=[0x050408, 0x0c0a10, 0x18151e, 0x3a3448], sheen=0x5a5068,
@@ -83,9 +83,56 @@ def apply_variant(name):
     VARIANT = name; v = VARIANTS.get(name)
     if not v: return
     SHIRT, PANTS, SHOE, SKIN, HAIR = v['shirt'], v['pants'], v['shoe'], v['skin'], v['hair']
+    if v.get('poly'): SHIRT, PANTS, SHOE, SKIN, HAIR = (expand(r) for r in (SHIRT, PANTS, SHOE, SKIN, HAIR))
     STRIPE = SHIRT; SLUDGE = v['sludge']; SHEEN = v['sheen']; FACET = v.get('facet', 0)
     KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
             'bthigh': PANTS, 'fthigh': PANTS, 'bshin': PANTS, 'fshin': PANTS, 'bshoe': SHOE, 'fshoe': SHOE}
+
+LIGHT = np.array([-0.62, -0.68, 0.4]) / np.linalg.norm([-0.62, -0.68, 0.4])   # CARTRIDGE's light: up, left, a little toward us
+
+def expand(r, n=7):
+    """A 4-colour ramp stretched to n tones, from a deep shadow below its darkest to a highlight above its lightest
+    (CARTRIDGE's 3D lighting needs more steps)."""
+    cs = [np.array([c >> 16 & 255, c >> 8 & 255, c & 255], float) for c in r]
+    stops = [cs[0] * 0.55] + cs + [np.minimum(255, cs[3] * 1.12 + 12)]
+    out = []
+    for i in range(n):
+        f = i / (n - 1) * (len(stops) - 1); j = min(len(stops) - 2, int(f)); m = stops[j] + (stops[j + 1] - stops[j]) * (f - j)
+        out.append(int(m[0]) << 16 | int(m[1]) << 8 | int(m[2]))
+    return out
+
+def poly_light(fill, sides, seg=5):
+    """CARTRIDGE: lights a body part as a real low-poly 3D solid. The part's silhouette is treated as a loft along its
+    long axis (found with PCA): slices `seg` px long, each an n-sided prism (`sides`) as wide as the part is there, with
+    the slant of its taper. Every pixel gets the flat light of the polygon it sits on -> 0..1 per pixel."""
+    ys, xs = np.nonzero(fill); v = np.zeros(fill.shape)
+    if len(xs) < 4: return v
+    P = np.stack([xs, ys], 1).astype(float); c = P.mean(0)
+    w_, V = np.linalg.eigh(np.cov((P - c).T)); ax = V[:, 1]; pe = np.array([-ax[1], ax[0]])
+    u = (P - c) @ ax; w = (P - c) @ pe
+    sl = np.floor((u - u.min()) / seg).astype(int); ns = sl.max() + 1
+    cen = np.zeros(ns); half = np.ones(ns)
+    for i in range(ns):
+        m = sl == i
+        if m.any(): lo, hi = w[m].min(), w[m].max(); cen[i] = (lo + hi) / 2; half[i] = max(0.8, (hi - lo) / 2 + 0.5)
+    step = 2 * math.pi / sides
+    for k in range(len(xs)):
+        i = sl[k]; t = max(-0.999, min(0.999, (w[k] - cen[i]) / half[i]))
+        th = round(math.asin(t) / step) * step                       # which side of the prism this pixel is on
+        dh = (half[min(ns - 1, i + 1)] - half[max(0, i - 1)]) / (2 * seg)
+        tilt = -math.atan(dh)                                         # the taper slants the faces toward / away from the axis
+        n2 = ax * math.sin(tilt) + pe * math.sin(th) * math.cos(tilt)
+        n = np.array([n2[0], n2[1], math.cos(th) * math.cos(tilt)])
+        v[ys[k], xs[k]] = min(1, 0.12 + 0.95 * max(0.0, float(n @ LIGHT)) + 0.05 * (i % 2))
+    return v
+
+def sphere_light(x, y, cx, cy, r, lat_n=4, lon_n=5):
+    """CARTRIDGE's head: the light on a low-poly sphere (lat_n x lon_n faces) at pixel x, y."""
+    dy = max(-0.999, min(0.999, (y - cy) / r)); lat = round(math.asin(dy) / (math.pi / lat_n)) * (math.pi / lat_n)
+    cl = max(0.2, math.cos(math.asin(dy))); dx = max(-0.999, min(0.999, (x - cx) / (r * cl)))
+    lon = round(math.asin(dx) / (math.pi / lon_n)) * (math.pi / lon_n)
+    n = np.array([math.sin(lon) * math.cos(lat), math.sin(lat), math.cos(lon) * math.cos(lat)])
+    return min(1, 0.12 + 0.95 * max(0.0, float(n @ LIGHT)))
 
 def facet_id(x, y):
     """Which flat polygon (a triangle of a FACET-px grid, split along a diagonal) this pixel belongs to."""
@@ -123,7 +170,7 @@ def vpaint(x, y, ramp, v, stage, seed):
     """A drawn costume's own pattern on its clothes and skin (or None for the plain shade)."""
     k = min(3, int(v * 3.99))
     if VARIANT == 'cartridge':
-        if ramp is SHIRT and (y + (x // 3) % 2 * 2) % 9 in (4, 5): return [0xc89a08, 0xf0c81a, 0xffe848, 0xfff8a0][k]   # the yellow zig-zag band
+        if ramp is SHIRT and (y + (x // 3) % 2) % 9 == 4: return [0xc89a08, 0xf0c81a, 0xffe848, 0xfff8a0][k]   # the yellow zig-zag band
         if ramp is PANTS and x % 7 == 3: return PANTS[max(0, k - 1)]                  # (a seam)
     if VARIANT == 'bride':
         if ramp in (SHIRT, PANTS) and (x * 3 + y * 5) % 7 == 0 and k >= 1: return SHIRT[min(3, k + 1)] if (x + y) % 2 else SHIRT[k - 1]   # lace
@@ -142,11 +189,9 @@ def repaint(a, ramp, stage, seed):
     if fill.any():
         lo, hi = np.percentile(lum[fill], 5), np.percentile(lum[fill], 95)
         v = np.clip((lum - lo) / max(1e-3, hi - lo), 0, 1)
-    if FACET and fill.any():                                   # CARTRIDGE: every triangle one flat shade (low-poly)
-        acc = {}
-        for y, x in zip(*np.nonzero(fill)): acc.setdefault(facet_id(x, y), []).append(v[y, x])
-        fv = {f: min(1, max(0, sum(l) / len(l) + (noise(f[0], f[1] * 2 + f[2], seed + 40) - 0.5) * 0.4)) for f, l in acc.items()}
-        for y, x in zip(*np.nonzero(fill)): v[y, x] = fv[facet_id(x, y)]
+    if VARIANT == 'cartridge' and fill.any():                 # CARTRIDGE: lit as a real low-poly 3D solid (poly_light)
+        sides = 4 if (ramp is SHIRT and fill.sum() > 150) or ramp is SHOE else 5
+        v = poly_light(s, sides, 4)
     for y, x in zip(*np.nonzero(fill)):
         tone = vpaint(x, y, ramp, v[y, x], stage, seed)
         if sludged(x, y, stage, seed):
@@ -242,13 +287,13 @@ def vhead(a, stage):
     SAINT's fire hair, coal eyes and halo."""
     v = VARIANT
     if v == 'cartridge':
-        face = lambda x, y: 32 <= x <= 43 and 10 <= y <= 19
-        groups = {}
-        for y, x in zip(*np.nonzero(a[..., 3] > 0)):
-            if not face(x, y): groups.setdefault(facet_id(x, y), []).append((y, x))
-        for f, px in groups.items():                                         # every polygon one flat colour (its most common)
-            cols = [tuple(a[y, x]) for y, x in px]; best = max(set(cols), key=cols.count)
-            for y, x in px: a[y, x] = best
+        ramps = [(r, {tuple(hx(c)[:3]) for c in r}) for r in (HAIR, SKIN, SLUDGE[:3])]
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):                         # relit as a low-poly sphere (the skull) + ponytail
+            col = tuple(a[y, x, :3]); r = next((R_ for R_, S_ in ramps if col in S_), None)
+            if r is None: continue                                             # (eyes, mouth, glitch pixels keep their colour)
+            if math.hypot(x - 36.5, y - 13) <= 10.5: L_ = sphere_light(x, y, 36.5, 13, 10.5)
+            else: L_ = sphere_light(x, y, 27, 18 + (y - 18) * 0.2, 6, 3, 3)     # the ponytail: a fat low-poly tube
+            a[y, x] = hx(r[min(len(r) - 1, int(L_ * (len(r) - 0.01)))])
         if stage < 3:
             for x0 in (35, 39):                                               # big texture-painted eyes: white, a black pupil, a glint
                 for y in (11, 12, 13): a[y, x0] = hx(0xffffff); a[y, x0 + 1] = hx(0x101018)

@@ -11,7 +11,7 @@
 //                 burst into embers; she hangs in a shaft of light over the beaten, kneeling in the ash
 import { VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
-import { skinInfo } from '../fighters/skins.js';
+import { skinInfo, skinTexture } from '../fighters/skins.js';
 import { Poly3D } from '../stage/poly3d.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -22,15 +22,21 @@ export const DEVOTED_CUTS = {
     color: '#2ac8c0', stroke: '#0c0418', shots: [[0, 'boot'], [150, 'field'], [420, 'shard'], [620, 'corrupt'], [700, 'void']] },
   'devoted:HOLLOW BRIDE': { fn: 'dv_bride', len: 900, card: 750, name: 'THE DEVOTED', sub: 'HOLLOW BRIDE', line: 'TILL DEATH DO US PART.', music: 'bgm_outro_bride',
     color: '#f6f2e6', stroke: '#0a0810', shots: [[0, 'aisle'], [210, 'veil'], [380, 'vows'], [470, 'cuts'], [560, 'bouquet'], [690, 'tableau']] },
-  'devoted:EMBER SAINT': { fn: 'dv_ember', len: 900, card: 760, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
-    color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment']] },
+  'devoted:EMBER SAINT': { fn: 'dv_ember', len: 960, card: 880, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
+    color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment'], [660, 'throw'], [700, 'burn']] },
+  // her own outro (no drawn costume; recolours wear it too - WinScene falls back to SKIN_CUTS[id])
+  devoted: { fn: 'dv_own', len: 900, card: 740, name: 'THE DEVOTED', sub: 'THE OFFERING', line: 'SHE LISTENS.', music: 'bgm_outro_devoted',
+    color: '#c890ff', stroke: '#06040a', shots: [[0, 'field'], [170, 'pray'], [340, 'swallow'], [520, 'taken'], [720, 'eyes']] },
 };
 
 /** The shots (WinScene methods: shot_<fn>_<name>(t, k, s) - t the cutscene frame, k 0-1 through the shot, s its frame). */
 export class DevotedShots {
   // ------------------------------------------------------------- shared
   /** The texture key of one of her costume's strips at a sludge stage ('' / semi / taken / drowned). */
-  dvKey(stage, strip) { return 'dv_' + skinInfo(this.def.id, this.win.skin || 0).sheetSet + '_' + (stage ? stage + '_' : '') + strip; }
+  dvKey(stage, strip) {
+    const set = skinInfo(this.def.id, this.win.skin || 0).sheetSet, base = 'dv_' + (set ? set + '_' : '') + (stage ? stage + '_' : '') + strip;
+    return set ? base : skinTexture(this, base, this.def.id, this.win.skin || 0);   // (a recolour: her own sheets in its colours)
+  }
   /** Shows her (on spr, the hero by default) in one frame of a strip (idle / run / jump / fall) of a sludge stage. */
   dvPose(stage, strip, frame, x, y, sc, flip = false, spr = this.hero) {
     const key = this.dvKey(stage, strip), n = Math.max(1, (this.textures.get(key).frameTotal || 2) - 1);
@@ -448,7 +454,173 @@ export class DevotedShots {
     this.posLosers([[170, 304, 1.8, 0.1, 1, 1], [470, 304, 1.8, -0.1, 1, 1], [320, 314, 1.7, 0, 1, 1]], 0x160806);   // the beaten, kneeling in a ring
     for (let i = 0; i < 40; i++) { const sp = this.spots[i]; const x = (sp[0] * W + Math.sin(t * 0.01 + i) * 20) % W, y = (sp[1] * H + t * (0.3 + sp[2] * 0.4)) % H; this.front.fillStyle(0x8a8478, 0.6); this.front.fillRect(x, y, 2, 2); }   // ash, falling
     this.dvEmbers(this.fx, t, 20, 0.8, 300);
+    if (s >= 40) {                                                                      // [600] she speaks
+      const T = 'ASHES... TO ASHES.', n = Math.min(T.length, Math.floor((s - 40) / 2.2));
+      this.dvText(0, T.slice(0, n), W / 2, 92, 13, '#ffe070', { stroke: '#140604', sw: 5 });
+    }
     this.vignette(this.over, 0.6);
+  }
+  /** Her karambit, big: a curved blade (glowing with heat 0-1), the black grip and its finger ring. */
+  dvKnife(g, x, y, sc, rot, heat = 1, a = 1) {
+    const P = (px, py) => ({ x: x + (px * Math.cos(rot) - py * Math.sin(rot)) * sc, y: y + (px * Math.sin(rot) + py * Math.cos(rot)) * sc });
+    const blade = [P(0, 0), P(4, -2), P(9, -1), P(13, 2), P(15, 7), P(14, 12), P(11, 15), P(12, 10), P(11, 6), P(8, 3), P(4, 2)];
+    const hot = Phaser.Display.Color.GetColor(255, 140 + heat * 110, 60 + heat * 160);
+    g.fillStyle(0xa82808, a); g.fillPoints(blade, true);
+    g.fillStyle(hot, a); g.fillPoints([P(1, 0), P(4, -1), P(9, 0), P(12, 3), P(14, 7), P(13, 11), P(12, 8), P(10, 5), P(7, 2)], true);
+    g.fillStyle(0x16161c, a); g.fillPoints([P(0, 0), P(-9, -1), P(-10, 3), P(0, 3)], true);              // the grip
+    g.lineStyle(2 * sc / 3, 0x3a3a46, a); g.strokeCircle(P(-12, 1).x, P(-12, 1).y, 3 * sc);          // its finger ring
+  }
+  /** [660] She draws back and hurls the burning knife - straight at us. */
+  shot_dv_ember_throw(t, k, s) {
+    this.shot_dv_ember_judgment(t, 0, s + 100);
+    this.tvLines[0].setVisible(false);
+    const bob = Math.sin((s + 100) * 0.04) * 6;
+    if (s < 12) this.dvMove('drowned', 'fsmash', 2 + s / 3, W / 2, 262 + bob, 2.8);           // the wind-up and throw
+    else this.dvMove('drowned', 'fsmash', 7 + (s - 12) / 4, W / 2, 262 + bob, 2.8);
+    if (s >= 12) {
+      const p = (s - 12) / 28, ease3 = p * p * p, sc = 0.8 + ease3 * 26, x = W / 2 + 40 + (W / 2 - (W / 2 + 40)) * p, y = 150 - 10 * p;
+      this.glow(this.front, x, y, 10 * sc, 0xff6a10, 0.35);
+      this.dvKnife(this.front, x, y, sc, s * 0.9, 1);
+      if (s === 12) sfx('whoosh', 0.7, 0.7);
+    }
+    this.vignette(this.over, 0.6);
+  }
+  /** [700] The knife is stuck in the screen: the glass cracks, the picture catches fire round it and burns away;
+   * the knife works loose and falls; only embers and darkness left. */
+  shot_dv_ember_burn(t, k, s) {
+    const cx = W / 2 + 6, cy = 160;
+    this.shot_dv_ember_judgment(t, 0, 140);                                           // (the picture behind, frozen)
+    this.tvLines[0].setVisible(false);
+    this.hero.setAlpha(1);
+    if (s === 0) { this.flash = 3; sfx('bighit', 1, 0.6); sfx('clang', 0.7, 0.5); this.cameras.main.shake(320, 0.025); }
+    const f = this.front, o = this.over;
+    for (let i = 0; i < 14; i++) {                                                     // the cracks in the glass
+      const sp = this.spots[i], a = i / 14 * Math.PI * 2 + sp[0] * 0.4, l1 = 30 + sp[1] * 60, l2 = l1 + 40 + sp[2] * 120;
+      const mx = cx + Math.cos(a) * l1, my = cy + Math.sin(a) * l1, ex = cx + Math.cos(a + (sp[2] - 0.5) * 0.5) * l2, ey = cy + Math.sin(a + (sp[2] - 0.5) * 0.5) * l2;
+      f.lineStyle(2, 0xffffff, 0.75); f.lineBetween(cx, cy, mx, my); f.lineStyle(1, 0xffffff, 0.55); f.lineBetween(mx, my, ex, ey);
+    }
+    // the burn: char eating outward from the knife, a glowing edge, flames licking along it
+    const r = s < 8 ? 0 : Math.pow((s - 8) / 150, 1.4) * 460, seeds = [[0, 0, 1], [-90, 40, 0.8], [120, -30, 0.7], [-40, -70, 0.6], [60, 80, 0.75]];
+    if (r > 0) {
+      for (const [dx, dy, m] of seeds) {
+        const rr = r * m - Math.hypot(dx, dy) * 0.5; if (rr <= 0) continue;
+        const bx = cx + dx, by = cy + dy;
+        o.fillStyle(0x050202, 1); o.fillCircle(bx, by, rr);
+        for (let i = 0; i < 24; i++) {                                                // a ragged, glowing rim
+          const q = i / 24 * Math.PI * 2 + s * 0.01, w = rr + Math.sin(i * 3.1 + s * 0.2) * 5;
+          o.fillStyle(0x050202, 1); o.fillCircle(bx + Math.cos(q) * w, by + Math.sin(q) * w, 7);
+          o.fillStyle(i % 2 ? 0xff6a10 : 0xffb040, 0.85); o.fillCircle(bx + Math.cos(q) * (w + 6), by + Math.sin(q) * (w + 6), 3);
+          if (i % 3 === 0) { const fl = 10 + 8 * Math.abs(Math.sin(s * 0.3 + i)); o.fillStyle(0xffe070, 0.8); o.fillTriangle(bx + Math.cos(q) * (w + 4) - 4, by + Math.sin(q) * (w + 4), bx + Math.cos(q) * (w + 4) + 4, by + Math.sin(q) * (w + 4), bx + Math.cos(q) * (w + 4), by + Math.sin(q) * (w + 4) - fl); }
+        }
+      }
+    }
+    // the knife: stuck, glowing; at [820] it works loose and falls away
+    const fall = Math.max(0, s - 120), ky = cy + fall * fall * 0.06, rot = 0.6 + fall * 0.08;
+    if (ky < H + 200) { this.glow(o, cx, ky, 120, 0xff6a10, 0.25 * Math.max(0, 1 - fall / 40)); this.dvKnife(o, cx - 30, ky - 20, 7.5, rot, Math.max(0, 1 - s / 200)); }
+    if (s === 120) sfx('clang', 0.6, 0.8);
+    for (let i = 0; i < 40; i++) { const sp = this.spots[i]; const ex = sp[0] * W + Math.sin(t * 0.04 + i) * 20, ey = H - ((t * (0.8 + sp[2]) + sp[1] * 400) % (H + 40)); o.fillStyle(i % 3 ? 0xff9a20 : 0xffe070, 0.7); o.fillRect(ex, ey, 2, 2); }   // embers
+  }
+
+  // ================================================================= THE DEVOTED (her own) - THE OFFERING
+  /** Her symbol: a dead, twisted tree with a dark knot like an open mouth. */
+  dvTree(g, x, y, sc) {
+    const br = (x0, y0, a, l, w, d) => {
+      const x1 = x0 + Math.cos(a) * l, y1 = y0 + Math.sin(a) * l;
+      g.lineStyle(w, 0x1a1210, 1); g.lineBetween(x0, y0, x1, y1);
+      if (d > 0) { br(x1, y1, a - 0.45 - d * 0.04, l * 0.68, Math.max(1, w * 0.62), d - 1); br(x1, y1, a + 0.38, l * 0.62, Math.max(1, w * 0.6), d - 1); }
+    };
+    br(x, y, -Math.PI / 2 - 0.05, 46 * sc, 10 * sc, 4);
+    g.fillStyle(0x060404, 1); g.fillEllipse(x + 1 * sc, y - 26 * sc, 6 * sc, 9 * sc);
+  }
+  /** The dead field at dusk: a bruised sky, black hills, dead grass. */
+  dvField(g, t, ground = 300) {
+    this.sky(g, 0x14101e, 0x5a3a52, 12);
+    g.fillStyle(0x0c0a10, 1); g.fillEllipse(120, ground + 10, 520, 90); g.fillEllipse(520, ground + 14, 600, 100);
+    g.fillStyle(0x16121a, 1); g.fillRect(0, ground, W, H - ground);
+    for (let i = 0; i < 70; i++) { const sp = this.spots[i % 40], gx = (sp[0] * W + i * 9) % W, h = 4 + sp[1] * 8; g.lineStyle(1, 0x2a2228, 1); g.lineBetween(gx, ground + 2, gx + Math.sin(t * 0.03 + i) * 2, ground + 2 - h); }
+    for (let i = 0; i < 5; i++) this.dvTree(g, 40 + i * 150 + (i % 2) * 40, ground - 4, 0.4 + (i % 3) * 0.1);   // dead trees far off
+  }
+  /** [0] Dusk. Her symbol, the dying tree; she walks to it; the beaten wait far off on the horizon. */
+  shot_dv_own_field(t, k, s) {
+    this.dvField(this.bg, t);
+    this.dvTree(this.mid, 420, 302, 1.6);
+    this.posLosers([[560, 300, 0.9, 0, 0.9], [600, 300, 0.85, 0, 0.9], [520, 300, 0.8, 0, 0.9]], 0x06040a);
+    const x = 120 + ease(Math.min(1, s / 130)) * 200;
+    if (s < 130) this.dvPose('', 'run', s / 9, x, 300, 3); else this.dvPose('', 'idle', s / 6, x, 300, 3);
+    for (let i = 0; i < 20; i++) { const sp = this.spots[i]; this.fx.fillStyle(0xd8c8e8, 0.25); this.fx.fillRect((sp[0] * W + t * 0.6) % W, sp[1] * 300, 1, 1); }
+    this.vignette(this.over, 0.7);
+  }
+  /** [170] Close: she kneels, raises the karambit, and drives it into the earth - sludge bursts out in a ring. */
+  shot_dv_own_pray(t, k, s) {
+    this.dvField(this.bg, t, 320);
+    this.dvTree(this.mid, 470, 322, 2.2);
+    this.hideLosers();
+    const STAB = 60, A = this.def.moveAnims.downB;
+    const f = s < STAB ? s * 22 / STAB : Math.min(A[1] - 1, 22 + (s - STAB) * 0.15);
+    this.dvMove('', 'downB', f, 300, 320, 3.4);
+    if (s === STAB) { this.flash = 4; sfx('bighit', 0.9, 0.5); this.cameras.main.shake(220, 0.014); }
+    if (s >= STAB) {
+      const d = s - STAB, r = Math.min(700, d * 7);
+      this.bg.fillStyle(0x060508, 1); this.bg.fillEllipse(350, 322, r * 2, r * 0.32);          // the sludge, spreading over the ground
+      this.bg.fillStyle(0x2e2a38, 0.6); this.bg.fillEllipse(340 + Math.sin(d * 0.1) * 10, 320, r * 0.6, r * 0.05);
+      for (let i = 0; i < 16; i++) { const sp = this.spots[i], a = -Math.PI * (0.1 + sp[0] * 0.8), v = 3 + sp[1] * 5; this.fx.fillStyle(0x0e0c12, Math.max(0, 1 - d / 40)); this.fx.fillCircle(350 + Math.cos(a) * v * d, 320 + Math.sin(a) * v * d + d * d * 0.12, 2 + sp[2] * 3); }
+    }
+    this.vignette(this.over, 0.7);
+  }
+  /** [340] The ground is black sludge now. The beaten sink into it; hands reach up out of it to help them down. */
+  shot_dv_own_swallow(t, k, s) {
+    const g = this.bg, ground = 300;
+    this.dvField(g, t);
+    g.fillStyle(0x060508, 1); g.fillRect(0, ground, W, H - ground);
+    for (let i = 0; i < 12; i++) { const sp = this.spots[i]; g.fillStyle(0x2e2a38, 0.5); g.fillRect((sp[0] * W + Math.sin(t * 0.02 + i) * 8) % W, ground + 4 + sp[1] * 50, 10 + sp[2] * 30, 1); }
+    this.dvTree(this.mid, 330, ground, 1.4);
+    this.hero.setVisible(false);
+    const spots = [[150, 0], [470, 30], [560, 60]];
+    this.losers.forEach((l, i) => {
+      if (!l.def || !spots[i]) { l.s.setVisible(false); return; }
+      const sink = Math.max(0, (s - spots[i][1]) * 0.75), sc = 2.2, fh = l.s.frame.height;
+      l.s.setPosition(spots[i][0], ground + sink).setScale(sc).setRotation(Math.sin(s * 0.05 + i) * 0.05).setAlpha(1).setTintMode(Phaser.TintModes.FILL).setTint(0x06040a).setVisible(true);
+      l.s.setCrop(0, 0, l.s.frame.width, Math.max(0, fh * l.s.originY - sink / sc));
+      for (let h = 0; h < 3; h++) {                                                   // hands, reaching up round them
+        const hx = spots[i][0] + (h - 1) * 22, len = Math.min(50, Math.max(0, s - spots[i][1] - h * 6) * 0.8), sway = Math.sin(t * 0.08 + h + i) * 6;
+        if (len <= 0) continue;
+        this.fx.lineStyle(4, 0x0e0c12, 1); this.fx.lineBetween(hx, ground + 2, hx + sway, ground - len);
+        for (let fgr = -2; fgr <= 2; fgr++) { this.fx.lineStyle(2, 0x0e0c12, 1); this.fx.lineBetween(hx + sway, ground - len, hx + sway + fgr * 3, ground - len - 8 + Math.abs(fgr) * 2); }
+      }
+    });
+    if (s % 40 === 0) sfx('smoke', 0.3, 0.4);
+    this.vignette(this.over, 0.75);
+  }
+  /** [520] She stands in the black; it climbs her - SEMI, TAKEN, DROWNED - and behind her something vast opens its eyes. */
+  shot_dv_own_taken(t, k, s) {
+    const g = this.bg, ground = 300;
+    this.sky(g, 0x06040a, 0x1a1220, 10);
+    g.fillStyle(0x060508, 1); g.fillRect(0, ground, W, H - ground);
+    for (const l of this.losers) l.s.setVisible(false);
+    const rise = ease(Math.min(1, s / 120));                                          // the thing, rising behind her
+    g.fillStyle(0x020103, 1); g.fillEllipse(W / 2, ground + 40 - rise * 160, 520, 420);
+    g.fillEllipse(W / 2 - 200, ground + 60 - rise * 120, 200, 220); g.fillEllipse(W / 2 + 200, ground + 60 - rise * 120, 200, 220);   // shoulders
+    if (s >= 170) {                                                                   // [690] its eyes open
+      const o = Math.min(1, (s - 170) / 10), ey = ground - 150 - rise * 30;
+      for (const ex of [W / 2 - 70, W / 2 + 70]) { this.glow(this.mid, ex, ey, 40, 0x9a4aff, 0.4 * o); this.mid.fillStyle(0xe0c8ff, 1); this.mid.fillEllipse(ex, ey, 46, 10 * o); this.mid.fillStyle(0x2a0a4a, 1); this.mid.fillEllipse(ex, ey, 8, 9 * o); }
+      if (s === 170) { sfx('rumble', 0.8, 0.4); this.cameras.main.shake(300, 0.01); }
+    }
+    const stage = s < 40 ? '' : s < 80 ? 'semi' : s < 120 ? 'taken' : 'drowned';
+    this.dvPose(stage, 'idle', s / 6, W / 2, ground + 2, 3.2);
+    if (s === 40 || s === 80 || s === 120) { this.flash = 3; this.cameras.main.shake(120, 0.008); }
+    for (let i = 0; i < 18; i++) { const sp = this.spots[i]; this.fx.fillStyle(0x0e0c12, 0.9); this.fx.fillRect(W / 2 - 40 + sp[0] * 80, ground - ((s * (1 + sp[2]) + sp[1] * 200) % 200), 2, 4); }   // sludge crawling up
+    if (s >= 140) { const T = 'SHE LISTENS.', n = Math.min(T.length, Math.floor((s - 140) / 3)); this.dvText(0, T.slice(0, n), W / 2, 80, 10, '#c890ff', { a: 0.85, stroke: '#000000', sw: 3 }); }
+    this.vignette(this.over, 0.8);
+  }
+  /** [720] Close on her, DROWNED, grinning; the thing's eyes, huge, behind. */
+  shot_dv_own_eyes(t, k, s) {
+    const g = this.bg;
+    g.fillStyle(0x020103, 1); g.fillRect(0, 0, W, H);
+    for (const l of this.losers) l.s.setVisible(false);
+    for (const ex of [W / 2 - 200, W / 2 + 200]) { this.glow(this.mid, ex, 120, 80, 0x9a4aff, 0.35); this.mid.fillStyle(0xe0c8ff, 1); this.mid.fillEllipse(ex, 120, 110, 20); this.mid.fillStyle(0x2a0a4a, 1); this.mid.fillEllipse(ex + Math.sin(s * 0.03) * 10, 120, 16, 18); }
+    const sc = 6 + ease(k) * 0.8, [hx, hy, ox, oy] = this.headOf(this.def);
+    this.dvPose('drowned', 'idle', s / 6, W / 2 + (ox - hx) * sc, 190 + (oy - hy) * sc, sc);
+    this.vignette(this.over, 0.8);
   }
 }
 

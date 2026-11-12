@@ -122,7 +122,7 @@ Each is a class whose methods get attached to `Fighter.prototype`. A method name
   as `<stage>_<strip>`; setSludge picks them): blood-soaked white shirt, a cracked smiling mask with one wild eye in the crack. `setSludge` passes every stage's sheets through
   `skinTexture`, so the costume carries through all four stages. More drawn costumes the same way (`DV_SETS` in devoted.js lists them for
   costumeSheets + BootScene; `VARIANTS` in devoted_draw.py): CARTRIDGE (`cartridge`: an original low-poly 64-bit-era adventurer -
-  flat-shaded polygons via `facet`, teal jacket with a yellow zig-zag, purple trousers, orange boots, painted eyes, crystal blade; sludge
+  her body is lit as real low-poly 3D solids (`poly_light`: each part a PCA-aligned n-sided loft, `sphere_light` for the head, 7-tone ramps via `expand`), teal jacket with a yellow zig-zag, purple trousers, orange boots, painted eyes, crystal blade; sludge
   = corrupted data, cyan/magenta glitch), HOLLOW BRIDE (`bride`: lace dress + skirt, torn veil, black hair, black tears, dead-rose
   bouquet in her back hand, a tattered ivory veil-wing when DROWNED), EMBER SAINT (`ember`: charred skin with glowing cracks, crimson
   robe with gold trim, fire hair, gold halo, coal eyes, gold rosary, white-hot blade; sludge = magma, burning wing). Each has an arrival

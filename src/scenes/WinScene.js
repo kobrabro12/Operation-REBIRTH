@@ -64,7 +64,7 @@ export class WinScene extends Phaser.Scene {
     this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.koiImg = null; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];
     this.win = win;
-    this.cut = SKIN_CUTS[win.fighter + ':' + skinInfo(win.fighter, win.skin || 0).name] || CUTS[win.fighter];   // a costume's own outro (winSkins.js), or the fighter's
+    this.cut = SKIN_CUTS[win.fighter + ':' + skinInfo(win.fighter, win.skin || 0).name] || CUTS[win.fighter] || SKIN_CUTS[win.fighter];   // a costume's own outro (winSkins.js), or the fighter's
     if(this.cut.rivalLine){const rival=ALL().find(r=>r.id===data.results[1]?.fighter)?.name||'THE RIVAL';this.cut={...this.cut,line:rival+this.cut.rivalLine};}
     this.def = (ALL().find((r) => r.id === win.fighter) || ROSTER[0]).def;
     stopMusic();

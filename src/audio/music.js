@@ -21,7 +21,7 @@ export const TRACKS = [
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
   // costume outro music (tools/audio/outro_music.py)
-  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember'].map((n) => 'outro_' + n),
+  ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember', 'devoted'].map((n) => 'outro_' + n),
 ];
 const KNOWN = new Set(TRACKS.map((n) => 'bgm_' + n));
 // tracks whose file name isn't simply the key without 'bgm_'
