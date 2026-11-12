@@ -49,6 +49,7 @@ export const PAINTINGS = [
   { id: 'clash', big: true, sheet: 'hall_master_clash', frames: 8, title: 'THE CLASH AT SKY SANCTUM', text: "A MASTERPIECE. The whole roster, one sunset, one fight for the sanctum: fire meets water, Lacy dives in, NU hits the chord, and FULL AERO shines over all of it while the souls of the fallen circle the dome." },
   { id: 'feast', big: true, sheet: 'hall_master_feast', frames: 8, title: 'THE FEAST OF FIGHTERS', text: "A MASTERPIECE. Once a year they put down their weapons (mostly) and eat. Soul Summoner makes the toast, Mr Wake pours the tea, NU won't stop playing, and the glutton is going for the roast again." },
   { id: 'drowned', big: true, sheet: 'hall_master_drowned', frames: 8, title: 'THE DROWNED HOUR', text: "A MASTERPIECE. The storm breaks over a sea of sludge. THE DEVOTED rises, drowned, with her demons - and what she will become rises behind her. On the last cliff, two stand their ground. Mr Wake holds back the tide." },
+  { id: 'bowl', big: true, sheet: 'hall_master_bowl', frames: 8, title: 'THE BOWL', text: "A MASTERPIECE, in thousands of little glazed stones: AERO's fishbowl, laid ring by ring like an old temple floor. Nobody knows who made it. The goldfish swims in it anyway. Nobody can explain that either." },
 ];
 
 // THE TROPHIES: drawn in 3D on their pedestals by the scene (`model` = which one: TrophyHallScene.trophyFaces;
@@ -73,5 +74,5 @@ export const DISPLAY = {
   'frame-l4a': { painting: 'listens' }, 'frame-l4b': { painting: 'demons' }, 'frame-r4a': { painting: 'surf' }, 'frame-r4b': { painting: 'fountain' },
   'frame-l5a': { painting: 'shop' }, 'frame-l5b': { painting: 'photo' }, 'frame-r5a': { painting: 'desert' }, 'frame-r5b': { painting: 'winter' },
   'frame-l6a': { painting: 'throne' }, 'frame-r6a': { painting: 'fractured' },
-  'great-l7': { painting: 'clash' }, 'great-r7': { painting: 'feast' }, 'great-l8': { painting: 'drowned' },
+  'great-l7': { painting: 'clash' }, 'great-r7': { painting: 'feast' }, 'great-l8': { painting: 'drowned' }, 'great-r8': { painting: 'bowl' },
 };

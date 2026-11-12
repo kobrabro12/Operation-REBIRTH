@@ -8,6 +8,9 @@ src/data/trophyHall.js, entries with `big: true`).
   feast   THE FEAST OF FIGHTERS - one long candlelit table: Soul Summoner raises a toast, Mr Wake pours tea, Lacy guards
           her plate, NU plays on his chair, AERO's bowl steams up, Rosemary eats cake, WHAT ONCE WAS shows static, and
           THE DEVOTED prays while her glutton steals the roast. Candles flicker, steam rises, the glutton chews.
+  bowl    THE BOWL - a mosaic of AERO's fishbowl in thousands of little glazed stones (laid in rings round the bowl
+          like a Roman mosaic, gold and lapis border, golden suns in the corners): the goldfish swims a loop, bubbles
+          rise, the water laps and the sea behind swirls, gold stones glint - the stones never move, only their colours.
   drowned THE DROWNED HOUR - a storm over a sea of sludge: THE DEVOTED, DROWNED, rises with her demons out of the waves
           while Soul Summoner and Lacy stand on the last cliff and Mr Wake holds back the tide. Rain, lightning, waves.
 
@@ -272,8 +275,111 @@ def drowned(f):
     cv = Image.fromarray(arr)
     return finish(cv, 0x5a3a8a if not flash else 0xc8c0ff, 0.08, 0.55, seed=7)
 
+# ------------------------------------------------------------------ THE BOWL (a mosaic)
+_TILES = None
+def tiles():
+    """The mosaic's stones, laid once (they never move - only their colours change from frame to frame): a border of
+    square stones, and inside it rings of stones following the bowl's curve outward (andamento, like a real Roman
+    mosaic), smaller near the middle. Returns (label per pixel, number of stones, rim mask of each stone's edges)."""
+    global _TILES
+    if _TILES is not None: return _TILES
+    from scipy.spatial import cKDTree
+    r = np.random.default_rng(64); pts = []
+    for y in range(3, H, 6):                                                        # the border band: square stones
+        for x in range(3, W, 6):
+            if x < 14 or x > W - 14 or y < 14 or y > H - 14: pts.append((x + r.uniform(-0.4, 0.4), y + r.uniform(-0.4, 0.4)))
+    cx, cy = 160, 114; rad = 2.4
+    while rad < 260:                                                                 # rings round the bowl, out to the corners
+        step = 3.6 if rad < 96 else 4.6
+        n = max(6, int(2 * math.pi * rad / step)); off = r.uniform(0, 2 * math.pi)
+        for k in range(n):
+            a = off + k * 2 * math.pi / n; x, y = cx + math.cos(a) * rad, cy + math.sin(a) * rad
+            if 15 < x < W - 15 and 15 < y < H - 15: pts.append((x, y))
+        rad += step
+    pts = np.array(pts); tree = cKDTree(pts)
+    yy, xx = np.mgrid[0:H, 0:W]
+    _, lab = tree.query(np.stack([xx.ravel(), yy.ravel()], 1)); lab = lab.reshape(H, W)
+    edge = np.zeros((H, W), bool)
+    edge[:, 1:] |= lab[:, 1:] != lab[:, :-1]; edge[1:, :] |= lab[1:, :] != lab[:-1, :]
+    _TILES = (lab, len(pts), edge, r.uniform(0.9, 1.08, len(pts)), r.uniform(-12, 12, (len(pts), 3)))
+    return _TILES
 
-PIECES = {'clash': clash, 'feast': feast, 'drowned': drowned}
+def bowl_source(f):
+    """The picture the stones copy (smooth colours): AERO's fishbowl - deep sea-blue swirls behind it, a gold-and-lapis
+    border, the glass globe with its water, pebbles and a leaf, the goldfish swimming a lazy loop with bubbles rising,
+    the white collar ring of his suit at the bottom."""
+    p = ph(f); yy, xx = np.mgrid[0:H, 0:W].astype(float)
+    img = np.zeros((H, W, 3))
+    cx, cy, R = 160, 114, 84
+    d = np.hypot(xx - cx, yy - cy); a = np.arctan2(yy - cy, xx - cx)
+    sw = 0.5 + 0.5 * np.sin(d * 0.18 - p + np.sin(a * 3) * 1.2)                         # the swirling sea behind it
+    img[:] = np.array(hexc(0x0a2a5a)) * (1 - sw[..., None]) + np.array(hexc(0x1a6aa8)) * sw[..., None]
+    img[(np.sin(d * 0.18 - p + np.sin(a * 3) * 1.2) > 0.93)] = hexc(0x8ad8f0)          # (bright wave crests)
+    for (kx, ky) in ((40, 40), (280, 40), (40, 184), (280, 184)):                       # golden suns in the corners
+        dd = np.hypot(xx - kx, yy - ky); img[dd < 16] = hexc(0xf0c040); img[dd < 9] = hexc(0xffe890)
+        for k in range(8):
+            ang = k * math.pi / 4; m = (np.abs(((np.arctan2(yy - ky, xx - kx) - ang + math.pi) % (2 * math.pi)) - math.pi) < 0.12) & (dd < 24) & (dd >= 16)
+            img[m] = hexc(0xe0a020)
+    band = (xx < 15) | (xx > W - 15) | (yy < 15) | (yy > H - 15)                       # the border: gold with lapis squares
+    chk = (((xx // 6) + (yy // 6)) % 2 == 0)
+    img[band] = hexc(0xd8a030); img[band & chk] = hexc(0x1a3a8a)
+    img[band & ((xx < 3) | (xx > W - 4) | (yy < 3) | (yy > H - 4))] = hexc(0x6a3a10)
+    inside = d < R
+    img[inside] = np.array(hexc(0xd8f4ff)) * 0.85 + img[inside] * 0.15                   # the glass, pale
+    wl = cy - 18 + np.sin(xx * 0.08 + p) * 2.5                                         # the waterline, lapping
+    water = inside & (yy > wl)
+    k = np.clip((yy - wl) / (R + 18), 0, 1)
+    img[water] = (np.array(hexc(0x4ac8f0)) * (1 - k[water, None]) + np.array(hexc(0x0a5ab8)) * k[water, None])
+    img[inside & (np.abs(yy - wl) < 1.6)] = hexc(0xffffff)
+    peb = inside & (yy > cy + R - 22)                                                   # pebbles on the bottom
+    pc = [hexc(c) for c in (0xff8a5a, 0xffd84a, 0x8ae86a, 0xb87ae8, 0xffffff)]
+    sel = ((xx // 5 + yy // 4 * 3) % 5).astype(int)
+    for i in range(5): img[peb & (sel == i)] = pc[i]
+    for side in (-1, 1):                                                                # AERO's leaf, growing up from the pebbles like weed
+        bx = cx + side * 46; t = np.clip((cy + R - 22 - yy) / 60, 0, 1)
+        lx = bx + np.sin(t * 3 + p + side) * 6 * t
+        img[inside & (yy < cy + R - 18) & (yy > cy + R - 80) & (np.abs(xx - lx) < 4 * (1 - t) + 1.2)] = hexc(0x4ab83a if side < 0 else 0x6ad84a)
+    fx, fy = cx + math.cos(p) * 34, cy + 22 + math.sin(2 * p) * 10                       # the goldfish, swimming a figure of eight
+    face = -1 if math.sin(p) > 0 else 1
+    ex = (xx - fx) * face; ey = yy - fy
+    body = (ex / 30) ** 2 + (ey / 17) ** 2 < 1
+    img[body] = np.array(hexc(0xff7a10)) * (0.75 + 0.35 * np.clip(-ey[body] / 17, -1, 1)[..., None] * 0.5 + 0.1)
+    img[body & (ey > 6)] = hexc(0xffc070)                                               # its pale belly
+    tail = (ex < -24) & (ex > -50) & (np.abs(ey) < (-24 - ex) * 0.9 + 2)
+    img[tail & ~body] = hexc(0xff9a3a); img[tail & ~body & (np.abs(ey) < 3)] = hexc(0xffc060)
+    fin = (ex > -10) & (ex < 8) & (ey < -14) & (ey > -26 + (ex + 10) * 0.4)
+    img[fin] = hexc(0xff9a3a)
+    eye = (ex - 17) ** 2 + (ey + 3) ** 2 < 26; img[eye] = hexc(0xffffff); img[(ex - 18.5) ** 2 + (ey + 3) ** 2 < 9] = hexc(0x101018)
+    for i in range(6):                                                                  # bubbles rising from it
+        by = fy - 12 - ((f * 6 + i * 22) % 120); bx = fx + face * 30 + math.sin(by * 0.1 + i) * 4
+        bb = np.hypot(xx - bx, yy - by); img[inside & (bb < 4) & (bb > 2.2)] = hexc(0xffffff); img[inside & (bb < 1.4)] = hexc(0xc8f4ff)
+    img[inside & (d > R - 4)] = hexc(0xb8ecff); img[inside & (d > R - 2)] = hexc(0x2a6a9a)  # the glass rim
+    hl = inside & (np.abs(d - (R - 16)) < 3.2) & (a > -2.6) & (a < -1.6)               # the shine on the glass
+    img[hl] = hexc(0xffffff)
+    col = (np.abs(yy - (cy + R + 6)) < 8) & (np.abs(xx - cx) < 70) & ~inside           # his suit's collar ring under the bowl
+    img[col] = hexc(0xf0f6fa); img[col & (np.abs(yy - (cy + R + 6)) > 5)] = hexc(0x5ad8ff)
+    return img
+
+def bowl(f):
+    lab, n, edge, val, jit = tiles()
+    src = bowl_source(f).reshape(-1, 3)
+    cnt = np.bincount(lab.ravel(), minlength=n)
+    mean = np.stack([np.bincount(lab.ravel(), weights=src[:, c], minlength=n) for c in range(3)], 1) / np.maximum(cnt, 1)[:, None]
+    stone = np.clip(mean * val[:, None] + jit, 0, 255)                                  # every stone a slightly different shade
+    gold = (stone[:, 0] > 180) & (stone[:, 1] > 120) & (stone[:, 2] < 110)
+    glint = np.random.default_rng(100 + f).random(n) < 0.08                             # gold stones catching the light
+    stone[gold & glint] = np.minimum(255, stone[gold & glint] * 1.35 + 30)
+    img = stone[lab]
+    up = np.zeros((H, W), bool); up[1:] = lab[1:] != lab[:-1]; lf = np.zeros((H, W), bool); lf[:, 1:] = lab[:, 1:] != lab[:, :-1]
+    dn = np.zeros((H, W), bool); dn[:-1] = lab[:-1] != lab[1:]; rt = np.zeros((H, W), bool); rt[:, :-1] = lab[:, :-1] != lab[:, 1:]
+    img[np.roll(up, 1, 0) & ~edge] *= 1.12; img[np.roll(lf, 1, 1) & ~edge] *= 1.08      # glazed: lit top-left edge,
+    img[dn & ~edge] *= 0.82; img[rt & ~edge] *= 0.86                                    # shaded bottom-right edge
+    img[edge] = hexc(0x3a3028)                                                          # the grout
+    cv = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).convert('RGBA')
+    return finish(cv, 0xffe0b0, 0.04, 0.3, seed=11)
+
+
+PIECES = {'clash': clash, 'feast': feast, 'drowned': drowned, 'bowl': bowl}
 
 
 def build(names, preview=None):
