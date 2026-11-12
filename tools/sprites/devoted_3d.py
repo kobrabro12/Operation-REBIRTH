@@ -13,8 +13,9 @@ How it works
      the faces from the top down as she sinks (COVER): black and violet polygons with a few glitching cyan / magenta
      ones, drips off her head; DROWNED adds a giant low-poly demon wing (membrane slabs + bones with glowing tips),
      glowing eyes and a white grin.
-  2. Shading: flat-shaded faces lit by one key light from up front-right plus ambient, in steps (an emission
-     shader - no noise, one sample per pixel), so it renders crisp at sprite size.
+  2. Shading: N64-style smooth Gouraud shading on the rounded parts (flat on caps, boots' soles, eyes, blade), one key
+     light from up front-right plus ambient (an emission shader - no noise); rendered at SS x size and averaged down
+     for the soft, filtered look of 64-bit games, then a dark-indigo outline.
   3. Animation: the same rig and keyframes as every other DEVOTED sheet (puppet.py, aero_moves.py, devoted_draw.py):
      each part's 2D bone transform each frame becomes its 3D object matrix (it turns about its joint), then Blender
      renders the posed model through an orthographic camera turned 30 degrees toward her front (three-quarter view).
@@ -42,7 +43,8 @@ OUT = os.path.join(ROOT, 'public/assets/fighters/devoted/cartridge')
 BLEND = os.path.join(os.path.dirname(__file__), 'art', 'cartridge_devoted.blend')
 YAW = math.radians(30)                    # how far the camera turns toward her front
 LIGHT = (0.5, 0.7, 0.55)                  # Blender axes: x right, y up, z toward the camera (from up, front-right: on her face)
-LINE = (16, 16, 26, 255)
+LINE = (28, 24, 56, 255)                  # (a soft dark-indigo outline, so she still reads on busy stages)
+SS = 3                                    # render at 3x and average down: the soft, filtered look of 64-bit games
 
 
 # ------------------------------------------------------------------ the model (real low-poly geometry, no drawing on it)
@@ -55,7 +57,7 @@ class Geo:
     """A part's mesh being built: vertices in drawing px (x right, y down, z toward the camera), triangles/quads,
     and a colour per face."""
     def __init__(self, stage):
-        self.v, self.f, self.c, self.stage = [], [], [], stage
+        self.v, self.f, self.c, self.s, self.stage = [], [], [], [], stage
 
     def col(self, rgb, pos, skin=False, keep=False):
         """A face's colour at rest position pos (x, y, z): the sludge covers her from the top down as she sinks
@@ -67,10 +69,10 @@ class Geo:
             return GLITCH[int(h * 7) % 2] if h > 0.93 else SLD[int(h * 3) % 3]
         return rgb
 
-    def add(self, verts, faces, cols):
-        o = len(self.v); self.v += verts; self.f += [[i + o for i in f] for f in faces]; self.c += cols
+    def add(self, verts, faces, cols, smooth=True):
+        o = len(self.v); self.v += verts; self.f += [[i + o for i in f] for f in faces]; self.c += cols; self.s += [smooth] * len(faces)
 
-    def tube(self, p0, p1, r0, r1, rgb, sides=6, depth=1.0, z=0.0, caps=True, ring_cols=None, keep=False):
+    def tube(self, p0, p1, r0, r1, rgb, sides=6, depth=1.0, z=0.0, caps=True, ring_cols=None, keep=False, smooth=True):
         """A tapered n-sided tube from p0 to p1 (a limb), its cross-section r wide in the picture and r*depth deep."""
         (x0, y0), (x1, y1) = p0, p1
         L = math.hypot(x1 - x0, y1 - y0) or 1; ux, uy = (x1 - x0) / L, (y1 - y0) / L; wx, wy = -uy, ux
@@ -83,10 +85,11 @@ class Geo:
             k2 = (k + 1) % sides; faces.append([k, k2, sides + k2, sides + k])
             mid = [(verts[k][j] + verts[sides + k2][j]) / 2 for j in range(3)]
             cols.append(self.col(ring_cols(k) if ring_cols else rgb, mid, keep=keep))
-        if caps:
-            faces.append(list(range(sides - 1, -1, -1))); cols.append(self.col(rgb, verts[0], keep=keep))
-            faces.append(list(range(sides, 2 * sides))); cols.append(self.col(rgb, verts[sides], keep=keep))
-        self.add(verts, faces, cols)
+        self.add(verts, faces, cols, smooth)
+        if caps:                                                             # (flat end caps, their own vertices)
+            o = len(self.v); self.v += rings[0] + rings[1]
+            self.f += [[o + k for k in range(sides - 1, -1, -1)], [o + sides + k for k in range(sides)]]
+            self.c += [self.col(rgb, verts[0], keep=keep), self.col(rgb, verts[sides], keep=keep)]; self.s += [False, False]
 
     def ball(self, c, r, rgb, seg=8, rings=6, colfn=None, keep=False):
         """A low-poly ellipsoid (r = (rx, ry, rz)) - a head, a fist, a joint. colfn(normal) can colour each face."""
@@ -117,7 +120,7 @@ class Geo:
         faces = [list(range(n)), list(range(2 * n - 1, n - 1, -1))]
         for k in range(n): k2 = (k + 1) % n; faces.append([k2, k, n + k, n + k2])
         cx = sum(p[0] for p in pts) / n; cy = sum(p[1] for p in pts) / n
-        self.add(verts, faces, [self.col(rgb, (cx, cy, z1), keep=keep)] * len(faces))
+        self.add(verts, faces, [self.col(rgb, (cx, cy, z1), keep=keep)] * len(faces), smooth=False)
 
 
 def model(stage):
@@ -132,8 +135,8 @@ def model(stage):
         G[side + 'thigh'].ball((knee[0], knee[1], z), (2.9, 2.9, 2.9), PURP, 6, 4)
         G[side + 'shin'].tube(knee, ankle, 2.9, 2.5, PURP, 6, 0.95, z)
         toe = ankle[0] + 6
-        G[side + 'shoe'].tube((ankle[0] - 2.5, ankle[1] + 1.2), (toe, ankle[1] + 1.8), 3.2, 2.4, ORNG, 4, 1.15, z)
-        G[side + 'shoe'].tube((ankle[0] - 2.8, ankle[1] + 3.6), (toe + 0.6, ankle[1] + 3.6), 1.0, 1.0, SOLE, 4, 3.2, z)
+        G[side + 'shoe'].ball((ankle[0] + 2.2, ankle[1] + 1.4, z), (5.2, 3.3, 3.6), ORNG, 8, 5)                    # big round cartoon boots
+        G[side + 'shoe'].tube((ankle[0] - 3.0, ankle[1] + 3.9), (toe + 1.4, ankle[1] + 3.9), 1.0, 1.0, SOLE, 4, 3.6, z, smooth=False)
     # torso: hips -> chest, a tapered 8-sided jacket, a yellow zig-zag band round the middle, purple shorts at the bottom
     hips, neck = R['torso'], R['head']
     zig = lambda k: YEL if k % 2 == 0 else TEAL[1]
@@ -149,13 +152,13 @@ def model(stage):
         G[side + 'fore'].ball((el[0], el[1], z), (2.3, 2.3, 2.3), SLEEVE[0], 6, 4)
     bel = R['bfore']; G['bfore'].tube(bel, (bel[0] + 1, bel[1] + 7), 2.3, 2.1, SLEEVE[0], 6, 1.0, -6.0, ring_cols=lambda k: SLEEVE[k % 2])
     G['bfore'].tube((bel[0] + 0.9, bel[1] + 6), (bel[0] + 1.1, bel[1] + 7.2), 2.5, 2.5, YEL, 6, 1.0, -6.0)                # (a yellow cuff)
-    G['bfore'].ball((bel[0] + 1.2, bel[1] + 8.6, -6.0), (2.4, 2.4, 2.4), SKINC, 6, 4)
+    G['bfore'].ball((bel[0] + 1.2, bel[1] + 8.9, -6.0), (3.2, 3.2, 3.0), SKINC, 8, 5)                                 # big cartoon hands
     fel, fh = R['ffore'], R['ffist']
     G['ffore'].tube(fel, fh, 2.3, 2.1, SLEEVE[0], 6, 1.0, 6.0, ring_cols=lambda k: SLEEVE[k % 2])
     cf = (fel[0] + (fh[0] - fel[0]) * 0.8, fel[1] + (fh[1] - fel[1]) * 0.8)
     G['ffore'].tube(cf, fh, 2.5, 2.4, YEL, 6, 1.0, 6.0)                                                             # (a yellow cuff)
     # the front fist and the karambit: a ring through her finger, a claw-curved crystal blade (a real slab, 1.4 px thick)
-    G['ffist'].ball((fh[0], fh[1] + 0.5, 6.3), (2.6, 2.6, 2.4), SKINC, 6, 4)
+    G['ffist'].ball((fh[0], fh[1] + 0.5, 6.3), (3.3, 3.3, 3.0), SKINC, 8, 5)
     ring = [(fh[0] + 0.5 + 2.6 * math.cos(a), fh[1] - 5 + 2.6 * math.sin(a)) for a in (2 * math.pi * k / 8 for k in range(8))]
     for k in range(8): G['ffist'].tube(ring[k], ring[(k + 1) % 8], 0.55, 0.55, 0x8a8a96, 4, 1.0, 6.6, keep=True)
     G['ffist'].tube((fh[0] + 1, fh[1]), (fh[0] + 2.5, fh[1] + 1.5), 1.2, 1.2, 0x16161c, 4, 1.0, 6.4, keep=True)       # the grip
@@ -164,22 +167,27 @@ def model(stage):
     G['ffist'].slab(outer + inner, 6.0, 7.4, CRYS[1], keep=True)
     G['ffist'].slab(inner + [(47, 28), (49, 27.6), (51, 29), (52.6, 31), (53.4, 33.5), (53.2, 36)], 7.4, 7.7, 0xffffff, keep=True)   # (the edge's shine)
     # head: a low-poly skull (face skin in front, hair over the top and back), a fringe, a ponytail, painted-on eyes and smile
-    hc = (36.5, 12.5, 0.0)
+    hc = (36.5, 11.5, 0.0)                                                       # (a big cartoon head, a little higher)
     def headcol(n):
         if n[0] > 0.25 and n[1] > -0.45: return SKINC                              # her face (she faces +x)
         return HAIRC
-    G['head'].ball(hc, (8.4, 8.8, 7.6), HAIRC, 10, 7, colfn=headcol)
+    G['head'].ball(hc, (9.6, 10.0, 8.8), HAIRC, 12, 8, colfn=headcol)
     G['head'].tube((neck[0] + 1, neck[1]), (neck[0] + 2, neck[1] - 4), 2.2, 2.4, SKINC, 6, 1.0)                    # neck
-    G['head'].ball((hc[0] + 1.2, hc[1] - 6.2, 0), (6.4, 3.0, 7.9), HAIRC, 8, 4)                                      # the fringe, over the brow
+    G['head'].ball((hc[0] + 1.6, hc[1] - 7.0, 0), (7.4, 3.4, 9.0), HAIRC, 10, 5)                                     # the fringe, over the brow
     pts = [(29.5, 10), (27.5, 16), (26.5, 22), (26.5, 28)]
     for k in range(3): G['head'].tube(pts[k], pts[k + 1], 3.6 - k * 0.9, 3.0 - k * 0.9, HAIRC, 6, 0.9, -1.0)      # the ponytail
     drowned = stage == 3
-    for ez in (2.6, -2.6):                                                       # eyes: white, a pupil looking forward; DROWNED: glowing
-        ex = hc[0] + 7.0; ey = hc[1] - 0.6
-        G['head'].slab([(ex, ey - 1.6), (ex + 1.4, ey - 1.6), (ex + 1.4, ey + 1.6), (ex, ey + 1.6)], ez - 1.3, ez + 1.3, GLITCH[0] if drowned else WHITE, keep=True)
-        G['head'].slab([(ex + 0.9, ey - 0.8), (ex + 1.7, ey - 0.8), (ex + 1.7, ey + 1.0), (ex + 0.9, ey + 1.0)], ez - 0.4, ez + 0.9, GLITCH[1] if drowned else BLK, keep=True)
+    def oval(cx, cy, rx, ry, n=8): return [(cx + rx * math.cos(2 * math.pi * k / n), cy + ry * math.sin(2 * math.pi * k / n)) for k in range(n)]
+    for ez in (3.1, -3.1):                                                       # big, round cartoon eyes (rounded white, a big pupil, a shine)
+        ex = hc[0] + 7.9; ey = hc[1] - 0.4
+        G['head'].slab(oval(ex, ey, 1.0, 2.4), ez - 1.6, ez + 1.6, GLITCH[0] if drowned else WHITE, keep=True)
+        G['head'].slab(oval(ex + 0.7, ey + 0.4, 0.8, 1.5), ez - 0.9, ez + 1.0, GLITCH[1] if drowned else 0x1a2a8a, keep=True)
+        G['head'].slab(oval(ex + 1.1, ey + 0.5, 0.6, 1.0, 6), ez - 0.6, ez + 0.7, 0xffffff if drowned else BLK, keep=True)
+        if not drowned:
+            G['head'].slab(oval(ex + 1.4, ey - 0.7, 0.4, 0.5, 5), ez + 0.2, ez + 0.9, WHITE, keep=True)                 # (the shine)
+            G['head'].slab([(ex - 0.6, ey - 3.6), (ex + 1.6, ey - 3.9), (ex + 1.6, ey - 3.2), (ex - 0.6, ey - 2.9)], ez - 1.4, ez + 1.4, 0xc8481a, keep=True)   # brows
     grin = 3.6 + stage * 1.2                                                     # the smile, wider each stage (DROWNED: a white grin)
-    G['head'].slab([(hc[0] + 7.4, hc[1] + 3.6), (hc[0] + 8.6, hc[1] + 3.6), (hc[0] + 8.2, hc[1] + 5.0), (hc[0] + 7.2, hc[1] + 5.0)], -grin / 2, grin / 2, WHITE if drowned else 0x9a1a1a, keep=True)
+    G['head'].slab([(hc[0] + 8.0, hc[1] + 4.4), (hc[0] + 9.6, hc[1] + 4.4), (hc[0] + 9.2, hc[1] + 6.0), (hc[0] + 7.8, hc[1] + 6.0)], -grin / 2, grin / 2, WHITE if drowned else 0x9a1a1a, keep=True)
     if stage >= 1:                                                               # sludge dripping off her head and shoulders
         for k, (dx, dz) in enumerate(((-3, 4), (0, -5), (3, 3), (-5, -2))[:stage + 1]):
             G['head'].tube((hc[0] + dx, hc[1] - 3), (hc[0] + dx, hc[1] + 6 + k * 2), 1.4, 0.4, SLD[1], 4, 1.0, dz, keep=True)
@@ -202,8 +210,8 @@ def palette_material():
     l = np.array(LIGHT); l = l / np.linalg.norm(l); dot.inputs[1].default_value = tuple(l)
     L.new(geo.outputs['Normal'], dot.inputs[0])
     mx = nt.nodes.new('ShaderNodeMath'); mx.operation = 'MAXIMUM'; mx.inputs[1].default_value = 0.0; L.new(dot.outputs['Value'], mx.inputs[0])
-    lit = nt.nodes.new('ShaderNodeMath'); lit.operation = 'MULTIPLY_ADD'; lit.inputs[1].default_value = 0.75; lit.inputs[2].default_value = 0.38; L.new(mx.outputs['Value'], lit.inputs[0])
-    sn = nt.nodes.new('ShaderNodeMath'); sn.operation = 'SNAP'; sn.inputs[1].default_value = 0.09; L.new(lit.outputs['Value'], sn.inputs[0])
+    lit = nt.nodes.new('ShaderNodeMath'); lit.operation = 'MULTIPLY_ADD'; lit.inputs[1].default_value = 0.7; lit.inputs[2].default_value = 0.45; L.new(mx.outputs['Value'], lit.inputs[0])
+    sn = lit                                                                   # (smooth Gouraud light - no steps)
     cmb = nt.nodes.new('ShaderNodeCombineColor')
     for i in range(3): L.new(sn.outputs['Value'], cmb.inputs[i])
     mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs['Factor'].default_value = 1.0
@@ -232,8 +240,8 @@ def build_scene(layers, stage=0):
         for poly, rgb in zip(me.polygons, g.c):
             c = ((rgb >> 16 & 255) / 255, (rgb >> 8 & 255) / 255, (rgb & 255) / 255, 1.0)
             c = tuple(v ** 2.2 for v in c[:3]) + (1.0,)                                         # (sRGB -> linear)
-            poly.use_smooth = False
             for li in poly.loop_indices: attr.data[li].color = c
+        for poly, sm in zip(me.polygons, g.s): poly.use_smooth = sm
         me.materials.append(mat)
         ob = bpy.data.objects.new(name, me); sc.collection.objects.link(ob); objs[name] = ob
     cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
@@ -257,7 +265,7 @@ def place(objs, rig, pose):
 def aim(cam, rig):
     """The orthographic camera framing the rig's canvas, turned YAW toward her front, centred on her feet's column."""
     W, H = rig.canvas
-    sc = bpy.context.scene; sc.render.resolution_x = W; sc.render.resolution_y = H
+    sc = bpy.context.scene; sc.render.resolution_x = W; sc.render.resolution_y = H; sc.render.resolution_percentage = SS * 100
     cam.data.ortho_scale = max(W, H)
     cam.data.sensor_fit = 'HORIZONTAL' if W >= H else 'VERTICAL'
     fx = rig.offset[0] + rig.feet[0]
@@ -271,8 +279,13 @@ def snap(path):
     """Renders one frame and reads it back as an RGBA array, with a 1 px dark outline round her."""
     bpy.context.scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
-    img = np.array(Image.open(path).convert('RGBA'))
-    a = img[..., 3] > 127
+    big = np.array(Image.open(path).convert('RGBA')).astype(np.float32)
+    H, W = big.shape[0] // SS, big.shape[1] // SS
+    big[..., :3] *= big[..., 3:4] / 255                                          # (premultiply, average SS x SS blocks, un-premultiply)
+    sm = big.reshape(H, SS, W, SS, 4).mean((1, 3))
+    al = sm[..., 3:4]; sm[..., :3] = np.where(al > 0, sm[..., :3] * 255 / np.maximum(al, 1e-3), 0)
+    img = np.clip(sm, 0, 255).astype(np.uint8)
+    a = img[..., 3] > 110
     img[~a] = 0; img[a, 3] = 255
     ring = ~a & (V.sh(a, 1, 0) | V.sh(a, -1, 0) | V.sh(a, 0, 1) | V.sh(a, 0, -1))
     img[ring] = LINE
