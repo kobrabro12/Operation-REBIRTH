@@ -78,7 +78,7 @@ const BUMP = { x: 150, y: -172, drift: 34, r: 22, hit: [4, [55, 5.6, 0.3]] };
 const ZAP = { charge: 70, on: 70, hit: [5, [70, 4.5, 0.5]] };
 const QUAKE = { wind: 50, speed: 5.5, hit: [8, [75, 6, 0.6]] };
 // LEGENDARY KING POLYGON (fighting THE DEVOTED in CARTRIDGE): his health (x), the cutscene's length (frames), his colours
-const LEG = { hp: 1.15, intro: 900, music: 'bgm_boss_legend', taunts: ['GG. LEGENDS NEVER DIE.', 'YOUR SAVE FILE HAS BEEN DELETED.', 'BLOW ON IT. TRY AGAIN.'], head: [0x3a2050, 0x24142e, 0x5a3478], jaw: 0x140a1c, eye: 0xff2a4a, glove: [0x2a1838, 0x3e2454, 0x1a1020], glow: [0xff2aa8, 0x20e8ff, 0xffd040] };
+const LEG = { hp: 1.15, intro: 1060, music: 'bgm_boss_legend', taunts: ['GG. LEGENDS NEVER DIE.', 'YOUR SAVE FILE HAS BEEN DELETED.', 'BLOW ON IT. TRY AGAIN.'], head: [0x3a2050, 0x24142e, 0x5a3478], jaw: 0x140a1c, eye: 0xff2a4a, glove: [0x2a1838, 0x3e2454, 0x1a1020], glow: [0xff2aa8, 0x20e8ff, 0xffd040] };
 // the corrupting cartridge: the void's colours, and the colours the scenery turns into
 const VOID = { bg: 0x07000f, bad: [0x1a0030, 0x0a0010, 0x3a0a5a, 0x2a0040, 0x140020, 0x24083a, 0x1a0030, 0x0a0010, 0x3a0a5a, 0x2a0040, 0x140020, 0xff2aa8, 0x00b8a0] };
 // WARP STRIKE: dives (normal / enraged), the hang above you, the dive (frames), the slam's hit and its shockwave
@@ -96,23 +96,24 @@ const CRUSH = { n: [2, 3], track: 46, fall: 10, hit: [15, [85, 6.8, 0.95]], wave
 // herding shots, how close you have to step, the lift, the squish
 const TRAP = { lay: 24, wait: 330, every: 60, reach: 28, grab: 26, squish: 12 };
 // THE RAGE CUTSCENE's length (frames)
-const RAGE = { n: 300 };
+// (its beats: the slams start, the snap, the laugh - each line stays up well after it's typed, so it can be read)
+const RAGE = { n: 400, slams: 110, snap: 255, laugh: 290 };
 // THE FINALE: its length, when he opens his arms, she throws, the knife hits, he explodes; and the exchange (frame, length, who, line)
-const FINALE = { n: 600, open: 330, throwAt: 400, hit: 440, boom: 560, lines: [
-  { at: 10, len: 90, who: 'KING POLYGON', text: 'IMPOSSIBLE...  MY FRAMES...  ARE DROPPING...' },
-  { at: 105, len: 70, who: 'THE DEVOTED', text: 'IT TOLD ME HOW THIS ENDS.' },
-  { at: 180, len: 75, who: 'KING POLYGON', text: 'THEN WHY DO YOU HESITATE, CHALLENGER?' },
-  { at: 260, len: 70, who: 'THE DEVOTED', text: '...I DON\'T.' },
-  { at: 330, len: 70, who: 'KING POLYGON', text: 'THEN SHOW ME YOUR LEGEND!' },
-  { at: 445, len: 60, who: 'KING POLYGON', text: 'HEH...  WELL PLAYED.' },
-  { at: 505, len: 55, who: 'KING POLYGON', text: 'IN ANOTHER GAME...' },
+const FINALE = { n: 840, open: 450, throwAt: 550, hit: 590, boom: 800, lines: [
+  { at: 10, len: 125, who: 'KING POLYGON', text: 'IMPOSSIBLE...  MY FRAMES...  ARE DROPPING...' },
+  { at: 140, len: 100, who: 'THE DEVOTED', text: 'IT TOLD ME HOW THIS ENDS.' },
+  { at: 245, len: 115, who: 'KING POLYGON', text: 'THEN WHY DO YOU HESITATE, CHALLENGER?' },
+  { at: 365, len: 80, who: 'THE DEVOTED', text: '...I DON\'T.' },
+  { at: 450, len: 100, who: 'KING POLYGON', text: 'THEN SHOW ME YOUR LEGEND!' },
+  { at: 600, len: 95, who: 'KING POLYGON', text: 'HEH...  WELL PLAYED.' },
+  { at: 700, len: 100, who: 'KING POLYGON', text: 'IN ANOTHER GAME...' },
 ] };
 // the cutscene's beats (0..1 of `LEG.intro`): the entrance ends, the glitch, her, he speaks, he laughs, the crown
 // shatters, the change, the flash, the fists hit the floor, the pose
-const CUT = { enter: 0.15, her: 0.21, talk: 0.28, laugh: 0.47, crown: 0.52, change: 0.54, flash: 0.8, slam: 0.87, pose: 0.94 };
+const CUT = { enter: 0.127, her: 0.178, talk: 0.275, laugh: 0.55, crown: 0.592, change: 0.609, flash: 0.83, slam: 0.89, pose: 0.949 };
 // the pixels he throws up: bright 64-bit colours and the missing-texture pink
 const VOMIT_COLS = [0x9aff6a, 0x20e8ff, 0xff2aa8, 0xffd040, 0x7a2ae0, 0xffffff, 0x2a0040];
-const LINES = [{ at: [0.28, 0.37], text: 'THAT CARTRIDGE...  YOU ARE ONE OF US.' }, { at: [0.37, 0.47], text: 'OUR FIGHT WILL BE LEGENDARY.' }];
+const LINES = [{ at: [0.275, 0.41], text: 'THAT CARTRIDGE...  YOU ARE ONE OF US.' }, { at: [0.41, 0.55], text: 'OUR FIGHT WILL BE LEGENDARY.' }];
 // the error windows that pop open in the corrupted void
 const ERRS = ['SAVE DATA CORRUPTED', 'ERROR 0x64: LEGEND.EXE', 'DO NOT TURN OFF THE POWER', 'CONTROLLER PAK DAMAGED', 'ROM CHECKSUM: ???'];
 // PIXEL VOMIT: the retch (frames), the spew, pixels a frame, how wide the spew sweeps, their hit (once per 10 frames);
@@ -327,15 +328,15 @@ export class PolyBossStage extends BossArena {
     if (k < CUT.talk) {                                                                 // her: she hears it
       if (once('her', CUT.her)) sfx('curse', 0.5, 0.6);                                // (she hasn't arrived on the stage yet: her voice, in the box)
       const q = e(CUT.her, CUT.talk), line = '...I HEAR IT.';
-      H.yaw += (Phaser.Math.Clamp((fx - H.x) / 300, -0.5, 0.5) - H.yaw) * 0.1; this.say(line.slice(0, Math.ceil(line.length * Math.min(1, q / 0.5))), 'THE DEVOTED'); return;
+      H.yaw += (Phaser.Math.Clamp((fx - H.x) / 300, -0.5, 0.5) - H.yaw) * 0.1; this.say(line.slice(0, Math.ceil(line.length * Math.min(1, q / 0.35))), 'THE DEVOTED'); return;
     }
     if (k < CUT.laugh) {                                                                // he speaks
       H.yaw += (Phaser.Math.Clamp((fx - H.x) / 300, -0.5, 0.5) - H.yaw) * 0.1; H.y += (KING.y + Math.sin(this.t * 0.05) * 6 - H.y) * 0.1; H.k = 1;
       for (const h of this.hands) { this.toward(h, H.x + h.s * 150, KING.rest[1] + 20, 0.08); h.roll += (h.s * 0.2 - h.roll) * 0.1; }
       const L = LINES.find((q) => k >= q.at[0] && k < q.at[1]);
-      H.jaw = L && Math.floor(this.t / 5) % 2 && (k - L.at[0]) / (L.at[1] - L.at[0]) < 0.7 ? 0.6 : 0;
-      this.say(L ? L.text.slice(0, Math.ceil(L.text.length * Math.min(1, (k - L.at[0]) / (L.at[1] - L.at[0]) / 0.6))) : null);
-      if (L && this.t % 4 === 0 && (k - L.at[0]) / (L.at[1] - L.at[0]) < 0.6) sfx('menu', 0.25, 0.6 + (this.t % 3) * 0.1);
+      H.jaw = L && Math.floor(this.t / 5) % 2 && (k - L.at[0]) / (L.at[1] - L.at[0]) < 0.4 ? 0.6 : 0;
+      this.say(L ? L.text.slice(0, Math.ceil(L.text.length * Math.min(1, (k - L.at[0]) / (L.at[1] - L.at[0]) / 0.4))) : null);
+      if (L && this.t % 4 === 0 && (k - L.at[0]) / (L.at[1] - L.at[0]) < 0.4) sfx('menu', 0.25, 0.6 + (this.t % 3) * 0.1);
       this.setLegend(0, 0); return;
     }
     this.say(null);
@@ -749,37 +750,37 @@ export class PolyBossStage extends BossArena {
   rageCut(match, Q) {
     const H = this.head, t = Q.t, once = (k, at) => t >= at && !Q.once.has(k) && !!Q.once.add(k);
     H.yaw *= 0.85; H.roll = 0;
-    if (t < 70) {
+    if (t < RAGE.slams) {
       Q.shot = { x: H.x, y: H.y + 20, zoom: 1.5 }; H.shake = 3; H.y += (KING.y - H.y) * 0.1; H.jaw = 0.2;
       for (const h of this.hands) { this.toward(h, H.x + h.s * 120, KING.rest[1], 0.1); h.roll = h.s * -0.3; }
       if (once('sfx', 1)) { sfx('rumble', 0.8, 0.6); sfx('glitch', 0.6, 0.6); }
-      this.say(sayPart('LET ME SETTLE THIS.', t, 8, 50));
+      this.say(sayPart('LET ME SETTLE THIS.', t, 8, 32));
       if (t % 4 === 0 && t > 8 && t < 40) sfx('menu', 0.25, 0.5);
       return;
     }
     H.shake = 0;
-    if (t < 175) {                                                                       // three slams, harder each time
+    if (t < RAGE.slams + 105) {                                                                       // three slams, harder each time
       Q.shot = { x: 0, y: -130, zoom: 0.95 }; this.say(null);
-      const q = (t - 70) % 35, i = Math.floor((t - 70) / 35), up = q < 24;
+      const q = (t - RAGE.slams) % 35, i = Math.floor((t - RAGE.slams) / 35), up = q < 24;
       H.jaw = up ? 0.3 : 0.9;
       for (const h of this.hands) { h.resting = !up; this.toward(h, H.x + h.s * 90, up ? H.y - 60 : -13, up ? 0.15 : 0.6); h.roll = h.s * -0.2; }
       if (q === 26) { sfx('bighit', 0.8 + i * 0.1, 0.7 - i * 0.08); match.shake(8 + i * 5, 12); for (const sd of [-1, 1]) this.burst(match, H.x + sd * 90, -4, [C.tileA, ...LEG.glow], 10 + i * 4); this.tearT = 6; }
       return;
     }
-    if (t < 250) {                                                                      // the snap
+    if (t < RAGE.laugh) {                                                                      // the snap
       Q.shot = { x: H.x + 60, y: -170, zoom: 1.25 };
       const g = this.hands[1], o = this.hands[0];
       this.toward(o, H.x - 150, KING.rest[1], 0.1); o.resting = false;
-      g.resting = false; g.mode = t < 215 ? 'gun' : null; this.toward(g, H.x + 120, H.y - 40, 0.15); g.roll = t < 215 ? -0.9 : -0.5;
+      g.resting = false; g.mode = t < RAGE.snap ? 'gun' : null; this.toward(g, H.x + 120, H.y - 40, 0.15); g.roll = t < RAGE.snap ? -0.9 : -0.5;
       H.yaw += (0.3 - H.yaw) * 0.1; H.jaw = 0.4;
-      if (once('snap', 215)) { sfx('clang', 1, 2.2); sfx('ding', 0.8, 1.6); this.flashT = 10; match.popText({ x: g.x, y: g.y - 40 }, 'SNAP!', '#ffd040'); match.shake(10, 16); }
-      if (t >= 215) this.applyLayout(match, Math.min(1, (t - 215) / 30));
+      if (once('snap', RAGE.snap)) { sfx('clang', 1, 2.2); sfx('ding', 0.8, 1.6); this.flashT = 10; match.popText({ x: g.x, y: g.y - 40 }, 'SNAP!', '#ffd040'); match.shake(10, 16); }
+      if (t >= RAGE.snap) this.applyLayout(match, Math.min(1, (t - RAGE.snap) / 30));
       return;
     }
     Q.shot = { x: 0, y: -170, zoom: 1.0 };
     H.jaw = 0.5 + 0.5 * Math.sin(t * 0.6); for (const h of this.hands) this.toward(h, H.x + h.s * KING.rest[0], KING.rest[1], 0.1);
-    if (once('laugh', 250)) sfx('laugh', 0.8, 0.55);
-    this.say(sayPart('NOW...  NO MORE RUNNING.', t, 252, 30));
+    if (once('laugh', RAGE.laugh)) sfx('laugh', 0.8, 0.55);
+    this.say(sayPart('NOW...  NO MORE RUNNING.', t, RAGE.laugh + 2, 30));
   }
   /**
    * The new layout (k = 0..1, the snap): the two ledges and the crystal pylons dissolve into pixels and vanish -
@@ -811,7 +812,7 @@ export class PolyBossStage extends BossArena {
     H.roll = 0;
     if (once('stun', 1)) { sfx('ko', 0.8, 0.5); sfx('glitch', 1, 0.5); match.shake(14, 20); this.flashT = 10; this.tearT = 12; stopMusic(); }
     if (!this.knife || !this.knife.stuck) { H.yaw *= 0.9; H.y += (KING.y - 20 + Math.sin(t * 0.3) * 6 - H.y) * 0.1; H.x += (0 - H.x) * 0.05; }
-    for (const L of F.lines) if (t >= L.at && t < L.at + L.len) this.say(sayPart(L.text, t, L.at, L.len * 0.6), L.who);
+    for (const L of F.lines) if (t >= L.at && t < L.at + L.len) this.say(sayPart(L.text, t, L.at, L.len * 0.4), L.who);   // (typed in the first 40%, then it stays up to be read)
     if (!F.lines.some((L) => t >= L.at && t < L.at + L.len)) this.say(null);
     if (t < F.open) {                                                                   // he reels; the exchange
       const herTurn = F.lines.find((L) => L.who !== 'KING POLYGON' && t >= L.at && t < L.at + L.len);
