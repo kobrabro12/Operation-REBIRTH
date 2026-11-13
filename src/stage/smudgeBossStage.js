@@ -884,18 +884,16 @@ export class SmudgeBossStage extends BossArena {
     if (st === 'splatter') for (let i = 0; i < 8; i++) { g.fillStyle(K.hair[i % K.hair.length]); g.fillCircle(b.hip.x - 12 + ((i * 11) % 24), b.sh.y + 2 + ((i * 13) % 26), 1 + (i % 3)); }
     // the head
     const face = (ox) => {                                                         // (the bit under the rim: chin and that grin)
-      const cx = hx + ox; g.fillStyle(K.skin); g.fillEllipse(cx, hy + 15, 24, 18);
-      g.fillStyle(0x5a1020); g.fillPoints([{ x: cx - 10, y: hy + 11 }, { x: cx - 6, y: hy + 13 }, { x: cx + 6, y: hy + 13 }, { x: cx + 10, y: hy + 11 }, { x: cx + 8, y: hy + 18 }, { x: cx, y: hy + 21 }, { x: cx - 8, y: hy + 18 }]);
-      g.fillStyle(0xff6a7a); g.fillRect(cx - 3, hy + 18, 6, 2);                     // (his tongue)
-      g.fillStyle(0xffffff); for (let i = -4; i < 4; i++) if (i !== 1) g.fillRect(cx + i * 2 + (i >= 0 ? 1 : 0), hy + 13, 2, 3);   // the top teeth (one missing)
-      for (let i = -2; i < 2; i++) g.fillRect(cx + i * 2 + 1, hy + 17, 2, 1);
-      g.fillStyle(dk(K.skin, 0.2)); g.fillRect(cx - 12, hy + 10, 1, 3); g.fillRect(cx + 11, hy + 10, 1, 3);   // (dimples)
+      const cx = Math.round(hx + ox); g.fillStyle(K.skin); g.fillEllipse(cx, hy + 15, 24, 18);
+      g.fillStyle(0x5a1020); g.fillPoints([{ x: cx - 11, y: hy + 11 }, { x: cx + 11, y: hy + 11 }, { x: cx + 9, y: hy + 17 }, { x: cx + 5, y: hy + 20 }, { x: cx - 5, y: hy + 20 }, { x: cx - 9, y: hy + 17 }]);
+      g.fillStyle(0xffffff); for (let x = cx - 9; x < cx + 9; x += 3) g.fillRect(x, hy + 12, 2, 3);   // a full, even row of top teeth
+      for (let x = cx - 6; x < cx + 6; x += 3) g.fillRect(x, hy + 17, 2, 2);                            // and the bottom row
+      g.fillStyle(dk(K.skin, 0.2)); g.fillRect(cx - 13, hy + 10, 1, 3); g.fillRect(cx + 12, hy + 10, 1, 3);   // (dimples)
     };
-    if (E.bucketOff || (this.introBucket != null && this.introBucket < 1)) {        // bare head: wild eyes and paint-stiff spiky hair
+    if (E.bucketOff || (this.introBucket != null && this.introBucket < 1)) {        // bare head: paint-stiff spiky hair, its fringe hiding his eyes
       g.fillStyle(K.skin); g.fillCircle(hx, hy + 4, 11);
       for (let i = 0; i < 7; i++) { const a = -Math.PI + 0.2 + i * 0.45; g.fillStyle(K.hair[i % K.hair.length]); g.fillTriangle(hx + Math.cos(a) * 7, hy + 2 + Math.sin(a) * 7, hx + Math.cos(a) * 17, hy + Math.sin(a) * 15, hx + Math.cos(a + 0.35) * 9, hy + 2 + Math.sin(a + 0.35) * 9); }
-      g.fillStyle(0xffffff); g.fillEllipse(hx + d * 2 - 4, hy + 2, 6, 7); g.fillEllipse(hx + d * 2 + 4, hy + 2, 6, 7);
-      g.fillStyle(0x141414); g.fillRect(hx + d * 3 - 4, hy + 2, 2, 2); g.fillRect(hx + d * 3 + 3, hy + 2, 2, 2);
+      for (let i = 0; i < 9; i++) { const x = hx - 12 + i * 3; g.fillStyle(K.hair[i % K.hair.length]); g.fillTriangle(x - 2, hy - 6, x + 4, hy - 6, x + 1, hy + 9 + (i % 2) * 2); }   // a thick fringe of paint-stiff hair over his eyes
       face(d * 2);
     } else face(d * 2);
     if (E.faces === 2 && !E.bucketOff) { face(-d * 13); }                          // TWO FACES: a second grin sliding out the side
