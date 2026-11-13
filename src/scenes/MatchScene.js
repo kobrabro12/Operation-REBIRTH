@@ -318,6 +318,16 @@ export class MatchScene extends Phaser.Scene {
       this.stepEffects();
       return;
     }
+    if (this.stage.cut) {                                // a boss's mid-fight cutscene (LEGENDARY KING POLYGON): it plays, everyone else holds still
+      for (const f of this.fighters) { f.ctrl.beginFrame(); f.ctrl.poll(); f.render(this.frame); }
+      const C = this.stage.cut, held = (this.skipKeys || []).some((k) => k.isDown) || readPadA();
+      if (!held) C.armed = true;                         // (skipping needs a fresh press - you were probably mashing attack when it started)
+      const skip = C.armed && C.t > 40 && (this.skipClick || (this.skipKeys || []).some((k) => Phaser.Input.Keyboard.JustDown(k)) || readPadA());
+      this.skipClick = false;
+      if (skip && this.stage.skipCut) this.stage.skipCut(this); else this.stage.cutStep(this);
+      this.stepEffects();
+      return;
+    }
     // countdown
     if (this.countdown > 0) {
       this.countdown--;

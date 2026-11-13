@@ -92,6 +92,21 @@ const CANNON = { n: [3, 4], charge: 40, fire: 26, floor: -16, high: -104, hit: [
 // CARTRIDGE CRUSH: drops, the mark following you, the fall, the slam's hit and its shockwave
 const CRUSH = { n: [2, 3], track: 46, fall: 10, hit: [15, [85, 6.8, 0.95]], wave: { speed: 6.5, reach: 250, hit: [8, [65, 5.2, 0.6]] } };
 // what he says in the cutscene (the frames of the entrance, 0..1, each line shows)
+// BEAR TRAP (enraged): the hand slamming down (frames), how long it lies in wait, frames between the other hand's
+// herding shots, how close you have to step, the lift, the squish
+const TRAP = { lay: 24, wait: 330, every: 60, reach: 28, grab: 26, squish: 12 };
+// THE RAGE CUTSCENE's length (frames)
+const RAGE = { n: 300 };
+// THE FINALE: its length, when he opens his arms, she throws, the knife hits, he explodes; and the exchange (frame, length, who, line)
+const FINALE = { n: 600, open: 330, throwAt: 400, hit: 440, boom: 560, lines: [
+  { at: 10, len: 90, who: 'KING POLYGON', text: 'IMPOSSIBLE...  MY FRAMES...  ARE DROPPING...' },
+  { at: 105, len: 70, who: 'THE DEVOTED', text: 'IT TOLD ME HOW THIS ENDS.' },
+  { at: 180, len: 75, who: 'KING POLYGON', text: 'THEN WHY DO YOU HESITATE, CHALLENGER?' },
+  { at: 260, len: 70, who: 'THE DEVOTED', text: '...I DON\'T.' },
+  { at: 330, len: 70, who: 'KING POLYGON', text: 'THEN SHOW ME YOUR LEGEND!' },
+  { at: 445, len: 60, who: 'KING POLYGON', text: 'HEH...  WELL PLAYED.' },
+  { at: 505, len: 55, who: 'KING POLYGON', text: 'IN ANOTHER GAME...' },
+] };
 // the cutscene's beats (0..1 of `LEG.intro`): the entrance ends, the glitch, her, he speaks, he laughs, the crown
 // shatters, the change, the flash, the fists hit the floor, the pose
 const CUT = { enter: 0.15, her: 0.21, talk: 0.28, laugh: 0.47, crown: 0.52, change: 0.54, flash: 0.8, slam: 0.87, pose: 0.94 };
@@ -104,6 +119,8 @@ const ERRS = ['SAVE DATA CORRUPTED', 'ERROR 0x64: LEGEND.EXE', 'DO NOT TURN OFF 
 // the corrupted floor cells: width, pixels to corrupt one, how long they stay, their burn (every `tick` frames) and slow
 const VOMIT = { retch: 40, spew: 80, rate: 3, sweep: 140, hit: [3, [70, 3.6, 0.25]], cell: 25, fill: 6, life: 360, tick: 30, burn: [4, [80, 3.8, 0.2]], slow: 8 };
 
+/** How much of a line to show `t` frames in, typing it out over `dur` frames from `at`. */
+const sayPart = (text, t, at, dur) => text.slice(0, Math.max(1, Math.ceil(text.length * Math.min(1, (t - at) / dur))));
 /** A point along the way from a to b (k = 0..1). */
 const lerp = (a, b, k) => a + (b - a) * k;
 
@@ -130,7 +147,8 @@ export class PolyBossStage extends BossArena {
     this.head = { x: KING.x, y: KING.y, yaw: 0, jaw: 0 };
     this.drop = 0; this.count = 0; this.shots = []; this.goons = []; this.warps = []; this.cubes = []; this.beam = null; this.zap = null; this.ring = null;
     this.sparkColor = 0x5af0ff; this.bodyW = 120; this.bodyH = 120;
-    this.legend = false; this.legK = 0; this.cor = 0; this.tiles = 0; this.ghosts = []; this.bolts = []; this.errs = []; this.tearT = 0; this.pix = []; this.cells = []; this.cutOnce = new Set(); this.trail = []; this.orbit = null; this.sector = null; this.cannon = null;
+    this.legend = false; this.legK = 0; this.cor = 0; this.tiles = 0; this.ghosts = []; this.bolts = []; this.errs = []; this.tearT = 0; this.pix = []; this.cells = []; this.cutOnce = new Set(); this.trail = [];
+    this.trapHold = { holdsSeized: (f) => !!(this.trap && this.trap.v === f) };   // (BEAR TRAP's victim is `seized` by this) this.orbit = null; this.sector = null; this.cannon = null;
   }
 
   /** Builds the sky and the 3D world: hills and mountains far below, clouds, the checkerboard arena, pylons. */
@@ -150,8 +168,10 @@ export class PolyBossStage extends BossArena {
     for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) R.box(P.x1 + i * w, -0.01, j * 50, P.x1 + (i + 1) * w, 0, (j + 1) * 50, (i + j) % 2 ? C.tileA : C.tileB, (i + j) % 2 ? C.tileA : C.tileB);
     R.box(P.x1, 0, 0, P.x2, 14, 150, C.gold, C.gold); R.box(P.x1 + 8, 14, 4, P.x2 - 8, 34, 146, C.rock[1]);
     R.rock(0, 32, 75, 235, 110, 140, 9, C.rock, 11);
+    this.ledgeFaces = [R.faces.length];                                             // (the ledges and pylon stands: LEGENDARY's snap makes them vanish)
     for (const p of this.platforms.slice(1)) { R.box(p.x1, p.y, 0, p.x2, p.y + 8, 70, C.tileA, C.tileB); R.box(p.x1 + 4, p.y + 8, 4, p.x2 - 4, p.y + 13, 66, C.gold); R.rock((p.x1 + p.x2) / 2, p.y + 12, 35, 46, 34, 34, 5, C.rock, p.x1); }
     for (const sx of [-1, 1]) { R.prism(sx * 238, -96, 0, 40, 6, 6, C.rock[2], C.rock[3]); }   // the pylons' stands
+    this.ledgeFaces.push(R.faces.length);
     this.fxG = s.add.graphics(); world.push(this.fxG);
     this.cycle.makeBanner(s);
     this.orig = R.faces.map((f) => f.c); this.fog0 = R.fog; this.faceX = R.faces.map((f) => f.p.reduce((a, v) => a + v[0], 0) / f.p.length);
@@ -166,7 +186,7 @@ export class PolyBossStage extends BossArena {
       const B = this.boss; B.max = Math.round(B.max * LEG.hp); B.hp = B.chip = B.shown = B.max; this.introEnter = LEG.intro;
       this.barName.setText('LEGENDARY KING POLYGON').setColor('#ffd040'); this.setLegend(1, 1, 1);
       this.music = LEG.music; playMusic(match, LEG.music, 0.55); this.taunts = LEG.taunts; this.tauntColor = 0xffd040; this.sparkColor = LEG.glow[0];
-      this.styleG = match.add.graphics().setDepth(29); match.addUI(this.styleG);
+      this.styleG = match.add.graphics().setDepth(29); this.whiteG = match.add.graphics().setDepth(60); match.addUI(this.styleG, this.whiteG);
     }
   }
   /** LEGENDARY: how far he has changed (legK), how far the cartridge has corrupted (cor) and the arena's tiles darkened (tiles, from the middle out), all 0..1 - recolours the scenery, the tiles and the fog. */
@@ -205,7 +225,7 @@ export class PolyBossStage extends BossArena {
   /** What he can do next: every few attacks a FRAME DROP; ENRAGED adds the EYE BEAM. */
   pattern(phase) {
     if (this.count % DROP.every === DROP.every - 1) return ['frame'];
-    if (this.legend) return this.low ? ['homer', 'pop', 'warp', 'shard', 'crush', 'cannon', 'vomit'] : phase === 1 ? ['warp', 'shard', 'sector', 'cannon', 'crush', 'vomit', 'palm'] : ['warp', 'shard', 'sector', 'cannon', 'crush', 'vomit', 'beam', 'warp'];
+    if (this.legend) return this.low ? ['homer', 'pop', 'warp', 'trap', 'crush', 'cannon', 'vomit'] : phase === 1 ? ['warp', 'shard', 'sector', 'cannon', 'crush', 'vomit', 'palm'] : ['warp', 'shard', 'sector', 'trap', 'cannon', 'crush', 'vomit', 'beam', 'trap'];
     if (this.low) return ['homer', 'pop', 'homer', 'swipe', 'palm', 'beam', 'blow'];
     return phase === 1 ? ['palm', 'swipe', 'gun', 'goons', 'rain', 'blow'] : ['palm', 'swipe', 'gun', 'goons', 'rain', 'beam', 'gun', 'blow'];
   }
@@ -219,7 +239,7 @@ export class PolyBossStage extends BossArena {
   start_blow(match, a) { this.count++; this.cart = { x: this.head.x, y: 120, a: 0, tilt: 0 }; sfx('limit', 0.6, 0.8); }
   start_homer(match, a) { this.count++; this.batUp(match, a); }
   start_pop(match, a) { this.count++; this.batUp(match, a); a.pop = true; }
-  start_warp() { this.count++; } start_shard() { this.count++; } start_sector() { this.count++; } start_cannon() { this.count++; } start_crush() { this.count++; } start_vomit() { this.count++; }
+  start_warp() { this.count++; } start_shard() { this.count++; } start_sector() { this.count++; } start_cannon() { this.count++; } start_crush() { this.count++; } start_vomit() { this.count++; } start_trap() { this.count++; }
   /** Picks the batting hand (the one away from the nearest player) and turns it into a bat. */
   batUp(match, a) {
     const tg = this.nearest(match, this.head.x); a.side = tg && tg.x < this.head.x ? 1 : -1;
@@ -227,6 +247,17 @@ export class PolyBossStage extends BossArena {
     a.hx = this.head.x; sfx('ding', 0.5, 0.7);
   }
   rageLine() { return this.legend ? 'LEGENDS NEVER DIE!' : 'SYSTEM OVERCLOCKED!'; }
+  /** ENRAGED. LEGENDARY: a mini cutscene (LET ME SETTLE THIS) when there's a player watching, else the layout just changes. */
+  onRage(match) {
+    if (!this.legend) return;
+    this.clearArena();
+    if (this.sayG) this.startCut(match, 'rage'); else this.applyLayout(match, 1);
+  }
+  /** LEGENDARY: his health's gone - the finale cutscene first (a player watching), then the usual death. */
+  startDeath(match) {
+    if (this.legend && this.sayG && !this.finaleDone) { this.finaleDone = true; this.clearArena(); this.boss.atk = null; this.startCut(match, 'finale'); return; }
+    super.startDeath(match);
+  }
   /** The entrance's camera: following his falling head, wide as the gauntlets fly in, in close for the finger guns. */
   introShot(k) {
     if (this.legend) {
@@ -668,6 +699,163 @@ export class PolyBossStage extends BossArena {
     return false;
   }
 
+  // ------------------------------------------------------------------ LEGENDARY's mid-fight cutscenes
+  /** Clears his attacks off the arena (before a cutscene): shots, shards, pixels, burning floor, the trap. */
+  clearArena() {
+    this.shots = []; this.pix = []; this.cells = []; this.orbit = null; this.sector = null; this.cannon = null; this.warpMark = null; this.cart = null; this.shock = null; this.beam = null; this.wind = null; this.popMark = null;
+    if (this.trap && this.trap.v) { this.trap.v.seizedBy = null; this.trap.v.setState('air'); }
+    this.trap = null; this.ghosts = [];
+    for (const h of this.hands) { h.mode = null; h.shadow = null; }
+  }
+  /** Starts a mid-fight cutscene (MatchScene freezes everyone else while `cut` is set): 'rage' or 'finale'. */
+  startCut(match, kind) {
+    const cam = match.worldCam || match.cameras.main;
+    this.cut = { kind, t: 0, n: kind === 'rage' ? RAGE.n : FINALE.n, once: new Set() };
+    this.ccam = { x: cam.midPoint.x, y: cam.midPoint.y, zoom: cam.zoom };
+    this.rageText.setVisible(false); this.boss.rage = 0; this.say(null);
+  }
+  /** The cutscene's camera (MatchScene asks introCam): eased toward the shot `cut.shot` asks for. */
+  introCam() {
+    if (!this.cut) return super.introCam();
+    const w = this.cut.shot || { x: 0, y: -150, zoom: 1 }, k = this.cut.snap ? 1 : 0.1; this.cut.snap = false;
+    this.ccam = { x: lerp(this.ccam.x, w.x, k), y: lerp(this.ccam.y, w.y, k), zoom: lerp(this.ccam.zoom, w.zoom, k) };
+    return { ...this.ccam, exact: true };
+  }
+  /** One frame of the cutscene (from MatchScene): the stage moves on, the boss acts it out. */
+  cutStep(match) {
+    const C = this.cut; C.t++; this.t++; this.stepCutFx(match);
+    if (C.kind === 'rage') this.rageCut(match, C); else this.finaleCut(match, C);
+    if (this.cut && C.t >= C.n) this.endCut(match);
+  }
+  /** A fresh press skips the rest: the rage cutscene jumps to its result; the finale jumps to the explosion. */
+  skipCut(match) {
+    const C = this.cut;
+    if (C.kind === 'rage') { this.applyLayout(match, 1); this.endCut(match); return; }
+    if (C.t < FINALE.boom) { C.t = FINALE.boom - 1; this.knife = { stuck: true }; this.head.stone = true; }
+    this.cutStep(match);
+  }
+  /** The cutscene is over: back to the fight (or, after the finale, the death and the win). */
+  endCut(match) {
+    const C = this.cut; this.cut = null; this.say(null);
+    for (const h of this.hands) { h.mode = null; h.resting = false; }
+    if (C.kind === 'rage') { this.applyLayout(match, 1); this.rageText.setText('LEGENDS NEVER DIE!'); this.boss.rage = 90; this.boss.wait = 40; return; }
+    super.startDeath(match);
+  }
+  /**
+   * THE RAGE CUTSCENE (half health): he shakes, eyes flaring - LET ME SETTLE THIS. He pounds both fists into the
+   * arena, three times, harder each time; then raises a gauntlet and SNAPS his fingers - the ledges and pylons
+   * dissolve into pixels (`applyLayout`): nowhere left to stand but his floor. NO MORE RUNNING.
+   */
+  rageCut(match, Q) {
+    const H = this.head, t = Q.t, once = (k, at) => t >= at && !Q.once.has(k) && !!Q.once.add(k);
+    H.yaw *= 0.85; H.roll = 0;
+    if (t < 70) {
+      Q.shot = { x: H.x, y: H.y + 20, zoom: 1.5 }; H.shake = 3; H.y += (KING.y - H.y) * 0.1; H.jaw = 0.2;
+      for (const h of this.hands) { this.toward(h, H.x + h.s * 120, KING.rest[1], 0.1); h.roll = h.s * -0.3; }
+      if (once('sfx', 1)) { sfx('rumble', 0.8, 0.6); sfx('glitch', 0.6, 0.6); }
+      this.say(sayPart('LET ME SETTLE THIS.', t, 8, 50));
+      if (t % 4 === 0 && t > 8 && t < 40) sfx('menu', 0.25, 0.5);
+      return;
+    }
+    H.shake = 0;
+    if (t < 175) {                                                                       // three slams, harder each time
+      Q.shot = { x: 0, y: -130, zoom: 0.95 }; this.say(null);
+      const q = (t - 70) % 35, i = Math.floor((t - 70) / 35), up = q < 24;
+      H.jaw = up ? 0.3 : 0.9;
+      for (const h of this.hands) { h.resting = !up; this.toward(h, H.x + h.s * 90, up ? H.y - 60 : -13, up ? 0.15 : 0.6); h.roll = h.s * -0.2; }
+      if (q === 26) { sfx('bighit', 0.8 + i * 0.1, 0.7 - i * 0.08); match.shake(8 + i * 5, 12); for (const sd of [-1, 1]) this.burst(match, H.x + sd * 90, -4, [C.tileA, ...LEG.glow], 10 + i * 4); this.tearT = 6; }
+      return;
+    }
+    if (t < 250) {                                                                      // the snap
+      Q.shot = { x: H.x + 60, y: -170, zoom: 1.25 };
+      const g = this.hands[1], o = this.hands[0];
+      this.toward(o, H.x - 150, KING.rest[1], 0.1); o.resting = false;
+      g.resting = false; g.mode = t < 215 ? 'gun' : null; this.toward(g, H.x + 120, H.y - 40, 0.15); g.roll = t < 215 ? -0.9 : -0.5;
+      H.yaw += (0.3 - H.yaw) * 0.1; H.jaw = 0.4;
+      if (once('snap', 215)) { sfx('clang', 1, 2.2); sfx('ding', 0.8, 1.6); this.flashT = 10; match.popText({ x: g.x, y: g.y - 40 }, 'SNAP!', '#ffd040'); match.shake(10, 16); }
+      if (t >= 215) this.applyLayout(match, Math.min(1, (t - 215) / 30));
+      return;
+    }
+    Q.shot = { x: 0, y: -170, zoom: 1.0 };
+    H.jaw = 0.5 + 0.5 * Math.sin(t * 0.6); for (const h of this.hands) this.toward(h, H.x + h.s * KING.rest[0], KING.rest[1], 0.1);
+    if (once('laugh', 250)) sfx('laugh', 0.8, 0.55);
+    this.say(sayPart('NOW...  NO MORE RUNNING.', t, 252, 30));
+  }
+  /**
+   * The new layout (k = 0..1, the snap): the two ledges and the crystal pylons dissolve into pixels and vanish -
+   * only his floor is left, right under his slams, beams and burning tiles.
+   */
+  applyLayout(match, k) {
+    if (!this.noLedges) {
+      this.noLedges = true; this.platforms = [this.platforms[0]]; this.zapOff = true;
+      for (const sx of [-1, 1]) for (let i = 0; i < 30; i++) match.particles.push({ shape: 'polygem', x: sx * (105 + Math.random() * 100), y: -90 + Math.random() * 14, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 3, life: 30 + Math.random() * 20, color: [C.tileA, C.tileB, C.gold, ...LEG.glow][i % 6], size: 3, grav: 0.1 });
+      sfx('glass', 1, 0.9); sfx('glitch', 0.8, 1.2);
+    }
+    const [a, b] = this.ledgeFaces; for (let i = a; i < b; i++) this.R.faces[i].a = Math.max(0, 1 - k);
+  }
+  /**
+   * THE FINALE (his health gone, LEGENDARY): he reels, glitching, and the two speak, like the last exchange of an
+   * anime duel; he spreads his arms - SHOW ME YOUR LEGEND - and she hurls her karambit: slow motion, the camera riding
+   * it, and it wedges in his eye (an impact frame). He freezes to grey stone, light cracking out of him, says his
+   * last words - IN ANOTHER GAME... - and explodes, and the screen burns white.
+   */
+  finaleCut(match, C) {
+    const H = this.head, t = C.t, F = FINALE, f = match.fighters.find((q) => q.alive) || match.fighters[0], once = (k, at) => t >= at && !C.once.has(k) && !!C.once.add(k);
+    let fx = f ? f.x : -120, fy = f ? f.y : 0;
+    if (f && f.state !== 'respawn' && t <= 30) {                                        // the clash breaks: she lands back on the floor, facing him
+      if (t === 1) C.from = { x: f.x, y: f.y, to: Phaser.Math.Clamp(H.x + (f.x < H.x ? -1 : 1) * 170, -220, 220) };
+      const q = t / 30; f.x = lerp(C.from.x, C.from.to, q); f.y = Math.min(0, lerp(C.from.y, 0, q) - Math.sin(q * Math.PI) * 40); f.vx = f.vy = 0;
+      if (t === 30) { f.grounded = true; this.burst(match, f.x, -4, [0x20e8ff, 0xffffff], 6); }
+    }
+    if (f) { f.facing = Math.sign(H.x - f.x) || 1; fx = f.x; fy = f.y; }
+    H.roll = 0;
+    if (once('stun', 1)) { sfx('ko', 0.8, 0.5); sfx('glitch', 1, 0.5); match.shake(14, 20); this.flashT = 10; this.tearT = 12; stopMusic(); }
+    if (!this.knife || !this.knife.stuck) { H.yaw *= 0.9; H.y += (KING.y - 20 + Math.sin(t * 0.3) * 6 - H.y) * 0.1; H.x += (0 - H.x) * 0.05; }
+    for (const L of F.lines) if (t >= L.at && t < L.at + L.len) this.say(sayPart(L.text, t, L.at, L.len * 0.6), L.who);
+    if (!F.lines.some((L) => t >= L.at && t < L.at + L.len)) this.say(null);
+    if (t < F.open) {                                                                   // he reels; the exchange
+      const herTurn = F.lines.find((L) => L.who !== 'KING POLYGON' && t >= L.at && t < L.at + L.len);
+      C.shot = herTurn ? { x: fx, y: fy - 40, zoom: 1.7 } : { x: H.x, y: H.y + 20, zoom: 1.5 };
+      H.shake = t % 30 < 5 ? 5 : 1; H.jaw = 0.3;
+      for (const h of this.hands) { this.toward(h, H.x + h.s * 160, KING.rest[1] + 40, 0.06); h.roll += (h.s * 0.6 - h.roll) * 0.1; }
+      if (t % 40 === 0) { sfx('glitch', 0.4, 0.8); this.tearT = 4; }
+      return;
+    }
+    if (t < F.throwAt) {                                                                // SHOW ME YOUR LEGEND: arms wide
+      C.shot = t < F.open + 50 ? { x: H.x, y: H.y + 10, zoom: 1.4 } : { x: fx, y: fy - 40, zoom: 1.8 };
+      H.shake = 0; H.jaw = 0.8;
+      for (const h of this.hands) { this.toward(h, H.x + h.s * 220, H.y - 30, 0.1); h.roll += (h.s * 0.8 - h.roll) * 0.1; }
+      if (once('roar', F.open)) sfx('roar', 0.8, 0.7);
+      if (once('glint', F.throwAt - 20)) { sfx('shing', 1, 0.8); this.burst(match, fx + f.facing * 10, fy - 36, [0x20e8ff, 0xffffff], 8); }
+      return;
+    }
+    const eye = { x: H.x - 17 * (H.k || 1), y: H.y - 4 * (H.k || 1) }, hand = { x: fx + (f ? f.facing : 1) * 14, y: fy - 36 };
+    if (t < F.hit) {                                                                    // the throw: slow motion, the camera riding the knife
+      const q = (t - F.throwAt) / (F.hit - F.throwAt), e = q * q * (3 - 2 * q);
+      this.knife = { x: lerp(hand.x, eye.x, e), y: lerp(hand.y, eye.y, e) - Math.sin(q * Math.PI) * 30, a: t * 0.5, stuck: false };
+      C.shot = { x: this.knife.x, y: this.knife.y, zoom: 1.9 };
+      if (once('throw', F.throwAt)) { sfx('slash', 1, 0.6); sfx('whoosh', 1, 0.5); }
+      if (t % 6 === 0) match.particles.push({ x: this.knife.x, y: this.knife.y, vx: 0, vy: 0, life: 14, color: 0x20e8ff, size: 3 });
+      return;
+    }
+    if (once('hit', F.hit)) {                                                           // THUNK - in the eye; an impact frame
+      this.knife = { x: eye.x, y: eye.y, a: -0.6, stuck: true }; this.impactT = 8; H.stone = true;
+      sfx('bighit', 1, 0.5); sfx('clang', 1, 0.8); sfx('ko', 0.7, 0.4); match.shake(18, 18);
+      this.burst(match, eye.x, eye.y, [0xffffff, 0x20e8ff, LEG.glow[0]], 20);
+      this.cracks = []; for (let i = 0; i < 9; i++) { let a = Math.random() * Math.PI * 2, x = 0, y = 0; const pts = [{ x, y }]; for (let j = 0; j < 5; j++) { a += (Math.random() - 0.5) * 0.9; x += Math.cos(a) * 14; y += Math.sin(a) * 14; pts.push({ x, y }); } this.cracks.push(pts); }
+    }
+    if (this.knife && this.knife.stuck) this.knife = { x: eye.x, y: eye.y, a: -0.6, stuck: true };
+    H.shake = 0; H.jaw = Math.max(0, H.jaw - 0.05);
+    this.crackK = Math.min(1, (t - F.hit) / (F.boom - F.hit - 20));
+    if (t < F.boom) { C.shot = { x: H.x, y: H.y, zoom: lerp(1.6, 1.25, (t - F.hit) / (F.boom - F.hit)) }; if (t % 18 === 0) sfx('glitch', 0.3 + this.crackK * 0.5, 0.6 + this.crackK); return; }
+    if (once('boom', F.boom)) {                                                         // IN ANOTHER GAME... - and he's gone
+      sfx('bighit', 1, 0.35); sfx('ko', 1, 0.5); sfx('roar', 0.6, 1.4); match.shake(24, 40); this.whiteK = 0.01;
+      this.burst(match, H.x, H.y, [0xffffff, 0xffd040, ...LEG.glow], 60);
+      for (let i = 0; i < 4; i++) match.particles.push({ shape: 'ring', x: H.x, y: H.y, vx: 0, vy: 0, life: 30 + i * 8, maxLife: 30 + i * 8, color: [0xffffff, 0xffd040, LEG.glow[0], LEG.glow[1]][i], grav: 0, r: 20, dr: 10 + i * 3 });
+    }
+    C.shot = { x: H.x, y: H.y + 40, zoom: 1.0 }; this.gone = true;
+  }
+
   // ------------------------------------------------------------------ LEGENDARY attacks
   /** Puts both gauntlets back toward his sides. */
   handsHome(k = 0.1) { for (const h of this.hands) { h.resting = false; h.mode = null; this.toward(h, this.head.x + h.s * KING.rest[0], KING.rest[1], k); h.roll += (0 - h.roll) * 0.1; } }
@@ -803,6 +991,78 @@ export class PolyBossStage extends BossArena {
     });
   }
 
+  /**
+   * BEAR TRAP (LEGENDARY, enraged): one gauntlet slams down and lies open on the floor, palm up, gold teeth along its
+   * fingers, twitching (WATCH YOUR STEP...), while the other herds you toward it with finger-gun shots. Step on it and
+   * it SNAPS shut on you, lifts you up, and the other hand comes down on top - SQUISH: you lose a life outright.
+   * Left alone it gives up after a while.
+   */
+  atk_trap(match, a, out) {
+    const H = this.head;
+    if (a.t === 1) {
+      const tg = this.nearest(match, H.x), tx = tg ? tg.x : 0, x = Phaser.Math.Clamp(tx + (tx < 0 ? 95 : -95), -215, 215);
+      const h = this.hands[x < H.x ? 0 : 1];
+      this.trap = { x, st: 'lay', t: 0, h, g: this.hands[h === this.hands[0] ? 1 : 0] };
+      match.popText({ x: H.x, y: H.y + 60 }, 'WATCH YOUR STEP...', '#ffd040'); sfx('laugh', 0.4, 0.7);
+    }
+    const T = this.trap; if (!T) return true;
+    T.t++;
+    const h = T.h, g = T.g;
+    H.jaw = Math.max(0, H.jaw - 0.05);
+    if (T.st === 'lay') {
+      h.mode = 'trap'; h.resting = true; this.toward(h, T.x, -13, 0.25); h.roll = h.s < 0 ? -Math.PI / 2 : Math.PI / 2;
+      if (T.t === 12) { sfx('bighit', 0.7, 0.9); match.shake(6, 8); this.burst(match, T.x, -4, [C.gold, ...LEG.glow], 10); }
+      if (T.t >= TRAP.lay) { T.st = 'wait'; T.t = 0; }
+      return false;
+    }
+    if (T.st === 'wait') {
+      h.x = T.x; h.y = -13 + (T.t % 50 < 3 ? -3 : 0); h.mode = 'trap'; h.roll = h.s < 0 ? -Math.PI / 2 : Math.PI / 2;
+      for (const f of match.fighters) {                                                  // stepped on it?
+        if (!f.alive || f.state === 'respawn' || f.invincible || (f.isIntangible && f.isIntangible()) || f.state === 'seized') continue;
+        if (Math.abs(f.x - T.x) < TRAP.reach && f.y > -26 && f.y <= 2) {
+          T.st = 'grab'; T.t = 0; T.v = f; f.setState('seized'); f.seizedBy = this.trapHold; f.vx = f.vy = 0;
+          sfx('clang', 1, 0.8); sfx('bighit', 0.8, 1.2); match.shake(10, 10); match.popText({ x: T.x, y: -80 }, 'GOTCHA!', '#ff2a4a'); this.tearT = 6;
+          return false;
+        }
+      }
+      g.mode = 'gun'; g.resting = false;                                                 // the other hand herds you toward it
+      const tg = this.nearest(match, g.x), px = H.x + g.s * 200;
+      this.toward(g, Phaser.Math.Clamp(px, -300, 300), -170, 0.1);
+      if (tg) { const ang = Math.atan2(tg.y - 26 - g.y, tg.x - g.x); g.roll += ((g.s < 0 ? ang : Math.atan2(-(tg.y - 26 - g.y), -(tg.x - g.x))) - g.roll) * 0.2; }
+      if (tg && T.t % this.sp(TRAP.every) === TRAP.every >> 1) {
+        const tx = tg.x, ty = tg.y - 26, d = Math.hypot(tx - g.x, ty - g.y) || 1;
+        this.shots.push({ x: g.x + (tx - g.x) / d * 60, y: g.y + (ty - g.y) / d * 60 - 10, vx: (tx - g.x) / d * GUN.speed, vy: (ty - g.y) / d * GUN.speed, id: this.sid('shot'), a: 0 });
+        g.flashT = 5; sfx('laser', 0.6, 1.7);
+      }
+      if (g.flashT > 0) g.flashT--;
+      if (T.t > this.sp(TRAP.wait)) { T.st = 'done'; T.t = 0; }
+      return false;
+    }
+    if (T.st === 'grab') {                                                              // snapped shut: up you go...
+      h.mode = 'fist'; const q = Math.min(1, T.t / TRAP.grab);
+      h.x = T.x; h.y = lerp(-13, -110, q * q); h.roll = h.s < 0 ? -Math.PI / 2 : Math.PI / 2;
+      g.mode = null; this.toward(g, T.x, -250, 0.2); g.roll = g.s < 0 ? Math.PI / 2 : -Math.PI / 2;
+      if (T.v) { T.v.x = h.x; T.v.y = h.y + 10; T.v.vx = T.v.vy = 0; }
+      if (T.t >= TRAP.grab) { T.st = 'squish'; T.t = 0; sfx('whoosh', 1, 0.5); }
+      return false;
+    }
+    if (T.st === 'squish') {                                                            // ...and SQUISH
+      const q = Math.min(1, T.t / TRAP.squish); g.y = lerp(-250, h.y - 40, q * q); g.x = T.x;
+      if (T.v) { T.v.x = h.x; T.v.y = h.y + 10; }
+      if (T.t === TRAP.squish) {
+        sfx('bighit', 1, 0.5); sfx('ko', 1, 0.7); match.shake(20, 20); this.flashT = 8; this.burst(match, T.x, h.y - 20, [0xffffff, ...LEG.glow, C.gold], 30);
+        match.popText({ x: T.x, y: h.y - 70 }, 'SQUISH!', '#ff2a4a');
+        const v = T.v; T.v = null; if (v) { v.seizedBy = null; v.setState('air'); match.onKO(v); }
+      }
+      if (T.t > TRAP.squish + 24) { T.st = 'done'; T.t = 0; }
+      return false;
+    }
+    for (const q of [h, g]) { q.mode = null; q.resting = false; }                        // done: back to his sides
+    this.handsHome(0.12);
+    if (T.t > 30) { this.trap = null; return true; }
+    return false;
+  }
+
   /** You lost: he cackles - jaw flapping, head bobbing, gauntlets clapping in front of him (BossArena.bossTaunt). */
   onGloat(match, t) { const H = this.head; H.jaw = 0.5 + 0.5 * Math.sin(t * 0.6); H.y += (KING.y + Math.sin(t * 0.3) * 10 - H.y) * 0.2; for (const h of this.hands) { h.mode = null; this.toward(h, H.x + h.s * (40 + Math.abs(Math.sin(t * 0.25)) * 50), KING.rest[1], 0.3); } if (t % 16 === 0) sfx('clang', 0.3, 1.8); }
   /** FRAME DROP: he stutters and glitches, sinking low - his head takes x1.5 until he catches up. */
@@ -864,7 +1124,7 @@ export class PolyBossStage extends BossArena {
   /** A burst of tumbling polygon gems. */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ shape: 'polygem', x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 22 + Math.random() * 14, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: the polygons come apart (handled by the drawing, with the explosions). */
-  onDeath() { this.pix = []; this.cells = []; this.errs = []; this.orbit = null; this.sector = null; this.cannon = null; this.warpMark = null; this.drop = 0; this.beam = null; this.popMark = null; this.wind = null; this.cart = null; if (this.glitch) this.glitch.tiles = []; }
+  onDeath() { if (this.trap && this.trap.v) { this.trap.v.seizedBy = null; this.trap.v.setState('air'); } this.trap = null; this.pix = []; this.cells = []; this.errs = []; this.orbit = null; this.sector = null; this.cannon = null; this.warpMark = null; this.drop = 0; this.beam = null; this.popMark = null; this.wind = null; this.cart = null; if (this.glitch) this.glitch.tiles = []; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_zap(match, h) { h.title = 'PYLON ZAP!'; sfx('laser', 0.4, 0.5); }
@@ -959,8 +1219,12 @@ export class PolyBossStage extends BossArena {
         hand.push(...xf(prismFaces(0, BAT.barrel[0], BAT.barrel[1], 0, BAT.r[1], 8, BAT.wood[0], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
         hand.push(...xf(prismFaces(0, BAT.barrel[1], BAT.barrel[1] + 3, 0, BAT.r[1] * 0.8, 8, BAT.wood[1], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
         hand.push(...xf(prismFaces(0, BAT.handle[1] + 6, BAT.handle[1] + 12, 0, BAT.r[1] * 0.75 + 0.6, 8, 0xd82a2a, 0xff5a4a), 0, 0, 0, 0, -Math.PI / 2));   // a red stripe
+      } else if (h.mode === 'fist') {                                            // BEAR TRAP snapped shut: a fist
+        hand.push(...boxFaces(-22, -12, -14, 14, 12, 14, gc[0], gc[1]));
+        for (let k = 0; k < 4; k++) hand.push(...boxFaces(6, -11 + k * 5.5, -13, 20, -6 + k * 5.5, 13, gc[k % 2], gc[1]));
       } else {
         hand.push(...boxFaces(-22, -9, -18, 18, 9, 18, gc[0], gc[1]));
+        if (h.mode === 'trap') for (let k = 0; k < 4; k++) for (let q = 0; q < 2; q++) hand.push(...xf(pyramidFaces(0, 0, 0, 5, 5, 9, q ? 0xffe070 : C.gold), 26 + q * 10, -9, -12.5 + k * 9, 0, Math.PI).map((f2) => ({ ...f2, nofog: true })));   // gold teeth along its open fingers
         for (let k = 0; k < 4; k++) hand.push(...boxFaces(18, -8, -16 + k * 9, 38 - Math.abs(k - 1.5) * 3, 6, -9 + k * 9, gc[k % 2], gc[1]));
         hand.push(...boxFaces(0, -6, -26, 16, 6, -18, gc[2], gc[1]));
         if (L) for (let k = 0; k < 4; k++) hand.push(...xf(pyramidFaces(0, 0, 0, 6, 6, 12, C.gold), 30, -8, -12.5 + k * 9, 0, 0));   // gold knuckle spikes
@@ -969,13 +1233,14 @@ export class PolyBossStage extends BossArena {
       hand.push(...blobFaces(-4, -11, 0, 6, 3, 6, [L ? LEG.glow[h.s < 0 ? 0 : 1] : C.gem[h.s < 0 ? 0 : 1]], 3, null, 0).map((f) => (L ? { ...f, nofog: true } : f)));
       out.push(...xf(hand, h.x + glitch, h.y + apart * 0.4, 10, h.s < 0 ? 0 : Math.PI, h.roll + dk * h.s, HAND));
     }
+    if (H.stone) for (const f of out) { const c = f.c, l = Math.round(((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.55 + (c & 255) * 0.15) * 0.8 + 40); f.c = (l << 16) | (l << 8) | Math.min(255, l + 12); }   // THE FINALE: frozen to grey stone
     return out;
   }
 
   /** Draws the 3D scene (scenery + King + stars + cubes + pylons) and the beams, zaps, shadows, rings; and the health bar. */
   render() {
     const t = this.t, dyn = [], B = this.boss;
-    if (B && this.deathK() < 0.95) dyn.push(...this.kingFaces());
+    if (B && this.deathK() < 0.95 && !this.gone) dyn.push(...this.kingFaces());
     else if (!B) dyn.push(...xf(prismFaces(0, -50, -30, 0, 34, 8, C.gold, 0xffe070), Math.sin(t * 0.01) * 40, -210 + Math.sin(t * 0.03) * 8, 30, t * 0.01));   // VS: his empty crown drifts overhead
     for (const s of this.shots) {
       if (s.kind === 'shard') dyn.push(...xf([...pyramidFaces(0, 0, 0, 10, 10, 12, LEG.glow[0]), ...pyramidFaces(0, 0, 0, 10, 10, -12, LEG.glow[1])], s.x, s.y, 0, s.a, s.a * 0.7).map((f) => ({ ...f, nofog: true })));
@@ -985,7 +1250,7 @@ export class PolyBossStage extends BossArena {
     for (const g of this.goons) dyn.push(...this.goonFaces(g));
     for (const w of this.warps) { const r = Math.min(1, w.t / 20) * 26, pts = [], inner = []; for (let i = 0; i < 12; i++) { const q = i / 12 * Math.PI * 2 + t * 0.1; pts.push([w.x + Math.cos(q) * r, w.y + Math.sin(q) * r * 0.35, 0]); inner.push([w.x + Math.cos(q) * r * 0.7, w.y + Math.sin(q) * r * 0.25, -1]); } dyn.push({ p: pts, n: null, c: C.crystal[0], nofog: true }, { p: inner, n: null, c: 0x2a1a8a, nofog: true }); }
     for (const c of this.cubes) if (c.t >= this.sp(RAIN.warn)) dyn.push(...xf(boxFaces(-RAIN.s, -RAIN.s, -RAIN.s, RAIN.s, RAIN.s, RAIN.s, c.col, 0xffffff), c.x, c.y, 20, c.a, c.a * 0.6));
-    for (const sx of [-1, 1]) dyn.push(...xf(pyramidFaces(0, 0, 0, 16, 16, 30, this.zap && this.zap.on ? 0xffffff : C.crystal[t % 40 < 20 ? 0 : 1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03), ...xf(pyramidFaces(0, 0, 0, 16, 16, -18, C.crystal[1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03));
+    if (!this.noLedges) for (const sx of [-1, 1]) dyn.push(...xf(pyramidFaces(0, 0, 0, 16, 16, 30, this.zap && this.zap.on ? 0xffffff : C.crystal[t % 40 < 20 ? 0 : 1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03), ...xf(pyramidFaces(0, 0, 0, 16, 16, -18, C.crystal[1]), sx * 238, -96 + Math.sin(t * 0.05 + sx) * 3, 40, t * 0.03));
     if (this.cart) {                                                           // the giant cartridge: a gold shell, a purple label with a crowned K, ridges, contacts
       const K = this.cart, f = [], bad = K.bad && this.t % 9 < 7, sh = bad ? [0x1a1020, 0x2a1838] : [C.gold, 0xffe070], lab = bad ? [0xff2aa8, 0x20e8ff] : [0xa070f0, 0xb888ff];   // (CARTRIDGE CRUSH: black and corrupted, flickering)
       f.push(...boxFaces(-46, -56, -10, 46, 50, 10, sh[0], sh[1]), ...boxFaces(-40, 50, -8, 40, 60, 8, bad ? 0x0a0610 : C.goldD, bad ? 0x0a0610 : C.goldD));
@@ -1015,7 +1280,7 @@ export class PolyBossStage extends BossArena {
       if (this.zap.on) { g.lineStyle(2, 0xffffff, 1); let px = sx, py = -96; for (let i = 1; i <= 8; i++) { const nx = sx + (p.x1 < 0 ? 1 : -1) * (i / 8) * 150, ny = p.y - 14 + (Math.random() - 0.5) * 22; g.lineBetween(px, py, nx, ny); px = nx; py = ny; } g.lineStyle(6, C.crystal[0], 0.35); g.lineBetween(sx, -96, sx + (p.x1 < 0 ? 150 : -150), p.y - 14); g.lineStyle(0); }
       else { g.fillStyle(C.crystal[0], 0.2 + 0.4 * this.zap.k); g.fillCircle(sx, -96, 8 + 14 * this.zap.k); }
     }
-    this.drawLegendFx(g);
+    this.drawLegendFx(g); this.drawFinale(g);
     if (this.glitch) for (const T of this.glitch.tiles) {                      // GLITCH TILES: missing-texture checker, then burning
       const x1 = -250 + T.i * 50, on = T.t >= GLITCH.warn;
       for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) { g.fillStyle((i + j + (on ? Math.floor(t / 4) : 0)) % 2 ? 0xff2aa8 : 0x0a0010, on ? 0.95 : (t % 10 < 5 ? 0.85 : 0.45)); g.fillRect(x1 + i * 8.33, -9 + j * 5, 8.4, 5); }
@@ -1065,9 +1330,9 @@ export class PolyBossStage extends BossArena {
       if (on) { g.fillStyle(0xff2aa8, 0.2); g.fillRect(x1, -60, 50, 60); }
     }
     if (this.cannon) {
-      const C2 = this.cannon;
-      if (C2.on) { g.fillStyle(LEG.glow[0], 0.45); g.fillRect(-310, C2.y - 12, 620, 24); g.fillStyle(0xffffff, 0.95); g.fillRect(-310, C2.y - 4 + Math.sin(t) * 1.5, 620, 8); g.fillStyle(LEG.glow[1], 0.6); g.fillRect(-310, C2.y - 7, 620, 2); g.fillRect(-310, C2.y + 5, 620, 2); }
-      else { g.lineStyle(1, LEG.glow[0], t % 6 < 3 ? 0.9 : 0.35); g.lineBetween(-300, C2.y, 300, C2.y); g.lineStyle(0); g.fillStyle(LEG.glow[0], 0.3 + 0.5 * C2.k); g.fillCircle(C2.side * 300 - C2.side * 50, C2.y, 4 + 12 * C2.k); }
+      const B2 = this.cannon;
+      if (B2.on) { g.fillStyle(LEG.glow[0], 0.45); g.fillRect(-310, B2.y - 12, 620, 24); g.fillStyle(0xffffff, 0.95); g.fillRect(-310, B2.y - 4 + Math.sin(t) * 1.5, 620, 8); g.fillStyle(LEG.glow[1], 0.6); g.fillRect(-310, B2.y - 7, 620, 2); g.fillRect(-310, B2.y + 5, 620, 2); }
+      else { g.lineStyle(1, LEG.glow[0], t % 6 < 3 ? 0.9 : 0.35); g.lineBetween(-300, B2.y, 300, B2.y); g.lineStyle(0); g.fillStyle(LEG.glow[0], 0.3 + 0.5 * B2.k); g.fillCircle(B2.side * 300 - B2.side * 50, B2.y, 4 + 12 * B2.k); }
     }
   }
   /**
@@ -1104,6 +1369,26 @@ export class PolyBossStage extends BossArena {
       g.fillStyle(0xff2a4a, a); g.fillCircle(x + 14, y + 28, 8 * pop); g.fillStyle(0xffffff, a); g.fillRect(x + 13, y + 22, 2, 8); g.fillRect(x + 13, y + 32, 2, 2);
       if (pop >= 1) this.errT[w.i].setText(w.text).setPosition(x + 26, y + 24).setColor('#1a1030').setVisible(true).setAlpha(a);
     }
+  }
+  /** THE FINALE's pieces: her karambit (flying, or wedged in his eye), the cracks of light spreading out of him, the impact frame and the white-out. */
+  drawFinale(g) {
+    const H = this.head;
+    if (this.cracks && this.crackK > 0 && !this.gone) {
+      const ex = H.x - 17 * (H.k || 1), ey = H.y - 4 * (H.k || 1), n = Math.max(1, Math.ceil(this.crackK * 5));
+      for (const pts of this.cracks) for (const [w, c, a] of [[6, 0xffd040, 0.35], [2, 0xffffff, 1]]) { g.lineStyle(w, c, a); for (let i = 1; i <= n; i++) g.lineBetween(ex + pts[i - 1].x * (1 + this.crackK), ey + pts[i - 1].y * (1 + this.crackK), ex + pts[i].x * (1 + this.crackK), ey + pts[i].y * (1 + this.crackK)); }
+      g.lineStyle(0);
+      if (this.crackK > 0.6) { g.fillStyle(0xffffff, (this.crackK - 0.6) * 1.5); g.fillCircle(H.x, H.y, 50 * this.crackK); }
+    }
+    if (this.knife && !this.gone) {                                                       // her crystal karambit: a curved blade, a dark grip, a ring
+      const K = this.knife, c = Math.cos(K.a), sn = Math.sin(K.a), P = (x, y) => ({ x: K.x + x * c - y * sn, y: K.y + x * sn + y * c });
+      g.fillStyle(0x10101a, 1); g.fillPoints([P(-2, -4), P(18, -9), P(30, -2), P(17, -2), P(-2, 4)], true);
+      g.fillStyle(0x20e8ff, 1); g.fillPoints([P(0, -2), P(18, -7), P(27, -2), P(16, -1), P(0, 2)], true);
+      g.fillStyle(0xffffff, 0.9); g.fillPoints([P(3, -2), P(18, -6), P(22, -4)], true);
+      g.fillStyle(0x3a1070, 1); g.fillRect(K.x - 3 * c - 10 * c, K.y - 10 * sn - 3, 12, 6); g.lineStyle(2, 0xffd040, 1); g.strokeCircle(P(-14, 0).x, P(-14, 0).y, 4); g.lineStyle(0);
+    }
+    const w = this.whiteG; if (!w) return; w.clear();
+    if (this.impactT > 0) { this.impactT--; w.fillStyle(this.impactT > 4 ? 0x000000 : 0xffffff, this.impactT > 4 ? 0.85 : 0.75); w.fillRect(0, 0, VIEW_W, 360); }
+    if (this.whiteK > 0) { this.whiteK = Math.min(0.92, this.whiteK + 0.025); w.fillStyle(0xffffff, this.whiteK); w.fillRect(0, 0, VIEW_W, 360); }
   }
   /** LEGENDARY's health bar: gold sheen sweeping along it, a pink/cyan fringe, a glitch block now and then. */
   barStyle(g, x, y, w, h, k) {
