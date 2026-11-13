@@ -209,6 +209,8 @@ export class MachineBossStage extends BossArena {
   /** Counts its attacks (every few, it hangs). */
   tally() { this.count++; }
   start_click() { this.tally(); } start_paint() { this.tally(); } start_mines() { this.tally(); } start_calc() { this.tally(); } start_notes() { this.tally(); } start_music() { this.tally(); } start_bin() { this.tally(); } start_sludge() { this.tally(); } start_cds() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
+  /** The death card's form: the music tray out, blue-screened or not. */
+  cardForm() { return this.low ? 'low' : super.cardForm(); }
   rageLine() { return 'FATAL EXCEPTION!'; }
   /** Half health: the screen goes BLUE - a sad face, the error text - and the whole room flickers blue. */
   onRage(match) { this.blue = 150; sfx('glitch', 1, 0.6); sfx('ding', 1, 0.5); match.shake(8, 20); }

@@ -268,6 +268,11 @@ export class BossArena {
     return line;
   }
 
+  /** Which form the boss is in, for its death card's quote (bosses.js `card.quotes`): 'base', or 'rage' once ENRAGED. Arenas with more forms override it. */
+  cardForm() { return this.boss && this.boss.phase === 2 ? 'rage' : 'base'; }
+  /** What the death card needs when you lose: the boss's form and how far through the fight you got (0..1 of its health gone). */
+  cardInfo() { const B = this.boss; return { form: this.cardForm(), progress: B ? Phaser.Math.Clamp(1 - B.hp / B.max, 0, 1) : 0 }; }
+
   /** Health gone: the death begins, the boss stops attacking and its hazards stop, and the match ends in a win. */
   startDeath(match) {
     const B = this.boss; B.dying = 1; B.atk = null; this.hazardsOn = false;

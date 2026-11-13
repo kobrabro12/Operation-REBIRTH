@@ -258,6 +258,8 @@ export class PolyBossStage extends BossArena {
     a.bat = this.hands[a.side < 0 ? 0 : 1]; a.toss = this.hands[a.side < 0 ? 1 : 0]; a.bat.mode = 'bat'; a.bat.resting = false; a.toss.resting = false;
     a.hx = this.head.x; sfx('ding', 0.5, 0.7);
   }
+  /** The death card's form: LEGENDARY, BATTER UP, enraged or not. */
+  cardForm() { return this.legend ? 'legend' : this.low ? 'low' : super.cardForm(); }
   rageLine() { return this.legend ? 'LEGENDS NEVER DIE!' : 'SYSTEM OVERCLOCKED!'; }
   /** ENRAGED. LEGENDARY: a mini cutscene (LET ME SETTLE THIS) when there's a player watching, else the layout just changes. */
   onRage(match) {

@@ -101,7 +101,7 @@ export class MatchScene extends Phaser.Scene {
   create(data={}) {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
     this.sys.settings.data={};
-    this.bossFight = data.boss || null; this.bossOutcome = null;   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
+    this.bossFight = data.boss || null; this.bossOutcome = null; this.bossShotTaken = false; this.bossCard = null; if (this.bossFight && this.textures.exists('boss_card_shot')) this.textures.remove('boss_card_shot');   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
     this.shopPreview=data.shopPreview||null;
     if(this.shopPreview)this.sys.settings.data={}; // consume preview data; later ordinary matches use player settings
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
@@ -550,7 +550,7 @@ export class MatchScene extends Phaser.Scene {
     }
     f.ko();
     if (this.mode !== 'time' && !this.isTraining && this.bossFight) {   // a boss fight is lost when every player is out
-      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.endMatch('DEFEATED...'); this.bossTauntLine = this.stage.bossTaunt ? this.stage.bossTaunt(this) : null; }
+      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.bossCard = this.stage.cardInfo ? this.stage.cardInfo() : null; this.snapBoss(); this.endMatch('DEFEATED...'); this.bossTauntLine = this.stage.bossTaunt ? this.stage.bossTaunt(this) : null; }
     } else if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
       if (left.length <= 1 && !this.over) { this.endMatch('GAME!'); this.extras.onFinalKO(); }
@@ -571,11 +571,30 @@ export class MatchScene extends Phaser.Scene {
   bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.over = 210; }
 
   /** A boss fight is over: pays out a win (bosses.js) and goes to the reward / defeat screen (BossRewardScene). */
+  /**
+   * The picture on a boss's death card: a snapshot of the screen around the boss, taken the frame you lose (or earlier,
+   * when an arena calls it - the Colossus does at NOW I'VE GOTCHA), without the UI. Saved as the texture
+   * 'boss_card_shot' for BossReward. Once per fight.
+   */
+  snapBoss() {
+    const st = this.stage, r = this.game.renderer;
+    if (this.bossShotTaken || !st || !st.core || !r || !r.snapshotArea || this.demo) return;
+    this.bossShotTaken = true;
+    const c = st.core(), cam = this.worldCam, k = r.width / VIEW_W, half = Math.min(170, ((st.bodyH || 140) * 0.75 + 40)) * cam.zoom;
+    const sx = (c.x - cam.worldView.x) * cam.zoom, sy = (c.y - cam.worldView.y) * cam.zoom;
+    const s = Math.round(Math.min(half * 2, VIEW_H - 8) * k), x = Math.round(Phaser.Math.Clamp(sx * k - s / 2, 0, r.width - s)), y = Math.round(Phaser.Math.Clamp(sy * k - s / 2, 0, r.height - s));
+    this.uiCam.setVisible(false);
+    r.snapshotArea(x, y, s, s, (img) => {
+      if (this.uiCam) this.uiCam.setVisible(true);
+      const tx = this.textures; if (tx.exists('boss_card_shot')) tx.remove('boss_card_shot');
+      tx.addImage('boss_card_shot', img);
+    });
+  }
   toBossReward() {
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
-      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, rush: F.rush || null, lives: f.stocks }, rewards });
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks }, rewards });
   }
 
   toResults() {

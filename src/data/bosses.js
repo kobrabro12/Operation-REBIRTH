@@ -25,40 +25,58 @@ export const BOSSES = [
   { id: 'colossus', name: 'THE CLOCKWORK COLOSSUS', short: 'THE COLOSSUS', title: 'THE CLOCKWORK GUARDIAN OF THE FOUNDRY', stage: 'brass-foundry', arena: 'BRASS FOUNDRY', hp: 300, coins: 120, color: 0xe0a040, trophy: 'brass-heart',
     blurb: 'A STEAM-DRIVEN GIANT OF BRASS AND RIVETS,\nBUILT TO GUARD THE FOUNDRY. ITS FURNACE\nHEART OVERHEATS - THAT IS WHEN IT BREAKS.',
     taunts: ['TICK. TOCK. YOUR TIME IS UP.', 'MAINTENANCE COMPLETE. PEST REMOVED.', 'YOU WERE NEVER BUILT FOR THIS.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'OVERDRIVE'], [0.75, 'CORE BROKEN']], quotes: { base: 'TICK... TOCK. I WAS WOUND BEFORE YOUR GRANDFATHER WAS BORN. I WILL BE TICKING LONG AFTER YOU.', rage: 'PRESSURE RISING. TEMPERATURE RISING. YOUR CHANCES? FALLING.', broken: 'CRACKED, LEAKING, HALF MY GEARS ON THE FLOOR... AND STILL I OUTLASTED YOU.', gotcha: 'NOW I\'VE GOTCHA. NEXT TIME, MIND THE CLOCK.' } },
     hazards: 'PIPE BURSTS / CRANE DROPS' },
   { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', title: 'RULER OF THE 64-BIT SKY', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
     blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD. NEAR THE END, HE BATS IT AT YOU.',
     taunts: ['GAME OVER! INSERT ANOTHER CHALLENGER!', 'NOT EVEN ONE FRAME OF RESISTANCE.', 'TOO FEW POLYGONS. TOO MUCH CONFIDENCE.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'OVERCLOCKED'], [0.7, 'BATTER UP']], quotes: { base: 'EVERY KING NEEDS A SUBJECT TO STEP ON. THANK YOU FOR VOLUNTEERING.', rage: 'MY POLYGONS ARE SHARP. MY FRAMERATE IS SHARPER. YOU? NEITHER.', low: 'STRIKE THREE. YOU\'RE OUT. THE CROWD GOES... NOWHERE. IT IS JUST ME.', legend: 'A LEGEND NEEDS A STORY. YOURS ENDS HERE - IN 64 GLORIOUS BITS.' } },
     hazards: 'PYLON ZAPS / QUAKE RINGS' },
   { id: 'demon', name: 'KARNAX, THE MAD BLADE', short: 'KARNAX', title: 'THE MAD BLADE', stage: 'burning-keep', arena: 'THE BURNING KEEP', hp: 430, coins: 260, color: 0xff3a2a, trophy: 'mad-blade',
     blurb: 'A HORNED DEMON WITH A GRIN TOO WIDE AND\nA SWORD TOO BIG, LAUGHING AS THE KEEP\nBURNS. AT HALF HEALTH HE GOES MAD.',
     taunts: ['HA! HA HA! IS THAT ALL?!', 'COME BACK! I WAS JUST STARTING TO HAVE FUN!', 'YOUR SCREAMS ARE MUSIC, LITTLE ONE.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'MAD']], quotes: { base: 'HA! I HAVEN\'T EVEN DRAWN BLOOD YET - AND YOU\'RE ALREADY ON THE FLOOR!', rage: 'THE MADNESS SANG AND YOU DANCED SO BADLY. HA! HA HA HA!' } },
     hazards: 'CATAPULT STONES / BRAZIER FLARES' },
   { id: 'knight', name: 'THORNWARD, THE ROOTBOUND KNIGHT', short: 'THORNWARD', title: 'GUARDIAN OF THE ELDER GROVE', stage: 'elder-grove', arena: 'THE ELDER GROVE', hp: 480, coins: 340, color: 0x6ae060, trophy: 'verdant-helm',
     blurb: 'A HOLLOW KNIGHT BOUND BY ROOTS. HIS ARMOUR\nCAN\'T BE HURT - HIT HIS SOUL WHEN IT COMES\nOUT TO TAUNT YOU. BELOW 25% HE GOES BERSERK.',
     taunts: ['NYAH! TOO SLOW! TOO SLOW!', 'THE ROOTS WILL KEEP YOU NOW.', 'HEHEHE - BETTER LUCK NEXT SEASON!'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.75, 'BERSERK']], quotes: { base: 'NYAH! YOU HIT THE ARMOUR AGAIN, DIDN\'T YOU? EVERYBODY HITS THE ARMOUR.', rage: 'THE HELM IS OPEN AND STILL YOU COULDN\'T CATCH ME. THE GROVE KEEPS YOU NOW.' } },
     hazards: 'THORN ROOTS / SPORE BURSTS' },
   { id: 'machine', name: 'BEIGE.EXE, THE OLD MACHINE', short: 'BEIGE.EXE', title: 'THE COMPUTER THAT WILL NOT SHUT DOWN', stage: 'desktop', arena: 'THE DESKTOP', hp: 640, coins: 420, color: 0x30c8b0, trophy: 'golden-floppy',
     blurb: 'A SNOBBY 90S COMPUTER THAT NEVER SHUT\nDOWN. MIND ITS PAINT SLUDGE AND ITS CDS.\nHIT ITS SCREEN - HARDEST WHEN IT FREEZES.',
     taunts: ['PLAYER HAS PERFORMED AN ILLEGAL OPERATION AND WILL BE SHUT DOWN.', 'ARE YOU SURE YOU WANT TO QUIT?  ...TOO LATE.', 'PRESS ANY KEY TO CONTINUE LOSING.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'FATAL EXCEPTION'], [0.65, 'MUSIC TRAY']], quotes: { base: 'YOUR PROGRAM HAS STOPPED RESPONDING. HOW... PRIMITIVE.', rage: 'A BLUE SCREEN IS A BADGE OF HONOUR. YOU HAVE NO SCREEN AT ALL.', low: 'I PLAYED YOU OUT WITH MY FAVOURITE TRACK. IT WAS ON SHUFFLE. YOU WERE NOT.' } },
     hazards: 'POP-UPS / DIAL-UP' },
   { id: 'hum', name: 'THE HUM, OCCUPANT OF LEVEL 0', short: 'THE HUM', title: 'IT LIVES IN THE BUZZING OF THE LIGHTS', stage: 'level-zero', arena: 'LEVEL 0', hp: 340, coins: 500, color: 0xe8d870, trophy: 'last-light',
     blurb: 'SOMETHING TALL LIVES IN THE YELLOW ROOMS.\nAFTER IT SURFACES, IT IS STUCK. HURT IT\nENOUGH AND IT GETS HUNGRY.',
     taunts: ['...', 'YOU NOCLIPPED INTO THE WRONG ROOM.', 'STAY. THE LIGHTS ARE ALWAYS ON HERE.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'LEVEL !'], [0.7, 'THE HUNGER']], quotes: { base: '...bzzzzz... ...stay... ...the lights are always on... ...bzzzz...', rage: 'THE LIGHTS WENT RED. YOU STAYED ANYWAY. EVERYONE STAYS.', feral: 'HUNGRY. HUNGRY. HUNGRY. ...FULL.' } },
     hazards: 'FLICKER / BURST PANELS' },
   { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 740, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
     blurb: 'A NINE-YEAR-OLD ART PRODIGY WITH A BUCKET\nON HIS HEAD. EVERY FEW ATTACKS HE REPAINTS\nHIMSELF - AND THE WORLD - IN A NEW STYLE.',
     taunts: ['I\'M PUTTING YOU ON THE FRIDGE!', 'SIGNED: SMUDGE. AGE NINE. MASTERPIECE.', 'NEEDS MORE COLOUR. AND MORE WINNING.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'MASTERPIECE MODE'], [0.7, 'ACTION PAINTING']], quotes: { sketch: 'YOU WERE JUST A ROUGH SKETCH ANYWAY. I\'LL ERASE YOU LATER.', pop: 'KA-POW! THAT\'S YOU! THAT SOUND WAS YOU LOSING!', cubist: 'I PAINTED YOU FROM EVERY SIDE AT ONCE. ALL OF THEM LOST.', starry: 'OOOH, PRETTY! YOU LOOK SO NICE ALL SWIRLY AND DEFEATED.', splatter: 'SPLAT! SPLAT! SPLAAAT! ...MOOOM, I MADE A MESS. IT\'S THEM.', artoff: 'NO FAIR! YOU\'RE GROWN-UP! ...WAIT, I WON?! THE REAL ARTIST IS ME!' } },
     tip: 'HIT HIM WHILE HE REPAINTS HIMSELF - WET PAINT TAKES MORE DAMAGE.',
     hazards: 'DRIPS / SPILLS' },
   { id: 'jackpot', name: 'MAX JACKPOT, YOUR HOST', short: 'MAX JACKPOT', title: 'THE HOST WITH THE MOST', stage: 'prime-time', arena: 'PRIME TIME', hp: 780, coins: 620, color: 0xffc83a, trophy: 'golden-mic',
     blurb: 'THE SMARMIEST HOST ON TELEVISION. EVERY\nFEW ATTACKS HE SPINS THE BIG WHEEL - AND\nIT PICKS THE NEXT ROUND. PRAY FOR BANKRUPT.',
     taunts: ['THANKS FOR PLAYING! YOU WIN... NOTHING!', 'TELL THEM WHAT THEY\'VE LOST, FOLKS!', 'SEE YOU AFTER THE BREAK... OH WAIT. YOU WON\'T.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'SWEEPS WEEK'], [0.7, 'LIGHTNING ROUND']], quotes: { base: 'AND THAT\'S A WRAP! LET\'S HEAR IT FOR OUR CONTESTANT - CUE THE SAD TROMBONE!', gold: 'SWEEPS WEEK, BABY! RATINGS THROUGH THE ROOF - AND YOU THROUGH THE FLOOR!', low: 'LIGHTNING ROUND\'S OVER, CHAMP. THE ANSWER WAS: NOT YOU.' } },
     tip: 'WHEN THE WHEEL LANDS ON BANKRUPT, GO FOR HIS BALD HEAD - IT TAKES DOUBLE.',
     hazards: 'STAGE LAMPS / CONFETTI' },
   { id: 'maestro', name: 'MAESTRO FORTISSIMO', short: 'MAESTRO', title: 'HE CONDUCTS THE STORM', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 540, coins: 700, color: 0xd03050, trophy: 'golden-baton',
     blurb: 'A WILD-HAIRED CONDUCTOR WHO FIGHTS IN TIME.\nEVERY ATTACK LANDS ON THE BEAT - READ IT\nOFF HIS SCORE. HIT HIM ON THE BEAT: x1.5.',
     taunts: ['YOU WERE FLAT. FROM START TO FINISH.', 'NEXT TIME, COUNT TO FOUR.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'FORTISSIMO'], [0.7, 'THE FINALE']], quotes: { base: 'THE MUSIC OF THE NIGHT PLAYS ON. YOU, MY DEAR, DO NOT.', rage: 'THE ROOF IS GONE, THE STORM IS MINE, AND THE STAGE IS EMPTY - BUT FOR ME.', low: 'A FINALE NEEDS A FALLEN HERO. HOW KIND OF YOU TO VOLUNTEER.' } },
     tip: 'WATCH THE SCORE UNDER HIS HEALTH BAR - WHEN A NOTE HITS THE GOLD LINE, SO DOES HE.',
     hazards: 'SANDBAGS / TRAPDOOR SMOKE' },
 ];

@@ -327,6 +327,8 @@ export class SmudgeBossStage extends BossArena {
   styleMoves(st) { return { sketch: ['scribble', 'eraser', 'doodles'], pop: ['kapow', 'dots', 'bubble'], cubist: ['shatter', 'spikes', 'twoface'], starry: ['swirl', 'stars', 'wave'], splatter: ['action', 'bucket'] }[st] || ['sweep']; }
   /** Counts his attacks (so RESTYLE comes round). */
   tally() { this.count++; }
+  /** The death card's form: the ART-OFF, or the art style he was in. */
+  cardForm() { return this.rival ? 'artoff' : this.low ? 'splatter' : this.style === 'blank' ? 'sketch' : this.style; }
   rageLine() { return 'MASTERPIECE MODE!'; }
   /** MASTERPIECE MODE (half health): he hops up and down, shouting. */
   onRage(match) { this.talk(SAY.rage, 90); sfx('laugh', 0.8, 1.5); this.e.hop = 24; match.shake(6, 20); }
