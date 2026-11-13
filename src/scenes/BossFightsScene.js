@@ -20,8 +20,9 @@ import { settings } from '../settings.js';
 
 const ACC = 0xff5a3a;                                            // the section colour: boss red
 // the six boss cards: where they are and how big; the arena picture inside each
-const CARD = { x: 18, y: 52, w: 96, h: 150, gap: 6, pic: { x: 6, y: 22, w: 84, h: 70 } };
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+// (laid out from how many bosses there are: they always fill the row between x 14 and 626)
+const CARD = (() => { const n = BOSSES.length, gap = n > 6 ? 4 : 6, w = Math.floor((612 - (n - 1) * gap) / n); return { x: 14, y: 52, w, h: 150, gap, pic: { x: 4, y: 22, w: w - 8, h: Math.min(70, w - 8) } }; })();
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 // remembered between visits (this session): the last boss, difficulty, fighter and costume
 const last = { boss: 0, tier: 0, fighter: null, skin: 0 };
 
@@ -47,8 +48,9 @@ export class BossFightsScene extends Phaser.Scene {
     BOSSES.forEach((B, i) => {
       const x = CARD.x + i * (CARD.w + CARD.gap), y = CARD.y;
       T('n' + i, x + 8, y + 6, ROMAN[i], 9, hex(B.color));
-      T('name' + i, x + 8, y + 98, B.short, B.short.length > 10 ? 6 : 7, '#ffffff', { wordWrap: { width: CARD.w - 12 } });
-      T('arena' + i, x + 8, y + 112, B.arena, 5, '#c9c4dc', { wordWrap: { width: CARD.w - 12 } });
+      const small = CARD.w < 80;
+      T('name' + i, x + 5, y + 98, B.short, B.short.length > 10 || small ? 5 : 7, '#ffffff', { wordWrap: { width: CARD.w - 8 } });
+      T('arena' + i, x + 5, y + 114, B.arena, small ? 4 : 5, '#c9c4dc', { wordWrap: { width: CARD.w - 8 } });
       T('lock' + i, x + CARD.w / 2, y + 56, '', 6, '#ffffff', { align: 'center', wordWrap: { width: CARD.w - 8 } }).setOrigin(0.5);
     });
     T('blurb', 30, 214, '', 6, '#e8e4ff');
@@ -135,7 +137,7 @@ export class BossFightsScene extends Phaser.Scene {
     this.draw();
   }
 
-  /** The panels: four boss cards (arena picture, clear pips per difficulty), the details, the difficulty chips. */
+  /** The panels: the boss cards (arena picture, clear pips per difficulty), the details, the difficulty chips. */
   draw() {
     const g = this.g, p = this.pics; g.clear(); p.clear();
     if (this.step === 'boss') {
@@ -146,7 +148,8 @@ export class BossFightsScene extends Phaser.Scene {
         if (st && st.preview) st.preview(p, x + P.x, y + P.y, P.w, P.h);
         if (!o) { p.fillStyle(0x07060e, 0.82); p.fillRect(x + P.x, y + P.y, P.w, P.h); }
         p.lineStyle(2, on ? 0xffffff : 0x2c2650, 1); p.strokeRect(x + P.x, y + P.y, P.w, P.h); p.lineStyle(0);
-        for (let k = 0; k < 3; k++) { const w = bossWins(B.id, k) > 0; slant(p, x + 8 + k * 27, y + 132, 23, 8, w ? TIERS[k].color : 0x2a2436, 1, 4); }
+        const pw = Math.floor((CARD.w - 14) / 3);
+        for (let k = 0; k < 3; k++) { const w = bossWins(B.id, k) > 0; slant(p, x + 6 + k * (pw + 1), y + 136, pw - 3, 7, w ? TIERS[k].color : 0x2a2436, 1, 3); }
         if (on) { const c = x + CARD.w / 2 + Math.sin(this.t * 0.2) * 2; p.fillStyle(0xffffff, 1); p.fillTriangle(c - 6, y - 8, c + 6, y - 8, c, y - 2); }
       });
       panel(g, 18, 208, 300, 116, BOSSES[this.sel].color);

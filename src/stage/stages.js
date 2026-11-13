@@ -25,6 +25,7 @@ import { DemonBossStage, drawBurningKeepPreview } from './demonBossStage.js';
 import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
 import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
 import { HumBossStage, drawLevelZeroPreview } from './humBossStage.js';
+import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -163,6 +164,9 @@ export const STAGES = [
   { id: 'level-zero', music: 'bgm_boss_hum', name: 'LEVEL 0', available: true, bossArena: 'hum', make: (scene) => new HumBossStage(scene),
     blurb: ['Endless yellow rooms and buzzing lights.', 'Something tall watches from the haze.'],
     hazard: 'FLICKER: THE LIGHTS DIE FOR A FEW SECONDS.\nBURST PANEL: A CEILING LIGHT RAINS SPARKS.', preview: drawLevelZeroPreview },
+  { id: 'blank-canvas', music: 'bgm_boss_smudge', name: 'THE BLANK CANVAS', available: true, bossArena: 'smudge', make: (scene) => new SmudgeBossStage(scene),
+    blurb: ['A stretched canvas over an endless pattern,', 'a paint palette and a sketchbook for ledges.'],
+    hazard: 'DRIP: A FAT DROP OF PAINT FALLS ON THE MARK.\nSPILL: PAINT FLOODS PART OF THE FLOOR - IT SLOWS YOU.', preview: drawBlankCanvasPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

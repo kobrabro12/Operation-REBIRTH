@@ -17,6 +17,10 @@
             drums and timpani, a deep choir under a breathy wooden-flute lead; a hushed middle with just plucks and wind,
             then the drums come crashing back with the choir up high.
 
+  smudge    "Wet Paint" - SMUDGE, THE LITTLE MASTER (a kid art prodigy): 144 BPM in F major, gone a bit wrong. A bouncy
+            oom-pah of plucked bass and stabs, a toy-piano glockenspiel tune that keeps changing key on a whim (like he
+            changes style), a cheeky square-wave counter-line, a kazoo-ish brass answer; the drive layer underneath.
+
 Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight machine hum]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
@@ -283,6 +287,37 @@ def hum():
     save(R, 'hum', L)
 
 
+def glock(midi, dur, vel=1.0):
+    """A toy-piano / glockenspiel note: a bright sine with an inharmonic ping, decaying fast."""
+    return (sinew(midi, dur, 0.8 * vel, 0.002, 0.05) + sinew(midi + 24.3, dur, 0.18 * vel, 0.001, 0.02)) * np.exp(-np.arange(secs(dur)) / SR * 4)
+
+
+def smudge():
+    b = 60 / 144; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    # F major, then it lurches to A-flat and to D major on a whim (bars 8-11, 16-19), back again
+    keys = [0] * 8 + [3] * 4 + [0] * 4 + [-3] * 4 + [0] * 4
+    prog = [(41, [65, 69, 72]), (46, [65, 70, 74]), (36, [64, 67, 72]), (41, [65, 69, 72]), (38, [62, 65, 69]), (46, [65, 70, 74]), (36, [64, 67, 70]), (41, [65, 69, 72])]
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; k = keys[bar]; t0 = bar * 4 * b
+        for i in range(4):                                                   # oom-pah: plucked bass on 1 and 3, chord stabs on 2 and 4
+            if i % 2 == 0: add(out, pluck(root - 12 + k + (7 if i == 2 else 0), b * 0.9, 1.0), t0 + i * b)
+            else: add(out, sum(pluck(m + k, b * 0.4, 0.45) for m in ch) / 2, t0 + i * b)
+        if bar % 4 == 3: add(out, ohit([m + k + 12 for m in ch], 0.6), t0 + 3.5 * b)
+    tune = [(0, 77, .5), (.5, 81, .5), (1, 84, 1), (2, 81, .5), (2.5, 79, .5), (3, 77, 1), (4, 76, .5), (4.5, 77, .5), (5, 79, 1), (6, 84, 1.5), (7.5, 82, .5),
+            (8, 81, 1), (9, 79, .5), (9.5, 77, .5), (10, 74, 1), (11, 76, 1), (12, 77, 3), (15, 72, 1)]
+    for rep in range(3):
+        for beat, m, d in tune:
+            for half in (0, 16):
+                bar = rep * 8 + int((half + beat) // 4); k = keys[min(bar, bars - 1)]
+                add(out, glock(m + k + 12, d * b, 0.5), rep * 32 * b + (half + beat) * b)
+        if rep:                                                              # a cheeky square-wave counter-line, then a brass answer
+            for beat, m, d in tune[::2]: add(out, sq(m - 12 + keys[rep * 8], d * b * 0.8, 0.18, 0.5, vib=0.2), rep * 32 * b + (beat + 0.5) * b)
+            for st in (6, 14, 22, 30): add(out, brass(72 + keys[rep * 8] - (st % 3), 0.5 * b, 0.4, 1.4), rep * 32 * b + st * b)
+    drums(out, b, 24, 'k...s...k.k.s...|h.h.h.h.h.h.h.hh', 0.8)
+    R = reverb(out, 1.4, 4, 0.22); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.75)[:len(R)]
+    save(R, 'smudge', bars * 4 * b)
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge']
     for w in which: globals()[w]()

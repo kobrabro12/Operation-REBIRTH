@@ -382,6 +382,11 @@ export class TrophyHallScene extends Phaser.Scene {
       T.push(...boxFaces(-6, -40, -4, 6, -2, 4, 0xc8c0a0, 0xe0d8b8), ...boxFaces(-5, -42, -3, 5, -40, 3, 0x8a8470, 0x8a8470), ...boxFaces(-5, -2, -3, 5, 0, 3, 0x8a8470, 0x8a8470));
       T.push(...prismFaces(0, -39, -3, 0, 3.2, 8, 0xfffbe0, 0xffffff).map((f) => ({ ...f, nofog: true })));
       T.push(...blobFaces(0, -20, -5, 4, 16, 2, [0xfff6b0], 2, null, 0.05).map((f) => ({ ...f, nofog: true })));
+    } else if (model === 'brush') {                                   // THE GOLDEN BRUSH: a gold paintbrush standing in a gold paint bucket, paint running down its side
+      T.push(...prismFaces(0, -16, 0, 0, 9, 10, 0xd89818, 0xf0b020), ...prismFaces(0, -17, -16, 0, 10, 10, 0xffd040, 0xffe070), ...prismFaces(0, -16.6, -16.2, 0, 8, 10, 0xff2a6a, 0xff5a8a));
+      T.push(...xyz(prismFaces(0, -40, -14, 0, 1.4, 6, 0xc8962e, 0xf0c860), 0, 0, 0, 0.18), ...xyz(prismFaces(0, -46, -40, 0, 2.4, 8, 0xd8dce4, 0xffffff), 0, 0, 0, 0.18));
+      T.push(...xyz(pyramidFaces(0, -46, 0, 5, 5, 13, 0xff2a6a), 0, 0, 0, 0.18));
+      for (let i = 0; i < 3; i++) T.push(...boxFaces(-6 + i * 5, -16, -9.4, -4 + i * 5, -16 + 5 + i * 3, -9, 0xff2a6a));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));

@@ -35,7 +35,7 @@ const INTRO = { wide: 90, enter: 220, freeze: 170, zoom: 1.2 };
 /** A point along the way from a to b (k = 0..1). */
 const lerp = (a, b, k) => a + (b - a) * k;
 /** A boss's number in the roman order of BOSS FIGHTS (I, II, III, IV). */
-const BOSS_ORDER = (id) => ['I', 'II', 'III', 'IV', 'V', 'VI'][Math.max(0, ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum'].indexOf(id))];
+const BOSS_ORDER = (id) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][Math.max(0, ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge', 'jackpot', 'maestro'].indexOf(id))];
 
 /** The base of every boss arena: health, being hit, picking attacks, the health bar and the death. */
 export class BossArena {

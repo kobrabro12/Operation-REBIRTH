@@ -102,6 +102,7 @@ export const TROPHY_GOALS = [
   { id: 'verdant-helm', name: 'THE VERDANT HELM', info: 'BEAT THORNWARD ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'knight') >= 3), coins: 1250 },
   { id: 'golden-floppy', name: 'THE GOLDEN FLOPPY', info: 'BEAT BEIGE.EXE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'machine') >= 3), coins: 1500 },
   { id: 'last-light', name: 'THE LAST LIGHT', info: 'BEAT THE HUM ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'hum') >= 3), coins: 1750 },
+  { id: 'golden-brush', name: 'THE GOLDEN BRUSH', info: 'BEAT SMUDGE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'smudge') >= 3), coins: 1900 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

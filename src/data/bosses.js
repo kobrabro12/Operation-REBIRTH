@@ -1,8 +1,8 @@
-// BOSS FIGHTS (Trinkets > BOSS FIGHTS, src/scenes/BossFightsScene.js): six bosses, each in its own arena with
+// BOSS FIGHTS (Trinkets > BOSS FIGHTS, src/scenes/BossFightsScene.js): the bosses, each in its own arena with
 // its own hazards, each harder than the last (all open from the start - pick any), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
-// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js.
+// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js / smudgeBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -45,6 +45,11 @@ export const BOSSES = [
     blurb: 'SOMETHING TALL LIVES IN THE YELLOW ROOMS.\nAFTER IT SURFACES, IT IS STUCK. HURT IT\nENOUGH AND IT GETS HUNGRY.',
     taunts: ['...', 'YOU NOCLIPPED INTO THE WRONG ROOM.', 'STAY. THE LIGHTS ARE ALWAYS ON HERE.'],
     hazards: 'FLICKER / BURST PANELS' },
+  { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 740, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
+    blurb: 'A NINE-YEAR-OLD ART PRODIGY WITH A BUCKET\nON HIS HEAD. EVERY FEW ATTACKS HE REPAINTS\nHIMSELF - AND THE WORLD - IN A NEW STYLE.',
+    taunts: ['I\'M PUTTING YOU ON THE FRIDGE!', 'SIGNED: SMUDGE. AGE NINE. MASTERPIECE.', 'NEEDS MORE COLOUR. AND MORE WINNING.'],
+    tip: 'HIT HIM WHILE HE REPAINTS HIMSELF - WET PAINT TAKES MORE DAMAGE.',
+    hazards: 'DRIPS / SPILLS' },
 ];
 /** The boss with this id (a BOSSES entry). */
 export const bossById = (id) => BOSSES.find((b) => b.id === id);

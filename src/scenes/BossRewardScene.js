@@ -69,7 +69,7 @@ export class BossRewardScene extends Phaser.Scene {
       demon: 'TIP: WHEN HE STOPS TO LAUGH, GO FOR HIS HEAD - IT TAKES EXTRA DAMAGE. RED EYES BEHIND YOU MEAN MOVE. DO NOT HIDE AT HIS HOOVES.',
       knight: 'TIP: HIS ARMOUR CAN\'T BE HURT. WAIT FOR HIS SOUL TO COME OUT AND TAUNT YOU - THEN HIT IT, FAST.',
       machine: 'TIP: WHEN IT FREEZES (NOT RESPONDING) ITS SCREEN TAKES EXTRA DAMAGE. FALLEN ERROR WINDOWS ARE LEDGES.',
-      hum: 'TIP: AFTER IT BURSTS UP FROM THE FLOOR IT GETS STUCK - ITS HEAD IS LOW AND TAKES EXTRA DAMAGE. ONE HIT POPS A MIMIC.' }[this.R.id] || '';
+      hum: 'TIP: AFTER IT BURSTS UP FROM THE FLOOR IT GETS STUCK - ITS HEAD IS LOW AND TAKES EXTRA DAMAGE. ONE HIT POPS A MIMIC.' }[this.R.id] || (this.B && this.B.tip ? 'TIP: ' + this.B.tip : '');   // (newer bosses keep their tip in BOSSES)
   }
 
   /** The backdrop: rays in the boss's colour (dim red when you lost), a panel for the rewards. */
