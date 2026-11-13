@@ -83,6 +83,7 @@ export const SHOP = [
     { id: 'mus-rain', kind: 'music', name: 'RAINY WINDOW', price: 350, info: 'SOFT PIANO AND BRUSHES WHILE RAIN TAPS THE GLASS. THUNDER, FAR OFF.', color: 0x6a8ab8 },
     { id: 'mus-sugar', kind: 'music', name: 'SUGAR RUSH', price: 400, info: 'BUBBLEGUM POP: BOUNCY PLUCKS, CLAPS AND A HOOK YOU CAN\'T SHAKE.', color: 0xff8ad8 },
     { id: 'mus-disco', kind: 'music', name: 'MIRRORBALL', price: 450, info: 'DISCO. FOUR ON THE FLOOR, A RESTLESS BASS, STRING STABS. DANCE BETWEEN STOCKS.', color: 0xc8a8ff },
+    { id: 'mus-showtime', kind: 'music', name: 'SHOWSTOPPER', price: 450, info: 'BIG-BAND SWING: A HORN SECTION, A MUTED TRUMPET AND A WALKING BASS. THE GREAT PRESTO\'S FAVOURITE.', color: 0xffc83a },
     { id: 'mus-noli', kind: 'music', hidden: 'noli', name: 'THE MASKED KING', price: 1000, info: 'MASON\'S PIXELATED AUDIO 14 - THE MASKED THRONE\'S OWN THEME. ONLY FOR THOSE WHO KNOW HIS NAME.', color: 0x8a3ad8 },
     { id: 'mus-riphood', kind: 'music', hidden: 'riphood', name: 'RIPHOOD', price: 1000, info: 'MASON\'S PIXELATED AUDIO 15 - THE SONG THAT PLAYS WHEN YOU TYPE RIPHOOD.', color: 0x8a9a4a },
     { id: 'mus-riphood2', kind: 'music', hidden: 'riphood', name: 'RIPHOOD II', price: 500, info: 'MASON\'S PIXELATED AUDIO 16 - THE SECOND SONG FROM THE SUPPLY DEPOT.', color: 0x6a7a3a },

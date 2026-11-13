@@ -44,6 +44,7 @@ MOVES = {  # fighter -> (moves table file, export name, sheet, frame w, h)
     'wow': ('wowMoves.js', 'what-once-was/moves_sheet.png', 112, 104), 'ls': ('lsMoves.js', 'last-seen/moves_sheet.png', 112, 104),
     'seen': ('lsWrongMoves.js', 'last-seen/wrong/moves_sheet.png', 112, 104), 'nusurf': ('nuMoves.js', 'nu/surf/moves_sheet.png', 112, 104),
     'king': ('aeroMoves.js', 'aero/king/moves_sheet.png', 112, 104),
+    'pr': ('prMoves.js', 'presto/moves_sheet.png', 112, 104), 'ch': ('chMoves.js', 'chef/moves_sheet.png', 112, 104),
 }
 _tables = {}
 def move(who, name, k):
@@ -618,8 +619,75 @@ def p_ascend():
     return grade(cv, 0xffe8a0, 0.06, vig=0.3)
 
 
+def p_volunteer():
+    """THE VOLUNTEER: THE GREAT PRESTO saws CHEF ROUX in half, live, for one night only. Roux was promised a free dinner."""
+    img = sky(0x12040a, 0x2a0a14, 0x3a0e1a); cv = to_im(img); d = draw(cv)
+    for x in range(0, W, 6):                                                        # the red velvet curtains
+        c = 0x7a1020 if (x // 6) % 2 else 0x5a0a18
+        d.rectangle((x, 0, x + 5, 12), fill=hexc(c))
+        d.rectangle((x, 0, x + 5, 96), fill=hexc(c)) if x < 22 or x > W - 28 else None
+    for x in range(0, W, 12): d.pieslice((x - 2, 4, x + 14, 22), 0, 180, fill=hexc(0x8a1828))   # the swags
+    d.rectangle((0, 0, W, 5), fill=hexc(0xd8a030))
+    spot = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sd = draw(spot)
+    sd.polygon([(70, 0), (96, 0), (150, 96), (20, 96)], fill=(255, 240, 190, 46))   # the spotlight cone
+    cv.alpha_composite(spot); d = draw(cv)
+    d.rectangle((0, 96, W, H), fill=hexc(0x3a1a0e))
+    for x in range(0, W, 10): d.line([(x, 96), (x, H)], fill=hexc(0x2a1008))           # the boards
+    d.rectangle((0, 96, W, 98), fill=hexc(0xd8a030))
+    for i in range(8): d.pieslice((4 + i * 21, 99, 12 + i * 21, 107), 180, 360, fill=hexc(0xffe8a0))   # footlights
+    glow(cv, 80, 104, 70, 0xffd070, 50); d = draw(cv)
+    # the cabinet on its trestle, split down the middle, Roux's toque and boots poking out
+    d.rectangle((86, 70, 150, 86), fill=hexc(0x1a0a3a)); d.rectangle((86, 70, 150, 72), fill=hexc(0xd8a030))
+    for x in (98, 128): d.rectangle((x, 72, x + 6, 84), fill=hexc(0x3a1a6a))
+    for x, y in ((92, 76), (110, 78), (138, 76)): sparkle(cv, x, y, 0xffe070, 1)
+    d = draw(cv)
+    d.line([(118, 70), (118, 86)], fill=hexc(0x000000))
+    d.rectangle((92, 86, 96, 96), fill=hexc(0x2a1a0e)); d.rectangle((140, 86, 144, 96), fill=hexc(0x2a1a0e))
+    d.ellipse((76, 66, 88, 78), fill=hexc(0xe8b890)); d.point((80, 71), fill=0); d.point((84, 71), fill=0)   # Roux's worried face
+    d.line([(80, 75), (84, 74)], fill=hexc(0x6a2a1a))
+    d.rectangle((76, 56, 88, 66), fill=hexc(0xf8f8f8)); d.ellipse((74, 52, 90, 62), fill=hexc(0xffffff))   # his toque
+    d.rectangle((150, 74, 158, 82), fill=hexc(0x2a2a2a)); d.rectangle((156, 72, 160, 82), fill=hexc(0x1a1a1a))   # his boots
+    d.polygon([(100, 70), (138, 58), (139, 66), (104, 74)], fill=hexc(0xd8d8e8))       # the saw, biting into the lid
+    d.line([(100, 70), (138, 58)], fill=hexc(0xffffff))
+    for k in range(9): x = 104 + k * 4; d.point((x, 74 - k * 8 // 9), fill=hexc(0x6a6a7a))   # its teeth
+    d.rectangle((138, 54, 148, 68), fill=hexc(0x6a3a1a)); d.rectangle((141, 58, 145, 64), fill=hexc(0x12040a))   # handle
+    d.rectangle((115, 70, 121, 72), fill=hexc(0x000000))                              # the cut
+    put(cv, move('pr', 'limit', 0.55), 48, 96, light=hexc(0xffe0a0), side=1)
+    for i in range(16): sparkle(cv, int(rng.integers(30, 150)), int(rng.integers(20, 70)), [0xffe070, 0xffffff][i % 2], 1)
+    d = draw(cv)
+    for x, y, c in ((20, 40, 0xffffff), (30, 30, 0xe83a3a), (140, 34, 0xffffff)):  # cards fluttering
+        d.rectangle((x, y, x + 4, y + 6), fill=hexc(c)); d.rectangle((x + 1, y + 2, x + 3, y + 4), fill=hexc(0xc01828 if c == 0xffffff else 0xffffff))
+    return grade(cv, 0xd87050, 0.08, vig=0.45)
+
+def p_staffmeal():
+    """STAFF MEAL: CHEF ROUX feeds the roster after every tournament. NU always asks for seconds. AERO asks what the purple bit is."""
+    img = sky(0x2a1a10, 0x4a2a14, 0x6a3a18); cv = to_im(img); d = draw(cv)
+    for y in range(0, 74, 8):                                                       # white kitchen tiles
+        for x in range(-(y // 8 % 2) * 6, W, 12): d.rectangle((x, y, x + 11, y + 7), fill=hexc(0xd8ccb8)); d.rectangle((x, y, x + 11, y), fill=hexc(0xf0e8d8))
+    for x in (20, 60, 100, 140):                                                    # hanging copper pans
+        d.line([(x, 0), (x, 10)], fill=hexc(0x3a2a1a)); d.ellipse((x - 7, 10, x + 7, 22), fill=hexc(0xc8783a)); d.ellipse((x - 5, 12, x + 5, 19), fill=hexc(0xe89a5a))
+    d.rectangle((0, 74, W, 80), fill=hexc(0x8a8a90)); d.rectangle((0, 80, W, H), fill=hexc(0x5a5a62))   # the steel counter
+    for x in range(0, W, 20): d.line([(x, 80), (x, H)], fill=hexc(0x4a4a52))
+    d.rectangle((0, 74, W, 75), fill=hexc(0xd8d8e0))
+    glow(cv, 46, 52, 30, 0xff8a2a, 110); d = draw(cv)
+    d.rectangle((30, 68, 62, 74), fill=hexc(0x2a2a2a)); d.ellipse((32, 60, 60, 70), fill=hexc(0x3a3a3a))   # the pan, flambe roaring
+    for i in range(14):
+        x = 46 + int(rng.integers(-12, 12)); h = int(rng.integers(10, 30))
+        d.polygon([(x - 3, 64), (x + 3, 64), (x + int(rng.integers(-3, 3)), 64 - h)], fill=hexc([0xff5a1a, 0xffa030, 0xffe070][i % 3]))
+    put(cv, move('ch', 'upb', 0.35), 72, 74, light=hexc(0xffc080), side=-1)
+    put(cv, strip('nu/idle_sheet.png', 2), 118, 76, flip=True, light=hexc(0xffd8a0))
+    put(cv, strip('aero/idle_sheet.png', 4), 146, 76, flip=True, light=hexc(0xffd8a0))
+    d = draw(cv)
+    for x in (110, 138):                                                            # their bowls, steaming
+        d.pieslice((x, 66, x + 14, 78), 0, 180, fill=hexc(0xf0f0f0)); d.ellipse((x + 1, 68, x + 13, 72), fill=hexc(0x9a3ad8 if x == 138 else 0xd8783a))
+        for k in range(3): d.line([(x + 4 + k * 3, 64), (x + 5 + k * 3, 56)], fill=hexc(0xe8e0d0))
+    for i in range(18): x, y = int(rng.integers(30, 64)), int(rng.integers(20, 50)); cv.putpixel((x, y), hexc([0xffe070, 0xff8a2a][i % 2]) + (255,))
+    d.text((150, 40), '?', fill=hexc(0x40e8ff))
+    return grade(cv, 0xffa860, 0.08, vig=0.4)
+
 PAINTINGS = [p_gates, p_star, p_tea, p_burned, p_encore, p_purge, p_level0, p_birthday, p_listens, p_surf,
-             p_shop, p_spar, p_demons, p_fountain, p_willow, p_desert, p_winter, p_throne, p_fractured, p_baseplate, p_photo, p_ascend]
+             p_shop, p_spar, p_demons, p_fountain, p_willow, p_desert, p_winter, p_throne, p_fractured, p_baseplate, p_photo, p_ascend,
+             p_volunteer, p_staffmeal]
 
 
 def build(preview=None):

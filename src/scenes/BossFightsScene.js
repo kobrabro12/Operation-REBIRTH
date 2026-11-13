@@ -25,6 +25,8 @@ const CARD = (() => { const n = BOSSES.length, gap = n > 6 ? 4 : 6, w = Math.flo
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 // remembered between visits (this session): the last boss, difficulty, fighter and costume
 const last = { boss: 0, tier: 0, fighter: null, skin: 0 };
+// BOSS RUSH: lives on top of the difficulty's; its prize (x the difficulty's coins) for beating them all
+export const RUSH = { extraLives: 2, prize: 1500 };
 
 /** Trinkets > BOSS FIGHTS: pick the boss, difficulty and fighter (see the top of the file). */
 export class BossFightsScene extends Phaser.Scene {
@@ -32,7 +34,7 @@ export class BossFightsScene extends Phaser.Scene {
 
 /** Builds the cards, panels, texts, the fighter preview and the buttons. */
   create() {
-    this.t = 0; this.menu = new MenuInput(this); this.step = 'boss';
+    this.t = 0; this.menu = new MenuInput(this); this.step = 'boss'; this.rush = false;
     this.sel = last.boss; this.tier = last.tier;
     // the roster, plus THE DEVOTED (a test fighter - in her CARTRIDGE costume KING POLYGON fights her as LEGENDARY KING POLYGON)
     this.fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER.filter((f) => f.id === 'devoted')];
@@ -64,6 +66,9 @@ export class BossFightsScene extends Phaser.Scene {
     T('fskin', VIEW_W / 2, 288, '', 6, '#c9c4dc', { align: 'center' }).setOrigin(0.5, 0);
     T('fhead', VIEW_W / 2, 64, '', 9, '#ffffff', { align: 'center' }).setOrigin(0.5, 0);
     this.go = makeButton(this, VIEW_W - 30, 302, 'FIGHT!', () => this.choose(), { originX: 1, size: '9px', bg: '#8a1a14', hover: '#d8342a' });
+    // BOSS RUSH: every boss back to back on one set of lives (`RUSH`; BossRewardScene carries it from fight to fight)
+    this.rushBtn = makeButton(this, VIEW_W - 30, 302, 'BOSS RUSH (R)', () => this.startRush(), { originX: 1, size: '8px', bg: '#5a1a8a', hover: '#8a3ad8' });
+    this.input.keyboard.on('keydown-R', () => { if (this.step === 'boss') this.startRush(); });
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.input.on('pointerdown', (p, over) => { if (!over.length) this.click(p.x, p.y); });
@@ -106,17 +111,23 @@ export class BossFightsScene extends Phaser.Scene {
     Object.assign(last, { boss: this.sel, tier: this.tier, fighter: f.id, skin: this.skin });
     const setup = { mode: 'stock', stocks: T.stocks, hp: 150, minutes: 3, items: false, hazards: true, crt: settings.crt, stage: B.stage, track: 'auto', picks: [f.id], skins: [this.skin],
       cpuCount: 0, difficulty: 1, cpuLevels: [], p1Pad: settings.p1Pad, extraPads: [], from: 'BossFights' };
+    if (this.rush) {                                                     // BOSS RUSH: the first boss, with the rush's lives
+      setup.stocks = T.stocks + RUSH.extraLives; setup.stage = BOSSES[0].stage;
+      sfx('go', 1); this.scene.start('Match', { boss: { id: BOSSES[0].id, tier: this.tier, setup, rush: { i: 0, time: 0 } } }); return;
+    }
     sfx('go', 1); this.scene.start('Match', { boss: { id: B.id, tier: this.tier, setup } });
   }
+  /** BOSS RUSH: on to the fighter step for a run at every boss in a row, at the chosen difficulty. */
+  startRush() { this.rush = true; this.step = 'fighter'; sfx('go', 0.8, 0.8); this.refresh(); }
   /** K / Esc: back a step, or out to Trinkets. */
-  back() { sfx('menu', 0.6); if (this.step === 'fighter') { this.step = 'boss'; this.refresh(); } else this.scene.start('Trinkets'); }
+  back() { sfx('menu', 0.6); if (this.step === 'fighter') { this.step = 'boss'; this.rush = false; this.refresh(); } else this.scene.start('Trinkets'); }
 
   /** Updates every text for what's picked (and the step), and redraws the panels. */
   refresh() {
     const B = BOSSES[this.sel], T = TIERS[this.tier], open = bossOpen(this.sel), boss = this.step === 'boss';
     this.setHint();
     for (const [k, o] of Object.entries(this.txt)) o.setVisible(boss ? !k.startsWith('f') : k.startsWith('f'));
-    this.sprite.setVisible(!boss); this.go.setVisible(!boss);
+    this.sprite.setVisible(!boss); this.go.setVisible(!boss); this.rushBtn.setVisible(boss);
     if (boss) {
       BOSSES.forEach((b, i) => { const o = bossOpen(i); this.txt['name' + i].setText(o ? b.short : '???'); this.txt['arena' + i].setText(o ? b.arena : 'LOCKED'); this.txt['lock' + i].setText(o ? '' : 'BEAT ' + BOSSES[i - 1].short + '\nTO OPEN'); });
       this.txt.blurb.setText(open ? B.name + '\n' + B.blurb : 'LOCKED.\nBEAT ' + BOSSES[this.sel - 1].name + '\nON ANY DIFFICULTY TO FACE WHAT COMES NEXT.');
@@ -130,7 +141,7 @@ export class BossFightsScene extends Phaser.Scene {
     } else {
       const f = this.fighters[this.fi];
       if (!this.skins(f.id).includes(this.skin)) this.skin = 0;
-      this.txt.fhead.setText('WHO FACES ' + B.name + '?\n' + T.name).setColor('#ffffff');
+      this.txt.fhead.setText(this.rush ? 'BOSS RUSH - ALL ' + BOSSES.length + ' BOSSES, ' + (T.stocks + RUSH.extraLives) + ' LIVES\n' + T.name : 'WHO FACES ' + B.name + '?\n' + T.name).setColor(this.rush ? '#d8a0ff' : '#ffffff');
       this.txt.fname.setText('<  ' + f.def.name + (f.tag ? ' (TEST)' : '') + '  >');
       this.txt.fskin.setText('COSTUME: ' + skinInfo(f.id, this.skin).name + '   (W/S)');
     }

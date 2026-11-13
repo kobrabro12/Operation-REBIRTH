@@ -251,9 +251,10 @@ export class MaestroBossStage extends BossArena {
   /** Says something (a speech bubble) for `life` frames. */
   talk(text, life = 100) { this.say = { text, t: 0, life }; this.sayCD = 260 + Math.random() * 200; }
   /** A hit lands on him: ON THE BEAT he's grudgingly impressed (a gold BRAVO!); otherwise he complains now and then. */
-  onHurt(match) {
+  onHurt(match, r, d, o) {
     const b = this.body();
-    if (this.onBeat()) { this.pop = { text: 'ON THE BEAT!', x: b.head.x, y: b.head.y - 60, t: 0 }; sfx('ding', 0.6, 1.5); if (Math.random() < 0.4) this.talk(SAY.onbeat[Math.floor(Math.random() * SAY.onbeat.length)], 60); return; }
+    if (this.onBeat()) { if (o && !o.isCpu) match.stat('onBeat');                           // PERFECT PITCH (achievements.js)
+      this.pop = { text: 'ON THE BEAT!', x: b.head.x, y: b.head.y - 60, t: 0 }; sfx('ding', 0.6, 1.5); if (Math.random() < 0.4) this.talk(SAY.onbeat[Math.floor(Math.random() * SAY.onbeat.length)], 60); return; }
     if (this.sayCD <= 0 || (this.say && this.say.t > 40)) { if (Math.random() < 0.3) this.talk(SAY.hurt[Math.floor(Math.random() * SAY.hurt.length)], 70); }
   }
   /** His glide speed. */

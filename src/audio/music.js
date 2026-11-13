@@ -22,7 +22,7 @@ export const TRACKS = [
   // LEGENDARY KING POLYGON's theme: Mason's pixelated_audio 22
   'boss_legend',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
-  ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'mason',
+  ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'showtime', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
   // the TROPHY HALL (tools/audio/trophy_hall_music.py)
   'trophy_hall',

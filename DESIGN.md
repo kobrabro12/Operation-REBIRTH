@@ -78,6 +78,7 @@ Walk over one to use it.
 | Soul Heart | −25% (or +25 HP in Stamina) |
 | Limit Orb | +50 Limit |
 | Cursed Skull | 8 s curse: ×0.6 speed, ×0.7 damage dealt |
+| Mystery Box | a gift box: opens into a random item, or TA-DA! - a burst of cards that hits every foe within 90 px (10%, `MYSTERY` in items.js) |
 
 ## 8. Stages
 

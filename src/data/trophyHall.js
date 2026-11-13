@@ -46,6 +46,8 @@ export const PAINTINGS = [
   { id: 'baseplate', frame: 19, title: 'BASEPLATE 2012', text: 'AERO built a little house out of bricks. WHAT ONCE WAS is standing inside it. Nobody let it in. Nobody built a door.' },
   { id: 'photo', frame: 20, title: 'PICTURE DAY', text: "Everybody smile! The glutton ate the photographer's sandwich, so this is the only picture there is." },
   { id: 'ascend', frame: 21, title: 'FULL AERO', text: 'The fishbowl cracks, the light pours out, and a king floats up with a golden spear. Everyone covers their eyes. Except NU.' },
+  { id: 'volunteer', frame: 22, title: 'THE VOLUNTEER', text: 'One night only: THE GREAT PRESTO saws CHEF ROUX in half. Roux was promised a free dinner. He is still waiting for the other half of the trick.' },
+  { id: 'staffmeal', frame: 23, title: 'STAFF MEAL', text: 'After every tournament CHEF ROUX feeds the whole roster. NU always asks for seconds. AERO always asks what the purple bit is. Roux never tells him.' },
   { id: 'clash', big: true, sheet: 'hall_master_clash', frames: 8, title: 'THE CLASH AT SKY SANCTUM', text: "A MASTERPIECE. The whole roster, one sunset, one fight for the sanctum: fire meets water, Lacy dives in, NU hits the chord, and FULL AERO shines over all of it while the souls of the fallen circle the dome." },
   { id: 'feast', big: true, sheet: 'hall_master_feast', frames: 8, title: 'THE FEAST OF FIGHTERS', text: "A MASTERPIECE. Once a year they put down their weapons (mostly) and eat. Soul Summoner makes the toast, Mr Wake pours the tea, NU won't stop playing, and the glutton is going for the roast again." },
   { id: 'drowned', big: true, sheet: 'hall_master_drowned', frames: 8, title: 'THE DROWNED HOUR', text: "A MASTERPIECE. The storm breaks over a sea of sludge. THE DEVOTED rises, drowned, with her demons - and what she will become rises behind her. On the last cliff, two stand their ground. Mr Wake holds back the tide." },
@@ -85,6 +87,6 @@ export const DISPLAY = {
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },
   'frame-l4a': { painting: 'listens' }, 'frame-l4b': { painting: 'demons' }, 'frame-r4a': { painting: 'surf' }, 'frame-r4b': { painting: 'fountain' },
   'frame-l5a': { painting: 'shop' }, 'frame-l5b': { painting: 'photo' }, 'frame-r5a': { painting: 'desert' }, 'frame-r5b': { painting: 'winter' },
-  'frame-l6a': { painting: 'throne' }, 'frame-r6a': { painting: 'fractured' },
+  'frame-l6a': { painting: 'throne' }, 'frame-l6b': { painting: 'volunteer' }, 'frame-r6a': { painting: 'fractured' }, 'frame-r6b': { painting: 'staffmeal' },
   'great-l7': { painting: 'clash' }, 'great-r7': { painting: 'feast' }, 'great-l8': { painting: 'drowned' }, 'great-r8': { painting: 'bowl' },
 };

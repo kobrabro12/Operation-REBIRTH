@@ -14,7 +14,7 @@ import { MatchExtras } from './matchExtras.js';
 import { slant, ARC } from '../ui/arcade.js';
 import { FighterIntros } from './fighterIntros.js';
 import { recordChallenge, CHALLENGE_REWARD } from '../challenges.js';
-import { recordMatch } from '../achievements.js';
+import { recordMatch, stat } from '../achievements.js';
 import { voiceLine } from '../audio/voiceLines.js';
 import { bossById, TIERS, claimBossRewards } from '../data/bosses.js';
 
@@ -565,6 +565,9 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /** The boss's health ran out (src/stage/bossBase.js): the fight is won. */
+  /** Counts a lifetime stat for the achievements (achievements.js `stat`) - not in the title demo. Stages and fighters call this so they needn't import achievements.js. */
+  stat(name, n = 1) { if (!this.demo) stat(name, n); }
+
   bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.over = 210; }
 
   /** A boss fight is over: pays out a win (bosses.js) and goes to the reward / defeat screen (BossRewardScene). */
@@ -572,7 +575,7 @@ export class MatchScene extends Phaser.Scene {
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
-      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null }, rewards });
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, rush: F.rush || null, lives: f.stocks }, rewards });
   }
 
   toResults() {

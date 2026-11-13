@@ -16,6 +16,7 @@ match instead of the stage's own music. All original, all synthesised; each one 
   korobeiniki KOROBEINIKI   the old Russian peddlers' song (folk, public domain): balalaika, accordion, oom-pah bass
   balalaika   BALALAIKA     an original Cossack-style stomp dance: tremolo balalaika, accordion, claps, shouts of HEY
   troika      TROIKA        an original sleigh ride at a gallop: sleigh bells, a galloping bass, balalaika and accordion
+  showtime    SHOWSTOPPER   big-band swing: a brass section that swells and stabs, a muted trumpet lead, walking bass, a ride cymbal
 
 Run:  python3 tools/audio/shop_music.py [names...]
 Writes public/assets/audio/music/shop_<name>.ogg and .mp3. Loaded in BootScene as bgm_shop_<name>.
@@ -403,6 +404,45 @@ def troika():
             if part in (1, 2, 3): add(buf, accordion(E + 12 + m + (12 if part == 3 else 0), b * 0.48, 0.9), t0 + k * b / 2)
     return write(wrap_reverb(buf, 1.1, 2.2, 0.18), 'troika')
 
-PIECES = {'troika': troika, 'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
+def brass(m, dur, vel=1.0, mute=False):
+    """A horn: two detuned saws whose filter opens as it's blown (a swell), muted = darker and buzzier."""
+    n = secs(dur); t = np.arange(n) / SR
+    vib = 0.12 * np.sin(2 * np.pi * 5.5 * t) * np.clip(t / 0.25, 0, 1)
+    x = sum(2 * ((np.cumsum(np.full(n, hz(m + d)) * 2 ** (vib / 12)) / SR) % 1) - 1 for d in (-0.06, 0.06))
+    cut = 900 if mute else 2400
+    y = lp(x, cut) * 0.6 + lp(x, cut * 2.2) * np.clip(t / 0.08, 0, 1) * 0.4
+    return y * adsr(n, 0.02, 0.08, 0.8, min(0.08, dur * 0.4)) * vel * 0.45
+
+def showtime():
+    """SHOWSTOPPER: a big-band swing number with a horn section, for THE GREAT PRESTO's kind of night."""
+    bpm, bars = 168, 32; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); F = 50
+    prog = [(0, [4, 7, 9, 14]), (9, [13, 16, 19, 22]), (2, [5, 9, 12, 16]), (7, [11, 14, 17, 21])]   # I6 VI7 ii7 V7 - the rhythm changes
+    sw = lambda k: (k // 2) * b + (k % 2) * b * 0.66
+    tune = [7, None, 9, 7, 4, None, 2, 4, 7, 9, 12, None, 9, None, 7, None,
+            14, 12, 9, 7, 9, None, 4, 7, 2, None, 4, 2, 0, None, None, None]
+    for bar in range(bars):
+        root, ch = prog[bar % 4]; t0 = bar * 4 * b; sect = bar // 8
+        walk = [root, root + 4, root + 7, root + 6 if bar % 4 == 3 else root + 9]
+        for k in range(4): add(buf, lp(tri(F - 24 + walk[k], b * 0.9, 0.75), 900), t0 + k * b)   # walking bass
+        for k in range(4):
+            add(buf, drum_hat(0.45), t0 + k * b); add(buf, drum_hat(0.3), t0 + sw(k * 2 + 1))      # ride: ding, ding-a
+            if k in (1, 3): add(buf, drum_snare(0.35, brush=True), t0 + k * b)
+        add(buf, drum_kick(0.6), t0)
+        for off in (sw(3), sw(6)):                                                            # piano comps on the and-of
+            for m in ch: add(buf, piano(F + m, b * 0.5, 0.3), t0 + off)
+        if sect != 1:                                                                          # the horn section: swells and stabs
+            if bar % 2 == 0:
+                for m in ch[:3]: add(buf, brass(F + 12 + m, b * 1.8, 0.55), t0)
+            else:
+                for m in ch[:3]: add(buf, brass(F + 12 + m, b * 0.35, 0.8), t0 + sw(3)); add(buf, brass(F + 12 + m, b * 0.5, 0.9), t0 + sw(5))
+        if sect >= 1:                                                                          # the muted trumpet takes the tune
+            for k in range(4):
+                m = tune[((bar % 8) * 4 + k) % 32]
+                if m is not None: add(buf, brass(F + 24 + m, b * 0.85, 0.6 if sect == 3 else 0.5, mute=sect != 3), t0 + sw(k * 2))
+        if bar % 8 == 7:                                                                       # a drum fill into the next chorus
+            for i in range(6): add(buf, drum_snare(0.4 + i * 0.08), t0 + 2 * b + i * b / 3)
+    return write(wrap_reverb(buf, 1.4, 2.2, 0.2), 'showtime')
+
+PIECES = {'showtime': showtime, 'troika': troika, 'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

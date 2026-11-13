@@ -249,7 +249,7 @@ export class BossArena {
       match.puff(x, y, 0xffffff, 6); match.puff(x, y, r.mult > 1 ? 0xffd040 : this.sparkColor || 0xffa040, 4 + Math.round(d / 3));
       if (r.mult > 1) match.particles.push({ shape: 'ring', x, y, vx: 0, vy: 0, life: 12, maxLife: 12, color: 0xffd040, grav: 0, r: 4, dr: 3 });
       sfx(r.mult >= 1 ? 'hit' : 'clang', 0.6, (r.mult >= 1 ? 0.8 : 1.2) + Math.random() * 0.2);
-      if (this.onHurt) this.onHurt(match, r, d);
+      if (this.onHurt) this.onHurt(match, r, d, o);   // (o = who hit it)
       if (B.hp <= 0) { this.startDeath(match); break; }
     }
     if (B.seen.size > 3000) B.seen.clear();

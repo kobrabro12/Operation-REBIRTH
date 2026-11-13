@@ -4,6 +4,8 @@
 //   Cursed Skull- 8 s curse: slower and 30% weaker attacks   harmful
 //   Swift Feather - 8 s: faster on foot and in the air, plus an extra mid-air jump
 //   Star Candy  - 5 s of invincibility: hits pass straight through, and you glow every colour
+//   Mystery Box - a magician's box: opening it does one of the above at random - or TA-DA!, a burst of cards that launches
+//                 everyone else near you (`MYSTERY`)
 import { sfx } from '../audio/sfx.js';
 import { LIMIT_MAX } from '../config.js';
 import soulHeartUrl from './soul_heart_sheet.png?inline';
@@ -18,11 +20,14 @@ const MAPS = {
   skull: ['.oooooo.', 'owwwwwwo', 'owoowoow', 'owoowoow', 'owwwwwwo', '.owowow.', '.oooooo.', '........'],
   feather: ['.....oo.', '....ofgo', '...ofggo', '..ofggo.', '.ofggo..', '.oggo...', 'oo.o....', 'o.......'],
   star: ['...oo...', '...yy...', 'oooyyooo', 'oyyYYyyo', '.oyYYyo.', '.oyyyyo.', 'oyo..oyo', 'oo....oo'],
+  box: ['oooooooo', 'oyyyyyyo', 'oppwwppo', 'opwppwpo', 'oppwwppo', 'opppwppo', 'oyypwyyo', 'oooooooo'],
 };
-const COLORS = { o: 0x1a1020, r: 0xff3b5c, R: 0xffb0c0, b: 0x78a0c6, w: 0xf0f2f3, d: 0x076cc2, f: 0xf0f2f3, g: 0x5ee07a, y: 0xf3c358, Y: 0xfff4b0 };
-const TYPES = ['heart', 'orb', 'skull', 'feather', 'star'];
-const WEIGHTS = { heart: 3, orb: 2, skull: 2, feather: 2, star: 1 };       // how often each drops
-const NAMES = { heart: 'SOUL HEART', orb: 'LIMIT ORB', skull: 'CURSED SKULL', feather: 'SWIFT FEATHER', star: 'STAR CANDY' };
+const COLORS = { o: 0x1a1020, r: 0xff3b5c, R: 0xffb0c0, b: 0x78a0c6, w: 0xf0f2f3, d: 0x076cc2, f: 0xf0f2f3, g: 0x5ee07a, y: 0xf3c358, Y: 0xfff4b0, p: 0x8a40d0 };
+const TYPES = ['heart', 'orb', 'skull', 'feather', 'star', 'box'];
+const WEIGHTS = { heart: 3, orb: 2, skull: 2, feather: 2, star: 1, box: 2 };       // how often each drops
+const NAMES = { heart: 'SOUL HEART', orb: 'LIMIT ORB', skull: 'CURSED SKULL', feather: 'SWIFT FEATHER', star: 'STAR CANDY', box: 'MYSTERY BOX' };
+// MYSTERY BOX: what opening it can do (weights - the other items' effects, or TA-DA!), and TA-DA!'s reach and hit
+const MYSTERY = { odds: { heart: 2, orb: 2, feather: 2, star: 1, skull: 2, tada: 3 }, reach: 90, hit: { dmg: 10, angle: 70, base: 4.6, growth: 4.4 } };
 
 export function makeItemTextures(scene) {
   for (const [k, rows] of Object.entries(MAPS)) {
@@ -61,8 +66,21 @@ class Item {
       if (Math.abs(f.x - this.x) < 18 && this.y > f.y - f.body.h - 6 && this.y < f.y + 8) this.apply(f);
     }
   }
+  /** Whoever touches it gets its effect (the MYSTERY BOX picks one first, or goes TA-DA!). */
   apply(f) {
     const m = this.match;
+    if (this.type === 'box') {
+      sfx('ding', 0.7, 1.6); m.puff(f.x, f.y - 30, 0x8a40d0, 14);
+      let r = Math.random() * Object.values(MYSTERY.odds).reduce((a, b) => a + b, 0), pick = 'tada';
+      for (const [k, w] of Object.entries(MYSTERY.odds)) { r -= w; if (r < 0) { pick = k; break; } }
+      if (pick === 'tada') {                                            // a burst of playing cards launches everyone else close by
+        sfx('bighit', 0.8, 1.3); m.shake(6, 8);
+        for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; m.particles.push({ x: f.x, y: f.y - 30, vx: Math.cos(a) * 4, vy: Math.sin(a) * 4 - 1, life: 30, color: [0xffffff, 0xe02a3a, 0x8a40d0, 0xf3c358][i % 4], size: 3, grav: 0.1 }); }
+        for (const o of m.fighters) if (o !== f && o.alive && o.state !== 'respawn' && o.team !== f.team && Math.hypot(o.x - f.x, o.y - f.y) < MYSTERY.reach) m.applyHit(o, { h: MYSTERY.hit, owner: f, facing: Math.sign(o.x - f.x) || 1, id: 'box' + m.frame + ':' + o.slot }, f.x);
+        m.popText(f, 'TA-DA!', '#b070f0'); this.kill(); return;
+      }
+      this.type = pick;
+    }
     if (this.type === 'heart') {
       if (m.mode === 'stamina') f.hp = Math.min(f.maxHp, f.hp + 25); else f.percent = Math.max(0, f.percent - 25);
       sfx('item', 0.7); m.puff(f.x, f.y - 30, 0xff3b5c, 10);

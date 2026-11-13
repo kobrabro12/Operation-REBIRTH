@@ -9,10 +9,12 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { hintBar, slant, hex } from '../ui/arcade.js';
-import { bossById, TIERS, clock } from '../data/bosses.js';
-import { checkAchievements } from '../achievements.js';
-import { getCoins } from '../progress.js';
+import { bossById, TIERS, clock, BOSSES } from '../data/bosses.js';
+import { checkAchievements, stat } from '../achievements.js';
+import { getCoins, addCoins } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
+import { skinInfo } from '../fighters/skins.js';
+import { RUSH } from './BossFightsScene.js';
 import { achievementToasts } from '../ui/toast.js';
 
 // how quickly the reward lines come in (frames apart), and the first one's delay
@@ -27,14 +29,21 @@ export class BossRewardScene extends Phaser.Scene {
     const R = data.boss, B = bossById(R.id), T = TIERS[R.tier];
     this.R = R; this.B = B; this.t = 0; this.choice = 0; this.menu = new MenuInput(this);
     this.won = R.won;
+    // BOSS RUSH: which boss of the run this was, whether there's another, and the prize at the end
+    const rush = R.rush, last = rush && rush.i >= BOSSES.length - 1, rushLines = [];
+    this.next = rush && this.won && !last ? BOSSES[rush.i + 1] : null;
+    if (rush && this.won && last) { const prize = Math.round(RUSH.prize * T.coins); addCoins(prize); stat('rushes'); rushLines.push({ kind: 'unlock', text: 'BOSS RUSH COMPLETE! (' + clock(rush.time + R.time) + ')', coins: prize }); }
+    if (this.won && R.id === 'smudge' && R.fighter === 'mr-wake' && skinInfo('mr-wake', R.skin).name === 'THE ARTIST') stat('artCritic');   // ART CRITIC
     const fresh = this.won ? checkAchievements() : [];
-    this.lines = [...(data.rewards || []), ...fresh.map((a) => ({ kind: a.label ? 'trophy' : 'ach', text: (a.label ? 'TROPHY: ' : 'ACHIEVEMENT: ') + a.name, coins: a.coins }))];
+    this.lines = [...(data.rewards || []), ...rushLines, ...fresh.map((a) => ({ kind: a.label ? 'trophy' : 'ach', text: (a.label ? 'TROPHY: ' : 'ACHIEVEMENT: ') + a.name, coins: a.coins }))];
     this.total = this.lines.reduce((n, l) => n + (l.coins || 0), 0); this.counted = 0;
     playMusic(this, 'bgm_title');
     sfx(this.won ? 'limitready' : 'curse', 0.9, this.won ? 1 : 0.7);
     this.bg = this.add.graphics(); this.fx = this.add.graphics();
     const txt = (x, y, s, size = 8, color = '#ffffff', o = {}) => this.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, stroke: '#07060e', strokeThickness: 4, lineSpacing: 5, ...o });
-    this.head = txt(VIEW_W / 2, 22, this.won ? 'BOSS DEFEATED!' : 'DEFEATED...', 22, this.won ? '#ffe08a' : '#ff6a5a').setOrigin(0.5, 0).setAngle(this.won ? -3 : 0);
+    const headText = !rush ? (this.won ? 'BOSS DEFEATED!' : 'DEFEATED...') : this.won ? (last ? 'BOSS RUSH COMPLETE!' : 'BOSS ' + (rush.i + 1) + ' OF ' + BOSSES.length + ' DOWN!') : 'RUSH OVER - ' + rush.i + ' OF ' + BOSSES.length;
+    this.head = txt(VIEW_W / 2, 22, headText, rush ? 17 : 22, this.won ? '#ffe08a' : '#ff6a5a').setOrigin(0.5, 0).setAngle(this.won ? -3 : 0);
+    if (this.next) txt(VIEW_W / 2, 86, 'NEXT: ' + this.next.name + '   -   LIVES LEFT ' + R.lives, 6, '#d8a0ff').setOrigin(0.5, 0);
     txt(VIEW_W / 2, 60, B.name, 9, hex(B.color)).setOrigin(0.5, 0);
     txt(VIEW_W / 2, 74, T.name + (this.won ? '   TIME ' + clock(R.time) : '   BOSS HEALTH LEFT ' + Math.round(R.hp * 100) + '%'), 7, hex(T.color)).setOrigin(0.5, 0);
     const def = fighterById(R.fighter).def;
@@ -55,7 +64,7 @@ export class BossRewardScene extends Phaser.Scene {
     }
     this.totalT = txt(610, 104 + Math.max(1, this.lines.length) * 22 + 10, '', 9, '#ffe08a').setOrigin(1, 0);
     this.coinT = txt(236, 104 + Math.max(1, this.lines.length) * 22 + 12, '', 6, '#c9c4dc');
-    this.actions = [makeButton(this, 236, 318, this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
+    this.actions = [makeButton(this, 236, 318, this.next ? 'NEXT BOSS' : rush ? 'RUSH AGAIN' : this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
       makeButton(this, 400, 318, 'BOSS FIGHTS', () => this.leave(1), { size: '8px' })];
     hintBar(this, 'A/D CHOOSE   J / ENTER / A  CONFIRM   K / ESC / B  BOSS FIGHTS', B.color);
     this.drawBg();
@@ -85,6 +94,12 @@ export class BossRewardScene extends Phaser.Scene {
   /** Back to the fight (same boss, difficulty, fighter) or to BOSS FIGHTS. */
   leave(i) {
     sfx('go', 0.7);
+    const R = this.R;
+    if (i === 0 && R.rush && R.setup) {                                // BOSS RUSH: on to the next boss with the lives left - or a fresh run
+      const nx = this.next || BOSSES[0], cont = !!this.next;
+      const setup = { ...R.setup, stage: nx.stage, stocks: cont ? R.lives : TIERS[R.tier].stocks + RUSH.extraLives };
+      this.scene.start('Match', { boss: { id: nx.id, tier: R.tier, setup, rush: { i: cont ? R.rush.i + 1 : 0, time: cont ? R.rush.time + R.time : 0 } } }); return;
+    }
     if (i === 0 && this.R.setup) this.scene.start('Match', { boss: { id: this.R.id, tier: this.R.tier, setup: this.R.setup } });
     else this.scene.start('BossFights');
   }

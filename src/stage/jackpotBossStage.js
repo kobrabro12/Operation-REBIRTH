@@ -299,7 +299,8 @@ export class JackpotBossStage extends BossArena {
   /** Clears his rounds and attacks off the stage (before a cutscene or his death). */
   clearArena() { this.whip = null; this.shots = []; this.cannons = null; this.spot = null; this.waves = []; this.beam = null; this.plinko = null; this.chips = []; this.doors = null; this.car = null; this.buzz = null; this.e.bald = false; this.e.wig = null; }
   /** A hit lands on him: the audience gasps; now and then he complains about it. */
-  onHurt(match, r, d) {
+  onHurt(match, r, d, o) {
+    if (this.e.bald && r && r.mult >= 2 && o && !o.isCpu) match.stat('bald');                   // BANKRUPT! (achievements.js)
     if (d > 9) this.cue('gasp', 40);
     if (this.sayCD <= 0 || (this.say && this.say.t > 40)) { if (Math.random() < 0.3) this.talk(SAY.hurt[Math.floor(Math.random() * SAY.hurt.length)], 70); }
   }

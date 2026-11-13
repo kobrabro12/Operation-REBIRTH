@@ -73,6 +73,7 @@ export class FighterShow {
     const S = this.def.show;
     if (S.kind === 'presto' && !hb.projectile && this.state === 'attack' && this.moveName === 'sideB' && t.cardMarks && t.cardMarks.by === this) {
       const n = t.cardMarks.n; t.cardMarks = null;
+      if (n >= S.cards.max && !this.isCpu && !this.match.isTraining) this.match.stat('cards3');   // IS THIS YOUR CARD? (achievements.js)
       this.match.popText(t, n >= S.cards.max ? 'IS THIS YOUR CARD?!' : 'IS THIS YOUR CARD?', css(this.pal.light)); sfx('bighit', 0.7, 1.3); sfx('shing', 0.6, 1.4);
       for (let i = 0; i < 6 + n * 4; i++) { const a = Math.random() * Math.PI * 2; this.match.particles.push({ x: t.x, y: t.y - 26, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3 - 1, life: 26, color: [0xffffff, 0xe02a3a, this.pal.light][i % 3], size: 3, grav: 0.08 }); }
       return { dmg: 1 + S.cards.perCard * n, kb: 1 + S.cards.perKb * n };
@@ -97,6 +98,7 @@ export class FighterShow {
     if (O.i >= O.list.length) {
       const B = S.orders.bonus;
       this.wellDone = B.time; this.limit = Math.min(100, this.limit + B.limit);
+      if (!this.isCpu && !this.match.isTraining) this.match.stat('orders');                         // ORDER UP! (achievements.js)
       this.match.popText(this, 'ORDER UP!', '#ffd060'); sfx('ding', 0.9, 1); sfx('flame', 0.6, 1);
       for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2; this.match.particles.push({ x: this.x, y: this.y - 40, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3 - 1.5, life: 24, color: i % 2 ? 0xffd060 : 0xff5a2a, size: 3, grav: 0.06 }); }
       this.newOrder();
