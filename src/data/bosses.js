@@ -2,7 +2,8 @@
 // its own hazards, each harder than the last (all open from the start - pick any), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
-// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js / smudgeBossStage.js.
+// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js / smudgeBossStage.js /
+// jackpotBossStage.js / maestroBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -50,6 +51,16 @@ export const BOSSES = [
     taunts: ['I\'M PUTTING YOU ON THE FRIDGE!', 'SIGNED: SMUDGE. AGE NINE. MASTERPIECE.', 'NEEDS MORE COLOUR. AND MORE WINNING.'],
     tip: 'HIT HIM WHILE HE REPAINTS HIMSELF - WET PAINT TAKES MORE DAMAGE.',
     hazards: 'DRIPS / SPILLS' },
+  { id: 'jackpot', name: 'MAX JACKPOT, YOUR HOST', short: 'MAX JACKPOT', title: 'THE HOST WITH THE MOST', stage: 'prime-time', arena: 'PRIME TIME', hp: 780, coins: 620, color: 0xffc83a, trophy: 'golden-mic',
+    blurb: 'THE SMARMIEST HOST ON TELEVISION. EVERY\nFEW ATTACKS HE SPINS THE BIG WHEEL - AND\nIT PICKS THE NEXT ROUND. PRAY FOR BANKRUPT.',
+    taunts: ['THANKS FOR PLAYING! YOU WIN... NOTHING!', 'TELL THEM WHAT THEY\'VE LOST, FOLKS!', 'SEE YOU AFTER THE BREAK... OH WAIT. YOU WON\'T.'],
+    tip: 'WHEN THE WHEEL LANDS ON BANKRUPT, GO FOR HIS BALD HEAD - IT TAKES DOUBLE.',
+    hazards: 'STAGE LAMPS / CONFETTI' },
+  { id: 'maestro', name: 'MAESTRO FORTISSIMO', short: 'MAESTRO', title: 'HE CONDUCTS THE STORM', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 540, coins: 700, color: 0xd03050, trophy: 'golden-baton',
+    blurb: 'A WILD-HAIRED CONDUCTOR WHO FIGHTS IN TIME.\nEVERY ATTACK LANDS ON THE BEAT - READ IT\nOFF HIS SCORE. HIT HIM ON THE BEAT: x1.5.',
+    taunts: ['YOU WERE FLAT. FROM START TO FINISH.', 'NEXT TIME, COUNT TO FOUR.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
+    tip: 'WATCH THE SCORE UNDER HIS HEALTH BAR - WHEN A NOTE HITS THE GOLD LINE, SO DOES HE.',
+    hazards: 'SANDBAGS / TRAPDOOR SMOKE' },
 ];
 /** The boss with this id (a BOSSES entry). */
 export const bossById = (id) => BOSSES.find((b) => b.id === id);

@@ -26,6 +26,8 @@ import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
 import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
 import { HumBossStage, drawLevelZeroPreview } from './humBossStage.js';
 import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
+import { JackpotBossStage, drawPrimeTimePreview } from './jackpotBossStage.js';
+import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -167,6 +169,12 @@ export const STAGES = [
   { id: 'blank-canvas', music: 'bgm_boss_smudge', name: 'THE BLANK CANVAS', available: true, bossArena: 'smudge', make: (scene) => new SmudgeBossStage(scene),
     blurb: ['A stretched canvas over an endless pattern,', 'a paint palette and a sketchbook for ledges.'],
     hazard: 'DRIP: A FAT DROP OF PAINT FALLS ON THE MARK.\nSPILL: PAINT FLOODS PART OF THE FLOOR - IT SLOWS YOU.', preview: drawBlankCanvasPreview },
+  { id: 'prime-time', music: 'bgm_boss_jackpot', name: 'PRIME TIME', available: true, bossArena: 'jackpot', make: (scene) => new JackpotBossStage(scene),
+    blurb: ['A game-show stage of light-up panels,', 'a giant prize wheel and a studio audience.'],
+    hazard: 'STAGE LAMP: A LAMP DROPS OUT OF THE RIG ON THE MARK.\nCONFETTI: A CANNON BLASTS A BAND ACROSS THE STAGE.', preview: drawPrimeTimePreview },
+  { id: 'grand-opera', music: 'bgm_boss_maestro', name: 'THE GRAND OPERA', available: true, bossArena: 'maestro', make: (scene) => new MaestroBossStage(scene),
+    blurb: ['An opera stage in a horseshoe of gilded', 'balconies, a painted dome overhead.'],
+    hazard: 'SANDBAG: A SANDBAG DROPS FROM THE FLY TOWER ON THE MARK.\nTRAPDOOR SMOKE: A TRAP IN THE FLOOR BLASTS SMOKE UP.', preview: drawGrandOperaPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

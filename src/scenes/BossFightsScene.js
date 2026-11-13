@@ -49,8 +49,8 @@ export class BossFightsScene extends Phaser.Scene {
       const x = CARD.x + i * (CARD.w + CARD.gap), y = CARD.y;
       T('n' + i, x + 8, y + 6, ROMAN[i], 9, hex(B.color));
       const small = CARD.w < 80;
-      T('name' + i, x + 5, y + 98, B.short, B.short.length > 10 || small ? 5 : 7, '#ffffff', { wordWrap: { width: CARD.w - 8 } });
-      T('arena' + i, x + 5, y + 114, B.arena, small ? 4 : 5, '#c9c4dc', { wordWrap: { width: CARD.w - 8 } });
+      T('name' + i, x + 5, y + 94, B.short, B.short.length > 10 || small ? 5 : 7, '#ffffff', { wordWrap: { width: CARD.w - 8 } });
+      T('arena' + i, x + 5, y + 120, B.arena, small ? 4 : 5, '#c9c4dc', { wordWrap: { width: CARD.w - 8 } });
       T('lock' + i, x + CARD.w / 2, y + 56, '', 6, '#ffffff', { align: 'center', wordWrap: { width: CARD.w - 8 } }).setOrigin(0.5);
     });
     T('blurb', 30, 214, '', 6, '#e8e4ff');

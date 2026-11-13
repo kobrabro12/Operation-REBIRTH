@@ -21,6 +21,14 @@
             oom-pah of plucked bass and stabs, a toy-piano glockenspiel tune that keeps changing key on a whim (like he
             changes style), a cheeky square-wave counter-line, a kazoo-ish brass answer; the drive layer underneath.
 
+  jackpot   "Big Money" - MAX JACKPOT, YOUR HOST (a game show): 132 BPM in B-flat, a swinging big-band TV theme. A walking
+            bass, swung hats and rim clicks, brass section stabs and a bright trumpet melody, a Hammond-ish organ comp,
+            a "ding ding ding" bell on every big phrase, a drum-roll and fanfare into the second chorus.
+  maestro   "Fortissimo" - MAESTRO FORTISSIMO (an opera conductor): 120 BPM (a beat = 30 frames, his attacks fall on
+            it) in D minor. A full pit orchestra: driving staccato strings, timpani and a pipe organ, a soaring
+            soprano line over a low choir, brass fanfares; a quiet adagio middle with only harp and violins, then
+            the storm comes back fortissimo.
+
 Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight machine hum]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
@@ -318,6 +326,63 @@ def smudge():
     save(R, 'smudge', bars * 4 * b)
 
 
+def jackpot():
+    b = 60 / 132; bars = 24; out = np.zeros(secs(bars * 4 * b + 3)); sw = b * 0.66   # (swing: the off-beat 8th lands late)
+    # B-flat major: I - vi - ii - V, then IV - iv - I - V (a showbiz turnaround)
+    prog = [(46, [62, 65, 70]), (43, [62, 67, 70]), (36, [63, 67, 70]), (41, [63, 65, 69]), (39, [63, 67, 70]), (39, [63, 66, 70]), (46, [62, 65, 70]), (41, [63, 65, 69])]
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b
+        walk = [root, root + 4, root + 7, root + 9] if bar % 2 == 0 else [root + 12, root + 9, root + 7, root + 5]
+        for i, m in enumerate(walk): add(out, pluck(m - 12, b * 0.9, 1.0), t0 + i * b)            # walking bass
+        for i in (1, 3): add(out, sum(organ(m, b * 0.5, 0.18) for m in ch), t0 + i * b)             # organ comp on 2 and 4
+        if bar % 2 == 1: add(out, sum(brass(m + 12, b * 0.35, 0.3, 1.6) for m in ch), t0 + 3 * b + sw)   # section stabs
+        for i in range(4): add(out, drum_hat(0.4), t0 + i * b); add(out, drum_hat(0.3), t0 + i * b + sw)
+    tune = [(0, 77, 1), (1, 74, .5), (1.66, 77, .5), (2.33, 82, 1.5), (4, 81, .5), (4.66, 79, .5), (5.33, 77, 1), (6.5, 74, 1.5),
+            (8, 75, 1), (9, 79, .5), (9.66, 82, .5), (10.33, 86, 1.5), (12, 84, .66), (12.66, 82, .66), (13.33, 81, .66), (14, 82, 2)]
+    for rep in range(3):
+        for half in (0, 16):
+            for beat, m, d in tune: add(out, brass(m, d * b * 0.95, 0.45, 2.0), rep * 32 * b + (half + beat) * b)
+        for at in (3, 11, 19, 27): add(out, glock(96, 0.3, 0.4), rep * 32 * b + at * b); add(out, glock(91, 0.3, 0.35), rep * 32 * b + (at + 0.33) * b)   # ding ding
+        if rep == 1:                                                         # the drum roll and fanfare into the last chorus
+            for k in range(16): add(out, drum_snare(0.3 + k * 0.03), 64 * b - 4 * b + k * b / 4)
+            add(out, ohit([70, 74, 77, 82], 0.8), 64 * b)
+    drums(out, b, 24, 'k......sk.k...s.|....t.......t...', 0.7)
+    R = reverb(out, 1.2, 4, 0.2); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.55, saw=False)[:len(R)]
+    save(R, 'jackpot', bars * 4 * b)
+
+
+def maestro():
+    b = 60 / 120; bars = 32; out = np.zeros(secs(bars * 4 * b + 4))
+    prog = [(38, [62, 65, 69]), (34, [62, 65, 70]), (31, [62, 67, 70]), (33, [61, 64, 69]), (38, [62, 65, 69]), (36, [64, 67, 72]), (34, [65, 70, 74]), (33, [64, 67, 73])]
+    quiet = range(16, 22)                                                    # the adagio: harp and violins only
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b
+        if bar in quiet:
+            for i in range(8): add(out, pluck(ch[i % 3] + 12 * (i // 3 % 2), b * 0.9, 0.6), t0 + i * b / 2)
+            add(out, strings([m + 12 for m in ch], 4 * b, 0.35), t0); continue
+        for i in range(16): add(out, sum(strings([m], b / 4 * 0.6, 0.35) for m in (ch[0] - 12, ch[0])), t0 + i * b / 4)   # driving staccato strings
+        add(out, strings([root, root + 12] + ch, 4 * b, 0.4), t0)
+        add(out, sum(organ(m - 12, 4 * b, 0.12) for m in ch), t0)
+        add(out, choir([m - 12 for m in ch], 4 * b, 0.35), t0)
+        for i in (0, 2): add(out, timpani(root, 0.9, 0.8), t0 + i * b)
+        if bar % 4 == 3: add(out, timpani(root, 1.6, 0.9, roll=1.0), t0 + 2 * b)
+        if bar % 2 == 0: add(out, sum(brass(m, b * 0.6, 0.35, 1.2) for m in ch), t0 + 3.5 * b)
+    aria = [(0, 74, 2), (2, 77, 1), (3, 76, 1), (4, 74, 1.5), (5.5, 73, .5), (6, 74, 2), (8, 81, 3), (11, 79, .5), (11.5, 77, .5), (12, 76, 2), (14, 73, 2),
+            (16, 74, 1), (17, 77, 1), (18, 81, 1), (19, 86, 3), (22, 84, 1), (23, 82, 1), (24, 81, 2), (26, 77, 1), (27, 76, 1), (28, 74, 4)]
+    for rep in (0, 1, 2):
+        start = [0, 8, 22][rep] * 4 * b
+        if rep == 2: start = 22 * 4 * b
+        for beat, m, d in aria:
+            if start + beat * b > bars * 4 * b: break
+            add(out, sinew(m + 12, d * b, 0.28, 0.06, 0.3) * (1 + 0.05 * np.sin(np.arange(secs(d * b)) / SR * 2 * np.pi * 5.5)), start + beat * b)   # the soprano
+            if rep == 1: add(out, brass(m, d * b * 0.9, 0.25, 1.0), start + beat * b)
+    for bar in quiet:                                                        # violins sighing over the harp
+        add(out, sinew(prog[bar % 8][1][2] + 12, 4 * b, 0.18, 0.4, 0.6), bar * 4 * b)
+    R = reverb(out, 2.4, 2.6, 0.32)
+    R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.45, quiet=tuple(quiet), half=True, saw=False)[:len(R)]
+    save(R, 'maestro', bars * 4 * b)
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge', 'jackpot', 'maestro']
     for w in which: globals()[w]()

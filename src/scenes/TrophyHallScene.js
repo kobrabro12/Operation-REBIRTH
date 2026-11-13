@@ -17,7 +17,7 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { titleBanner, hintBar, ARC } from '../ui/arcade.js';
-import { Poly3D, boxFaces, prismFaces, blobFaces, pyramidFaces } from '../stage/poly3d.js';
+import { Poly3D, boxFaces, prismFaces, blobFaces, pyramidFaces, ballFaces } from '../stage/poly3d.js';
 import { checkAchievements, trophyEarned, trophyProgress, TROPHY_GOALS } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
 import { HALL, HALL_SLOTS, DISPLAY, PAINTINGS, TROPHIES } from '../data/trophyHall.js';
@@ -387,6 +387,15 @@ export class TrophyHallScene extends Phaser.Scene {
       T.push(...xyz(prismFaces(0, -40, -14, 0, 1.4, 6, 0xc8962e, 0xf0c860), 0, 0, 0, 0.18), ...xyz(prismFaces(0, -46, -40, 0, 2.4, 8, 0xd8dce4, 0xffffff), 0, 0, 0, 0.18));
       T.push(...xyz(pyramidFaces(0, -46, 0, 5, 5, 13, 0xff2a6a), 0, 0, 0, 0.18));
       for (let i = 0; i < 3; i++) T.push(...boxFaces(-6 + i * 5, -16, -9.4, -4 + i * 5, -16 + 5 + i * 3, -9, 0xff2a6a));
+    } else if (model === 'mic') {                                     // THE GOLDEN MIC: a gold microphone on a little round stand, its cord coiled at the foot
+      T.push(...prismFaces(0, -3, 0, 0, 9, 10, 0xb88a20, 0xd8a830), ...prismFaces(0, -30, -3, 0, 1.2, 6, 0xc89a28, 0xffd040));
+      T.push(...xyz(prismFaces(0, -44, -30, 0, 2, 8, 0xd8a830, 0xffd040), 0, 0, 0, 0.22), ...xyz(ballFaces(0, -48, 0, 5, 5.5, 5, 0xffd040, { seg: 8, rings: 5 }), 0, 0, 0, 0.22));
+      for (let i = 0; i < 8; i++) { const q = i / 8 * Math.PI * 2, r = 11; T.push(...boxFaces(Math.cos(q) * r - 1.2, -2.4, Math.sin(q) * r - 1.2, Math.cos(q) * r + 1.2, 0, Math.sin(q) * r + 1.2, 0x1a1428)); }
+    } else if (model === 'baton') {                                   // THE GOLDEN BATON: a gold music stand, open at the last page, the baton laid across it
+      T.push(...prismFaces(0, -3, 0, 0, 7, 3, 0xb88a20, 0xd8a830), ...prismFaces(0, -30, -3, 0, 1, 6, 0xc89a28, 0xffd040));
+      T.push(...xyz(boxFaces(-13, -8, -1, 13, 8, 1, 0xd8a830, 0xffd040), 0, -36, 0, 0, -0.35), ...xyz(boxFaces(-12, -7, -1.6, 12, 7, -1.1, 0xfffff0, 0xfffff0), 0, -36, 0, 0, -0.35));
+      for (let i = 0; i < 4; i++) T.push(...xyz(boxFaces(-11, -5 + i * 3.4, -1.9, 11, -4.6 + i * 3.4, -1.6, 0x1a1428), 0, -36, 0, 0, -0.35));
+      T.push(...xyz(prismFaces(0, -24, 0, 0, 0.7, 6, 0xffe070, 0xffffff), 0, -46, -2, 1.2), ...xyz(ballFaces(0, 0, 0, 1.8, 1.8, 1.8, 0xfff4f0, { seg: 6, rings: 4 }), 0, -46, -2, 1.2));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));
