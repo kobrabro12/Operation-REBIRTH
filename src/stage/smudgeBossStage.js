@@ -1,7 +1,9 @@
 // THE BLANK CANVAS - the arena of SMUDGE, THE LITTLE MASTER (boss VII; Trinkets > BOSS FIGHTS, src/data/bosses.js).
-// An original character: a hyperactive, bratty nine-year-old art prodigy with a paint bucket jammed on his head (two eye
-// holes punched in it), paint gushing out from under the rim and flowing down his back as hair, a smock covered in
-// stains and a paintbrush taller than he is. He talks the whole fight (comic speech bubbles) - critiquing you, bragging,
+// An original character: a hyperactive, bratty nine-year-old art prodigy with a paint bucket jammed upside down over his
+// head and eyes (its handle hangs under his chin like a chin strap, so all you see is his big toothy grin), rainbow
+// paint pouring out from under the rim and running down his back as hair, overalls covered in stains and a paintbrush
+// taller than he is, held in both hands with the tip dragging on the floor behind him. Drawn as real pixel art
+// (pixelPen.js), always in bright colours, whatever the style. He talks the whole fight (comic speech bubbles) - critiquing you, bragging,
 // whining when you hit him.
 // THE ARENA is real 3D (poly3d.js): a stretched canvas floating over an endless floor of tiles, with a lattice of
 // cubes and balls running off into infinity in every direction - at first nothing but black and white, a pattern
@@ -28,6 +30,7 @@ import { Poly3D, ballFaces, boxFaces } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 import { FONT, VIEW_W } from '../config.js';
 import { skinInfo } from '../fighters/skins.js';
+import { PixelPen } from './pixelPen.js';
 
 // the styles he cycles through (ACTION PAINTING is only for the end)
 const STYLES = ['sketch', 'pop', 'cubist', 'starry'];
@@ -41,8 +44,19 @@ const PAL = {
   starry: { name: 'IMPRESSIONISM', sky: [0x081040, 0x2a4ab0], tiles: [0x1a2a8a, 0x2a4ab0, 0x0e1a60, 0x3a5ac8], solids: [0xffd040, 0x2a4ab0, 0x5a8ae0, 0xfff0a0], fog: 0x1a2a7a, kid: [0x9ab8ff, 0x1a2a8a, 0x2a3aa0, 0x0e1a50, 0xffd040, 0xffe060, 0x5a3a20], ink: 0x0a0e30, line: 2 },
   splatter: { name: 'ACTION PAINTING', sky: [0x2a2a2a, 0x6a6a6a], tiles: [0xffffff, 0x111111, 0xff2a2a, 0x2a8aff, 0xffd400, 0x2ad060], solids: [0xff2a2a, 0x2a8aff, 0xffd400, 0x2ad060, 0xffffff], fog: 0x3a3a3a, kid: [0xffcf9a, 0xf0f0f0, 0x2a3a6a, 0x111111, 0xd0d0d0, 0xff2a2a, 0x8a5a2a], ink: 0x111111, line: 3 },
 };
-// his size: leg, torso, head (bucket) heights; the brush: arm reach, brush length; walk speeds
-const KID = { leg: 54, torso: 62, head: 76, arm: 50, brush: 150, walk: 1.6, fast: 2.4, range: 190 };
+// his size (world pixels - about twice a fighter's height): leg, torso, head (bucket) heights; the brush: arm reach, brush length; walk speeds
+const KID = { leg: 26, torso: 26, head: 34, arm: 20, brush: 84, walk: 1.6, fast: 2.4, range: 190 };
+// his colours in each style - always bright, even in SKETCH: skin, shirt stripes, overalls, shoes, bucket, the bucket's
+// label band, the brush's paint, the paint hair's ribbons (rainbow), the brush handle
+const KIDPAL = {
+  sketch: { skin: 0xffcfa0, shirt: [0xff3a3a, 0xfff4e0], over: 0x2a78ff, shoe: 0xff2a78, bucket: 0x34d0bc, band: 0xffd400, paint: 0xff2a78, hair: [0xff2a4a, 0xff9a1a, 0xffe03a, 0x2ad060, 0x2a8aff, 0xb04aff], wood: 0xd08a3a },
+  pop: { skin: 0xffcf9a, shirt: [0xffd400, 0xff2a8a], over: 0x22c8ff, shoe: 0xff2a2a, bucket: 0xff2a8a, band: 0xffffff, paint: 0xffd400, hair: [0xff2a8a, 0xffd400, 0x22c8ff, 0xff7a2a, 0xa04aff], wood: 0xffd400 },
+  cubist: { skin: 0xe8a878, shirt: [0xc8502a, 0xf0c878], over: 0x3a8ab0, shoe: 0xa83a2a, bucket: 0xe8a830, band: 0x3a5a8a, paint: 0xd84a2a, hair: [0xd84a2a, 0xe8a830, 0x3a8ab0, 0x6aa85a, 0x8a4a9a], wood: 0x8a5a3a },
+  starry: { skin: 0xffd8b0, shirt: [0x3a5ae0, 0xffd040], over: 0x2a3ab8, shoe: 0xffd040, bucket: 0xffd040, band: 0x3a5ae0, paint: 0x5ab8ff, hair: [0xffd040, 0x5a8ae0, 0x2ad0c0, 0xfff0a0, 0x8a6aff], wood: 0x7a4a2a },
+  splatter: { skin: 0xffcf9a, shirt: [0xffffff, 0xff2a2a], over: 0x2a3a7a, shoe: 0xff2a2a, bucket: 0xf0f0f0, band: 0xff2a2a, paint: 0xff2a2a, hair: [0xff2a4a, 0xff9a1a, 0xffe03a, 0x2ad060, 0x2a8aff, 0xb04aff], wood: 0x8a5a2a },
+};
+// the pixel canvas he's drawn into (world pixels) and where his feet sit in it
+const PX = { w: 300, h: 260, fx: 150, fy: 196 };
 // how often he restyles (every this-many attacks; enraged: fewer) and how long it takes
 const RESTYLE = { every: 4, rage: 3, dur: 80, wet: 1.5 };
 // BRUSH SWEEP: wind-up, swing (frames), the hit, the wet paint it leaves (frames, how long it slows you each frame you're in it)
@@ -69,7 +83,7 @@ const WAVE = { speed: 6.5, h: 52, hit: [11, [60, 6, 0.7]] };
 const ACTION = { dur: 110, every: 6, warn: 22, hit: [7, [70, 4.8, 0.5]] };
 const BUCKET = { speed: 9, out: 120, hit: [12, [50, 6, 0.85]] };
 // all his hits: x damage, x base knockback, x knockback growth (one knob for the whole fight's punch)
-const HIT = { dmg: 1.1, base: 1.1, growth: 1.3 };
+const HIT = { dmg: 1.34, base: 1.18, growth: 1.5 };
 // health thresholds: below this he's in ACTION PAINTING
 const LOW = { at: 0.3 };
 // stage hazards: DRIP (warning, hit) and SPILL (warning, how long it stays, slow)
@@ -133,7 +147,7 @@ export class SmudgeBossStage extends BossArena {
     this.count = 0; this.wet = []; this.blobs = []; this.scrib = null; this.eraser = null; this.doodles = []; this.bursts = []; this.dots = null;
     this.bubbles = []; this.pieces = []; this.spikes = null; this.beams = null; this.swirl = null; this.stars = []; this.wave = null; this.splats = []; this.bucket = null;
     this.say = null; this.sayCD = 300; this.wipe = null; this.low = false; this.drip = null; this.spill = null;
-    this.sparkColor = 0xff2a6a; this.bodyW = 100; this.bodyH = 200;
+    this.sparkColor = 0xff2a6a; this.bodyW = 50; this.bodyH = 100;
   }
 
   // ------------------------------------------------------------------ the arena
@@ -154,8 +168,7 @@ export class SmudgeBossStage extends BossArena {
       faces.forEach((f, q) => { f.k = 'solid'; f.i = i + j * 7 + l * 21; f.q = q; R.faces.push(f); });
     }
     this.arenaG = s.add.graphics(); world.push(this.arenaG);
-    this.backG = s.add.graphics(); world.push(this.backG);             // (his paint hair and the things behind him)
-    this.kidG = s.add.graphics(); world.push(this.kidG);
+    this.pen = new PixelPen(s, 'smudge_px', PX.w, PX.h); world.push(this.pen.img);   // (he's drawn as pixel art)
     this.fxG = s.add.graphics(); world.push(this.fxG);
     this.bubG = s.add.graphics(); world.push(this.bubG);
     this.bubT = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '9px', color: '#141414', align: 'center', wordWrap: { width: 150 } }).setOrigin(0.5).setVisible(false); world.push(this.bubT);
@@ -273,21 +286,22 @@ export class SmudgeBossStage extends BossArena {
     const ft = { x: E.x, y: E.y - E.hop };
     const hip = { x: ft.x, y: ft.y - KID.leg * (1 - c * 0.35) * (1 - sq * 0.2) };
     const sh = { x: hip.x + d * 4 + d * c * 10, y: hip.y - KID.torso * (1 - sq * 0.15) };
-    const head = { x: sh.x + d * 4, y: sh.y - KID.head * 0.5 - 6 };
+    const head = { x: sh.x + d * 2, y: sh.y - KID.head * 0.5 - 4 };
     const ux = Math.cos(E.ba) * d, uy = Math.sin(E.ba);
-    const hand = { x: sh.x + d * 6 + ux * KID.arm, y: sh.y + 8 + uy * KID.arm };
+    const hand = { x: sh.x + d * 3 + ux * KID.arm, y: sh.y + 5 + uy * KID.arm };
     const tip = { x: hand.x + ux * KID.brush, y: hand.y + uy * KID.brush };
-    const hand2 = { x: sh.x - d * 10 + Math.cos(E.bb) * d * KID.arm * 0.8, y: sh.y + 10 + Math.sin(E.bb) * KID.arm * 0.8 };
+    // the other hand grips the brush a little further down the handle - unless it's busy (throwing the bucket, the score card)
+    const hand2 = E.free || this.card ? { x: sh.x - d * 6 + Math.cos(E.bb) * d * KID.arm * 0.9, y: sh.y + 6 + Math.sin(E.bb) * KID.arm * 0.9 } : { x: hand.x + ux * 12, y: hand.y + uy * 12 };
     return { ft, hip, sh, head, hand, tip, hand2 };
   }
   /** What the camera and the CPU aim at: his bucket. */
-  core() { if (this.pieces.length && this.boss && this.boss.atk && this.boss.atk.name === 'shatter') return { x: this.e.x, y: -120 }; const b = this.body(); return { x: b.head.x, y: b.head.y }; }
+  core() { if (this.pieces.length && this.boss && this.boss.atk && this.boss.atk.name === 'shatter') return { x: this.e.x, y: -70 }; const b = this.body(); return { x: b.head.x, y: b.head.y }; }
   /** Where he can be hit: his bucket head (x1.2, bare head x2), his body (x0.9); everything x1.5 while the paint's wet (restyling). None while shattered. */
   hurt() {
     const E = this.e; if (E.alpha < 0.5) return [];
     const b = this.body(), wet = this.boss && this.boss.atk && this.boss.atk.name === 'restyle' ? RESTYLE.wet : 1;
-    return [{ x1: b.head.x - 36, y1: b.head.y - 40, x2: b.head.x + 36, y2: b.head.y + 34, mult: (E.bucketOff ? 2 : 1.2) * wet },
-      { x1: b.hip.x - 40, y1: b.sh.y, x2: b.hip.x + 40, y2: Math.min(0, b.ft.y), mult: 0.6 * wet }];
+    return [{ x1: b.head.x - 20, y1: b.head.y - 22, x2: b.head.x + 20, y2: b.head.y + 22, mult: (E.bucketOff ? 2 : 1.2) * wet },
+      { x1: b.hip.x - 18, y1: b.sh.y, x2: b.hip.x + 18, y2: Math.min(0, b.ft.y), mult: 0.6 * wet }];
   }
   /** What he does next: a RESTYLE every few attacks, then the current style's moves (plus the brush); ACTION PAINTING mixes everything. */
   pattern(phase) {
@@ -325,11 +339,18 @@ export class SmudgeBossStage extends BossArena {
   idle(match) {
     const E = this.e, tg = this.nearest(match, E.x);
     E.crouch += (0.05 - E.crouch) * 0.1; E.hop = Math.max(0, E.hop * 0.85); E.squash *= 0.8;
-    E.ba += ((-0.9 + Math.sin(this.t * 0.06) * 0.3) - E.ba) * 0.08; E.bb += ((1.3 + Math.sin(this.t * 0.07) * 0.2) - E.bb) * 0.1;
+    E.ba += (this.restAngle() + Math.sin(this.t * 0.06) * 0.06 - E.ba) * 0.08; E.bb += ((1.3 + Math.sin(this.t * 0.07) * 0.2) - E.bb) * 0.1;
     if (tg && Math.abs(tg.x - E.x) > 130) this.walkTo(tg.x - Math.sign(tg.x - E.x) * 100, this.speed() * 0.7);
     else if (tg) E.dir = Math.sign(tg.x - E.x) || E.dir;
     if (this.t % 50 < 12) E.hop = Math.max(E.hop, Math.sin((this.t % 50) / 12 * Math.PI) * 6);
     if (this.sayCD <= 0 && !this.say) this.talk(SAY.idle[Math.floor(Math.random() * SAY.idle.length)]);
+  }
+
+  /** The brush angle that rests its tip on the floor behind him, both hands on the handle (written past -PI so a swing from the front goes up over his head). */
+  restAngle() {
+    const E = this.e, sh = this.body().sh, ft = E.y - E.hop;
+    const uy = Phaser.Math.Clamp((ft - 2 - (sh.y + 5)) / (KID.arm + KID.brush), -1, 1);
+    return -Math.PI - Math.asin(uy);
   }
 
   // ------------------------------------------------------------------ attacks (any style)
@@ -347,7 +368,7 @@ export class SmudgeBossStage extends BossArena {
     const k = a.t - w;
     if (k <= SWEEP.swing) {
       E.ba = lerp(-2.3, 0.75, k / SWEEP.swing); E.crouch = 0.5; E.x = Phaser.Math.Clamp(E.x + E.dir * 2, -KID.range, KID.range);
-      const b = this.body(); for (let q = 1; q <= 5; q++) { const px = lerp(b.hand.x, b.tip.x, q / 5), py = lerp(b.hand.y, b.tip.y, q / 5); out.push(this.bhit(a.id2, px - 22, py - 22, px + 22, py + 22, ...SWEEP.hit, { dirX: E.dir })); }
+      const b = this.body(); for (let q = 1; q <= 5; q++) { const px = lerp(b.hand.x, b.tip.x, q / 5), py = lerp(b.hand.y, b.tip.y, q / 5); out.push(this.bhit(a.id2, px - 28, py - 28, px + 28, py + 28, ...SWEEP.hit, { dirX: E.dir })); }
       if (k === SWEEP.swing) { sfx('bighit', 0.7, 1.1); match.shake(6, 8); const x0 = b.tip.x, x1 = b.tip.x - E.dir * 200; this.addWet(Math.min(x0, x1), Math.max(x0, x1), SWEEP.wet); this.splash(match, b.tip.x, -4, 12); }
       return false;
     }
@@ -617,16 +638,16 @@ export class SmudgeBossStage extends BossArena {
   /** BUCKET: he yanks the paint bucket off his head (wild hair, a gap-toothed grin - his bare head takes x2!) and hurls it at you; it spins out, sloshing paint, and comes back. */
   atk_bucket(match, a, out) {
     const E = this.e;
-    if (a.t === 1) { this.faceNearest(match); this.talk('CATCH!!', 50); }
+    if (a.t === 1) { this.faceNearest(match); this.talk('CATCH!!', 50); E.free = true; E.bb = 1.3; }
     if (a.t <= 24) { E.bb = lerp(1.3, -2.4, a.t / 24); return false; }
     if (a.t === 25) { const b = this.body(), tg = this.nearest(match, E.x); E.bucketOff = true; this.bucket = { x: b.head.x, y: b.head.y, sx: b.head.x, sy: b.head.y, tx: tg ? tg.x : E.x + E.dir * 200, ty: tg ? tg.y - 30 : -40, t: 0, a: 0, id: this.sid('bucket') }; sfx('whoosh', 1, 0.6); }
     const B = this.bucket; if (!B) return true;
     B.t++; B.a += 0.4; E.bb = -0.6;
     const out1 = this.sp(BUCKET.out), k = B.t / out1, go = k < 0.5 ? k * 2 : (1 - k) * 2, hb = this.body().head;
     B.x = k < 0.5 ? lerp(B.sx, B.tx, go) : lerp(hb.x, B.tx, go); B.y = (k < 0.5 ? lerp(B.sy, B.ty, go) : lerp(hb.y, B.ty, go)) - Math.sin(go * Math.PI) * 30;
-    out.push(this.bhit(B.id + (k < 0.5 ? 'a' : 'b'), B.x - 26, B.y - 26, B.x + 26, B.y + 26, ...BUCKET.hit, { radial: true }));
+    out.push(this.bhit(B.id + (k < 0.5 ? 'a' : 'b'), B.x - 20, B.y - 20, B.x + 20, B.y + 20, ...BUCKET.hit, { radial: true }));
     if (B.t % 4 === 0) match.particles.push({ x: B.x, y: B.y, vx: (Math.random() - 0.5) * 2, vy: 1, life: 30, color: PAL.splatter.tiles[2 + (B.t >> 2) % 4], size: 3, grav: 0.3 });
-    if (k >= 1) { this.bucket = null; E.bucketOff = false; sfx('clang', 0.8, 0.9); return true; }
+    if (k >= 1) { this.bucket = null; E.bucketOff = false; E.free = false; sfx('clang', 0.8, 0.9); return true; }
     return false;
   }
   /** Below 30%: ACTION PAINTING for good - he throws a tantrum, splattering himself and the whole world. */
@@ -667,10 +688,10 @@ export class SmudgeBossStage extends BossArena {
     this.sayBox(L ? sayPart(L.text, t, L.at, L.len * 0.4) : null, L ? L.who : '');
     if (L && t % 5 === 0 && t - L.at < L.len * 0.4) sfx('menu', 0.25, L.who === 'SMUDGE' ? 1.5 : 0.8);
     const fx = f ? f.x : 0;
-    C.shot = L && L.who === 'MR WAKE' ? { x: fx, y: -50, zoom: 1.7 } : { x: E.x, y: -110, zoom: 1.35 };
+    C.shot = L && L.who === 'MR WAKE' ? { x: fx, y: -50, zoom: 1.7 } : { x: E.x, y: -60, zoom: 1.9 };
     if (t < F.boom) { if (t % 40 === 0 && t > 20 && t < 260) this.splash(match, this.body().head.x + E.dir * 14, this.body().head.y + 8, 2, 0x8ad0ff); return; }   // (tears)
     if (once('boom', F.boom)) { sfx('geyser', 1, 0.7); sfx('bighit', 0.8, 1.2); sfx('laugh', 0.5, 1.8); match.shake(10, 30); E.alpha = 0; this.sayBox(null); }
-    C.shot = { x: E.x, y: -130, zoom: 1.0 };
+    C.shot = { x: E.x, y: -110, zoom: 1.1 };
     if (t < F.boom + 50 && t % 2 === 0) for (let i = 0; i < 6; i++) match.particles.push({ x: E.x + (Math.random() - 0.5) * 40, y: -100, vx: (Math.random() - 0.5) * 9, vy: -4 - Math.random() * 7, life: 60, color: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060, 0xb04ae0, 0xffffff][i], size: 4, grav: 0.25 });
     if (t >= F.n) { this.cut = null; this.gone = true; this.sayBox(null); super.startDeath(match); }
   }
@@ -681,7 +702,7 @@ export class SmudgeBossStage extends BossArena {
   }
   /** His death: he plops down and wails (MOOOM!) - the explosions come from BossArena. */
   onDeath(match) {
-    this.pieces = []; this.blobs = []; this.doodles = []; this.bursts = []; this.dots = null; this.scrib = null; this.eraser = null; this.spikes = null; this.beams = null; this.swirl = null; this.stars = []; this.wave = null; this.splats = []; this.bucket = null;
+    this.pieces = []; this.blobs = []; this.doodles = []; this.bursts = []; this.dots = null; this.scrib = null; this.eraser = null; this.spikes = null; this.beams = null; this.swirl = null; this.stars = []; this.wave = null; this.splats = []; this.bucket = null; this.e.free = false;
     this.e.alpha = this.gone ? 0 : 1; this.e.bucketOff = false; if (!this.rival) this.talk('NO FAIR!! MOOOOM!!', 200); if (match) this.splash(match, this.e.x, -100, 30);
   }
 
@@ -725,9 +746,9 @@ export class SmudgeBossStage extends BossArena {
     this.skyG.clear(); this.skyG.fillStyle(0xffffff, 1); this.skyG.fillRect(-400, -400, 1440, 1200); this.patG.clear();
   }
   /** The entrance's camera: wide on the white void, then in on him as he's drawn, close as the bucket lands. */
-  introShot(k) { const c = this.core(); if (this.rival) { const kk = k * (220 + ARTOFF.extra) / 220; if (kk > 1) return { x: c.x - 20, y: c.y + 30, zoom: 1.4 }; k = kk; } return k < 0.4 ? { x: 0, y: -100, zoom: 0.85 } : k < 0.86 ? { x: this.e.x, y: -110, zoom: 1.3 } : { x: c.x - 30, y: c.y + 40, zoom: 1.2 }; }
+  introShot(k) { const c = this.core(); if (this.rival) { const kk = k * (220 + ARTOFF.extra) / 220; if (kk > 1) return { x: c.x - 20, y: c.y + 20, zoom: 1.8 }; k = kk; } return k < 0.4 ? { x: 0, y: -100, zoom: 0.85 } : k < 0.86 ? { x: this.e.x, y: -62, zoom: 2 } : { x: c.x - 24, y: c.y + 26, zoom: 1.8 }; }
   /** The freeze frame: him, brush pointed at you. */
-  introAt() { const c = this.core(); return { x: c.x - 40, y: c.y + 50, zoom: 1.15 }; }
+  introAt() { const c = this.core(); return { x: c.x - 30, y: c.y + 30, zoom: 1.6 }; }
   /** After the intro: the world is fully drawn and he's whole. */
   endIntro() { super.endIntro(); if (this.sayG) this.sayBox(null); this.e.reveal = 1; this.introBucket = null; this.hairK = 1; this.setStyle('sketch', true); }
 
@@ -783,116 +804,129 @@ export class SmudgeBossStage extends BossArena {
   /** Draws the 3D world, the arena, SMUDGE and everything he's thrown, his speech bubble, the wipe; the bar. */
   render() {
     const B = this.boss, fx = this.fxG; this.R.render([]); this.drawArena(this.arenaG);
-    this.kidG.clear(); this.backG.clear(); fx.clear(); this.bubG.clear(); this.bubT.setVisible(false); this.burstT.forEach((o) => o.setVisible(false));
-    if (B || this.introBucket != null) this.drawKid(this.kidG, this.backG, this.style);
+    fx.clear(); this.bubG.clear(); this.bubT.setVisible(false); this.burstT.forEach((o) => o.setVisible(false));
+    this.pen.img.setVisible(!!(B || this.introBucket != null) && this.e.alpha > 0.02);
+    if (this.pen.img.visible) this.drawKid(this.pen, this.style);
     this.drawFx(fx);
     if (this.say) this.drawBubble();
     if (this.wipe) this.drawWipe(fx);
     if (B) this.drawBar();
   }
   /**
-   * SMUDGE in an art style: paint hair flowing down his back from under the bucket (`backG`), sneakers, short legs in
-   * rolled-up trousers, a stained smock, the bucket on his head with two eye holes (or both faces at once, CUBISM; or
-   * his bare head - wild hair and a gap-toothed grin - when he's thrown it), the free arm, and the brush arm holding a
-   * brush taller than he is. Each style changes how it's all drawn: pencil lines and hatching (SKETCH), flat CMYK with
-   * thick outlines and halftone dots (POP ART), shifted facets (CUBISM), swirling dabs (IMPRESSIONISM), drips (ACTION).
+   * SMUDGE in an art style, as pixel art (`pen` = a PixelPen; everything in world pixels): rainbow paint pouring out
+   * from under the bucket's rim and running down his back as hair, his striped sleeves and overalls, sneakers, the
+   * bucket jammed over his eyes (its handle under his chin like a chin strap, so only his toothy grin shows - two
+   * grins in TWO FACES; his bare head, wild-eyed, when he's thrown it), and the brush taller than him in both hands.
+   * Each style adds its own touch (hatching, Ben-Day dots, facets, dabs, splatters); the colours stay bright.
    */
-  drawKid(g, back, st) {
-    const E = this.e, P = PAL[st], d = E.dir, t = this.t, A = E.alpha; if (A < 0.02) return;
-    const b = this.body(), [skin, smock, pants, shoe, bucket, paint, wood] = P.kid, ink = P.ink, lw = P.line;
-    const fl = this.boss && this.boss.flash > 0;
-    const col = (c) => (fl ? 0xffffff : c);
-    let budget = E.reveal < 1 ? Math.floor(E.reveal * 24) : 999;                           // (the entrance: he's drawn in stroke by stroke)
-    const go = () => budget-- > 0;
-    const jit = st === 'sketch' ? () => (Math.random() - 0.5) * 1.6 : () => 0;
-    const line = (a, c, w, colr) => { if (!go()) return; g.lineStyle(w + lw * 2, ink, A); g.lineBetween(a.x + jit(), a.y + jit(), c.x + jit(), c.y + jit()); g.lineStyle(w, col(colr), A); g.lineBetween(a.x, a.y, c.x, c.y); };
-    const blob = (x, y, rx, ry, c) => { if (!go()) return; g.fillStyle(ink, A); g.fillEllipse(x, y, rx * 2 + lw * 2, ry * 2 + lw * 2); g.fillStyle(col(c), A); g.fillEllipse(x, y, rx * 2, ry * 2); };
-    const poly = (pts, c) => { if (!go()) return; g.fillStyle(col(c), A); g.fillPoints(pts, true); g.lineStyle(lw, ink, A); g.strokePoints(pts, true); g.lineStyle(0); };
-    // the paint hair: ribbons pouring out from under the back of the rim, rippling down his back to the floor
-    const hk = this.hairK ?? 1;
-    if (!E.bucketOff && (this.introBucket == null || this.introBucket >= 1) && hk > 0) {
-      for (let r = 0; r < 7; r++) {                                                  // (back to front: the outer ribbons first)
-        const sx = b.head.x - d * (4 + r * 6), sy = b.head.y + 26, len = (64 + r * 20 + Math.sin(t * 0.05 + r) * 6) * hk, pts = [];
-        for (let q = 0; q <= 12; q++) { const s = q / 12; pts.push({ x: sx - d * (s * (30 + r * 4) + Math.sin(t * 0.13 + r * 1.3 + s * 6) * 9 * s), y: sy + s * len - Math.sin(s * Math.PI) * 6 }); }
-        const c = r % 2 ? paint : mix(paint, 0xffffff, st === 'sketch' ? 0 : 0.3);
-        const W = (q) => (17 - q * 1.05) * (r === 0 || r === 6 ? 0.75 : 1);
-        for (let q = 1; q < pts.length; q++) { back.lineStyle(W(q) + lw * 1.5, ink, A); back.lineBetween(pts[q - 1].x, pts[q - 1].y, pts[q].x, pts[q].y); }
-        for (let q = 1; q < pts.length; q++) { back.lineStyle(W(q), col(c), A); back.lineBetween(pts[q - 1].x, pts[q - 1].y, pts[q].x, pts[q].y); }
-        if (st !== 'sketch') for (let q = 2; q < pts.length - 2; q++) { back.lineStyle(2, 0xffffff, A * 0.45); back.lineBetween(pts[q - 1].x - d * 3, pts[q - 1].y, pts[q].x - d * 3, pts[q].y); }   // (a wet shine down each ribbon)
-        const e2 = pts[pts.length - 1]; back.lineStyle(0); back.fillStyle(ink, A); back.fillCircle(e2.x, e2.y + 4 + Math.sin(t * 0.2 + r) * 2, 5.5); back.fillStyle(col(c), A); back.fillCircle(e2.x, e2.y + 4 + Math.sin(t * 0.2 + r) * 2, 4);
-        if ((t + r * 23) % 70 < 30) { const dy = ((t + r * 23) % 70) * 2.2; back.fillStyle(col(c), A); back.fillCircle(e2.x, e2.y + 10 + dy, 3); }   // a drip falling off the end
+  drawKid(pen, st) {
+    const E = this.e, d = E.dir, t = this.t, P = PAL[st] || PAL.sketch, K = KIDPAL[st] || KIDPAL.sketch, ink = P.ink === 0xffffff ? 0x141414 : P.ink;
+    const b = this.body(), g = pen, fl = this.boss && this.boss.flash > 0;
+    g.begin(Math.round(E.x) - PX.fx, Math.round(E.y) - PX.fy, E.reveal < 1 ? Math.floor(E.reveal * 130) : Infinity);
+    this.pen.img.setAlpha(E.alpha);
+    const dk = (c, k = 0.25) => mix(c, 0x000000, k), lt = (c, k = 0.3) => mix(c, 0xffffff, k);
+    const limb = (p, q, w, c) => { g.lineStyle(w, c); g.lineBetween(p.x, p.y, q.x, q.y); };
+    const hx = b.head.x, hy = b.head.y, hk = this.hairK ?? 1;
+    const onHead = !E.bucketOff && (this.introBucket == null || this.introBucket >= 1);
+    // the paint hair: ribbons of every colour pouring from under the back of the rim, rippling down to his heels
+    if (onHead && hk > 0) {
+      for (let r = 0; r < 6; r++) {
+        const sx = hx - d * (2 + r * 3), sy = hy + 8, len = (40 + r * 5 + Math.sin(t * 0.05 + r) * 3) * hk, c = K.hair[r % K.hair.length], pts = [];
+        for (let q = 0; q <= 10; q++) { const s = q / 10; pts.push({ x: sx - d * (s * (10 + r * 3) + Math.sin(t * 0.12 + r * 1.4 + s * 5) * 3 * s), y: sy + s * len }); }
+        for (let q = 1; q < pts.length; q++) limb(pts[q - 1], pts[q], Math.max(2, 6 - q * 0.4), c);
+        const e2 = pts[pts.length - 1]; g.fillStyle(c); g.fillCircle(e2.x, e2.y + 1, 2.5);
+        if ((t + r * 23) % 70 < 30) g.fillRect(e2.x - 1, e2.y + 4 + ((t + r * 23) % 70) * 1.2, 2, 3);   // (a drip falling off the end)
       }
     }
-    // legs, shoes
-    const step = Math.sin(E.walk) * 10;
-    for (const s of [-1, 1]) {
-      const foot = { x: b.ft.x + s * 13 + s * step * 0.4, y: b.ft.y - 6 }, knee = { x: (b.hip.x + foot.x) / 2 + d * 4, y: (b.hip.y + foot.y) / 2 };
-      line(b.hip, knee, 16, pants); line(knee, foot, 14, s > 0 ? pants : mix(pants, 0x000000, 0.1));
-      blob(foot.x + d * 6, foot.y + 2, 14, 7, shoe); if (go()) { g.fillStyle(0xffffff, A); g.fillRect(foot.x + d * 2 - 8, foot.y + 5, 16, 3); }
+    const front = (b.tip.x - b.sh.x) * d > 0;                                        // (the brush in front of him, or trailing behind)
+    const brush = () => {
+      const ux = (b.tip.x - b.hand.x) / KID.brush, uy = (b.tip.y - b.hand.y) / KID.brush, px = -uy, py = ux;
+      const fer = { x: b.hand.x + ux * (KID.brush - 24), y: b.hand.y + uy * (KID.brush - 24) }, base = { x: fer.x + ux * 6, y: fer.y + uy * 6 };
+      limb({ x: b.hand.x - ux * 8, y: b.hand.y - uy * 8 }, fer, 4, K.wood);
+      g.lineStyle(1, lt(K.wood, 0.4)); g.lineBetween(b.hand.x - ux * 6 + px, b.hand.y - uy * 6 + py, fer.x + px, fer.y + py);
+      limb(fer, base, 6, 0xc8c8d8);
+      g.fillStyle(K.paint); g.fillPoints([{ x: base.x + px * 5, y: base.y + py * 5 }, { x: b.tip.x + px * 2, y: b.tip.y + py * 2 }, { x: b.tip.x + ux * 4, y: b.tip.y + uy * 4 }, { x: b.tip.x - px * 2, y: b.tip.y - py * 2 }, { x: base.x - px * 5, y: base.y - py * 5 }]);
+      g.fillStyle(K.hair[1 % K.hair.length]); g.fillPoints([{ x: base.x + px * 2, y: base.y + py * 2 }, { x: b.tip.x + ux * 2, y: b.tip.y + uy * 2 }, { x: base.x - px * 1, y: base.y - py * 1 }]);
+    };
+    const arm = (from, hand, sleeve) => {
+      const el = { x: (from.x + hand.x) / 2 - d * 2, y: (from.y + hand.y) / 2 + 4 };
+      limb(from, el, 6, sleeve ? K.shirt[0] : dk(K.shirt[0])); limb(el, hand, 5, sleeve ? K.shirt[0] : dk(K.shirt[0]));
+      g.lineStyle(2, sleeve ? K.shirt[1] : dk(K.shirt[1])); for (const s of [0.3, 0.7]) { const m = { x: from.x + (el.x - from.x) * s, y: from.y + (el.y - from.y) * s }; g.lineBetween(m.x - 2, m.y, m.x + 2, m.y); const n = { x: el.x + (hand.x - el.x) * s, y: el.y + (hand.y - el.y) * s }; g.lineBetween(n.x - 2, n.y, n.x + 2, n.y); }
+      g.fillStyle(sleeve ? K.skin : dk(K.skin, 0.15)); g.fillCircle(hand.x, hand.y, 3.5);
+    };
+    const shF = { x: b.sh.x + d * 2, y: b.sh.y + 3 }, shB = { x: b.sh.x - d * 4, y: b.sh.y + 3 };
+    if (!front) brush();
+    arm(shB, b.hand, false);                                                      // (the far arm, on the top of the handle)
+    // legs: overall legs with rolled-up cuffs, chunky sneakers
+    const step = Math.sin(E.walk) * 6;
+    for (const sd of [-1, 1]) {
+      const foot = { x: b.ft.x + sd * 6 + sd * step * 0.5, y: b.ft.y - 4 }, knee = { x: (b.hip.x + foot.x) / 2 + d * 2, y: (b.hip.y + foot.y) / 2 };
+      const c = sd < 0 ? dk(K.over, 0.15) : K.over;
+      limb(b.hip, knee, 8, c); limb(knee, { x: foot.x, y: foot.y - 3 }, 7, c);
+      g.fillStyle(lt(K.over, 0.45)); g.fillRect(foot.x - 4, foot.y - 6, 8, 2);
+      g.fillStyle(sd < 0 ? dk(K.shoe, 0.15) : K.shoe); g.fillEllipse(foot.x + d * 3, foot.y, 14, 7);
+      g.fillStyle(0xffffff); g.fillRect(foot.x + d * 3 - 7, foot.y + 2, 14, 2); g.fillRect(foot.x + d * 7 - 1, foot.y - 2, 3, 2);
     }
-    // the back arm
-    line(b.sh, { x: (b.sh.x + b.hand2.x) / 2, y: (b.sh.y + b.hand2.y) / 2 + 4 }, 10, smock); line({ x: (b.sh.x + b.hand2.x) / 2, y: (b.sh.y + b.hand2.y) / 2 + 4 }, b.hand2, 9, skin); blob(b.hand2.x, b.hand2.y, 7, 7, skin);
-    // the smock: a trapezoid with a pocket and paint stains
-    const sw = 30, hw = 44, bell = [];
-    for (let i = 0; i <= 8; i++) { const a = i / 8; bell.push({ x: lerp(b.sh.x + sw, b.hip.x + hw, a) + Math.sin(a * Math.PI) * 6, y: lerp(b.sh.y, b.hip.y + 16, a) }); }
-    for (let i = 0; i <= 6; i++) bell.push({ x: lerp(b.hip.x + hw, b.hip.x - hw, i / 6), y: b.hip.y + 16 + Math.sin(i / 6 * Math.PI * 3 + t * 0.1) * 2.5 });     // (a rumpled hem)
-    for (let i = 0; i <= 8; i++) { const a = 1 - i / 8; bell.push({ x: lerp(b.sh.x - sw, b.hip.x - hw, a) - Math.sin(a * Math.PI) * 6, y: lerp(b.sh.y, b.hip.y + 16, a) }); }
-    bell.push({ x: b.sh.x - 10, y: b.sh.y - 4 }, { x: b.sh.x, y: b.sh.y + 6 }, { x: b.sh.x + 10, y: b.sh.y - 4 });                                             // (a V collar)
-    poly(bell, smock);
-    if (go()) {
-      g.lineStyle(2, ink, A * 0.8); g.strokeRect(b.hip.x + d * 4 - 10, b.hip.y - 22, 20, 14); g.lineStyle(0);
-      const stains = st === 'sketch' || st === 'blank' ? [ink, ink, ink] : [0xff2a2a, 0x2a8aff, 0xffd400];
-      stains.forEach((c, i) => { g.fillStyle(c, A * (st === 'sketch' ? 0.5 : 0.9)); g.fillCircle(b.sh.x + (i - 1) * 16 + Math.sin(i * 3) * 4, b.sh.y + 18 + i * 10, 4 + i); });
-      if (st === 'pop') { for (let y = b.sh.y + 4; y < b.hip.y + 8; y += 6) for (let x = b.hip.x - 26; x < b.hip.x + 26; x += 6) { g.fillStyle(0x000000, A * 0.25); g.fillCircle(x + ((y / 6) % 2) * 3, y, 1.3); } }
-      if (st === 'sketch') { g.lineStyle(1, ink, A * 0.5); for (let i = 0; i < 7; i++) g.lineBetween(b.hip.x - d * 26 + i * 3 * d, b.sh.y + 8 + i * 5, b.hip.x - d * 10 + i * 3 * d, b.sh.y + 2 + i * 5); g.lineStyle(0); }
-      if (st === 'starry') for (let i = 0; i < 8; i++) { g.lineStyle(2, [0x5a8ae0, 0xffd040][i % 2], A * 0.8); g.beginPath(); g.arc(b.hip.x + Math.sin(i * 2) * 18, b.sh.y + 12 + i * 7, 6, i, i + 3); g.strokePath(); g.lineStyle(0); }
-      if (st === 'cubist') { g.fillStyle(mix(smock, 0xffffff, 0.3), A * 0.8); g.fillTriangle(b.sh.x, b.sh.y, b.hip.x + d * hw, b.hip.y + 12, b.hip.x, b.hip.y); g.fillStyle(mix(smock, 0x000000, 0.3), A * 0.6); g.fillTriangle(b.sh.x - d * sw, b.sh.y, b.hip.x - d * 10, b.hip.y + 12, b.sh.x, b.sh.y + 30); }
-    }
-    // the head: the bucket (eye holes, a handle, paint over the rim) or, thrown, his bare head
-    const hx = b.head.x, hy = b.head.y;
-    if (E.bucketOff) {
-      blob(hx, hy + 6, 26, 26, skin);
-      if (go()) { for (let i = 0; i < 9; i++) { const a = -Math.PI + i * Math.PI / 8; g.fillStyle(0x3a2a1a, A); g.fillTriangle(hx + Math.cos(a) * 18, hy - 6 + Math.sin(a) * 16, hx + Math.cos(a) * 36, hy - 10 + Math.sin(a) * 30, hx + Math.cos(a + 0.3) * 22, hy - 6 + Math.sin(a + 0.3) * 18); } g.fillStyle(0x141414, A); g.fillCircle(hx + d * 6 - 7, hy + 2, 3); g.fillCircle(hx + d * 6 + 7, hy + 2, 3); g.fillStyle(0x6a1a1a, A); g.fillEllipse(hx + d * 6, hy + 16, 18, 9); g.fillStyle(0xffffff, A); g.fillRect(hx + d * 6 - 6, hy + 12, 5, 3); g.fillRect(hx + d * 6 + 2, hy + 12, 5, 3); }
-    } else {
-      let bx = hx, by = hy;
-      if (this.introBucket != null && this.introBucket >= 0 && this.introBucket < 1) by = lerp(hy - 380, hy, this.introBucket ** 2);
-      if (this.introBucket == null || this.introBucket >= 0) {
-        const top = 30, bot = 44, hh = 40;
-        if (this.introBucket != null && this.introBucket < 1) blob(hx, hy + 8, 24, 24, skin);           // (his head, before the bucket lands)
-        poly([{ x: bx - top, y: by - hh }, { x: bx + top, y: by - hh }, { x: bx + bot, y: by + hh * 0.9 }, { x: bx - bot, y: by + hh * 0.9 }], bucket);
-        if (go()) {
-          g.fillStyle(mix(bucket, 0x000000, 0.25), A); g.fillRect(bx - bot - 2, by + hh * 0.9 - 6, bot * 2 + 4, 8); g.lineStyle(lw, ink, A); g.strokeRect(bx - bot - 2, by + hh * 0.9 - 6, bot * 2 + 4, 8);
-          g.lineStyle(3, ink, A); g.beginPath(); g.arc(bx, by - hh, top - 4, Math.PI, 0); g.strokePath(); g.lineStyle(0);       // the handle
-          g.fillStyle(paint, A); g.fillEllipse(bx, by - hh, top * 2, 8); for (let i = 0; i < 4; i++) g.fillRect(bx - top + 8 + i * 12, by - hh, 5, 6 + ((i * 7 + (t >> 3)) % 10));   // paint spilling over the top
-          const faces = E.faces === 2 ? [{ o: -12, s: 0.8 }, { o: 14, s: 1 }] : [{ o: d * 4, s: 1 }];
-          for (const F of faces) for (const ex of [-11, 11]) {
-            const cx = bx + F.o + ex * F.s, cy = by + 2;
-            g.fillStyle(0x141414, A); g.fillEllipse(cx, cy, 13 * F.s, 16 * F.s);
-            const look = this.boss && this.boss.atk ? 1 : 0;
-            g.fillStyle(0xffffff, A); g.fillCircle(cx + d * 2 + look, cy + 1, 4.2 * F.s); g.fillStyle(0x141414, A); g.fillCircle(cx + d * 3 + look, cy + 2, 2 * F.s);
-          }
-          if (st === 'pop') { g.fillStyle(0xffffff, A * 0.8); g.fillEllipse(bx - 18, by - 16, 7, 16); for (let y = by - 26; y < by + 26; y += 6) for (let x = bx + 10; x < bx + 34; x += 6) { g.fillStyle(0x000000, A * 0.25); g.fillCircle(x, y, 1.3); } }
-          if (st === 'sketch') { g.lineStyle(1, ink, A * 0.5); for (let i = 0; i < 8; i++) g.lineBetween(bx + 14 + i * 2.5, by - 28 + i * 2, bx + 22 + i * 2.5, by + 26); g.lineStyle(0); }
-          if (st === 'cubist') { g.fillStyle(mix(bucket, 0x000000, 0.35), A * 0.7); g.fillTriangle(bx, by - hh, bx + bot, by + hh * 0.9, bx + 8, by + hh * 0.9); g.fillStyle(mix(bucket, 0xffffff, 0.35), A * 0.6); g.fillTriangle(bx - top, by - hh, bx - 4, by - 10, bx - bot, by + 10); }
-          if (st === 'starry') for (let i = 0; i < 5; i++) { g.lineStyle(2, 0xfff0a0, A * 0.8); g.beginPath(); g.arc(bx - 16 + i * 8, by + 22, 5, 0, Math.PI); g.strokePath(); g.lineStyle(0); }
-          if (st === 'splatter') for (let i = 0; i < 5; i++) { g.fillStyle(PAL.splatter.tiles[2 + i % 4], A); g.fillCircle(bx - 22 + i * 11, by - 18 + (i * 13) % 30, 3 + i % 3); }
-        }
+    // the body: striped shirt under paint-splattered overalls (bib, straps, gold buttons, a pocket with a pencil)
+    const sw = 9, hw = 12;
+    g.fillStyle(K.shirt[0]); g.fillPoints([{ x: b.sh.x - sw, y: b.sh.y - 1 }, { x: b.sh.x + sw, y: b.sh.y - 1 }, { x: b.hip.x + hw, y: b.hip.y + 3 }, { x: b.hip.x - hw, y: b.hip.y + 3 }]);
+    g.fillStyle(K.shirt[1]); for (let y = b.sh.y + 2; y < b.hip.y - 8; y += 5) g.fillRect(b.sh.x - sw + 1, y, sw * 2 - 2, 2);
+    g.fillStyle(K.over); g.fillPoints([{ x: b.sh.x - 6, y: b.sh.y + 8 }, { x: b.sh.x + 6, y: b.sh.y + 8 }, { x: b.hip.x + hw, y: b.hip.y - 4 }, { x: b.hip.x + hw + 1, y: b.hip.y + 4 }, { x: b.hip.x - hw - 1, y: b.hip.y + 4 }, { x: b.hip.x - hw, y: b.hip.y - 4 }]);
+    g.lineStyle(2, K.over); g.lineBetween(b.sh.x - 6, b.sh.y + 9, b.sh.x - 7, b.sh.y); g.lineBetween(b.sh.x + 6, b.sh.y + 9, b.sh.x + 7, b.sh.y);
+    g.fillStyle(0xffd400); g.fillRect(b.sh.x - 6, b.sh.y + 8, 2, 2); g.fillRect(b.sh.x + 4, b.sh.y + 8, 2, 2);
+    g.fillStyle(dk(K.over, 0.2)); g.fillRect(b.hip.x + d * 2 - 4, b.hip.y - 12, 8, 6); g.fillStyle(K.band); g.fillRect(b.hip.x + d * 2 - 2, b.hip.y - 16, 2, 5);
+    const spl = st === 'sketch' ? [0xff2a4a, 0x2ad060, 0xffd400] : K.hair;
+    for (let i = 0; i < 5; i++) { g.fillStyle(spl[i % spl.length]); g.fillCircle(b.hip.x - 8 + ((i * 7) % 16), b.sh.y + 12 + ((i * 5) % 14), 1.5 + (i % 2)); }
+    if (st === 'sketch') { g.lineStyle(1, dk(K.over, 0.35)); for (let i = 0; i < 5; i++) g.lineBetween(b.hip.x - d * 10 + d * i * 2, b.hip.y, b.hip.x - d * 4 + d * i * 2, b.hip.y - 8); }
+    if (st === 'pop') { g.fillStyle(dk(K.over, 0.3)); for (let y = b.sh.y + 10; y < b.hip.y + 2; y += 3) for (let x = b.hip.x - 10 + (y % 2); x < b.hip.x + 10; x += 3) g.fillRect(x, y, 1, 1); }
+    if (st === 'cubist') { g.fillStyle(lt(K.over, 0.25)); g.fillTriangle(b.sh.x, b.sh.y + 8, b.hip.x + d * hw, b.hip.y + 3, b.hip.x, b.hip.y + 3); g.fillStyle(dk(K.shirt[0], 0.3)); g.fillTriangle(b.sh.x - d * sw, b.sh.y, b.sh.x, b.sh.y + 6, b.sh.x - d * 4, b.sh.y + 14); }
+    if (st === 'starry') for (let i = 0; i < 7; i++) { g.fillStyle(K.hair[i % K.hair.length]); g.fillRect(b.hip.x - 10 + ((i * 9) % 20), b.sh.y + 10 + ((i * 7) % 16), 2, 1); }
+    if (st === 'splatter') for (let i = 0; i < 8; i++) { g.fillStyle(K.hair[i % K.hair.length]); g.fillCircle(b.hip.x - 12 + ((i * 11) % 24), b.sh.y + 2 + ((i * 13) % 26), 1 + (i % 3)); }
+    // the head
+    const face = (ox) => {                                                         // (the bit under the rim: chin and that grin)
+      const cx = hx + ox; g.fillStyle(K.skin); g.fillEllipse(cx, hy + 15, 24, 18);
+      g.fillStyle(0x5a1020); g.fillPoints([{ x: cx - 10, y: hy + 11 }, { x: cx - 6, y: hy + 13 }, { x: cx + 6, y: hy + 13 }, { x: cx + 10, y: hy + 11 }, { x: cx + 8, y: hy + 18 }, { x: cx, y: hy + 21 }, { x: cx - 8, y: hy + 18 }]);
+      g.fillStyle(0xff6a7a); g.fillRect(cx - 3, hy + 18, 6, 2);                     // (his tongue)
+      g.fillStyle(0xffffff); for (let i = -4; i < 4; i++) if (i !== 1) g.fillRect(cx + i * 2 + (i >= 0 ? 1 : 0), hy + 13, 2, 3);   // the top teeth (one missing)
+      for (let i = -2; i < 2; i++) g.fillRect(cx + i * 2 + 1, hy + 17, 2, 1);
+      g.fillStyle(dk(K.skin, 0.2)); g.fillRect(cx - 12, hy + 10, 1, 3); g.fillRect(cx + 11, hy + 10, 1, 3);   // (dimples)
+    };
+    if (E.bucketOff || (this.introBucket != null && this.introBucket < 1)) {        // bare head: wild eyes and paint-stiff spiky hair
+      g.fillStyle(K.skin); g.fillCircle(hx, hy + 4, 11);
+      for (let i = 0; i < 7; i++) { const a = -Math.PI + 0.2 + i * 0.45; g.fillStyle(K.hair[i % K.hair.length]); g.fillTriangle(hx + Math.cos(a) * 7, hy + 2 + Math.sin(a) * 7, hx + Math.cos(a) * 17, hy + Math.sin(a) * 15, hx + Math.cos(a + 0.35) * 9, hy + 2 + Math.sin(a + 0.35) * 9); }
+      g.fillStyle(0xffffff); g.fillEllipse(hx + d * 2 - 4, hy + 2, 6, 7); g.fillEllipse(hx + d * 2 + 4, hy + 2, 6, 7);
+      g.fillStyle(0x141414); g.fillRect(hx + d * 3 - 4, hy + 2, 2, 2); g.fillRect(hx + d * 3 + 3, hy + 2, 2, 2);
+      face(d * 2);
+    } else face(d * 2);
+    if (E.faces === 2 && !E.bucketOff) { face(-d * 13); }                          // TWO FACES: a second grin sliding out the side
+    if (!E.bucketOff && (this.introBucket == null || this.introBucket >= 0)) {     // the bucket, upside down over his eyes
+      const by = this.introBucket != null && this.introBucket < 1 ? lerp(hy - 300, hy, this.introBucket ** 2) : hy;
+      const top = 12, bot = 15, y0 = by - 18, y1 = by + 9;
+      g.fillStyle(K.bucket); g.fillPoints([{ x: hx - top, y: y0 }, { x: hx + top, y: y0 }, { x: hx + bot, y: y1 }, { x: hx - bot, y: y1 }]);
+      g.fillStyle(dk(K.bucket, 0.22)); g.fillPoints([{ x: hx + d * 5, y: y0 }, { x: hx + d * top, y: y0 }, { x: hx + d * bot, y: y1 }, { x: hx + d * 6, y: y1 }]);   // (the far side in shade)
+      g.fillStyle(lt(K.bucket, 0.45)); g.fillRect(hx - d * 8 - 1, y0 + 2, 2, 20);                     // (a shine)
+      g.fillStyle(dk(K.bucket, 0.35)); g.fillRect(hx - top, y0, top * 2, 2); g.fillRect(hx - bot - 1, y1 - 3, bot * 2 + 2, 3);   // (the base and the rolled rim)
+      g.fillStyle(K.band); g.fillPoints([{ x: hx - 13, y: by - 9 }, { x: hx + 13, y: by - 9 }, { x: hx + 14, y: by - 2 }, { x: hx - 14, y: by - 2 }]);
+      g.fillStyle(K.hair[0]); g.fillCircle(hx - d * 3, by - 6, 2); g.fillStyle(K.hair[2 % K.hair.length]); g.fillCircle(hx + d * 2, by - 5, 1.5); g.fillStyle(K.hair[4 % K.hair.length]); g.fillCircle(hx + d * 6, by - 6, 1.5);   // (its label: a palette)
+      if (E.faces === 2) { g.lineStyle(1, ink); g.lineBetween(hx - 3, y0, hx + 2, by - 4); g.lineBetween(hx + 2, by - 4, hx - 1, y1); }   // (cracked down the middle)
+      if (st === 'cubist') { g.fillStyle(lt(K.bucket, 0.3)); g.fillTriangle(hx - top, y0, hx - 2, by - 9, hx - bot, y1); }
+      if (st === 'pop') { g.fillStyle(dk(K.bucket, 0.3)); for (let y = y0 + 3; y < by - 10; y += 3) for (let x = hx + 2 + (y % 2); x < hx + 11; x += 3) g.fillRect(x, y, 1, 1); }
+      if (st === 'starry') for (let i = 0; i < 5; i++) { g.fillStyle(K.hair[i % K.hair.length]); g.fillRect(hx - 9 + i * 4, y0 + 3 + (i % 2) * 3, 2, 1); }
+      if (st === 'sketch') { g.lineStyle(1, dk(K.bucket, 0.4)); for (let i = 0; i < 4; i++) g.lineBetween(hx + d * (6 + i * 2), y0 + 2, hx + d * (8 + i * 2), y1 - 4); }
+      // paint pouring out under the rim all the way round: a thick wet lip with drips (short ones at the face, so the grin shows)
+      if (onHead && hk > 0) {
+        for (let i = 0; i < 9; i++) { const x = hx - bot + 1 + i * (bot * 2 - 2) / 8, c = K.hair[i % K.hair.length], atFace = Math.abs(x - hx - d * 2) < 12; if (atFace) { g.fillStyle(c); g.fillRect(x - 2, y1 - 1, 4, 2); continue; } const l = (3 + ((i * 5) % 6)) * hk; g.fillStyle(c); g.fillRect(x - 2, y1 - 1, 4, 2 + l); g.fillCircle(x, y1 + 1 + l, 2); }
       }
+      // the handle, down under his chin as a chin strap (lugs at the sides)
+      const sl = { x: hx - 15, y: by + 1 }, sr = { x: hx + 15, y: by + 1 };
+      const strap = [sl, { x: hx - 14, y: by + 13 }, { x: hx - 8, y: by + 22 }, { x: hx + d * 2, y: by + 25 }, { x: hx + 9, y: by + 22 }, { x: hx + 14, y: by + 13 }, sr];
+      g.lineStyle(3, ink); g.strokePoints(strap, false); g.lineStyle(1, 0xc8c8d8); g.strokePoints(strap, false);
+      g.fillStyle(0x8a8a9a); g.fillCircle(sl.x, sl.y, 2); g.fillCircle(sr.x, sr.y, 2);
     }
-    // the brush arm and the brush: handle, a metal ferrule, a fat tuft loaded with paint
-    const elbow = { x: (b.sh.x + b.hand.x) / 2 - d * 4, y: (b.sh.y + b.hand.y) / 2 + 8 };
-    line(b.sh, elbow, 11, smock); line(elbow, b.hand, 10, skin);
-    const ux = (b.tip.x - b.hand.x) / KID.brush, uy = (b.tip.y - b.hand.y) / KID.brush;
-    const fer = { x: b.hand.x + ux * (KID.brush - 36), y: b.hand.y + uy * (KID.brush - 36) };
-    line({ x: b.hand.x - ux * 14, y: b.hand.y - uy * 14 }, fer, 7, wood);
-    line(fer, { x: fer.x + ux * 10, y: fer.y + uy * 10 }, 9, 0xc0c0c8);
-    if (go()) {
-      const px = -uy, py = ux, base = { x: fer.x + ux * 10, y: fer.y + uy * 10 };
-      const tuft = [{ x: base.x + px * 7, y: base.y + py * 7 }, { x: b.tip.x + px * 3, y: b.tip.y + py * 3 }, { x: b.tip.x + ux * 6, y: b.tip.y + uy * 6 }, { x: b.tip.x - px * 3, y: b.tip.y - py * 3 }, { x: base.x - px * 7, y: base.y - py * 7 }];
-      g.fillStyle(col(paint), A); g.fillPoints(tuft, true); g.lineStyle(lw, ink, A); g.strokePoints(tuft, true); g.lineStyle(0);
-    }
-    blob(b.hand.x, b.hand.y, 8, 8, skin);
-    if (st === 'splatter' && go()) for (let i = 0; i < 6; i++) { g.fillStyle(PAL.splatter.tiles[2 + i % 4], A); g.fillEllipse(b.hip.x - 30 + i * 12, b.hip.y + 8 + (i % 2) * 6 + ((t + i * 9) % 30) * 0.3, 4, 8); }
+    if (front) brush();
+    arm(shF, b.hand2, true);                                                       // (the near arm, lower on the handle)
+    if (st === 'splatter') for (let i = 0; i < 4; i++) { g.fillStyle(K.hair[(i + (t >> 4)) % K.hair.length]); g.fillEllipse(b.hip.x - 12 + i * 8, b.hip.y + 6 + ((t + i * 9) % 30) * 0.3, 2, 4); }
+    g.finish(ink, fl);
   }
   /** Everything he's thrown or drawn: blobs, scribbles, eraser, doodles, bursts, dots, bubbles, fragments, spikes, beams, swirl, stars, wave, splats, bucket, drips. */
   drawFx(g) {
@@ -958,7 +992,7 @@ export class SmudgeBossStage extends BossArena {
     }
     if (this.wave) { const W = this.wave; g.fillStyle(0x0e1a60, 1); g.fillEllipse(W.x, -WAVE.h * 0.4, 90, WAVE.h * 1.4); g.fillStyle(0x2a4ab0, 1); g.fillEllipse(W.x, -WAVE.h * 0.45, 76, WAVE.h * 1.2); g.fillStyle(0xffffff, 1); for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + W.dir * (i * 0.35); g.fillCircle(W.x + W.dir * 10 + Math.cos(a) * 26, -WAVE.h * 0.5 + Math.sin(a) * 26, 5 - i * 0.5); } g.lineStyle(3, 0xfff0a0, 0.8); g.beginPath(); g.arc(W.x, -WAVE.h * 0.5, 18, -Math.PI, 0); g.strokePath(); g.lineStyle(0); }
     for (const S of this.splats) { g.fillStyle(S.c, 0.3 + 0.4 * (S.t / ACTION.warn)); g.fillEllipse(S.x, -2, 40 * (S.t / ACTION.warn), 8); }
-    if (this.bucket) { const B = this.bucket, c = Math.cos(B.a), s = Math.sin(B.a), q = (x, y) => ({ x: B.x + x * c - y * s, y: B.y + x * s + y * c }); g.fillStyle(ink, 1); g.fillPoints([q(-28, -26), q(28, -26), q(36, 26), q(-36, 26)], true); g.fillStyle(PAL.splatter.kid[4], 1); g.fillPoints([q(-24, -22), q(24, -22), q(32, 22), q(-32, 22)], true); g.fillStyle(0xff2a2a, 1); g.fillEllipse(B.x + c * 0, B.y - 1, 30, 12); }
+    if (this.bucket) { const B = this.bucket, c = Math.cos(B.a), s = Math.sin(B.a), q = (x, y) => ({ x: B.x + x * c - y * s, y: B.y + x * s + y * c }); const K = KIDPAL[this.style] || KIDPAL.splatter; g.fillStyle(ink, 1); g.fillPoints([q(-15, -18), q(15, -18), q(18, 10), q(-18, 10)], true); g.fillStyle(K.bucket, 1); g.fillPoints([q(-13, -16), q(13, -16), q(16, 8), q(-16, 8)], true); g.fillStyle(K.band, 1); g.fillPoints([q(-14, -6), q(14, -6), q(15, 0), q(-15, 0)], true); g.fillStyle(K.hair[(this.t >> 3) % K.hair.length], 1); g.fillEllipse(B.x + s * -9, B.y + c * 9, 24, 8); }
     if (this.drip) { const D = this.drip; if (D.y == null) { g.fillStyle(0x2a8aff, 0.3 + 0.3 * D.k); g.fillEllipse(D.x, -2, 30, 6); g.fillCircle(D.x, -400 + D.k * 20, 6 + D.k * 10); } else { g.fillStyle(0x2a8aff, 1); g.fillCircle(D.x, D.y, 13); g.fillTriangle(D.x - 12, D.y - 4, D.x + 12, D.y - 4, D.x, D.y - 30); } }
     if (this.spill) { const S = this.spill; g.fillStyle(0x2a8aff, 0.2 + 0.3 * S.k); g.fillRect(S.x - 110 * S.k, -4, 220 * S.k, 4); }
     if (this.gloatT) {                                                                    // the crayon drawing of you he waves when he wins
@@ -968,11 +1002,11 @@ export class SmudgeBossStage extends BossArena {
   }
   /** His speech bubble: a rounded comic bubble with a tail, over his head. */
   drawBubble() {
-    const S = this.say, b = this.body(), g = this.bubG, pop = Math.min(1, S.t / 6), x = Phaser.Math.Clamp(b.head.x - this.e.dir * 30, -230, 230), y = b.head.y - 90;
+    const S = this.say, b = this.body(), g = this.bubG, pop = Math.min(1, S.t / 6), x = Phaser.Math.Clamp(b.head.x - this.e.dir * 24, -230, 230), y = b.head.y - 62;
     this.bubT.setText(S.text).setPosition(x, y).setScale(pop).setVisible(true);
     const w = Math.max(60, this.bubT.width + 18) * pop, h = (this.bubT.height + 14) * pop;
     g.fillStyle(0x000000, 1); g.fillRoundedRect(x - w / 2 - 2, y - h / 2 - 2, w + 4, h + 4, 10); g.fillStyle(0xffffff, 1); g.fillRoundedRect(x - w / 2, y - h / 2, w, h, 9);
-    g.fillStyle(0xffffff, 1); g.fillTriangle(x - 6, y + h / 2 - 2, x + 8, y + h / 2 - 2, b.head.x, b.head.y - 40); g.lineStyle(2, 0x000000, 1); g.lineBetween(x - 6, y + h / 2, b.head.x, b.head.y - 40); g.lineBetween(x + 8, y + h / 2, b.head.x, b.head.y - 40); g.lineStyle(0);
+    g.fillStyle(0xffffff, 1); g.fillTriangle(x - 6, y + h / 2 - 2, x + 8, y + h / 2 - 2, b.head.x, b.head.y - 24); g.lineStyle(2, 0x000000, 1); g.lineBetween(x - 6, y + h / 2, b.head.x, b.head.y - 24); g.lineBetween(x + 8, y + h / 2, b.head.x, b.head.y - 24); g.lineStyle(0);
   }
   /** The style change: a giant brush stroke sweeping right across the view, ragged-edged, in the new paint. */
   drawWipe(g) {
