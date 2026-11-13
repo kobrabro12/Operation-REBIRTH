@@ -7,11 +7,17 @@
             orchestra-hit on the downbeats, a slap-ish pulse bass, a square-wave lead with vibrato, punchy drums, lots of reverb.
   demon     "The Mad Blade" - KARNAX, THE MAD BLADE (medieval demon): 128 BPM in C minor. War drums and timpani, a low choir, a
             horn melody, string pads, a chanting bridge, and a final phrase with everything at full force.
+  machine   "Fatal Exception" - BEIGE.EXE (a 90s computer): 138 BPM in A minor, like an old sound card's built-in
+            synth: a square-wave lead, a sine bass, a stiff drum machine, a startup chime at the top, a glitchy middle
+            where the beat stutters, then everything back at full volume.
+  hum       "Level 0" - THE HUM (the backrooms): 84 BPM. The fluorescent hum itself as the drone (mains buzz and its
+            harmonics), detuned pads, a slow wrong-sounding celesta tune, far-off thuds like footsteps in another room,
+            and a swell of noise in the second half.
   knight    "Rootbound" - THORNWARD, THE ROOTBOUND KNIGHT (forest guardian): 112 BPM in A dorian. Rolling harp plucks, frame
             drums and timpani, a deep choir under a breathy wooden-flute lead; a hushed middle with just plucks and wind,
             then the drums come crashing back with the choir up high.
 
-Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
+Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight machine hum]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
 import numpy as np
@@ -192,6 +198,57 @@ def knight():
     save(reverb(out, 2.6, 2.8, 0.34), 'knight', bars * 4 * b)
 
 
+def sinew(midi, dur, vel=1.0, att=0.005, rel=0.08):
+    """A plain sine note with a little second harmonic (an old sound card's 'bass')."""
+    n = secs(dur); t = np.arange(n) / SR
+    x = np.sin(2 * np.pi * hz(midi) * t) + 0.25 * np.sin(4 * np.pi * hz(midi) * t)
+    return x * adsr(n, att, 0.1, 0.8, rel) * vel * 0.4
+
+
+def machine():
+    b = 60 / 138; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    for i, m in enumerate([60, 67, 72, 76]): add(out, sinew(m, 1.6, 0.5, 0.01, 1.2) + sinew(m + 12, 1.6, 0.2, 0.01, 1.2), i * 0.06)   # the startup chime
+    prog = [45, 41, 43, 40, 45, 41, 38, 40]
+    for bar in range(1, bars):
+        root = prog[bar % 8]; t0 = bar * 4 * b; glitch = 12 <= bar < 16
+        for i in range(8):
+            if glitch and i % 3 == 2: continue
+            add(out, sinew(root - 12 + (12 if i % 2 else 0), b / 2 * 0.85, 0.8), t0 + i * b / 2)
+        for i in range(4): add(out, lp(sq(root + 12 + [0, 3, 7, 10][i], b * 0.2, 0.18, 0.25), 2500), t0 + i * b + b / 2)
+    drums(out, b, 11, 'k...s...k.k.s...|h.h.h.h.h.h.h.h.', 0.9, 4 * b)
+    drums(out, b, 4, 'k..k..s.k..kk.s.|h..h.h..h..h.hh.', 0.9, 12 * 4 * b)
+    drums(out, b, 8, 'k...s..kk.k.s..s|hhhhhhhhhhhhhhhh|x...............', 1.0, 16 * 4 * b)
+    lead = [(0, 69, 1), (1, 72, 1), (2, 76, 1.5), (3.5, 74, 0.5), (4, 72, 1), (5, 69, 1), (6, 67, 2), (8, 65, 1), (9, 67, 1), (10, 69, 1), (11, 72, 1), (12, 71, 4),
+            (16, 69, 1), (17, 72, 1), (18, 76, 1), (19, 79, 1), (20, 81, 2), (22, 79, 1), (23, 76, 1), (24, 77, 1.5), (25.5, 76, 0.5), (26, 74, 2), (28, 76, 4)]
+    for rep in (0, 2):
+        for beat, m, d in lead:
+            add(out, sq(m, d * b * 0.9, 0.3, 0.5, vib=0.15), (rep * 32 + 4) * b + beat * b)
+            if rep == 2: add(out, sq(m + 12, d * b * 0.9, 0.12, 0.25), (rep * 32 + 4) * b + beat * b)
+    for k in range(12, 16):                                                    # the glitch: a stuttering lead
+        for i in range(0, 16, 3): add(out, sq(69 + (i % 5) * 2, 0.06, 0.3, 0.125), (k * 4 + i / 4) * b)
+    save(reverb(out, 1.2, 4, 0.18), 'machine', bars * 4 * b)
+
+
+def hum():
+    b = 60 / 84; bars = 16; L = bars * 4 * b; n = secs(L + 3); t = np.arange(n) / SR; out = np.zeros(n)
+    buzz = sum(a * np.sin(2 * np.pi * f * t + f) for f, a in [(120, 0.5), (240, 0.25), (360, 0.15), (480, 0.08), (60, 0.3)])
+    buzz *= 0.55 + 0.45 * np.sin(2 * np.pi * 0.11 * t) ** 2
+    out += lp(buzz, 1400) * 0.12 + bp(noise(n), 2000, 7000) * 0.012                      # the lights
+    for bar in range(0, bars, 2):
+        ch = [[45, 52, 56], [44, 51, 55], [46, 50, 57], [43, 50, 54]][(bar // 2) % 4]
+        add(out, strings([m + 12 for m in ch], 8 * b + 0.5, 0.6), bar * 4 * b)
+    for bar in range(bars):                                                     # far-off thuds, like footsteps in another room
+        for st in ([0, 2.75] if bar % 2 else [1.5]): add(out, lp(drum_kick(0.6), 200) * 0.7, bar * 4 * b + st * b)
+    tune = [(0, 81, 2), (2, 80, 1), (3, 76, 3), (6, 75, 2), (8, 81, 2), (10, 82, 1), (11, 80, 5), (16, 77, 2), (18, 76, 2), (20, 75, 4), (24, 73, 2), (26, 74, 2), (28, 69, 4)]
+    for rep in (0, 1):
+        for beat, m, d in tune:
+            note = sinew(m + (0.3 if rep else 0), d * b, 0.25, 0.002, 1.5) * np.exp(-np.arange(secs(d * b)) / SR * 1.4)
+            add(out, note, (rep * 32 + 2) * b + beat * b)
+    k = np.clip((t - L * 0.5) / (L * 0.3), 0, 1) * np.clip((L - t) / (L * 0.1), 0, 1)
+    out += lp(noise(n), 900) * 0.05 * k                                          # a swell of noise in the second half
+    save(reverb(out, 3.2, 2.2, 0.4), 'hum', L)
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum']
     for w in which: globals()[w]()

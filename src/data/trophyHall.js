@@ -66,6 +66,8 @@ export const TROPHIES = [
   { id: 'golden-cartridge', model: 'cartridge', plaque: 'KING POLYGON', title: 'THE GOLDEN CARTRIDGE', text: 'A solid gold game cartridge with a crown on its label. Blow on the contacts for luck. King Polygon fell on NIGHTMARE.' },
   { id: 'mad-blade', model: 'blade', plaque: 'KARNAX', title: 'THE MAD BLADE', text: "Karnax's jagged greatsword, driven into a stone. The runes still glow. Sometimes, late at night, you can hear it laughing." },
   { id: 'verdant-helm', model: 'helm', plaque: 'THORNWARD', title: 'THE VERDANT HELM', text: 'The antlered great helm of the Rootbound Knight, moss still growing in its visor. Something small and green peeks out of it when nobody is looking.' },
+  { id: 'golden-floppy', model: 'floppy', plaque: 'BEIGE.EXE', title: 'THE GOLDEN FLOPPY', text: 'A solid gold floppy disk. The label just says BACKUP. Nobody knows what is on it, and nobody has a drive old enough to find out.' },
+  { id: 'last-light', model: 'bulb', plaque: 'THE HUM', title: 'THE LAST LIGHT', text: 'One fluorescent tube from Level 0, still buzzing with no power. Stare at it too long and it flickers - and for a moment something is standing behind you.' },
   { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 
@@ -73,7 +75,7 @@ export const TROPHIES = [
 export const DISPLAY = {
   'pedestal-l1': { trophy: 'you-did-it' }, 'pedestal-r1': { trophy: 'first-sword' }, 'pedestal-l2': { trophy: 'bronze-boot' },
   'pedestal-r2': { trophy: 'silver-fish' }, 'pedestal-l3': { trophy: 'crystal-crown' }, 'plinth': { trophy: 'phoenix' },
-  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' }, 'pedestal-l5': { trophy: 'verdant-helm' },
+  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' }, 'pedestal-l5': { trophy: 'verdant-helm' }, 'pedestal-r5': { trophy: 'golden-floppy' }, 'pedestal-l6': { trophy: 'last-light' },
   'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
   'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },

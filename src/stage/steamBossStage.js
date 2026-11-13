@@ -360,6 +360,8 @@ export class SteamBossStage extends BossArena {
     if (t % 30 < 4) { g.fillStyle(0xffffff, 0.6); g.fillCircle(hd.x - 2 * Z, hd.y - 3 * Z, 2 * Z); }
   }
 
+  /** You lost: it raises both fists in triumph, its hat blasting steam (BossArena.bossTaunt). */
+  onGloat(match, t) { for (const f of this.fists) { f.resting = false; this.toward(f, f.s * 120, -250 + Math.sin(t * 0.2 + f.s) * 10, 0.1); } if (t % 5 === 0) this.puff(0, this.hatTop().y, 1.4, -2); if (t % 40 === 1) sfx('geyser', 0.4, 1.4); }
   /** A puff of steam (drawn by render), rising. */
   puff(x, y, k = 1, vy = -0.8) { if (this.puffs.length < 160) this.puffs.push({ x, y, vx: (Math.random() - 0.5) * 0.8, vy: vy * (0.6 + Math.random() * 0.6), r: 5 + Math.random() * 6 * k, life: 30 + Math.random() * 20, t: 0 }); }
 

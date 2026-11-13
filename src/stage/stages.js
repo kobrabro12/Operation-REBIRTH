@@ -23,6 +23,8 @@ import { SteamBossStage, drawBrassFoundryPreview } from './steamBossStage.js';
 import { PolyBossStage, drawPolygonPeakPreview } from './polyBossStage.js';
 import { DemonBossStage, drawBurningKeepPreview } from './demonBossStage.js';
 import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
+import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
+import { HumBossStage, drawLevelZeroPreview } from './humBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -155,6 +157,12 @@ export const STAGES = [
   { id: 'elder-grove', music: 'bgm_boss_knight', name: 'THE ELDER GROVE', available: true, bossArena: 'knight', make: (scene) => new KnightBossStage(scene),
     blurb: ['A clearing deep in an ancient forest,', 'an empty suit of armour kneeling in the roots.'],
     hazard: 'THORN ROOTS: A LINE OF THORNS ERUPTS - JUMP IT.\nSPORE BURST: THE GLOWING MUSHROOMS PUFF SPORES.', preview: drawElderGrovePreview },
+  { id: 'desktop', music: 'bgm_boss_machine', name: 'THE DESKTOP', available: true, bossArena: 'machine', make: (scene) => new MachineBossStage(scene),
+    blurb: ['A taskbar floor on an old teal desktop,', 'a switched-off beige monitor looming behind.'],
+    hazard: 'POP-UP: A WINDOW FALLS ON THE MARK - THEN IT IS A LEDGE.\nDIAL-UP: A SCREECHING BEAM SWEEPS A MARKED BAND.', preview: drawDesktopPreview },
+  { id: 'level-zero', music: 'bgm_boss_hum', name: 'LEVEL 0', available: true, bossArena: 'hum', make: (scene) => new HumBossStage(scene),
+    blurb: ['Endless yellow rooms and buzzing lights.', 'Something tall watches from the haze.'],
+    hazard: 'FLICKER: THE LIGHTS DIE FOR A FEW SECONDS.\nBURST PANEL: A CEILING LIGHT RAINS SPARKS.', preview: drawLevelZeroPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

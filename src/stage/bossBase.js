@@ -35,7 +35,7 @@ const INTRO = { wide: 90, enter: 220, freeze: 170, zoom: 1.2 };
 /** A point along the way from a to b (k = 0..1). */
 const lerp = (a, b, k) => a + (b - a) * k;
 /** A boss's number in the roman order of BOSS FIGHTS (I, II, III, IV). */
-const BOSS_ORDER = (id) => ['I', 'II', 'III', 'IV', 'V'][Math.max(0, ['colossus', 'polygon', 'demon', 'knight'].indexOf(id))];
+const BOSS_ORDER = (id) => ['I', 'II', 'III', 'IV', 'V', 'VI'][Math.max(0, ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum'].indexOf(id))];
 
 /** The base of every boss arena: health, being hit, picking attacks, the health bar and the death. */
 export class BossArena {
@@ -165,7 +165,7 @@ export class BossArena {
   /** Damage scaled by the difficulty. */
   dmg(n) { return Math.round(n * (this.boss ? this.boss.cfg.T.dmg : 1)); }
   /** A fresh id for one strike (each target is hit once per id). */
-  sid(tag) { return 'boss-' + tag + '-' + (++this.boss.uid); }
+  sid(tag) { this.sidN = (this.sidN || 0) + 1; return 'boss-' + tag + '-' + this.sidN; }
   /**
    * One of the boss's hitboxes: a box (x1, y1, x2, y2) that hits like a stage hazard (can't be shielded; dodges
    * pass through it). dmg is scaled by the difficulty; kb = [angle, base, growth]; more = extra fields (dirX,
@@ -195,7 +195,7 @@ export class BossArena {
     if (!match.over) B.time++;
     const P = match.bossProxy, c = this.core();
     P.x = c.x; P.y = c.y + 26; P.state = B.atk ? 'attack' : 'idle'; P.attackId = B.atk ? B.atk.id : 0;
-    if (match.over) return out;
+    if (match.over) { if (B.gloat) { B.gloat++; this.rageText.setVisible(true); if (this.onGloat) this.onGloat(match, B.gloat); } return out; }
     if (B.phase === 1 && B.hp <= B.max * (this.rageAt || 0.5)) {           // half health (or the arena's rageAt): ENRAGED
       B.phase = 2; B.rage = 90; B.atk = null; B.wait = 80;
       this.rageText.setText(this.rageLine ? this.rageLine() : 'ENRAGED!');
@@ -250,6 +250,19 @@ export class BossArena {
       if (B.hp <= 0) { this.startDeath(match); break; }
     }
     if (B.seen.size > 3000) B.seen.clear();
+  }
+
+  /**
+   * You lost: the boss gloats - one of its `taunts` (BOSSES in bosses.js) in big letters over the arena, a laugh, and
+   * the arena's own gloat (onGloat, called every frame after). Returns the line (BossReward shows it too).
+   */
+  bossTaunt(match) {
+    const B = this.boss; if (!B || B.dying) return null;
+    const list = B.cfg.boss.taunts || ['...'], line = list[Math.floor(Math.random() * list.length)];
+    B.taunt = line; B.gloat = 1; B.atk = null;
+    this.rageText.setText(line).setColor('#' + B.cfg.boss.color.toString(16).padStart(6, '0')).setFontSize(11).setVisible(true).setWordWrapWidth(560).setAlign('center');
+    B.rage = 0; sfx('laugh', 0.8, 0.8);
+    return line;
   }
 
   /** Health gone: the death begins, the boss stops attacking and its hazards stop, and the match ends in a win. */

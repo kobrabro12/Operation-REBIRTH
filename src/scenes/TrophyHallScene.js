@@ -311,7 +311,7 @@ export class TrophyHallScene extends Phaser.Scene {
    * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
    * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
    * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire),
-   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone), helm (THORNWARD's antlered helm on a mossy stump).
+   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone), helm (THORNWARD's antlered helm on a mossy stump), floppy (a gold floppy disk), bulb (a fluorescent tube in its fixture).
    * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
   trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
@@ -373,6 +373,15 @@ export class TrophyHallScene extends Phaser.Scene {
       }
       T.push(...blobFaces(-4, -30, -3, 4, 1.4, 4, [0x48902e, 0x6ab840], 4, null, 0.1));
       for (let i = from; i < T.length; i++) T[i] = { ...T[i], p: T[i].p.map(([px, py, pz]) => [px * 0.8, py * 0.78, pz * 0.8]) };   // (built a bit big: shrunk to fit the close-up)
+    } else if (model === 'floppy') {                                  // THE GOLDEN FLOPPY: a gold floppy disk standing on a little stand
+      T.push(...boxFaces(-10, -6, -6, 10, 0, 6, 0x6a6a72, 0x8a8a92));
+      const f = [...boxFaces(-16, -16, -1.6, 16, 16, 1.6, 0xf0b020, 0xffd040), ...boxFaces(-9, -16.4, -2, 9, -5, 2, 0xd8dce4, 0xffffff), ...boxFaces(-2, -15, -2.2, 4, -7, 2.2, 0x606070, 0x606070),
+        ...boxFaces(-12, 0, -2, 12, 14, -1.7, 0xfffff0, 0xfffff0), ...boxFaces(-9, 3, -2.3, 9, 4, -2, 0x3a6ac8, 0x3a6ac8), ...boxFaces(-9, 7, -2.3, 6, 8, -2, 0x3a6ac8, 0x3a6ac8)];
+      T.push(...xyz(f, 0, -24, 0, 0, -0.18));
+    } else if (model === 'bulb') {                                    // THE LAST LIGHT: a buzzing fluorescent tube in its fixture
+      T.push(...boxFaces(-6, -40, -4, 6, -2, 4, 0xc8c0a0, 0xe0d8b8), ...boxFaces(-5, -42, -3, 5, -40, 3, 0x8a8470, 0x8a8470), ...boxFaces(-5, -2, -3, 5, 0, 3, 0x8a8470, 0x8a8470));
+      T.push(...prismFaces(0, -39, -3, 0, 3.2, 8, 0xfffbe0, 0xffffff).map((f) => ({ ...f, nofog: true })));
+      T.push(...blobFaces(0, -20, -5, 4, 16, 2, [0xfff6b0], 2, null, 0.05).map((f) => ({ ...f, nofog: true })));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));

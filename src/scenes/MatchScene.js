@@ -538,7 +538,7 @@ export class MatchScene extends Phaser.Scene {
     }
     f.ko();
     if (this.mode !== 'time' && !this.isTraining && this.bossFight) {   // a boss fight is lost when every player is out
-      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.endMatch('DEFEATED...'); }
+      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.endMatch('DEFEATED...'); this.bossTauntLine = this.stage.bossTaunt ? this.stage.bossTaunt(this) : null; }
     } else if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
       if (left.length <= 1 && !this.over) { this.endMatch('GAME!'); this.extras.onFinalKO(); }
@@ -560,7 +560,7 @@ export class MatchScene extends Phaser.Scene {
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
-      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup }, rewards });
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null }, rewards });
   }
 
   toResults() {

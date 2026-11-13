@@ -379,6 +379,8 @@ export class KnightBossStage extends BossArena {
     }
   }
 
+  /** You lost: he raises the maul, and his soul (bared or not) slips out to dance round his helm (BossArena.bossTaunt). */
+  onGloat(match, t) { this.aim('pose', 0.2); this.decoys = null; const j = this.joints(), S = this.soul; S.st = 'out'; S.flash = 0; S.x = j.head.x + Math.cos(t * 0.1) * 50; S.y = j.head.y - 30 + Math.sin(t * 0.2) * 16; S.vx = Math.cos(t * 0.1) < 0 ? 1 : -1; if (t % 50 === 10) match.popText({ x: S.x, y: S.y + 46 }, 'NYAH!', '#9affd0'); }
   /** A burst of bits (stone, leaves, moss). */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 20 + Math.random() * 12, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: he crumbles to his knees, the roots letting go (the explosions come from BossArena). */

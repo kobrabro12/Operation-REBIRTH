@@ -1,8 +1,8 @@
-// BOSS FIGHTS (Trinkets > BOSS FIGHTS, src/scenes/BossFightsScene.js): four bosses, each in its own arena with
+// BOSS FIGHTS (Trinkets > BOSS FIGHTS, src/scenes/BossFightsScene.js): six bosses, each in its own arena with
 // its own hazards, each harder than the last (boss II opens when you beat boss I, III when you beat II), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
-// demonBossStage.js / knightBossStage.js.
+// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -23,16 +23,28 @@ export const FIRST_BONUS = 1.0;
 export const BOSSES = [
   { id: 'colossus', name: 'THE CLOCKWORK COLOSSUS', short: 'THE COLOSSUS', title: 'THE CLOCKWORK GUARDIAN OF THE FOUNDRY', stage: 'brass-foundry', arena: 'BRASS FOUNDRY', hp: 300, coins: 120, color: 0xe0a040, trophy: 'brass-heart',
     blurb: 'A STEAM-DRIVEN GIANT OF BRASS AND RIVETS,\nBUILT TO GUARD THE FOUNDRY. ITS FURNACE\nHEART OVERHEATS - THAT IS WHEN IT BREAKS.',
+    taunts: ['TICK. TOCK. YOUR TIME IS UP.', 'MAINTENANCE COMPLETE. PEST REMOVED.', 'YOU WERE NEVER BUILT FOR THIS.'],
     hazards: 'PIPE BURSTS / CRANE DROPS' },
   { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', title: 'RULER OF THE 64-BIT SKY', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
     blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD. NEAR THE END, HE BATS IT AT YOU.',
+    taunts: ['GAME OVER! INSERT ANOTHER CHALLENGER!', 'NOT EVEN ONE FRAME OF RESISTANCE.', 'TOO FEW POLYGONS. TOO MUCH CONFIDENCE.'],
     hazards: 'PYLON ZAPS / QUAKE RINGS' },
   { id: 'demon', name: 'KARNAX, THE MAD BLADE', short: 'KARNAX', title: 'THE MAD BLADE', stage: 'burning-keep', arena: 'THE BURNING KEEP', hp: 430, coins: 260, color: 0xff3a2a, trophy: 'mad-blade',
     blurb: 'A HORNED DEMON WITH A GRIN TOO WIDE AND\nA SWORD TOO BIG, LAUGHING AS THE KEEP\nBURNS. AT HALF HEALTH HE GOES MAD.',
+    taunts: ['HA! HA HA! IS THAT ALL?!', 'COME BACK! I WAS JUST STARTING TO HAVE FUN!', 'YOUR SCREAMS ARE MUSIC, LITTLE ONE.'],
     hazards: 'CATAPULT STONES / BRAZIER FLARES' },
   { id: 'knight', name: 'THORNWARD, THE ROOTBOUND KNIGHT', short: 'THORNWARD', title: 'GUARDIAN OF THE ELDER GROVE', stage: 'elder-grove', arena: 'THE ELDER GROVE', hp: 480, coins: 340, color: 0x6ae060, trophy: 'verdant-helm',
     blurb: 'A HOLLOW KNIGHT BOUND BY ROOTS. HIS ARMOUR\nCAN\'T BE HURT - HIT HIS SOUL WHEN IT COMES\nOUT TO TAUNT YOU. BELOW 25% HE GOES BERSERK.',
+    taunts: ['NYAH! TOO SLOW! TOO SLOW!', 'THE ROOTS WILL KEEP YOU NOW.', 'HEHEHE - BETTER LUCK NEXT SEASON!'],
     hazards: 'THORN ROOTS / SPORE BURSTS' },
+  { id: 'machine', name: 'BEIGE.EXE, THE OLD MACHINE', short: 'BEIGE.EXE', title: 'THE COMPUTER THAT WILL NOT SHUT DOWN', stage: 'desktop', arena: 'THE DESKTOP', hp: 640, coins: 420, color: 0x30c8b0, trophy: 'golden-floppy',
+    blurb: 'A 90S COMPUTER THAT NEVER SHUT DOWN. ITS\nCURSOR CLICKS, DRAGS AND DELETES. HIT\nITS SCREEN - HARDEST WHEN IT FREEZES.',
+    taunts: ['PLAYER HAS PERFORMED AN ILLEGAL OPERATION AND WILL BE SHUT DOWN.', 'ARE YOU SURE YOU WANT TO QUIT?  ...TOO LATE.', 'PRESS ANY KEY TO CONTINUE LOSING.'],
+    hazards: 'POP-UPS / DIAL-UP' },
+  { id: 'hum', name: 'THE HUM, OCCUPANT OF LEVEL 0', short: 'THE HUM', title: 'IT LIVES IN THE BUZZING OF THE LIGHTS', stage: 'level-zero', arena: 'LEVEL 0', hp: 400, coins: 500, color: 0xe8d870, trophy: 'last-light',
+    blurb: 'SOMETHING TALL LIVES IN THE YELLOW ROOMS.\nIT GOES THROUGH FLOORS AND HIDES IN THE\nDARK. AFTER IT SURFACES, IT IS STUCK.',
+    taunts: ['...', 'YOU NOCLIPPED INTO THE WRONG ROOM.', 'STAY. THE LIGHTS ARE ALWAYS ON HERE.'],
+    hazards: 'FLICKER / BURST PANELS' },
 ];
 /** The boss with this id (a BOSSES entry). */
 export const bossById = (id) => BOSSES.find((b) => b.id === id);

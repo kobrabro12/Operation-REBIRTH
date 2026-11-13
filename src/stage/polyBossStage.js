@@ -466,6 +466,8 @@ export class PolyBossStage extends BossArena {
     return false;
   }
 
+  /** You lost: he cackles - jaw flapping, head bobbing, gauntlets clapping in front of him (BossArena.bossTaunt). */
+  onGloat(match, t) { const H = this.head; H.jaw = 0.5 + 0.5 * Math.sin(t * 0.6); H.y += (KING.y + Math.sin(t * 0.3) * 10 - H.y) * 0.2; for (const h of this.hands) { h.mode = null; this.toward(h, H.x + h.s * (40 + Math.abs(Math.sin(t * 0.25)) * 50), KING.rest[1], 0.3); } if (t % 16 === 0) sfx('clang', 0.3, 1.8); }
   /** FRAME DROP: he stutters and glitches, sinking low - his head takes x1.5 until he catches up. */
   atk_frame(match, a) {
     if (a.t === 1) { this.drop = this.sp(DROP.dur) + 40; sfx('glitch', 0.9, 0.8); this.frameText(); }

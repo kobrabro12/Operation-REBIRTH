@@ -456,6 +456,8 @@ export class DemonBossStage extends BossArena {
     if (this.lying && this.out[this.lying.s] <= 0) this.lying = null;
   }
 
+  /** You lost: he throws his head back and laughs and laughs (BossArena.bossTaunt). */
+  onGloat(match, t) { this.dm.y = 0; this.dm.alpha = 1; this.laughing = true; this.aim('laugh', 0.2); this.dm.p.head += Math.sin(t * 0.9) * 0.08; if (t % 22 === 1) this.ha(match); }
   /** BEHIND YOU: he fades into smoke; his eyes glint behind the nearest player; then he lunges out with a thrust. */
   atk_behind(match, a, out) {
     const D = this.dm, fade = BEHIND.fade, warn = this.sp(BEHIND.warn);

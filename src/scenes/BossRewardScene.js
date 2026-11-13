@@ -1,7 +1,7 @@
 // After a boss fight (MatchScene.toBossReward): the WIN screen - BOSS DEFEATED!, the boss, the difficulty, your time,
 // and every reward you got, counted in one by one (coins for the win, the first-win bonus, a speed bonus, the arena
 // opened for VS on HARD, the trophy on NIGHTMARE, any achievements it earned) with your coin total - or the DEFEATED
-// screen (how much health the boss had left). Then FIGHT AGAIN or back to BOSS FIGHTS. Rewards were already paid
+// screen (how much health the boss had left, and its taunt - the line it gloated with, BOSSES `taunts`). Then FIGHT AGAIN or back to BOSS FIGHTS. Rewards were already paid
 // (bosses.js claimBossRewards); trophies and achievements are checked here (checkAchievements pays their coins).
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic } from '../audio/music.js';
@@ -48,7 +48,11 @@ export class BossRewardScene extends Phaser.Scene {
       const b = txt(610, y, l.coins ? '+' + l.coins : l.kind === 'unlock' ? 'NEW!' : l.kind === 'record' ? '!' : '', 8, '#ffe08a').setOrigin(1, 0).setAlpha(0);
       return { a, b, at: LINE.first + i * LINE.every };
     });
-    if (!this.won) txt(236, 120, 'NO REWARDS THIS TIME.\n\n' + this.tip(), 7, '#c9c4dc', { wordWrap: { width: 380 } });
+    if (!this.won) {
+      const line = R.taunt || (B.taunts || [''])[0];
+      if (line) this.quote = txt(236, 104, (B.short || B.name) + ':\n"' + line + '"', 8, hex(B.color), { wordWrap: { width: 380 } });
+      txt(236, line ? 150 : 120, 'NO REWARDS THIS TIME.\n\n' + this.tip(), 7, '#c9c4dc', { wordWrap: { width: 380 } });
+    }
     this.totalT = txt(610, 104 + Math.max(1, this.lines.length) * 22 + 10, '', 9, '#ffe08a').setOrigin(1, 0);
     this.coinT = txt(236, 104 + Math.max(1, this.lines.length) * 22 + 12, '', 6, '#c9c4dc');
     this.actions = [makeButton(this, 236, 318, this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
@@ -63,7 +67,9 @@ export class BossRewardScene extends Phaser.Scene {
     return { colossus: 'TIP: AFTER ITS STEAM VENT IT OVERHEATS - ITS GLOWING HEART TAKES EXTRA DAMAGE. HIT IT THEN.',
       polygon: 'TIP: EVERY FEW ATTACKS THE KING FRAME-DROPS AND SINKS LOW. HIS HEAD TAKES EXTRA DAMAGE WHILE HE STUTTERS. WHEN HE GRABS A BAT, KEEP MOVING.',
       demon: 'TIP: WHEN HE STOPS TO LAUGH, GO FOR HIS HEAD - IT TAKES EXTRA DAMAGE. RED EYES BEHIND YOU MEAN MOVE. DO NOT HIDE AT HIS HOOVES.',
-      knight: 'TIP: HIS ARMOUR CAN\'T BE HURT. WAIT FOR HIS SOUL TO COME OUT AND TAUNT YOU - THEN HIT IT, FAST.' }[this.R.id] || '';
+      knight: 'TIP: HIS ARMOUR CAN\'T BE HURT. WAIT FOR HIS SOUL TO COME OUT AND TAUNT YOU - THEN HIT IT, FAST.',
+      machine: 'TIP: WHEN IT FREEZES (NOT RESPONDING) ITS SCREEN TAKES EXTRA DAMAGE. FALLEN ERROR WINDOWS ARE LEDGES.',
+      hum: 'TIP: AFTER IT BURSTS UP FROM THE FLOOR IT GETS STUCK - ITS HEAD IS LOW AND TAKES EXTRA DAMAGE. ONE HIT POPS A MIMIC.' }[this.R.id] || '';
   }
 
   /** The backdrop: rays in the boss's colour (dim red when you lost), a panel for the rewards. */
@@ -96,6 +102,7 @@ export class BossRewardScene extends Phaser.Scene {
     const f = this.fx; f.clear();
     if (this.won) for (let i = 0; i < 14; i++) { const ph = (this.t * 1.3 + i * 37) % 160, x = 40 + (i * 97) % 560, y = -10 + ph * 2.4; f.fillStyle([0xffd23f, 0xffffff, this.B.color][i % 3], 1); f.fillRect(x + Math.sin(ph * 0.1 + i) * 8, y, 4, 2 + (i % 3)); }
     this.head.setScale(1 + Math.max(0, 0.3 - this.t * 0.02));
+    if (this.quote) this.quote.setAngle(Math.sin(this.t * 0.3) * (this.t < 40 ? 1.5 : 0));
     this.actions.forEach((a, i) => a.setColor(i === this.choice ? '#ffdf83' : '#ffffff'));
     const m = this.menu.poll();
     if (this.t < 20) return;
