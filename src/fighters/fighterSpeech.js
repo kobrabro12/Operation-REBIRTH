@@ -24,6 +24,14 @@ const QUIPS = {
     grab: [0.7, 'LOCKED.'], throw: [0.7, 'EJECT.', 'PIPE > /DEV/NULL'],
     upb: [0.5, 'GOTO 10'], limit: [1, 'SINK();'], ko: [1, 'SEGFAULT.', 'PROCESS ENDED.'],
   },
+  // Mr Wake as THE ARTIST: a fussy old master critiquing every stroke
+  'mr-wake:artist': {
+    jab: [0.3, 'DAB.', 'A LIGHT TOUCH.'],
+    attack: [0.22, 'BOLD STROKE!', 'MORE OCHRE.', 'BLEND!', 'CHIAROSCURO!'],
+    smash: [0.6, 'MASTERSTROKE!', 'BRAVURA!'],
+    grab: [0.7, 'HOLD STILL. I AM PAINTING YOU.'], throw: [0.7, 'TOO MUCH BLUE.', 'BACK TO THE EASEL!'],
+    upb: [0.5, 'A FLOURISH!'], limit: [1, 'MY MAGNUM OPUS!'], ko: [1, 'FIN.', 'SIGNED, MR WAKE.'],
+  },
   // AKATSUKI: an anime hero, shouting her moves
   // WHAT ONCE WAS's costumes: a desktop that's far too cheerful, a terminal, a silent swordsman
   'what-once-was:wowAero': {

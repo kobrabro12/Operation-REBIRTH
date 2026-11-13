@@ -519,6 +519,12 @@ SKINS['hero-knight'].push({name:'PRISM REGENT',sheetSet:'prism',shop:'cos-prism'
  lore:'A sovereign cut from living crystal: a faceted diadem, a spectral blade and a court of orbiting glass shards.',
  pal:{outline:0x151932,deep:0x4a496e,mid:0x8b9cce,light:0xb5f3e9,core:0xffe6fc,shade:0x2a2f52,void:0x0b1023},
  vfx:{hit:{shape:'star',colors:[0xa2eee7,0xe4b5f5,0xfff3c2],n:11,glint:true,ring:0xc2d8f8},trail:0xc6e7ff,aura:{prism:true}}});
+// THE ARTIST (free; made for BOSS FIGHTS > SMUDGE, who gives it its own fight): a paint-spattered cream smock, a stained
+// hat band, his staff turned into a giant paintbrush dripping red; hits splash paint, he leaves a trail of colour
+SKINS['mr-wake'].push({ name: 'THE ARTIST', sheetSet: 'artist', style: 'artist', swatch: 0xf0e4c8, fx: 0xff2a4a, artist: true,
+  lore: 'He swapped his gem for a brush and his robe for a smock. Somewhere a nine-year-old with a bucket on his head heard about it and took it personally.',
+  pal: { outline: 0x2a1a12, deep: 0x8a2030, mid: 0xff2a4a, light: 0xffd0d8, core: 0xffffff, shade: 0x4a2a1a, void: 0x1a0a08 },
+  vfx: { hit: { shape: 'drop', colors: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060], n: 12, ring: 0xffd400 }, trail: 0xff2a4a, aura: { motes: { colors: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060], rate: 8 } } } });
 SKINS['mr-wake'].push({name:'ABYSSAL CHOIR',sheetSet:'choir',shop:'cos-choir',swatch:0x74d6cc,fx:0x8cebd4,
  lore:'A drowned cathedral given legs. Lantern bells drift around a bronze reliquary mask; every spell carries a ring of deep-sea light.',
  pal:{outline:0x091b29,deep:0x1e4356,mid:0x4c8991,light:0x8cebd4,core:0xf4e7ba,shade:0x143041,void:0x030e1c},

@@ -350,6 +350,41 @@ def mw_teatime(N, L):
     for y in range(16, 22): K.put(h, 42, y, 0xc8a030) if h[y, 42, 3] else None                                                   # and its chain
     return [], set(), None
 
+def mw_artist(N, L):
+    """THE ARTIST (made for the fight with SMUDGE): a cream painter's smock spattered with every colour, a red beret
+    with a stalk on top in place of his hat's band, a palette-knife-straight posture - and his staff is now a giant
+    paintbrush: a silver ferrule and a fat bristle tuft loaded with dripping red paint where the gem was"""
+    P = {'o': 0x2a1a12, 'f': 0xc8ccd8, 'F': 0xf0f2f8, 'b': 0xe8c890, 'B': 0xc89a60, 'r': 0xff2a4a, 'R': 0xb01830, 'w': 0xffd0d8}
+    SPL = [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060, 0xff8a1a, 0xb04ae0]
+    for n in ('cape', 'bskirt', 'fskirt', 'torso'):                              # paint spatters all over the smock
+        lay = N[n]; ys, xs = np.nonzero(lay[..., 3] > 0)
+        for x, y in zip(xs, ys):
+            k = (x * 7 + y * 13) % 41
+            if k == 0 or (k == 1 and (x + y) % 3 == 0):
+                c = SPL[(x * 3 + y) % len(SPL)]
+                for dx, dy in ((0, 0), (1, 0), (0, 1)) if k == 0 else ((0, 0),):
+                    if y + dy < 64 and x + dx < 64 and lay[y + dy, x + dx, 3]: K.put(lay, x + dx, y + dy, c)
+    h = N['head']
+    for x in range(30, 50):                                                     # a paint-stained band where the hat meets the head
+        y = 10 + (1 if 36 <= x <= 43 else 0) - (1 if x > 46 else 0)
+        if h[y, x, 3]: K.put(h, x, y, SPL[(x // 3) % len(SPL)])
+    K.stamp(h, 38, 2, ['.oo.', 'orro', '.oR.'], P, only_empty=True)            # the beret's little stalk
+    staff = N['staff']                                                          # the gem becomes a paintbrush head
+    K.stamp(staff, 6, 3, ['....oo.....',
+                          '...orro....',
+                          '..orrrro...',
+                          '..orwrrro..',
+                          '.orrrrrro..',
+                          '.orrrwrrro.',
+                          '.oRrrrrrRo.',
+                          '..oRrrrRo..',
+                          '..offFffo..',
+                          '..oFffFfo..',
+                          '..offFffo..',
+                          '...oBbbo...'], P)
+    for x, y in ((9, 15), (9, 16), (13, 16), (13, 17), (13, 18)): K.put(staff, x, y, P['r']) if not staff[y, x, 3] else None   # drips off the tuft
+    return [], set(), None
+
 def tartan_paint(lay):
     """a red tartan: red ground, dark green and navy bands crossing, thin yellow and white lines - shaded by the original"""
     ys, xs = np.nonzero(lay[..., 3] > 0)
@@ -363,6 +398,7 @@ def tartan_paint(lay):
         lay[y, x, :3] = tuple(min(255, int(ch * k)) for ch in c)
 
 MW_LOOKS = {
+    'artist': (mw_artist, {'robe': {'to': 40, 'sat': 0.22, 'val': 2.1}, 'magic': {'to': 210, 'sat': 1.2, 'val': 1.2}, 'cloth': {'to': 356, 'sat': 1.3, 'val': 1.25}, 'wood': {'to': 30, 'sat': 0.8, 'val': 1.1}}),
     'teatime': (mw_teatime, {'robe': {'to': 224, 'sat': 1.0, 'val': 0.75}, 'magic': {'to': 214, 'sat': 0.8, 'val': 1.2}, 'cloth': {'to': 220, 'sat': 0.6}, 'wood': {'to': 28, 'sat': 0.8, 'val': 1.0}}),
     'vampire': (mw_vampire, {'robe': {'to': 350, 'sat': 1.15, 'val': 0.55}, 'magic': {'to': 356, 'sat': 1.2, 'val': 1.15}, 'cloth': {'to': 330, 'sat': 0.6, 'val': 0.45}, 'wood': {'sat': 0.1, 'val': 1.3}}),
     'plague': (mw_plague, {'robe': {'to': 150, 'sat': 0.25, 'val': 0.42}, 'magic': {'to': 118, 'sat': 1.1, 'val': 1.15}, 'cloth': {'to': 28, 'sat': 0.9, 'val': 1.1}, 'wood': {'to': 20, 'sat': 0.3, 'val': 0.6}}),
@@ -841,7 +877,7 @@ def build_parts(name):
     return res
 
 # ====================================================================== run
-LOOKS = {'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
+LOOKS = {'artist': build_mw, 'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
          'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts}
 
 if __name__ == '__main__':

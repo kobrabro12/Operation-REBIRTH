@@ -75,6 +75,7 @@ export const SKIN_INTROS = {
   'mr-wake:NEON': { kind: 'warp', color: 0xff4fd8, sfx: ['laser', 0.4, 1.4] },
   'mr-wake:CREATURE FEATURE': { kind: 'bolt', color: 0xffffff, sfx: ['thunder', 0.6, 1] },
   'mr-wake:VAMPIRE': { kind: 'swarm', shape: 'bat', colors: [0x1a0a14, 0x5a0a1a, 0x2a1a2a], n: 20, pre: ['bats', 0.5, 1], sfx: ['curse', 0.4, 1.2] },
+  'mr-wake:THE ARTIST': { kind: 'paint', colors: [0xff2a4a, 0xffd400, 0x2a8aff, 0x2ad060], color: 0xff2a4a, color2: 0xffd400, sfx: ['whoosh', 0.6, 1.3] },
   'mr-wake:PLAGUE DOCTOR': { kind: 'quarantine-lantern', color: 0x1a2a1e, color2: 0x5aff6a, sfx: ['curse', 0.4, 0.7] },
   'mr-wake:SAKURA': { kind: 'swarm', shape: 'petal', colors: [0xffb8d0, 0xffd8e8, 0xff8ab0], n: 26, sfx: ['petal', 0.6, 1.2] },
   'mr-wake:TIDEFATHER': { kind: 'portal', color: 0x0a2a4a, color2: 0x5ae8ff, sfx: ['geyser', 0.6, 0.7] },
@@ -158,6 +159,7 @@ export class FighterIntros {
       if (I.feathers) burst(14, [0xffffff, 0xfff4c0], 2.2, 'petal', 0.02);
     } else if (I.kind === 'bubble') { burst(16, [e.col, 0xffffff], 2.6, 'drop', 0.12); }
     else if (I.kind === 'swarm') burst(10, I.colors || [e.col], 2.4, I.shape, 0.03);
+    else if (I.kind === 'paint') { burst(18, I.colors || [e.col, e.col2], 3, 'drop', 0.15); this.m.shake(3, 5); }
     else if (I.kind === 'n64') { burst(10, I.gem, 3.2, 'polygem', 0.06); burst(8, [0xffe848, 0xffffff], 2.2, 'polystar', 0.02); e.ring = { t: 0, color: e.col }; this.m.shake(3, 5); }
     else burst(12, [e.col, e.col2, 0xffffff], 2.4, I.shape || 'pixel', 0.03);
   }
@@ -286,6 +288,18 @@ export class FighterIntros {
           if (p < A && pre > 0.75) { g.lineStyle(3, c, 1); let bx = x, byy = y - 300; for (let i = 0; i < 9; i++) { const nx = x + (R() - 0.5) * 30 * (1 - i / 9), ny = byy + 300 / 9; g.lineBetween(bx, byy, nx, ny); bx = nx; byy = ny; } }
           if (p >= A && post < 0.2) { g.fillStyle(c, 0.6 * (1 - post * 5)); g.fillRect(x - 400, y - 400, 800, 500); }
           if (p >= A) { g.fillStyle(0x000000, 0.4 * Math.max(0, 1 - post * 2)); g.fillEllipse(x, y, 40, 6); }
+          break;
+        }
+        case 'paint': {                                                    // THE ARTIST: brush strokes of colour paint them in, one after another, then drip and fade
+          const cols = I.colors || [c, c2], n = cols.length;
+          for (let i = 0; i < n; i++) {
+            const k = Math.max(0, Math.min(1, (pre - i / (n + 1)) * (n + 1))), fade = p >= A ? Math.max(0, 1 - post * 1.3) : 1;
+            if (k <= 0) continue;
+            const y0 = y - 66 + i * 14, x0 = x - 34 + (i % 2) * 6;
+            g.fillStyle(cols[i], 0.85 * fade); g.fillRoundedRect(x0, y0, 68 * k, 13, 6);
+            for (let q = 0; q < 4; q++) g.fillCircle(x0 + 68 * k * (q + 0.5) / 4, y0 + 13 + ((q * 7 + i * 3) % 6) * (p >= A ? 1 + post * 4 : 1), 2);   // drips
+          }
+          if (p >= A) vis = Math.min(1, post * 3);
           break;
         }
         case 'iris': {                                                     // an old-film iris opening on them

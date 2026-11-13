@@ -58,6 +58,8 @@ export const SKIN_CUTS = {
   // ---- homages to old movies, TV and video games (all original: no real titles, names or logos)
   'soul-summoner:HIGH NOON': { fn: 'ss_noon', len: 900, card: 720, name: 'SOUL SUMMONER', sub: 'HIGH NOON', line: 'TOO SLOW, PARTNER.', music: 'bgm_outro_western',
     color: '#ffb84a', stroke: '#2a1004', shots: [[0, 'town'], [200, 'eyes'], [330, 'clock'], [440, 'draw'], [620, 'sunset']] },
+  'mr-wake:THE ARTIST': { fn: 'wake_artist', len: 600, card: 470, name: 'MR WAKE', sub: 'THE ARTIST', line: 'A MASTERPIECE. YOU, ON THE OTHER HAND...',
+    color: '#ff2a4a', stroke: '#1a0a08', shots: [[0, 'studio'], [170, 'canvas'], [330, 'gallery']] },
   'mr-wake:CREATURE FEATURE': { fn: 'wake_monster', len: 900, card: 780, name: 'MR WAKE', sub: 'CREATURE FEATURE', line: '...OR IS IT?', music: 'bgm_outro_monster',
     color: '#f4f4f4', stroke: '#000000', shots: [[0, 'titles'], [150, 'harbour'], [300, 'reveal'], [420, 'attack'], [600, 'paper'], [760, 'end']] },
   'nu:SILENT FILM': { fn: 'nu_silent', len: 900, card: 760, name: 'NU', sub: 'SILENT FILM', line: '...AND THE CROWD WENT WILD.', music: 'bgm_outro_ragtime',
@@ -249,6 +251,59 @@ export class SkinShots {
     if (s === 2) { sfx('buzz', 0.6, 0.6); sfx('clang', 0.4, 1.6); }
     if (s % 20 === 0) sfx('ding', 0.15, 2);
     this.vignette(this.over, 0.6);
+  }
+
+  // ================================================================ MR WAKE - THE ARTIST
+  // A sunlit attic studio: he paints at a huge easel, flicking colour everywhere; close on the canvas as a portrait of
+  // the beaten appears stroke by stroke (unflattering); then the gallery opening - the beaten hang on the wall in gold
+  // frames, labelled, while he bows to applause.
+  studio(g, t) {
+    g.fillStyle(0xe8d0a0, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xd0b080, 1); for (let x = 0; x < W; x += 40) g.fillRect(x, 0, 3, 260);   // plank walls
+    g.fillStyle(0xfff4c8, 0.9); g.fillTriangle(80, 0, 220, 0, 360, 288); g.fillStyle(0xfff4c8, 0.35); g.fillTriangle(60, 0, 250, 0, 420, 288);   // sunlight from the skylight
+    g.fillStyle(0x8a5a2a, 1); g.fillRect(0, 288, W, H - 288); g.fillStyle(0x6a4420, 1); for (let x = 0; x < W; x += 56) g.fillRect(x, 288, 2, H);
+    for (let i = 0; i < 26; i++) { const sp = this.spots[i]; g.fillStyle([0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060, 0xb04ae0][i % 5], 0.8); g.fillEllipse(sp[0] * W, 292 + sp[1] * 60, 6 + sp[2] * 14, 3 + sp[2] * 4); }   // paint on the floor
+    for (let i = 0; i < 12; i++) { const x = 20 + i * 14, h = 18 + (i % 3) * 6; g.fillStyle([0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][i % 4], 1); g.fillRect(x, 260 - h, 10, h); g.fillStyle(0xd8d8d0, 1); g.fillRect(x + 2, 254 - h, 6, 6); }   // paint tubes on a shelf
+    g.fillStyle(0x5a3a1a, 1); g.fillRect(14, 260, 180, 6);
+  }
+  easel(g, x, y, w, h, p) {                                                     // a tall easel with a canvas, painted up to p
+    g.lineStyle(6, 0x6a4420, 1); g.lineBetween(x - w * 0.4, y + h + 60, x, y - 20); g.lineBetween(x + w * 0.4, y + h + 60, x, y - 20); g.lineBetween(x, y - 20, x + 10, y + h + 70); g.lineStyle(0);
+    g.fillStyle(0x3a2410, 1); g.fillRect(x - w / 2 - 4, y - 4, w + 8, h + 8); g.fillStyle(0xfaf6ea, 1); g.fillRect(x - w / 2, y, w, h);
+    const cols = [0x2a8aff, 0xff2a4a, 0xffd400, 0x2ad060, 0xb04ae0];
+    for (let i = 0; i < 18 * p; i++) { const sp = this.spots[i], c = cols[i % 5]; g.fillStyle(c, 0.85); g.fillRoundedRect(x - w / 2 + sp[0] * (w - 30), y + sp[1] * (h - 14), 20 + sp[2] * 30, 8, 4); }
+  }
+  shot_wake_artist_studio(t, k, s) {
+    const g = this.bg, floor = 300;
+    this.studio(g, t); this.hideLosers();
+    this.easel(g, 430, 110, 150, 120, Math.min(1, s / 140));
+    this.idle(270, floor, 3, t);
+    if (s % 24 === 0) { sfx('swing', 0.3, 1.6 + Math.random() * 0.4); }
+    for (let i = 0; i < 10; i++) { const sp = this.spots[i + 10], q = ((s * 2 + i * 23) % 60) / 60, x = 310 + q * 140 + sp[0] * 20, y = 200 - Math.sin(q * Math.PI) * 60 + sp[1] * 20; this.fx.fillStyle([0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][i % 4], 1 - q); this.fx.fillCircle(x, y, 3); }   // flicked paint
+    this.vignette(this.over, 0.45);
+  }
+  shot_wake_artist_canvas(t, k, s) {                                             // close on the canvas: the beaten, painted - badly, lovingly
+    const g = this.bg; this.hero.setVisible(false);
+    g.fillStyle(0x3a2410, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xfaf6ea, 1); g.fillRect(60, 30, W - 120, H - 60);
+    const p = Math.min(1, s / 120), cols = [0xffd8b0, 0x2a8aff, 0xff2a4a, 0x2ad060];
+    g.fillStyle(0xd8e8ff, 1); g.fillRect(60, 30, (W - 120) * Math.min(1, p * 2), (H - 60) * 0.6);   // a sky, washed in
+    this.posLosers(this.losers.map((l, i) => [180 + i * 140, 290, 3.2, (i % 2 ? 0.08 : -0.08), Math.min(1, p * 1.5), 0]), 0x3a2a6a);
+    for (let i = 0; i < 40 * p; i++) { const sp = this.spots[i % 40]; g.fillStyle(cols[i % 4], 0.5); g.fillEllipse(80 + sp[0] * (W - 160), 60 + sp[1] * (H - 120), 30 + sp[2] * 30, 10); }
+    if (s > 100) { this.fx.lineStyle(3, 0x141414, 1); for (const l of this.losers) if (l.def && l.s.visible) { const [hx, hy] = this.loserHead(l); this.fx.lineBetween(hx - 10, hy - 22, hx + 10, hy - 22); this.fx.strokeCircle(hx - 6, hy - 4, 5); this.fx.strokeCircle(hx + 6, hy - 4, 5); } this.fx.lineStyle(0); }   // a moustache and spectacles, painted on
+    if (s === 100) sfx('laugh', 0.5, 1.3);
+    if (s % 12 === 0 && s < 110) sfx('swing', 0.25, 2);
+    this.vignette(this.over, 0.5);
+  }
+  shot_wake_artist_gallery(t, k, s) {                                            // the gallery opening
+    const g = this.bg, floor = 300;
+    g.fillStyle(0xf4f0e8, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xb8a890, 1); g.fillRect(0, 288, W, H);
+    for (let i = 0; i < 4; i++) { g.fillStyle(0xfff8e0, 0.25); g.fillTriangle(110 + i * 150, 0, 70 + i * 150, 150, 150 + i * 150, 150); }   // spotlights
+    const n = Math.max(1, this.losers.filter((l) => l.def).length), xs = this.losers.map((_, i) => W / 2 + (i - (n - 1) / 2) * 170);
+    this.losers.forEach((l, i) => { if (!l.def) return; const x = xs[i]; g.fillStyle(0xc89a30, 1); g.fillRect(x - 58, 44, 116, 132); g.fillStyle(0xfaf6ea, 1); g.fillRect(x - 50, 52, 100, 116); g.fillStyle(0x3a3a4a, 1); g.fillRect(x - 30, 184, 60, 12); });
+    this.posLosers(this.losers.map((l, i) => [xs[i], 160, 1.6, 0, 1, 0]), 0x8a5a3a);
+    this.losers.forEach((l, i) => { const L = this.tvLines[i]; if (L && l.def) L.setFontSize(6).setText('STILL LIFE WITH ' + l.name).setColor('#ffffff').setPosition(xs[i] - 28, 187).setVisible(true); });
+    this.move('taunt', Math.min(40, s * 0.4), W / 2 - 20, floor + 40, 2.6);
+    for (let i = 0; i < 8; i++) { const sp = this.spots[i]; this.fx.fillStyle(0x2a2a3a, 1); this.fx.fillEllipse(30 + sp[0] * 120 + (i > 3 ? 440 : 0), 330, 22, 50); this.fx.fillCircle(30 + sp[0] * 120 + (i > 3 ? 440 : 0), 296 + Math.abs(Math.sin(s * 0.3 + i)) * -4, 10); }   // the crowd, clapping
+    if (s % 8 === 0) sfx('hit', 0.08, 2.2);
+    if (s === 20) sfx('limitready', 0.4, 1.2);
   }
 
   // ================================================================ MR WAKE - ROSEBUD

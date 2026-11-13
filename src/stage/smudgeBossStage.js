@@ -26,7 +26,8 @@ import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
 import { Poly3D, ballFaces, boxFaces } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
-import { FONT } from '../config.js';
+import { FONT, VIEW_W } from '../config.js';
+import { skinInfo } from '../fighters/skins.js';
 
 // the styles he cycles through (ACTION PAINTING is only for the end)
 const STYLES = ['sketch', 'pop', 'cubist', 'starry'];
@@ -81,6 +82,29 @@ const SAY = {
   hurt: ['HEY! NO TOUCHING THE ART!', 'MY MASTERPIECE!', 'THAT\'S NOT HOW YOU HOLD A BRUSH!', 'OW! I\'M TELLING!', 'RUDE!!'],
   rage: 'MASTERPIECE MODE!!', low: 'NO MORE RULES!!',
 };
+// THE ART-OFF (Mr Wake in THE ARTIST): the extra entrance (frames), its exchange (frames into the extra part, how long,
+// who, what), his score cards for your combos (hits in a row to earn one, the cards), and the finale's exchange
+const ARTOFF = {
+  extra: 560,
+  lines: [
+    { at: 10, len: 100, who: 'SMUDGE', text: 'WAIT.  IS THAT...  A BRUSH?' },
+    { at: 115, len: 100, who: 'MR WAKE', text: 'A FELLOW PAINTER!  HOW DELIGHTFUL.' },
+    { at: 220, len: 110, who: 'SMUDGE', text: 'THERE\'S ONLY ROOM FOR ONE ARTIST ON THIS CANVAS!' },
+    { at: 335, len: 100, who: 'MR WAKE', text: 'THEN WE SETTLE IT THE OLD WAY.  AN ART-OFF.' },
+    { at: 440, len: 110, who: 'SMUDGE', text: 'LOSER EATS A CRAYON!!' },
+  ],
+  combo: 4,
+  cards: [['2/10', 'DERIVATIVE!'], ['3/10', 'MY DOG PAINTS BETTER'], ['5/10', 'NEEDS MORE COLOUR'], ['6/10', '...OKAY, THAT WAS COOL'], ['9/10', 'FINE. IT\'S GOOD.'], ['10/10', 'NO WAIT - 1/10!!']],
+  finale: { n: 640, boom: 560, lines: [
+    { at: 20, len: 110, who: 'SMUDGE', text: '...HOW?  I\'M A GENIUS.  MOM SAYS.' },
+    { at: 135, len: 120, who: 'MR WAKE', text: 'YOU ARE TALENTED, CHILD.  BUT TALENT NEEDS PATIENCE.' },
+    { at: 260, len: 100, who: 'SMUDGE', text: '...WILL YOU TEACH ME?' },
+    { at: 365, len: 100, who: 'MR WAKE', text: 'FIRST LESSON: CLEAN YOUR BRUSHES.' },
+    { at: 470, len: 90, who: 'SMUDGE', text: 'AWW, MAAAN!!' },
+  ] },
+};
+/** How much of a line to show `t` frames in, typing it out over `dur` frames from `at`. */
+const sayPart = (text, t, at, dur) => text.slice(0, Math.max(1, Math.ceil(text.length * Math.min(1, (t - at) / dur))));
 // where the backdrop sits on the background camera
 const SKY = { x: 320, y: 250 };
 
@@ -203,6 +227,7 @@ export class SmudgeBossStage extends BossArena {
         g.lineStyle(1, ink, 0.6); g.strokeCircle(L.x1 + w * 0.25, L.y + 3, 3); g.lineBetween(L.x1 + w * 0.6, L.y + 1, L.x1 + w * 0.85, L.y + 5); g.lineStyle(2, ink, 1); g.strokeRect(L.x1 - 4, L.y - 2, w + 8, 15); g.lineStyle(0);
       }
     }
+    if (this.signs) for (const S of this.signs) { g.fillStyle(S.c, 0.9); g.fillEllipse(S.x, 3, S.r * 2.4, S.r * 0.9); g.fillCircle(S.x + S.r, 1, S.r * 0.35); }   // THE ARTIST's colour on the canvas
     // the wet paint (from BRUSH SWEEP, SPILL and splats)
     for (const W of this.wet) { const a = Math.min(1, W.life / 40); g.fillStyle(W.c, 0.85 * a); g.fillRect(W.x1, -5, W.x2 - W.x1, 6); for (let x = W.x1 + 6; x < W.x2; x += 18) { g.fillStyle(W.c, 0.85 * a); g.fillEllipse(x, -5, 10, 5 + Math.sin(t * 0.1 + x) * 1.5); } }
   }
@@ -211,7 +236,34 @@ export class SmudgeBossStage extends BossArena {
   /** His hits (BossArena.bhit), all launching a bit harder than the numbers in the tables (`HIT`). */
   bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
   /** The boss's own state when the fight starts. */
-  makeBoss() { this.cycle.gap = 1300; this.cycle.next = 1500; }
+  makeBoss(match) {
+    this.cycle.gap = 1300; this.cycle.next = 1500;
+    this.rival = match.fighters.find((f) => f.def && f.def.id === 'mr-wake' && skinInfo('mr-wake', f.skin).artist) || null;   // THE ART-OFF
+    if (this.rival) { this.introEnter = 220 + ARTOFF.extra; this.taunts = ['TOLD YOU! I\'M THE REAL ARTIST!', 'YOU EAT THE CRAYON. PURPLE ONE.', 'LESSON ONE: LOSE. LESSON TWO: CRY.']; this.barName.setText('SMUDGE  -  ART-OFF!'); this.combo = { n: 0, t: 0 }; this.card = null; this.signs = []; }
+  }
+  /** The ART-OFF's name card. */
+  introCard() { return this.rival ? { name: 'ART-OFF!', title: 'SMUDGE  VS  THE ARTIST' } : null; }
+  /** The intro (and, in the ART-OFF, the dialogue box they talk in - also used by the finale). */
+  startIntro(match) {
+    super.startIntro(match);
+    if (!this.rival) return;
+    this.sayG = match.add.graphics().setDepth(41).setVisible(false);
+    this.sayName = match.add.text(VIEW_W / 2 - 200, 292, '', { fontFamily: FONT, fontSize: '7px', color: '#ff2a6a', stroke: '#07060e', strokeThickness: 3 }).setDepth(42).setVisible(false);
+    this.sayText = match.add.text(VIEW_W / 2 - 200, 304, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3, wordWrap: { width: 400 }, lineSpacing: 2 }).setDepth(42).setVisible(false);
+    match.addUI(this.sayG, this.sayName, this.sayText);
+  }
+  /** Shows (or hides, null) the dialogue box with this much of a line and who says it - a comic-book panel. */
+  sayBox(text, who) {
+    if (!this.sayG) return;
+    const on = !!text; this.sayG.setVisible(on); this.sayName.setVisible(on); this.sayText.setVisible(on);
+    if (!on) return;
+    this.sayText.setText(text); this.sayName.setText(who).setColor(who === 'SMUDGE' ? '#ff2a6a' : '#ffd400');
+    const g = this.sayG, x = VIEW_W / 2 - 210, y = 286; g.clear();
+    g.fillStyle(0x000000, 1); g.fillRect(x - 3, y - 3, 426, 46); g.fillStyle(0xffffff, 1); g.fillRect(x, y, 420, 40);
+    for (let yy = y + 3; yy < y + 40; yy += 5) for (let xx = x + 3; xx < x + 420; xx += 5) { g.fillStyle(who === 'SMUDGE' ? 0xff2a6a : 0xffd400, 0.12); g.fillCircle(xx, yy, 1.2); }   // (Ben-Day dots)
+    g.fillStyle(0x000000, 0.75); g.fillRect(x, y, 420, 40);
+    g.fillStyle(who === 'SMUDGE' ? 0xff2a6a : 0xffd400, 1); g.fillRect(x, y, 6, 40);
+  }
   /**
    * His body's points this frame: feet, hips, shoulders, the bucket (his head), the brush hand, the brush tip (the
    * brush arm follows the brush angle `ba`), the free hand (angle `bb`).
@@ -252,7 +304,14 @@ export class SmudgeBossStage extends BossArena {
   /** MASTERPIECE MODE (half health): he hops up and down, shouting. */
   onRage(match) { this.talk(SAY.rage, 90); sfx('laugh', 0.8, 1.5); this.e.hop = 24; match.shake(6, 20); }
   /** A hit lands on him: now and then he whines about it. */
-  onHurt() { if (this.sayCD <= 0 || (this.say && this.say.t > 40)) { if (Math.random() < 0.35) this.talk(SAY.hurt[Math.floor(Math.random() * SAY.hurt.length)], 70); } }
+  onHurt(match) {
+    if (this.rival) {                                                                   // THE ART-OFF: he scores your combos on cards
+      this.combo.n = this.t - this.combo.t < 70 ? this.combo.n + 1 : 1; this.combo.t = this.t;
+      if (this.combo.n >= ARTOFF.combo && !this.card) { this.combo.n = 0; const c = ARTOFF.cards[Math.floor(Math.random() * ARTOFF.cards.length)]; this.card = { score: c[0], text: c[1], t: 0 }; sfx('ding', 0.6, 1.5); }
+      const r = this.rival; if (r && Math.random() < 0.5) this.signs.push({ x: Phaser.Math.Clamp(r.x + (Math.random() - 0.5) * 60, -240, 240), c: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][this.signs.length % 4], r: 4 + Math.random() * 6 });   // (his hits leave colour on the canvas)
+      if (this.signs.length > 40) this.signs.shift();
+    }
+    if (this.sayCD <= 0 || (this.say && this.say.t > 40)) { if (Math.random() < 0.35) this.talk(SAY.hurt[Math.floor(Math.random() * SAY.hurt.length)], 70); } }
   /** Says something in a comic speech bubble over his head for `life` frames. */
   talk(text, life = 100) { this.say = { text, t: 0, life }; this.sayCD = 260 + Math.random() * 200; }
   /** His walk speed. */
@@ -578,10 +637,52 @@ export class SmudgeBossStage extends BossArena {
 
   /** You lost: he holds up a crayon drawing of you and laughs, bouncing (BossArena.bossTaunt). */
   onGloat(match, t) { const E = this.e; E.hop = Math.abs(Math.sin(t * 0.2)) * 14; E.ba = -1.5; E.bb = -1.2; this.gloatT = t; if (t === 1) this.talk('I\'M PUTTING THIS ON THE FRIDGE!', 400); }
+  /** His health's gone. In the ART-OFF (a player watching): the finale cutscene first, then the usual end. */
+  startDeath(match) {
+    if (this.rival && this.sayG && !this.finaleDone) { this.finaleDone = true; this.boss.atk = null; this.card = null; this.onDeath(); this.say = null; const cam = match.worldCam || match.cameras.main; this.cut = { t: 0, n: ARTOFF.finale.n, once: new Set() }; this.ccam = { x: cam.midPoint.x, y: cam.midPoint.y, zoom: cam.zoom }; this.rageText.setVisible(false); return; }
+    super.startDeath(match);
+  }
+  /** The cutscene camera (MatchScene asks introCam): eased toward `cut.shot`. */
+  introCam() {
+    if (!this.cut) return super.introCam();
+    const w = this.cut.shot || { x: 0, y: -120, zoom: 1 }; this.ccam = { x: lerp(this.ccam.x, w.x, 0.08), y: lerp(this.ccam.y, w.y, 0.08), zoom: lerp(this.ccam.zoom, w.zoom, 0.08) };
+    return { ...this.ccam, exact: true };
+  }
+  /** A fresh press skips to the end of the finale. */
+  skipCut(match) { this.cut.t = Math.max(this.cut.t, ARTOFF.finale.boom - 1); this.cutStep(match); }
+  /**
+   * THE ART-OFF FINALE (MatchScene plays it while everyone else holds still): Mr Wake lands facing him; SMUDGE sits
+   * down hard, bucket askew, sniffling; they talk (the dialogue box) - HOW? I'M A GENIUS. / TALENT NEEDS PATIENCE. /
+   * WILL YOU TEACH ME? / FIRST LESSON: CLEAN YOUR BRUSHES. / AWW, MAAAN!! - and he bursts into a fountain of every
+   * colour of paint, which rains down all over the canvas. Then the usual end.
+   */
+  cutStep(match) {
+    const C = this.cut, F = ARTOFF.finale, E = this.e, f = this.rival, t = ++C.t; this.t++;
+    const once = (k, at) => t >= at && !C.once.has(k) && !!C.once.add(k);
+    if (f && f.state !== 'respawn' && t <= 30) { if (t === 1) C.from = { x: f.x, y: f.y, to: Phaser.Math.Clamp(E.x + (f.x < E.x ? -1 : 1) * 120, -220, 220) }; const q = t / 30; f.x = lerp(C.from.x, C.from.to, q); f.y = Math.min(0, lerp(C.from.y, 0, q) - Math.sin(q * Math.PI) * 30); f.vx = f.vy = 0; if (t === 30) f.grounded = true; }
+    if (f) f.facing = Math.sign(E.x - f.x) || 1;
+    if (once('sit', 1)) { sfx('bighit', 0.6, 1.4); sfx('curse', 0.4, 1.6); match.shake(6, 10); this.splash(match, E.x, -4, 16); }
+    E.crouch = Math.min(0.8, E.crouch + 0.05); E.squash = 0.25; E.hop = 0; E.ba += (0.9 - E.ba) * 0.1; E.bb += (1.5 - E.bb) * 0.1; E.dir = f ? Math.sign(f.x - E.x) || E.dir : E.dir;
+    const L = F.lines.find((q) => t >= q.at && t < q.at + q.len);
+    this.sayBox(L ? sayPart(L.text, t, L.at, L.len * 0.4) : null, L ? L.who : '');
+    if (L && t % 5 === 0 && t - L.at < L.len * 0.4) sfx('menu', 0.25, L.who === 'SMUDGE' ? 1.5 : 0.8);
+    const fx = f ? f.x : 0;
+    C.shot = L && L.who === 'MR WAKE' ? { x: fx, y: -50, zoom: 1.7 } : { x: E.x, y: -110, zoom: 1.35 };
+    if (t < F.boom) { if (t % 40 === 0 && t > 20 && t < 260) this.splash(match, this.body().head.x + E.dir * 14, this.body().head.y + 8, 2, 0x8ad0ff); return; }   // (tears)
+    if (once('boom', F.boom)) { sfx('geyser', 1, 0.7); sfx('bighit', 0.8, 1.2); sfx('laugh', 0.5, 1.8); match.shake(10, 30); E.alpha = 0; this.sayBox(null); }
+    C.shot = { x: E.x, y: -130, zoom: 1.0 };
+    if (t < F.boom + 50 && t % 2 === 0) for (let i = 0; i < 6; i++) match.particles.push({ x: E.x + (Math.random() - 0.5) * 40, y: -100, vx: (Math.random() - 0.5) * 9, vy: -4 - Math.random() * 7, life: 60, color: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060, 0xb04ae0, 0xffffff][i], size: 4, grav: 0.25 });
+    if (t >= F.n) { this.cut = null; this.gone = true; this.sayBox(null); super.startDeath(match); }
+  }
+  /** His death: paint, not fire - splats of every colour burst off him, and confetti (BossArena's death timing). */
+  stepDeath(match) {
+    const B = this.boss, b = this.body();
+    if (B.dying < 150 && B.dying % 7 === 0) { this.splash(match, b.hip.x + (Math.random() - 0.5) * 80, b.sh.y + (Math.random() - 0.5) * 120, 14, [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][B.dying % 4]); match.particles.push({ shape: 'ring', x: b.hip.x, y: b.sh.y, vx: 0, vy: 0, life: 16, maxLife: 16, color: 0xffffff, grav: 0, r: 6, dr: 5 }); sfx('geyser', 0.4, 1.4 + Math.random() * 0.4); }
+  }
   /** His death: he plops down and wails (MOOOM!) - the explosions come from BossArena. */
   onDeath(match) {
     this.pieces = []; this.blobs = []; this.doodles = []; this.bursts = []; this.dots = null; this.scrib = null; this.eraser = null; this.spikes = null; this.beams = null; this.swirl = null; this.stars = []; this.wave = null; this.splats = []; this.bucket = null;
-    this.e.alpha = 1; this.e.bucketOff = false; this.talk('NO FAIR!! MOOOOM!!', 200); if (match) this.splash(match, this.e.x, -100, 30);
+    this.e.alpha = this.gone ? 0 : 1; this.e.bucketOff = false; if (!this.rival) this.talk('NO FAIR!! MOOOOM!!', 200); if (match) this.splash(match, this.e.x, -100, 30);
   }
 
   // ------------------------------------------------------------------ the entrance
@@ -591,6 +692,8 @@ export class SmudgeBossStage extends BossArena {
    * head - BONK - and paint gushes out of it as hair; he twirls the brush and points it at you: OOH! A NEW MODEL!
    */
   introPose(match, k, t, n) {
+    if (this.rival && t > 220) return this.artoffPose(match, t - 220);
+    if (this.rival) { k = Math.min(1, t / 220); n = 220; }
     this.t++;
     const E = this.e, e = (a, b) => Phaser.Math.Clamp((k - a) / (b - a), 0, 1);
     E.x = 30; E.dir = -1; E.hop = 0; E.alpha = 1;
@@ -605,6 +708,15 @@ export class SmudgeBossStage extends BossArena {
     if (t === Math.round(0.88 * n)) { sfx('whoosh', 0.8, 1.2); this.talk(SAY.intro, 140); }
     if (this.say) this.say.t++;
   }
+  /** THE ART-OFF's exchange after his entrance (frames f into it): he spots the brush, they trade lines - him bouncing, outraged, pointing the brush at you. */
+  artoffPose(match, f) {
+    this.t++; const E = this.e, L = ARTOFF.lines.find((q) => f >= q.at && f < q.at + q.len);
+    this.say = null;
+    this.sayBox(L ? sayPart(L.text, f, L.at, L.len * 0.4) : null, L ? L.who : '');
+    if (L && L.who === 'SMUDGE') { E.hop = Math.abs(Math.sin(f * 0.25)) * 8; E.ba = -0.3 + Math.sin(f * 0.2) * 0.3; if (f % 5 === 0 && (f - L.at) < L.len * 0.4) sfx('menu', 0.25, 1.4 + (f % 3) * 0.1); }
+    else { E.hop *= 0.8; E.ba += (-0.25 - E.ba) * 0.1; if (L && f % 6 === 0 && (f - L.at) < L.len * 0.4) sfx('menu', 0.25, 0.8); }
+    if (f === ARTOFF.lines[4].at) { sfx('laugh', 0.6, 1.6); match.shake(4, 10); }
+  }
   /** The entrance: the world draws itself in - every tile and solid starts white and turns to its pattern colour in a ragged order (k = 0..1). */
   revealWorld(k) {
     if (Math.abs((this.revealK ?? -1) - k) < 0.02) return; this.revealK = k;
@@ -613,11 +725,11 @@ export class SmudgeBossStage extends BossArena {
     this.skyG.clear(); this.skyG.fillStyle(0xffffff, 1); this.skyG.fillRect(-400, -400, 1440, 1200); this.patG.clear();
   }
   /** The entrance's camera: wide on the white void, then in on him as he's drawn, close as the bucket lands. */
-  introShot(k) { const c = this.core(); return k < 0.4 ? { x: 0, y: -100, zoom: 0.85 } : k < 0.86 ? { x: this.e.x, y: -110, zoom: 1.3 } : { x: c.x - 30, y: c.y + 40, zoom: 1.2 }; }
+  introShot(k) { const c = this.core(); if (this.rival) { const kk = k * (220 + ARTOFF.extra) / 220; if (kk > 1) return { x: c.x - 20, y: c.y + 30, zoom: 1.4 }; k = kk; } return k < 0.4 ? { x: 0, y: -100, zoom: 0.85 } : k < 0.86 ? { x: this.e.x, y: -110, zoom: 1.3 } : { x: c.x - 30, y: c.y + 40, zoom: 1.2 }; }
   /** The freeze frame: him, brush pointed at you. */
   introAt() { const c = this.core(); return { x: c.x - 40, y: c.y + 50, zoom: 1.15 }; }
   /** After the intro: the world is fully drawn and he's whole. */
-  endIntro() { super.endIntro(); this.e.reveal = 1; this.introBucket = null; this.hairK = 1; this.setStyle('sketch', true); }
+  endIntro() { super.endIntro(); if (this.sayG) this.sayBox(null); this.e.reveal = 1; this.introBucket = null; this.hairK = 1; this.setStyle('sketch', true); }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_drip(match, h) { h.title = 'DRIP!'; const tg = this.nearest(match); h.x = Phaser.Math.Clamp(tg ? tg.x : 0, -230, 230); }
@@ -652,7 +764,7 @@ export class SmudgeBossStage extends BossArena {
       this.stepBlobs(match, out); this.stepDoodles(match, out); this.stepBursts(match, out); this.stepBubbles(match); this.stepStars(match, out); this.stepSplats(match, out);
       if (this.sayCD > 0) this.sayCD--;
       if (this.say && ++this.say.t > this.say.life) this.say = null;
-      if (this.boss.dying) { this.e.squash = Math.min(0.5, this.e.squash + 0.01); this.e.alpha = 1 - this.deathK(); }
+      if (this.boss.dying) { this.e.squash = Math.min(0.5, this.e.squash + 0.01); this.e.alpha = this.gone ? 0 : 1 - this.deathK(); }
     }
     if (this.wipe) { this.wipe.t++; if (this.wipe.t === 18) this.setStyle(this.wipe.next); if (this.wipe.t > 40) this.wipe = null; }
     return out;
@@ -785,6 +897,14 @@ export class SmudgeBossStage extends BossArena {
   /** Everything he's thrown or drawn: blobs, scribbles, eraser, doodles, bursts, dots, bubbles, fragments, spikes, beams, swirl, stars, wave, splats, bucket, drips. */
   drawFx(g) {
     const t = this.t, P = PAL[this.style], ink = P.ink;
+    if (this.card) {                                                                     // THE ART-OFF: a judge's score card held up in his free hand
+      const C = this.card, b = this.body(), x = b.hand2.x, y = b.hand2.y - 46 - Math.min(1, C.t / 8) * 6, k = Math.min(1, C.t / 6);
+      g.lineStyle(3, 0x6a4420, 1); g.lineBetween(x, y + 20, b.hand2.x, b.hand2.y); g.lineStyle(0);
+      g.fillStyle(0x000000, 1); g.fillRect(x - 36 * k, y - 22, 72 * k, 44); g.fillStyle(0xffffff, 1); g.fillRect(x - 33 * k, y - 19, 66 * k, 38);
+      this.burstT[3].setText(C.score).setPosition(x, y - 4).setScale(k * 1.5).setRotation(0).setColor('#ff2a6a').setVisible(k > 0.3);
+      if (++C.t === 8) this.talk(C.text, 80);
+      if (C.t > 110) { this.card = null; }
+    }
     for (const B of this.blobs) { g.fillStyle(ink, 1); g.fillCircle(B.x, B.y, 11); g.fillStyle(B.c, 1); g.fillCircle(B.x, B.y, 9); g.fillStyle(0xffffff, 0.6); g.fillCircle(B.x - 3, B.y - 3, 3); g.fillStyle(B.c, 0.25); g.fillEllipse(B.tx, -2, 40, 8); }
     if (this.scrib) {
       const S = this.scrib;
@@ -816,7 +936,7 @@ export class SmudgeBossStage extends BossArena {
       g.fillStyle(0xffffff, fade); g.fillTriangle(B.x - 10, y1 + BUBBLE.h - 12, B.x + 12, y1 + BUBBLE.h - 12, B.x - 20, B.y); g.lineStyle(3, 0x000000, fade); g.lineBetween(B.x - 10, y1 + BUBBLE.h - 10, B.x - 20, B.y); g.lineBetween(B.x + 12, y1 + BUBBLE.h - 10, B.x - 20, B.y); g.lineStyle(0);
       if (bi < 4) this.burstT[bi++].setText(B.text).setPosition(B.x, y1 + (BUBBLE.h - 10) / 2).setScale(1.6).setRotation(0).setColor('#ff2a8a').setVisible(true);
     }
-    this.burstT.forEach((o, i) => { if (i >= bi) o.setColor('#ffffff'); });
+    this.burstT.forEach((o, i) => { if (i >= bi && !(i === 3 && this.card)) o.setColor('#ffffff'); });
     for (const p of this.pieces) {                                                        // CUBISM: tumbling cube fragments (and their aim lines)
       if (p.warn) { g.lineStyle(2, ink, 0.4 + (t % 8 < 4 ? 0.3 : 0)); g.lineBetween(-300, p.y, 300, p.y); g.lineStyle(0); }
       const c = Math.cos(p.a), s = Math.sin(p.a), q = (x, y) => ({ x: p.x + x * c - y * s, y: p.y + x * s + y * c });
