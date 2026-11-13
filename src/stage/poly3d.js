@@ -120,6 +120,58 @@ export function gradientSky(scene, stops, y1 = -80, y2 = 440) {
   return g;
 }
 
+/**
+ * A smooth, rounded ellipsoid (a head, a gauntlet, a cartoon body part): a proper sphere of `seg` x `rings` facets
+ * with a normal at every corner (`vn`), so it's lit smoothly - no facets show. o: seg, rings, paint(u) -> a colour for
+ * the facet facing direction u ([x, y, z], unit; -z = toward you) to paint on markings, bias.
+ */
+export function ballFaces(cx, cy, cz, rx, ry, rz, col, o = {}) {
+  const S = o.seg || 14, R = o.rings || 9, out = [];
+  const at = (i, j) => { const th = (i / S) * Math.PI * 2, ph = (j / R) * Math.PI, u = [Math.sin(ph) * Math.cos(th), -Math.cos(ph), Math.sin(ph) * Math.sin(th)]; const nn = [u[0] / rx, u[1] / ry, u[2] / rz], l = Math.hypot(...nn) || 1; return { p: [cx + u[0] * rx, cy + u[1] * ry, cz + u[2] * rz], n: nn.map((v) => v / l), u }; };
+  for (let j = 0; j < R; j++) for (let i = 0; i < S; i++) {
+    const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1);
+    const vs = j === 0 ? [a, c, d] : j === R - 1 ? [a, b, c] : [a, b, c, d];
+    const m = vs.reduce((q, v) => [q[0] + v.u[0], q[1] + v.u[1], q[2] + v.u[2]], [0, 0, 0]), ml = Math.hypot(...m) || 1, mu = m.map((v) => v / ml);
+    const fn = vs.reduce((q, v) => [q[0] + v.n[0], q[1] + v.n[1], q[2] + v.n[2]], [0, 0, 0]), fl = Math.hypot(...fn) || 1;
+    out.push({ p: vs.map((v) => v.p), n: fn.map((v) => v / fl), vn: vs.map((v) => v.n), c: o.paint ? o.paint(mu) : col, bias: o.bias });
+  }
+  return out;
+}
+/** blobFaces' arguments, but a smooth round shape (the cartoon trees and clouds of 64-bit games): its colours spread over it, `top` on its upper faces. */
+function smoothBlob(cx, cy, cz, rx, ry, rz, cols, seed = 1, top = null) {
+  const cs = Array.isArray(cols) ? cols : [cols], big = Math.max(rx, ry, rz) > 300;
+  return ballFaces(cx, cy, cz, rx, ry, rz, cs[0], { seg: big ? 16 : 12, rings: big ? 9 : 7, paint: (u) => (top != null && u[1] < -0.55 ? top : cs[Math.floor(hash(Math.round(u[0] * 9), Math.round(u[1] * 9), seed) * cs.length)]) });
+}
+/** A smooth rounded tube from point a to point b (an arm, a leg, a stem): radius r, n sides, corner normals (`vn`). */
+export function tubeFaces(a, b, r, col, n = 8) {
+  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(...d) || 1, w = d.map((v) => v / L);
+  const t = Math.abs(w[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0], u0 = [w[1] * t[2] - w[2] * t[1], w[2] * t[0] - w[0] * t[2], w[0] * t[1] - w[1] * t[0]], ul = Math.hypot(...u0), u = u0.map((v) => v / ul), v = [w[1] * u[2] - w[2] * u[1], w[2] * u[0] - w[0] * u[2], w[0] * u[1] - w[1] * u[0]];
+  const ring = Array.from({ length: n }, (_, i) => { const q = i / n * Math.PI * 2, nn = [u[0] * Math.cos(q) + v[0] * Math.sin(q), u[1] * Math.cos(q) + v[1] * Math.sin(q), u[2] * Math.cos(q) + v[2] * Math.sin(q)]; return nn; });
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const n1 = ring[i], n2 = ring[(i + 1) % n], P = (p, nn) => [p[0] + nn[0] * r, p[1] + nn[1] * r, p[2] + nn[2] * r];
+    const fn = [(n1[0] + n2[0]) / 2, (n1[1] + n2[1]) / 2, (n1[2] + n2[2]) / 2];
+    out.push({ p: [P(a, n1), P(a, n2), P(b, n2), P(b, n1)], n: fn, vn: [n1, n2, n2, n1], c: col });
+  }
+  return out;
+}
+/** A flat cut-out (a billboard, like the flowers and trees of 64-bit games): polygons in the x/y plane at depth z, always facing you. shapes = [{ pts: [[x, y], ...], c }], drawn in order. */
+export function cutoutFaces(x, y, z, shapes, s = 1) {
+  return shapes.map((sh, i) => ({ p: sh.pts.map(([px, py]) => [x + px * s, y + py * s, z - i * 0.05]), n: null, c: sh.c, bb: true, bias: -i * 0.01 }));
+}
+/** A ring of points (for cut-outs): n points round (cx, cy), radius rx x ry, starting at angle a0. */
+const ringPts = (cx, cy, rx, ry, n, a0 = 0) => Array.from({ length: n }, (_, i) => [cx + Math.cos(a0 + i / n * Math.PI * 2) * rx, cy + Math.sin(a0 + i / n * Math.PI * 2) * ry]);
+/** A sunflower cut-out, standing on the ground at (x, y, z), size s (1 = about 60 px tall). */
+export function sunflowerFaces(x, y, z, s = 1) {
+  const sh = [{ pts: [[-1.5, 0], [1.5, 0], [1.5, -44], [-1.5, -44]], c: 0x3a9a28 }, { pts: [[0, -16], [14, -24], [2, -20]], c: 0x48b030 }, { pts: [[0, -26], [-13, -33], [-2, -29]], c: 0x48b030 }];
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; sh.push({ pts: [[Math.cos(a - 0.22) * 6, -52 + Math.sin(a - 0.22) * 6], [Math.cos(a) * 17, -52 + Math.sin(a) * 17], [Math.cos(a + 0.22) * 6, -52 + Math.sin(a + 0.22) * 6]], c: i % 2 ? 0xffd020 : 0xffb810 }); }
+  sh.push({ pts: ringPts(0, -52, 8, 8, 10), c: 0x7a4818 }, { pts: ringPts(-1.5, -53.5, 4, 4, 8), c: 0x9a6028 });
+  return cutoutFaces(x, y, z, sh, s);
+}
+/** A round cartoon tree cut-out (a trunk and three overlapping blobs of leaves), on the ground at (x, y, z), size s. */
+export function treeFaces(x, y, z, s = 1, cols = [0x1e7a28, 0x2a9a30, 0x48c040]) {
+  return cutoutFaces(x, y, z, [{ pts: [[-5, 0], [5, 0], [4, -40], [-4, -40]], c: 0x6a4420 }, { pts: ringPts(-14, -52, 22, 20, 12), c: cols[0] }, { pts: ringPts(14, -54, 22, 20, 12), c: cols[0] }, { pts: ringPts(0, -70, 24, 22, 12), c: cols[1] }, { pts: ringPts(-5, -76, 12, 10, 10), c: cols[2] }], s);
+}
 /** Builds the faces of a box (corners x1,y1,z1 - x2,y2,z2): six quads with outward normals. */
 export function boxFaces(x1, y1, z1, x2, y2, z2, col, top = col) {
   return [
@@ -162,16 +214,24 @@ export class Poly3D {
   constructor(scene, layer, o = {}) {
     this.scene = scene; this.fog = o.fog ?? 0x9cc8f0; this.zFar = o.zFar ?? 2600; this.zNear = o.zNear ?? 300;
     this.f = o.f ?? 560; this.lift = o.lift ?? 70;
-    this.edge = o.edge ?? 0.12;                                // how strongly each facet's edges are drawn (0 = none)
+    this.edge = o.edge ?? 0.05;                                // how strongly each facet's edges are drawn (0 = none; smooth and billboard faces never get them)
+    this.grain = o.grain ?? 0.16;                              // how much each corner's shade wanders (more = reads like a blurry texture; a face's own `grain` wins)
     this.sat = o.sat ?? 1.3;                                   // colour boost (1 = as given)
     this.fogMax = o.fogMax ?? 0.55;                            // the most the fog ever covers (far things keep their colour)
+    this.smooth = !!o.smooth;                                 // blobs (trees, clouds, bushes, islands) as smooth round shapes instead of lumpy facets
     this.gouraud = o.gouraud ?? true;                          // smooth per-corner shading inside each facet, like the N64
     const L = o.light || [-0.45, -1, -0.55], l = Math.hypot(...L); this.light = L.map((v) => -v / l);
     this.camZ = 0;                                             // how far the eye has walked into the scene (TROPHY HALL; stages keep 0)
     this.near = o.near ?? 0;                                   // >0: drop faces with any corner closer than this to the eye (walking through a room)
     this.faces = [];
     this.g = scene.add.graphics().setDepth(-5); layer.push(this.g);
+    if (o.soft) this.soften(o.soft);
   }
+  /**
+   * The soft look of a real 64-bit console: its textures were filtered and its picture was blurred a touch (no hard
+   * pixel edges). A light blur on the whole 3D layer (k = how far, px). Needs WebGL filters; without them, nothing.
+   */
+  soften(k) { try { this.g.enableFilters(); this.blur = this.g.filters.internal.addBlur(0, k, k, 1, 0xffffff, 1); } catch (e) { this.blur = null; } }
   /** Adds a box to the static scenery. */
   box(x1, y1, z1, x2, y2, z2, col, top) { this.faces.push(...boxFaces(x1, y1, z1, x2, y2, z2, col, top)); }
   /** Adds a pyramid to the static scenery. */
@@ -181,7 +241,7 @@ export class Poly3D {
   /** Adds faceted ground (see terrainFaces). */
   terrain(o) { this.faces.push(...terrainFaces(o)); }
   /** Adds a lumpy low-poly blob (see blobFaces). */
-  blob(...a) { this.faces.push(...blobFaces(...a)); }
+  blob(...a) { this.faces.push(...(this.smooth ? smoothBlob(...a) : blobFaces(...a))); }
   /** Adds the jagged rock under a floating island (see rockFaces). */
   rock(...a) { this.faces.push(...rockFaces(...a)); }
   /** Adds one flat polygon (pts = [[x,y,z], ...], drawn from both sides) to the static scenery. */
@@ -214,14 +274,17 @@ export class Poly3D {
       for (const q of pts) { if (q.x < ax) ax = q.x; if (q.x > bx) bx = q.x; if (q.y < ay) ay = q.y; if (q.y > by) by = q.y; }
       if (bx < vx1 || ax > vx2 || by < vy1 || ay > vy2) continue;              // off screen
       // light, plus a small fixed per-facet wobble so neighbouring facets never blend into one flat colour
-      const wob = 1 + (hash(Math.round(cx), Math.round(cy), Math.round(zs)) - 0.5) * 0.1;
-      const b = Math.min(1.15, (F.n ? 0.62 + 0.42 * Math.max(0, F.n[0] * this.light[0] + F.n[1] * this.light[1] + F.n[2] * this.light[2]) : 0.88) * wob);
+      const smooth = !!F.vn, wob = smooth || F.bb ? 1 : 1 + (hash(Math.round(cx), Math.round(cy), Math.round(zs)) - 0.5) * 0.1;
+      const lit = (nn) => 0.62 + 0.42 * Math.max(0, nn[0] * this.light[0] + nn[1] * this.light[1] + nn[2] * this.light[2]);
+      const b = Math.min(1.15, (F.n ? lit(F.n) : 0.88) * wob);
       const fogK = (zz) => clamp((zz - this.zNear) / (this.zFar - this.zNear)) * this.fogMax;
       const fog = F.nofog ? 0 : fogK(z), col = shade(F.c, b, this.fog, fog, this.sat);   // (nofog: something glowing, like a lit window)
-      // each corner gets its own shade (lit a touch brighter higher up, plus a fixed wobble), blended across the
-      // facet by the GPU - the soft vertex-coloured look of 64-bit games
-      const vc = this.gouraud ? P.map(([x, y, zz]) => shade(F.c, b * (1 + (hash(Math.round(x), Math.round(y), Math.round(zz) + 7) - 0.5) * 0.16 - y * 0.00012), this.fog, F.nofog ? 0 : fogK(zz - cz), this.sat)) : null;
-      list.push({ z: z + (F.bias || 0), pts, col, vc, edge: shade(F.c, b * 0.6, this.fog, fog, this.sat), a: F.a ?? 1 });
+      // each corner gets its own shade, blended across the facet by the GPU - the soft vertex-coloured look of 64-bit
+      // games. Smooth faces (`vn`, per-corner normals: rounded things) are lit corner by corner, so a ball reads as a
+      // ball; the rest get a fixed wobble per corner (`grain`: more reads like a blurry texture) and a touch brighter higher up
+      const gr = F.grain ?? this.grain, cl = F.cols;   // (cols: a colour per corner - painted detail)
+      const vc = this.gouraud ? P.map(([x, y, zz], i) => shade(cl ? cl[i] : F.c, smooth ? Math.min(1.2, lit(F.vn[i]) + 0.06) : b * (1 + (hash(Math.round(x), Math.round(y), Math.round(zz) + 7) - 0.5) * gr - y * 0.00012), this.fog, F.nofog ? 0 : fogK(zz - cz), this.sat)) : null;
+      list.push({ z: z + (F.bias || 0), pts, col, vc, edge: smooth || F.bb ? null : shade(F.c, b * 0.6, this.fog, fog, this.sat), a: F.a ?? 1 });
     }
     list.sort((a, b) => b.z - a.z);
     for (const q of list) {
@@ -230,7 +293,7 @@ export class Poly3D {
         const p = q.pts, c = q.vc;
         for (let i = 1; i < p.length - 1; i++) { g.fillGradientStyle(c[0], c[i], c[i + 1], c[i + 1], q.a); g.fillTriangle(p[0].x, p[0].y, p[i].x, p[i].y, p[i + 1].x, p[i + 1].y); }
       } else g.fillPoints(q.pts, true);
-      if (this.edge) { g.lineStyle(1, q.edge, this.edge * q.a); g.strokePoints(q.pts, true); }   // the facet's edges
+      if (this.edge && q.edge != null) { g.lineStyle(1, q.edge, this.edge * q.a); g.strokePoints(q.pts, true); }   // the facet's edges
     }
   }
 }

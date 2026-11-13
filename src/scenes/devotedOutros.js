@@ -13,7 +13,7 @@ import { n64Gem, n64Star } from '../fighters/n64Draw.js';
 import { VIEW_W, VIEW_H } from '../config.js';
 import { sfx } from '../audio/sfx.js';
 import { skinInfo, skinTexture } from '../fighters/skins.js';
-import { Poly3D } from '../stage/poly3d.js';
+import { Poly3D, sunflowerFaces } from '../stage/poly3d.js';
 
 const W = VIEW_W, H = VIEW_H;
 const ease = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); };
@@ -100,7 +100,7 @@ export class DevotedShots {
   /** Builds CARTRIDGE's low-poly 3D field once (a real Poly3D scene, drawn with a camera of our own). */
   dvMakeField() {
     if (this.dvPoly && this.dvPoly.g.scene) return this.dvPoly;
-    const R = this.dvPoly = new Poly3D(this, [], { fog: 0xb8ecff, zFar: 3400, zNear: 400, f: 520, lift: 40, edge: 0.1 });
+    const R = this.dvPoly = new Poly3D(this, [], { fog: 0xb8ecff, zFar: 3400, zNear: 400, f: 520, lift: 40, edge: 0.04, soft: 0.6, grain: 0.3, smooth: true });
     R.g.setDepth(0); this.children.moveBelow(R.g, this.losers.length ? this.losers[0].s : this.mid);   // (just over the sky, under everything else)
     R.terrain({ x1: -800, x2: 4400, z1: -40, z2: 3200, y: 300, nx: 40, nz: 14, amp: 9, seed: 5,
       col: (i, j, x, z, kk) => ((i + j) % 2 ? [0x30d038, 0x38dc40] : [0x58ec50, 0x60f058])[kk],
@@ -109,6 +109,7 @@ export class DevotedShots {
       const x = -400 + i * 340 + (i % 3) * 60, z = 260 + (i % 4) * 230;
       R.prism(x, 220, 300, z, 12, 5, 0x8a4a1c); R.blob(x, 200, z, 50, 56, 50, [0x189828, 0x20b830, 0x30d038], i, null, 0.2);
     }
+    for (let i = 0; i < 50; i++) { const x = -700 + ((i * 397) % 5000), z = 120 + ((i * 211) % 1300); R.faces.push(...sunflowerFaces(x, 300, z, 1.2 + (i % 5) * 0.2)); }   // a meadow of billboard sunflowers
     for (let i = 0; i < 6; i++) R.pyramid(-600 + i * 900, 300, 2900, 900, 700, 520 + (i % 2) * 160, [0x7a5ad8, 0x5a6ae8, 0x8a6ad0][i % 3]);   // far mountains
     for (let i = 0; i < 6; i++) R.pyramid(-600 + i * 900, 300 - 520 - (i % 2) * 160 + 140, 2900, 260, 200, 150, 0xffffff);              // ...snow-capped
     for (const [x, y] of [[700, 190], [1500, 170], [2400, 200]]) { R.box(x - 70, y, -20, x + 70, y + 24, 80, 0xc89058, 0x58ec50); }      // floating grass blocks

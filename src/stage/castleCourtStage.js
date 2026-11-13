@@ -2,7 +2,7 @@
 // low-poly 3D (poly3d.js): a stone court floating high over a moat and green grounds, a white castle with red
 // cone-roofed towers behind, two side ledges and a high central slab where a red BUMPER slides back and forth and
 // knocks away whoever touches it. No hazard cycle: the bumper is always there (off with hazards off).
-import { Poly3D, prismFaces, blobFaces, gradientSky } from './poly3d.js';
+import { Poly3D, prismFaces, blobFaces, gradientSky, sunflowerFaces, treeFaces } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 
 // bold cartridge colours: saturated primaries, a deep blue sky fading to pale cyan at the horizon
@@ -28,12 +28,15 @@ export class CastleCourtStage {
   draw(world, bg) {
     const s = this.scene, sky = gradientSky(s, C.sky);
     bg.push(sky);
-    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200 });
+    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200, soft: 0.6, grain: 0.3, smooth: true });
     // the grounds far below: faceted grass rising into hills at the back, the moat, lumpy trees, clouds
     R.terrain({ x1: -2800, x2: 2800, z1: 300, z2: 3600, y: 520, nx: 28, nz: 14, amp: 14, seed: 3, cols: [C.grass, C.grassDark, 0x4aa840, 0x62c050],
       hill: (x, z) => -Math.max(0, z - 2100) * (0.22 + 0.12 * Math.sin(x / 420)) });
     R.quad([[-900, 512, 900], [900, 512, 900], [900, 512, 1150], [-900, 512, 1150]], C.water); this.R.faces[this.R.faces.length - 1].bias = -60;
     for (let i = 0; i < 9; i++) { const x = -1800 + i * 450, z = 700 + (i % 3) * 300; R.prism(x, 460, 520, z, 12, 5, 0x6a4a2a); R.blob(x, 430, z, 46, 52, 46, [C.grassDark, 0x2e7a2e, 0x4a9a3a], i); }   // trees
+    { let sd = 11; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };   // billboard flowers and trees across the grounds
+      for (let i = 0; i < 40; i++) { const x = -1900 + rnd() * 3800, z = 360 + rnd() * 1500; if (z > 880 && z < 1170 && Math.abs(x) < 920) continue; R.faces.push(...sunflowerFaces(x, 520, z, 1.4 + rnd())); }
+      for (let i = 0; i < 14; i++) { const x = -2500 + rnd() * 5000, z = 1300 + rnd() * 900; R.faces.push(...treeFaces(x, 520, z, 2.5 + rnd() * 1.5)); } }
     for (let i = 0; i < 7; i++) R.blob(-2200 + i * 720, -260 + (i % 3) * 70, 1500 + (i % 4) * 380, 170 + (i % 2) * 70, 44, 90, [0xffffff, 0xf0f4fa, 0xe4ecf6], 20 + i, null, 0.3);   // clouds
     // the castle: a keep, walls, towers with red cone roofs, a bridge over the moat
     const cz = 1300, cy = 520;

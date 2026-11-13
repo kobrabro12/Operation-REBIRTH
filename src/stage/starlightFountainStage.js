@@ -41,7 +41,7 @@ export class StarlightFountainStage {
     this.starG = s.add.graphics().setScrollFactor(0);
     bg.push(sky, this.starG);
     this.cycle.makeBanner(s);
-    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200, zNear: 400 });
+    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3200, zNear: 400, soft: 0.6, grain: 0.25, smooth: true });
     // the dark lake, lavender hills on the far shore
     R.terrain({ x1: -2800, x2: 2800, z1: 150, z2: 3400, y: 430, nx: 26, nz: 12, amp: 5, seed: 6, cols: C.lake });
     for (const [x, z, w, h] of [[-1800, 2700, 1200, 380], [1500, 2900, 1400, 440], [-300, 3200, 1600, 320], [2400, 2200, 900, 300], [-2500, 2000, 900, 340]]) R.blob(x, 430, z, w / 2, h, 300, [0x4a3a7a, 0x5a4a8a, 0x3e3070], x, 0x6a5aa0, 0.25);

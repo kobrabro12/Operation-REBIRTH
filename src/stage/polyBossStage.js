@@ -30,7 +30,7 @@
 // and QUAKE RING (a shockwave ring runs out along the floor from the middle - jump it).
 import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
-import { Poly3D, boxFaces, prismFaces, pyramidFaces, blobFaces, gradientSky } from './poly3d.js';
+import { Poly3D, boxFaces, prismFaces, pyramidFaces, blobFaces, ballFaces, tubeFaces, cutoutFaces, sunflowerFaces, treeFaces, gradientSky } from './poly3d.js';
 import { sfx } from '../audio/sfx.js';
 import { skinInfo } from '../fighters/skins.js';
 import { FONT, VIEW_W } from '../config.js';
@@ -129,7 +129,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 function xf(faces, px, py, pz, yaw = 0, roll = 0, k = 1) {
   const cy = Math.cos(yaw), sy = Math.sin(yaw), cr = Math.cos(roll), sr = Math.sin(roll);
   const rot = ([x, y, z]) => { const x1 = x * cy + z * sy, z1 = -x * sy + z * cy; return [x1 * cr - y * sr, x1 * sr + y * cr, z1]; };
-  return faces.map((f) => ({ ...f, p: f.p.map((v) => { const r = rot(v); return [px + r[0] * k, py + r[1] * k, pz + r[2] * k]; }), n: f.n && rot(f.n) }));
+  return faces.map((f) => ({ ...f, p: f.p.map((v) => { const r = rot(v); return [px + r[0] * k, py + r[1] * k, pz + r[2] * k]; }), n: f.n && rot(f.n), vn: f.vn && f.vn.map(rot) }));
 }
 
 /** POLYGON PEAK and its King (see the top of the file). */
@@ -158,11 +158,22 @@ export class PolyBossStage extends BossArena {
     bg.push(gradientSky(s, C.sky));
     this.voidG = s.add.graphics().setScrollFactor(0).setVisible(false); bg.push(this.voidG);   // LEGENDARY: the corrupting cartridge behind everything
     this.errT = [0, 1, 2].map(() => { const o = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '6px', color: '#ffffff' }).setScrollFactor(0).setVisible(false); bg.push(o); return o; });
-    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3400 });
-    R.terrain({ x1: -3000, x2: 3000, z1: 400, z2: 3800, y: 560, nx: 30, nz: 14, amp: 18, seed: 9, cols: C.grass, hill: (x, z) => -Math.max(0, z - 1800) * (0.3 + 0.15 * Math.sin(x / 380)) });
+    // (soft: the console's filtered blur; grain: the ground's shade wanders like a blurry grass texture)
+    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 3400, soft: 0.6, grain: 0.3, smooth: true });
+    const hill = (x, z) => -Math.max(0, z - 1800) * (0.3 + 0.15 * Math.sin(x / 380));
+    R.terrain({ x1: -3000, x2: 3000, z1: 400, z2: 3800, y: 560, nx: 40, nz: 18, amp: 14, seed: 9, cols: C.grass, hill });
     for (let i = 0; i < 7; i++) { const x = -2400 + i * 800, z = 2600 + (i % 2) * 500; R.pyramid(x, 560, z, 900, 700, 900 + (i % 3) * 200, i % 2 ? 0x7a6ab8 : 0x6a5aa8); R.pyramid(x, 560 - (900 + (i % 3) * 200) * 0.7, z - 40, 280, 220, 280 + (i % 3) * 60, 0xffffff); }
-    for (let i = 0; i < 8; i++) R.blob(-2400 + i * 690, -300 + (i % 3) * 90, 1600 + (i % 4) * 300, 160 + (i % 2) * 80, 40, 80, [0xffffff, 0xf4f0ff, 0xe8e4fa], 30 + i, null, 0.3);
-    for (const [x, y, z, r] of [[-620, -60, 700, 60], [640, 40, 900, 80], [-300, 200, 1200, 70]]) { R.blob(x, y, z, r, r * 0.3, r, [C.grass[0], C.grass[1]], x, C.grass[2], 0.15); R.rock(x, y + r * 0.25, z, r * 0.9, r * 1.4, r * 0.9, 6, C.rock, x); }
+    for (let i = 0; i < 8; i++) {                                                     // puffy cartoon clouds: three smooth balls each
+      const x = -2400 + i * 690, y = -300 + (i % 3) * 90, z = 1600 + (i % 4) * 300, r = 110 + (i % 2) * 50;
+      for (const [dx, dy, k] of [[-r * 0.8, 10, 0.7], [r * 0.8, 14, 0.65], [0, -10, 1]]) R.faces.push(...ballFaces(x + dx, y + dy, z, r * k, r * k * 0.55, r * k * 0.6, 0xffffff, { seg: 10, rings: 6 }));
+    }
+    let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    for (let i = 0; i < 26; i++) { const x = -2600 + rnd() * 5200, z = 700 + rnd() * 2000; R.faces.push(...treeFaces(x, 560 + hill(x, z), z, 3 + rnd() * 2)); }                 // billboard trees on the hills
+    for (let i = 0; i < 60; i++) { const x = -1800 + rnd() * 3600, z = 420 + rnd() * 1300; R.faces.push(...sunflowerFaces(x, 560 + hill(x, z), z, 1.6 + rnd() * 1.2)); }   // and a meadow of sunflowers
+    for (const [x, y, z, r] of [[-620, -60, 700, 60], [640, 40, 900, 80], [-300, 200, 1200, 70]]) {
+      R.blob(x, y, z, r, r * 0.3, r, [C.grass[0], C.grass[1]], x, C.grass[2], 0.15); R.rock(x, y + r * 0.25, z, r * 0.9, r * 1.4, r * 0.9, 6, C.rock, x);
+      R.faces.push(...treeFaces(x - r * 0.3, y - r * 0.2, z + 6, r / 60), ...sunflowerFaces(x + r * 0.35, y - r * 0.22, z - 4, r / 70), ...sunflowerFaces(x + r * 0.05, y - r * 0.25, z - 10, r / 85));
+    }
     this.sceneryN = R.faces.length;                                                 // (the hills, mountains, clouds and islands - what corrupts)
     // the arena: a checkerboard top on a gold-trimmed slab, a jagged rock beneath
     const P = this.platforms[0], n = 10, w = (P.x2 - P.x1) / n;
@@ -1188,50 +1199,51 @@ export class PolyBossStage extends BossArena {
     const apart = dk * 60;                                                      // dying: his polygons drift apart
     const hc = fl ? [0xffffff, 0xf0e8ff, 0xffffff] : L ? LEG.head : rage ? [0xc060e8, 0xa040d0, 0xe080ff] : C.head;
     const face = [];
-    face.push(...blobFaces(0, 0, 0, 44, 38, 34, hc, 7, null, 0.05));
-    face.push(...blobFaces(0, 30 + H.jaw * 18, 2, 30, 14, 26, L ? [LEG.jaw, 0x2a1838] : [C.jaw, 0x6a38c0], 8, null, 0.04));                              // the jaw
+    // a big round cartoon head, smooth-shaded like a 64-bit character model, a chin that drops open, painted eyes
+    face.push(...ballFaces(0, 0, 0, 44, 38, 34, hc[0], { seg: 16, rings: 10, paint: (u) => (u[1] > 0.55 ? hc[1] : u[2] < -0.75 && u[1] > 0.1 ? hc[2] : hc[0]) }));
+    face.push(...ballFaces(0, 30 + H.jaw * 18, 2, 30, 14, 26, L ? LEG.jaw : C.jaw, { seg: 12, rings: 6 }));                                                  // the jaw
+    if (H.jaw > 0.25) face.push(...cutoutFaces(0, 22 + H.jaw * 9, -30, [{ pts: Array.from({ length: 10 }, (_, q) => [Math.cos(q / 10 * Math.PI * 2) * 18, Math.sin(q / 10 * Math.PI * 2) * 7 * H.jaw]), c: L ? 0x3a0010 : 0x3a1050 }]).map((f) => ({ ...f, bias: -5 })));   // the mouth, dark inside
     if (L) for (let i = 0; i < 6; i++) { face.push(...pyramidFaces(-20 + i * 8, 22 + H.jaw * 18, -22, 6, 4, -7, C.gold)); face.push(...pyramidFaces(-20 + i * 8, 20, -24, 6, 4, 6, 0xffe070)); }   // gold fangs
-    for (const s of [-1, 1]) {                                                  // diamond eyes, brows
-      const ex = s * 17, ey = -4, z = -33.5, e = L ? (this.t % 40 < 3 ? 0xffffff : LEG.eye) : this.drop > 0 ? 0xff5a3a : rage ? 0xff7a3a : C.eye, w = L ? 11 : 9, h = L ? 9 : 11;
-      face.push({ p: [[ex, ey - h, z], [ex + w, ey, z], [ex, ey + h, z], [ex - w, ey, z]], n: [0, 0, -1], c: e, nofog: true, bias: -6 });
-      face.push({ p: [[ex - 2, ey - 4, z - 0.4], [ex + 2, ey - 4, z - 0.4], [ex + 2, ey + 4, z - 0.4], [ex - 2, ey + 4, z - 0.4]], n: [0, 0, -1], c: 0x1a1030, bias: -7 });
-      face.push(...boxFaces(ex - 12, ey - 20 + (rage || L ? s * 3 : 0), -36, ex + 12, ey - 15, -26, L ? 0x0a0610 : 0x4a2890, L ? 0x1a1020 : 0x5a38a0));
+    for (const s of [-1, 1]) {                                                  // painted cartoon eyes: white, a coloured iris, a pupil, a shine; a thick brow
+      const ex = s * 16, ey = -5, z = -33.2, iris = L ? (this.t % 40 < 3 ? 0xffffff : LEG.eye) : this.drop > 0 ? 0xff5a3a : rage ? 0xff7a3a : C.eye, ang = rage || L ? s * 0.35 : 0;
+      const oval = (cx, cy, rx, ry, n) => Array.from({ length: n }, (_, q) => [cx + Math.cos(q / n * Math.PI * 2) * rx, cy + Math.sin(q / n * Math.PI * 2) * ry]);
+      const lid = L || rage ? (pts) => pts.map(([x, y]) => [x, Math.max(y, ey - 9 + (x - ex) * ang * 0.6)]) : (pts) => pts;   // (angry: the top of the eye cut off at a slant)
+      face.push(...cutoutFaces(ex, 0, z, [{ pts: lid(oval(0, ey, 9, 12, 14)), c: 0xffffff }, { pts: lid(oval(s * 1.5, ey + 2, 5.5, 7.5, 12)), c: iris }, { pts: oval(s * 1.5, ey + 2.5, 2.6, 4, 10), c: 0x10081e }, { pts: oval(s * 1.5 - 2, ey - 1.5, 1.6, 2, 8), c: 0xffffff }]).map((f) => ({ ...f, p: f.p.map(([x, y, zz]) => [x - ex + ex, y, zz]), nofog: true, bias: -6 })));
+      face.push(...tubeFaces([ex - 11 * 1, ey - 16 - (rage || L ? -s * 3 : 0), -35], [ex + 11, ey - 16 + (rage || L ? -s * 3 : 0), -35], 3.2, L ? 0x0a0610 : 0x4a2890, 6).map((f) => ({ ...f, bias: -7 })));
     }
     if (L) for (let i = 0; i < 12; i++) {                                       // the halo: gold and pink spikes wheeling behind his head
       const q = i / 12 * Math.PI * 2 + this.t * 0.02, r = 66 + (i % 2) * 8;
       face.push(...xf(pyramidFaces(0, 0, 0, 10, 10, 16 + (i % 2) * 10, i % 2 ? LEG.glow[0] : C.gold), Math.cos(q) * r, Math.sin(q) * r, 26, 0, q + Math.PI / 2).map((f) => ({ ...f, nofog: true })));
     }
     const cr = L ? 1.25 : 1, crown = !H.noCrown || L;                                                   // the crown: a gold band, spikes, gems (LEGENDARY: bigger, glowing)
-    if (crown) face.push(...prismFaces(0, -50, -30, 0, 34 * cr, 8, C.gold, 0xffe070));
-    if (crown) for (let i = 0; i < 8; i++) { const q = (i + 0.5) / 8 * Math.PI * 2; face.push(...pyramidFaces(Math.cos(q) * 30 * cr, -50, Math.sin(q) * 30 * cr, 12, 12, (16 + (i % 2) * 8) * (L ? 1.7 : 1), i % 2 ? C.gold : 0xffe070)); if (i % 2 === 0) face.push(...blobFaces(Math.cos(q) * 34 * cr, -40, Math.sin(q) * 34 * cr, 4, 4, 4, [L ? LEG.glow[i / 2 % 3] : C.gem[i / 2 % 3]], i, null, 0).map((f) => (L ? { ...f, nofog: true } : f))); }
+    if (crown) face.push(...prismFaces(0, -48, -28, 0, 34 * cr, 16, C.gold, 0xffe070).map((f) => (f.n && !f.n[1] ? { ...f, vn: [f.n, f.n, f.n, f.n].map((nn, q) => { const a = Math.atan2(f.p[q][2], f.p[q][0]); return [Math.cos(a), 0, Math.sin(a)]; }) } : f)));   // (smooth-shaded round band)
+    if (crown) for (let i = 0; i < 8; i++) { const q = (i + 0.5) / 8 * Math.PI * 2; face.push(...pyramidFaces(Math.cos(q) * 30 * cr, -50, Math.sin(q) * 30 * cr, 12, 12, (16 + (i % 2) * 8) * (L ? 1.7 : 1), i % 2 ? C.gold : 0xffe070)); if (i % 2 === 0) face.push(...ballFaces(Math.cos(q) * 34 * cr, -40, Math.sin(q) * 34 * cr, 5, 5, 5, L ? LEG.glow[i / 2 % 3] : C.gem[i / 2 % 3], { seg: 6, rings: 4 }).map((f) => (L ? { ...f, nofog: true } : f))); }
     out.push(...xf(face, H.x + glitch, H.y - apart * 0.5, KING.z, H.yaw, glitch * 0.02 + dk * 0.6 + (H.roll || 0), (1 + dk * 0.2) * (H.k ?? 1)));
     for (const h of this.hands) {                                               // the gauntlets: palm, four fingers, a thumb, a gold cuff with a gem
       const gc = fl ? [0xffffff, 0xf0f4ff, 0xffffff] : L ? LEG.glove : C.glove, hand = [];
+      // round cartoon gloves (smooth-shaded): a puffy palm, sausage fingers with round tips, a thumb, a gold cuff
+      const finger = (a, b, r, c) => { hand.push(...tubeFaces(a, b, r, c, 6), ...ballFaces(b[0], b[1], b[2], r + 0.4, r + 0.4, r + 0.4, c, { seg: 6, rings: 4 })); };
+      const fist = () => { hand.push(...ballFaces(-3, 0, 0, 20, 13, 16, gc[0], { seg: 12, rings: 7 })); for (let k = 0; k < 4; k++) hand.push(...ballFaces(14, -1, -12 + k * 8, 6.5, 7, 4.6, gc[k % 2], { seg: 7, rings: 5 })); };
       if (h.mode === 'gun') {                                                   // a finger gun, seen from the side: index out, thumb up, the rest curled
-        hand.push(...boxFaces(-22, -12, -14, 16, 12, 14, gc[0], gc[1]));
-        hand.push(...boxFaces(16, -12, -5, 44, -3, 5, gc[1], gc[1]), ...boxFaces(42, -11, -4, 46, -4, 4, C.gold, C.gold));
-        hand.push(...boxFaces(-2, -30, -5, 9, -12, 5, gc[2], gc[1]));
-        for (let k = 0; k < 3; k++) hand.push(...boxFaces(16, -3 + k * 5, -11 + k, 25, 2 + k * 5, 11 - k, gc[k % 2], gc[1]));
+        fist(); finger([12, -7, 0], [44, -7, 0], 4.6, gc[1]); finger([0, -10, -4], [4, -28, -4], 4.6, gc[2]);
+        hand.push(...ballFaces(46, -7, 0, 3, 3, 3, C.gold, { seg: 6, rings: 4 }));
         if (h.flashT > 0) hand.push(...blobFaces(54, -8, 0, 9, 9, 6, [0xffffff, 0xffe070, 0xff8a3a], 4, null, 0.3).map((f) => ({ ...f, nofog: true })));
       } else if (h.mode === 'bat') {                                             // a fist round a baseball bat (handle, barrel, knob) pointing along +x
-        hand.push(...boxFaces(-22, -12, -14, 14, 12, 14, gc[0], gc[1]));
-        for (let k = 0; k < 4; k++) hand.push(...boxFaces(6, -11 + k * 5.5, -13, 18, -6 + k * 5.5, 13, gc[k % 2], gc[1]));
-        hand.push(...xf(prismFaces(0, BAT.handle[0], BAT.handle[1], 0, BAT.r[0], 6, BAT.wood[2], BAT.wood[0]), 0, 0, 0, 0, -Math.PI / 2));
-        hand.push(...xf(prismFaces(0, BAT.barrel[0], BAT.barrel[1], 0, BAT.r[1], 8, BAT.wood[0], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
-        hand.push(...xf(prismFaces(0, BAT.barrel[1], BAT.barrel[1] + 3, 0, BAT.r[1] * 0.8, 8, BAT.wood[1], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
-        hand.push(...xf(prismFaces(0, BAT.handle[1] + 6, BAT.handle[1] + 12, 0, BAT.r[1] * 0.75 + 0.6, 8, 0xd82a2a, 0xff5a4a), 0, 0, 0, 0, -Math.PI / 2));   // a red stripe
-      } else if (h.mode === 'fist') {                                            // BEAR TRAP snapped shut: a fist
-        hand.push(...boxFaces(-22, -12, -14, 14, 12, 14, gc[0], gc[1]));
-        for (let k = 0; k < 4; k++) hand.push(...boxFaces(6, -11 + k * 5.5, -13, 20, -6 + k * 5.5, 13, gc[k % 2], gc[1]));
-      } else {
-        hand.push(...boxFaces(-22, -9, -18, 18, 9, 18, gc[0], gc[1]));
-        if (h.mode === 'trap') for (let k = 0; k < 4; k++) for (let q = 0; q < 2; q++) hand.push(...xf(pyramidFaces(0, 0, 0, 5, 5, 9, q ? 0xffe070 : C.gold), 26 + q * 10, -9, -12.5 + k * 9, 0, Math.PI).map((f2) => ({ ...f2, nofog: true })));   // gold teeth along its open fingers
-        for (let k = 0; k < 4; k++) hand.push(...boxFaces(18, -8, -16 + k * 9, 38 - Math.abs(k - 1.5) * 3, 6, -9 + k * 9, gc[k % 2], gc[1]));
-        hand.push(...boxFaces(0, -6, -26, 16, 6, -18, gc[2], gc[1]));
-        if (L) for (let k = 0; k < 4; k++) hand.push(...xf(pyramidFaces(0, 0, 0, 6, 6, 12, C.gold), 30, -8, -12.5 + k * 9, 0, 0));   // gold knuckle spikes
+        fist();
+        hand.push(...xf(prismFaces(0, BAT.handle[0], BAT.handle[1], 0, BAT.r[0], 8, BAT.wood[2], BAT.wood[0]), 0, 0, 0, 0, -Math.PI / 2));
+        hand.push(...xf(prismFaces(0, BAT.barrel[0], BAT.barrel[1], 0, BAT.r[1], 10, BAT.wood[0], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
+        hand.push(...xf(prismFaces(0, BAT.barrel[1], BAT.barrel[1] + 3, 0, BAT.r[1] * 0.8, 10, BAT.wood[1], BAT.wood[1]), 0, 0, 0, 0, -Math.PI / 2));
+        hand.push(...xf(prismFaces(0, BAT.handle[1] + 6, BAT.handle[1] + 12, 0, BAT.r[1] * 0.75 + 0.6, 10, 0xd82a2a, 0xff5a4a), 0, 0, 0, 0, -Math.PI / 2));   // a red stripe
+      } else if (h.mode === 'fist') fist();                                     // BEAR TRAP snapped shut: a fist
+      else {
+        hand.push(...ballFaces(-2, 0, 0, 21, 10, 19, gc[0], { seg: 12, rings: 7 }));
+        for (let k = 0; k < 4; k++) finger([14, -1, -13.5 + k * 9], [35 - Math.abs(k - 1.5) * 3, -1, -13.5 + k * 9], 4.6, gc[k % 2]);
+        finger([4, -2, -16], [13, -2, -27], 4.8, gc[2]);
+        if (h.mode === 'trap') for (let k = 0; k < 4; k++) for (let q = 0; q < 2; q++) hand.push(...xf(pyramidFaces(0, 0, 0, 5, 5, 9, q ? 0xffe070 : C.gold), 26 + q * 10, -6, -13.5 + k * 9, 0, Math.PI).map((f2) => ({ ...f2, nofog: true })));   // gold teeth along its open fingers
+        if (L) for (let k = 0; k < 4; k++) hand.push(...xf(pyramidFaces(0, 0, 0, 6, 6, 12, C.gold), 30, -6, -13.5 + k * 9, 0, 0));   // gold knuckle spikes
       }
-      hand.push(...xf(prismFaces(0, -12, 12, 0, 16, 8, C.gold, 0xffe070), -28, 0, 0, 0, Math.PI / 2));
-      hand.push(...blobFaces(-4, -11, 0, 6, 3, 6, [L ? LEG.glow[h.s < 0 ? 0 : 1] : C.gem[h.s < 0 ? 0 : 1]], 3, null, 0).map((f) => (L ? { ...f, nofog: true } : f)));
+      hand.push(...xf(prismFaces(0, -13, 13, 0, 17, 12, C.gold, 0xffe070), -28, 0, 0, 0, Math.PI / 2));
+      hand.push(...ballFaces(-4, -12, 0, 6, 3.5, 6, L ? LEG.glow[h.s < 0 ? 0 : 1] : C.gem[h.s < 0 ? 0 : 1], { seg: 8, rings: 5 }).map((f) => (L ? { ...f, nofog: true } : f)));
       out.push(...xf(hand, h.x + glitch, h.y + apart * 0.4, 10, h.s < 0 ? 0 : Math.PI, h.roll + dk * h.s, HAND));
     }
     if (H.stone) for (const f of out) { const c = f.c, l = Math.round(((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.55 + (c & 255) * 0.15) * 0.8 + 40); f.c = (l << 16) | (l << 8) | Math.min(255, l + 12); }   // THE FINALE: frozen to grey stone

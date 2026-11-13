@@ -37,7 +37,7 @@ export class JungleFallsStage {
   draw(world, bg) {
     const s = this.scene, sky = gradientSky(s, C.sky);
     bg.push(sky);
-    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 2600 });
+    const R = this.R = new Poly3D(s, world, { fog: C.fog, zFar: 2600, soft: 0.6, grain: 0.3, smooth: true });
     // cliffs behind (huge faceted crags with jungle on top), the river below, boulders
     R.blob(-1500, 250, 1700, 1100, 700, 380, [C.rock, 0x9a5a30, 0xc89058], 2, 0x5a9a3a); R.blob(1500, 300, 1600, 1100, 650, 380, [C.rock, 0x9a5a30, 0xc89058], 3, 0x5a9a3a);
     R.blob(0, 420, 1850, 700, 420, 260, [C.rock, 0x9a5a30], 4, 0x5a9a3a);
