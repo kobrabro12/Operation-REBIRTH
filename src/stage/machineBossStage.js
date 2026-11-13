@@ -14,6 +14,9 @@
 //   on the desk as ledges). At half health its screen goes BLUE (FATAL EXCEPTION) and it adds MEDIA PLAYER (a
 //   visualizer of bars bounces out of the desk to the beat - stand in the short ones), RECYCLE BIN (it sucks everyone
 //   to the middle, then spits balls of paper), PIPES (the old screensaver) and SYSTEM CRASH (glitch blocks rain down).
+//   SLUDGE (its paint bucket pours sticky purple goo onto the desk - puddles that slow you to half speed); below 35%
+//   health its CD tray slides out and it fires CDs at you. It's a snob (a monocle, a bow tie, a raised brow, remarks
+//   like HOW QUAINT.) and evil (glaring, red-eyed once it's angry). The desk stands on two thick legs above the floor.
 // Stage hazards (also in VS, where the switched-off monitor just shows its reflection): POP-UP (a window falls on a
 // marked spot and lies there as a ledge) and DIAL-UP (a screeching modem beam sweeps across a marked band).
 import { HazardCycle } from './hazardCycle.js';
@@ -22,7 +25,7 @@ import { sfx } from '../audio/sfx.js';
 
 // 90s desktop greys, teal, title-bar blue, beige plastic
 const C = { out: 0x101010, teal: [0x007070, 0x008080, 0x109090], grey: [0x404040, 0x808080, 0xc0c0c0, 0xdfdfdf, 0xffffff], navy: 0x000080, blue: 0x1084d0,
-  beige: [0x8a8070, 0xb8ae98, 0xd8d0b8, 0xece6d4], home: { wall: [0x5a6a8a, 0x52617f], trim: 0xe8e0d0, floor: 0x5a3a28, frame: 0xf0e8d8, curtain: [0x8a2a3a, 0x7a2232], wood: [0x4a2e1a, 0x6a4428, 0x8a5a34, 0xb07a48] }, screen: [0x0a2a1a, 0x103a24, 0x30ff80, 0xb0ffd0], bsod: 0x0000aa, card: [0xffffff, 0xd02020, 0x101010, 0x2050c0], pipe: [0xc02020, 0x20a040, 0x2060d0, 0xe0c020] };
+  beige: [0x8a8070, 0xb8ae98, 0xd8d0b8, 0xece6d4], home: { wall: [0x5a6a8a, 0x52617f], trim: 0xe8e0d0, floor: 0x5a3a28, frame: 0xf0e8d8, curtain: [0x8a2a3a, 0x7a2232], wood: [0x4a2e1a, 0x6a4428, 0x8a5a34, 0xb07a48] }, screen: [0x0a2a1a, 0x103a24, 0x30ff80, 0xb0ffd0], bsod: 0x0000aa, sludge: [0x2a1a3a, 0x5a2a6a, 0x8a4a9a, 0xc08ad0], card: [0xffffff, 0xd02020, 0x101010, 0x2050c0], pipe: [0xc02020, 0x20a040, 0x2060d0, 0xe0c020] };
 // the monitor: where its screen's centre floats, its size, the casing round it
 const MON = { x: 0, y: -150, sw: 170, sh: 124, bez: 22 };
 // DOUBLE CLICK: tracking frames, the drop, the click's hit
@@ -35,6 +38,14 @@ const MINES = { w: 45, n: [4, 6], reveal: 60, chain: 7, hit: [11, [80, 6, 0.8]] 
 const CALC = { n: [5, 7], every: 13, flight: 42, grav: 0.3, hit: [8, [55, 5.2, 0.6]] };
 // NOTEPAD: the words it types, frames per letter, the letters' speed and hit
 const NOTES = { words: ['GET OUT', 'GO AWAY', 'BYE BYE'], every: 9, speed: 6.5, hit: [7, [30, 5.2, 0.6]] };
+// SLUDGE: puddles, frames apart, the pour (frames), how long a puddle lasts, its width, how long it slows you each
+// frame you're in it (Fighter.slow = half speed), the pour's splash hit
+const SLUDGE = { n: [2, 3], every: 40, pour: 26, life: 420, w: 84, slow: 12, hit: [5, [80, 4.4, 0.35]] };
+// CDs (below `CDS.at` health): discs (per volley), frames apart, speed, the disc's hit
+// spread: how far each disc's aim strays (px), so a volley fans out instead of all hitting you
+const CDS = { at: 0.35, n: [4, 6], every: 11, speed: 8, r: 13, spread: 60, hit: [7, [40, 5.4, 0.65]] };
+// its snobby remarks: frames between them (at rest), the lines, and what it says when you hit its screen
+const SNOB = { every: 420, lines: ['HOW QUAINT.', 'UGH. A PEASANT.', 'YOU CALL THAT A COMBO?', 'I HAVE 640K. YOU HAVE NOTHING.', 'DO NOT TOUCH MY KEYBOARD.', 'PATHETIC. TRULY.', 'I WAS TOP OF THE LINE, YOU KNOW.'], hurt: ['HOW DARE YOU.', 'MY SCREEN!', 'FINGERPRINTS?! DISGUSTING.', 'YOU WILL PAY FOR THAT.'] };
 // MEDIA PLAYER (enraged): bar width, frames per beat, beats, the tall bars' height and hit
 const MUSIC = { w: 45, beat: 24, beats: 9, tall: 130, hit: [9, [85, 5.6, 0.6]] };
 // RECYCLE BIN (enraged): the suck (frames), how hard it pulls, paper balls, their hit
@@ -74,6 +85,7 @@ export class MachineBossStage extends BossArena {
     this.cycle = new HazardCycle(this, ['popup', 'dialup'], { color: '#ffffff', stroke: '#000080', gap: 700 });
     this.cur = { x: 120, y: -120, mode: 'arrow', press: 0 };
     this.count = 0; this.hang = 0; this.blue = 0; this.mood = 'idle';
+    this.puddles = []; this.discs = []; this.tray = 0; this.pour = null; this.low = false;
     this.errs = []; this.cards = []; this.pipes = []; this.blocks = []; this.dial = null; this.win = null; this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.keyFlash = null;
     this.sparkColor = 0x30ff80; this.bodyW = 200; this.bodyH = 160;
   }
@@ -155,6 +167,15 @@ export class MachineBossStage extends BossArena {
     g.fillStyle(0xf8f4e8, 1); g.fillPoints([{ x: 180, y: -24 }, { x: 236, y: -26 }, { x: 240, y: -6 }, { x: 184, y: -4 }], true); g.fillStyle(0x8a8a9a, 1); for (let i = 0; i < 4; i++) g.fillRect(190, -20 + i * 4, 36, 1);   // papers
     g.fillStyle(C.out, 1); g.fillRect(x1 - 4, 0, x2 - x1 + 8, 36); g.fillStyle(H.wood[1], 1); g.fillRect(x1, 0, x2 - x1, 32); g.fillStyle(H.wood[3], 1); g.fillRect(x1, 0, x2 - x1, 3);
     for (const dx of [x1 + 20, x2 - 120]) { g.fillStyle(H.wood[0], 1); g.fillRect(dx, 8, 100, 20); g.fillStyle(C.grey[2], 1); g.fillRect(dx + 40, 16, 20, 4); }
+    // its legs: two thick turned legs down to the floor far below, a stretcher between them, the dark under the desk
+    g.fillStyle(0x140c08, 0.7); g.fillRect(x1 + 30, 36, x2 - x1 - 60, 200);
+    for (const lx of [x1 + 4, x2 - 34]) {
+      g.fillStyle(C.out, 1); g.fillRect(lx - 2, 34, 34, 210); g.fillStyle(H.wood[1], 1); g.fillRect(lx, 34, 30, 208); g.fillStyle(H.wood[2], 1); g.fillRect(lx + 4, 34, 8, 208);
+      for (const yy of [70, 150]) { g.fillStyle(C.out, 1); g.fillEllipse(lx + 15, yy, 40, 14); g.fillStyle(H.wood[2], 1); g.fillEllipse(lx + 15, yy - 1, 36, 10); }
+      g.fillStyle(C.out, 1); g.fillRect(lx - 4, 236, 38, 10); g.fillStyle(H.wood[0], 1); g.fillRect(lx - 2, 237, 34, 7);
+    }
+    g.fillStyle(C.out, 1); g.fillRect(x1 + 30, 182, x2 - x1 - 60, 14); g.fillStyle(H.wood[1], 1); g.fillRect(x1 + 30, 184, x2 - x1 - 60, 10);
+    g.fillStyle(H.floor, 1); g.fillRect(x1 - 200, 246, x2 - x1 + 400, 120);
   }
   /** The physical mouse on its mat: it slides along with the giant cursor (and its cable trails to the tower). */
   drawMouse(g) {
@@ -182,11 +203,12 @@ export class MachineBossStage extends BossArena {
   /** What it does next: every few attacks it hangs (NOT RESPONDING); enraged adds PIPES and SYSTEM CRASH. */
   pattern(phase) {
     if (this.count % HANG.every === HANG.every - 1) return ['hang'];
-    return phase === 1 ? ['paint', 'mines', 'calc', 'notes', 'click', 'errors', 'cards'] : ['paint', 'mines', 'calc', 'notes', 'music', 'bin', 'errors', 'pipes', 'crash'];
+    if (this.low) return ['cds', 'sludge', 'cds', 'paint', 'mines', 'music', 'bin', 'notes'];
+    return phase === 1 ? ['paint', 'mines', 'calc', 'notes', 'click', 'errors', 'cards', 'sludge'] : ['paint', 'mines', 'calc', 'notes', 'music', 'bin', 'errors', 'pipes', 'crash', 'sludge'];
   }
   /** Counts its attacks (every few, it hangs). */
   tally() { this.count++; }
-  start_click() { this.tally(); } start_paint() { this.tally(); } start_mines() { this.tally(); } start_calc() { this.tally(); } start_notes() { this.tally(); } start_music() { this.tally(); } start_bin() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
+  start_click() { this.tally(); } start_paint() { this.tally(); } start_mines() { this.tally(); } start_calc() { this.tally(); } start_notes() { this.tally(); } start_music() { this.tally(); } start_bin() { this.tally(); } start_sludge() { this.tally(); } start_cds() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
   rageLine() { return 'FATAL EXCEPTION!'; }
   /** Half health: the screen goes BLUE - a sad face, the error text - and the whole room flickers blue. */
   onRage(match) { this.blue = 150; sfx('glitch', 1, 0.6); sfx('ding', 1, 0.5); match.shake(8, 20); }
@@ -197,6 +219,7 @@ export class MachineBossStage extends BossArena {
   idle(match) {
     const tg = this.nearest(match, this.cur.x), k = this.cur;
     this.mood = 'idle'; k.mode = 'arrow';
+    if (this.t % SNOB.every === 200) this.snob(match, SNOB.lines);
     if (tg) { k.x += (tg.x + 70 - k.x) * 0.03; k.y += (-180 + Math.sin(this.t * 0.07) * 14 - k.y) * 0.05; }
   }
   /** Moves the cursor part of the way toward a point. */
@@ -423,6 +446,68 @@ export class MachineBossStage extends BossArena {
     return false;
   }
 
+  /** It says something snobby (a line from `list`) over its screen. */
+  snob(match, list) { const c = this.core(); match.popText({ x: c.x, y: c.y - 40 }, list[Math.floor(Math.random() * list.length)], '#c8ffd8'); sfx('menu', 0.4, 0.7); }
+  /** A hit on its screen: now and then it's outraged. */
+  onHurt(match, r) { if (r.mult >= 1 && this.t - (this.lastHurtLine || -999) > 150 && Math.random() < 0.5) { this.lastHurtLine = this.t; this.snob(match, SNOB.hurt); } }
+  /**
+   * SLUDGE: it tips the paint bucket and pours thick, sticky sludge onto the desk in a few places - a splash where it
+   * lands, then a gooey puddle that stays a while. Anyone standing in sludge moves at half speed.
+   */
+  atk_sludge(match, a, out) {
+    const n = SLUDGE.n[this.boss.phase - 1], k = this.cur, every = this.sp(SLUDGE.every);
+    this.mood = 'grin'; k.mode = 'bucket';
+    const i = Math.floor((a.t - 1) / every), q = (a.t - 1) % every;
+    if (i >= n) { k.mode = 'arrow'; this.pour = null; this.fill = null; return a.t > n * every + 20; }
+    if (q === 0) { const tg = this.nearest(match, k.x); a.tx = Phaser.Math.Clamp((i === 0 && tg ? tg.x : (Math.random() - 0.5) * 460) + (i ? 0 : 0), -230, 230); if (i === 0) { this.fill = { col: C.sludge[1] }; match.popText({ x: this.core().x, y: this.core().y - 40 }, 'STAY. PUT.', '#c8ffd8'); } }
+    this.toward(a.tx - 24, -150, 0.2);
+    if (q >= 10 && q < 10 + SLUDGE.pour) {
+      this.pour = { x: k.x + 26, y: k.y + 24 };
+      if (q % 3 === 0) out.push(this.bhit('pour' + a.id + i, this.pour.x - 10, this.pour.y, this.pour.x + 10, 0, ...SLUDGE.hit));
+      if (q === 10) sfx('geyser', 0.6, 0.6);
+      if (q === 10 + SLUDGE.pour - 1) { this.puddles.push({ x: this.pour.x, t: 0, w: SLUDGE.w, seed: Math.random() * 9 }); sfx('land', 0.6, 0.5); this.pour = null; }
+    } else this.pour = null;
+    return false;
+  }
+  /** The sludge puddles: they grow in, slow anyone standing in them, bubble, and dry up. */
+  stepPuddles(match) {
+    for (const P of this.puddles) {
+      P.t++;
+      for (const f of match.fighters) if (f.alive && f.y > -8 && Math.abs(f.x - P.x) < P.w / 2 * Math.min(1, P.t / 12)) { f.slow = Math.max(f.slow || 0, SLUDGE.slow); if (this.t % 20 === 0 && Math.abs(f.vx || 0) > 0.5) sfx('land', 0.15, 0.4); }
+    }
+    this.puddles = this.puddles.filter((P) => P.t < SLUDGE.life);
+  }
+  /**
+   * CDs (when it's low on health): the drive tray on its tower slides out and it fires CDs at you one after another -
+   * spinning, glinting, skipping once off the desk. It sneers about its music collection.
+   */
+  atk_cds(match, a, out) {
+    const n = CDS.n[this.boss.phase - 1], every = this.sp(CDS.every), o = this.trayTip();
+    this.mood = 'angry';
+    if (a.t === 1) { sfx('menu', 0.8, 0.6); match.popText({ x: o.x, y: o.y - 30 }, ['ENJOY MY MIXTAPE.', 'A CLASSIC. UNLIKE YOU.', 'SIDE B. EVEN WORSE.'][Math.floor(Math.random() * 3)], '#c8ffd8'); }
+    this.tray = Math.min(1, a.t / 12);
+    if (a.t > 14 && (a.t - 14) % every === 0 && (a.t - 14) / every <= n) {
+      const tg = this.nearest(match, o.x), tx = (tg ? tg.x : -200) + (Math.random() * 2 - 1) * CDS.spread, ty = tg ? tg.y - 24 : -20, d = Math.hypot(tx - o.x, ty - o.y) || 1;
+      this.discs.push({ x: o.x, y: o.y, vx: (tx - o.x) / d * CDS.speed, vy: (ty - o.y) / d * CDS.speed, a: 0, n: 0, id: this.sid('cd') });
+      sfx('whoosh', 0.6, 1.9); sfx('clang', 0.25, 2.4);
+    }
+    this.stepDiscs(match, out);
+    if (a.t > 14 + (n + 1) * every) { this.tray = Math.max(0, 1 - (a.t - 14 - (n + 1) * every) / 12); if (this.tray <= 0 && !this.discs.length) return true; }
+    return false;
+  }
+  /** Where the CD tray's tip is (the tower's top drive, slid out toward the room). */
+  trayTip() { return { x: 112 - 30 * (this.tray || 0), y: -196 + 18 }; }
+  /** The CDs: flying, spinning; one skip off the desk; gone off screen. */
+  stepDiscs(match, out) {
+    for (const D of this.discs) {
+      D.x += D.vx; D.y += D.vy; D.a += 0.5;
+      if (D.y > -CDS.r && D.vy > 0 && Math.abs(D.x) < 270 && !D.n) { D.vy = -Math.abs(D.vy) * 0.7; D.n = 1; sfx('clang', 0.4, 2); }
+      out.push(this.bhit(D.id, D.x - CDS.r, D.y - CDS.r, D.x + CDS.r, D.y + CDS.r, ...CDS.hit, { dirX: Math.sign(D.vx) || 1 }));
+      if (Math.abs(D.x) > 360 || D.y < -460 || D.y > 200) D.dead = true;
+    }
+    this.discs = this.discs.filter((D) => !D.dead);
+  }
+
   /** A pixel letter (5x7) - for NOTEPAD's typed words. */
   glyph(g, ch, x, y, s, col) {
     const G = GLYPHS[ch]; if (!G) return;
@@ -451,7 +536,7 @@ export class MachineBossStage extends BossArena {
   }
 
   /** Its death: the screen collapses to a line, then a dot (the explosions come from BossArena). */
-  onDeath() { this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
+  onDeath() { this.discs = []; this.pour = null; this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
 
   /**
    * THE ENTRANCE (k = 0..1): the switched-off monitor sits dark; the tower's power light blinks on, it whirs and
@@ -507,6 +592,9 @@ export class MachineBossStage extends BossArena {
       if (!this.boss.atk || this.boss.atk.name !== 'errors') this.stepErrors(match, out);
       if (!this.boss.atk || this.boss.atk.name !== 'cards') this.stepCards(match, out);
       if (this.boss.dying) this.mood = 'dead';
+      this.stepPuddles(match);
+      if (!this.boss.atk || this.boss.atk.name !== 'cds') { this.stepDiscs(match, out); this.tray = Math.max(0, this.tray - 0.08); }
+      if (!this.low && !this.boss.dying && this.boss.hp <= this.boss.max * CDS.at) { this.low = true; this.rageText.setText('MUSIC TRAY ONLINE.'); this.boss.rage = 90; sfx('ding', 1, 0.5); }
     }
     return out;
   }
@@ -518,6 +606,20 @@ export class MachineBossStage extends BossArena {
     g.clear(); x.clear();
     this.drawMachine(g, B ? B.flash > 0 : false, !B);
     this.drawMouse(x);
+    for (const P of this.puddles) {                                                     // SLUDGE puddles: purple goo with bubbles, drying at the edges
+      const k = Math.min(1, P.t / 12) * Math.min(1, (SLUDGE.life - P.t) / 40), w = P.w * k;
+      x.fillStyle(C.sludge[0], 1); x.fillEllipse(P.x, -2, w + 6, 12); x.fillStyle(C.sludge[1], 1); x.fillEllipse(P.x, -3, w, 9); x.fillStyle(C.sludge[2], 1); x.fillEllipse(P.x - w * 0.15, -5, w * 0.5, 3);
+      for (let i = 0; i < 3; i++) { const bx = P.x + Math.sin(P.seed + i * 2.1) * w * 0.35, ph = (t * 0.05 + i * 0.7 + P.seed) % 1; x.fillStyle(C.sludge[3], 0.8 * (1 - ph)); x.fillCircle(bx, -6 - ph * 6, 2 + ph * 3); }
+      for (let i = 0; i < 4; i++) { x.fillStyle(C.sludge[1], 1); x.fillEllipse(P.x - w * 0.45 + i * w * 0.3, 2, 8, 6 + (i % 2) * 6); }
+    }
+    if (this.pour) { const P = this.pour; x.fillStyle(C.sludge[0], 1); x.fillRect(P.x - 7, P.y, 14, -P.y); x.fillStyle(C.sludge[1], 1); x.fillRect(P.x - 5, P.y, 10, -P.y); for (let i = 0; i < 4; i++) { x.fillStyle(C.sludge[2], 1); x.fillCircle(P.x + Math.sin(t * 0.4 + i) * 3, P.y + ((t * 6 + i * 30) % -P.y), 3); } }
+    for (const D of this.discs) {                                                       // the CDs: silver discs with a rainbow glint, spinning
+      const sq = Math.abs(Math.cos(D.a)) * 0.6 + 0.4;
+      x.fillStyle(C.out, 1); x.fillEllipse(D.x, D.y, CDS.r * 2 + 3, (CDS.r * 2 + 3) * sq); x.fillStyle(0xd8dce8, 1); x.fillEllipse(D.x, D.y, CDS.r * 2, CDS.r * 2 * sq);
+      x.fillStyle([0xff80c0, 0x80c0ff, 0xffe080, 0x80ffc0][Math.floor(D.a) % 4], 0.8); x.fillEllipse(D.x - 3, D.y - 3 * sq, CDS.r, CDS.r * 0.5 * sq);
+      x.fillStyle(0x7a7a8a, 1); x.fillEllipse(D.x, D.y, 7, 7 * sq); x.fillStyle(0x000000, 1); x.fillEllipse(D.x, D.y, 3, 3 * sq);
+    }
+    if (this.tray > 0) { const o = this.trayTip(); x.fillStyle(C.out, 1); x.fillRect(o.x - 2, o.y - 6, 32 * this.tray + 2, 12); x.fillStyle(C.beige[1], 1); x.fillRect(o.x, o.y - 4, 30 * this.tray, 8); x.fillStyle(0x303030, 1); x.fillEllipse(o.x + 12, o.y, 18 * this.tray, 5); }
     this.drawProgWin(x);
     if (this.paint) { const P = this.paint, a = Math.max(0, 1 - (P.fade || 0) / 30); x.lineStyle(18, P.col, a); for (let i = 1; i < P.pts.length; i++) x.lineBetween(P.pts[i - 1].x, P.pts[i - 1].y, P.pts[i].x, P.pts[i].y); x.lineStyle(6, 0xffffff, 0.3 * a); for (let i = 1; i < P.pts.length; i++) x.lineBetween(P.pts[i - 1].x, P.pts[i - 1].y - 5, P.pts[i].x, P.pts[i].y - 5); x.lineStyle(0); for (let i = 0; i < P.pts.length; i += 7) { x.fillStyle(P.col, a); x.fillRect(P.pts[i].x - 2, P.pts[i].y + 8, 4, 6 + (i * 13) % 14); } }
     if (this.fill) { const F = this.fill, x1 = F.s < 0 ? -275 : 0, x2 = F.s < 0 ? 0 : 275; if (F.warn) { x.lineStyle(2, F.col, t % 8 < 4 ? 1 : 0.3); x.strokeRect(x1, -135, x2 - x1, 135); x.lineStyle(0); x.fillStyle(F.col, 0.12); x.fillRect(x1, -135, x2 - x1, 135); } else if (F.k > 0) { x.fillStyle(F.col, 0.85 * Math.min(1, F.k * 1.2)); x.fillRect(x1, -135 * Math.min(1, F.k), x2 - x1, 135 * Math.min(1, F.k)); x.fillStyle(0xffffff, 0.3); x.fillRect(x1, -135 * Math.min(1, F.k), x2 - x1, 4); } }
@@ -624,8 +726,9 @@ export class MachineBossStage extends BossArena {
     g.fillStyle(off ? 0x203020 : (t % 40 < 30 ? 0x30ff60 : 0x108030), 1); g.fillRect(tx + 8, ty + 80, 6, 4); g.fillStyle(0xffa020, off ? 0.2 : (t % 7 < 3 ? 1 : 0.2)); g.fillRect(tx + 18, ty + 80, 6, 4);
     for (let i = 0; i < 7; i++) { g.fillStyle(Bg[0], 1); g.fillRect(tx + 8, ty + 100 + i * 9, 32, 3); }
     g.lineStyle(6, C.out, 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 10, tx + 10, ty + 150); g.lineStyle(4, C.grey[1], 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 10, tx + 10, ty + 150); g.lineStyle(0);
-    // the stand
+    // the stand (wearing a little bow tie)
     g.fillStyle(C.out, 1); g.fillRect(c.x - 26, c.y + sh / 2 + b - 4, 52, 34); g.fillStyle(Bg[1], 1); g.fillRect(c.x - 24, c.y + sh / 2 + b - 2, 48, 30);
+    { const by = c.y + sh / 2 + b + 22; g.fillStyle(C.out, 1); g.fillTriangle(c.x, by, c.x - 22, by - 11, c.x - 22, by + 11); g.fillTriangle(c.x, by, c.x + 22, by - 11, c.x + 22, by + 11); g.fillStyle(0xb01830, 1); g.fillTriangle(c.x, by, c.x - 19, by - 8, c.x - 19, by + 8); g.fillTriangle(c.x, by, c.x + 19, by - 8, c.x + 19, by + 8); g.fillStyle(C.out, 1); g.fillCircle(c.x, by, 5); g.fillStyle(0xd02040, 1); g.fillCircle(c.x, by, 3.5); }
     g.fillStyle(C.out, 1); g.fillEllipse(c.x, c.y + sh / 2 + b + 32, 130, 22); g.fillStyle(Bg[2], 1); g.fillEllipse(c.x, c.y + sh / 2 + b + 30, 124, 18);
     // the CRT's deep back, then the bezel
     g.fillStyle(C.out, 1); g.fillRoundedRect(c.x - sw / 2 - b + 16, c.y - sh / 2 - b - 10, sw + b * 2 - 32, sh + b * 2 + 14, 14); g.fillStyle(Bg[0], 1); g.fillRoundedRect(c.x - sw / 2 - b + 18, c.y - sh / 2 - b - 8, sw + b * 2 - 36, 20, 10);
@@ -665,12 +768,25 @@ export class MachineBossStage extends BossArena {
     } else if (this.mood === 'glitch') {
       for (let i = 0; i < 14; i++) { g.fillStyle([0xff00ff, 0x00ffff, 0xffff00, 0x30ff80][i % 4], 0.8); g.fillRect(x0 + Math.random() * (sw - 20), y0 + Math.random() * (sh - 8), 10 + Math.random() * 30, 4 + Math.random() * 6); }
     } else {                                                                              // its face
-      const m = this.mood, blink = t % 140 < 6;
-      if (m === 'angry') { px(3, 3, 4, 1); px(13, 3, 4, 1); px(4, 4, 3, 2); px(13, 4, 3, 2); px(6, 11, 8, 1); px(5, 12, 1, 1); px(14, 12, 1, 1); }
-      else {
-        if (blink) { px(4, 5, 3, 1); px(13, 5, 3, 1); } else { px(4, 3, 3, 3); px(13, 3, 3, 3); px(5, 4, 1, 1, C.screen[3]); px(14, 4, 1, 1, C.screen[3]); }
-        if (m === 'grin' || m === 'happy') { px(4, 9, 12, 1); px(5, 10, 10, 1); px(7, 11, 6, 1); px(6, 10, 8, 1, 0x0a2a1a); for (let i = 0; i < 4; i++) px(6 + i * 2, 10, 1, 1, C.screen[3]); }
-        else { px(5, 10, 1, 1); px(6, 11, 8, 1); px(14, 10, 1, 1); }
+      const m = this.mood, blink = t % 140 < 6, evil = this.boss && (this.boss.phase === 2 || this.low), red = 0xff3a3a;
+      const fc = evil ? red : C.screen[2];
+      if (m === 'angry') {                                                                // evil: slanted brows, narrowed glaring eyes, a jagged sneer
+        px(2, 2, 1, 1, fc); px(3, 3, 2, 1, fc); px(5, 4, 2, 1, fc); px(17, 2, 1, 1, fc); px(15, 3, 2, 1, fc); px(13, 4, 2, 1, fc);
+        px(4, 5, 3, 1, fc); px(13, 5, 3, 1, fc); px(5, 5, 1, 1, evil ? 0xffffff : C.screen[3]); px(14, 5, 1, 1, evil ? 0xffffff : C.screen[3]);
+        for (let i = 0; i < 6; i++) px(5 + i * 2, 10 + (i % 2), 2, 1, fc); px(4, 9, 1, 1, fc); px(16, 9, 1, 1, fc);
+      } else if (m === 'grin' || m === 'happy') {                                          // a nasty, knowing grin
+        px(3, 3, 4, 1, fc); px(13, 2, 4, 1, fc); px(4, 4, 3, 2, fc); px(13, 4, 3, 1, fc);
+        px(4, 9, 12, 1, fc); px(5, 10, 10, 1, fc); px(6, 11, 8, 1, fc); px(6, 10, 8, 1, 0x0a2a1a); for (let i = 0; i < 4; i++) { px(6 + i * 2, 10, 1, 1, 0xffffff); }
+      } else {                                                                              // SNOBBY at rest: half-lidded, one brow raised, a smirk off to the side
+        px(3, 1, 4, 1, fc); px(13, 3, 4, 1, fc);
+        if (blink) { px(4, 5, 3, 1, fc); px(13, 5, 3, 1, fc); } else { px(4, 4, 3, 2, fc); px(13, 4, 3, 2, fc); px(4, 4, 3, 1, 0x0a2a1a); px(13, 4, 3, 1, 0x0a2a1a); px(5, 5, 1, 1, C.screen[3]); px(14, 5, 1, 1, C.screen[3]); }
+        px(9, 11, 6, 1, fc); px(15, 10, 1, 1, fc); px(8, 11, 1, 1, fc);
+      }
+      if (m !== 'angry') {                                                                  // the monocle, on its right eye, with its chain
+        const mx = x0 + 15 + 14.5 * 6, my = y0 + 10 + 5 * 6;
+        g.lineStyle(3, 0xe0c040, 1); g.strokeCircle(mx, my, 15); g.lineStyle(1, 0xffffff, 0.5); g.strokeCircle(mx - 2, my - 2, 11); g.lineStyle(0);
+        g.fillStyle(0xffffff, 0.12); g.fillCircle(mx, my, 14);
+        for (let i = 0; i < 6; i++) { g.fillStyle(0xe0c040, 1); g.fillRect(mx + 10 + i * 3, my + 12 + i * 5, 2, 2); }
       }
     }
     if (!off) { for (let y = y0; y < y0 + sh; y += 3) { g.fillStyle(0x000000, 0.12); g.fillRect(x0, y, sw, 1); } }   // scanlines

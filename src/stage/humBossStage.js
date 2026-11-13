@@ -42,6 +42,18 @@ const COPY_EVERY = 4;
 const COPY = { delay: 24, dur: 560, speed: 2.1, near: 64, echo: 0.9, trick: 120, limbWind: 22, limbHit: [11, [50, 6, 0.85]], grinHit: [10, [70, 5.8, 0.7]] };
 // MIMICS (LEVEL !): how many, speed, fuse when near, their life, the burst's hit
 const MIMIC = { n: 2, speed: 1.6, near: 46, fuse: 18, life: 330, hit: [10, [70, 6, 0.75]] };
+// THE HUNGER (at `FERAL.at` health and below): it tears open into a red-and-black thing of ropes and teeth, far
+// wilder - the change (frames), its walk, the longest it rests between attacks (frames), and its hand-weapons:
+const FERAL = { at: 0.3, change: 110, walk: 3.8, rest: 50 };
+// BLADE FRENZY: wind-up, dashes, each dash (frames), dash speed, the pause between, a slash's hit, the last slash's hit
+const FRENZY = { wind: 22, dashes: 3, dash: 14, speed: 8.5, gap: 10, hit: [6, [40, 4.4, 0.45]], last: [9, [45, 6.2, 0.8]] };
+// AXE DROP: wind-up, the leap (frames), its height, the hang (a red mark where it'll land), the drop, the slam's hit,
+// the two shockwaves along the floor (hit, speed, frames)
+const AXE = { wind: 18, leap: 26, high: 210, hang: 14, drop: 8, hit: [12, [80, 6.6, 0.9]], wave: [6, [70, 4.8, 0.4]], waveSpeed: 7, waveLife: 34 };
+// TENDRIL WHIP: lashes, wind-up, the lash (frames), how far it reaches, its hit
+const WHIP = { n: 3, wind: 20, lash: 12, len: 300, hit: [9, [55, 5.6, 0.7]] };
+// SPIKE BURST: hammer slams, frames apart, the warning under you, how long a spike stands, its width/height, its hit
+const SPIKE = { n: 4, every: 34, warn: 30, up: 22, w: 40, h: 120, hit: [11, [88, 6.4, 0.8]] };
 // hazards: FLICKER (dark frames) and BURST PANEL (warning, sparks, hit)
 const FLICK = { dur: 200 };
 const BURST = { warn: 50, on: 50, hit: [4, [80, 4, 0.3]] };
@@ -68,6 +80,7 @@ export class HumBossStage extends BossArena {
     this.rec = {}; this.hbNow = {}; this.copy = null;
     this.count = 0; this.dark = 0; this.walls = null; this.stain = null; this.mimics = []; this.sparks = null; this.stuck = 0; this.smile = null;
     this.sparkColor = 0x8a8a8a; this.bodyW = 80; this.bodyH = 240;
+    this.feral = false; this.feralK = 0; this.spikes = []; this.waves = []; this.lash = null; this.mark = null;
   }
 
   /** Builds the hazy yellow distance (pillars fading back), the ceiling and partitions, and the carpet. */
@@ -154,17 +167,17 @@ export class HumBossStage extends BossArena {
       { x1: Math.min(b.hip.x, b.sh.x) - 34, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 34, y2: Math.min(b.ft.y, 0), mult: 0.9 }];
   }
   /** What it does next; at LEVEL ! it adds MIMICS. */
-  pattern(phase) { if (this.count % COPY_EVERY === COPY_EVERY - 1) return ['copy']; return phase === 1 ? ['noclip', 'reach', 'lights', 'walls', 'reach'] : ['noclip', 'reach', 'lights', 'walls', 'mimics', 'noclip']; }
+  pattern(phase) { if (this.feral) return ['frenzy', 'axe', 'whip', 'spikes', 'frenzy', 'noclip']; if (this.count % COPY_EVERY === COPY_EVERY - 1) return ['copy']; return phase === 1 ? ['noclip', 'reach', 'lights', 'walls', 'reach'] : ['noclip', 'reach', 'lights', 'walls', 'mimics', 'noclip']; }
   /** Counts its attacks. */
   tally() { this.count++; }
-  start_noclip() { this.tally(); } start_reach() { this.tally(); } start_lights() { this.tally(); } start_walls() { this.tally(); } start_mimics() { this.tally(); } start_copy() { this.tally(); }
+  start_noclip() { this.tally(); } start_reach() { this.tally(); } start_lights() { this.tally(); } start_walls() { this.tally(); } start_mimics() { this.tally(); } start_copy() { this.tally(); } start_frenzy() { this.tally(); } start_axe() { this.tally(); } start_whip() { this.tally(); } start_spikes() { this.tally(); }
   rageLine() { return 'LEVEL !  -  RUN.'; }
   /** LEVEL !: the panels go red, an alarm, the room shudders. */
   onRage(match) { this.red = 1; sfx('warn', 1, 0.6); sfx('roar', 0.7, 1.5); match.shake(8, 30); for (const L of this.lamps) L.flick = 20; }
   /** You lost: it tilts its head and smiles wider, twitching, the lights flickering (BossArena.bossTaunt). */
   onGloat(match, t) { const E = this.e; E.alpha = 1; E.sink = Math.max(0, E.sink - 0.05); E.crouch = 0.2 + 0.1 * Math.sin(t * 0.4); E.glitch = t % 30 < 4 ? 1 : 0; if (t % 25 === 0) this.lamps[Math.floor(Math.random() * this.lamps.length)].flick = 8; }
   /** Its speed (faster at LEVEL !). */
-  speed() { return this.boss && this.boss.phase === 2 ? HB.fast : HB.walk; }
+  speed() { return this.feral ? FERAL.walk : this.boss && this.boss.phase === 2 ? HB.fast : HB.walk; }
   /** It shuffles toward x, legs jerking. Returns true once there. */
   walkTo(x, sp) { const E = this.e, dx = Phaser.Math.Clamp(x, -HB.range, HB.range) - E.x; if (Math.abs(dx) < 6) return true; E.dir = Math.sign(dx); E.x += Math.sign(dx) * Math.min(Math.abs(dx), sp); E.walk += sp * 0.06; return false; }
 
@@ -173,6 +186,12 @@ export class HumBossStage extends BossArena {
     const E = this.e, tg = this.nearest(match, E.x);
     E.crouch += (0.12 - E.crouch) * 0.1; E.reach *= 0.8;
     E.armL = [0.12 + Math.sin(this.t * 0.05) * 0.08, 0.05]; E.armR = [-0.1 + Math.sin(this.t * 0.05 + 1) * 0.08, -0.05];
+    E.weapon = null; E.y = 0;
+    if (this.feral) {                                                                   // THE HUNGER: it prowls right up to you, twitching
+      E.crouch = 0.45 + Math.sin(this.t * 0.3) * 0.08; E.armL = [0.9 + Math.sin(this.t * 0.4) * 0.5, 1.4]; E.armR = [-0.6 + Math.sin(this.t * 0.37) * 0.5, -1];
+      if (tg && Math.abs(tg.x - E.x) > 70) this.walkTo(tg.x - Math.sign(tg.x - E.x) * 60, this.speed() * 0.8); else if (tg) E.dir = Math.sign(tg.x - E.x) || E.dir;
+      E.glitch = this.t % 37 < 3 ? 1 : 0; return;
+    }
     if (tg && Math.abs(tg.x - E.x) > 150) this.walkTo(tg.x - Math.sign(tg.x - E.x) * 120, this.speed() * 0.7);
     else if (tg) E.dir = Math.sign(tg.x - E.x) || E.dir;
     E.glitch = this.t % 97 < 3 ? 1 : 0;
@@ -400,8 +419,141 @@ export class HumBossStage extends BossArena {
     if (P.ring) { g.lineStyle(4, 0xffffff, 0.5 * A); g.strokeEllipse(P.x, P.y - 40, P.ring * 2, P.ring * 1.3); g.lineStyle(2, C.black, A); g.strokeEllipse(P.x, P.y - 40, P.ring * 2 + 8, P.ring * 1.3 + 6); g.lineStyle(0); }
   }
 
+  // ------------------------------------------------------------------ THE HUNGER (low health)
+  /** Clears whatever the room was doing (the copy, the walls, the dark...) so the change can start clean. */
+  clearAll() {
+    const E = this.e; this.copy = null; this.walls = null; this.stain = null; this.smile = null; this.dark = 0; this.mimics = []; this.stuck = 0;
+    E.alpha = 1; E.sink = 0; E.reach = 0; E.y = 0; for (const L of this.lamps) L.on = 1;
+  }
+  /**
+   * THE CHANGE: at `FERAL.at` health it doubles over, shuddering; red ropes split out of the static and wrap it,
+   * tendrils burst from its back, its smile tears open into a mouth full of teeth - it ROARS, and its hands flicker
+   * through the weapons it can make of them. From now on it's THE HUNGER (no more copies; faster, barely resting).
+   */
+  atk_transform(match, a) {
+    const E = this.e, n = FERAL.change, roar = Math.round(n * 0.6);
+    if (a.t === 1) { this.clearAll(); sfx('glitch', 1, 0.4); sfx('rumble', 1, 0.5); this.rageText.setText('IT IS CHANGING...'); this.boss.rage = 70; }
+    this.feralK = Math.min(1, a.t / roar);
+    E.glitch = a.t % 5 < 2 ? 1 : 0; E.y = 0;
+    if (a.t < roar) { E.crouch = 0.7 + Math.sin(a.t * 0.9) * 0.08; E.armL = [0.5 + Math.sin(a.t * 0.6) * 0.5, 0.9]; E.armR = [-0.5 - Math.sin(a.t * 0.5) * 0.5, -0.9]; }
+    else { E.crouch = Math.max(0.05, E.crouch - 0.06); E.armL = [2.5, 2.8]; E.armR = [-2.5, -2.8]; E.weapon = ['blade', 'axe', 'hammer', 'whip'][Math.floor((a.t - roar) / 9) % 4]; }
+    if (a.t % 4 === 0) { const b = this.body(); for (let i = 0; i < 3; i++) match.particles.push({ x: b.sh.x + (Math.random() - 0.5) * 60, y: b.sh.y + Math.random() * 90, vx: (Math.random() - 0.5) * 5, vy: -1 - Math.random() * 3, life: 20, color: i % 2 ? 0xc01828 : C.black, size: 3, grav: 0.1 }); }
+    if (a.t === roar) {
+      sfx('roar', 1, 0.5); sfx('roar', 0.8, 0.8); sfx('bighit', 0.8, 0.4); match.shake(16, 46);
+      this.rageText.setText('IT IS HUNGRY.'); this.boss.rage = 100; for (const L of this.lamps) L.flick = 30;
+    }
+    if (a.t >= n) { E.weapon = null; return true; }
+    return false;
+  }
+  /** Turns it to face the nearest player; returns that player (or null). */
+  faceNearest(match) { const E = this.e, tg = this.nearest(match, E.x); if (tg) E.dir = Math.sign(tg.x - E.x) || E.dir; return tg; }
+  /** BLADE FRENZY: its hands become long red blades; it crouches, then dashes back and forth through you, slashing - the last slash hardest. */
+  atk_frenzy(match, a, out) {
+    const E = this.e, n = FRENZY.dashes, wind = this.sp(FRENZY.wind), cyc = FRENZY.dash + this.sp(FRENZY.gap);
+    E.weapon = 'blade';
+    if (a.t === 1) { sfx('slash', 0.8, 0.5); sfx('glitch', 0.6, 1.4); }
+    if (a.t <= wind) { this.faceNearest(match); E.crouch = 0.75; E.armL = [2.3, 2.7]; E.armR = [-2.2, -2.6]; return false; }
+    const k = a.t - wind - 1, i = Math.floor(k / cyc), q = k % cyc;
+    if (i >= n) { E.crouch += (0.3 - E.crouch) * 0.2; if (k > n * cyc + 12) { E.weapon = null; return true; } return false; }
+    if (q === 0) { this.faceNearest(match); a.hid = this.sid('frenzy'); sfx('whoosh', 1, 0.8); sfx('slash', 1, 0.6 + i * 0.1); }
+    if (q < FRENZY.dash) {
+      E.x = Phaser.Math.Clamp(E.x + E.dir * FRENZY.speed, -HB.range, HB.range); E.crouch = 0.5; E.walk += 0.8;
+      const sw = q / FRENZY.dash, up = i % 2 === 0;
+      E.armL = up ? [lerp(2.7, 0.6, sw), lerp(2.9, 1.1, sw)] : [lerp(0.4, 2.5, sw), lerp(0.8, 2.7, sw)]; E.armR = [E.armL[0] - 0.4, E.armL[1] - 0.3];
+      const b = this.body(), hx1 = Math.min(b.hip.x, b.a1.h.x, b.a2.h.x), hx2 = Math.max(b.hip.x, b.a1.h.x, b.a2.h.x);
+      out.push(this.bhit(a.hid, hx1 - 36, b.head.y - 10, hx2 + 36, 0, ...(i === n - 1 ? FRENZY.last : FRENZY.hit), { dirX: E.dir }));
+      if (q % 3 === 0) match.particles.push({ x: b.a1.h.x, y: b.a1.h.y, vx: -E.dir * 2, vy: 0, life: 10, color: 0xff4050, size: 3 });
+    } else E.crouch = 0.65;
+    return false;
+  }
+  /**
+   * AXE DROP: one hand becomes a great red axe; it leaps up out of reach, hangs there (a red mark on the carpet where
+   * it'll land - it drifts after you), then drops and splits the floor - two shockwaves run out along the carpet.
+   */
+  atk_axe(match, a, out) {
+    const E = this.e, w = this.sp(AXE.wind), l = w + AXE.leap, h = l + this.sp(AXE.hang), d = h + AXE.drop;
+    E.weapon = 'axe';
+    if (a.t === 1) { const tg = this.faceNearest(match); a.tx = Phaser.Math.Clamp(tg ? tg.x : 0, -HB.range, HB.range); a.sx = E.x; sfx('roar', 0.5, 1.4); }
+    if (a.t <= w) { E.crouch = 0.85; E.armL = [2.9, 3.1]; E.armR = [-2.9, -3.1]; return false; }
+    if (a.t <= l) {
+      const k = (a.t - w) / AXE.leap, tg = this.nearest(match, E.x);
+      if (tg) a.tx += Phaser.Math.Clamp(Phaser.Math.Clamp(tg.x, -HB.range, HB.range) - a.tx, -2, 2);
+      E.x = lerp(a.sx, a.tx, k); E.y = -AXE.high * Math.sin(k * Math.PI / 2); E.crouch = 0.15; this.mark = { x: a.tx };
+      if (a.t === w + 1) { sfx('whoosh', 1, 0.5); match.shake(4, 6); }
+      return false;
+    }
+    if (a.t <= h) { const tg = this.nearest(match, E.x); if (tg) E.x = Phaser.Math.Clamp(E.x + Phaser.Math.Clamp(tg.x - E.x, -2.5, 2.5), -HB.range, HB.range); E.y = -AXE.high + Math.sin(a.t * 0.5) * 3; this.mark = { x: E.x }; return false; }
+    if (a.t <= d) { const k = (a.t - h) / AXE.drop; E.y = -AXE.high * (1 - k); E.armL = [lerp(3.0, 1.0, k), lerp(3.1, 1.3, k)]; E.armR = [lerp(-2.9, 0.8, k), lerp(-3.0, 1.1, k)]; this.mark = { x: E.x }; return false; }
+    E.y = 0; this.mark = null;
+    if (a.t === d + 1) {
+      a.hid = this.sid('axe'); sfx('bighit', 1, 0.5); sfx('clang', 0.8, 0.5); match.shake(14, 18);
+      for (const dir of [-1, 1]) this.waves.push({ x: E.x, dir, t: 0, id: this.sid('wave') });
+      for (let i = 0; i < 18; i++) match.particles.push({ x: E.x + (Math.random() - 0.5) * 80, y: -4, vx: (Math.random() - 0.5) * 7, vy: -2 - Math.random() * 5, life: 24, color: i % 3 ? C.carpet[0] : 0xc01828, size: 3, grav: 0.2 });
+    }
+    if (a.t <= d + 4) out.push(this.bhit(a.hid, E.x - 70, -150, E.x + 70, 2, ...AXE.hit, { radial: true }));
+    E.crouch = 0.7; E.armL = [1.0, 1.3]; E.armR = [0.8, 1.1];
+    if (a.t > d + 40) { E.weapon = null; return true; }
+    return false;
+  }
+  /** The shockwaves from AXE DROP: red spikes running out along the carpet. */
+  stepWaves(out) {
+    for (const W of this.waves) { W.t++; W.x += W.dir * AXE.waveSpeed; out.push(this.bhit(W.id, W.x - 16, -34, W.x + 16, 0, ...AXE.wave, { dirX: W.dir })); if (W.t > AXE.waveLife || Math.abs(W.x) > 275) W.dead = true; }
+    this.waves = this.waves.filter((W) => !W.dead);
+  }
+  /** TENDRIL WHIP: its arm unravels into a long red rope; it coils it back, then lashes it straight at you - three times. */
+  atk_whip(match, a, out) {
+    const E = this.e, wind = this.sp(WHIP.wind), cyc = wind + WHIP.lash + 12, i = Math.floor((a.t - 1) / cyc), q = (a.t - 1) % cyc;
+    E.weapon = 'whip';
+    if (i >= WHIP.n) { this.lash = null; E.weapon = null; return true; }
+    if (q === 0) { const tg = this.faceNearest(match); a.tx = tg ? tg.x : E.x + E.dir * 200; a.ty = tg ? tg.y - 22 : -30; a.hid = this.sid('whip'); }
+    const b = this.body();
+    if (q < wind) {
+      E.crouch = 0.4; E.armL = [-1.4 - q / wind * 0.8, -1.8]; E.armR = [0.6, 1.0];
+      const hd = b.a1.h; this.lash = { pts: [0, 1, 2, 3, 4, 5].map((j) => ({ x: hd.x - E.dir * (10 + j * 6) + Math.sin(this.t * 0.4 + j) * 6, y: hd.y - j * 7 })) };
+      if (q === wind - 6) sfx('whoosh', 0.6, 1.6);
+      return false;
+    }
+    const k = q - wind, out1 = k < WHIP.lash ? Math.min(1, (k + 1) / 4) : Math.max(0, 1 - (k - WHIP.lash) / 8);
+    const ang = Math.atan2((a.tx - b.sh.x) * E.dir, a.ty - b.sh.y); E.armL = [ang, ang]; E.armR = [0.4, 0.7];
+    const hd = this.body().a1.h, dx = a.tx - hd.x, dy = a.ty - hd.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl, L = WHIP.len * out1;
+    const pts = []; for (let j = 0; j <= 14; j++) { const s = j / 14, wav = Math.sin(s * 9 - this.t * 0.6) * 10 * (1 - out1 * 0.6) * s; pts.push({ x: hd.x + ux * L * s - uy * wav, y: Math.min(-3, hd.y + uy * L * s + ux * wav) }); }   // (it drags along the carpet, never through it)
+    this.lash = { pts };
+    if (k === 0) { sfx('slash', 1, 0.5); sfx('clang', 0.4, 2.2); }
+    if (k < WHIP.lash) for (let j = 3; j <= 14; j += 2) out.push(this.bhit(a.hid, pts[j].x - 12, pts[j].y - 12, pts[j].x + 12, pts[j].y + 12, ...WHIP.hit, { dirX: E.dir }));
+    return false;
+  }
+  /** SPIKE BURST: its hands become hammers; it pounds the floor - each blow sends a red spike up out of the carpet under you (the carpet darkens first). */
+  atk_spikes(match, a) {
+    const E = this.e, ev = this.sp(SPIKE.every), q = (a.t - 1) % ev, i = Math.floor((a.t - 1) / ev);
+    E.weapon = 'hammer';
+    if (i < SPIKE.n) {
+      this.faceNearest(match);
+      const up = q < ev - 8, k = up ? Math.min(1, q / 10) : (q - (ev - 8)) / 4;
+      E.crouch = up ? 0.25 : 0.75; E.armL = up ? [lerp(1.0, 2.9, k), 3.0] : [lerp(2.9, 0.6, Math.min(1, k)), 0.9]; E.armR = [E.armL[0] - 0.3, E.armL[1] - 0.2];
+      if (q === ev - 4) {
+        const tg = this.nearest(match, E.x); sfx('bighit', 0.8, 0.7); match.shake(6, 8);
+        this.spikes.push({ x: Phaser.Math.Clamp(tg ? tg.x : E.x, -262, 262), t: 0, id: this.sid('spike') });
+      }
+      return false;
+    }
+    E.crouch += (0.3 - E.crouch) * 0.2;
+    if (a.t > SPIKE.n * ev + 20) { E.weapon = null; return true; }
+    return false;
+  }
+  /** The spikes: a dark patch on the carpet, then a red spike shoots up and sinks back. */
+  stepSpikes(match, out) {
+    for (const S of this.spikes) {
+      S.t++; const u = S.t - SPIKE.warn;
+      if (u === 0) { sfx('slash', 0.9, 0.4); sfx('glitch', 0.5, 0.9); for (let i = 0; i < 8; i++) match.particles.push({ x: S.x + (Math.random() - 0.5) * 30, y: -4, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 4, life: 18, color: C.carpet[0], size: 3, grav: 0.2 }); }
+      S.k = u < 0 ? 0 : u < 4 ? (u + 1) / 4 : u < SPIKE.up ? 1 : Math.max(0, 1 - (u - SPIKE.up) / 8);
+      if (u >= 0 && u < 10) out.push(this.bhit(S.id, S.x - SPIKE.w / 2, -SPIKE.h * S.k, S.x + SPIKE.w / 2, 0, ...SPIKE.hit, { dirX: 1, radial: true }));
+      if (u > SPIKE.up + 8) S.dead = true;
+    }
+    this.spikes = this.spikes.filter((S) => !S.dead);
+  }
+
   /** Its death: it flickers apart into static (the explosions come from BossArena). */
-  onDeath() { this.copy = null; this.mimics = []; this.walls = null; this.stain = null; this.smile = null; this.e.alpha = 1; this.dark = 0; this.stuck = 0; for (const L of this.lamps) L.on = 1; }
+  onDeath() { this.spikes = []; this.waves = []; this.lash = null; this.mark = null; this.e.weapon = null; this.e.y = 0; this.copy = null; this.mimics = []; this.walls = null; this.stain = null; this.smile = null; this.e.alpha = 1; this.dark = 0; this.stuck = 0; for (const L of this.lamps) L.on = 1; }
 
   /**
    * THE ENTRANCE (k = 0..1): an empty, humming room. The panels flicker... out, one by one, from the far side. In the
@@ -462,7 +614,10 @@ export class HumBossStage extends BossArena {
       this.bossStep(match, out);
       if (this.stuck > 0) this.stuck--;
       this.record(match);
-      this.stepMimics(match, out);
+      this.stepMimics(match, out); this.stepSpikes(match, out); this.stepWaves(out);
+      const B = this.boss;
+      if (!this.feral && !B.dying && !match.over && B.hp > 0 && B.hp <= B.max * FERAL.at) { this.feral = true; B.atk = { name: 'transform', t: 0, id: ++B.uid }; B.last = 'transform'; }
+      if (this.feral && !B.atk && B.wait > FERAL.rest) B.wait = FERAL.rest;
       if (this.boss.dying) { this.e.glitch = this.t % 4 < 2 ? 1 : 0; this.e.alpha = 1 - this.deathK(); this.walls = null; }
     }
     for (const L of this.lamps) if (L.flick > 0) L.flick--;
@@ -495,6 +650,7 @@ export class HumBossStage extends BossArena {
     }
     if (this.stain) { const S = this.stain, sh = S.shake ? (Math.random() - 0.5) * 6 : 0; g.fillStyle(0x1a1408, 0.35 + 0.35 * S.k); g.fillEllipse(S.x + sh, -2, 50 + 30 * S.k, 10 + 4 * S.k); }
     if (B) this.drawHum(g, this.e.x, this.e.dir, this.e.alpha, B.flash > 0, 1);
+    if (B) this.drawFeralFx(g, x);
     this.drawCopy();
     for (const m of this.mimics) this.drawMimic(g, m);
     if (dark > 0) { x.fillStyle(0x050302, 0.9 * dark); x.fillRect(-700, -700, 1400, 1100); }
@@ -519,10 +675,12 @@ export class HumBossStage extends BossArena {
   drawHum(g, x0, d, A, flash, s) {
     if (A < 0.02) return;
     const E = this.e, b = this.body(), t = this.t, J = () => (Math.random() - 0.5) * 2.2, gl = E.glitch ? (Math.random() - 0.5) * 10 : 0;
-    const col = flash ? 0xffffff : C.black, edge = C.static[(t >> 1) % 3];
+    const F = this.feralK || 0, fat = 1 + F * 0.9;
+    const col = flash ? 0xffffff : F > 0.5 ? 0x5a0610 : C.black, edge = F > 0.5 ? ((t >> 1) % 3 ? 0xc01828 : C.black) : C.static[(t >> 1) % 3];
     const P = (p) => ({ x: p.x + gl + J(), y: p.y + J() });
     const FL = 2, clip = (a, c) => (a.y > FL ? { x: c.x + (a.x - c.x) * (FL - c.y) / (a.y - c.y || 1), y: FL } : a);   // nothing shows below the carpet
-    const seg = (p, q, w) => { let a = P(p), c = P(q); if (a.y > FL && c.y > FL) return; a = clip(a, c); c = clip(c, a); g.lineStyle(w + 3, edge, A * 0.5); g.lineBetween(a.x, a.y, c.x, c.y); g.lineStyle(w, col, A); g.lineBetween(a.x, a.y, c.x, c.y); };
+    const seg = (p, q, w0) => { let a = P(p), c = P(q); if (a.y > FL && c.y > FL) return; const w = w0 * fat; a = clip(a, c); c = clip(c, a); g.lineStyle(w + 3, edge, A * 0.5); g.lineBetween(a.x, a.y, c.x, c.y); g.lineStyle(w, col, A); g.lineBetween(a.x, a.y, c.x, c.y); };
+    if (F > 0) this.drawTendrils(g, b, d, A * Math.min(1, F * 1.5), F);
     // the legs: knees bending backward, long thin shins
     const step = Math.sin(E.walk) * 14;
     for (const sd of [-1, 1]) {
@@ -537,15 +695,96 @@ export class HumBossStage extends BossArena {
     const nk = { x: (b.sh.x + b.head.x) / 2, y: b.head.y + 14 };
     seg(b.sh, nk, 5);
     const h = P(b.head); if (h.y > FL + 12) return;
-    g.fillStyle(edge, A * 0.5); g.fillEllipse(h.x, h.y, 34, 42); g.fillStyle(col, A); g.fillEllipse(h.x, h.y, 30, 38);
+    const hs = 1 + F * 0.45;
+    g.fillStyle(edge, A * 0.5); g.fillEllipse(h.x, h.y, 34 * hs, 42 * hs); g.fillStyle(col, A); g.fillEllipse(h.x, h.y, 30 * hs, 38 * hs);
+    if (F > 0.3) { g.lineStyle(2, C.black, A * F); for (let i = 0; i < 4; i++) { const vx = mid.x + (i - 1.5) * 6; g.lineBetween(vx, b.sh.y + 4, vx + Math.sin(t * 0.1 + i) * 6, mid.y + 20); } g.lineStyle(0); }   // black veins over the red
     // the arms: long, with long fingers
     for (const arm of [b.a2, b.a1]) {
       seg(b.sh, arm.e, 5); seg(arm.e, arm.h, 4);
       const ang = Math.atan2(arm.h.y - arm.e.y, arm.h.x - arm.e.x);
-      for (let f = -1; f <= 1; f++) seg(arm.h, { x: arm.h.x + Math.cos(ang + f * 0.3) * 20, y: arm.h.y + Math.sin(ang + f * 0.3) * 20 }, 2);
+      if (E.weapon && F > 0.5) { if (E.weapon !== 'whip' || arm === b.a2) this.drawWeapon(g, P(arm.h), ang, E.weapon, A, flash); continue; }
+      for (let f = -1; f <= 1; f++) seg(arm.h, { x: arm.h.x + Math.cos(ang + f * 0.3) * 20, y: arm.h.y + Math.sin(ang + f * 0.3) * 20 }, F > 0.5 ? 1.6 : 2);
     }
-    if (!this.smile) this.drawFace(g, h.x, h.y, d, A, 1);
+    if (F > 0.5) this.drawMaw(g, h.x, h.y, d, A, hs, F);
+    else if (!this.smile) this.drawFace(g, h.x, h.y, d, A, 1);
     if (E.glitch && A > 0.5) for (let i = 0; i < 4; i++) { g.fillStyle(i % 2 ? 0xffffff : C.black, 0.5); g.fillRect(b.hip.x - 30 + Math.random() * 60, b.head.y + Math.random() * (b.ft.y - b.head.y), 20 + Math.random() * 30, 2); }
+  }
+  /** THE HUNGER's tendrils: red-and-black ropes writhing out of its back (longer as the change takes hold). */
+  drawTendrils(g, b, d, A, F) {
+    const t = this.t;
+    for (let k = 0; k < 6; k++) {
+      const base = { x: b.sh.x - d * 10, y: b.sh.y + 6 + k * 9 }, len = (50 + k * 12) * F, a0 = -Math.PI / 2 - d * (0.35 + k * 0.32);
+      let p = base;
+      for (let j = 1; j <= 6; j++) {
+        const ang = a0 + Math.sin(t * 0.13 + k * 1.7 + j * 0.7) * 0.5, q = { x: p.x + Math.cos(ang) * len / 6, y: p.y + Math.sin(ang) * len / 6 }, w = 7 - j;
+        if (q.y < 2) { g.lineStyle(w + 2, 0xc01828, A * 0.8); g.lineBetween(p.x, p.y, q.x, q.y); g.lineStyle(w, C.black, A); g.lineBetween(p.x, p.y, q.x, q.y); }
+        p = q;
+      }
+    }
+    g.lineStyle(0);
+  }
+  /** THE HUNGER's face: white jagged eyes slanting in, and the smile torn into a huge mouth of teeth with a red throat. */
+  drawMaw(g, hx, hy, d, a, s, F) {
+    const o = d * 4, open = 0.75 + 0.25 * Math.sin(this.t * 0.25);
+    g.fillStyle(0xffffff, a);
+    g.fillTriangle(hx - 16 * s + o, hy - 15 * s, hx - 3 * s + o, hy - 8 * s, hx - 14 * s + o, hy - 5 * s);
+    g.fillTriangle(hx + 16 * s + o, hy - 15 * s, hx + 3 * s + o, hy - 8 * s, hx + 14 * s + o, hy - 5 * s);
+    const my = hy + 7 * s, mw = 22 * s, mh = 10 * s * open;
+    g.fillStyle(C.black, a); g.fillEllipse(hx + o, my, mw * 2 + 4, mh * 2 + 4);
+    g.fillStyle(0x9a0c1c, a); g.fillEllipse(hx + o, my + 2, mw * 1.6, mh * 1.4);
+    g.fillStyle(0xffffff, a);
+    for (let i = 0; i < 8; i++) {
+      const tx = hx + o - mw + (i + 0.5) * (mw * 2 / 8), tw = mw / 8, edge = 1 - Math.abs(i - 3.5) / 4.5;
+      g.fillTriangle(tx - tw, my - mh * edge, tx + tw, my - mh * edge, tx, my - mh * edge + 6 * s);
+      g.fillTriangle(tx - tw, my + mh * edge, tx + tw, my + mh * edge, tx, my + mh * edge - 6 * s);
+    }
+    if (F >= 1 && this.t % 60 < 30) { g.fillStyle(0xc01828, a * 0.8); g.fillRect(hx + o - 2, my + mh, 3, 6 + (this.t % 30) / 3); }   // drool
+  }
+  /** A hand turned weapon (at hand point h, pointing along ang): a curved BLADE, an AXE, a HAMMER, or the stub of the WHIP. */
+  drawWeapon(g, h, ang, kind, A, flash) {
+    const ux = Math.cos(ang), uy = Math.sin(ang), px = -uy, py = ux, red = flash ? 0xffffff : 0xc01828, dk = C.black;
+    const at = (f, s) => ({ x: h.x + ux * f + px * s, y: h.y + uy * f + py * s });
+    if (kind === 'blade') {
+      g.fillStyle(dk, A); g.fillPoints([at(-4, -8), at(30, -10), at(66, 4), at(30, 8), at(-4, 7)], true);
+      g.fillStyle(red, A); g.fillPoints([at(0, -5), at(30, -7), at(60, 3), at(30, 4), at(0, 4)], true);
+      g.lineStyle(1.5, 0xffd0d0, A * 0.9); g.lineBetween(at(4, -5).x, at(4, -5).y, at(56, 2).x, at(56, 2).y);
+    } else if (kind === 'axe') {
+      g.lineStyle(6, dk, A); g.lineBetween(h.x, h.y, at(40, 0).x, at(40, 0).y);
+      g.fillStyle(dk, A); g.fillPoints([at(28, -3), at(20, -26), at(46, -30), at(52, -3)], true);
+      g.fillStyle(red, A); g.fillPoints([at(30, -4), at(23, -23), at(44, -26), at(49, -4)], true);
+      g.lineStyle(2, 0xffd0d0, A * 0.9); g.lineBetween(at(22, -24).x, at(22, -24).y, at(45, -28).x, at(45, -28).y);
+    } else if (kind === 'hammer') {
+      g.lineStyle(6, dk, A); g.lineBetween(h.x, h.y, at(30, 0).x, at(30, 0).y);
+      g.fillStyle(dk, A); g.fillPoints([at(24, -18), at(50, -18), at(50, 18), at(24, 18)], true);
+      g.fillStyle(red, A); g.fillPoints([at(27, -15), at(47, -15), at(47, 15), at(27, 15)], true);
+      g.fillStyle(dk, A * 0.6); g.fillPoints([at(35, -15), at(39, -15), at(39, 15), at(35, 15)], true);
+    } else {
+      g.lineStyle(5, dk, A); g.lineBetween(h.x, h.y, at(18, Math.sin(this.t * 0.4) * 4).x, at(18, Math.sin(this.t * 0.4) * 4).y);
+    }
+    g.lineStyle(0);
+  }
+  /** THE HUNGER's leftovers in the room: the whip's rope, the spikes and their warnings, the shockwaves, AXE DROP's landing mark. */
+  drawFeralFx(g, x) {
+    const t = this.t;
+    if (this.lash && this.e.weapon === 'whip') {
+      const pts = this.lash.pts, hd = this.body().a1.h;
+      for (const [w, c] of [[9, 0xc01828], [6, C.black]]) { g.lineStyle(w, c, 1); let p = hd; for (const q of pts) { g.lineBetween(p.x, p.y, q.x, q.y); p = q; } }
+      const tip = pts[pts.length - 1]; g.lineStyle(0); g.fillStyle(0xc01828, 1); g.fillCircle(tip.x, tip.y, 5);
+    }
+    for (const S of this.spikes) {
+      if (S.t < SPIKE.warn) { const k = S.t / SPIKE.warn; x.fillStyle(0x3a0006, 0.3 + 0.4 * k); x.fillEllipse(S.x, -1, SPIKE.w + 20 * k, 8); if (t % 8 < 4) { x.fillStyle(0xff2030, 0.5); x.fillEllipse(S.x, -1, 12 + 20 * k, 3); } continue; }
+      if (!S.k) continue;
+      const hh = SPIKE.h * S.k;
+      g.fillStyle(C.black, 1); g.fillTriangle(S.x - 20, 2, S.x + 20, 2, S.x + 2, -hh - 4);
+      g.fillStyle(0xc01828, 1); g.fillTriangle(S.x - 15, 2, S.x + 12, 2, S.x + 1, -hh);
+      g.fillStyle(C.black, 1); g.fillTriangle(S.x - 26, 2, S.x - 12, 2, S.x - 20, -hh * 0.45); g.fillTriangle(S.x + 10, 2, S.x + 26, 2, S.x + 19, -hh * 0.55);
+      g.fillStyle(0xff6070, 0.8); g.fillRect(S.x - 3, -hh * 0.8, 2, hh * 0.6);
+    }
+    for (const W of this.waves) {
+      const k = 1 - W.t / AXE.waveLife;
+      for (let i = 0; i < 3; i++) { const wx = W.x - W.dir * i * 12, hh = (34 - i * 9) * k; g.fillStyle(i % 2 ? C.black : 0xc01828, 1); g.fillTriangle(wx - 8, 2, wx + 8, 2, wx + W.dir * 4, -hh); }
+    }
+    if (this.mark) { x.fillStyle(0xff2030, t % 6 < 3 ? 0.55 : 0.25); x.fillEllipse(this.mark.x, -1, 120, 10); x.lineStyle(2, 0xff2030, 0.8); x.strokeEllipse(this.mark.x, -1, 150, 14); x.lineStyle(0); }
   }
   /** A mimic: a small, shambling copy of it (half size), flashing when about to burst. */
   drawMimic(g, m) {
