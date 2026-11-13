@@ -6,6 +6,7 @@
 //   npm run sim -- --fighters soul-summoner,mr-wake --stage sky-sanctum --matches 5
 //   npm run sim -- --smoke                        every stage, every fighter, every costume: short matches (and each boss)
 //   npm run sim -- --boss dragon:2 [--fighters a,b]   boss fights (id[:difficulty 0-2] or 'all'): one CPU per fighter against it
+//                                                    (a fighter can be id:costume-number, e.g. devoted:6 = CARTRIDGE)
 //   npm run sim -- --json > out.json              machine-readable result
 //
 // Options: --fighters a,b[,c,d]  --stage id|random  --seed N  --matches N  --frames N (cap per match)
@@ -145,7 +146,7 @@ if (O.smoke) {
   const [bid, tier] = O.boss.split(':'), list = bid === 'all' ? info.bosses : info.bosses.filter((b) => b.id === bid);
   if (!list.length) { console.error(`Unknown boss "${bid}". Available: ${info.bosses.map((b) => b.id).join(', ')}, all`); process.exit(2); }
   let s = O.seed;
-  for (const b of list) for (const f of O.fighters ? O.fighters.split(',') : info.fighters) for (let i = 0; i < O.matches; i++) specs.push({ ...base, boss: { id: b.id, tier: +(tier || 0) }, stage: b.stage, fighters: [f], seed: s++, frames: O.frames });
+  for (const b of list) for (const f of O.fighters ? O.fighters.split(',') : info.fighters) for (let i = 0; i < O.matches; i++) { const [fid, sk] = f.split(':'); specs.push({ ...base, boss: { id: b.id, tier: +(tier || 0) }, stage: b.stage, fighters: [fid], skins: [+(sk || 0)], seed: s++, frames: O.frames }); }   // (a fighter can name a costume: devoted:6)
 } else {
   for (let i = 0; i < O.matches; i++) {
     const fighters = O.fighters ? O.fighters.split(',') : [0, 1, 2, 3].map(() => pick(info.fighters));

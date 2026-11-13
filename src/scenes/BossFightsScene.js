@@ -14,7 +14,7 @@ import { ArcadeBg, titleBanner, hintBar, ARC, panel, slant, hex } from '../ui/ar
 import { BOSSES, TIERS, bossOpen, bossWins, bossBest, arenaOpen, clock, FIRST_BONUS } from '../data/bosses.js';
 import { TROPHY_GOALS, trophyEarned } from '../achievements.js';
 import { stageById } from '../stage/stages.js';
-import { ROSTER, showFighter } from '../fighters/roster.js';
+import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinUnlocked, skinInfo } from '../fighters/skins.js';
 import { settings } from '../settings.js';
 
@@ -33,7 +33,8 @@ export class BossFightsScene extends Phaser.Scene {
   create() {
     this.t = 0; this.menu = new MenuInput(this); this.step = 'boss';
     this.sel = last.boss; this.tier = last.tier;
-    this.fighters = ROSTER.filter((f) => f.available);
+    // the roster, plus THE DEVOTED (a test fighter - in her CARTRIDGE costume KING POLYGON fights her as LEGENDARY KING POLYGON)
+    this.fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER.filter((f) => f.id === 'devoted')];
     this.fi = Math.max(0, this.fighters.findIndex((f) => f.id === (last.fighter || settings.picks[0])));
     this.skin = last.skin;
     playMusic(this, 'bgm_title');
@@ -128,7 +129,7 @@ export class BossFightsScene extends Phaser.Scene {
       const f = this.fighters[this.fi];
       if (!this.skins(f.id).includes(this.skin)) this.skin = 0;
       this.txt.fhead.setText('WHO FACES ' + B.name + '?\n' + T.name).setColor('#ffffff');
-      this.txt.fname.setText('<  ' + f.def.name + '  >');
+      this.txt.fname.setText('<  ' + f.def.name + (f.tag ? ' (TEST)' : '') + '  >');
       this.txt.fskin.setText('COSTUME: ' + skinInfo(f.id, this.skin).name + '   (W/S)');
     }
     this.draw();

@@ -63,9 +63,10 @@ export class BossArena {
     this.intro = { t: 0 };
     this.introG = s.add.graphics().setDepth(40);
     const T = (str, size, color, o = {}) => s.add.text(0, 0, str, { fontFamily: FONT, fontSize: size + 'px', color, stroke: '#07060e', strokeThickness: Math.round(size / 4), ...o }).setOrigin(0.5).setDepth(41).setVisible(false);
-    this.introGlow = T(B.short || B.name, 30, hex, { strokeThickness: 12 }).setAlpha(0.35);
-    this.introName = T(B.short || B.name, 30, '#ffffff');
-    this.introSub = T(B.title || '', 8, hex).setLetterSpacing(3);
+    const card = (this.introCard && this.introCard()) || { name: B.short || B.name, title: B.title || '' };   // (an arena can retitle its boss)
+    this.introGlow = T(card.name, 30, hex, { strokeThickness: 12 }).setAlpha(0.35);
+    this.introName = T(card.name, 30, '#ffffff');
+    this.introSub = T(card.title, 8, hex).setLetterSpacing(3);
     const n = BOSS_ORDER(B.id);
     this.introTag = T('-  BOSS ' + n + '  -', 7, '#ffffff').setLetterSpacing(4);
     this.introTier = T(this.boss.cfg.T.name, 6, '#' + this.boss.cfg.T.color.toString(16).padStart(6, '0')).setLetterSpacing(3);
@@ -74,12 +75,14 @@ export class BossArena {
     this.barG.setVisible(false); this.barName.setVisible(false); this.barTier.setVisible(false);
     this.icam = null;
   }
+  /** How many frames the entrance lasts (an arena can make it longer with `introEnter`, e.g. for a cutscene). */
+  enterLen() { return this.introEnter || INTRO.enter; }
   /** Which phase of the intro, and how far into it: { ph: 'wide' | 'enter' | 'freeze', f (frames into it), k (0..1) }. */
   introPhase() {
-    const t = this.intro.t;
+    const t = this.intro.t, E = this.enterLen();
     if (t <= INTRO.wide) return { ph: 'wide', f: t, k: t / INTRO.wide };
-    if (t <= INTRO.wide + INTRO.enter) return { ph: 'enter', f: t - INTRO.wide, k: (t - INTRO.wide) / INTRO.enter };
-    return { ph: 'freeze', f: t - INTRO.wide - INTRO.enter, k: (t - INTRO.wide - INTRO.enter) / INTRO.freeze };
+    if (t <= INTRO.wide + E) return { ph: 'enter', f: t - INTRO.wide, k: (t - INTRO.wide) / E };
+    return { ph: 'freeze', f: t - INTRO.wide - E, k: (t - INTRO.wide - E) / INTRO.freeze };
   }
   /**
    * One frame of the intro. WIDE: an establishing shot drifting across the empty arena (the boss not there yet).
@@ -90,15 +93,15 @@ export class BossArena {
     const I = this.intro; if (!I) return true;
     I.t++;
     const P = this.introPhase();
-    if (P.ph === 'wide') { if (P.f === 1) this.introPose(match, 0, 0, INTRO.enter); }
-    else if (P.ph === 'enter') this.introPose(match, P.k, P.f, INTRO.enter);
+    if (P.ph === 'wide') { if (P.f === 1) this.introPose(match, 0, 0, this.enterLen()); }
+    else if (P.ph === 'enter') this.introPose(match, P.k, P.f, this.enterLen());
     else if (P.f === 1) { sfx('bighit', 0.9, 0.55); sfx('shing', 0.8, 0.6); }
     this.drawIntro(P);
     if (P.ph === 'freeze' && P.f >= INTRO.freeze) { this.endIntro(); return true; }
     return false;
   }
   /** Skips the rest of the intro (a fresh J / Enter / A / click): straight to its pose and the countdown. */
-  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.wide + INTRO.enter) this.introPose(match, 1, INTRO.enter, INTRO.enter); this.endIntro(); }
+  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.wide + this.enterLen()) this.introPose(match, 1, this.enterLen(), this.enterLen()); this.endIntro(); }
   /** The intro is over: the letterbox and the card fade away, the health bar comes in, the camera eases back into play. */
   endIntro() {
     this.intro = null; this.icam = null;
