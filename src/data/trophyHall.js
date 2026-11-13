@@ -72,7 +72,7 @@ export const TROPHIES = [
   { id: 'last-light', model: 'bulb', plaque: 'THE HUM', title: 'THE LAST LIGHT', text: 'One fluorescent tube from Level 0, still buzzing with no power. Stare at it too long and it flickers - and for a moment something is standing behind you.' },
   { id: 'golden-brush', model: 'brush', plaque: 'SMUDGE', title: 'THE GOLDEN BRUSH', text: "Smudge's paintbrush, dipped in gold and stood in his bucket. There's a note taped to it in crayon: I LET YOU WIN. (HE DID NOT.)" },
   { id: 'golden-mic', model: 'mic', plaque: 'MAX JACKPOT', title: 'THE GOLDEN MIC', text: "Max Jackpot's microphone, cast in gold on a little stand with its cord coiled round it. Tap it and a faint voice says: AND WE'RE BACK!" },
-  { id: 'golden-baton', model: 'baton', plaque: 'MAESTRO', title: 'THE GOLDEN BATON', text: "Maestro Fortissimo's baton, laid across a gold music stand open at the last page. The final note is marked ffff. You played it." },
+  { id: 'golden-baton', model: 'baton', plaque: 'THE PHANTOM', title: 'THE GOLDEN BATON', text: "The Phantom Maestro's baton - he conducted every ghost in the house with it - laid across a gold music stand open at the last page. The final note is marked ffff. You played it." },
   { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 

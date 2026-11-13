@@ -64,7 +64,7 @@ export const ACHIEVEMENTS = [
   { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT ALL NINE BOSSES.', goal: BOSS_IDS.length, have: (s) => BOSS_IDS.filter((b) => bossTier(s, b)).length, coins: 400 },
   { id: 'boss-rush', group: 'FIGHTING', name: 'RUSH HOUR', info: 'FINISH A BOSS RUSH - ALL NINE BOSSES IN A ROW (BOSS FIGHTS > R).', goal: 1, have: (s) => s.rushes || 0, coins: 1500 },
   { id: 'bankrupt', group: 'FIGHTING', name: 'BANKRUPT!', info: 'HIT MAX JACKPOT ON HIS BALD HEAD.', goal: 1, have: (s) => s.bald || 0, coins: 120 },
-  { id: 'on-beat', group: 'FIGHTING', name: 'PERFECT PITCH', info: 'LAND 20 HITS ON MAESTRO FORTISSIMO ON THE BEAT.', goal: 20, have: (s) => s.onBeat || 0, coins: 250 },
+  { id: 'on-beat', group: 'FIGHTING', name: 'UNMASKED', info: 'LAND 20 HITS ON THE PHANTOM MAESTRO\'S MASK.', goal: 20, have: (s) => s.maskHits || 0, coins: 250 },
   { id: 'art-critic', group: 'FIGHTING', name: 'ART CRITIC', info: 'BEAT SMUDGE AS MR WAKE IN THE ARTIST.', goal: 1, have: (s) => s.artCritic || 0, coins: 300 },
   { id: 'matches-250', group: 'FIGHTING', name: 'VETERAN', info: 'PLAY 250 MATCHES.', goal: 250, have: (s) => s.matches, coins: 500 },
   // ---- ROSTER
@@ -112,7 +112,7 @@ export const TROPHY_GOALS = [
   { id: 'last-light', name: 'THE LAST LIGHT', info: 'BEAT THE HUM ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'hum') >= 3), coins: 1750 },
   { id: 'golden-brush', name: 'THE GOLDEN BRUSH', info: 'BEAT SMUDGE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'smudge') >= 3), coins: 1900 },
   { id: 'golden-mic', name: 'THE GOLDEN MIC', info: 'BEAT MAX JACKPOT ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'jackpot') >= 3), coins: 2000 },
-  { id: 'golden-baton', name: 'THE GOLDEN BATON', info: 'BEAT MAESTRO FORTISSIMO ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'maestro') >= 3), coins: 2200 },
+  { id: 'golden-baton', name: 'THE GOLDEN BATON', info: 'BEAT THE PHANTOM MAESTRO ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'maestro') >= 3), coins: 2200 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

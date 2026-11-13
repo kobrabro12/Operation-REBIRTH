@@ -72,12 +72,12 @@ export const BOSSES = [
     card: { marks: [[0.5, 'SWEEPS WEEK'], [0.7, 'LIGHTNING ROUND']], quotes: { base: 'AND THAT\'S A WRAP! LET\'S HEAR IT FOR OUR CONTESTANT - CUE THE SAD TROMBONE!', gold: 'SWEEPS WEEK, BABY! RATINGS THROUGH THE ROOF - AND YOU THROUGH THE FLOOR!', low: 'LIGHTNING ROUND\'S OVER, CHAMP. THE ANSWER WAS: NOT YOU.' } },
     tip: 'WHEN THE WHEEL LANDS ON BANKRUPT, GO FOR HIS BALD HEAD - IT TAKES DOUBLE.',
     hazards: 'STAGE LAMPS / CONFETTI' },
-  { id: 'maestro', name: 'MAESTRO FORTISSIMO', short: 'MAESTRO', title: 'HE CONDUCTS THE STORM', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 540, coins: 700, color: 0xd03050, trophy: 'golden-baton',
-    blurb: 'A WILD-HAIRED CONDUCTOR WHO FIGHTS IN TIME.\nEVERY ATTACK LANDS ON THE BEAT - READ IT\nOFF HIS SCORE. HIT HIM ON THE BEAT: x1.5.',
-    taunts: ['YOU WERE FLAT. FROM START TO FINISH.', 'NEXT TIME, COUNT TO FOUR.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
+  { id: 'maestro', name: 'THE PHANTOM MAESTRO', short: 'THE PHANTOM', title: 'HE HAUNTS THE GRAND OPERA', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 330, coins: 700, color: 0xd03050, trophy: 'golden-baton',
+    blurb: 'A MASKED GHOST IN A CRIMSON-LINED CAPE.\nHE DIVES FROM THE RAFTERS, THROWS ROSES\nTHAT STUN, VANISHES - AND PUNCHES.',
+    taunts: ['THE CURTAIN FALLS. ON YOU.', 'BOX FIVE WILL ALWAYS BE MINE.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
-    card: { marks: [[0.5, 'FORTISSIMO'], [0.7, 'THE FINALE']], quotes: { base: 'THE MUSIC OF THE NIGHT PLAYS ON. YOU, MY DEAR, DO NOT.', rage: 'THE ROOF IS GONE, THE STORM IS MINE, AND THE STAGE IS EMPTY - BUT FOR ME.', low: 'A FINALE NEEDS A FALLEN HERO. HOW KIND OF YOU TO VOLUNTEER.' } },
-    tip: 'WATCH THE SCORE UNDER HIS HEALTH BAR - WHEN A NOTE HITS THE GOLD LINE, SO DOES HE.',
+    card: { marks: [[0.5, 'THE MASK SLIPS'], [0.7, 'THE FINAL ACT']], quotes: { base: 'THE OPERA IS MINE. EVERY SEAT, EVERY SHADOW... AND NOW, YOU.', rage: 'YOU SAW MY FACE. NOW NO ONE WILL EVER SEE YOURS AGAIN.', low: 'A FINALE NEEDS A FALLEN HERO. HOW KIND OF YOU TO VOLUNTEER.' } },
+    tip: 'WHEN HE SOARS OUT OF SIGHT, WATCH FOR THE RED MARK AND MOVE. WHEN HE WRAPS HIMSELF IN HIS CAPE, HE\'LL APPEAR BEHIND YOU. HIS MASK TAKES EXTRA DAMAGE.',
     hazards: 'SANDBAGS / TRAPDOOR SMOKE' },
 ];
 /** The boss with this id (a BOSSES entry). */

@@ -24,7 +24,7 @@
   jackpot   "Big Money" - MAX JACKPOT, YOUR HOST (a game show): 132 BPM in B-flat, a swinging big-band TV theme. A walking
             bass, swung hats and rim clicks, brass section stabs and a bright trumpet melody, a Hammond-ish organ comp,
             a "ding ding ding" bell on every big phrase, a drum-roll and fanfare into the second chorus.
-  maestro   "Fortissimo" - MAESTRO FORTISSIMO (an opera conductor): 120 BPM (a beat = 30 frames, his attacks fall on
+  maestro   "Fortissimo" - THE PHANTOM MAESTRO (an opera ghost; a pipe organ roars over the orchestra): 120 BPM (a beat = 30 frames, his attacks fall on
             it) in D minor. A full pit orchestra: driving staccato strings, timpani and a pipe organ, a soaring
             soprano line over a low choir, brass fanfares; a quiet adagio middle with only harp and violins, then
             the storm comes back fortissimo.
@@ -362,7 +362,11 @@ def maestro():
             add(out, strings([m + 12 for m in ch], 4 * b, 0.35), t0); continue
         for i in range(16): add(out, sum(strings([m], b / 4 * 0.6, 0.35) for m in (ch[0] - 12, ch[0])), t0 + i * b / 4)   # driving staccato strings
         add(out, strings([root, root + 12] + ch, 4 * b, 0.4), t0)
-        add(out, sum(organ(m - 12, 4 * b, 0.12) for m in ch), t0)
+        add(out, sum(organ(m - 12, 4 * b, 0.22) for m in ch), t0)
+        if bar < 8 or bar >= 24:                                             # THE PHANTOM's pipe organ: a racing arpeggio, and a full chord on every bar
+            arp = [ch[0], ch[1], ch[2], ch[1] + 12, ch[2] + 12, ch[1] + 12, ch[2], ch[1]]
+            for i in range(16): add(out, organ(arp[i % 8], b / 4 * 0.9, 0.16), t0 + i * b / 4)
+            add(out, sum(organ(m, b * 1.5, 0.22) for m in [root, root + 12] + ch), t0)
         add(out, choir([m - 12 for m in ch], 4 * b, 0.35), t0)
         for i in (0, 2): add(out, timpani(root, 0.9, 0.8), t0 + i * b)
         if bar % 4 == 3: add(out, timpani(root, 1.6, 0.9, roll=1.0), t0 + 2 * b)
