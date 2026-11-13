@@ -274,27 +274,6 @@ def machine():
     save(R, 'machine', bars * 4 * b)
 
 
-def hum():
-    b = 60 / 126; bars = 24; L = bars * 4 * b; n = secs(L + 3); t = np.arange(n) / SR; out = np.zeros(n)
-    buzz = sum(a * np.sin(2 * np.pi * f * t + f) for f, a in [(120, 0.5), (240, 0.25), (360, 0.15), (480, 0.08), (60, 0.3)])
-    buzz *= 0.55 + 0.45 * np.sin(2 * np.pi * 0.11 * t) ** 2
-    out += lp(buzz, 1400) * 0.12 + bp(noise(n), 2000, 7000) * 0.012                      # the lights
-    for bar in range(0, bars, 2):
-        ch = [[45, 52, 56], [44, 51, 55], [46, 50, 57], [43, 50, 54]][(bar // 2) % 4]
-        add(out, strings([m + 12 for m in ch], 8 * b + 0.5, 0.6), bar * 4 * b)
-    for bar in range(bars):                                                     # far-off thuds, like footsteps in another room
-        for st in ([0, 2.75] if bar % 2 else [1.5]): add(out, lp(drum_kick(0.6), 200) * 0.7, bar * 4 * b + st * b)
-    tune = [(0, 81, 2), (2, 80, 1), (3, 76, 3), (6, 75, 2), (8, 81, 2), (10, 82, 1), (11, 80, 5), (16, 77, 2), (18, 76, 2), (20, 75, 4), (24, 73, 2), (26, 74, 2), (28, 69, 4)]
-    for rep in (0, 1, 2):
-        for beat, m, d in tune:
-            note = sinew(m + (0.3 if rep else 0), d * b, 0.25, 0.002, 1.5) * np.exp(-np.arange(secs(d * b)) / SR * 1.4)
-            add(out, note, (rep * 32 + 2) * b + beat * b)
-    k = np.clip((t - L * 0.5) / (L * 0.3), 0, 1) * np.clip((L - t) / (L * 0.1), 0, 1)
-    out += lp(noise(n), 900) * 0.05 * k                                          # a swell of noise in the second half
-    R = reverb(out, 3.2, 2.2, 0.4); R[:len(out)] += drive(len(out), b, bars, [33, 32, 34, 31], 0.85, quiet=(0, 1, 2, 3), half=True)[:len(R)]
-    save(R, 'hum', L)
-
-
 def glock(midi, dur, vel=1.0):
     """A toy-piano / glockenspiel note: a bright sine with an inharmonic ping, decaying fast."""
     return (sinew(midi, dur, 0.8 * vel, 0.002, 0.05) + sinew(midi + 24.3, dur, 0.18 * vel, 0.001, 0.02)) * np.exp(-np.arange(secs(dur)) / SR * 4)
@@ -324,31 +303,6 @@ def smudge():
     drums(out, b, 24, 'k...s...k.k.s...|h.h.h.h.h.h.h.hh', 0.8)
     R = reverb(out, 1.4, 4, 0.22); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.75)[:len(R)]
     save(R, 'smudge', bars * 4 * b)
-
-
-def jackpot():
-    b = 60 / 132; bars = 24; out = np.zeros(secs(bars * 4 * b + 3)); sw = b * 0.66   # (swing: the off-beat 8th lands late)
-    # B-flat major: I - vi - ii - V, then IV - iv - I - V (a showbiz turnaround)
-    prog = [(46, [62, 65, 70]), (43, [62, 67, 70]), (36, [63, 67, 70]), (41, [63, 65, 69]), (39, [63, 67, 70]), (39, [63, 66, 70]), (46, [62, 65, 70]), (41, [63, 65, 69])]
-    for bar in range(bars):
-        root, ch = prog[bar % 8]; t0 = bar * 4 * b
-        walk = [root, root + 4, root + 7, root + 9] if bar % 2 == 0 else [root + 12, root + 9, root + 7, root + 5]
-        for i, m in enumerate(walk): add(out, pluck(m - 12, b * 0.9, 1.0), t0 + i * b)            # walking bass
-        for i in (1, 3): add(out, sum(organ(m, b * 0.5, 0.18) for m in ch), t0 + i * b)             # organ comp on 2 and 4
-        if bar % 2 == 1: add(out, sum(brass(m + 12, b * 0.35, 0.3, 1.6) for m in ch), t0 + 3 * b + sw)   # section stabs
-        for i in range(4): add(out, drum_hat(0.4), t0 + i * b); add(out, drum_hat(0.3), t0 + i * b + sw)
-    tune = [(0, 77, 1), (1, 74, .5), (1.66, 77, .5), (2.33, 82, 1.5), (4, 81, .5), (4.66, 79, .5), (5.33, 77, 1), (6.5, 74, 1.5),
-            (8, 75, 1), (9, 79, .5), (9.66, 82, .5), (10.33, 86, 1.5), (12, 84, .66), (12.66, 82, .66), (13.33, 81, .66), (14, 82, 2)]
-    for rep in range(3):
-        for half in (0, 16):
-            for beat, m, d in tune: add(out, brass(m, d * b * 0.95, 0.45, 2.0), rep * 32 * b + (half + beat) * b)
-        for at in (3, 11, 19, 27): add(out, glock(96, 0.3, 0.4), rep * 32 * b + at * b); add(out, glock(91, 0.3, 0.35), rep * 32 * b + (at + 0.33) * b)   # ding ding
-        if rep == 1:                                                         # the drum roll and fanfare into the last chorus
-            for k in range(16): add(out, drum_snare(0.3 + k * 0.03), 64 * b - 4 * b + k * b / 4)
-            add(out, ohit([70, 74, 77, 82], 0.8), 64 * b)
-    drums(out, b, 24, 'k......sk.k...s.|....t.......t...', 0.7)
-    R = reverb(out, 1.2, 4, 0.2); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.55, saw=False)[:len(R)]
-    save(R, 'jackpot', bars * 4 * b)
 
 
 def maestro():
@@ -388,5 +342,5 @@ def maestro():
 
 
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge', 'jackpot', 'maestro']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro']
     for w in which: globals()[w]()

@@ -1216,8 +1216,8 @@ export class PolyBossStage extends BossArena {
       const ex = s * 16, ey = -5, z = -33.2, iris = L ? (this.t % 40 < 3 ? 0xffffff : LEG.eye) : this.drop > 0 ? 0xff5a3a : rage ? 0xff7a3a : C.eye, ang = rage || L ? s * 0.35 : 0;
       const oval = (cx, cy, rx, ry, n) => Array.from({ length: n }, (_, q) => [cx + Math.cos(q / n * Math.PI * 2) * rx, cy + Math.sin(q / n * Math.PI * 2) * ry]);
       const lid = L || rage ? (pts) => pts.map(([x, y]) => [x, Math.max(y, ey - 9 + (x - ex) * ang * 0.6)]) : (pts) => pts;   // (angry: the top of the eye cut off at a slant)
-      face.push(...cutoutFaces(ex, 0, z, [{ pts: lid(oval(0, ey, 9, 12, 14)), c: 0xffffff }, { pts: lid(oval(s * 1.5, ey + 2, 5.5, 7.5, 12)), c: iris }, { pts: oval(s * 1.5, ey + 2.5, 2.6, 4, 10), c: 0x10081e }, { pts: oval(s * 1.5 - 2, ey - 1.5, 1.6, 2, 8), c: 0xffffff }]).map((f) => ({ ...f, p: f.p.map(([x, y, zz]) => [x - ex + ex, y, zz]), nofog: true, bias: -6 })));
-      face.push(...tubeFaces([ex - 11 * 1, ey - 16 - (rage || L ? -s * 3 : 0), -35], [ex + 11, ey - 16 + (rage || L ? -s * 3 : 0), -35], 3.2, L ? 0x0a0610 : 0x4a2890, 6).map((f) => ({ ...f, bias: -7 })));
+      face.push(...cutoutFaces(ex, 0, z, [{ pts: lid(oval(0, ey, 9, 12, 14)), c: 0xffffff }, { pts: lid(oval(s * 1.5, ey + 2, 5.5, 7.5, 12)), c: iris }, { pts: oval(s * 1.5, ey + 2.5, 2.6, 4, 10), c: 0x10081e }, { pts: oval(s * 1.5 - 2, ey - 1.5, 1.6, 2, 8), c: 0xffffff }]).map((f) => ({ ...f, nofog: true, bias: -6 + f.bias * 300 })));   // (white, iris, pupil, shine each drawn over the last - one shared bias let them swap as he turns)
+      face.push(...tubeFaces([ex - 11 * 1, ey - 16 - (rage || L ? -s * 3 : 0), -35], [ex + 11, ey - 16 + (rage || L ? -s * 3 : 0), -35], 3.2, L ? 0x0a0610 : 0x4a2890, 6).map((f) => ({ ...f, bias: -16 })));
     }
     if (L) for (let i = 0; i < 12; i++) {                                       // the halo: gold and pink spikes wheeling behind his head
       const q = i / 12 * Math.PI * 2 + this.t * 0.02, r = 66 + (i % 2) * 8;

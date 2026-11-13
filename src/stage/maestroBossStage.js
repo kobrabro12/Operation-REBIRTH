@@ -9,7 +9,12 @@
 // at it diagonally, cape streaming - a shockwave where he lands), ROSE THROW (a flick of the wrist and a fan of roses
 // flies at you - a rose that hits STUNS you for a moment), CAPE TELEPORT (he wraps himself in his cape and is gone in a
 // swirl of petals - then unfurls right behind you with a sweep of the cape), PUNCH SEQUENCE (he glides in and throws a
-// long flurry of punches that holds you, then a rising uppercut) and THE CHANDELIER (it swings out over you, then falls).
+// long flurry of punches that holds you, then a rising uppercut), THE CHANDELIER (it swings out over you, then falls),
+// MASQUERADE (he splits into three - two are illusions without the rose in his lapel - they shuffle, then each swoops
+// at you; hit the real one and the act breaks and he reels), SPECTRAL ARIA (he sings and ghost notes drift out of the
+// balconies at you - a hit pops one) and FROM BELOW (ghost hands burst up out of the boards under you).
+// The house is haunted: candles float in the dark, wisps trail off his cape, mist creeps over the boards, a pale glow
+// hangs round him.
 // At half health: THE MASK SLIPS (a cutscene when a player's watching) - the mask cracks and shatters, showing the
 // burning eye beneath, and the roof tears away into a storm; he's faster and dives twice. Below 30%: THE FINALE - three
 // dives at a time, and roses rain from the flies. His death: THE FINAL BOW - the last chord, he bows, roses rain down
@@ -47,13 +52,27 @@ const STORM = { n: 250, crack: 80, tear: 150 };
 // stage hazards: SANDBAG (warning, hit) and SMOKE (warning, burst frames, hit)
 const SAND = { warn: 64, hit: [8, [80, 5, 0.5]] };
 const SMOKE = { warn: 56, dur: 26, hit: [5, [90, 6, 0.4]] };
+// MASQUERADE: he splits into three (the two illusions have no rose in the lapel): where they hover, how many shuffles
+// (calm / enraged) and how long each takes, then each swoops at you in turn. Hit the real one first and the act breaks:
+// the illusions burst and he STAGGERS (`stagger` frames, hits on him x`stagMult`)
+const MASQ = { split: 40, slots: [-150, 0, 150], lift: 96, swaps: [3, 5], swap: 30, wait: 16, wind: 14, speed: 9, hit: [10, [45, 5.4, 0.8]], stagger: 90, stagMult: 1.3 };
+// SPECTRAL ARIA: he sings and ghost notes float out of the balconies at you - how many (calm / enraged), how often,
+// how fast, how hard they home in and for how long, their size and hit. One hit from you pops a note
+const ARIA = { sing: 36, n: [7, 11], every: 13, speed: 2.7, turn: 0.06, home: 100, life: 300, r: 9, hit: [7, [50, 3.6, 0.4]] };
+// FROM BELOW: ghost marks spread on the boards under you (more enraged), then spectral hands burst up grabbing
+const GRASP = { n: [1, 2], warn: 52, rise: 30, w: 34, spread: 70, hit: [11, [88, 6.4, 0.75]] };
+// THE HAUNTING (looks only): candles floating in the dark, wisps off his cape, banks of mist on the boards, his glow
+const MYST = { candles: 10, wisp: 3, mist: 7, glow: 0x9af0ff };
+// the notes of his aria (sfx pitch per note: a minor scale)
+const SCALE = [1, 1.12, 1.19, 1.33, 1.5, 1.59, 1.78, 2];
 // what he says
 const SAY = {
   intro: 'WELCOME... TO MY OPERA.',
   idle: ['YOU ARE ON MY STAGE.', 'THE HOUSE IS FULL TONIGHT. OF GHOSTS.', 'SING FOR ME.', 'NO ONE LEAVES BEFORE THE FINAL ACT.', 'BOX FIVE IS ALWAYS EMPTY. IT IS MINE.'],
   hurt: ['YOU DARE?', 'MY MASK!', 'A CLUMSY UNDERSTUDY!', 'INSOLENCE!', 'YOU MISSED YOUR CUE!'],
   hit: ['BRAVO!', 'ENCORE!', 'THE CRITICS WILL ADORE THIS.', 'A STANDING OVATION!'],
-  moves: { dive: 'FROM THE RAFTERS!', roses: 'FOR YOU, MY DEAR.', cape: 'NOW YOU SEE ME...', flurry: 'A DUET!', chandelier: 'MIND THE CHANDELIER!' },
+  moves: { dive: 'FROM THE RAFTERS!', roses: 'FOR YOU, MY DEAR.', cape: 'NOW YOU SEE ME...', flurry: 'A DUET!', chandelier: 'MIND THE CHANDELIER!', masq: 'A MASQUERADE! WHICH OF US IS REAL?', aria: 'LISTEN... THE HOUSE IS SINGING.', grasp: 'THE DEAD APPLAUD FROM BELOW.' },
+  fooled: ['WRONG PARTNER!', 'ONLY SMOKE AND MIRRORS.', 'GUESS AGAIN.'], caught: 'YOU... SAW THROUGH ME?!',
   rage: 'YOU WANTED TO SEE MY FACE?', storm: 'THEN LOOK!!', low: 'THE FINAL ACT!!', gloat: 'THE AUDIENCE ADORES ME!', appear: '...BEHIND YOU.',
 };
 
@@ -87,6 +106,7 @@ export class MaestroBossStage extends BossArena {
     this.fx = []; this.chand = null; this.mark = null; this.storm = 0; this.low = false; this.rain = []; this.dazed = new Map();
     this.say = null; this.sayCD = 300; this.pop = null; this.flash = 0; this.sand = null; this.smoke = null; this.prev = new Map();
     this.sparkColor = 0xd03050; this.bodyW = 40; this.bodyH = 100;
+    this.clones = null; this.stag = 0; this.singK = 0; this.wisps = [];
   }
 
   // ------------------------------------------------------------------ the arena
@@ -122,6 +142,8 @@ export class MaestroBossStage extends BossArena {
     this.curtainG = s.add.graphics(); world.push(this.curtainG);       // the velvet curtains at the sides (and the final one)
     this.arenaG = s.add.graphics(); world.push(this.arenaG);
     this.spotG = s.add.graphics(); world.push(this.spotG);             // (the dark house and the intro's spotlight)
+    this.mystG = s.add.graphics(); world.push(this.mystG);             // THE HAUNTING: floating candles, his glow, wisps, mist
+    this.cloneG = [0, 1].map(() => { const b = s.add.graphics(), f = s.add.graphics(); world.push(b, f); return [f, b]; });   // (the MASQUERADE's illusions: body, cape)
     this.backG = s.add.graphics(); world.push(this.backG);             // (his cape and its high collar)
     this.condG = s.add.graphics(); world.push(this.condG);             // (him)
     this.fxG = s.add.graphics(); world.push(this.fxG);
@@ -205,11 +227,12 @@ export class MaestroBossStage extends BossArena {
   hurt() {
     const E = this.e; if (E.alpha < 0.5 || E.vanish > 0.5) return [];
     const b = this.body();
-    return [{ x1: b.head.x - 12, y1: b.head.y - 13, x2: b.head.x + 12, y2: b.head.y + 11, mult: 1.2, mask: true },
-      { x1: Math.min(b.hip.x, b.sh.x) - 14, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 14, y2: b.ft.y, mult: 0.9 }];
+    const k = this.stag > 0 ? MASQ.stagMult : 1;                                 // (staggered: everything hurts more)
+    return [{ x1: b.head.x - 12, y1: b.head.y - 13, x2: b.head.x + 12, y2: b.head.y + 11, mult: 1.2 * k, mask: true },
+      { x1: Math.min(b.hip.x, b.sh.x) - 14, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 14, y2: b.ft.y, mult: 0.9 * k }];
   }
-  /** His attacks: calm, then enraged (more dives and teleports). */
-  pattern(phase) { return phase === 1 ? ['dive', 'roses', 'cape', 'flurry', 'chandelier', 'roses'] : ['dive', 'roses', 'cape', 'flurry', 'chandelier', 'dive', 'cape']; }
+  /** His attacks: calm, then enraged (more dives, masquerades and teleports). */
+  pattern(phase) { return phase === 1 ? ['dive', 'roses', 'masq', 'cape', 'aria', 'flurry', 'grasp', 'chandelier'] : ['dive', 'masq', 'roses', 'cape', 'aria', 'flurry', 'grasp', 'dive', 'chandelier', 'masq']; }
   /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
   cardObjs() { return [this.backG, this.condG]; }
   rageLine() { return 'THE MASK SLIPS!'; }
@@ -222,6 +245,7 @@ export class MaestroBossStage extends BossArena {
   /** A hit lands on him: a hit on the mask counts for UNMASKED (achievements.js); now and then he complains. */
   onHurt(match, r, d, o) {
     if (r && r.mask && o && !o.isCpu) match.stat('maskHits');
+    const A = this.boss && this.boss.atk; if (A && A.name === 'masq' && this.clones && !A.broken && !A.done) { A.broken = true; this.breakMasq(match); return; }
     if (this.sayCD <= 0 || (this.say && this.say.t > 40)) { if (Math.random() < 0.3) this.talk(SAY.hurt[Math.floor(Math.random() * SAY.hurt.length)], 70); }
   }
   /** His glide speed. */
@@ -360,6 +384,125 @@ export class MaestroBossStage extends BossArena {
     return a.end && a.t > a.end + 40;
   }
 
+  /** Runs fn() as if `e` were him (body(), drawPhantom() and the rest read `this.e`) - for the MASQUERADE's illusions. */
+  asE(e, fn) { const keep = this.e; this.e = e; try { return fn(); } finally { this.e = keep; } }
+  /**
+   * MASQUERADE: he flings his cape wide and splits into three - two illusions slide out of him (no rose in their lapel:
+   * that's the tell). They float up to three spots, shuffle places, then one by one swoop down at you. An illusion
+   * that's hit (strikeTargets) or that lands bursts into petals; hit the real one before he lands and the act breaks.
+   */
+  start_masq(match, a) {
+    const E = this.e; this.talk(SAY.moves.masq, 90); sfx('curse', 0.8, 0.7); sfx('whoosh', 0.7, 0.6);
+    const ghost = () => ({ ...E, hp: [...E.hp], ghost: true, vanish: 0, wrap: 0, alpha: 0.2 });
+    this.clones = [ghost(), ghost()];
+    a.actors = [E, ...this.clones]; a.slot = [0, 1, 2].sort(() => Math.random() - 0.5); a.from = a.actors.map((q) => ({ x: q.x, lift: q.lift }));
+    a.swaps = this.many(MASQ.swaps); a.si = 0; a.t0 = 0; a.phase = 'split'; a.order = [0, 1, 2].sort(() => Math.random() - 0.5); a.oi = 0;
+  }
+  /** MASQUERADE, frame by frame: split -> shuffle -> swoops (-> stagger when broken). */
+  atk_masq(match, a, out) {
+    const E = this.e, tt = a.t - a.t0, slotX = (i) => MASQ.slots[a.slot[i]];
+    if (a.phase === 'stagger') {                                                    // caught: he reels, cape limp, wide open
+      E.arms = 'bow'; E.bow = Math.min(0.7, E.bow + 0.05); E.lift += (6 - E.lift) * 0.1; E.vx = 0; E.tilt *= 0.8;
+      if (this.stag <= 0) { E.bow = 0; return true; }
+      return false;
+    }
+    for (const q of this.clones || []) this.asE(q, () => this.poseStep());          // (the illusions' hands ease to their poses too)
+    if (a.phase === 'split') {                                                      // they slide out of him to their spots
+      const k = easeOut(tt / this.sp(MASQ.split));
+      a.actors.forEach((q, i) => { q.x = lerp(a.from[i].x, slotX(i), k); q.lift = lerp(a.from[i].lift, MASQ.lift, k); q.arms = 'spread'; q.alpha = q === E ? 1 : Math.min(1, 0.2 + k); q.dir = Math.sign(-q.x) || 1; });
+      if (tt % 5 === 0) for (const q of a.actors) this.petals(match, q.x, -q.lift - 30, 1);
+      if (tt >= this.sp(MASQ.split)) { a.phase = 'swap'; a.t0 = a.t; a.from = a.actors.map((q) => ({ x: q.x, lift: q.lift })); this.pickSwap(a); }
+      return false;
+    }
+    if (a.phase === 'swap') {                                                       // two trade places, looping over/under each other
+      const n = this.sp(MASQ.swap), k = Math.min(1, tt / n), e = 0.5 - Math.cos(k * Math.PI) / 2;
+      a.actors.forEach((q, i) => { const moving = a.pair.includes(i); q.x = lerp(a.from[i].x, slotX(i), e); q.lift = MASQ.lift + (moving ? (a.pair[0] === i ? 1 : -1) * Math.sin(k * Math.PI) * 40 : Math.sin(this.t * 0.06 + i) * 4); q.arms = moving ? 'wrap' : 'idle'; q.wrap = moving ? Math.sin(k * Math.PI) * 0.6 : 0; q.vx = moving ? (slotX(i) - a.from[i].x) / n : 0; });
+      if (tt === 1) sfx('whoosh', 0.5, 1.2 + a.si * 0.08);
+      if (tt >= n + this.sp(MASQ.wait)) { a.from = a.actors.map((q) => ({ x: q.x, lift: q.lift })); if (++a.si < a.swaps) { a.t0 = a.t; this.pickSwap(a); } else { a.phase = 'swoop'; a.t0 = a.t; a.oi = 0; } }
+      return false;
+    }
+    // the swoops: each in turn (order a.order) winds up, then dives at where you stand
+    for (const q of a.actors) if (!q.gone && !q.dive && q !== a.actors[a.order[a.oi]]) { q.arms = 'idle'; q.lift += (MASQ.lift + Math.sin(this.t * 0.06) * 4 - q.lift) * 0.1; }
+    if (a.oi >= 3) { E.arms = 'idle'; E.lift += (PH.hover - E.lift) * 0.12; a.done = true; return tt > this.sp(40); }
+    const i = a.order[a.oi], q = a.actors[i];
+    if (q.gone) { a.oi++; a.t0 = a.t; return false; }
+    const W = this.sp(MASQ.wind);
+    if (tt < W) { const tg = this.nearest(match, q.x); q.arms = 'spread'; q.flare = 1; if (tg) { q.dir = Math.sign(tg.x - q.x) || q.dir; q.tx = tg.x; } if (tt === 1) sfx('curse', 0.4, 1.6); return false; }
+    if (!q.dive) { const tx = q.tx ?? 0, ty = 0, dx = tx - q.x, dy = ty + q.lift, L = Math.hypot(dx, dy) || 1; q.dive = { vx: dx / L * MASQ.speed, vy: dy / L * MASQ.speed }; q.arms = 'dive'; sfx('whoosh', 0.8, 0.8); }
+    q.x += q.dive.vx; q.lift -= q.dive.vy; q.vx = q.dive.vx; q.tilt = 0.6;
+    const b = this.asE(q, () => this.body());
+    out.push(this.bhit('masq' + a.id + i, Math.min(b.hip.x, b.head.x) - 16, b.head.y - 10, Math.max(b.hip.x, b.head.x) + 16, b.ft.y + 4, ...MASQ.hit, { dirX: Math.sign(q.dive.vx) || 1 }));
+    if (this.t % 2 === 0) this.fx.push({ k: 'trail', x: b.hip.x, y: (b.hip.y + b.sh.y) / 2, life: 16, ghost: q !== E });
+    if (q.lift <= 4) {                                                              // he lands - or the illusion bursts into petals
+      q.lift = 4; q.dive = null; q.tilt = 0; q.vx = 0;
+      if (q === E) { match.shake(4, 8); sfx('land', 0.8, 0.7); q.gone = false; q.landed = true; }
+      else { this.popClone(match, q, false); }
+      a.oi++; a.t0 = a.t;
+    }
+    return false;
+  }
+  /** Picks the next two of the MASQUERADE to trade places. */
+  pickSwap(a) { const i = Math.floor(Math.random() * 3), j = (i + 1 + Math.floor(Math.random() * 2)) % 3; a.pair = [i, j]; [a.slot[i], a.slot[j]] = [a.slot[j], a.slot[i]]; }
+  /** An illusion bursts into rose petals and pale smoke (hit = ILLUSION!; landing = just gone, with a jeer). */
+  popClone(match, q, hit) {
+    if (q.gone) return; q.gone = true;
+    const b = this.asE(q, () => this.body());
+    this.petals(match, b.hip.x, b.sh.y, 18); match.puff(b.hip.x, b.sh.y, MYST.glow, 10); sfx('curse', 0.6, 1.8); sfx('glass', 0.4, 1.6);
+    if (hit) match.popText({ x: b.hip.x, y: b.ft.y + 20 }, 'ILLUSION!', '#9af0ff');
+    else if (!this.say || this.say.t > 40) this.talk(SAY.fooled[Math.floor(Math.random() * SAY.fooled.length)], 60);
+    if (this.clones && this.clones.every((c) => c.gone)) this.clones = null;
+  }
+  /** You hit the real one mid-masquerade: every illusion bursts, he reels - STAGGERED, wide open (hurt x MASQ.stagMult). */
+  breakMasq(match) {
+    for (const q of this.clones || []) this.popClone(match, q, true);
+    this.clones = null; const A = this.boss.atk, E = this.e; A.phase = 'stagger'; A.t0 = A.t; E.dive = null; E.tilt = 0; E.flare = 0; E.wrap = 0;
+    this.stag = MASQ.stagger; this.talk(SAY.caught, 90); match.popText({ x: E.x, y: E.y - E.lift + 10 }, 'STAGGERED!', '#ffd040'); sfx('glass', 0.9, 0.9); match.shake(6, 10);
+  }
+  /** Illusions take hits too (they burst). The rest is BossArena's. */
+  strikeTargets(match, hbs) {
+    super.strikeTargets(match, hbs);
+    const near = (hb, x1, y1, x2, y2) => hb.owner && hb.x1 < x2 && hb.x2 > x1 && hb.y1 < y2 && hb.y2 > y1;
+    for (const q of this.clones || []) {
+      if (q.gone || q.alpha < 0.5) continue;
+      const b = this.asE(q, () => this.body());
+      if (hbs.some((hb) => near(hb, Math.min(b.hip.x, b.sh.x) - 14, b.head.y - 13, Math.max(b.hip.x, b.sh.x) + 14, b.ft.y))) this.popClone(match, q, true);
+    }
+    for (const F of this.fx) if (F.k === 'note' && F.life > 0 && hbs.some((hb) => near(hb, F.x - ARIA.r - 2, F.y - ARIA.r - 2, F.x + ARIA.r + 2, F.y + ARIA.r + 2))) {   // a note popped
+      F.life = 0; match.puff(F.x, F.y, MYST.glow, 6); sfx('ding', 0.4, SCALE[F.n % SCALE.length] * 1.5);
+    }
+  }
+
+  /** SPECTRAL ARIA: he rises, arms wide, and sings - the ghost audience joins in, and their notes drift out of the balconies at you. */
+  start_aria(match, a) { this.talk(SAY.moves.aria, 90); a.n = this.many(ARIA.n); a.k = 0; sfx('curse', 0.6, 0.5); }
+  /** SPECTRAL ARIA, frame by frame: the notes come in waves from the left and right boxes, homing in for a while, then flying straight. */
+  atk_aria(match, a) {
+    const E = this.e, S = this.sp(ARIA.sing);
+    E.arms = 'up'; E.lift += (70 + Math.sin(this.t * 0.05) * 6 - E.lift) * 0.08; E.vx *= 0.8; this.singK = Math.min(1, this.singK + 0.04);
+    if (a.t > S && a.k < a.n && (a.t - S) % this.sp(ARIA.every) === 0) {
+      const side = a.k % 2 ? 1 : -1, tg = this.nearest(match, side * 300), x = side * (250 + Math.random() * 70), y = -200 - Math.random() * 130;
+      const ang = Math.atan2((tg ? tg.y - 30 : -40) - y, (tg ? tg.x : 0) - x);
+      this.fx.push({ k: 'note', x, y, a: ang, tg, age: 0, life: ARIA.life, n: a.k, id: this.sid('note'), flag: Math.random() < 0.5 });
+      sfx('ding', 0.5, SCALE[(a.k * 3) % SCALE.length]); a.k++;
+    }
+    if (a.k >= a.n && a.t > S + a.n * this.sp(ARIA.every) + 50) { this.singK = 0; return true; }
+    return false;
+  }
+
+  /** FROM BELOW: he conducts the dead - ghostly marks spread on the boards under you, then spectral hands burst up out of them. */
+  start_grasp(match, a) {
+    this.talk(SAY.moves.grasp, 80); sfx('curse', 0.7, 0.6);
+    const xs = []; for (const f of match.fighters) if (!f.out && f.state !== 'dead') { xs.push(f.x); for (let i = 1; i <= this.many(GRASP.n) - 1; i++) xs.push(f.x + (i % 2 ? 1 : -1) * GRASP.spread * Math.ceil(i / 2)); }
+    a.xs = xs.map((x) => Phaser.Math.Clamp(x, -235, 235));
+    for (const x of a.xs) this.fx.push({ k: 'gmark', x, life: this.sp(GRASP.warn), n: this.sp(GRASP.warn) });
+  }
+  /** FROM BELOW, frame by frame: the warning, then the hands (their hitboxes are pushed by stepFx). */
+  atk_grasp(match, a) {
+    const E = this.e, W = this.sp(GRASP.warn);
+    E.arms = a.t < W ? 'up' : 'spread'; E.lift += (40 - E.lift) * 0.08; E.vx *= 0.8;
+    if (a.t === W) { for (const x of a.xs) this.fx.push({ k: 'hand', x, t: 0, life: GRASP.rise + 30, id: this.sid('hand'), flip: Math.random() < 0.5 }); sfx('scream', 0.4, 0.7); sfx('rumble', 0.7, 0.9); match.shake(5, 10); }
+    return a.t > W + GRASP.rise + 40;
+  }
+
   /** A puff of rose petals (cape teleports). */
   petals(match, x, y, n) { for (let i = 0; i < n; i++) match.particles.push({ x: x + (Math.random() - 0.5) * 40, y: y + (Math.random() - 0.5) * 80, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 50, color: i % 3 ? LOOK.rose : 0x2a0a10, size: 3, grav: 0.05, drag: 0.97 }); }
 
@@ -375,6 +518,17 @@ export class MaestroBossStage extends BossArena {
         if (Math.abs(F.x) > 340) F.life = 0;
       } else if (F.k === 'shard') { F.vy += 0.4; F.x += F.vx; F.y = Math.min(-6, F.y + F.vy); if (F.y >= -6) F.vy = -Math.abs(F.vy) * 0.5; out.push(this.bhit(F.id, F.x - 8, F.y - 8, F.x + 8, F.y + 8, ...CHAND.shard, { dirX: Math.sign(F.vx) || 1 })); if (Math.abs(F.x) > 300) F.life = 0; }
       else if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); }
+      else if (F.k === 'note') {                                                       // a ghost note: homes in on its listener a while, swaying
+        F.age++;
+        if (F.age < ARIA.home && F.tg && !F.tg.out) { const want = Math.atan2(F.tg.y - 30 - F.y, F.tg.x - F.x); let d = want - F.a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; F.a += Phaser.Math.Clamp(d, -ARIA.turn, ARIA.turn); }
+        const sway = Math.sin(F.age * 0.15) * 1.2; F.x += Math.cos(F.a) * ARIA.speed - Math.sin(F.a) * sway; F.y += Math.sin(F.a) * ARIA.speed + Math.cos(F.a) * sway;
+        out.push(this.bhit(F.id, F.x - ARIA.r, F.y - ARIA.r, F.x + ARIA.r, F.y + ARIA.r, ...ARIA.hit, { dirX: Math.cos(F.a) >= 0 ? 1 : -1 }));
+        if (F.y > 10 || Math.abs(F.x) > 420 || F.y < -560) F.life = 0;
+      } else if (F.k === 'hand') {                                                     // a ghost hand bursting up out of the boards
+        F.t++; const h = Math.min(1, F.t / 8) * (F.t < GRASP.rise ? 1 : Math.max(0, 1 - (F.t - GRASP.rise) / 20)) * 96;
+        if (F.t < GRASP.rise) out.push(this.bhit(F.id, F.x - GRASP.w / 2, -h, F.x + GRASP.w / 2, 4, ...GRASP.hit, { dirX: 1 }));
+        F.h = h;
+      }
     }
     this.fx = this.fx.filter((F) => F.life > 0);
     const C = this.chand;
@@ -395,6 +549,7 @@ export class MaestroBossStage extends BossArena {
   // ------------------------------------------------------------------ THE MASK SLIPS (half health)
   /** Half health. With a player watching: THE MASK SLIPS cutscene (cutStep). Without (the sim): the mask shatters and the roof tears away. */
   onRage(match) {
+    this.clones = null; this.stag = 0; this.singK = 0;
     this.fx = this.fx.filter((F) => F.k === 'fallrose'); this.chand = null; this.mark = null; const E = this.e; E.vanish = 0; E.alpha = 1; E.wrap = 0;
     if (this.uiG) { const cam = match.worldCam || match.cameras.main; this.cut = { t: 0, n: STORM.n, once: new Set() }; this.ccam = { x: cam.midPoint.x, y: cam.midPoint.y, zoom: cam.zoom }; this.rageText.setVisible(false); this.boss.rage = 0; return; }
     this.breakMask(match); this.tearRoof(match);
@@ -445,11 +600,11 @@ export class MaestroBossStage extends BossArena {
   stepRain() { for (const r of this.rain) { r.y += r.v; r.x -= 1.5; if (r.y > 60) { r.y = -600; r.x = (Math.random() - 0.5) * 900; } } }
 
   /** You lost: he bows low to the ghostly audience, cape wide, roses flying (BossArena.bossTaunt). */
-  onGloat(match, t) { const E = this.e; E.arms = t % 160 < 80 ? 'spread' : 'bow'; E.bow = E.arms === 'bow' ? Math.min(1, E.bow + 0.05) : Math.max(0, E.bow - 0.05); E.vanish = 0; E.alpha = 1; E.tilt *= 0.8; E.wrap *= 0.8; E.lift += (PH.hover + Math.sin(t * 0.05) * 6 - E.lift) * 0.1; this.poseStep(); if (t === 1) this.talk(SAY.gloat, 400); if (t % 12 === 0) this.fx.push({ k: 'fallrose', x: (Math.random() - 0.5) * 400, y: -400, vx: (Math.random() - 0.5), vy: 2, life: 200 }); for (const F of this.fx) if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); F.life--; } }
+  onGloat(match, t) { this.clones = null; this.stag = 0; const E = this.e; E.arms = t % 160 < 80 ? 'spread' : 'bow'; E.bow = E.arms === 'bow' ? Math.min(1, E.bow + 0.05) : Math.max(0, E.bow - 0.05); E.vanish = 0; E.alpha = 1; E.tilt *= 0.8; E.wrap *= 0.8; E.lift += (PH.hover + Math.sin(t * 0.05) * 6 - E.lift) * 0.1; this.poseStep(); if (t === 1) this.talk(SAY.gloat, 400); if (t % 12 === 0) this.fx.push({ k: 'fallrose', x: (Math.random() - 0.5) * 400, y: -400, vx: (Math.random() - 0.5), vy: 2, life: 200 }); for (const F of this.fx) if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); F.life--; } }
 
   // ------------------------------------------------------------------ the death: THE FINAL BOW
   /** Health gone: everything he threw is cleared; he starts his final bow. */
-  onDeath() { this.fx = []; this.chand = null; this.mark = null; this.e.vanish = 0; this.e.alpha = 1; this.talk('...BRAVO. THE FINAL ACT... IS YOURS.', 150); }
+  onDeath() { this.clones = null; this.stag = 0; this.singK = 0; this.fx = []; this.chand = null; this.mark = null; this.e.vanish = 0; this.e.alpha = 1; this.talk('...BRAVO. THE FINAL ACT... IS YOURS.', 150); }
   /** THE FINAL BOW: his arms flung up for the last chord (thunder), he sinks to the stage and bows low, roses rain down from the boxes, and the great red curtain falls over him. */
   stepDeath(match) {
     const B = this.boss, E = this.e, f = B.dying;
@@ -516,6 +671,7 @@ export class MaestroBossStage extends BossArena {
     if (this.hazardsOn) this.cycle.run(match, out);
     if (this.storm) this.stepRain();
     if (this.flash > 0) this.flash--;
+    if (this.stag > 0) this.stag--;
     if (this.boss) {
       const B = this.boss;
       if (!B.dying) { this.watchHits(match); this.watchDazed(match); }
@@ -545,7 +701,11 @@ export class MaestroBossStage extends BossArena {
     this.spotG.clear(); this.backG.clear(); this.condG.clear(); this.fxG.clear(); this.finalG.clear(); this.bubG.clear(); this.bubT.setVisible(false); this.popT.setVisible(false);
     if (lit < 1) { this.spotG.fillStyle(0x000000, 0.75 * (1 - lit)); this.spotG.fillRect(-900, -900, 1800, 1300); }
     if (this.intro && this.spotK) { const g = this.spotG; g.fillStyle(0xfff0c0, 0.16 * this.spotK); g.fillTriangle(52, -440, 68, -440, 120, 0); g.fillTriangle(52, -440, 0, 0, 120, 0); g.fillStyle(0xfff0c0, 0.2 * this.spotK); g.fillEllipse(60, -2, 120, 14); }
+    this.mystG.clear(); if (B || !this.intro) this.drawHaunting(this.mystG, lit);
+    for (const [cg, cb] of this.cloneG) { cg.clear(); cb.clear(); }
+    if (B && this.clones) this.clones.forEach((q, i) => { if (q.gone) return; const [cg, cb] = this.cloneG[i]; this.asE(q, () => this.drawPhantom(cg, cb)); const fl = 0.72 + Math.sin(this.t * 0.3 + i * 2) * 0.12; cg.setAlpha(fl); cb.setAlpha(fl); });
     if (B) this.drawPhantom(this.condG, this.backG);
+    const ma = B && this.clones ? 0.72 + Math.sin(this.t * 0.3 + 4) * 0.12 : 1; this.condG.setAlpha(ma); this.backG.setAlpha(ma);   // (mid-masquerade he flickers like them: the rose is the only tell)
     this.drawFx(this.fxG);
     if (this.e.curtain > 0) this.drawFinalCurtain(this.finalG, this.e.curtain);
     if (this.say && B) this.drawBubble();
@@ -553,6 +713,33 @@ export class MaestroBossStage extends BossArena {
   }
   /** His health bar: a row of tiny roses along it. */
   barStyle(g, x, y, w, h, k) { for (let i = 8; i < w * k; i += 16) { g.fillStyle(0x2a0a10, 0.6); g.fillCircle(x + i, y + h / 2, 2.4); g.fillStyle(0xff4a6a, 0.8); g.fillCircle(x + i, y + h / 2, 1.6); } }
+  /**
+   * THE HAUNTING: candles floating in the dark round the stage (their flames turn ghost-blue while he works his magic),
+   * a pale glow round him, wisps peeling off his cape and drifting up, banks of mist creeping across the boards, and
+   * the ghost audience's light while he sings.
+   */
+  drawHaunting(g, lit) {
+    const t = this.t, E = this.e, magic = this.boss && this.boss.atk && ['masq', 'aria', 'grasp', 'cape'].includes(this.boss.atk.name);
+    for (let i = 0; i < MYST.candles; i++) {                                          // the candles: drifting, bobbing, flickering
+      const x = -290 + i * 580 / (MYST.candles - 1) + Math.sin(t * 0.007 + i * 1.7) * 26, y = -130 - hash(i, 3) * 120 + Math.sin(t * 0.02 + i) * 8, fl = 0.8 + Math.sin(t * 0.4 + i * 3) * 0.2;
+      const flame = magic ? MYST.glow : 0xffb050, glowA = (0.08 + 0.06 * fl) * (0.5 + 0.5 * (1 - lit) + (magic ? 0.4 : 0));
+      g.fillStyle(flame, glowA); g.fillCircle(x, y - 12, 16 + fl * 4);
+      g.fillStyle(0xe8dcc0, 0.9); g.fillRect(x - 2.5, y - 8, 5, 16 - (i % 3) * 3); g.fillStyle(0xfff4e0, 0.6); g.fillRect(x - 2.5, y - 8, 1.5, 12);
+      g.fillStyle(0xe8dcc0, 0.9); g.fillCircle(x + 1.5, y - 7, 1.5);                    // (a drip of wax)
+      g.fillStyle(flame, 0.95); g.fillEllipse(x, y - 13, 4, 7 * fl); g.fillStyle(0xffffff, 0.9); g.fillEllipse(x, y - 12, 1.6, 3);
+    }
+    if (this.singK > 0) for (let i = 0; i < 6; i++) { const side = i % 2 ? 1 : -1; g.fillStyle(MYST.glow, 0.05 * this.singK * (1 + Math.sin(t * 0.2 + i))); g.fillEllipse(side * (270 + (i >> 1) * 30), -220 - (i >> 1) * 50, 90, 50); }
+    if (!this.boss || E.alpha < 0.05) return;
+    const b = this.body(), cx = (b.hip.x + b.sh.x) / 2, cy = (b.head.y + b.ft.y) / 2, pulse = 1 + Math.sin(t * 0.06) * 0.08, V = 1 - E.vanish;
+    for (let k = 3; k >= 1; k--) { g.fillStyle(MYST.glow, 0.035 * V * E.alpha); g.fillEllipse(cx, cy, 34 * k * pulse, 52 * k * pulse); }   // his pale glow
+    if (t % MYST.wisp === 0 && V > 0.5) this.wisps.push({ x: b.ft.x - E.dir * (10 + Math.random() * 30), y: b.ft.y - Math.random() * 30, vx: -E.dir * 0.3 + (Math.random() - 0.5) * 0.4, life: 70 });
+    for (const w of this.wisps) { w.x += w.vx + Math.sin((w.life + w.y) * 0.08) * 0.4; w.y -= 0.6; w.life--; const a = w.life / 70; g.fillStyle(MYST.glow, 0.25 * a); g.fillEllipse(w.x, w.y, 5 * a + 2, 9 * a + 3); }
+    this.wisps = this.wisps.filter((w) => w.life > 0);
+    for (let i = 0; i < MYST.mist; i++) {                                             // mist on the boards, drifting
+      const x = ((i * 97 + t * (0.2 + (i % 3) * 0.1)) % 640) - 320, w = 90 + (i % 3) * 40;
+      g.fillStyle(0xd8e8f0, 0.05 + (this.storm ? 0.02 : 0)); g.fillEllipse(x, -4 - (i % 2) * 6, w, 18); g.fillStyle(0xd8e8f0, 0.04); g.fillEllipse(x + 20, -10, w * 0.6, 12);
+    }
+  }
   /**
    * THE PHANTOM: a vast black cape lined in crimson streaming behind him (`back`; flared out when he moves, spread wide
    * like wings in the `spread` pose, wrapped round him for the teleport) with a high stiff collar; long legs in black;
@@ -604,7 +791,7 @@ export class MaestroBossStage extends BossArena {
     poly(g, [{ x: b.sh.x - 7, y: b.sh.y }, { x: b.sh.x + 7, y: b.sh.y }, { x: (b.sh.x + b.hip.x) / 2 + 3, y: (b.sh.y + b.hip.y) / 2 + 10 }, { x: (b.sh.x + b.hip.x) / 2 - 3, y: (b.sh.y + b.hip.y) / 2 + 10 }], col(LOOK.shirt));
     for (const s of [-1, 1]) poly(g, [{ x: b.sh.x, y: b.sh.y + 4 }, { x: b.sh.x + s * 8, y: b.sh.y }, { x: b.sh.x + s * 8, y: b.sh.y + 8 }], ink);   // the bow tie
     for (const q of [0.4, 0.55, 0.7]) { g.fillStyle(ink, A); g.fillCircle(lerp(b.sh.x, b.hip.x, q), lerp(b.sh.y, b.hip.y, q), 1.3); }   // shirt studs
-    const rs = { x: b.sh.x + d * 12, y: b.sh.y + 10 }; g.fillStyle(0x2a6a2a, A); g.fillTriangle(rs.x, rs.y + 2, rs.x - d * 6, rs.y + 9, rs.x - d * 2, rs.y + 3); g.fillStyle(ink, A); g.fillCircle(rs.x, rs.y, 5.5); g.fillStyle(col(LOOK.rose), A); g.fillCircle(rs.x, rs.y, 4.5); g.fillStyle(0xff4a6a, A); g.fillCircle(rs.x - 1, rs.y - 1, 2);
+    const rs = { x: b.sh.x + d * 12, y: b.sh.y + 10 }; if (!E.ghost) { g.fillStyle(0x2a6a2a, A); g.fillTriangle(rs.x, rs.y + 2, rs.x - d * 6, rs.y + 9, rs.x - d * 2, rs.y + 3); g.fillStyle(ink, A); g.fillCircle(rs.x, rs.y, 5.5); g.fillStyle(col(LOOK.rose), A); g.fillCircle(rs.x, rs.y, 4.5); g.fillStyle(0xff4a6a, A); g.fillCircle(rs.x - 1, rs.y - 1, 2); }   // (the rose - an illusion has none: the MASQUERADE's tell)
     // the head: neck, slicked hair with a widow's peak, the gaunt face
     const hx = b.head.x, hy = b.head.y;
     limb({ x: b.sh.x + d * 2, y: b.sh.y - 2 }, { x: hx, y: hy + 12 }, 8, LOOK.skin);
@@ -623,8 +810,8 @@ export class MaestroBossStage extends BossArena {
     if (E.mask) {
       poly(g, mk.map((p) => ({ x: p.x + d * 1, y: p.y + 1 })), ink); poly(g, mk, col(LOOK.mask));
       g.fillStyle(0xd8d8d0, A); g.fillPoints([mk[2], mk[3], mk[4]], true);
-      g.fillStyle(ink, A); g.fillEllipse(hx + d * 9, hy - 6, 8, 5); g.fillStyle(LOOK.gold, A); g.fillCircle(hx + d * 9, hy - 6, 1.8);   // the eye hole, a gold eye glowing in it
-      g.fillStyle(LOOK.gold, 0.25 * A); g.fillCircle(hx + d * 9, hy - 6, 5);
+      g.fillStyle(ink, A); g.fillEllipse(hx + d * 9, hy - 6, 8, 5); g.fillStyle(E.ghost ? MYST.glow : LOOK.gold, A); g.fillCircle(hx + d * 9, hy - 6, 1.8);   // the eye hole, a gold eye glowing in it
+      g.fillStyle(E.ghost ? MYST.glow : LOOK.gold, 0.25 * A); g.fillCircle(hx + d * 9, hy - 6, 5);
       g.lineStyle(1, LOOK.gold, 0.7 * A); g.lineBetween(hx + d * 4, hy - 18, hx + d * 12, hy - 15); g.lineStyle(0);   // (gold filigree)
     } else {
       poly(g, mk, 0x1a0a0e); g.fillStyle(LOOK.ember, A); g.fillCircle(hx + d * 9, hy - 6, 3); g.fillStyle(0xffe080, A); g.fillCircle(hx + d * 9, hy - 6, 1.4);
@@ -644,7 +831,7 @@ export class MaestroBossStage extends BossArena {
     const t = this.t, ink = LOOK.ink;
     if (this.mark) { const M = this.mark, k = M.k; g.fillStyle(LOOK.rose, 0.15 + 0.3 * k); g.fillEllipse(M.x, -2, 60, 12); g.lineStyle(2, LOOK.rose, 0.7); g.strokeEllipse(M.x, -2, 60 * (1.6 - k * 0.6), 12 * (1.6 - k * 0.6)); g.lineStyle(0); g.fillStyle(LOOK.rose, 0.06 + 0.1 * k); g.fillRect(M.x - 24, -440, 48, 440); }
     for (const F of this.fx) {
-      if (F.k === 'trail') { const a = F.life / 16; g.fillStyle(LOOK.lining, 0.35 * a); g.fillEllipse(F.x, F.y, 20 * a + 6, 34 * a + 6); g.fillStyle(0x000000, 0.4 * a); g.fillEllipse(F.x, F.y, 13 * a + 4, 24 * a + 4); }
+      if (F.k === 'trail') { const a = F.life / 16; g.fillStyle(F.ghost ? MYST.glow : LOOK.lining, 0.35 * a); g.fillEllipse(F.x, F.y, 20 * a + 6, 34 * a + 6); g.fillStyle(0x000000, 0.4 * a); g.fillEllipse(F.x, F.y, 13 * a + 4, 24 * a + 4); }
       else if (F.k === 'rose' || F.k === 'fallrose') {
         const a = F.stuck ? -1.2 : F.spin || 0, c = Math.cos(a), s = Math.sin(a);
         g.lineStyle(2, 0x2a6a2a, 1); g.lineBetween(F.x, F.y, F.x - c * 14, F.y - s * 14); g.lineStyle(0);
@@ -652,7 +839,26 @@ export class MaestroBossStage extends BossArena {
         g.fillStyle(ink, 1); g.fillCircle(F.x, F.y, 6); g.fillStyle(LOOK.rose, 1); g.fillCircle(F.x, F.y, 5); g.fillStyle(0xff3a5a, 1); g.fillCircle(F.x - 1, F.y - 1, 2.5); g.fillStyle(0x8a0a1a, 1); g.fillCircle(F.x + 1.5, F.y + 1, 1.5);
         if (!F.stuck && t % 6 < 3) { g.fillStyle(0xffffff, 0.8); g.fillRect(F.x + 4, F.y - 6, 2, 2); }
       }
-      else if (F.k === 'shard') { g.fillStyle(0xd0f0ff, 1); g.fillTriangle(F.x, F.y - 9, F.x + 6, F.y + 5, F.x - 6, F.y + 5); g.fillStyle(0xffffff, 1); g.fillTriangle(F.x, F.y - 9, F.x + 2, F.y + 2, F.x - 3, F.y); }
+      else if (F.k === 'note') {                                                      // a ghost note: a glowing eighth note (or two beamed)
+        const x = F.x, y = F.y, a = Math.min(1, F.life / 20) * (0.85 + Math.sin(F.age * 0.3) * 0.15);
+        g.fillStyle(MYST.glow, 0.18 * a); g.fillCircle(x, y, 15); g.fillStyle(MYST.glow, 0.3 * a); g.fillCircle(x, y, 9);
+        g.fillStyle(0xe8ffff, a); g.fillEllipse(x - 2, y + 4, 9, 6.5); g.fillRect(x + 1.5, y - 12, 2, 16);
+        if (F.flag) { g.fillEllipse(x + 10, y + 1, 9, 6.5); g.fillRect(x + 13.5, y - 15, 2, 16); g.fillRect(x + 1.5, y - 13, 14, 3); }
+        else g.fillTriangle(x + 3.5, y - 12, x + 10, y - 5, x + 3.5, y - 7);
+      } else if (F.k === 'gmark') {                                                   // FROM BELOW's warning: a ghostly ring spreading on the boards
+        const k = 1 - F.life / F.n; g.fillStyle(MYST.glow, 0.1 + 0.2 * k); g.fillEllipse(F.x, -2, GRASP.w * (0.6 + k), 9); g.lineStyle(1.5, MYST.glow, 0.4 + 0.5 * k); g.strokeEllipse(F.x, -2, GRASP.w * (1.4 - k * 0.3), 10); g.lineStyle(0);
+        if (t % 4 === 0) { g.fillStyle(MYST.glow, 0.5); g.fillCircle(F.x + (hash(t, F.x | 0) - 0.5) * GRASP.w, -4 - hash(F.x | 0, t) * 14 * k, 1.5); }
+      } else if (F.k === 'hand') {                                                   // a spectral arm reaching up, fingers clawing
+        const h = F.h || 0, x = F.x, cl = Math.min(1, F.t / GRASP.rise), a = h / 96;
+        if (h > 2) {
+          g.fillStyle(MYST.glow, 0.18 * a); g.fillEllipse(x, -h / 2, GRASP.w + 10, h + 16);
+          g.fillStyle(0xd8f8ff, 0.75 * a); g.fillPoints([{ x: x - 7, y: 0 }, { x: x + 7, y: 0 }, { x: x + 9, y: -h + 22 }, { x: x - 9, y: -h + 22 }], true);
+          g.fillEllipse(x, -h + 16, 24, 20);
+          for (let f = 0; f < 4; f++) { const fx = x - 9 + f * 6, bend = cl * 5 * (F.flip ? -1 : 1); g.fillPoints([{ x: fx - 2, y: -h + 10 }, { x: fx + 2, y: -h + 10 }, { x: fx + 2 + bend, y: -h - 8 + (f === 0 || f === 3 ? 4 : 0) }, { x: fx - 1 + bend, y: -h - 10 + (f === 0 || f === 3 ? 4 : 0) }], true); }
+          g.fillPoints([{ x: x + (F.flip ? -12 : 10), y: -h + 18 }, { x: x + (F.flip ? -20 : 18), y: -h + 6 }, { x: x + (F.flip ? -16 : 14), y: -h + 20 }], true);   // (the thumb)
+          g.fillStyle(MYST.glow, 0.25 * a); g.fillEllipse(x, -2, GRASP.w + 20, 10);
+        }
+      } else if (F.k === 'shard') { g.fillStyle(0xd0f0ff, 1); g.fillTriangle(F.x, F.y - 9, F.x + 6, F.y + 5, F.x - 6, F.y + 5); g.fillStyle(0xffffff, 1); g.fillTriangle(F.x, F.y - 9, F.x + 2, F.y + 2, F.x - 3, F.y); }
     }
     for (const [f] of this.dazed) {                                                       // STUNNED: petals circling their head
       for (let i = 0; i < 4; i++) { const a = t * 0.15 + i * Math.PI / 2, x = f.x + Math.cos(a) * 16, y = f.y - 62 + Math.sin(a) * 5; g.fillStyle(i % 2 ? LOOK.rose : 0xff7a9a, 1); g.fillEllipse(x, y, 7, 4); }

@@ -164,6 +164,11 @@ export class SmudgeBossStage extends BossArena {
   draw(world, bg) {
     const s = this.scene;
     this.skyG = s.add.graphics().setScrollFactor(0); this.patG = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y); bg.push(this.skyG, this.patG);
+    if (!s.textures.exists('smudge_dots')) {                                       // POP ART's Ben-Day dots: one 14x28 tile, tiled (thousands of live circles were too slow)
+      const d = s.make.graphics({ x: 0, y: 0 }, false); d.fillStyle(0xffffff, 1);
+      d.fillCircle(7, 7, 3); d.fillCircle(0, 21, 3); d.fillCircle(14, 21, 3); d.generateTexture('smudge_dots', 14, 28); d.destroy();
+    }
+    this.dotsT = s.add.tileSprite(SKY.x - 800, SKY.y - 480, 1600, 960, 'smudge_dots').setOrigin(0).setScrollFactor(0.15).setAlpha(0.25).setVisible(false); bg.push(this.dotsT);
     const R = this.R = new Poly3D(s, world, { fog: 0xffffff, zFar: 3800, zNear: 500, soft: 0.4, grain: 0.05, edge: 0.15 });
     // the endless floor of tiles far below, and a lattice of cubes and balls running off in every direction
     const T = 260;
@@ -211,8 +216,8 @@ export class SmudgeBossStage extends BossArena {
     const g = this.skyG, P = PAL[this.style]; g.clear();
     g.fillGradientStyle(P.sky[0], P.sky[0], P.sky[1], P.sky[1], 1); g.fillRect(-400, -400, 1440, 1200);
     const p = this.patG; p.clear();
+    if (this.dotsT) this.dotsT.setVisible(this.style === 'pop');
     if (this.style === 'sketch') { p.lineStyle(1, 0x141414, 0.12); for (let i = -40; i < 40; i++) p.lineBetween(i * 30, -500, i * 30 + 400, 500); }   // pencil hatching
-    else if (this.style === 'pop') { for (let y = -480; y < 480; y += 14) for (let x = -800; x < 800; x += 14) { p.fillStyle(0xffffff, 0.25); p.fillCircle(x + ((y / 14) % 2) * 7, y, 3 + Math.sin(x * 0.01 + y * 0.01) * 1.5); } }
     else if (this.style === 'cubist') { for (let i = 0; i < 26; i++) { const x = -700 + hash(i, 1) * 1400, y = -400 + hash(i, 2) * 700, r = 60 + hash(i, 3) * 120; p.fillStyle([0xffffff, 0x2a1a10, 0x8a5a3a][i % 3], 0.12); p.fillTriangle(x, y - r, x + r, y + r * 0.4, x - r * 0.8, y + r * 0.6); } }
     else if (this.style === 'starry') {
       for (let i = 0; i < 9; i++) { const x = -600 + i * 150, y = -260 + (i % 3) * 60; for (let k = 0; k < 4; k++) { p.lineStyle(5 - k, [0x5a8ae0, 0xfff0a0, 0xffd040, 0x9ab8ff][k], 0.35); p.beginPath(); for (let a = 0; a < 9; a += 0.3) { const r = 10 + a * 6 + k * 4; p.lineTo(x + Math.cos(a + k) * r, y + Math.sin(a + k) * r * 0.6); } p.strokePath(); } }
@@ -886,7 +891,7 @@ export class SmudgeBossStage extends BossArena {
     if (Math.abs((this.revealK ?? -1) - k) < 0.02) return; this.revealK = k;
     const P = PAL.sketch, R = this.R; this.style = 'sketch'; R.fog = 0xffffff;
     for (const f of R.faces) { const want = f.k === 'tile' ? P.tiles[(f.i + f.j + 100) % 2] : P.solids[(f.q + f.i) % 2]; f.c = hash(f.i + 50, f.j || f.q, 3) < k ? want : 0xffffff; }
-    this.skyG.clear(); this.skyG.fillStyle(0xffffff, 1); this.skyG.fillRect(-400, -400, 1440, 1200); this.patG.clear();
+    this.skyG.clear(); this.skyG.fillStyle(0xffffff, 1); this.skyG.fillRect(-400, -400, 1440, 1200); this.patG.clear(); if (this.dotsT) this.dotsT.setVisible(false);
   }
   /** The entrance's camera: in close on the bucket, up with him as he pops out, then close on him as he lands. */
   introShot(k) {

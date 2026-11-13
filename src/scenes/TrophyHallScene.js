@@ -311,7 +311,7 @@ export class TrophyHallScene extends Phaser.Scene {
    * model: gold-rock (YOU DID IT: a gold stem and dish, a lumpy nugget of solid gold), sword (a toy sword with a red
    * hilt on a gold stand), boot (a winged bronze boot), goldfish (a silver goldfish leaping off a silver wave), crown
    * (crystal spikes on a gold band, on a red cushion), phoenix (a golden phoenix with spread wings, rising out of fire),
-   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone), helm (THORNWARD's antlered helm on a mossy stump), floppy (a gold floppy disk), bulb (a fluorescent tube in its fixture).
+   * gear (a glowing furnace heart in a brass cog), cartridge (a gold game cartridge), blade (the demon's sword in a stone), helm (THORNWARD's antlered helm on a mossy stump), floppy (a gold floppy disk), brush (a gold paintbrush in a bucket), baton (a gold music stand and baton).
    * locked: the top is a dark shadow of itself. Returns the faces (for a Poly3D).
    */
   trophyFaces(model, x, y, z, ang, k = 1, locked = false) {
@@ -378,19 +378,11 @@ export class TrophyHallScene extends Phaser.Scene {
       const f = [...boxFaces(-16, -16, -1.6, 16, 16, 1.6, 0xf0b020, 0xffd040), ...boxFaces(-9, -16.4, -2, 9, -5, 2, 0xd8dce4, 0xffffff), ...boxFaces(-2, -15, -2.2, 4, -7, 2.2, 0x606070, 0x606070),
         ...boxFaces(-12, 0, -2, 12, 14, -1.7, 0xfffff0, 0xfffff0), ...boxFaces(-9, 3, -2.3, 9, 4, -2, 0x3a6ac8, 0x3a6ac8), ...boxFaces(-9, 7, -2.3, 6, 8, -2, 0x3a6ac8, 0x3a6ac8)];
       T.push(...xyz(f, 0, -24, 0, 0, -0.18));
-    } else if (model === 'bulb') {                                    // THE LAST LIGHT: a buzzing fluorescent tube in its fixture
-      T.push(...boxFaces(-6, -40, -4, 6, -2, 4, 0xc8c0a0, 0xe0d8b8), ...boxFaces(-5, -42, -3, 5, -40, 3, 0x8a8470, 0x8a8470), ...boxFaces(-5, -2, -3, 5, 0, 3, 0x8a8470, 0x8a8470));
-      T.push(...prismFaces(0, -39, -3, 0, 3.2, 8, 0xfffbe0, 0xffffff).map((f) => ({ ...f, nofog: true })));
-      T.push(...blobFaces(0, -20, -5, 4, 16, 2, [0xfff6b0], 2, null, 0.05).map((f) => ({ ...f, nofog: true })));
     } else if (model === 'brush') {                                   // THE GOLDEN BRUSH: a gold paintbrush standing in a gold paint bucket, paint running down its side
       T.push(...prismFaces(0, -16, 0, 0, 9, 10, 0xd89818, 0xf0b020), ...prismFaces(0, -17, -16, 0, 10, 10, 0xffd040, 0xffe070), ...prismFaces(0, -16.6, -16.2, 0, 8, 10, 0xff2a6a, 0xff5a8a));
       T.push(...xyz(prismFaces(0, -40, -14, 0, 1.4, 6, 0xc8962e, 0xf0c860), 0, 0, 0, 0.18), ...xyz(prismFaces(0, -46, -40, 0, 2.4, 8, 0xd8dce4, 0xffffff), 0, 0, 0, 0.18));
       T.push(...xyz(pyramidFaces(0, -46, 0, 5, 5, 13, 0xff2a6a), 0, 0, 0, 0.18));
       for (let i = 0; i < 3; i++) T.push(...boxFaces(-6 + i * 5, -16, -9.4, -4 + i * 5, -16 + 5 + i * 3, -9, 0xff2a6a));
-    } else if (model === 'mic') {                                     // THE GOLDEN MIC: a gold microphone on a little round stand, its cord coiled at the foot
-      T.push(...prismFaces(0, -3, 0, 0, 9, 10, 0xb88a20, 0xd8a830), ...prismFaces(0, -30, -3, 0, 1.2, 6, 0xc89a28, 0xffd040));
-      T.push(...xyz(prismFaces(0, -44, -30, 0, 2, 8, 0xd8a830, 0xffd040), 0, 0, 0, 0.22), ...xyz(ballFaces(0, -48, 0, 5, 5.5, 5, 0xffd040, { seg: 8, rings: 5 }), 0, 0, 0, 0.22));
-      for (let i = 0; i < 8; i++) { const q = i / 8 * Math.PI * 2, r = 11; T.push(...boxFaces(Math.cos(q) * r - 1.2, -2.4, Math.sin(q) * r - 1.2, Math.cos(q) * r + 1.2, 0, Math.sin(q) * r + 1.2, 0x1a1428)); }
     } else if (model === 'baton') {                                   // THE GOLDEN BATON: a gold music stand, open at the last page, the baton laid across it
       T.push(...prismFaces(0, -3, 0, 0, 7, 3, 0xb88a20, 0xd8a830), ...prismFaces(0, -30, -3, 0, 1, 6, 0xc89a28, 0xffd040));
       T.push(...xyz(boxFaces(-13, -8, -1, 13, 8, 1, 0xd8a830, 0xffd040), 0, -36, 0, 0, -0.35), ...xyz(boxFaces(-12, -7, -1.6, 12, 7, -1.1, 0xfffff0, 0xfffff0), 0, -36, 0, 0, -0.35));

@@ -24,9 +24,7 @@ import { PolyBossStage, drawPolygonPeakPreview } from './polyBossStage.js';
 import { DemonBossStage, drawBurningKeepPreview } from './demonBossStage.js';
 import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
 import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
-import { HumBossStage, drawLevelZeroPreview } from './humBossStage.js';
 import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
-import { JackpotBossStage, drawPrimeTimePreview } from './jackpotBossStage.js';
 import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
 import { owns } from '../progress.js';
 
@@ -163,15 +161,9 @@ export const STAGES = [
   { id: 'desktop', music: 'bgm_boss_machine', name: 'THE DESKTOP', available: true, bossArena: 'machine', make: (scene) => new MachineBossStage(scene),
     blurb: ['A taskbar floor on an old teal desktop,', 'a switched-off beige monitor looming behind.'],
     hazard: 'POP-UP: A WINDOW FALLS ON THE MARK - THEN IT IS A LEDGE.\nDIAL-UP: A SCREECHING BEAM SWEEPS A MARKED BAND.', preview: drawDesktopPreview },
-  { id: 'level-zero', music: 'bgm_boss_hum', name: 'LEVEL 0', available: true, bossArena: 'hum', make: (scene) => new HumBossStage(scene),
-    blurb: ['Endless yellow rooms and buzzing lights.', 'Something tall watches from the haze.'],
-    hazard: 'FLICKER: THE LIGHTS DIE FOR A FEW SECONDS.\nBURST PANEL: A CEILING LIGHT RAINS SPARKS.', preview: drawLevelZeroPreview },
   { id: 'blank-canvas', music: 'bgm_boss_smudge', name: 'THE BLANK CANVAS', available: true, bossArena: 'smudge', make: (scene) => new SmudgeBossStage(scene),
     blurb: ['A stretched canvas over an endless pattern,', 'a paint palette and a sketchbook for ledges.'],
     hazard: 'DRIP: A FAT DROP OF PAINT FALLS ON THE MARK.\nSPILL: PAINT FLOODS PART OF THE FLOOR - IT SLOWS YOU.', preview: drawBlankCanvasPreview },
-  { id: 'prime-time', music: 'bgm_boss_jackpot', name: 'PRIME TIME', available: true, bossArena: 'jackpot', make: (scene) => new JackpotBossStage(scene),
-    blurb: ['A game-show stage of light-up panels,', 'a giant prize wheel and a studio audience.'],
-    hazard: 'STAGE LAMP: A LAMP DROPS OUT OF THE RIG ON THE MARK.\nCONFETTI: A CANNON BLASTS A BAND ACROSS THE STAGE.', preview: drawPrimeTimePreview },
   { id: 'grand-opera', music: 'bgm_boss_maestro', name: 'THE GRAND OPERA', available: true, bossArena: 'maestro', make: (scene) => new MaestroBossStage(scene),
     blurb: ['An opera stage in a horseshoe of gilded', 'balconies, a painted dome overhead.'],
     hazard: 'SANDBAG: A SANDBAG DROPS FROM THE FLY TOWER ON THE MARK.\nTRAPDOOR SMOKE: A TRAP IN THE FLOOR BLASTS SMOKE UP.', preview: drawGrandOperaPreview },

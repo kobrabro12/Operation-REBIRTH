@@ -18,7 +18,7 @@ export const TRACKS = [
   // the 3D stages (tools/audio/n64_stage_music.py)
   'castle_court', 'jungle_falls', 'starlight_fountain',
   // the BOSS FIGHTS themes (tools/audio/boss_music.py)
-  'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_hum', 'boss_smudge', 'boss_jackpot', 'boss_maestro',
+  'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_smudge', 'boss_maestro',
   // LEGENDARY KING POLYGON's theme: Mason's pixelated_audio 22
   'boss_legend',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)

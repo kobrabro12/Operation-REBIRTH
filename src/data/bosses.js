@@ -2,8 +2,8 @@
 // its own hazards, each harder than the last (all open from the start - pick any), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
-// demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js / smudgeBossStage.js /
-// jackpotBossStage.js / maestroBossStage.js.
+// demonBossStage.js / knightBossStage.js / machineBossStage.js / smudgeBossStage.js /
+// maestroBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -52,12 +52,6 @@ export const BOSSES = [
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
     card: { marks: [[0.5, 'FATAL EXCEPTION'], [0.65, 'MUSIC TRAY']], quotes: { base: 'YOUR PROGRAM HAS STOPPED RESPONDING. HOW... PRIMITIVE.', rage: 'A BLUE SCREEN IS A BADGE OF HONOUR. YOU HAVE NO SCREEN AT ALL.', low: 'I PLAYED YOU OUT WITH MY FAVOURITE TRACK. IT WAS ON SHUFFLE. YOU WERE NOT.' } },
     hazards: 'POP-UPS / DIAL-UP' },
-  { id: 'hum', name: 'THE HUM, OCCUPANT OF LEVEL 0', short: 'THE HUM', title: 'IT LIVES IN THE BUZZING OF THE LIGHTS', stage: 'level-zero', arena: 'LEVEL 0', hp: 340, coins: 500, color: 0xe8d870, trophy: 'last-light',
-    blurb: 'SOMETHING TALL LIVES IN THE YELLOW ROOMS.\nAFTER IT SURFACES, IT IS STUCK. HURT IT\nENOUGH AND IT GETS HUNGRY.',
-    taunts: ['...', 'YOU NOCLIPPED INTO THE WRONG ROOM.', 'STAY. THE LIGHTS ARE ALWAYS ON HERE.'],
-    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
-    card: { marks: [[0.5, 'LEVEL !'], [0.7, 'THE HUNGER']], quotes: { base: '...bzzzzz... ...stay... ...the lights are always on... ...bzzzz...', rage: 'THE LIGHTS WENT RED. YOU STAYED ANYWAY. EVERYONE STAYS.', feral: 'HUNGRY. HUNGRY. HUNGRY. ...FULL.' } },
-    hazards: 'FLICKER / BURST PANELS' },
   { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 680, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
     blurb: 'A NINE-YEAR-OLD ART PRODIGY WITH A BUCKET\nON HIS HEAD. EVERY FEW ATTACKS HE REPAINTS\nHIMSELF - AND THE WORLD - IN A NEW STYLE.',
     taunts: ['I\'M PUTTING YOU ON THE FRIDGE!', 'SIGNED: SMUDGE. AGE NINE. MASTERPIECE.', 'NEEDS MORE COLOUR. AND MORE WINNING.'],
@@ -65,19 +59,12 @@ export const BOSSES = [
     card: { marks: [[0.5, 'MASTERPIECE MODE'], [0.7, 'ACTION PAINTING']], quotes: { sketch: 'YOU WERE JUST A ROUGH SKETCH ANYWAY. I\'LL ERASE YOU LATER.', pop: 'KA-POW! THAT\'S YOU! THAT SOUND WAS YOU LOSING!', cubist: 'I PAINTED YOU FROM EVERY SIDE AT ONCE. ALL OF THEM LOST.', starry: 'OOOH, PRETTY! YOU LOOK SO NICE ALL SWIRLY AND DEFEATED.', splatter: 'SPLAT! SPLAT! SPLAAAT! ...MOOOM, I MADE A MESS. IT\'S THEM.', artoff: 'NO FAIR! YOU\'RE GROWN-UP! ...WAIT, I WON?! THE REAL ARTIST IS ME!' } },
     tip: 'HIT HIM WHILE HE REPAINTS HIMSELF - WET PAINT TAKES MORE DAMAGE.',
     hazards: 'DRIPS / SPILLS' },
-  { id: 'jackpot', name: 'MAX JACKPOT, YOUR HOST', short: 'MAX JACKPOT', title: 'THE HOST WITH THE MOST', stage: 'prime-time', arena: 'PRIME TIME', hp: 780, coins: 620, color: 0xffc83a, trophy: 'golden-mic',
-    blurb: 'THE SMARMIEST HOST ON TELEVISION. EVERY\nFEW ATTACKS HE SPINS THE BIG WHEEL - AND\nIT PICKS THE NEXT ROUND. PRAY FOR BANKRUPT.',
-    taunts: ['THANKS FOR PLAYING! YOU WIN... NOTHING!', 'TELL THEM WHAT THEY\'VE LOST, FOLKS!', 'SEE YOU AFTER THE BREAK... OH WAIT. YOU WON\'T.'],
-    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
-    card: { marks: [[0.5, 'SWEEPS WEEK'], [0.7, 'LIGHTNING ROUND']], quotes: { base: 'AND THAT\'S A WRAP! LET\'S HEAR IT FOR OUR CONTESTANT - CUE THE SAD TROMBONE!', gold: 'SWEEPS WEEK, BABY! RATINGS THROUGH THE ROOF - AND YOU THROUGH THE FLOOR!', low: 'LIGHTNING ROUND\'S OVER, CHAMP. THE ANSWER WAS: NOT YOU.' } },
-    tip: 'WHEN THE WHEEL LANDS ON BANKRUPT, GO FOR HIS BALD HEAD - IT TAKES DOUBLE.',
-    hazards: 'STAGE LAMPS / CONFETTI' },
-  { id: 'maestro', name: 'THE PHANTOM MAESTRO', short: 'THE PHANTOM', title: 'HE HAUNTS THE GRAND OPERA', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 430, coins: 700, color: 0xd03050, trophy: 'golden-baton',
-    blurb: 'A MASKED GHOST IN A CRIMSON-LINED CAPE.\nHE DIVES FROM THE RAFTERS, THROWS ROSES\nTHAT STUN, VANISHES - AND PUNCHES.',
+  { id: 'maestro', name: 'THE PHANTOM MAESTRO', short: 'THE PHANTOM', title: 'HE HAUNTS THE GRAND OPERA', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 480, coins: 700, color: 0xd03050, trophy: 'golden-baton',
+    blurb: 'A MASKED GHOST WHO HAUNTS THE OPERA.\nHE SPLITS INTO ILLUSIONS, SINGS GHOST\nNOTES, CALLS HANDS UP FROM THE STAGE.',
     taunts: ['THE CURTAIN FALLS. ON YOU.', 'BOX FIVE WILL ALWAYS BE MINE.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
     card: { marks: [[0.5, 'THE MASK SLIPS'], [0.7, 'THE FINAL ACT']], quotes: { base: 'THE OPERA IS MINE. EVERY SEAT, EVERY SHADOW... AND NOW, YOU.', rage: 'YOU SAW MY FACE. NOW NO ONE WILL EVER SEE YOURS AGAIN.', low: 'A FINALE NEEDS A FALLEN HERO. HOW KIND OF YOU TO VOLUNTEER.' } },
-    tip: 'WHEN HE SOARS OUT OF SIGHT, WATCH FOR THE RED MARK AND MOVE. WHEN HE WRAPS HIMSELF IN HIS CAPE, HE\'LL APPEAR BEHIND YOU. HIS MASK TAKES EXTRA DAMAGE.',
+    tip: 'IN HIS MASQUERADE, ONLY THE REAL ONE WEARS A ROSE - HIT HIM AND THE ACT BREAKS. GHOST NOTES POP IF YOU HIT THEM. WHEN THE BOARDS GLOW BLUE, MOVE.',
     hazards: 'SANDBAGS / TRAPDOOR SMOKE' },
 ];
 /** The boss with this id (a BOSSES entry). */
