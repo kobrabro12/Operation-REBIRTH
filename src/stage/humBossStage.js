@@ -173,6 +173,8 @@ export class HumBossStage extends BossArena {
   start_noclip() { this.tally(); } start_reach() { this.tally(); } start_lights() { this.tally(); } start_walls() { this.tally(); } start_mimics() { this.tally(); } start_copy() { this.tally(); } start_frenzy() { this.tally(); } start_axe() { this.tally(); } start_whip() { this.tally(); } start_spikes() { this.tally(); }
   /** The death card's form: THE HUNGER, LEVEL ! or not. */
   cardForm() { return this.feral ? 'feral' : super.cardForm(); }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.humG, this.copyG]; }
   rageLine() { return 'LEVEL !  -  RUN.'; }
   /** LEVEL !: the panels go red, an alarm, the room shudders. */
   onRage(match) { this.red = 1; sfx('warn', 1, 0.6); sfx('roar', 0.7, 1.5); match.shake(8, 30); for (const L of this.lamps) L.flick = 20; }

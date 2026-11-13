@@ -48,6 +48,10 @@ const PAL = {
 const KID = { leg: 15, torso: 15, head: 20, arm: 12, brush: 50, walk: 2.4, fast: 3.4, range: 210 };
 // how much quicker than the tables he is: every wind-up and pause is divided by this
 const QUICK = 1.3;
+// MASTERPIECE: frames charging up, dash speed and how far he dashes, the cutscene (brush strokes, how often, when he
+// says it, when the canvas explodes, its length), and the explosion - always exactly `dmg` damage, a huge launch
+// (often = the chance a normal round of attacks includes it; it's always in the last stretch)
+const MASTER = { often: 0.25, charge: 78, dash: 9, reach: 340, strokes: 12, every: 8, say: 112, boom: 160, n: 200, dmg: 50, kb: [45, 7.5, 1.1], every2: 3 };
 // his colours in each style - always bright, even in SKETCH: skin, the four band shirts he's wearing at once (body,
 // front patch, back sleeve, front sleeve) and their logos, ripped jeans, sneakers, the bucket, its label band, the
 // brush's paint, the paint hair (rainbow), the brush handle
@@ -88,7 +92,7 @@ const WAVE = { speed: 6.5, h: 52, hit: [11, [60, 6, 0.7]] };
 const ACTION = { dur: 110, every: 6, warn: 22, hit: [7, [70, 4.8, 0.5]] };
 const BUCKET = { speed: 9, out: 120, hit: [12, [50, 6, 0.85]] };
 // all his hits: x damage, x base knockback, x knockback growth (one knob for the whole fight's punch)
-const HIT = { dmg: 1.0, base: 1.0, growth: 1.15 };
+const HIT = { dmg: 0.92, base: 1.0, growth: 1.1 };
 // health thresholds: below this he's in ACTION PAINTING
 const LOW = { at: 0.3 };
 // stage hazards: DRIP (warning, hit) and SPILL (warning, how long it stays, slow)
@@ -176,6 +180,7 @@ export class SmudgeBossStage extends BossArena {
     this.pen = new PixelPen(s, 'smudge_px', PX.w, PX.h); world.push(this.pen.img);   // (he's drawn as pixel art)
     this.bkPen = new PixelPen(s, 'smudge_bk', 64, 64); world.push(this.bkPen.img);   // (and so is his bucket, when it's off his head)
     this.fxG = s.add.graphics(); world.push(this.fxG);
+    this.overG = s.add.graphics().setDepth(6); world.push(this.overG);   // (over the fighters: MASTERPIECE's paint and canvas)
     this.bubG = s.add.graphics(); world.push(this.bubG);
     this.bubT = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '9px', color: '#141414', align: 'center', wordWrap: { width: 150 } }).setOrigin(0.5).setVisible(false); world.push(this.bubT);
     this.burstT = [0, 1, 2, 3].map(() => { const o = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '11px', color: '#ffffff', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setVisible(false); world.push(o); return o; });
@@ -265,6 +270,7 @@ export class SmudgeBossStage extends BossArena {
   /** The intro (and, in the ART-OFF, the dialogue box they talk in - also used by the finale). */
   startIntro(match) {
     super.startIntro(match);
+    this.watched = true;
     if (!this.rival) {                                                              // his own title card: the letters of his name, painted on
       this.cardG = match.add.graphics().setDepth(41);
       this.cardL = [...'SMUDGE'].map(() => match.add.text(0, 0, '', { fontFamily: FONT, fontSize: '32px', color: '#ffffff', stroke: '#141414', strokeThickness: 6 }).setOrigin(0.5).setDepth(42).setVisible(false));
@@ -319,9 +325,9 @@ export class SmudgeBossStage extends BossArena {
   /** What he does next: a RESTYLE every few attacks, then the current style's moves (plus the brush); ACTION PAINTING mixes everything. */
   pattern(phase) {
     const every = phase === 2 ? RESTYLE.rage : RESTYLE.every;
-    if (this.low) return ['action', 'bucket', 'sweep', 'flick', ...this.styleMoves(STYLES[Math.floor(Math.random() * 4)])];
+    if (this.low) return ['action', 'bucket', 'sweep', 'flick', 'masterpiece', ...this.styleMoves(STYLES[Math.floor(Math.random() * 4)])];
     if (this.count % every === every - 1) return ['restyle'];
-    return [...this.styleMoves(this.style), 'sweep', 'flick'];
+    return [...this.styleMoves(this.style), 'sweep', 'flick', ...(Math.random() < MASTER.often ? ['masterpiece'] : [])];
   }
   /** The three attacks that belong to a style. */
   styleMoves(st) { return { sketch: ['scribble', 'eraser', 'doodles'], pop: ['kapow', 'dots', 'bubble'], cubist: ['shatter', 'spikes', 'twoface'], starry: ['swirl', 'stars', 'wave'], splatter: ['action', 'bucket'] }[st] || ['sweep']; }
@@ -329,6 +335,8 @@ export class SmudgeBossStage extends BossArena {
   tally() { this.count++; }
   /** The death card's form: the ART-OFF, or the art style he was in. */
   cardForm() { return this.rival ? 'artoff' : this.low ? 'splatter' : this.style === 'blank' ? 'sketch' : this.style; }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.pen.img]; }
   rageLine() { return 'MASTERPIECE MODE!'; }
   /** MASTERPIECE MODE (half health): he hops up and down, shouting. */
   onRage(match) { this.talk(SAY.rage, 90); sfx('laugh', 0.8, 1.5); this.e.hop = 24; match.shake(6, 20); }
@@ -368,6 +376,102 @@ export class SmudgeBossStage extends BossArena {
     const E = this.e, sh = this.body().sh, ft = E.y - E.hop;
     const uy = Phaser.Math.Clamp((ft - 2 - (sh.y + 3)) / (KID.arm + KID.brush), -1, 1);
     return -Math.PI - Math.asin(uy);
+  }
+
+  // ------------------------------------------------------------------ MASTERPIECE
+  start_masterpiece(match, a) { this.tally(); this.faceNearest(match); this.talk('HOLD STILL... I\'M INSPIRED!', 70); a.x0 = this.e.x; }
+  /**
+   * MASTERPIECE: he crouches and charges the brush (paint swirling round it, brighter and brighter), then DASHES at you
+   * across the stage. If he catches you: the cutscene (masterStep) - he paints you all over with a flurry of brush
+   * strokes, a canvas frames you, MASTERPIECE!, and the canvas explodes: 50 damage and a huge launch. If he misses he
+   * skids to a stop, dizzy, open to a punish.
+   */
+  atk_masterpiece(match, a) {
+    const E = this.e, ch = this.sp(MASTER.charge);
+    if (a.t < ch) {
+      E.crouch = 0.6; E.ba += (-2.7 - E.ba) * 0.15; this.faceNearest(match);
+      if (a.t === 1) sfx('limit', 0.6, 1.4);
+      if (a.t % 3 === 0) { const b = this.body(), q = a.t * 0.5, K = KIDPAL[this.style] || KIDPAL.sketch; match.particles.push({ x: b.tip.x + Math.cos(q) * 14, y: b.tip.y + Math.sin(q) * 14, vx: -Math.cos(q) * 0.8, vy: -Math.sin(q) * 0.8, life: 18, color: K.hair[(a.t / 3) % K.hair.length | 0], size: 2 + (a.t / ch) * 2 }); }
+      if (a.t > ch - 20 && a.t % 4 === 0) sfx('clocktick', 0.5, 1.6);
+      return false;
+    }
+    if (!a.end) {                                                                   // the dash
+      if (a.t === ch) { a.dir = E.dir; sfx('whoosh', 1, 0.8); sfx('swing', 0.8, 1.2); }
+      E.crouch = 0.3; E.ba = -0.15; E.x += a.dir * MASTER.dash; E.walk += 0.6;
+      if (a.t % 2 === 0) this.splash(match, E.x - a.dir * 10, -6, 4);
+      for (const f of match.fighters) {
+        if (!f.alive || f.eliminated || f.state === 'respawn' || f.invincible > 0 || f.state === 'dodge' || f.state === 'roll') continue;
+        if (Math.abs(f.x - (E.x + a.dir * 14)) < 24 && f.y > -70 && f.y < 10) { this.catch(match, f, a); return false; }
+      }
+      if (Math.abs(E.x - a.x0) > MASTER.reach || Math.abs(E.x) > KID.range + 20) { a.end = a.t; a.miss = true; sfx('land', 0.8, 1.2); this.talk('WHOA- WHOAAA!', 60); }
+      return false;
+    }
+    if (a.miss) { E.ba += (this.restAngle() - E.ba) * 0.1; E.crouch = 0.1; E.hop = Math.abs(Math.sin((a.t - a.end) * 0.3)) * 4; return a.t - a.end > this.sp(70); }   // (dizzy - punish him)
+    return a.t - a.end > 20;
+  }
+  /** He's caught someone: with a player watching, THE MASTERPIECE cutscene; without (the sim), straight to the explosion. */
+  catch(match, f, a) {
+    a.end = a.t; a.miss = false; this.e.x = Phaser.Math.Clamp(f.x - a.dir * 26, -KID.range - 20, KID.range + 20); this.e.dir = a.dir;
+    sfx('bighit', 0.8, 1.4); match.shake(6, 8);
+    if (this.watched) { const cam = match.worldCam || match.cameras.main; this.cut = { kind: 'master', t: 0, n: MASTER.n, once: new Set(), victim: f, strokes: [] }; this.ccam = { x: cam.midPoint.x, y: cam.midPoint.y, zoom: cam.zoom }; this.say = null; return; }
+    this.blast = { f, t: 6 };
+  }
+  /**
+   * THE MASTERPIECE cutscene (MatchScene plays it, everyone else frozen): the camera closes in; he paints you all over
+   * with a flurry of brush strokes (SPLAT! SWISH!), each leaving a streak of colour on you, while a canvas and an
+   * easel frame build up round you; he hops back, admires it - MASTERPIECE! - and the canvas EXPLODES.
+   */
+  masterStep(match) {
+    const C = this.cut, t = ++C.t, E = this.e, f = C.victim, K = KIDPAL[this.style] || KIDPAL.sketch; this.t++;
+    const once = (k, at) => t >= at && !C.once.has(k) && !!C.once.add(k);
+    const fy = f.y - 26, stEnd = MASTER.strokes * MASTER.every;
+    C.shot = { x: (f.x + E.x) / 2, y: fy - 10, zoom: t < MASTER.boom ? 2.6 : 1.8 };
+    if (t < stEnd) {                                                                // the flurry of strokes
+      const i = Math.floor(t / MASTER.every), k = (t % MASTER.every) / MASTER.every;
+      E.dir = Math.sign(f.x - E.x) || E.dir; E.x = f.x - E.dir * (22 + (i % 3) * 4); E.hop = Math.abs(Math.sin(t * 0.4)) * 6;
+      E.ba = i % 2 ? lerp(-2.4, 0.8, k) : lerp(0.8, -2.4, k);
+      if (t % MASTER.every === 2) {
+        const c = K.hair[i % K.hair.length], a = (hash(i, 3, 1) - 0.5) * 2.2;
+        C.strokes.push({ x: f.x + (hash(i, 1, 2) - 0.5) * 30, y: fy + (hash(i, 2, 2) - 0.5) * 40, a, c, l: 18 + hash(i, 4, 4) * 16 });
+        sfx(i % 2 ? 'slash' : 'hit', 0.7, 1.1 + (i % 4) * 0.1); match.shake(3, 4);
+        for (let j = 0; j < 8; j++) match.particles.push({ x: f.x + (Math.random() - 0.5) * 20, y: fy + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 3, life: 26, color: c, size: 2, grav: 0.15 });
+        if (i % 3 === 0) match.popText({ x: f.x + (i % 2 ? 18 : -18), y: fy - 30 }, ['SPLAT!', 'SWISH!', 'DAB!', 'SPLOOSH!'][i % 4], '#' + c.toString(16).padStart(6, '0'));
+      }
+      C.frame = Math.min(1, t / stEnd);
+    } else if (t < MASTER.boom) {                                                   // he hops back and admires it
+      const q = Math.min(1, (t - stEnd) / 16); E.x = f.x - E.dir * lerp(30, 70, q); E.hop = Math.sin(q * Math.PI) * 18; E.ba = lerp(E.ba, -1.6, 0.2);
+      C.frame = 1;
+      if (once('say', MASTER.say)) { this.talk('MASTERPIECE!', 80); sfx('ding', 0.9, 1.3); sfx('laugh', 0.6, 1.6); }
+      if (t > MASTER.boom - 14 && t % 3 === 0) { match.shake(2, 3); sfx('clang', 0.3, 2); }
+    } else if (once('boom', MASTER.boom)) {                                         // THE CANVAS EXPLODES
+      sfx('bighit', 1, 0.6); sfx('thunder', 0.8, 1.1); sfx('glass', 0.8, 0.8); match.shake(18, 26); C.boomT = 0;
+      for (let j = 0; j < 70; j++) { const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 8; match.particles.push({ x: f.x, y: fy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, life: 40 + Math.random() * 30, color: j % 5 === 0 ? 0xc8963a : K.hair[j % K.hair.length], size: 2 + (j % 3), grav: 0.2, drag: 0.97 }); }
+      C.strokes = []; C.frame = 0; this.blast = { f, t: 0 };
+    }
+    if (C.boomT !== undefined) C.boomT++;
+    if (this.say) this.say.t++;
+    if (t >= C.n) this.cut = null;
+  }
+  /** THE MASTERPIECE's explosion lands (the frame after the cutscene, or straight away in the sim): exactly MASTER.dmg damage and a huge launch. */
+  stepBlast(match, out) {
+    const B = this.blast; if (!B) return;
+    if (B.t-- > 0) return;
+    const f = B.f, T = this.boss.cfg.T;
+    out.push(BossArena.prototype.bhit.call(this, this.sid('masterpiece'), f.x - 30, f.y - 70, f.x + 30, f.y + 10, MASTER.dmg / (T.dmg || 1), MASTER.kb, { dirX: this.e.dir }));
+    this.blast = null;
+  }
+  /** MASTERPIECE's paint over the victim and the canvas framing them (drawn above the fighters, during the cutscene). */
+  drawMaster(g) {
+    g.clear(); const C = this.cut; if (!C || C.kind !== 'master') return;
+    const f = C.victim, fy = f.y - 26;
+    if (C.frame > 0) {                                                              // the canvas and its gold frame, building up round them
+      const w = 64 * C.frame, h = 84 * C.frame;
+      g.fillStyle(0xf8f4ea, 0.35 * C.frame); g.fillRect(f.x - w / 2, fy - h / 2, w, h);
+      g.lineStyle(5, 0x7a5420, 1); g.strokeRect(f.x - w / 2 - 3, fy - h / 2 - 3, w + 6, h + 6); g.lineStyle(3, 0xe8b840, 1); g.strokeRect(f.x - w / 2 - 3, fy - h / 2 - 3, w + 6, h + 6); g.lineStyle(0);
+      if (C.frame >= 1) { g.lineStyle(3, 0x6a4420, 1); g.lineBetween(f.x - 26, fy + 44, f.x - 34, f.y + 4); g.lineBetween(f.x + 26, fy + 44, f.x + 34, f.y + 4); g.lineStyle(0); }   // (easel legs)
+    }
+    for (const S of C.strokes) { const c = Math.cos(S.a), s2 = Math.sin(S.a); g.lineStyle(7, S.c, 0.9); g.lineBetween(S.x - c * S.l / 2, S.y - s2 * S.l / 2, S.x + c * S.l / 2, S.y + s2 * S.l / 2); g.lineStyle(3, 0xffffff, 0.35); g.lineBetween(S.x - c * S.l / 2, S.y - s2 * S.l / 2 - 1, S.x + c * S.l / 4, S.y + s2 * S.l / 4 - 1); g.lineStyle(0); }
+    if (C.boomT !== undefined && C.boomT < 14) { const r = 20 + C.boomT * 9; g.fillStyle(0xffffff, 0.8 * (1 - C.boomT / 14)); g.fillCircle(f.x, fy, r); }
   }
 
   // ------------------------------------------------------------------ attacks (any style)
@@ -674,7 +778,7 @@ export class SmudgeBossStage extends BossArena {
   }
 
   /** You lost: he holds up a crayon drawing of you and laughs, bouncing (BossArena.bossTaunt). */
-  onGloat(match, t) { const E = this.e; E.hop = Math.abs(Math.sin(t * 0.2)) * 14; E.ba = -1.5; E.bb = -1.2; this.gloatT = t; if (t === 1) this.talk('I\'M PUTTING THIS ON THE FRIDGE!', 400); }
+  onGloat(match, t) { const E = this.e; E.hop = Math.abs(Math.sin(t * 0.2)) * 14; E.ba = -0.7; E.bb = -0.5; this.gloatT = t; if (t === 1) this.talk('I\'M PUTTING THIS ON THE FRIDGE!', 400); }
   /** His health's gone. In the ART-OFF (a player watching): the finale cutscene first, then the usual end. */
   startDeath(match) {
     if (this.rival && this.sayG && !this.finaleDone) { this.finaleDone = true; this.boss.atk = null; this.card = null; this.onDeath(); this.say = null; const cam = match.worldCam || match.cameras.main; this.cut = { t: 0, n: ARTOFF.finale.n, once: new Set() }; this.ccam = { x: cam.midPoint.x, y: cam.midPoint.y, zoom: cam.zoom }; this.rageText.setVisible(false); return; }
@@ -687,7 +791,7 @@ export class SmudgeBossStage extends BossArena {
     return { ...this.ccam, exact: true };
   }
   /** A fresh press skips to the end of the finale. */
-  skipCut(match) { this.cut.t = Math.max(this.cut.t, ARTOFF.finale.boom - 1); this.cutStep(match); }
+  skipCut(match) { this.cut.t = Math.max(this.cut.t, this.cut.kind === 'master' ? MASTER.boom - 1 : ARTOFF.finale.boom - 1); this.cutStep(match); }
   /**
    * THE ART-OFF FINALE (MatchScene plays it while everyone else holds still): Mr Wake lands facing him; SMUDGE sits
    * down hard, bucket askew, sniffling; they talk (the dialogue box) - HOW? I'M A GENIUS. / TALENT NEEDS PATIENCE. /
@@ -695,6 +799,7 @@ export class SmudgeBossStage extends BossArena {
    * colour of paint, which rains down all over the canvas. Then the usual end.
    */
   cutStep(match) {
+    if (this.cut.kind === 'master') return this.masterStep(match);
     const C = this.cut, F = ARTOFF.finale, E = this.e, f = this.rival, t = ++C.t; this.t++;
     const once = (k, at) => t >= at && !C.once.has(k) && !!C.once.add(k);
     if (f && f.state !== 'respawn' && t <= 30) { if (t === 1) C.from = { x: f.x, y: f.y, to: Phaser.Math.Clamp(E.x + (f.x < E.x ? -1 : 1) * 120, -220, 220) }; const q = t / 30; f.x = lerp(C.from.x, C.from.to, q); f.y = Math.min(0, lerp(C.from.y, 0, q) - Math.sin(q * Math.PI) * 30); f.vx = f.vy = 0; if (t === 30) f.grounded = true; }
@@ -873,6 +978,7 @@ export class SmudgeBossStage extends BossArena {
     if (this.boss) {
       this.bossStep(match, out);
       if (!this.low && !this.boss.dying && this.boss.hp <= this.boss.max * LOW.at) this.startLow(match);
+      this.stepBlast(match, out);
       this.stepBlobs(match, out); this.stepDoodles(match, out); this.stepBursts(match, out); this.stepBubbles(match); this.stepStars(match, out); this.stepSplats(match, out);
       if (this.sayCD > 0) this.sayCD--;
       if (this.say && ++this.say.t > this.say.life) this.say = null;
@@ -900,6 +1006,7 @@ export class SmudgeBossStage extends BossArena {
     if (this.pen.img.visible) this.drawKid(this.pen, this.style);
     this.drawLooseBucket();
     this.drawFx(fx);
+    this.drawMaster(this.overG);
     if (this.say && !(this.intro && this.introPhase().ph === 'freeze')) this.drawBubble();   // (not over his title card)
     if (this.wipe) this.drawWipe(fx);
     if (B) this.drawBar();

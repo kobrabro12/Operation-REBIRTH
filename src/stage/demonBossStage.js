@@ -228,6 +228,8 @@ export class DemonBossStage extends BossArena {
   /** Whether anyone is standing at his feet (close in x, low down) - where his sword can't reach. */
   atFeet() { const D = this.dm; return D.y === 0 && this.match && this.match.fighters.some((f) => f.alive && Math.abs(f.x - D.x) < FEET.x && f.y > FEET.below); }
   start_combo() { this.count++; } start_leap() { this.count++; } start_throw() { this.count++; } start_behind() { this.count++; } start_hellfire() { this.count++; } start_laugh() { this.count++; }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.demonG]; }
   rageLine() { return 'KARNAX HAS GONE MAD!'; }
   /** MAD: a burst of fire round him and a scream of laughter. */
   onRage(match) { const j = this.joints(); for (let i = 0; i < 30; i++) { const a = i / 30 * Math.PI * 2; match.particles.push({ x: j.chest.x, y: j.chest.y, vx: Math.cos(a) * 5, vy: Math.sin(a) * 5, life: 30, color: C.fire[i % 4 + 1], size: 3, drag: 0.94 }); } sfx('laugh', 1, 0.6); }

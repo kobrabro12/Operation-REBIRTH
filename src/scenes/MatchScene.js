@@ -101,7 +101,7 @@ export class MatchScene extends Phaser.Scene {
   create(data={}) {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
     this.sys.settings.data={};
-    this.bossFight = data.boss || null; this.bossOutcome = null; this.bossShotTaken = false; this.bossCard = null; if (this.bossFight && this.textures.exists('boss_card_shot')) this.textures.remove('boss_card_shot');   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
+    this.bossFight = data.boss || null; this.bossOutcome = null; this.cardPainted = false; this.bossCard = null;   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
     this.shopPreview=data.shopPreview||null;
     if(this.shopPreview)this.sys.settings.data={}; // consume preview data; later ordinary matches use player settings
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
@@ -370,6 +370,7 @@ export class MatchScene extends Phaser.Scene {
       if (this.timeLeft === 600) sfx('warn', 0.6);
       if (this.timeLeft <= 0) this.endMatch('TIME!');
     }
+    if (this.bossOutcome === 'lose' && this.stage.boss && this.stage.boss.gloat >= 50) this.paintBossCard();   // (the death card's portrait, in its gloating pose)
     if (this.over > 0 && --this.over === 0) { if (this.demo) { this.over = 1; return; } this.toResults(); }
   }
 
@@ -550,7 +551,7 @@ export class MatchScene extends Phaser.Scene {
     }
     f.ko();
     if (this.mode !== 'time' && !this.isTraining && this.bossFight) {   // a boss fight is lost when every player is out
-      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.bossCard = this.stage.cardInfo ? this.stage.cardInfo() : null; this.snapBoss(); this.endMatch('DEFEATED...'); this.bossTauntLine = this.stage.bossTaunt ? this.stage.bossTaunt(this) : null; }
+      if (this.fighters.every((x) => x.eliminated) && !this.over) { this.bossOutcome = 'lose'; this.bossCard = this.stage.cardInfo ? this.stage.cardInfo() : null; this.endMatch('DEFEATED...'); this.bossTauntLine = this.stage.bossTaunt ? this.stage.bossTaunt(this) : null; }
     } else if (this.mode !== 'time' && !this.isTraining) {
       const left = this.fighters.filter((x) => !x.eliminated);
       if (left.length <= 1 && !this.over) { this.endMatch('GAME!'); this.extras.onFinalKO(); }
@@ -571,26 +572,42 @@ export class MatchScene extends Phaser.Scene {
   bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.over = 210; }
 
   /** A boss fight is over: pays out a win (bosses.js) and goes to the reward / defeat screen (BossRewardScene). */
+  /** The death card's picture (the arena may ask for it at a moment of its choosing - the Colossus does at NOW I'VE GOTCHA): paints it now. */
+  snapBoss() { this.paintBossCard(); }
   /**
-   * The picture on a boss's death card: a snapshot of the screen around the boss, taken the frame you lose (or earlier,
-   * when an arena calls it - the Colossus does at NOW I'VE GOTCHA), without the UI. Saved as the texture
-   * 'boss_card_shot' for BossReward. Once per fight.
+   * THE DEATH CARD'S PORTRAIT (src/ui/deathCard.js): not a screenshot - a picture painted for the card. Onto a texture
+   * ('boss_card_art', CARD_ART px square) go a backdrop of rays and a glow in the boss's colour, then only the boss's
+   * own drawing layers (the arena's `cardObjs`, framed round its core; `cardPrep` / `cardDone` around it), in its
+   * gloating pose, then a vignette and a halftone print pattern. Once per fight; called a while into the boss's gloat.
    */
-  snapBoss() {
-    const st = this.stage, r = this.game.renderer;
-    if (this.bossShotTaken || !st || !st.core || !r || !r.snapshotArea || this.demo) return;
-    this.bossShotTaken = true;
-    const c = st.core(), cam = this.worldCam, k = r.width / VIEW_W, half = Math.min(170, ((st.bodyH || 140) * 0.75 + 40)) * cam.zoom;
-    const sx = (c.x - cam.worldView.x) * cam.zoom, sy = (c.y - cam.worldView.y) * cam.zoom;
-    const s = Math.round(Math.min(half * 2, VIEW_H - 8) * k), x = Math.round(Phaser.Math.Clamp(sx * k - s / 2, 0, r.width - s)), y = Math.round(Phaser.Math.Clamp(sy * k - s / 2, 0, r.height - s));
-    this.uiCam.setVisible(false);
-    r.snapshotArea(x, y, s, s, (img) => {
-      if (this.uiCam) this.uiCam.setVisible(true);
-      const tx = this.textures; if (tx.exists('boss_card_shot')) tx.remove('boss_card_shot');
-      tx.addImage('boss_card_shot', img);
-    });
+  paintBossCard() {
+    const st = this.stage; if (this.cardPainted || this.demo || !st || !st.core || !st.cardObjs) return;
+    this.cardPainted = true;
+    const N = 256, B = this.bossFight ? bossById(this.bossFight.id) : null, col = B ? B.color : 0xffffff, tx = this.textures;
+    const dt = tx.exists('boss_card_art') ? tx.get('boss_card_art') : tx.addDynamicTexture('boss_card_art', N, N);
+    if (!dt || !dt.capture) return;
+    dt.clear();
+    const bg = this.make.graphics({}, false), dark = Phaser.Display.Color.IntegerToColor(col).darken(70).color;
+    bg.fillGradientStyle(dark, dark, 0x07060e, 0x07060e, 1); bg.fillRect(0, 0, N, N);
+    for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, b2 = a + Math.PI / 24; bg.fillStyle(col, i % 2 ? 0.16 : 0.06); bg.fillTriangle(N / 2, N * 0.45, N / 2 + Math.cos(a) * 400, N * 0.45 + Math.sin(a) * 400, N / 2 + Math.cos(b2) * 400, N * 0.45 + Math.sin(b2) * 400); }
+    for (let r = 120; r > 0; r -= 12) { bg.fillStyle(col, 0.035); bg.fillCircle(N / 2, N * 0.45, r); }
+    for (let i = 0; i < 30; i++) { bg.fillStyle(0xffffff, 0.15 + (i % 3) * 0.1); bg.fillRect((i * 97) % N, (i * 61) % (N * 0.6), 2, 2); }
+    bg.fillStyle(0x000000, 0.55); bg.fillEllipse(N / 2, N - 18, N * 0.9, 50);
+    dt.draw(bg, 0, 0);
+    if (st.cardPrep) st.cardPrep(this);
+    const c = st.core(), half = Math.max(st.cardHalf || 0, ((st.bodyH || 140) * 0.62 + 24)), x1 = c.x - half, y1 = c.y - half * 0.85, k = N / (half * 2);
+    for (const o of st.cardObjs()) { if (!o || o.visible === false) continue; dt.capture(o, { x: (o.x - x1) * k, y: (o.y - y1) * k, scaleX: (o.scaleX || 1) * k, scaleY: (o.scaleY || 1) * k }); }
+    dt.render();
+    if (st.cardDone) st.cardDone(this);
+    if (this.bossCard) this.bossCard.art = true;
+    const fx = this.make.graphics({}, false);
+    for (let i = 0; i < 10; i++) { fx.lineStyle(10, 0x000000, 0.06 * (10 - i)); fx.strokeRect(i * 5, i * 5, N - i * 10, N - i * 10); }
+    for (let y = 4; y < N; y += 6) for (let x = (y / 6) % 2 ? 3 : 0; x < N; x += 6) { const e = Math.max(Math.abs(x - N / 2), Math.abs(y - N / 2)) / (N / 2); if (e > 0.72) { fx.fillStyle(0x000000, 0.35 * (e - 0.72) / 0.28); fx.fillCircle(x, y, 1.6); } }   // (a halftone fade at the edges)
+    dt.draw(fx, 0, 0); dt.render();
+    bg.destroy(); fx.destroy();
   }
   toBossReward() {
+    if (this.bossOutcome === 'lose') this.paintBossCard();
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,

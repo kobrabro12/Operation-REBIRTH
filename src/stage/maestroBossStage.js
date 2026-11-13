@@ -24,6 +24,8 @@ import { FONT, VIEW_W } from '../config.js';
 
 // his size: leg, torso, head; how high he hovers; glide speeds (calm, enraged); how far he roams
 const PH = { leg: 74, torso: 64, head: 34, hover: 16, walk: 1.8, fast: 2.6, range: 205 };
+// how big he's shown (and hit): his drawing above is scaled round his feet to this - a little taller than a fighter
+const SIZE = 0.44;
 // his colours: skin, suit, cape lining, shirt, mask, hair, gloves, the rose, gold trim, outline, the burning eye beneath the mask
 const LOOK = { skin: 0xe6d6cc, suit: 0x101018, lining: 0xb01830, shirt: 0xf4f0e8, mask: 0xfafaf4, hair: 0x14101a, glove: 0xffffff, rose: 0xc0102a, gold: 0xe8b840, ink: 0x07060c, ember: 0xff5a2a };
 // ROCKET DIVE: frames rising out of sight, hanging there while the mark tracks you, dive speed, dives (calm / enraged / finale), its hit, the landing shockwave
@@ -37,7 +39,7 @@ const FLURRY = { dash: 7, chase: 60, n: [7, 10], every: 6, jab: [3, [20, 2.4, 0.
 // CHANDELIER: frames it swings out over you, its size, fall speed, hit, shards, shard hit
 const CHAND = { swing: 110, w: 70, fall: 14, hit: [14, [80, 6.6, 0.95]], shards: 6, shard: [6, [40, 4.6, 0.45]] };
 // all his hits: x damage, x base knockback, x knockback growth (one knob for the whole fight's punch)
-const HIT = { dmg: 0.62, base: 0.88, growth: 0.8 };
+const HIT = { dmg: 0.85, base: 0.95, growth: 0.9 };
 // THE FINALE (below this much health): roses rain from the flies every `every` frames
 const LOW = { at: 0.3, every: 150, roses: 5 };
 // THE MASK SLIPS cutscene (half health): its length, when the mask shatters, when the roof tears away
@@ -84,7 +86,7 @@ export class MaestroBossStage extends BossArena {
     this.e = { x: 100, y: 0, dir: -1, lift: PH.hover, tilt: 0, bow: 0, arms: 'idle', hp: [...POSE.idle], alpha: 1, vanish: 0, wrap: 0, flare: 0, vx: 0, mask: 1, curtain: 0 };
     this.fx = []; this.chand = null; this.mark = null; this.storm = 0; this.low = false; this.rain = []; this.dazed = new Map();
     this.say = null; this.sayCD = 300; this.pop = null; this.flash = 0; this.sand = null; this.smoke = null; this.prev = new Map();
-    this.sparkColor = 0xd03050; this.bodyW = 80; this.bodyH = 220;
+    this.sparkColor = 0xd03050; this.bodyW = 40; this.bodyH = 100;
   }
 
   // ------------------------------------------------------------------ the arena
@@ -119,6 +121,7 @@ export class MaestroBossStage extends BossArena {
     for (const sx of [-1, 1]) { R.faces.push(...prismFaces(sx * 360, -420, 60, 260, 26, 10, 0xc8a050, LOOK.gold)); R.faces.push(...boxFaces(sx * 360 - 50, 40, 230, sx * 360 + 50, 70, 290, 0x6a4a2a, 0x8a6a3a)); }
     this.curtainG = s.add.graphics(); world.push(this.curtainG);       // the velvet curtains at the sides (and the final one)
     this.arenaG = s.add.graphics(); world.push(this.arenaG);
+    this.spotG = s.add.graphics(); world.push(this.spotG);             // (the dark house and the intro's spotlight)
     this.backG = s.add.graphics(); world.push(this.backG);             // (his cape and its high collar)
     this.condG = s.add.graphics(); world.push(this.condG);             // (him)
     this.fxG = s.add.graphics(); world.push(this.fxG);
@@ -179,8 +182,13 @@ export class MaestroBossStage extends BossArena {
   }
   /** After the intro: lights up, him whole and hovering. */
   endIntro() { super.endIntro(); const E = this.e; E.y = 0; E.alpha = 1; E.bow = 0; E.vanish = 0; E.lift = PH.hover; E.arms = 'idle'; this.lightsK = 1; this.spotK = 1; }
-  /** His body's points this frame: feet (floating `lift` above the stage), hips, shoulders (leaning with `tilt` and `bow`), head, both hands. */
+  /** His body's points as he's really shown (and hit): bodyRaw shrunk by `SIZE` round his feet. */
   body() {
+    const r = this.bodyRaw(), A = r.ft, k = (p) => ({ x: A.x + (p.x - A.x) * SIZE, y: A.y + (p.y - A.y) * SIZE });
+    return { ft: A, hip: k(r.hip), sh: k(r.sh), head: k(r.head), hand: k(r.hand), hand2: k(r.hand2) };
+  }
+  /** His body's points at drawing size: feet (floating `lift` above the stage), hips, shoulders (leaning with `tilt` and `bow`), head, both hands. */
+  bodyRaw() {
     const E = this.e, d = E.dir;
     const ft = { x: E.x, y: E.y - E.lift };
     const hip = { x: ft.x - d * E.tilt * 10, y: ft.y - PH.leg * (1 - E.tilt * 0.15) };
@@ -197,11 +205,13 @@ export class MaestroBossStage extends BossArena {
   hurt() {
     const E = this.e; if (E.alpha < 0.5 || E.vanish > 0.5) return [];
     const b = this.body();
-    return [{ x1: b.head.x - 22, y1: b.head.y - 26, x2: b.head.x + 22, y2: b.head.y + 22, mult: 1.2, mask: true },
-      { x1: Math.min(b.hip.x, b.sh.x) - 26, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 26, y2: b.ft.y, mult: 0.9 }];
+    return [{ x1: b.head.x - 12, y1: b.head.y - 13, x2: b.head.x + 12, y2: b.head.y + 11, mult: 1.2, mask: true },
+      { x1: Math.min(b.hip.x, b.sh.x) - 14, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 14, y2: b.ft.y, mult: 0.9 }];
   }
   /** His attacks: calm, then enraged (more dives and teleports). */
   pattern(phase) { return phase === 1 ? ['dive', 'roses', 'cape', 'flurry', 'chandelier', 'roses'] : ['dive', 'roses', 'cape', 'flurry', 'chandelier', 'dive', 'cape']; }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.backG, this.condG]; }
   rageLine() { return 'THE MASK SLIPS!'; }
   /** The death card's form: THE FINALE, unmasked, or masked. */
   cardForm() { return this.low ? 'low' : super.cardForm(); }
@@ -251,7 +261,7 @@ export class MaestroBossStage extends BossArena {
     if (!a.landed) {
       const dx = a.tx - E.x, dy = -E.lift, d = Math.hypot(dx, dy) || 1, sp = DIVE.speed * (this.boss.phase === 2 ? 1.15 : 1);
       if (d <= sp) { E.x = a.tx; E.lift = 0; a.landed = a.t; this.mark = null; sfx('bighit', 1, 0.6); sfx('thunder', 0.5, 1.2); match.shake(10, 12); for (let i = 0; i < 18; i++) match.particles.push({ x: E.x + (Math.random() - 0.5) * 40, y: -4, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 4, life: 30, color: i % 3 ? LOOK.rose : 0x000000, size: 3, grav: 0.2 }); }
-      else { E.x += dx / d * sp; E.lift += -dy / d * -sp; if (a.t % 2 === 0) this.fx.push({ k: 'trail', x: E.x, y: E.y - E.lift - 60, life: 16 }); }
+      else { E.x += dx / d * sp; E.lift += -dy / d * -sp; if (a.t % 2 === 0) this.fx.push({ k: 'trail', x: E.x, y: E.y - E.lift - 28, life: 16 }); }
       const b = this.body(); out.push(this.bhit('dive' + a.id + a.i, Math.min(b.head.x, b.ft.x) - 28, b.head.y - 24, Math.max(b.head.x, b.ft.x) + 28, b.ft.y + 8, ...DIVE.hit, { dirX: E.dir }));
       return false;
     }
@@ -289,12 +299,12 @@ export class MaestroBossStage extends BossArena {
   atk_cape(match, a, out) {
     const E = this.e, tt = a.t - a.t0, W = this.sp(CAPE.wrap), V = CAPE.vanish, G = this.sp(CAPE.gone), U = CAPE.unfurl, S = CAPE.sweep;
     if (tt < W) { E.arms = 'wrap'; E.wrap = Math.min(1, tt / W); if (tt === 1) sfx('whoosh', 0.6, 0.9); return false; }
-    if (tt < W + V) { E.vanish = (tt - W) / V; if (tt === W) { sfx('curse', 0.6, 1.4); this.petals(match, E.x, E.y - E.lift - 70, 16); } return false; }
+    if (tt < W + V) { E.vanish = (tt - W) / V; if (tt === W) { sfx('curse', 0.6, 1.4); this.petals(match, E.x, E.y - E.lift - 32, 16); } return false; }
     if (tt < W + V + G) { E.vanish = 1; E.alpha = 0; return false; }
     if (tt === W + V + G) {                                                         // reappear behind you
       const tg = this.nearest(match, E.x), face = tg && tg.facing ? tg.facing : 1;
       E.x = Phaser.Math.Clamp(tg ? tg.x - face * CAPE.behind : E.x, -PH.range - 20, PH.range + 20); E.lift = 4; E.dir = tg ? Math.sign(tg.x - E.x) || E.dir : E.dir;
-      E.alpha = 1; this.petals(match, E.x, E.y - E.lift - 70, 16); sfx('curse', 0.7, 1.1); if (a.i === 0) this.talk(SAY.appear, 50);
+      E.alpha = 1; this.petals(match, E.x, E.y - E.lift - 32, 16); sfx('curse', 0.7, 1.1); if (a.i === 0) this.talk(SAY.appear, 50);
     }
     if (tt < W + V + G + U) { E.vanish = 1 - (tt - W - V - G) / U; E.wrap = E.vanish; return false; }
     E.vanish = 0; E.wrap = 0;
@@ -326,14 +336,14 @@ export class MaestroBossStage extends BossArena {
     if (k < jabsEnd) {                                                              // the jabs, left, right, left...
       const i = Math.floor(k / every); E.arms = i % 2 ? 'jab2' : 'jab1';
       if (k % every === 0) { sfx('hit', 0.4, 1.3 + (i % 3) * 0.1); if (tg) E.x += Phaser.Math.Clamp(tg.x - E.dir * 34 - E.x, -2, 2); }
-      if (k % every < 3) { const hx = E.dir > 0 ? b.sh.x + 6 : b.sh.x - 74; out.push(this.bhit('jab' + a.id + i, hx, b.sh.y - 16, hx + 68, b.sh.y + 30, ...FLURRY.jab, { dirX: E.dir, stun: FLURRY.hold })); }
+      if (k % every < 3) { const hx = E.dir > 0 ? b.sh.x + 2 : b.sh.x - 70; out.push(this.bhit('jab' + a.id + i, hx, b.sh.y - 16, hx + 68, b.ft.y + 4, ...FLURRY.jab, { dirX: E.dir, stun: FLURRY.hold })); }
       return false;
     }
     const u = k - jabsEnd, wind = this.sp(FLURRY.wind);
     if (u < wind) { E.arms = 'wrap'; E.lift = Math.max(0, E.lift - 1); return false; }
     if (u < wind + 10) {                                                            // the uppercut, rising
       E.arms = 'upper'; E.lift += 4; if (u === wind) { sfx('bighit', 0.8, 1.2); sfx('whoosh', 0.7, 1); }
-      const hx = E.dir > 0 ? b.sh.x - 6 : b.sh.x - 56; out.push(this.bhit('upper' + a.id, hx, b.head.y - 40, hx + 62, b.sh.y + 30, ...FLURRY.upper, { dirX: E.dir }));
+      const hx = E.dir > 0 ? b.sh.x - 6 : b.sh.x - 56; out.push(this.bhit('upper' + a.id, hx, b.head.y - 40, hx + 62, b.ft.y + 4, ...FLURRY.upper, { dirX: E.dir }));
       return false;
     }
     E.arms = 'idle'; E.flare = 0;
@@ -419,7 +429,7 @@ export class MaestroBossStage extends BossArena {
     if (this.say) this.say.t++;
     E.arms = t < STORM.crack ? 'wrap' : t < STORM.tear - 10 ? 'idle' : 'spread'; E.flare = t > STORM.tear - 10 ? 1 : 0; E.lift = PH.hover + (t > STORM.tear ? Math.min(30, (t - STORM.tear) * 0.5) : 0);
     this.poseStep(0.2);
-    C.shot = t < STORM.tear - 10 ? { x: b.head.x, y: b.head.y + 10, zoom: 1.9 } : { x: 0, y: -200, zoom: 0.85 };
+    C.shot = t < STORM.tear - 10 ? { x: b.head.x, y: b.head.y + 6, zoom: 2.8 } : { x: 0, y: -200, zoom: 0.85 };
     if (t > 30 && t < STORM.crack && t % 15 === 0) { sfx('glass', 0.3, 1.6); match.shake(2, 6); }
     if (once('crack', STORM.crack)) this.breakMask(match);
     if (once('tear', STORM.tear)) { this.tearRoof(match); this.talk(SAY.storm, 90); }
@@ -435,7 +445,7 @@ export class MaestroBossStage extends BossArena {
   stepRain() { for (const r of this.rain) { r.y += r.v; r.x -= 1.5; if (r.y > 60) { r.y = -600; r.x = (Math.random() - 0.5) * 900; } } }
 
   /** You lost: he bows low to the ghostly audience, cape wide, roses flying (BossArena.bossTaunt). */
-  onGloat(match, t) { const E = this.e; E.arms = t % 160 < 80 ? 'bow' : 'spread'; E.bow = E.arms === 'bow' ? Math.min(1, E.bow + 0.05) : Math.max(0, E.bow - 0.05); E.vanish = 0; E.alpha = 1; this.poseStep(); if (t === 1) this.talk(SAY.gloat, 400); if (t % 12 === 0) this.fx.push({ k: 'fallrose', x: (Math.random() - 0.5) * 400, y: -400, vx: (Math.random() - 0.5), vy: 2, life: 200 }); for (const F of this.fx) if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); F.life--; } }
+  onGloat(match, t) { const E = this.e; E.arms = t % 160 < 80 ? 'spread' : 'bow'; E.bow = E.arms === 'bow' ? Math.min(1, E.bow + 0.05) : Math.max(0, E.bow - 0.05); E.vanish = 0; E.alpha = 1; E.tilt *= 0.8; E.wrap *= 0.8; E.lift += (PH.hover + Math.sin(t * 0.05) * 6 - E.lift) * 0.1; this.poseStep(); if (t === 1) this.talk(SAY.gloat, 400); if (t % 12 === 0) this.fx.push({ k: 'fallrose', x: (Math.random() - 0.5) * 400, y: -400, vx: (Math.random() - 0.5), vy: 2, life: 200 }); for (const F of this.fx) if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); F.life--; } }
 
   // ------------------------------------------------------------------ the death: THE FINAL BOW
   /** Health gone: everything he threw is cleared; he starts his final bow. */
@@ -467,7 +477,7 @@ export class MaestroBossStage extends BossArena {
     const v = 1 - e(0.5, 0.66); E.vanish = v; E.alpha = v >= 1 ? 0 : 1; E.wrap = v;
     E.arms = k < 0.68 ? 'wrap' : k < 0.84 ? 'spread' : 'idle'; E.flare = k > 0.68 && k < 0.84 ? 1 : 0;
     this.poseStep(0.15);
-    if (t === Math.round(0.47 * n)) { sfx('curse', 0.7, 1); this.petals(match, E.x, -80, 24); }
+    if (t === Math.round(0.47 * n)) { sfx('curse', 0.7, 1); this.petals(match, E.x, -40, 24); }
     if (t === Math.round(0.68 * n)) { sfx('thunder', 1, 0.8); this.flash = 12; match.shake(8, 12); }
     if (t === Math.round(0.84 * n)) this.talk(SAY.intro, 140);
     if (t === Math.round(0.36 * n)) sfx('clang', 0.4, 0.6);
@@ -475,9 +485,9 @@ export class MaestroBossStage extends BossArena {
     if (this.flash > 0) this.flash--;
   }
   /** The entrance's camera: wide on the dark house, onto the spotlight as he appears, close as he speaks. */
-  introShot(k) { const c = this.core(); return k < 0.35 ? { x: 0, y: -170, zoom: 0.85 } : k < 0.66 ? { x: 60, y: -110, zoom: 1.3 } : k < 0.8 ? { x: 30, y: -150, zoom: 1.0 } : { x: c.x - 20, y: c.y + 40, zoom: 1.4 }; }
+  introShot(k) { const c = this.core(); return k < 0.35 ? { x: 0, y: -170, zoom: 0.85 } : k < 0.66 ? { x: 60, y: -60, zoom: 2 } : k < 0.8 ? { x: 40, y: -90, zoom: 1.4 } : { x: c.x - 12, y: c.y + 18, zoom: 2.3 }; }
   /** The freeze frame: him, cape settling. */
-  introAt() { const c = this.core(); return { x: c.x - 40, y: c.y + 50, zoom: 1.25 }; }
+  introAt() { const c = this.core(); return { x: c.x - 18, y: c.y + 22, zoom: 2.1 }; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_sandbag(match, h) { h.title = 'SANDBAG!'; const tg = this.nearest(match); h.x = Phaser.Math.Clamp(tg ? tg.x : 0, -235, 235); }
@@ -532,9 +542,9 @@ export class MaestroBossStage extends BossArena {
     this.R.fog = this.storm ? 0x10141e : mix(0x020102, 0x1a0610, lit);
     this.R.render([]); this.drawCurtains(this.curtainG); this.drawArena(this.arenaG);
     this.arenaG.setAlpha(0.25 + 0.75 * lit); this.curtainG.setAlpha(0.3 + 0.7 * lit);
-    this.backG.clear(); this.condG.clear(); this.fxG.clear(); this.finalG.clear(); this.bubG.clear(); this.bubT.setVisible(false); this.popT.setVisible(false);
-    if (lit < 1) { this.backG.fillStyle(0x000000, 0.75 * (1 - lit)); this.backG.fillRect(-900, -900, 1800, 1300); }
-    if (this.intro && this.spotK) { const g = this.backG; g.fillStyle(0xfff0c0, 0.16 * this.spotK); g.fillTriangle(52, -440, 68, -440, 120, 0); g.fillTriangle(52, -440, 0, 0, 120, 0); g.fillStyle(0xfff0c0, 0.2 * this.spotK); g.fillEllipse(60, -2, 120, 14); }
+    this.spotG.clear(); this.backG.clear(); this.condG.clear(); this.fxG.clear(); this.finalG.clear(); this.bubG.clear(); this.bubT.setVisible(false); this.popT.setVisible(false);
+    if (lit < 1) { this.spotG.fillStyle(0x000000, 0.75 * (1 - lit)); this.spotG.fillRect(-900, -900, 1800, 1300); }
+    if (this.intro && this.spotK) { const g = this.spotG; g.fillStyle(0xfff0c0, 0.16 * this.spotK); g.fillTriangle(52, -440, 68, -440, 120, 0); g.fillTriangle(52, -440, 0, 0, 120, 0); g.fillStyle(0xfff0c0, 0.2 * this.spotK); g.fillEllipse(60, -2, 120, 14); }
     if (B) this.drawPhantom(this.condG, this.backG);
     this.drawFx(this.fxG);
     if (this.e.curtain > 0) this.drawFinalCurtain(this.finalG, this.e.curtain);
@@ -552,7 +562,8 @@ export class MaestroBossStage extends BossArena {
    * into a spinning swirl of cape and petals.
    */
   drawPhantom(g, back) {
-    const E = this.e, d = E.dir, t = this.t, b = this.body(), fl = this.boss && this.boss.flash > 0, ink = LOOK.ink, V = E.vanish;
+    const E = this.e, d = E.dir, t = this.t, b = this.bodyRaw(), fl = this.boss && this.boss.flash > 0, ink = LOOK.ink, V = E.vanish;
+    for (const gg of [g, back]) gg.setScale(SIZE).setPosition(b.ft.x * (1 - SIZE), b.ft.y * (1 - SIZE));   // (drawn at full size, shown shrunk round his feet)
     const A = E.alpha * (1 - V);
     if (V > 0 && V < 1 || (V >= 1 && E.alpha > 0)) {                                   // the swirl of cape he vanishes into / appears out of
       const cx = b.hip.x, cy = (b.hip.y + b.sh.y) / 2, r = 70 * (1 - V * 0.8);
@@ -633,7 +644,7 @@ export class MaestroBossStage extends BossArena {
     const t = this.t, ink = LOOK.ink;
     if (this.mark) { const M = this.mark, k = M.k; g.fillStyle(LOOK.rose, 0.15 + 0.3 * k); g.fillEllipse(M.x, -2, 60, 12); g.lineStyle(2, LOOK.rose, 0.7); g.strokeEllipse(M.x, -2, 60 * (1.6 - k * 0.6), 12 * (1.6 - k * 0.6)); g.lineStyle(0); g.fillStyle(LOOK.rose, 0.06 + 0.1 * k); g.fillRect(M.x - 24, -440, 48, 440); }
     for (const F of this.fx) {
-      if (F.k === 'trail') { const a = F.life / 16; g.fillStyle(LOOK.lining, 0.35 * a); g.fillEllipse(F.x, F.y, 40 * a + 10, 70 * a + 10); g.fillStyle(0x000000, 0.4 * a); g.fillEllipse(F.x, F.y, 26 * a + 6, 50 * a + 6); }
+      if (F.k === 'trail') { const a = F.life / 16; g.fillStyle(LOOK.lining, 0.35 * a); g.fillEllipse(F.x, F.y, 20 * a + 6, 34 * a + 6); g.fillStyle(0x000000, 0.4 * a); g.fillEllipse(F.x, F.y, 13 * a + 4, 24 * a + 4); }
       else if (F.k === 'rose' || F.k === 'fallrose') {
         const a = F.stuck ? -1.2 : F.spin || 0, c = Math.cos(a), s = Math.sin(a);
         g.lineStyle(2, 0x2a6a2a, 1); g.lineBetween(F.x, F.y, F.x - c * 14, F.y - s * 14); g.lineStyle(0);
@@ -667,11 +678,11 @@ export class MaestroBossStage extends BossArena {
   }
   /** His speech bubble: an ivory bubble edged in crimson, with a tail toward his face. */
   drawBubble() {
-    const S = this.say, b = this.body(), g = this.bubG, pop = Math.min(1, S.t / 6), x = Phaser.Math.Clamp(b.head.x - this.e.dir * 40, -220, 220), y = b.head.y - 76;
+    const S = this.say, b = this.body(), g = this.bubG, pop = Math.min(1, S.t / 6), x = Phaser.Math.Clamp(b.head.x - this.e.dir * 30, -220, 220), y = b.head.y - 44;
     this.bubT.setText(S.text).setPosition(x, y).setScale(pop).setVisible(true);
     const w = Math.max(60, this.bubT.width + 20) * pop, h = (this.bubT.height + 14) * pop;
     g.fillStyle(LOOK.ink, 1); g.fillRoundedRect(x - w / 2 - 3, y - h / 2 - 3, w + 6, h + 6, 10); g.fillStyle(0xc0203a, 1); g.fillRoundedRect(x - w / 2 - 1, y - h / 2 - 1, w + 2, h + 2, 9); g.fillStyle(0xfff8ec, 1); g.fillRoundedRect(x - w / 2 + 1, y - h / 2 + 1, w - 2, h - 2, 8);
-    g.fillStyle(0xfff8ec, 1); g.fillTriangle(x - 6, y + h / 2 - 2, x + 8, y + h / 2 - 2, b.head.x, b.head.y - 24); g.lineStyle(2, LOOK.ink, 1); g.lineBetween(x - 6, y + h / 2, b.head.x, b.head.y - 24); g.lineBetween(x + 8, y + h / 2, b.head.x, b.head.y - 24); g.lineStyle(0);
+    g.fillStyle(0xfff8ec, 1); g.fillTriangle(x - 6, y + h / 2 - 2, x + 8, y + h / 2 - 2, b.head.x, b.head.y - 12); g.lineStyle(2, LOOK.ink, 1); g.lineBetween(x - 6, y + h / 2, b.head.x, b.head.y - 12); g.lineBetween(x + 8, y + h / 2, b.head.x, b.head.y - 12); g.lineStyle(0);
   }
 }
 

@@ -235,6 +235,8 @@ export class KnightBossStage extends BossArena {
   /** Counts his attacks (every few, the soul comes out). */
   tally() { this.count++; }
   start_slam() { this.tally(); } start_grasp() { this.tally(); } start_charge() { this.tally(); } start_volley() { this.tally(); } start_fury() { this.tally(); } start_soul() { this.tally(); }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.knG]; }
   rageLine() { return 'THORNWARD GOES BERSERK!'; }
   /** BERSERK: the helm's visor tears open (his soul bared), a burst of leaves and green fire. */
   onRage(match) { this.decoys = null; this.onRage2(match); }

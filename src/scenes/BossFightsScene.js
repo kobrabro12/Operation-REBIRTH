@@ -63,7 +63,7 @@ export class BossFightsScene extends Phaser.Scene {
     // the fighter step
     this.sprite = this.add.sprite(VIEW_W / 2, 250, 'ss_idle', 0).setScale(2.4).setVisible(false);
     T('fname', VIEW_W / 2, 270, '', 10, '#ffffff', { align: 'center' }).setOrigin(0.5, 0);
-    T('fskin', VIEW_W / 2, 288, '', 6, '#c9c4dc', { align: 'center' }).setOrigin(0.5, 0);
+    T('fskin', VIEW_W / 2, 287, '', 8, '#ffe08a', { align: 'center' }).setOrigin(0.5, 0);
     T('fhead', VIEW_W / 2, 64, '', 9, '#ffffff', { align: 'center' }).setOrigin(0.5, 0);
     this.go = makeButton(this, VIEW_W - 30, 302, 'FIGHT!', () => this.choose(), { originX: 1, size: '9px', bg: '#8a1a14', hover: '#d8342a' });
     // BOSS RUSH: every boss back to back on one set of lives (`RUSH`; BossRewardScene carries it from fight to fight)
@@ -90,7 +90,8 @@ export class BossFightsScene extends Phaser.Scene {
       for (let i = 0; i < BOSSES.length; i++) { const cx = CARD.x + i * (CARD.w + CARD.gap); if (x > cx && x < cx + CARD.w && y > CARD.y && y < CARD.y + CARD.h) { if (this.sel === i) this.choose(); else { this.sel = i; sfx('menu', 0.5); this.refresh(); } return; } }
       for (let k = 0; k < 3; k++) if (x > 326 + k * 96 && x < 416 + k * 96 && y > 210 && y < 230) { this.tier = k; sfx('menu', 0.5); this.refresh(); return; }
     } else {
-      if (y > 180 && y < 300) { if (x < VIEW_W / 2 - 40) this.cycleFighter(-1); else if (x > VIEW_W / 2 + 40) this.cycleFighter(1); }
+      if (y > 282 && y < 302) { this.cycleSkin(x < VIEW_W / 2 ? -1 : 1); return; }                 // the costume bar: left half back, right half on
+      if (y > 180 && y < 282) { if (x < VIEW_W / 2 - 40) this.cycleFighter(-1); else if (x > VIEW_W / 2 + 40) this.cycleFighter(1); }
     }
   }
 
@@ -143,7 +144,7 @@ export class BossFightsScene extends Phaser.Scene {
       if (!this.skins(f.id).includes(this.skin)) this.skin = 0;
       this.txt.fhead.setText(this.rush ? 'BOSS RUSH - ALL ' + BOSSES.length + ' BOSSES, ' + (T.stocks + RUSH.extraLives) + ' LIVES\n' + T.name : 'WHO FACES ' + B.name + '?\n' + T.name).setColor(this.rush ? '#d8a0ff' : '#ffffff');
       this.txt.fname.setText('<  ' + f.def.name + (f.tag ? ' (TEST)' : '') + '  >');
-      this.txt.fskin.setText('COSTUME: ' + skinInfo(f.id, this.skin).name + '   (W/S)');
+      const list = this.skins(f.id); this.txt.fskin.setText('<  COSTUME: ' + skinInfo(f.id, this.skin).name + '  (' + (list.indexOf(this.skin) + 1) + '/' + list.length + ')  >');
     }
     this.draw();
   }
@@ -173,6 +174,7 @@ export class BossFightsScene extends Phaser.Scene {
       p.fillStyle(0xffffff, 1);
       const bob = Math.sin(this.t * 0.2) * 3;
       p.fillTriangle(c - 120 + bob, 214, c - 108 + bob, 204, c - 108 + bob, 224); p.fillTriangle(c + 120 - bob, 214, c + 108 - bob, 204, c + 108 - bob, 224);
+      slant(p, c - 180, 283, 360, 18, 0x000000, 0.55, 6); slant(p, c - 180, 283, 360, 3, BOSSES[this.sel].color, 1, 1);   // the costume bar (W/S or click either half)
     }
   }
 

@@ -153,6 +153,8 @@ export class SteamBossStage extends BossArena {
 
   // ------------------------------------------------------------------ the Colossus
   /** The boss's own state when the fight starts. */
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.bossG, this.armG]; }
   makeBoss() { this.cycle.gap = 1200; this.cycle.next = 1500; }
   /** The intro (a real player is watching): also makes THE CLOCK's pieces on the UI layer, and lets the cutscenes play. */
   startIntro(match) {

@@ -13,7 +13,7 @@ import { bossById, TIERS, clock, BOSSES } from '../data/bosses.js';
 import { checkAchievements, stat } from '../achievements.js';
 import { getCoins, addCoins } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
-import { skinInfo } from '../fighters/skins.js';
+import { skinInfo, skinsFor, skinUnlocked } from '../fighters/skins.js';
 import { RUSH } from './BossFightsScene.js';
 import { achievementToasts } from '../ui/toast.js';
 import { deathCard } from '../ui/deathCard.js';
@@ -29,6 +29,7 @@ export class BossRewardScene extends Phaser.Scene {
   create(data) {
     const R = data.boss, B = bossById(R.id), T = TIERS[R.tier];
     this.R = R; this.B = B; this.t = 0; this.choice = 0; this.menu = new MenuInput(this);
+    this.skin = R.skin; this.skinList = skinsFor(R.fighter).map((_, i) => i).filter((i) => skinUnlocked(R.fighter, i));   // (W/S changes costume for the retry)
     this.won = R.won;
     // BOSS RUSH: which boss of the run this was, whether there's another, and the prize at the end
     const rush = R.rush, last = rush && rush.i >= BOSSES.length - 1, rushLines = [];
@@ -58,16 +59,28 @@ export class BossRewardScene extends Phaser.Scene {
       const b = txt(610, y, l.coins ? '+' + l.coins : l.kind === 'unlock' ? 'NEW!' : l.kind === 'record' ? '!' : '', 8, '#ffe08a').setOrigin(1, 0).setAlpha(0);
       return { a, b, at: LINE.first + i * LINE.every };
     });
-    if (!this.won) this.card = deathCard(this, B, R, def, 214, 94, 410, 208, this.tip());   // THE DEATH CARD (src/ui/deathCard.js)
+    this.skinT = txt(118, 300, '', 6, '#ffe08a').setOrigin(0.5, 0);
+    if (!this.won) {                                                                // THE DEATH CARD fills the screen (src/ui/deathCard.js)
+      for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx) o.setVisible(false);
+      this.card = deathCard(this, B, R, def, this.tip(), skinInfo(R.fighter, this.skin).name);
+    }
     this.totalT = txt(610, 104 + Math.max(1, this.lines.length) * 22 + 10, '', 9, '#ffe08a').setOrigin(1, 0);
     this.coinT = txt(236, 104 + Math.max(1, this.lines.length) * 22 + 12, '', 6, '#c9c4dc');
-    this.actions = [makeButton(this, 236, 318, this.next ? 'NEXT BOSS' : rush ? 'RUSH AGAIN' : this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
-      makeButton(this, 400, 318, 'BOSS FIGHTS', () => this.leave(1), { size: '8px' })];
-    hintBar(this, 'A/D CHOOSE   J / ENTER / A  CONFIRM   K / ESC / B  BOSS FIGHTS', B.color);
+    if (!this.won) { this.totalT.setVisible(false); this.coinT.setVisible(false); }
+    const by = this.won ? 318 : 342;
+    this.actions = [makeButton(this, this.won ? 236 : 220, by, this.next ? 'NEXT BOSS' : rush ? 'RUSH AGAIN' : this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
+      makeButton(this, this.won ? 400 : 380, by, 'BOSS FIGHTS', () => this.leave(1), { size: '8px' })];
+    if (this.won) hintBar(this, 'A/D CHOOSE   W/S COSTUME   J / ENTER / A  CONFIRM   K / ESC / B  BOSS FIGHTS', B.color);
+    this.setSkin(this.skin);
+    this.input.on('pointerdown', (p, over) => { const Z = this.card && this.card.skinZone; if (!over.length && Z && p.x > Z.x1 && p.x < Z.x2 && p.y > Z.y1 && p.y < Z.y2) this.cycleSkin(p.x < (Z.x1 + Z.x2) / 2 ? -1 : 1); });
     this.drawBg();
     if (fresh.length) achievementToasts(this, fresh);
   }
 
+  /** Changes the costume you'll retry in (and shows it). */
+  setSkin(s) { this.skin = s; const name = skinInfo(this.R.fighter, s).name; if (this.card) this.card.setSkin(name, s); this.skinT.setText('COSTUME: ' + name + '  (W/S)'); }
+  /** Next / previous unlocked costume. */
+  cycleSkin(d) { const L = this.skinList; if (L.length < 2) return; const i = L.indexOf(this.skin); this.setSkin(L[(Math.max(0, i) + d + L.length) % L.length]); sfx('menu', 0.4); }
   /** A tip for the defeat screen, about the boss you lost to. */
   tip() {
     return { colossus: 'TIP: AFTER ITS STEAM VENT IT OVERHEATS - ITS GLOWING HEART TAKES EXTRA DAMAGE. HIT IT THEN.',
@@ -94,17 +107,17 @@ export class BossRewardScene extends Phaser.Scene {
     const R = this.R;
     if (i === 0 && R.rush && R.setup) {                                // BOSS RUSH: on to the next boss with the lives left - or a fresh run
       const nx = this.next || BOSSES[0], cont = !!this.next;
-      const setup = { ...R.setup, stage: nx.stage, stocks: cont ? R.lives : TIERS[R.tier].stocks + RUSH.extraLives };
+      const setup = { ...R.setup, stage: nx.stage, stocks: cont ? R.lives : TIERS[R.tier].stocks + RUSH.extraLives, skins: [this.skin] };
       this.scene.start('Match', { boss: { id: nx.id, tier: R.tier, setup, rush: { i: cont ? R.rush.i + 1 : 0, time: cont ? R.rush.time + R.time : 0 } } }); return;
     }
-    if (i === 0 && this.R.setup) this.scene.start('Match', { boss: { id: this.R.id, tier: this.R.tier, setup: this.R.setup } });
+    if (i === 0 && this.R.setup) this.scene.start('Match', { boss: { id: this.R.id, tier: this.R.tier, setup: { ...this.R.setup, skins: [this.skin] } } });
     else this.scene.start('BossFights');
   }
 
 /** Brings the reward lines in one by one, counts the total up, confetti on a win; the two buttons. */
   update() {
     this.t++;
-    showFighter(this.sprite, this.def, Math.floor(this.t / 6), this.R.skin);
+    showFighter(this.sprite, this.def, Math.floor(this.t / 6), this.skin);
     this.sprite.setPosition(118, 252);
     for (const r of this.rows) if (this.t === r.at) { r.a.setAlpha(1); r.b.setAlpha(1); sfx('ding', 0.5, 1 + this.rows.indexOf(r) * 0.08); }
     for (const r of this.rows) if (this.t > r.at && this.t < r.at + 10) { const k = (this.t - r.at) / 10; r.a.x = 236 + (1 - k) * 30; }
@@ -119,6 +132,7 @@ export class BossRewardScene extends Phaser.Scene {
     const m = this.menu.poll();
     if (this.t < 20) return;
     if (m.left) this.choice = 0; if (m.right) this.choice = 1;
+    if (m.up) this.cycleSkin(-1); if (m.down) this.cycleSkin(1);
     if (m.ok || m.pads.some((p) => p.button === 'a')) this.leave(this.choice);
     else if (m.back || m.pads.some((p) => p.button === 'b')) this.leave(1);
   }

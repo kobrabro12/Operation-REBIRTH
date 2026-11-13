@@ -260,6 +260,12 @@ export class PolyBossStage extends BossArena {
   }
   /** The death card's form: LEGENDARY, BATTER UP, enraged or not. */
   cardForm() { return this.legend ? 'legend' : this.low ? 'low' : super.cardForm(); }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.R.g]; }
+  /** The King alone for the portrait: the scenery faces are set aside and the 3D layer redrawn with only him. */
+  cardPrep() { this.cardSaved = this.R.faces; this.R.faces = []; this.render(); }
+  /** ...and the scenery put back. */
+  cardDone() { this.R.faces = this.cardSaved; this.render(); }
   rageLine() { return this.legend ? 'LEGENDS NEVER DIE!' : 'SYSTEM OVERCLOCKED!'; }
   /** ENRAGED. LEGENDARY: a mini cutscene (LET ME SETTLE THIS) when there's a player watching, else the layout just changes. */
   onRage(match) {

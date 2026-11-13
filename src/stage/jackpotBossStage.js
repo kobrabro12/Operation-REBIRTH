@@ -286,6 +286,8 @@ export class JackpotBossStage extends BossArena {
   }
   /** The death card's form: THE LIGHTNING ROUND, SWEEPS WEEK or the regular show. */
   cardForm() { return this.low ? 'low' : this.gold ? 'gold' : 'base'; }
+  /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
+  cardObjs() { return [this.backG, this.hostG]; }
   rageLine() { return 'SWEEPS WEEK!'; }
   /**
    * Half health. With a player watching: THE COMMERCIAL BREAK cutscene (cutStep). Without (the sim): straight into

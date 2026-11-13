@@ -58,7 +58,7 @@ export const BOSSES = [
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
     card: { marks: [[0.5, 'LEVEL !'], [0.7, 'THE HUNGER']], quotes: { base: '...bzzzzz... ...stay... ...the lights are always on... ...bzzzz...', rage: 'THE LIGHTS WENT RED. YOU STAYED ANYWAY. EVERYONE STAYS.', feral: 'HUNGRY. HUNGRY. HUNGRY. ...FULL.' } },
     hazards: 'FLICKER / BURST PANELS' },
-  { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 740, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
+  { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 680, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
     blurb: 'A NINE-YEAR-OLD ART PRODIGY WITH A BUCKET\nON HIS HEAD. EVERY FEW ATTACKS HE REPAINTS\nHIMSELF - AND THE WORLD - IN A NEW STYLE.',
     taunts: ['I\'M PUTTING YOU ON THE FRIDGE!', 'SIGNED: SMUDGE. AGE NINE. MASTERPIECE.', 'NEEDS MORE COLOUR. AND MORE WINNING.'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
@@ -72,7 +72,7 @@ export const BOSSES = [
     card: { marks: [[0.5, 'SWEEPS WEEK'], [0.7, 'LIGHTNING ROUND']], quotes: { base: 'AND THAT\'S A WRAP! LET\'S HEAR IT FOR OUR CONTESTANT - CUE THE SAD TROMBONE!', gold: 'SWEEPS WEEK, BABY! RATINGS THROUGH THE ROOF - AND YOU THROUGH THE FLOOR!', low: 'LIGHTNING ROUND\'S OVER, CHAMP. THE ANSWER WAS: NOT YOU.' } },
     tip: 'WHEN THE WHEEL LANDS ON BANKRUPT, GO FOR HIS BALD HEAD - IT TAKES DOUBLE.',
     hazards: 'STAGE LAMPS / CONFETTI' },
-  { id: 'maestro', name: 'THE PHANTOM MAESTRO', short: 'THE PHANTOM', title: 'HE HAUNTS THE GRAND OPERA', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 330, coins: 700, color: 0xd03050, trophy: 'golden-baton',
+  { id: 'maestro', name: 'THE PHANTOM MAESTRO', short: 'THE PHANTOM', title: 'HE HAUNTS THE GRAND OPERA', stage: 'grand-opera', arena: 'THE GRAND OPERA', hp: 430, coins: 700, color: 0xd03050, trophy: 'golden-baton',
     blurb: 'A MASKED GHOST IN A CRIMSON-LINED CAPE.\nHE DIVES FROM THE RAFTERS, THROWS ROSES\nTHAT STUN, VANISHES - AND PUNCHES.',
     taunts: ['THE CURTAIN FALLS. ON YOU.', 'BOX FIVE WILL ALWAYS BE MINE.', 'THE AUDIENCE DEMANDS AN ENCORE - OF YOUR DEFEAT!'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
