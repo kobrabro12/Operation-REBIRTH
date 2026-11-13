@@ -261,9 +261,9 @@ export class BossArena {
    */
   bossTaunt(match) {
     const B = this.boss; if (!B || B.dying) return null;
-    const list = B.cfg.boss.taunts || ['...'], line = list[Math.floor(Math.random() * list.length)];
+    const list = this.taunts || B.cfg.boss.taunts || ['...'], line = list[Math.floor(Math.random() * list.length)];
     B.taunt = line; B.gloat = 1; B.atk = null;
-    this.rageText.setText(line).setColor('#' + B.cfg.boss.color.toString(16).padStart(6, '0')).setFontSize(11).setVisible(true).setWordWrapWidth(560).setAlign('center');
+    this.rageText.setText(line).setColor('#' + (this.tauntColor || B.cfg.boss.color).toString(16).padStart(6, '0')).setFontSize(11).setVisible(true).setWordWrapWidth(560).setAlign('center');
     B.rage = 0; sfx('laugh', 0.8, 0.8);
     return line;
   }
@@ -298,6 +298,7 @@ export class BossArena {
     g.fillStyle(0xffffff, 0.85); g.fillRect(x, y, Math.round(w * kc), h);
     const col = B.phase === 2 ? 0xff3a3a : this.boss.cfg.boss.color;
     g.fillStyle(col, 1); g.fillRect(x, y, Math.round(w * k), h);
+    if (this.barStyle) this.barStyle(g, x, y, w, h, k);                   // (an arena can dress its bar up)
     g.fillStyle(0xffffff, 0.35); g.fillRect(x, y, Math.round(w * k), 2);
     g.fillStyle(0x07060e, 1); g.fillRect(x + w / 2 - 1, y, 2, h);
     if (B.flash) { g.fillStyle(0xffffff, 0.5 * B.flash / FLASH); g.fillRect(x, y, Math.round(w * k), h); }
