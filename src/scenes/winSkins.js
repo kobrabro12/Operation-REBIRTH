@@ -257,6 +257,7 @@ export class SkinShots {
   // A sunlit attic studio: he paints at a huge easel, flicking colour everywhere; close on the canvas as a portrait of
   // the beaten appears stroke by stroke (unflattering); then the gallery opening - the beaten hang on the wall in gold
   // frames, labelled, while he bows to applause.
+  /** THE ARTIST's attic studio: plank walls, a skylight's sunbeams, a paint-spattered floor and a shelf of paint tubes. */
   studio(g, t) {
     g.fillStyle(0xe8d0a0, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xd0b080, 1); for (let x = 0; x < W; x += 40) g.fillRect(x, 0, 3, 260);   // plank walls
     g.fillStyle(0xfff4c8, 0.9); g.fillTriangle(80, 0, 220, 0, 360, 288); g.fillStyle(0xfff4c8, 0.35); g.fillTriangle(60, 0, 250, 0, 420, 288);   // sunlight from the skylight
@@ -265,12 +266,14 @@ export class SkinShots {
     for (let i = 0; i < 12; i++) { const x = 20 + i * 14, h = 18 + (i % 3) * 6; g.fillStyle([0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][i % 4], 1); g.fillRect(x, 260 - h, 10, h); g.fillStyle(0xd8d8d0, 1); g.fillRect(x + 2, 254 - h, 6, 6); }   // paint tubes on a shelf
     g.fillStyle(0x5a3a1a, 1); g.fillRect(14, 260, 180, 6);
   }
-  easel(g, x, y, w, h, p) {                                                     // a tall easel with a canvas, painted up to p
+  /** A tall wooden easel with a canvas on it, painted up to p (0..1) with strokes of colour. */
+  easel(g, x, y, w, h, p) {
     g.lineStyle(6, 0x6a4420, 1); g.lineBetween(x - w * 0.4, y + h + 60, x, y - 20); g.lineBetween(x + w * 0.4, y + h + 60, x, y - 20); g.lineBetween(x, y - 20, x + 10, y + h + 70); g.lineStyle(0);
     g.fillStyle(0x3a2410, 1); g.fillRect(x - w / 2 - 4, y - 4, w + 8, h + 8); g.fillStyle(0xfaf6ea, 1); g.fillRect(x - w / 2, y, w, h);
     const cols = [0x2a8aff, 0xff2a4a, 0xffd400, 0x2ad060, 0xb04ae0];
     for (let i = 0; i < 18 * p; i++) { const sp = this.spots[i], c = cols[i % 5]; g.fillStyle(c, 0.85); g.fillRoundedRect(x - w / 2 + sp[0] * (w - 30), y + sp[1] * (h - 14), 20 + sp[2] * 30, 8, 4); }
   }
+  /** THE ARTIST, shot 1: he paints at the easel in his studio, flicking paint everywhere. */
   shot_wake_artist_studio(t, k, s) {
     const g = this.bg, floor = 300;
     this.studio(g, t); this.hideLosers();
@@ -280,6 +283,7 @@ export class SkinShots {
     for (let i = 0; i < 10; i++) { const sp = this.spots[i + 10], q = ((s * 2 + i * 23) % 60) / 60, x = 310 + q * 140 + sp[0] * 20, y = 200 - Math.sin(q * Math.PI) * 60 + sp[1] * 20; this.fx.fillStyle([0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][i % 4], 1 - q); this.fx.fillCircle(x, y, 3); }   // flicked paint
     this.vignette(this.over, 0.45);
   }
+  /** THE ARTIST, shot 2: close on the canvas - the beaten, painted in, then given a moustache and spectacles. */
   shot_wake_artist_canvas(t, k, s) {                                             // close on the canvas: the beaten, painted - badly, lovingly
     const g = this.bg; this.hero.setVisible(false);
     g.fillStyle(0x3a2410, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xfaf6ea, 1); g.fillRect(60, 30, W - 120, H - 60);
@@ -292,6 +296,7 @@ export class SkinShots {
     if (s % 12 === 0 && s < 110) sfx('swing', 0.25, 2);
     this.vignette(this.over, 0.5);
   }
+  /** THE ARTIST, shot 3: the gallery opening - the beaten framed on the wall (STILL LIFE WITH ...), the crowd clapping, him bowing. */
   shot_wake_artist_gallery(t, k, s) {                                            // the gallery opening
     const g = this.bg, floor = 300;
     g.fillStyle(0xf4f0e8, 1); g.fillRect(0, 0, W, H); g.fillStyle(0xb8a890, 1); g.fillRect(0, 288, W, H);
