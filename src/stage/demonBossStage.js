@@ -2,16 +2,19 @@
 // The battlement walk of a castle keep at night: a blood-red moon, a sky lit orange by the burning town below, black
 // mountains, banners on two towers with braziers on top, torches along the wall.
 // KARNAX is a horned, grinning, laughing demon three times your height, with a jagged rune greatsword - he fights ON
-// the walk with you. He's drawn every frame from a skeleton (`joints()`: hips, torso, head, two arms, two legs, the
-// sword in his front hand) posed by keyframes (`POSES`, blended by `aim()`); `drawDemon` paints it: crimson muscle,
-// curling ram horns and forehead spikes, a wild black mane, a huge jagged grin, a spiked pauldron, a skull belt,
-// a tattered loincloth, and the black blade with glowing red runes (on fire when he's enraged).
+// the walk with you, and climbs, kicks and cracks the keep itself. He's drawn every frame from a skeleton (`joints()`:
+// hips, torso, head, two arms, two legs, the sword in his front hand) posed by keyframes (`POSES`, blended by `aim()`);
+// `drawDemon` paints it: cracked obsidian skin with molten veins and a burning heart behind his ribs, tattered bat wings,
+// a barbed tail, goat legs on cloven hooves, a wild white mane, long horns sweeping forward, a gaunt grinning face,
+// shackles with broken chains on his wrists, clawed fists, and the black blade with glowing red runes.
 //   Weak point: his HEAD (x1.3; x1.7 while he LAUGHS - every few attacks he throws his head back and cackles). His
 //   body takes x0.9, his legs x0.75. At half health he goes MAD: red eyes, glowing cracks, a burning sword, faster everything.
 //   Attacks: BLADE COMBO (stalks up, then slash - upswing - overhead slam), DEMON LEAP (crouches, leaps onto you, a
 //   fire shockwave both ways - jump it), SWORD THROW (hurls the sword spinning out like a boomerang, laughing, and
 //   catches it), BEHIND YOU (vanishes in smoke, red eyes glint behind you, then a lunging thrust), HELLFIRE (MAD: stabs
-//   the walk and pillars of fire erupt outward), BLADE STORM (he hurls the sword into the sky, it splits into a storm of
+//   the walk and pillars of fire erupt outward), HOOF STOMP and TAIL SWEEP (if you stand at his feet, he stamps the
+//   walk - a burst of fire round his hooves - or whips his barbed tail low along the floor), THE TOWER (he leaps onto a
+//   tower, kicks its burning brazier down onto the walk - spilled fire - and dives off it sword-first onto you), BLADE STORM (he hurls the sword into the sky, it splits into a storm of
 //   ghost blades that rain down point-first and stick in the walk - then he clenches his fist and every blade rips free
 //   and flies back to his hand in a straight line, through anyone in the way).
 // Stage hazards (also in VS, where his sword stands planted in the walk): CATAPULT STONE (a boulder lobbed in on a
@@ -22,11 +25,11 @@ import { sfx } from '../audio/sfx.js';
 
 const C = { out: 0x12060a, sky: [0x0a0614, 0x1a0a20, 0x2e0e22, 0x4a1420, 0x7a2018, 0xb83a14, 0xe86a1a], moon: [0xe8b0a0, 0xc88070, 0xa86058],
   stone: [0x1e1a26, 0x2e2834, 0x403848, 0x585060, 0x787080], banner: [0x6a0a12, 0x9a1418, 0xd8a838],
-  skin: [0x2a060a, 0x5a1014, 0x8a1c1c, 0xb8302a, 0xe0583a], horn: [0xf0e4c8, 0xc8b898, 0x8a7a60], hair: [0x0a0608, 0x1e1418],
+  skin: [0x1e0e14, 0x3e1e26, 0x5e2e34, 0x844440, 0xb06650], wing: [0x3a0a10, 0x5e1218, 0x8a2a24], horn: [0xf0e4c8, 0xc8b898, 0x8a7a60], hair: [0x0a0608, 0x1e1418],
   iron: [0x141218, 0x2a2630, 0x48444e, 0x6a6672], rune: [0xff2a10, 0xff7a2a, 0xffd060], cloth: [0x14080c, 0x2a1418],
   fire: [0xc02008, 0xff5010, 0xff9a20, 0xffe060, 0xfff8d8] };
 // his body (px): leg, torso, neck and head sizes, arm lengths, the sword's blade and grip; walking speed (normal / MAD)
-const DM = { thigh: 42, shin: 42, torso: 70, neck: 16, head: 30, upper: 40, fore: 38, blade: 126, grip: 22, walk: 2.4, mad: 3.3, range: 240 };
+const DM = { thigh: 42, shin: 46, torso: 70, neck: 16, head: 30, upper: 40, fore: 38, blade: 126, grip: 22, walk: 2.4, mad: 3.3, range: 240 };
 // his poses (angles in radians): lean = torso forward; head = head tilt; u/f = upper arm / forearm from straight down,
 // + toward the front (1 = sword arm, 2 = the other); t/s = thigh / shin the same way; sw = the sword from straight up,
 // + toward the front. Missing legs = his ready stance.
@@ -43,7 +46,8 @@ const POSES = {
   crouch: { lean: 0.45, head: 0.25, u1: 0.45, f1: 0.85, u2: 0.2, f2: 0.5, sw: 2.3, t1: 1.2, s1: -0.3, t2: 0.4, s2: -1.1 },
   air: { lean: 0.05, head: -0.1, u1: 3.05, f1: 3.45, u2: 0.6, f2: 1.6, sw: -0.55, t1: 0.95, s1: 0.1, t2: 0.25, s2: -0.9 },
   throw: { lean: 0.32, head: 0.1, u1: 1.75, f1: 1.6, u2: -0.5, f2: 0.1, sw: 1.6 },
-  pose: { lean: 0.04, head: 0.38, u1: 2.75, f1: 3.05, u2: 1.05, f2: 2.55, sw: 0.42, t1: 0.48, s1: 0.0, t2: -0.38, s2: -0.52 },
+  pose: { lean: 0.02, head: 0.05, u1: 0.8, f1: 2.55, u2: 1.25, f2: 2.1, sw: -0.7, t1: 0.48, s1: 0.0, t2: -0.38, s2: -0.52 },
+  stomp: { lean: -0.1, head: 0.1, u1: 0.9, f1: 1.6, u2: -0.6, f2: 0.2, sw: 2.1, t1: 1.5, s1: 0.5, t2: -0.15, s2: -0.3 },
   kneel: { lean: 0.65, head: 0.6, u1: 0.25, f1: 0.45, u2: 0.1, f2: 0.3, sw: 2.95, t1: 1.45, s1: -0.15, t2: 0.1, s2: -1.5 },
 };
 // BLADE COMBO: frames he'll stalk before swinging anyway, how close he gets; each swing's hit
@@ -60,6 +64,16 @@ const HELL = { n: 5, gap: 62, every: 8, warn: 20, burn: 26, hit: [9, [86, 5.2, 0
 // BLADE STORM: wind-up, the throw up, blades (normal / MAD), frames between them landing, the marks' warning, fall speed,
 // how long they stay stuck, the recall (frames), the falling and returning hits
 const STORM = { wind: 22, up: 26, n: [5, 7], every: 7, warn: 30, fall: 18, stuck: 46, recall: 20, hit: [10, [80, 5.4, 0.7]], back: [9, [40, 5.6, 0.75]] };
+// HOOF STOMP: wind-up, reach round his hooves, hit; TAIL SWEEP: wind-up, sweep frames, hit
+const STOMP = { wind: 16, r: 74, hit: [10, [72, 5.6, 0.75]] };
+const TAIL = { wind: 16, sweep: 16, hit: [9, [28, 5.8, 0.7]] };
+// who counts as "at his feet": closer than this (x) and lower than `below` (y); frames standing there before he reacts
+const FEET = { x: 82, below: -70, react: 40 };
+// THE TOWER: the leap up (frames, height), the laugh on top, the kick, the dive, its hit; the spilled fire (length,
+// frames, hit) and how long the brazier stays out; the burning cracks his overhead slam leaves (frames, width, hit)
+const TOWER = { leap: 34, high: 150, gloat: 30, kick: 16, dive: 22, top: -112, x: 208, hit: [15, [70, 6.6, 1.0]] };
+const SPILL = { len: 150, life: 240, out: 1100, hit: [5, [80, 4.6, 0.4]] };
+const CRACK = { life: 110, w: 26, hit: [4, [82, 4.4, 0.35]] };
 const LAUGH = { every: 4, dur: 110 };
 // CATAPULT STONE hazard: flight frames, size, hit; BRAZIER FLARE: warning, flare frames, its hit (ticks)
 const STONE = { flight: 70, r: 18, hit: [12, [60, 6, 0.8]] };
@@ -83,6 +97,7 @@ export class DemonBossStage extends BossArena {
     this.spawns = [{ x: -150, y: 0 }, { x: -60, y: 0 }, { x: -100, y: 0 }, { x: 150, y: 0 }];
     this.cycle = new HazardCycle(this, ['stone', 'flare'], { color: '#ffb040', stroke: '#2a0606', gap: 700 });
     this.dm = { x: 140, y: 0, dir: -1, p: { ...LEGS, ...POSES.idle }, alpha: 1, sink: 0, held: true, walk: 0 };
+    this.cracks = []; this.out = { '-1': 0, 1: 0 }; this.braz = null; this.spill = null; this.lying = null; this.tail = null; this.close = 0;
     this.count = 0; this.waves = []; this.pillars = []; this.blade = null; this.glint = null; this.introFire = 0;
     this.stone = null; this.flare = null;
     this.sparkColor = 0xff5a2a; this.bodyW = 120; this.bodyH = 170;
@@ -155,8 +170,8 @@ export class DemonBossStage extends BossArena {
   makeBoss() { this.cycle.gap = 1250; this.cycle.next = 1500; }
   /** His head: what the camera, the death and the CPU aim at. */
   core() { const j = this.joints(); return { x: j.head.x, y: j.head.y }; }
-  /** The camera keeps the whole walk and him in view. */
-  camPoints() { return this.boss && this.boss.dying < 100 ? [{ x: -250, y: -230 }, { x: 250, y: 0 }] : []; }
+  /** The camera keeps the whole walk and him in view (up on a tower too). */
+  camPoints() { if (!this.boss || this.boss.dying >= 100) return []; const p = [{ x: -250, y: -230 }, { x: 250, y: 0 }]; if (this.dm.y < -20) p.push({ x: this.dm.x, y: this.dm.y - 250 }); return p; }
   /** Where he can be hit: his head (x1.3, x1.7 while laughing), his body (x0.9) and his legs (x0.75). Nothing while he's vanished. */
   hurt() {
     if (this.dm.alpha < 0.5) return [];
@@ -205,10 +220,13 @@ export class DemonBossStage extends BossArena {
   }
   /** What he'll do: every few attacks he stops to LAUGH; MAD adds HELLFIRE. */
   pattern(phase) {
+    if (this.atFeet()) return ['stomp', 'tail'];
     if (this.count % LAUGH.every === LAUGH.every - 1) return ['laugh'];
-    return phase === 1 ? ['combo', 'leap', 'throw', 'behind', 'combo', 'storm'] : ['combo', 'leap', 'throw', 'behind', 'hellfire', 'combo', 'storm'];
+    return phase === 1 ? ['combo', 'leap', 'throw', 'behind', 'combo', 'storm', 'tower'] : ['combo', 'leap', 'throw', 'behind', 'hellfire', 'combo', 'storm', 'tower'];
   }
-  start_storm() { this.count++; }
+  start_storm() { this.count++; } start_tower() { this.count++; } start_stomp() { this.close = 0; } start_tail() { this.close = 0; }
+  /** Whether anyone is standing at his feet (close in x, low down) - where his sword can't reach. */
+  atFeet() { const D = this.dm; return D.y === 0 && this.match && this.match.fighters.some((f) => f.alive && Math.abs(f.x - D.x) < FEET.x && f.y > FEET.below); }
   start_combo() { this.count++; } start_leap() { this.count++; } start_throw() { this.count++; } start_behind() { this.count++; } start_hellfire() { this.count++; } start_laugh() { this.count++; }
   rageLine() { return 'KARNAX HAS GONE MAD!'; }
   /** MAD: a burst of fire round him and a scream of laughter. */
@@ -217,6 +235,8 @@ export class DemonBossStage extends BossArena {
   /** At rest: he faces the nearest player, breathes, and stalks closer if they keep away. */
   idle(match) {
     const D = this.dm, tg = this.nearest(match, D.x);
+    this.close = this.atFeet() ? (this.close || 0) + 1 : 0;
+    if (this.close > FEET.react) this.boss.wait = Math.min(this.boss.wait, 2);       // camping at his feet? he reacts
     this.laughing = false;
     if (tg && Math.abs(tg.x - D.x) > 170) this.walkTo(tg.x - Math.sign(tg.x - D.x) * 150, this.speed() * 0.6);
     else { if (tg) D.dir = Math.sign(tg.x - D.x) || D.dir; this.aim('idle', 0.12); D.p.lean = 0.12 + Math.sin(this.t * 0.06) * 0.04; D.p.head = 0.22 + Math.sin(this.t * 0.045) * 0.12; }
@@ -238,7 +258,7 @@ export class DemonBossStage extends BossArena {
     else if (t < w + 20 + this.sp(14)) this.aim('over', 0.3);
     else if (t < w + 26 + this.sp(14)) {
       this.aim('down', 0.6); step(4); this.swordHits(out, 'c3' + a.id, H[2]);
-      if (t === w + 24 + this.sp(14)) { const j = this.joints(); sfx('bighit', 1, 0.6); match.shake(9, 10); for (let i = 0; i < 14; i++) match.particles.push({ x: j.tip.x, y: -4, vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4, life: 22, color: C.fire[1 + i % 4], size: 3, grav: 0.12 }); }
+      if (t === w + 24 + this.sp(14)) { const j = this.joints(); sfx('bighit', 1, 0.6); match.shake(9, 10); if (Math.abs(j.tip.x) < 255) this.cracks.push({ x: j.tip.x, t: 0, id: this.sid('crack') }); for (let i = 0; i < 14; i++) match.particles.push({ x: j.tip.x, y: -4, vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4, life: 22, color: C.fire[1 + i % 4], size: 3, grav: 0.12 }); }
     } else { this.aim('idle', 0.1); if (t > w + 60 + this.sp(14)) return true; }
     return false;
   }
@@ -337,6 +357,105 @@ export class DemonBossStage extends BossArena {
     return false;
   }
 
+  /** HOOF STOMP: he lifts a goat leg high and stamps the walk - a burst of fire round his hooves and two short flame waves. */
+  atk_stomp(match, a, out) {
+    const D = this.dm, w = this.sp(STOMP.wind);
+    if (a.t === 1) { const tg = this.nearest(match, D.x); if (tg) D.dir = Math.sign(tg.x - D.x) || D.dir; sfx('laugh', 0.4, 1.4); }
+    if (a.t < w) { this.aim('stomp', 0.3); return false; }
+    if (a.t < w + 5) { this.aim('idle', 0.6); return false; }
+    if (a.t < w + 9) {
+      out.push(this.bhit('stomp' + a.id, D.x - STOMP.r, -46, D.x + STOMP.r, 2, ...STOMP.hit, { radial: true }));
+      if (a.t === w + 5) {
+        sfx('bighit', 1, 0.5); sfx('flame', 0.7, 0.9); match.shake(10, 10);
+        for (const sd of [-1, 1]) this.waves.push({ x: D.x + sd * 40, dir: sd, t: 18, id: this.sid('swave') });
+        for (let i = 0; i < 18; i++) match.particles.push({ x: D.x + (Math.random() - 0.5) * 100, y: -3, vx: (Math.random() - 0.5) * 5, vy: -1 - Math.random() * 4, life: 22, color: C.fire[1 + i % 4], size: 3, grav: 0.1 });
+      }
+      return false;
+    }
+    this.aim('idle', 0.1);
+    return a.t > w + 30;
+  }
+  /** TAIL SWEEP: he twists and whips his barbed tail low along the walk, round past his hooves and out in front. */
+  atk_tail(match, a, out) {
+    const D = this.dm, w = this.sp(TAIL.wind);
+    if (a.t === 1) { const tg = this.nearest(match, D.x); if (tg) D.dir = Math.sign(tg.x - D.x) || D.dir; this.tail = { k: 0, s: -D.dir, low: 0 }; sfx('whoosh', 0.6, 0.6); }
+    const T = this.tail;
+    this.aim('crouch', 0.2);
+    if (a.t < w) { T.low = Math.min(1, a.t / w); return false; }
+    if (a.t < w + TAIL.sweep) {
+      T.low = 1; T.k = (a.t - w + 1) / TAIL.sweep; T.s = -D.dir * -1; T.hot = this.boss.phase === 2;
+      if (a.t === w) sfx('whoosh', 1, 0.8);
+      const tp = this.tailPts();
+      for (let i = 4; i < tp.length; i += 2) out.push(this.bhit('tail' + a.id, tp[i].x - 16, tp[i].y - 20, tp[i].x + 16, tp[i].y + 6, ...TAIL.hit, { dirX: Math.sign(T.s) || 1 }));
+      if (a.t % 3 === 0) { const e = tp[tp.length - 1]; match.particles.push({ x: e.x, y: -3, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 14, color: 0x8a7a7a, size: 2 }); }
+      return false;
+    }
+    T.low = Math.max(0, T.low - 0.08); this.aim('idle', 0.1);
+    if (T.low <= 0) { this.tail = null; return a.t > w + TAIL.sweep + 10; }
+    return false;
+  }
+  /**
+   * THE TOWER: he leaps up onto the nearer tower and crouches there grinning; kicks its burning brazier down onto the
+   * walk (it crashes and spills a pool of fire along the stone, and that brazier stays out for a while); then dives off
+   * the tower sword-first onto the nearest player - a big hit and fire waves both ways.
+   */
+  atk_tower(match, a, out) {
+    const D = this.dm, up = TOWER.leap, gl = up + this.sp(TOWER.gloat), kk = gl + TOWER.kick, dv = kk + this.sp(12), land = dv + TOWER.dive;
+    if (a.t === 1) { a.s = D.x < 0 ? -1 : 1; if (this.out[a.s] > 0) a.s = -a.s; a.x0 = D.x; a.tx = a.s * TOWER.x; D.dir = Math.sign(a.tx - D.x) || D.dir; sfx('laugh', 0.6, 1.0); }
+    if (a.t < 10) { this.aim('crouch', 0.3); return false; }
+    if (a.t < 10 + up) {                                                         // the leap up
+      const k = (a.t - 10) / up; D.x = lerp(a.x0, a.tx, k); D.y = lerp(0, TOWER.top, k) - Math.sin(k * Math.PI) * TOWER.high; this.aim('air', 0.25);
+      if (a.t === 10) sfx('whoosh', 1, 0.5);
+      return false;
+    }
+    if (a.t === 10 + up) { D.x = a.tx; D.y = TOWER.top; D.dir = -a.s; sfx('bighit', 0.8, 0.7); match.shake(6, 8); for (let i = 0; i < 10; i++) match.particles.push({ x: D.x + (Math.random() - 0.5) * 60, y: TOWER.top - 2, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 2, life: 18, color: C.stone[3], size: 2, grav: 0.15 }); }
+    if (a.t < 10 + gl) { this.aim('laugh', 0.2); this.laughing = true; if (a.t % 20 === 0) this.ha(match); return false; }
+    this.laughing = false;
+    if (a.t < 10 + kk) {                                                         // kicks the brazier off
+      this.aim('stomp', 0.4);
+      if (a.t === 10 + kk - 6) {
+        sfx('clang', 1, 0.6); sfx('flame', 0.8, 0.8); this.out[a.s] = SPILL.out;
+        this.braz = { x: a.s * FLARE.x, y: -126, vx: -a.s * 2.6, vy: -4, a: 0, s: a.s, id: this.sid('braz') };
+        match.popText({ x: D.x, y: TOWER.top - 200 }, 'BURN!', '#ff7a5a');
+      }
+      return false;
+    }
+    if (a.t < 10 + dv) { this.aim('over', 0.3); const tg = this.nearest(match, D.x); a.dx = Phaser.Math.Clamp(tg ? tg.x : 0, -DM.range, DM.range); D.dir = Math.sign(a.dx - D.x) || D.dir; a.dx0 = D.x; return false; }
+    if (a.t < 10 + land) {                                                       // the dive
+      const k = (a.t - 10 - dv) / TOWER.dive; D.x = lerp(a.dx0, a.dx, k); D.y = lerp(TOWER.top, 0, k * k) - Math.sin(k * Math.PI) * 50; this.aim('down', 0.4);
+      if (a.t === 10 + dv) sfx('whoosh', 1, 0.6);
+      if (k > 0.4) out.push(this.bhit('dive' + a.id, D.x - 46, D.y - 150, D.x + 46, D.y + 4, ...TOWER.hit, { radial: true }));
+      return false;
+    }
+    if (a.t === 10 + land) {
+      D.y = 0; sfx('bighit', 1, 0.45); match.shake(14, 16);
+      for (const sd of [-1, 1]) this.waves.push({ x: D.x + sd * 30, dir: sd, t: 0, id: this.sid('wave') });
+      if (Math.abs(D.x) < 255) this.cracks.push({ x: D.x + D.dir * 40, t: 0, id: this.sid('crack') });
+    }
+    this.aim('idle', 0.1);
+    return a.t > 10 + land + 34;
+  }
+  /** The kicked brazier tumbles onto the walk and spills fire; spilled fire and the burning cracks burn whoever stands in them. */
+  stepFloorFire(match, out) {
+    const Bz = this.braz;
+    if (Bz) {
+      Bz.vy += 0.4; Bz.x += Bz.vx; Bz.y += Bz.vy; Bz.a += 0.2 * Bz.s;
+      out.push(this.bhit(Bz.id, Bz.x - 16, Bz.y - 12, Bz.x + 16, Bz.y + 12, 9, [60, 5, 0.6], { radial: true }));
+      if (Bz.y >= -10) { this.braz = null; this.spill = { x: Bz.x, s: Bz.s, t: 0, id: this.sid('spill') }; this.lying = { x: Bz.x, s: Bz.s, t: 0 }; sfx('bighit', 0.7, 0.9); sfx('flame', 1, 0.6); match.shake(6, 8); for (let i = 0; i < 16; i++) match.particles.push({ x: Bz.x, y: -6, vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4, life: 24, color: C.fire[1 + i % 4], size: 3, grav: 0.12 }); }
+    }
+    const S = this.spill;
+    if (S) {
+      S.t++; const len = Math.min(1, S.t / 30) * SPILL.len, x1 = S.s > 0 ? S.x - len : S.x, x2 = S.s > 0 ? S.x : S.x + len;
+      S.x1 = x1; S.x2 = x2;
+      if (S.t > 6 && S.t < SPILL.life - 20) out.push(this.bhit(S.id + Math.floor(S.t / 24), x1, -30, x2, 2, ...SPILL.hit));
+      if (S.t >= SPILL.life) this.spill = null;
+    }
+    for (const c of this.cracks) { c.t++; if (c.t > 10 && c.t < CRACK.life - 10) out.push(this.bhit(c.id + Math.floor(c.t / 26), c.x - CRACK.w, -22, c.x + CRACK.w, 2, ...CRACK.hit)); }
+    this.cracks = this.cracks.filter((c) => c.t < CRACK.life);
+    for (const s of [-1, 1]) if (this.out[s] > 0) this.out[s]--;
+    if (this.lying && this.out[this.lying.s] <= 0) this.lying = null;
+  }
+
   /** BEHIND YOU: he fades into smoke; his eyes glint behind the nearest player; then he lunges out with a thrust. */
   atk_behind(match, a, out) {
     const D = this.dm, fade = BEHIND.fade, warn = this.sp(BEHIND.warn);
@@ -384,7 +503,7 @@ export class DemonBossStage extends BossArena {
   /** A puff of black smoke round him. */
   smoke(match) { const j = this.joints(); for (let i = 0; i < 6; i++) match.particles.push({ x: j.chest.x + (Math.random() - 0.5) * 50, y: j.chest.y + (Math.random() - 0.5) * 90, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, life: 30, color: [0x1a0a10, 0x3a1a20, 0x5a1a1a][i % 3], size: 4, drag: 0.95 }); }
   /** His death: he drops to his knees (the explosions come from BossArena). */
-  onDeath() { this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
+  onDeath() { this.tail = null; this.braz = null; this.dm.y = 0; this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
 
   /**
    * THE ENTRANCE (k = 0..1): a pillar of fire bursts up in the middle of the walk; he rises out of it laughing,
@@ -404,8 +523,8 @@ export class DemonBossStage extends BossArena {
     if (t === Math.round(0.82 * n)) { sfx('slash', 1, 0.5); sfx('bighit', 0.8, 0.7); match.shake(8, 10); const j = this.joints(); for (let i = 0; i < 24; i++) { const q = i / 24 * Math.PI * 2; match.particles.push({ x: j.tip.x, y: j.tip.y, vx: Math.cos(q) * 4, vy: Math.sin(q) * 4, life: 26, color: C.fire[1 + i % 4], size: 3, drag: 0.93 }); } }
     if (k >= 1) { D.sink = 0; D.alpha = 1; }
   }
-  /** The freeze frame looks at his chest (he's tall: the head would put the name band over his body), less zoomed. */
-  introAt() { const j = this.joints(); return { x: j.chest.x, y: j.chest.y - 10, zoom: 1.05 }; }
+  /** The freeze frame: high on him (his head, horns and wings), a little wider. */
+  introAt() { const j = this.joints(); return { x: j.chest.x, y: j.head.y + 30, zoom: 0.95 }; }
   /** The entrance's camera: close on the fire pillar, tilting up with him as he rises, pulling back for the swing. */
   introShot(k) { return k < 0.3 ? { x: 30, y: -90, zoom: 1.25 } : k < 0.66 ? { x: 30, y: -70 - 110 * (k - 0.3) / 0.36, zoom: 1.2 } : { x: 30, y: -130, zoom: 0.95 }; }
   /** After the intro the fire pillar is gone. */
@@ -428,7 +547,7 @@ export class DemonBossStage extends BossArena {
     if (h.t < FLARE.warn) { this.flare = { k: h.t / FLARE.warn }; return false; }
     if (h.t < FLARE.warn + FLARE.on) {
       this.flare = { on: true }; if (h.t === FLARE.warn) sfx('flame', 1, 0.5);
-      for (const s of [-1, 1]) out.push(this.bhit('fl' + h.id + s + Math.floor(h.t / 20), s * FLARE.x - 36, -250, s * FLARE.x + 36, -112, ...FLARE.hit));
+      for (const s of [-1, 1]) if (!(this.out[s] > 0)) out.push(this.bhit('fl' + h.id + s + Math.floor(h.t / 20), s * FLARE.x - 36, -250, s * FLARE.x + 36, -112, ...FLARE.hit));
       return false;
     }
     this.flare = null; return true;
@@ -441,7 +560,7 @@ export class DemonBossStage extends BossArena {
     if (this.boss) {
       this.bossStep(match, out);
       if (this.boss.dying) { this.aim('kneel', 0.05); this.dm.y = 0; }
-      this.stepWaves(match, out); this.stepPillars(match, out);
+      this.stepWaves(match, out); this.stepPillars(match, out); this.stepFloorFire(match, out);
       if (this.boss.phase === 2 && this.t % 3 === 0 && this.dm.held && !this.boss.dying) { const j = this.joints(), q = Math.random(); match.particles.push({ x: j.h1.x + (j.tip.x - j.h1.x) * q, y: j.h1.y + (j.tip.y - j.h1.y) * q, vx: (Math.random() - 0.5), vy: -1 - Math.random(), life: 18, color: C.fire[1 + Math.floor(Math.random() * 3)], size: 2 }); }
     }
     return out;
@@ -466,8 +585,19 @@ export class DemonBossStage extends BossArena {
     }
     if (this.glint) { const k = Math.min(1, this.glint.t / 10), gx = D.x + D.dir * 10, gy = -160; x.fillStyle(0xff2a10, 0.25 * k); x.fillCircle(gx, gy, 26); for (const s of [-1, 1]) { x.fillStyle(0xff3a1a, k); x.fillTriangle(gx + s * 9 - 6, gy - 3, gx + s * 9 + 6, gy - 5, gx + s * 9, gy + 3); } }
     for (const tx of [-110, 0, 110]) this.fire(x, tx, -46, 5, 12, t + tx);                         // torches
-    if (this.flare) for (const s of [-1, 1]) { if (this.flare.on) this.fire(x, s * FLARE.x, -128, 34, 130, t + s * 5); else this.fire(x, s * FLARE.x, -128, 8 + 16 * this.flare.k, 14 + 30 * this.flare.k, t); }
-    else for (const s of [-1, 1]) this.fire(x, s * FLARE.x, -128, 9, 16, t + s * 7);
+    for (const s of [-1, 1]) {
+      if (this.out[s] > 0) { x.fillStyle(0x2a2a2a, 0.5); x.fillCircle(s * FLARE.x, -134 - (t * 0.6 + s * 20) % 30, 4 + ((t * 0.3) % 6)); continue; }   // knocked off: a wisp of smoke
+      if (this.flare && this.flare.on) this.fire(x, s * FLARE.x, -128, 34, 130, t + s * 5); else if (this.flare) this.fire(x, s * FLARE.x, -128, 8 + 16 * this.flare.k, 14 + 30 * this.flare.k, t); else this.fire(x, s * FLARE.x, -128, 9, 16, t + s * 7);
+    }
+    if (this.braz) { const Bz = this.braz; x.fillStyle(C.out, 1); x.fillRect(Bz.x - 17, Bz.y - 8, 34, 14); x.fillStyle(0x6a5030, 1); x.fillRect(Bz.x - 15, Bz.y - 6, 30, 10); this.fire(x, Bz.x, Bz.y - 6, 12, 24, t); }
+    if (this.lying) { const L = this.lying; x.fillStyle(C.out, 1); x.fillRect(L.x - 10, -16, 22, 16); x.fillStyle(0x6a5030, 1); x.fillRect(L.x - 8, -14, 18, 12); x.fillStyle(C.stone[0], 1); x.fillRect(L.x - 3, -24, 6, 10); }
+    if (this.spill && this.spill.x1 != null) { const S = this.spill, fade = Math.min(1, (SPILL.life - S.t) / 30); x.fillStyle(C.fire[0], 0.5 * fade); x.fillRect(S.x1, -4, S.x2 - S.x1, 5); for (let fx = S.x1 + 8; fx < S.x2; fx += 16) this.fire(x, fx, 1, 9 * fade, (20 + Math.sin(t * 0.3 + fx) * 6) * fade, t + fx); }
+    for (const c of this.cracks) {                                                // burning cracks in the walk
+      const fade = Math.min(1, (CRACK.life - c.t) / 20), k = Math.min(1, c.t / 8);
+      x.lineStyle(4, C.out, fade); x.lineBetween(c.x - CRACK.w * k, -1, c.x - 8, 1); x.lineBetween(c.x - 8, 1, c.x + 6, -2); x.lineBetween(c.x + 6, -2, c.x + CRACK.w * k, 0);
+      x.lineStyle(2, C.fire[2], fade); x.lineBetween(c.x - CRACK.w * k, -1, c.x - 8, 1); x.lineBetween(c.x - 8, 1, c.x + 6, -2); x.lineBetween(c.x + 6, -2, c.x + CRACK.w * k, 0); x.lineStyle(0);
+      if (c.t > 10) for (const ox of [-14, 2, 16]) this.fire(x, c.x + ox, 1, 6 * fade, (14 + Math.sin(t * 0.4 + ox) * 4) * fade, t + ox + c.x);
+    }
     for (const w of this.waves) this.fire(x, w.x, 0, 16, 34 + Math.sin(t + w.x) * 6, t + w.x);
     for (const p of this.pillars) {
       if (p.t <= 0) continue;
@@ -506,72 +636,135 @@ export class DemonBossStage extends BossArena {
   }
 
   /**
-   * KARNAX, from his skeleton (joints): back arm and leg, his body (muscle, abs, the cracks that glow when he's MAD,
-   * a skull belt, a tattered loincloth), front leg, head (wild mane, ram horns, forehead spikes, slanted glowing eyes,
-   * a huge jagged grin), the spiked pauldron, front arm with an iron bracer, and the sword in his fist.
+   * KARNAX, from his skeleton (joints): tattered bat wings behind him (spread wide and edged with fire when MAD), his
+   * barbed tail, the back arm and goat leg, a lean V-shaped body of cracked obsidian with molten veins and a burning
+   * heart showing through his ribs, a spined back, a chain belt and tattered loincloth, the front goat leg on a cloven
+   * hoof, the head (wild white mane, long horns sweeping up and forward, ember eyes, a huge jagged grin that glows inside),
+   * a spiked pauldron, iron shackles with broken chains on both wrists, and the sword in his clawed fist.
    */
   drawDemon(g, flash) {
-    const j = this.joints(), D = this.dm, d = D.dir, mad = this.boss && this.boss.phase === 2, A = D.alpha;
-    const sk = flash ? [0xffffff, 0xffe0d8, 0xffffff, 0xffffff, 0xffffff] : C.skin;
-    const limb = (a, b, wa, wb, cols) => {
-      const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L;
-      const q = (w1, w2) => [{ x: a.x + nx * w1, y: a.y + ny * w1 }, { x: b.x + nx * w2, y: b.y + ny * w2 }, { x: b.x - nx * w2, y: b.y - ny * w2 }, { x: a.x - nx * w1, y: a.y - ny * w1 }];
-      g.fillStyle(C.out, A); g.fillPoints(q(wa + 2.5, wb + 2.5), true); g.fillStyle(cols[0], A); g.fillPoints(q(wa, wb), true);
-      g.fillStyle(cols[1], A); g.fillPoints([{ x: a.x + nx * wa * 0.2, y: a.y + ny * wa * 0.2 }, { x: b.x + nx * wb * 0.2, y: b.y + ny * wb * 0.2 }, { x: b.x + nx * wb * 0.8, y: b.y + ny * wb * 0.8 }, { x: a.x + nx * wa * 0.8, y: a.y + ny * wa * 0.8 }], true);
+    const j = this.joints(), D = this.dm, d = D.dir, mad = this.boss && this.boss.phase === 2, A = D.alpha, t = this.t;
+    const sk = flash ? [0xffffff, 0xffe8e0, 0xffffff, 0xffffff, 0xffffff] : C.skin;
+    const glow = mad ? C.rune[1] : C.rune[0], pulse = 0.65 + 0.35 * Math.sin(t * 0.15);
+    const quad = (a, b, wa, wb) => { const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L; return [{ x: a.x + nx * wa, y: a.y + ny * wa }, { x: b.x + nx * wb, y: b.y + ny * wb }, { x: b.x - nx * wb, y: b.y - ny * wb }, { x: a.x - nx * wa, y: a.y - ny * wa }]; };
+    const limb = (a, b, wa, wb, cols, vein = true) => {
+      g.fillStyle(C.out, A); g.fillPoints(quad(a, b, wa + 2.5, wb + 2.5), true); g.fillStyle(cols[0], A); g.fillPoints(quad(a, b, wa, wb), true);
+      g.fillStyle(cols[1], A); g.fillPoints(quad(a, b, wa * 0.45, wb * 0.45).slice(0, 2).concat(quad(a, b, wa * 0.05, wb * 0.05).slice(0, 2).reverse()), true);
+      if (vein) { g.lineStyle(1.5, glow, A * pulse); const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; g.lineBetween(a.x, a.y, m.x + (b.y - a.y) * 0.08, m.y - (b.x - a.x) * 0.08); g.lineBetween(m.x + (b.y - a.y) * 0.08, m.y - (b.x - a.x) * 0.08, b.x, b.y); g.lineStyle(0); }
       g.fillStyle(C.out, A); g.fillCircle(b.x, b.y, wb + 2); g.fillStyle(cols[0], A); g.fillCircle(b.x, b.y, wb);
     };
-    const back = [sk[1], sk[2]], front = [sk[2], sk[3]];
-    // back arm and leg (darker), then the body
-    limb(j.s2, j.e2, 15, 12, back); limb(j.e2, j.h2, 12, 10, back); g.fillStyle(sk[1], A); g.fillCircle(j.h2.x, j.h2.y, 12);
-    limb(j.hip, j.kn2, 17, 13, back); limb(j.kn2, j.ft2, 13, 10, back); g.fillStyle(C.out, A); g.fillEllipse(j.ft2.x + d * 7, j.ft2.y - 3, 34, 11);
+    // a goat leg: thigh forward, the shin bending back at the hock, a cloven hoof
+    const goat = (kn, ft, cols, front) => {
+      const hock = { x: lerp(kn.x, ft.x, 0.5) - d * 13, y: lerp(kn.y, ft.y, 0.5) + 2 };
+      limb(kn, hock, front ? 14 : 13, 9, cols, false); limb(hock, { x: ft.x, y: ft.y - 8 }, 9, 7, cols, false);
+      g.fillStyle(C.out, A); g.fillPoints([{ x: ft.x - d * 9, y: ft.y - 12 }, { x: ft.x + d * 12, y: ft.y - 10 }, { x: ft.x + d * 15, y: ft.y + 1 }, { x: ft.x - d * 10, y: ft.y + 1 }], true);
+      g.fillStyle(C.iron[1], A); g.fillPoints([{ x: ft.x - d * 7, y: ft.y - 10 }, { x: ft.x + d * 11, y: ft.y - 8 }, { x: ft.x + d * 13, y: ft.y - 1 }, { x: ft.x - d * 8, y: ft.y - 1 }], true);
+      g.fillStyle(C.out, A); g.fillRect(ft.x + d * 2 - 1, ft.y - 8, 2, 8);
+      for (let i = 0; i < 3; i++) { g.fillStyle(C.hair[1], A); g.fillTriangle(hock.x - 5 + i * 4, hock.y - 6, hock.x - 3 + i * 4, hock.y - 6, hock.x - d * 8 + i * 3, hock.y + 6); }   // a tuft of fur
+    };
+    // the wings, behind everything
+    const wb = { x: j.chest.x - d * 14, y: j.chest.y + 2 }, spread = mad ? 1.25 : 1, flap = Math.sin(t * (mad ? 0.14 : 0.07)) * 0.18;
+    for (const [side, k] of [[1, 0.8], [-1, 1]]) {
+      const base = { x: wb.x - d * side * 4, y: wb.y - side * 2 }, ang = -2.2 + flap * side - (side < 0 ? 0.25 : 0);
+      const tip = { x: base.x - d * Math.cos(ang + 1.6) * 110 * k * spread, y: base.y + Math.sin(ang) * 90 * k * spread };
+      const fingers = [0.3, 0.75, 1.15, 1.5].map((q) => ({ x: base.x - d * Math.cos(ang + q) * (120 - q * 30) * k * spread, y: base.y + Math.sin(ang + q * 0.6) * (100 - q * 20) * k * spread + q * 40 * k }));
+      const mem = [base, tip, ...fingers.slice().reverse().map((f, i) => ({ x: f.x + d * (i % 2 ? 6 : -4), y: f.y + 10 + (i % 2) * 8 })), { x: base.x - d * 10, y: base.y + 60 * k }];
+      g.fillStyle(C.out, A); g.fillPoints(mem, true);
+      g.fillStyle(flash ? 0xffffff : C.wing[side < 0 ? 0 : 1], A * 0.97); g.fillPoints(mem.map((p) => ({ x: base.x + (p.x - base.x) * 0.95, y: base.y + (p.y - base.y) * 0.95 })), true);
+      if (mad) { g.lineStyle(2, C.fire[2], A * 0.7); g.strokePoints(mem.slice(1, -1), false); g.lineStyle(0); }
+      for (const f of [tip, ...fingers]) { g.lineStyle(4, C.out, A); g.lineBetween(base.x, base.y, f.x, f.y); g.lineStyle(2, C.wing[2], A); g.lineBetween(base.x, base.y, f.x, f.y); }
+      g.lineStyle(0); g.fillStyle(C.horn[1], A); g.fillTriangle(tip.x - 3, tip.y + 2, tip.x + 3, tip.y + 2, tip.x - d * 4, tip.y - 9);
+    }
+    // the tail: from the base of the spine, swaying, ending in a barbed arrowhead
+    const tp = this.tailPts();
+    for (const [lw, c] of [[11, C.out], [8, sk[1]], [3, sk[2]]]) { g.lineStyle(lw, c, A); for (let i = 1; i < tp.length; i++) g.lineBetween(tp[i - 1].x, tp[i - 1].y, tp[i].x, tp[i].y); }
+    g.lineStyle(0);
+    { const e = tp[tp.length - 1], p = tp[tp.length - 2], ux = (e.x - p.x) / (Math.hypot(e.x - p.x, e.y - p.y) || 1), uy = (e.y - p.y) / (Math.hypot(e.x - p.x, e.y - p.y) || 1);
+      const tri = (s) => [{ x: e.x + ux * 20 * s, y: e.y + uy * 20 * s }, { x: e.x - uy * 11 * s - ux * 4, y: e.y + ux * 11 * s - uy * 4 }, { x: e.x, y: e.y }, { x: e.x + uy * 11 * s - ux * 4, y: e.y - ux * 11 * s - uy * 4 }];
+      g.fillStyle(C.out, A); g.fillPoints(tri(1.15), true); g.fillStyle(this.tail && this.tail.hot ? C.fire[2] : glow, A); g.fillPoints(tri(1), true); }
+    // back arm and leg (in shadow)
+    const back = [sk[0], sk[1]], front = [sk[1], sk[2]];
+    limb(j.s2, j.e2, 13, 10, back); limb(j.e2, j.h2, 10, 8, back);
+    this.shackle(g, j.e2, j.h2, A, back); this.claw(g, j.h2, d, A, sk[1]);
+    limb(j.hip, j.kn2, 15, 13, back, false); goat(j.kn2, j.ft2, back, false);
+    // the body: a V of cracked obsidian, ribs, the burning heart
     const ht = { x: (j.hip.x + j.chest.x) / 2, y: (j.hip.y + j.chest.y) / 2 };
     const L2 = Math.hypot(j.chest.x - j.hip.x, j.chest.y - j.hip.y), nx = -(j.chest.y - j.hip.y) / L2, ny = (j.chest.x - j.hip.x) / L2;
     const tor = (w1, w2, e = 0) => [{ x: j.hip.x + nx * w1, y: j.hip.y + ny * w1 + e }, { x: j.chest.x + nx * w2, y: j.chest.y + ny * w2 - e }, { x: j.chest.x - nx * w2, y: j.chest.y - ny * w2 - e }, { x: j.hip.x - nx * w1, y: j.hip.y - ny * w1 + e }];
-    g.fillStyle(C.out, A); g.fillPoints(tor(31, 50, 3), true); g.fillStyle(sk[2], A); g.fillPoints(tor(28, 47), true);
-    g.fillStyle(sk[3], A); g.fillPoints(tor(14 * d, 32 * d).slice(0, 2).concat([{ x: ht.x + nx * 2 * d, y: ht.y + ny * 2 * d }]), true);
-    const pec = { x: j.chest.x + (j.hip.x - j.chest.x) * 0.2, y: j.chest.y + (j.hip.y - j.chest.y) * 0.2 };   // muscle: chest and belly lit, the far side in shadow
-    g.fillStyle(sk[1], A); g.fillPoints(tor(-28 * d, -47 * d).slice(0, 2).concat([{ x: ht.x - nx * 12 * d, y: ht.y - ny * 12 * d }]), true);
-    g.fillStyle(sk[3], A); g.fillEllipse(pec.x + d * 10, pec.y + 6, 44, 22); g.fillStyle(sk[4], A); g.fillEllipse(pec.x + d * 14, pec.y + 2, 20, 8);
-    g.fillStyle(sk[3], A * 0.8); g.fillEllipse(ht.x + d * 6, ht.y + 6, 26, 36);
-    g.lineStyle(2, sk[0], A); for (let i = 1; i < 4; i++) { const q = i / 4, cx = j.hip.x + (j.chest.x - j.hip.x) * q * 0.7, cy = j.hip.y + (j.chest.y - j.hip.y) * q * 0.7; g.lineBetween(cx - nx * 14, cy - ny * 14, cx + nx * 14, cy + ny * 14); }   // abs
-    g.lineBetween(j.chest.x + nx * 2, j.chest.y + 14, j.chest.x + nx * 36, j.chest.y + 6); g.lineBetween(j.chest.x - nx * 2, j.chest.y + 14, j.chest.x - nx * 36, j.chest.y + 6);
-    if (mad) { g.lineStyle(2, C.rune[1], A); g.lineBetween(ht.x - 8, ht.y - 12, ht.x + 4, ht.y + 2); g.lineBetween(ht.x + 4, ht.y + 2, ht.x - 2, ht.y + 16); g.lineBetween(j.chest.x + 10, j.chest.y + 6, j.chest.x - 4, j.chest.y + 20); }
+    for (let i = 0; i < 5; i++) { const q = 0.15 + i * 0.18, sx = lerp(j.hip.x, j.chest.x, q) - nx * d * (24 + q * 22), sy = lerp(j.hip.y, j.chest.y, q) - ny * d * (24 + q * 22); g.fillStyle(C.out, A); g.fillTriangle(sx - 5, sy + 4, sx + 5, sy + 4, sx - d * 14, sy - 10); g.fillStyle(C.horn[2], A); g.fillTriangle(sx - 3, sy + 3, sx + 3, sy + 3, sx - d * 11, sy - 7); }   // spines down his back
+    g.fillStyle(C.out, A); g.fillPoints(tor(24, 50, 3), true); g.fillStyle(sk[1], A); g.fillPoints(tor(21, 47), true);
+    g.fillStyle(sk[2], A); g.fillPoints(tor(10 * d, 36 * d).slice(0, 2).concat([{ x: ht.x + nx * 2 * d, y: ht.y + ny * 2 * d }]), true);
+    const heart = { x: lerp(j.chest.x, j.hip.x, 0.25) + d * 6, y: lerp(j.chest.y, j.hip.y, 0.25) + 4 };
+    g.fillStyle(glow, 0.2 * A * pulse); g.fillCircle(heart.x, heart.y, 30); g.fillStyle(C.fire[1], A); g.fillCircle(heart.x, heart.y, 11); g.fillStyle(C.fire[3], A * pulse); g.fillCircle(heart.x, heart.y, 6);
+    for (let i = 0; i < 4; i++) { const yy = -14 + i * 9; g.lineStyle(4, C.out, A); g.lineBetween(heart.x - 24, heart.y + yy, heart.x + 24, heart.y + yy + 2); g.lineStyle(2, sk[3], A); g.lineBetween(heart.x - 22, heart.y + yy - 1, heart.x + 22, heart.y + yy + 1); }   // ribs over it
+    g.lineStyle(2, glow, A * pulse);                                                                  // molten cracks from the heart
+    for (const [ax, ay] of [[-30, 10], [26, -16], [18, 30], [-14, -30]]) { g.lineBetween(heart.x, heart.y, heart.x + ax * 0.5 + 4, heart.y + ay * 0.5); g.lineBetween(heart.x + ax * 0.5 + 4, heart.y + ay * 0.5, heart.x + ax, heart.y + ay); }
     g.lineStyle(0);
-    g.fillStyle(C.iron[0], A); g.fillPoints(tor(32, 32, 0).map((p, i) => (i === 1 || i === 2 ? { x: j.hip.x + (p.x - j.hip.x) * 0.25 + (j.chest.x - j.hip.x) * 0.16, y: j.hip.y + (p.y - j.hip.y) * 0.25 + (j.chest.y - j.hip.y) * 0.16 } : p)), true);   // the belt
-    g.fillStyle(C.horn[0], A); g.fillCircle(j.hip.x + d * 4, j.hip.y - 4, 7); g.fillStyle(C.out, A); g.fillCircle(j.hip.x + d * 2, j.hip.y - 5, 1.8); g.fillCircle(j.hip.x + d * 6, j.hip.y - 5, 1.8);
-    for (let i = -2; i <= 2; i++) { g.fillStyle(C.cloth[i % 2 ? 0 : 1], A); g.fillTriangle(j.hip.x + i * 12 - 8, j.hip.y + 2, j.hip.x + i * 12 + 8, j.hip.y + 2, j.hip.x + i * 12 + Math.sin(this.t * 0.1 + i) * 3, j.hip.y + 34 + (i % 2) * 8); }
-    // the front leg
-    limb(j.hip, j.kn1, 18, 14, front); limb(j.kn1, j.ft1, 14, 11, front); g.fillStyle(C.out, A); g.fillEllipse(j.ft1.x + d * 7, j.ft1.y - 3, 36, 12); g.fillStyle(sk[1], A); g.fillEllipse(j.ft1.x + d * 7, j.ft1.y - 4, 31, 8);
-    for (let c = 0; c < 3; c++) { g.fillStyle(C.horn[0], A); g.fillTriangle(j.ft1.x + d * (14 + c * 3), j.ft1.y - 4, j.ft1.x + d * (20 + c * 3), j.ft1.y, j.ft1.x + d * (14 + c * 3), j.ft1.y); }
+    g.fillStyle(C.iron[1], A); g.fillPoints(tor(25, 25).map((p, i) => (i === 1 || i === 2 ? { x: j.hip.x + (p.x - j.hip.x) + (j.chest.x - j.hip.x) * 0.12, y: j.hip.y + (p.y - j.hip.y) + (j.chest.y - j.hip.y) * 0.12 } : p)), true);   // the belt
+    for (let i = -2; i <= 2; i++) { g.fillStyle(C.iron[3], A); g.fillCircle(j.hip.x + i * 9, j.hip.y - 4, 3); g.fillStyle(C.out, A); g.fillCircle(j.hip.x + i * 9, j.hip.y - 4, 1.4); }   // its chain links
+    g.fillStyle(C.horn[0], A); g.fillCircle(j.hip.x + d * 2, j.hip.y - 5, 7); g.fillStyle(C.out, A); g.fillCircle(j.hip.x, j.hip.y - 6, 1.8); g.fillCircle(j.hip.x + d * 4, j.hip.y - 6, 1.8);
+    for (let i = -2; i <= 2; i++) { g.fillStyle(C.cloth[i % 2 ? 0 : 1], A); g.fillTriangle(j.hip.x + i * 10 - 7, j.hip.y + 2, j.hip.x + i * 10 + 7, j.hip.y + 2, j.hip.x + i * 10 + Math.sin(t * 0.1 + i) * 4, j.hip.y + 30 + (i % 2) * 8); }
+    // the front goat leg
+    limb(j.hip, j.kn1, 16, 14, front, false); goat(j.kn1, j.ft1, front, true);
     // the head
     const h = j.head, tilt = D.p.lean + D.p.head;
     const HK = 1.45, H = (lx, ly) => { lx *= HK; ly *= HK; const c = Math.cos(tilt), s = Math.sin(tilt); return { x: h.x + (lx * c - ly * s) * d, y: h.y + lx * s + ly * c }; };
     const HP = (pts, col) => { g.fillStyle(col, A); g.fillPoints(pts.map(([x, y]) => H(x, y)), true); };
-    for (let i = 0; i < 7; i++) { const q = -2.6 + i * 0.32; HP([[Math.cos(q) * 12 - 8, Math.sin(q) * 12 - 4], [Math.cos(q) * 34 - 14, Math.sin(q) * 30 + 2], [Math.cos(q + 0.3) * 12 - 8, Math.sin(q + 0.3) * 12 - 4]], C.hair[i % 2]); }   // the wild mane
-    for (const side of [-1, 1]) {                                                                                  // ram horns curling back
-      const pts = []; for (let i = 0; i <= 12; i++) { const q = i / 12, ang = -1.2 - q * 3.6, r = 12 + q * 14; pts.push(H(-6 + Math.cos(ang) * r * 0.9 - q * 10, -14 + Math.sin(ang) * r * 0.8 + side * 2)); }
-      pts.forEach((p, i) => { const r = (6.5 - i * 0.42) * HK; g.fillStyle(C.out, A); g.fillCircle(p.x, p.y, r + 1.8); });
-      pts.forEach((p, i) => { const r = (6.5 - i * 0.42) * HK; g.fillStyle(C.horn[i % 2], A); g.fillCircle(p.x, p.y, r); });
+    for (let i = 0; i < 8; i++) { const q = -2.7 + i * 0.3; HP([[Math.cos(q) * 12 - 8, Math.sin(q) * 12 - 4], [Math.cos(q) * 38 - 16 + Math.sin(t * 0.1 + i) * 2, Math.sin(q) * 32 + 4], [Math.cos(q + 0.3) * 12 - 8, Math.sin(q + 0.3) * 12 - 4]], i % 2 ? 0xe8e0e0 : 0xb8a8b0); }   // the wild white mane
+    for (const [side, hk] of [[-1, 0.85], [1, 1]]) {                                                  // long horns sweeping back, then up and forward
+      const pts = []; for (let i = 0; i <= 14; i++) { const q = i / 14; pts.push(H(-2 - q * 22 + q * q * 34 + (side < 0 ? -9 : 3), -14 - q * 26 * hk - q * q * 14 * hk + (side < 0 ? 3 : 0))); }
+      pts.forEach((p, i) => { const r = (5.8 - i * 0.36) * HK; g.fillStyle(C.out, A); g.fillCircle(p.x, p.y, r + 1.8); });
+      pts.forEach((p, i) => { const r = (5.8 - i * 0.36) * HK; g.fillStyle(i < 5 ? C.iron[1] : i < 10 ? C.horn[2] : C.horn[0], A); g.fillCircle(p.x, p.y, r); });
+      if (mad) { const e = pts[pts.length - 1]; g.fillStyle(C.fire[2], 0.6 * A); g.fillCircle(e.x, e.y, 4 + Math.random() * 2); }
     }
-    HP([[-17, -6], [-12, -19], [2, -22], [15, -16], [21, -4], [20, 10], [10, 18], [-6, 17], [-16, 8]], C.out);
-    HP([[-15, -6], [-11, -17], [2, -20], [14, -14], [19, -4], [18, 9], [9, 16], [-5, 15], [-14, 7]], sk[2]);
-    HP([[-6, -18], [2, -19], [13, -13], [4, -12], [-6, -12]], sk[3]);
-    for (const sx of [2, 10]) HP([[sx - 3, -16], [sx + 5, -36 - (sx === 10 ? 4 : 0)], [sx + 4, -16]], C.horn[sx === 10 ? 0 : 1]);   // forehead spikes
-    const lg = this.laughing, eye = mad || lg ? C.rune[0] : C.rune[2];
-    HP([[2, -6], [17, -10], [16, -4], [4, -3]], C.out);                                                           // the brow
-    HP([[4, -5], [15, -8], [14, -3], [6, -2]], eye); HP([[11, -7], [13, -7], [13, -3], [11, -3]], C.out);          // the eye (slanted, mad)
-    if (A > 0.5) { const e = H(10, -5); g.fillStyle(eye, 0.25); g.fillCircle(e.x, e.y, 13); }
-    const open = lg ? 8 : 3;                                                                                       // the grin: wide, jagged, ear to ear
-    HP([[-6, 4], [20, 1], [22, 4], [18, 8 + open], [4, 11 + open], [-4, 9]], C.out);
-    for (let i = 0; i < 6; i++) { const x = -3 + i * 4; HP([[x, 4.5 - i * 0.4], [x + 3.4, 4 - i * 0.4], [x + 1.7, 8 - i * 0.4]], 0xffffff); HP([[x, 9 + open - i * 0.3], [x + 3.4, 9 + open - i * 0.4], [x + 1.7, 5.5 + open - i * 0.3]], 0xffffff); }
-    // the spiked pauldron, then the front (sword) arm with an iron bracer, the sword in his fist
+    HP([[-16, -6], [-11, -18], [3, -21], [15, -15], [22, -2], [22, 10], [12, 19], [-5, 17], [-15, 8]], C.out);   // a long, gaunt skull of a face
+    HP([[-14, -6], [-10, -16], [3, -19], [14, -13], [20, -2], [20, 9], [11, 17], [-4, 15], [-13, 7]], sk[1]);
+    HP([[-4, -17], [3, -18], [13, -12], [17, -4], [8, -6], [-4, -10]], sk[2]);
+    HP([[8, 1], [20, -1], [20, 4], [10, 6]], sk[0]);                                                // a hollow cheek
+    const lg = this.laughing, eye = mad || lg ? C.fire[3] : C.fire[2];
+    HP([[2, -7], [18, -12], [17, -5], [4, -3]], C.out);                                               // brow and eye, slanted
+    HP([[5, -6], [16, -9], [15, -5], [7, -3]], eye); HP([[11, -8], [12.5, -8], [12.5, -4], [11, -4]], C.out);
+    if (A > 0.5) { const e = H(10, -6); g.fillStyle(eye, 0.3 * pulse); g.fillCircle(e.x, e.y, 14); }
+    const open = lg ? 9 : 3;                                                                          // the grin: wide, jagged, glowing inside
+    HP([[-6, 4], [21, 1], [23, 4], [19, 8 + open], [4, 11 + open], [-4, 9]], C.out);
+    HP([[-2, 6], [18, 4], [16, 7 + open], [4, 9 + open]], C.fire[open > 5 ? 2 : 0]);
+    for (let i = 0; i < 6; i++) { const x = -3 + i * 4; HP([[x, 4.5 - i * 0.4], [x + 3.4, 4 - i * 0.4], [x + 1.7, 8.5 - i * 0.4]], 0xf8f0e0); HP([[x, 9 + open - i * 0.3], [x + 3.4, 9 + open - i * 0.4], [x + 1.7, 5 + open - i * 0.3]], 0xf8f0e0); }
+    if (lg) HP([[8, 9 + open * 0.5], [16, 10 + open * 0.5], [20, 16 + open], [14, 18 + open], [10, 14 + open]], 0xc83a5a);   // the tongue, lolling
+    // the spiked pauldron, then the sword arm: shackle, clawed fist, the sword
     const pa = j.s1;
-    g.fillStyle(C.out, A); g.fillCircle(pa.x, pa.y, 21); g.fillStyle(C.iron[2], A); g.fillCircle(pa.x, pa.y, 19); g.fillStyle(C.iron[3], A); g.fillCircle(pa.x - 4, pa.y - 5, 9);
-    for (let i = 0; i < 3; i++) { const q = -2.4 + i * 0.7; g.fillStyle(C.horn[1], A); g.fillTriangle(pa.x + Math.cos(q - 0.2) * 18, pa.y + Math.sin(q - 0.2) * 18, pa.x + Math.cos(q + 0.2) * 18, pa.y + Math.sin(q + 0.2) * 18, pa.x + Math.cos(q) * 36, pa.y + Math.sin(q) * 36); }
-    limb(j.s1, j.e1, 16, 13, front); limb(j.e1, j.h1, 13, 11, front);
-    const bm = { x: (j.e1.x + j.h1.x * 2) / 3, y: (j.e1.y + j.h1.y * 2) / 3 }; g.fillStyle(C.iron[1], A); g.fillCircle(bm.x, bm.y, 14); g.fillStyle(C.iron[3], A); g.fillCircle(bm.x - 3, bm.y - 4, 5);
+    g.fillStyle(C.out, A); g.fillCircle(pa.x, pa.y, 20); g.fillStyle(C.iron[1], A); g.fillCircle(pa.x, pa.y, 18); g.fillStyle(C.iron[3], A); g.fillCircle(pa.x - 4, pa.y - 5, 8);
+    for (let i = 0; i < 4; i++) { const q = -2.6 + i * 0.55; g.fillStyle(C.out, A); g.fillTriangle(pa.x + Math.cos(q - 0.22) * 17, pa.y + Math.sin(q - 0.22) * 17, pa.x + Math.cos(q + 0.22) * 17, pa.y + Math.sin(q + 0.22) * 17, pa.x + Math.cos(q) * 40, pa.y + Math.sin(q) * 40); g.fillStyle(C.horn[i % 2], A); g.fillTriangle(pa.x + Math.cos(q - 0.16) * 17, pa.y + Math.sin(q - 0.16) * 17, pa.x + Math.cos(q + 0.16) * 17, pa.y + Math.sin(q + 0.16) * 17, pa.x + Math.cos(q) * 36, pa.y + Math.sin(q) * 36); }
+    limb(j.s1, j.e1, 14, 11, front); limb(j.e1, j.h1, 11, 9, front);
+    this.shackle(g, j.e1, j.h1, A, front);
     if (D.held) this.drawSword(g, j.h1.x, j.h1.y, j.tip.x, j.tip.y, mad);
-    g.fillStyle(C.out, A); g.fillCircle(j.h1.x, j.h1.y, 14); g.fillStyle(sk[2], A); g.fillCircle(j.h1.x, j.h1.y, 12);
+    this.claw(g, j.h1, d, A, sk[2]);
+  }
+  /** An iron shackle near the wrist (between elbow e and hand h) with two links of broken chain swinging from it. */
+  shackle(g, e, h, A, cols) {
+    const m = { x: lerp(e.x, h.x, 0.72), y: lerp(e.y, h.y, 0.72) };
+    g.fillStyle(C.out, A); g.fillCircle(m.x, m.y, 13); g.fillStyle(C.iron[2], A); g.fillCircle(m.x, m.y, 11); g.fillStyle(C.iron[3], A); g.fillCircle(m.x - 3, m.y - 4, 4); g.fillStyle(cols[0], A); g.fillCircle(m.x, m.y, 5);
+    const sw = Math.sin(this.t * 0.12 + m.x * 0.01) * 0.4;
+    for (let i = 1; i <= 3; i++) { const cx = m.x + Math.sin(sw) * i * 8, cy = m.y + 8 + i * 8; g.lineStyle(3, C.out, A); g.strokeEllipse(cx, cy, i % 2 ? 6 : 4, 9); g.lineStyle(1.5, C.iron[3], A); g.strokeEllipse(cx, cy, i % 2 ? 6 : 4, 9); }
+    g.lineStyle(0);
+  }
+  /** A clawed fist: a dark knuckle ball with three hooked bone claws. */
+  claw(g, h, d, A, col) {
+    g.fillStyle(C.out, A); g.fillCircle(h.x, h.y, 12); g.fillStyle(col, A); g.fillCircle(h.x, h.y, 10);
+    for (let i = 0; i < 3; i++) { const cx = h.x + d * 7, cy = h.y - 6 + i * 6; g.fillStyle(C.out, A); g.fillTriangle(cx - d * 2, cy - 3, cx - d * 2, cy + 3, cx + d * 9, cy + 4); g.fillStyle(C.horn[0], A); g.fillTriangle(cx - d * 1, cy - 2, cx - d * 1, cy + 2, cx + d * 7, cy + 3); }
+  }
+  /**
+   * His tail's points (the base of his spine to the barb): curling behind him and swaying - or, in a TAIL SWEEP,
+   * whipping low along the floor past his feet (`this.tail.k` 0..1 = how far round it has swung).
+   */
+  tailPts() {
+    const j = this.joints(), d = this.dm.dir, T = this.tail, pts = [];
+    for (let i = 0; i <= 10; i++) {
+      const q = i / 10;
+      let x = j.hip.x - d * (8 + q * 70) , y = j.hip.y + 6 - Math.sin(q * Math.PI * 0.9) * 40 + q * 20 + Math.sin(this.t * 0.08 - q * 4) * 8 * q;
+      if (T) { const sx = j.hip.x - d * 20 + (T.s * (-150 + 300 * T.k)) * q, sy = j.hip.y + 8 + (-6 - j.hip.y - 8) * Math.min(1, q * 1.6); x = lerp(x, sx, T.low); y = lerp(y, sy, T.low); }
+      pts.push({ x, y });
+    }
+    return pts;
   }
 }
 
@@ -582,8 +775,10 @@ export function drawBurningKeepPreview(g, x, y, w, h) {
   g.fillStyle(C.stone[2], 1); g.fillRect(x + w * 0.08, y + h * 0.66, w * 0.84, h * 0.2); g.fillRect(x + w * 0.06, y + h * 0.46, w * 0.14, h * 0.4); g.fillRect(x + w * 0.8, y + h * 0.46, w * 0.14, h * 0.4);
   g.fillStyle(C.banner[1], 1); g.fillRect(x + w * 0.1, y + h * 0.54, w * 0.06, h * 0.12); g.fillRect(x + w * 0.84, y + h * 0.54, w * 0.06, h * 0.12);
   const cx = x + w * 0.56, fy = y + h * 0.66;
+  g.fillStyle(C.wing[1], 1); g.fillTriangle(cx, fy - h * 0.4, cx + w * 0.2, fy - h * 0.62, cx + w * 0.16, fy - h * 0.2); g.fillTriangle(cx, fy - h * 0.4, cx - w * 0.16, fy - h * 0.66, cx - w * 0.12, fy - h * 0.24);
   g.fillStyle(C.skin[2], 1); g.fillRect(cx - w * 0.05, fy - h * 0.42, w * 0.1, h * 0.3); g.fillRect(cx - w * 0.04, fy - h * 0.12, w * 0.03, h * 0.12); g.fillRect(cx + w * 0.01, fy - h * 0.12, w * 0.03, h * 0.12);
   g.fillCircle(cx, fy - h * 0.48, h * 0.07); g.fillStyle(C.horn[0], 1); g.fillTriangle(cx - 4, fy - h * 0.53, cx - 10, fy - h * 0.66, cx - 1, fy - h * 0.55); g.fillTriangle(cx + 4, fy - h * 0.53, cx + 10, fy - h * 0.66, cx + 1, fy - h * 0.55);
   g.fillStyle(C.rune[2], 1); g.fillRect(cx - 4, fy - h * 0.49, 2, 2); g.fillRect(cx + 2, fy - h * 0.49, 2, 2);
+  g.fillStyle(C.fire[2], 1); g.fillCircle(cx, fy - h * 0.32, 2.5);
   g.fillStyle(C.iron[2], 1); g.fillTriangle(cx + w * 0.05, fy - h * 0.36, cx + w * 0.07, fy - h * 0.38, cx + w * 0.26, fy - h * 0.8); g.fillStyle(C.rune[0], 1); g.fillRect(cx + w * 0.12, fy - h * 0.55, 2, 2);
 }
