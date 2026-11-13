@@ -8,6 +8,9 @@ Files: `fighterSpecials.js` (K moves), `fighterDefense.js` (shield/dodge/hitstun
 
 Each is a class whose methods get attached to `Fighter.prototype`. A method name may only exist once across them (it throws on load if not).
 
+## Milestone costumes
+Every fighter has four (25/50/75/100 KOs scored with them by a human - `addKO` in progress.js). Soul Summoner, Mr Wake and Lacy's are hand-tuned in their SKINS lists; everyone else's are at the end of `skins.js` (`ms(name, tier, swatch, lore, groups, rules, shape, colours, more)`, effects from `mvfx(tier, ...)`: more aura per tier); colour groups `PRG` (Presto), `CHG` (Roux), `FIG` (FISTS), `YLG` (Young Link). Full stories in `MILESTONE_LORE` (src/data/lore.js); shown on THE MILESTONE ROAD (src/scenes/AGENTS.md).
+
 ## Fighters (current)
 - **Soul Summoner** (`soul-summoner`, keys `ss_*`): taunt SOUL JUGGLE is Mason's 16-frame drawing (`taunt_sheet.png` from `tools/sprites/art/ss_taunt_mason.png`; `def.taunt.anim` + `sheets.taunt`, drawn in fighterRender), fireball (charge), Soul Hex side-B (possess), summon souls down-B, Soulfire Jet up-B, Soulfire Beam limit. 64×64 base frames, 112×104 moves.
 - **Soul Summoner and Mr Wake animations** are built from Mason's idle drawings cut into real limbs (`tools/sprites/ss_rig.py`, `mw_rig.py`, shared helpers `biped.py`: hidden-pixel fills, joint caps, leg IK, poses by limb direction). Moves, jump and fall come from `soul_summoner_moves.py` / `mr_wake_moves.py`; their idle and run sheets are Mason's hand-made ones.

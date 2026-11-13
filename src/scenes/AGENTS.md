@@ -31,6 +31,11 @@ Files: `src/scenes/*Scene.js`, `menuInput.js`; training mode in `training.js`
 
 - TEST FIGHTERS (`TestFightersScene.js`): the list's row height shrinks so every name fits above the map picker (`this.row`), and the costume swatches always fit between the costume arrows - smaller, and in two rows past 10 (`swatchLayout`).
 
+## CHARACTER FILES and THE MILESTONE ROAD
+Files: `src/scenes/FilesScene.js`, `src/scenes/MilestoneScene.js`; text `FILES` / `SKIN_LORE` / `MILESTONE_LORE` in `src/data/lore.js`
+
+Trinkets > CHARACTER FILES covers every fighter (`filesFighters()`: the roster then TEST_ROSTER); the tab row shows `TABS` at a time and scrolls (`tab0`). M or the MILESTONE ROAD button opens `MilestoneScene` (`{ fi }`; back returns to the same fighter): the fighter's four milestone costumes on lit plinths (`SPOT`) along a road of KOs (`MILESTONE_KOS`, the walked part glows gold), unlocked ones in full colour with an aura that grows with the tier (orbiters, motes, a flame crown and god-rays at IV), sealed ones as black silhouettes (`TintModes.FILL`) under a turning rune seal with the KOs still to go; the chosen one's story (`MILESTONE_LORE`) on the plaque; THE ROAD IS COMPLETE at 100. Every fighter has four milestones (skins.js: the three originals' own, everyone else's at the end of the file - `ms()` / `mvfx()`); `?kos=N` sets every fighter's count.
+
 ## TROPHY HALL
 Files: `src/scenes/TrophyHallScene.js`, slots `src/data/trophyHall.js`, music `bgm_trophy_hall` (`tools/audio/trophy_hall_music.py`: "The Empty Hall", organ + choir + tubular bells, loops)
 

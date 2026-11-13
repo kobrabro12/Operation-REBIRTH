@@ -13,7 +13,7 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(kos)); } catch 
 
 try {
   const q = new URLSearchParams(window.location.search).get('kos');
-  if (q !== null && !isNaN(+q)) { for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) kos[id] = Math.max(0, Math.floor(+q)); save(); }
+  if (q !== null && !isNaN(+q)) { for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero', 'what-once-was', 'last-seen', 'fists', 'young-link', 'devoted', 'presto', 'chef']) kos[id] = Math.max(0, Math.floor(+q)); save(); }
 } catch (e) { /* no URL */ }
 
 export function getKOs(id) { return kos[id] || 0; }

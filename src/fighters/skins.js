@@ -807,3 +807,113 @@ SKINS['devoted'] = [
     vfx: { hit: { shape: 'flame', colors: [0xff6a10, 0xffe070, 0xa81808], n: 10, ring: 0xffb040 }, aura: { motes: { colors: [0xff9a20, 0xffe070, 0xff5a0a], rate: 5 } } } },
   { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
 ];
+
+// ======================================================================= MILESTONES FOR EVERYONE
+// Every fighter has four milestone costumes (25 / 50 / 75 / 100 KOs with them - progress.js), a little story told in
+// four steps (their full stories: MILESTONE_LORE in src/data/lore.js, shown on the MILESTONE ROAD in CHARACTER
+// FILES). Soul Summoner, Mr Wake and Lacy have theirs above; these are everyone else's: recolours of their own
+// sprites (colour groups + rules, like every recolour here) whose effects grow with the tier (`mvfx`).
+
+// THE GREAT PRESTO / CHEF ROUX / FISTS colour groups
+const PRG = {
+  lining: { h: [330, 360], s: [0.45, 1], v: [0.2, 1], center: 350 },               // the cape's lining, the hat band
+  tie: { h: [262, 300], s: [0.35, 1], v: [0.3, 1], center: 278 },                  // the bow tie, his eyes
+  cloth: { h: [220, 262], s: [0.08, 0.75], v: [0.02, 0.65], center: 245 },          // the tailcoat, hat, cape, trousers
+  gold: { h: [30, 56], s: [0.4, 1], v: [0.4, 1], center: 42 },
+};
+const CHG = {
+  white: { s: [0, 0.09], v: [0.66, 1], center: 0 },                                 // the jacket, apron and toque
+  red: { h: [340, 360], s: [0.5, 1], v: [0.3, 1], center: 355 },                    // the neckerchief
+  pants: { h: [215, 260], s: [0.08, 0.45], v: [0.1, 0.55], center: 240 },           // the houndstooth trousers
+};
+const FIG = {
+  red: { h: [330, 360], s: [0.5, 1], v: [0.2, 1], center: 345 },
+  green: { h: [85, 130], s: [0.25, 1], v: [0.2, 1], center: 105 },
+  blue: { h: [195, 230], s: [0.4, 1], v: [0.2, 1], center: 210 },
+};
+const YLG = { clothes: { h: [80, 165], s: [0.35, 1], center: 120 } };
+
+/**
+ * The effects of a milestone costume: hit sparks of its `shape` in its colours c = [main, light, white] always; from
+ * tier 2 a ring and orbiting motes, from 3 sparks, drifting motes and a trail, at tier 4 a big crown, four orbiters,
+ * a second ring and a flash on every hit. `more` adds or replaces fields.
+ */
+function mvfx(tier, c, shape, more = {}) {
+  const [a, b, w] = c, hit = { shape, colors: [a, b, w], n: 6 + tier * 2 };
+  if (tier >= 2) hit.ring = a;
+  if (tier >= 3) hit.sparks = [a, b];
+  if (tier >= 4) { hit.ring2 = w; hit.flash = true; hit.glint = true; }
+  const aura = {};
+  if (tier >= 2) aura.orbit = { n: tier >= 4 ? 4 : 2, colors: [a, b], r: tier >= 4 ? 26 : 22 };
+  if (tier >= 3) aura.motes = { colors: [a, b, w], rate: tier >= 4 ? 3 : 6 };
+  if (tier >= 4) aura.crown = { n: 5, colors: [a, b, w], big: true };
+  const v = { hit };
+  if (Object.keys(aura).length) v.aura = aura;
+  if (tier >= 3) v.trail = a;
+  return { ...v, ...more, aura: { ...(v.aura || {}), ...(more.aura || {}) } };
+}
+/** A milestone costume entry: name, tier (1-4), swatch, its one-line unlock story, colour groups + rules, effect shape and colours. */
+const ms = (name, milestone, swatch, lore, groups, rules, shape, c, more = {}) => ({ name, milestone, swatch, fx: c[0], lore, groups, rules, vfx: mvfx(milestone, c, shape, more.vfx), ...(more.outline ? { outline: more.outline } : {}) });
+
+// NU: THE WORLD TOUR - a garage band, a headline slot, a stadium, a legend
+SKINS['nu'].push(
+  ms('OPENING ACT', 1, 0x8a5a3a, 'Five people and a dog in a basement. He played like it was a stadium.', NUG, { acid: { to: 28, sat: 0.8, val: 0.9 }, cloth: { to: 20, sat: 1.6, val: 1.1 }, hair: { to: 30, sat: 1.2, val: 0.7 } }, 'note', [0xd88a3a, 0xffd8a0, 0xffffff]),
+  ms('HEADLINER', 2, 0x7a3ad8, 'His name at the top of the poster, in letters you could see from the car park.', NUG, { acid: { to: 280, sat: 1.1, val: 1.1 }, cloth: { to: 268, sat: 1.8, val: 1.0 }, hair: { to: 290, sat: 1.0, val: 1.0 } }, 'note', [0xb070ff, 0xe8d0ff, 0xffffff]),
+  ms('STADIUM GOD', 3, 0xd8dce8, 'Ninety thousand people, one voice, and his was the loudest.', NUG, { acid: { to: 190, sat: 1.2, val: 1.2 }, cloth: { sat: 0.1, val: 2.4 }, hair: { sat: 0.05, val: 1.15 } }, 'note', [0x6ae8ff, 0xffffff, 0xd8f8ff], { vfx: { aura: { inferno: true } } }),
+  ms('LEGEND OF THE LOUD', 4, 0xf3c358, 'The tour ended. The ringing in the world\'s ears never did.', NUG, { acid: { to: 46, sat: 1.0, val: 1.3 }, cloth: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, hair: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 } }, 'note', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10, vfx: { aura: { bling: true } } }),
+);
+// AERO: THE DEEP SKY - cadet, pilot, starfarer, the king of the stars
+SKINS['aero'].push(
+  ms('CADET', 1, 0xff8a2a, 'First day at the academy. The goldfish passed the test. He nearly did.', AEG, { aqua: { to: 26, sat: 1.0, val: 1.05 }, lime: { to: 200, sat: 0.6 } }, 'bubble', [0xff8a2a, 0xffd8a0, 0xffffff]),
+  ms('ACE PILOT', 2, 0xe02a3a, 'A hundred flights, a hundred perfect landings, and one he does not talk about.', AEG, { aqua: { to: 354, sat: 1.1, val: 1.0 }, lime: { sat: 0.05, val: 1.6 } }, 'bubble', [0xff4a4a, 0xffd0d0, 0xffffff]),
+  ms('STARFARER', 3, 0x4a2ad0, 'Past the last moon on any map. The fish has started steering.', AEG, { aqua: { to: 254, sat: 1.1, val: 0.8 }, lime: { to: 290, sat: 1.0, val: 1.2 }, fish: { to: 48, sat: 1.0, val: 1.2 } }, 'star', [0x8a6aff, 0xe0d8ff, 0xffffff]),
+  ms('KING OF THE STARS', 4, 0xffd860, 'At the edge of everything there was a throne. The goldfish sat in it. AERO stood beside it, proud.', AEG, { aqua: { ramp: RADIANT_RAMP, lo: 0.2, hi: 1 }, lime: { to: 44, sat: 0.6, val: 1.3 }, fish: { to: 8, sat: 1.1 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+);
+// WHAT ONCE WAS: DEEPER LEVELS - it keeps falling through the floor
+SKINS['what-once-was'].push(
+  ms('LEVEL 1', 1, 0x8a8a8a, 'It found the car park under the yellow rooms. Concrete, puddles, a light that will not turn off.', WOWG, { skin: { sat: 0.05, val: 0.8 } }, 'pixel2', [0xb8b8b8, 0xf0f0f0, 0x4a4a4a]),
+  ms('LEVEL 37', 2, 0xa8e8f0, 'The poolrooms. Warm water, white tiles, no way out. It looked almost peaceful.', WOWG, { skin: { to: 188, sat: 0.6, val: 1.2 } }, 'bubble', [0x8ae8ff, 0xe0faff, 0xffffff]),
+  ms('LEVEL FUN', 3, 0xff6ab0, 'Balloons. Streamers. Laughter from the next room. It does not like this level.', WOWG, { skin: { to: 330, sat: 1.4, val: 1.15 } }, 'splat', [0xff6ab0, 0xffe04a, 0x6ad8ff], { vfx: { aura: { spooky: true } } }),
+  ms('THE END', 4, 0x14141c, 'The last level is a door with nothing behind it. It went through anyway, and came back wearing the dark.', WOWG, { skin: { ramp: KING_CAPE_RAMP, lo: 0.05, hi: 0.8 } }, 'pixel2', [0xff2a3a, 0xffffff, 0x2a2a3a], { outline: 0x5a0a14, vfx: { aura: { spooky: true } } }),
+);
+// ROSEMARY: FOUND - from a poster on a lamppost to the girl who came home
+SKINS['last-seen'].push(
+  ms('MISSING POSTER', 1, 0xd8c890, 'Faded by the rain, curling at the corners, still on every lamppost in town.', LSG, { coat: { to: 48, sat: 0.4, val: 1.15 }, hair: { sat: 0.6 } }, 'paper', [0xece6d4, 0xc8b878, 0x6a5a3a]),
+  ms('SEARCH PARTY', 2, 0xff7a1a, 'Torches in the woods every night for a month. They called her name until it stopped sounding like a word.', LSG, { coat: { to: 24, sat: 1.3, val: 1.1 } }, 'paper', [0xff7a1a, 0xffe0b0, 0xffffff]),
+  ms('COLD CASE', 3, 0x5a7a9a, 'A box in a basement with her name on it. Somebody still opens it on her birthday.', LSG, { coat: { to: 212, sat: 0.6, val: 0.8 }, hair: { to: 220, sat: 0.3, val: 0.9 } }, 'paper', [0x8ab0d8, 0xe0ecff, 0xffffff], { vfx: { aura: { spooky: true } } }),
+  ms('FOUND', 4, 0xfff4d8, 'One morning the posters came down. She walked home in a white coat, and every streetlight on the way turned gold.', LSG, { coat: { ramp: RADIANT_RAMP, lo: 0.35, hi: 1 }, hair: { to: 36, sat: 0.9, val: 1.25 } }, 'star', [0xffe08a, 0xfff6dc, 0xffffff], { outline: 0x8a6a20, vfx: { aura: { halo: 0xffe08a } } }),
+);
+// THE DEVOTED: THE LITANY - novice, acolyte, martyr, saint of the sludge
+SKINS['devoted'].push(
+  ms('NOVICE', 1, 0x9a9890, 'A grey shirt, a borrowed knife and a prayer he only knows half of.', DVG, { shirt: { sat: 0.1, val: 0.9 }, wing: { sat: 0.2, val: 1.4 } }, 'spark', [0xb8b8b0, 0xf0f0e8, 0x4a4a4a]),
+  ms('ACOLYTE', 2, 0x7a1a2a, 'Wine-red, like the candles in the chapel nobody else can find.', DVG, { shirt: { to: 350, sat: 1.1, val: 0.7 }, wing: { to: 352, sat: 1.2, val: 1.3 }, hair: { to: 20, sat: 0.6, val: 0.6 } }, 'spark', [0xc8203a, 0xffc0c8, 0xffffff]),
+  ms('MARTYR', 3, 0xf4f0e4, 'White as a sheet, and calmer than he has any right to be.', DVG, { shirt: { sat: 0.08, val: 1.25 }, hair: { sat: 0.1, val: 1.2 }, wing: { to: 48, sat: 0.8, val: 1.6 } }, 'spark', [0xffe08a, 0xfff6dc, 0xffffff], { vfx: { aura: { halo: 0xffe08a } } }),
+  ms('SAINT OF THE SLUDGE', 4, 0x2a1a0a, 'They built him a shrine out of the stains. It moves when nobody is looking. So does he.', DVG, { shirt: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.7 }, pants: { ramp: KING_CAPE_RAMP, lo: 0.05, hi: 0.5 }, hair: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, wing: { ramp: GOLD_RAMP, lo: 0.2, hi: 0.9 } }, 'spark', [0xffd860, 0x9a4aff, 0xffffff], { outline: 0x6a4a10 }),
+);
+// THE GREAT PRESTO: THE GREATEST SHOW - a street corner, a headline act, a master, the impossible
+SKINS['presto'].push(
+  ms('STREET CONJURER', 1, 0x6a5a3a, 'A cardboard box, a borrowed hat and a crowd of three. He made a pigeon disappear. It came back.', PRG, { cloth: { to: 30, sat: 0.6, val: 1.4 }, lining: { to: 96, sat: 0.6, val: 0.8 }, tie: { to: 100, sat: 0.6 } }, 'star', [0xc8a868, 0xf0e0b8, 0xffffff]),
+  ms('HEADLINE ACT', 2, 0x3a6ad8, 'Twice nightly at the Grand. They had to add chairs in the aisles.', PRG, { cloth: { to: 222, sat: 1.2, val: 1.4 }, lining: { sat: 0.05, val: 1.6 }, tie: { to: 210, sat: 1.0 } }, 'star', [0x6aa8ff, 0xd8e8ff, 0xffffff]),
+  ms('MASTER ILLUSIONIST', 3, 0x1a8a5a, 'He made the moon go out for a minute. Ships at sea still argue about it.', PRG, { cloth: { to: 150, sat: 1.2, val: 1.2 }, lining: { to: 46, sat: 1.0, val: 1.2 }, tie: { to: 160, sat: 1.0, val: 1.2 } }, 'star', [0x3ae0a0, 0xd8ffe8, 0xffd860]),
+  ms('THE IMPOSSIBLE', 4, 0x1a0a4a, 'For his last trick he pulled the night sky out of his hat. It never went back in - he wears it.', PRG, { cloth: { to: 252, sat: 1.4, val: 0.8 }, lining: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 }, tie: { to: 44, sat: 0.9, val: 1.3 }, gold: { val: 1.3 } }, 'star', [0xb070ff, 0xffd860, 0xffffff], { outline: 0x6a4a10 }),
+);
+// CHEF ROUX: THE STARRED ROAD - line cook to the golden toque
+SKINS['chef'].push(
+  ms('LINE COOK', 1, 0x4a6ab8, 'Sixteen hours a day at the fryer, burns up both arms, and he loved every minute.', CHG, { white: { ramp: [0x1a2a5a, 0x2a4a8a, 0x4a72c0, 0x7aa0e0, 0xb8d0f8, 0xe0ecff], lo: 0, hi: 1 }, red: { to: 40, sat: 0.9 } }, 'star', [0x6a8ad8, 0xd8e4ff, 0xffffff]),
+  ms('SOUS CHEF', 2, 0x2a2a34, 'Black jacket, sharp knives, a voice that could stop a kitchen dead.', CHG, { white: { ramp: [0x06060a, 0x101018, 0x1c1c28, 0x2c2c3c, 0x44445a, 0x60607a], lo: 0, hi: 1 }, red: { to: 0, sat: 1.1, val: 1.1 }, pants: { sat: 0.2, val: 1.3 } }, 'flame', [0xff6a2a, 0xffd060, 0xffffff]),
+  ms('EXECUTIVE CHEF', 3, 0x7a1a2a, 'His own restaurant. Burgundy jacket, a waiting list two years long.', CHG, { white: { ramp: [0x2a060c, 0x4a0c18, 0x6e1424, 0x9a2236, 0xc84a5a, 0xf08a96], lo: 0, hi: 1 }, red: { to: 44, sat: 1.0, val: 1.2 } }, 'flame', [0xff4a3a, 0xffd860, 0xffffff]),
+  ms('THE GOLDEN TOQUE', 4, 0xffd860, 'The critics came, ate in silence, and gave him every star they had left.', CHG, { white: { ramp: RADIANT_RAMP, lo: 0.35, hi: 1 }, red: { to: 4, sat: 1.1 }, pants: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+);
+// FISTS: TITLE ROAD - a gym, a contender, the champion, undisputed
+SKINS['fists'] = [{ name: 'DEFAULT', swatch: 0xd84a5a },
+  ms('AMATEUR', 1, 0x3a8ad8, 'A borrowed pair of gloves and a gym that smelled like old pennies.', FIG, { red: { to: 212, sat: 0.9 } }, 'star', [0x6aa8ff, 0xd8e8ff, 0xffffff]),
+  ms('CONTENDER', 2, 0x2ab85a, 'Ranked. Hungry. Every fight on the undercard ended before the bell.', FIG, { red: { to: 140, sat: 0.9 }, green: { to: 48, sat: 0.9 } }, 'star', [0x4ae07a, 0xd8ffe0, 0xffffff]),
+  ms('CHAMPION', 3, 0xd8a020, 'The belt is heavier than it looks. So is everything that comes with it.', FIG, { red: { to: 40, sat: 1.0, val: 1.2 }, blue: { to: 0, sat: 1.0 } }, 'star', [0xffc040, 0xfff0b0, 0xffffff]),
+  ms('UNDISPUTED', 4, 0x1a1a1a, 'Every belt, every weight, every rematch. Nobody left to fight but the mirror.', FIG, { red: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 }, green: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, blue: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 })];
+// YOUNG LINK (the lab's test import): four tunics earned on the road
+SKINS['young-link'].push(
+  ms('MOSS', 1, 0x6a8a3a, 'A tunic dyed in the forest, the colour of old moss and quiet mornings.', YLG, { clothes: { to: 84, sat: 0.6, val: 0.8 } }, 'star', [0x9ac86a, 0xe8ffd8, 0xffffff]),
+  ms('RIVER', 2, 0x2a8ad8, 'Soaked through in the river crossing; it dried a deeper blue.', YLG, { clothes: { to: 205, sat: 1.0 } }, 'bubble', [0x6ac8ff, 0xd8f4ff, 0xffffff]),
+  ms('EMBER', 3, 0xd8402a, 'Walked out of the fire with the tunic still smoking. It never quite stopped.', YLG, { clothes: { to: 8, sat: 1.0, val: 1.1 } }, 'flame', [0xff6a2a, 0xffd060, 0xffffff]),
+  ms('GILDED', 4, 0xffd860, 'Sewn with gold thread by everyone he ever helped, one stitch each.', YLG, { clothes: { ramp: RADIANT_RAMP, lo: 0.25, hi: 1 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+);

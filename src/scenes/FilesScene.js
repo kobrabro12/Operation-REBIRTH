@@ -10,29 +10,39 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { ROSTER, showFighter } from '../fighters/roster.js';
+import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinUnlocked, skinTier } from '../fighters/skins.js';
 import { MILESTONE_KOS, getKOs } from '../progress.js';
 import { FILES, SKIN_LORE, MILESTONE_LORE } from '../data/lore.js';
 import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
 
 const GOLD = '#ffd23f', DIM = '#8a87a3', LINE = ARC.sections.files, PANEL = 0x1c1230;
-const TAB_W = 150, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
+// tabs: how wide, how many show at once (the row scrolls to keep the chosen one in view)
+const TAB_W = 116, TABS = 4, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
+
+/** Every fighter with a file: the roster, then the lab's test fighters. */
+export function filesFighters() { return [...ROSTER.filter((f) => f.available), ...TEST_ROSTER.filter((f) => !f.hidden)]; }
 
 export class FilesScene extends Phaser.Scene {
   constructor() { super('Files'); }
 
-  create() {
+  /** Builds the files screen, on fighter `data.fi` (coming back from THE MILESTONE ROAD). */
+  create(data) {
     this.t = 0; this.menu = new MenuInput(this);
-    this.fighters = ROSTER.filter((f) => f.available);
-    this.fi = 0; this.si = 0;
+    this.fighters = filesFighters();
+    this.fi = Math.min((data && data.fi) || 0, this.fighters.length - 1); this.si = 0; this.tab0 = 0;
     playMusic(this, 'bgm_title');
     this.bgFx = new ArcadeBg(this, LINE, { second: ARC.sections.trinkets });
     const g = this.add.graphics();
     panel(g, L.x, L.y, L.w, L.h, LINE); panel(g, R.x, R.y, R.w, R.h, LINE);
     titleBanner(this, 'CHARACTER FILES', LINE, { crumb: 'TRINKETS  >  FILES', size: 13 });
     this.tabG = this.add.graphics();
-    this.tabs = this.fighters.map((f, i) => this.add.text(L.x + TAB_W / 2 + i * (TAB_W + 6), TAB_Y + 8, f.name, { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5));
+    this.tabs = this.fighters.map((f) => this.add.text(0, TAB_Y + 8, f.name.length > 14 ? f.name.replace('THE ', '') : f.name, { fontFamily: FONT, fontSize: '6px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5));
+    this.tabMore = [-1, 1].map((d) => this.add.text(d < 0 ? L.x - 8 : L.x + TABS * (TAB_W + 6) + 2, TAB_Y + 8, d < 0 ? '<' : '>', { fontFamily: FONT, fontSize: '7px', color: GOLD }).setOrigin(0.5));
+    this.tabCount = this.add.text(VIEW_W - 12, TAB_Y + 8, '', { fontFamily: FONT, fontSize: '5px', color: DIM }).setOrigin(1, 0.5);
+    // THE MILESTONE ROAD: the fighter's four milestone costumes as a gallery (MilestoneScene)
+    makeButton(this, L.x + L.w / 2, L.y + 12, 'MILESTONE ROAD (M)', () => this.road(), { originX: 0.5, originY: 0.5, size: '6px' });
+    this.input.keyboard.on('keydown-M', () => this.road());
     // left: the fighter in the chosen costume, on a little plinth
     this.stageG = this.add.graphics();
     this.sprite = this.add.sprite(L.x + L.w / 2, L.y + 190, this.fighters[0].def.sheets.idle, 0);
@@ -50,17 +60,19 @@ export class FilesScene extends Phaser.Scene {
     this.lore = this.add.text(tx, R.y + 124, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
     this.skinHead = this.add.text(tx, R.y + 208, '', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
     this.skinLore = this.add.text(tx, R.y + 220, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
-    hintBar(this, 'W/S FIGHTER   CLICK TAB   A/D COSTUME   K / ESC / B  BACK', LINE);
+    hintBar(this, 'W/S FIGHTER   CLICK TAB   A/D COSTUME   M MILESTONE ROAD   K / ESC / B  BACK', LINE);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.input.on('pointerdown', (p, over) => {
       if (over.length) return;
-      if (p.y >= TAB_Y && p.y < TAB_Y + 16) { const i = Math.floor((p.x - L.x) / (TAB_W + 6)); if (i >= 0 && i < this.fighters.length && i !== this.fi) this.pick(i); }
+      if (p.y >= TAB_Y && p.y < TAB_Y + 16) { const i = this.tab0 + Math.floor((p.x - L.x) / (TAB_W + 6)); if (p.x >= L.x && i < this.tab0 + TABS && i < this.fighters.length && i !== this.fi) this.pick(i); }
     });
     this.refresh();
   }
 
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  /** Opens THE MILESTONE ROAD for the fighter on show. */
+  road() { sfx('menu', 0.7, 1.2); this.scene.start('Milestones', { fi: this.fi }); }
   pick(i) { this.fi = i; this.si = 0; sfx('menu', 0.6); this.refresh(); }
   stepSkin(d) { const n = skinsFor(this.fighters[this.fi].id).length; this.si = (this.si + d + n) % n; sfx('menu', 0.5, 1.2); this.refresh(); }
 
@@ -89,8 +101,13 @@ export class FilesScene extends Phaser.Scene {
     if (m.back || m.pads.some((p) => p.button === 'b')) return this.back();
     // tabs
     const tg = this.tabG; tg.clear();
+    this.tab0 = Phaser.Math.Clamp(this.tab0, Math.max(0, this.fi - TABS + 1), this.fi);
+    this.tabMore[0].setVisible(this.tab0 > 0); this.tabMore[1].setVisible(this.tab0 + TABS < this.fighters.length);
+    this.tabCount.setText((this.fi + 1) + ' / ' + this.fighters.length);
     this.tabs.forEach((tx, i) => {
-      const x = L.x + i * (TAB_W + 6), on = i === this.fi;
+      const x = L.x + (i - this.tab0) * (TAB_W + 6), on = i === this.fi;
+      tx.setVisible(i >= this.tab0 && i < this.tab0 + TABS).setX(x + TAB_W / 2);
+      if (!tx.visible) return;
       slant(tg, x + 3, TAB_Y + 3, TAB_W, 16, 0x000000, 0.5, 6); slant(tg, x, TAB_Y - (on ? 2 : 0), TAB_W, 16 + (on ? 2 : 0), on ? LINE : 0x2a1f44, 1, 6);
       if (on) slant(tg, x, TAB_Y - 2, TAB_W, 6, 0xffffff, 0.2, 2);
       tx.setColor(on ? '#ffffff' : '#c9c4dc');
