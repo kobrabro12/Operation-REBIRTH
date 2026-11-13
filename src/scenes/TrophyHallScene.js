@@ -21,6 +21,7 @@ import { Poly3D, boxFaces, prismFaces, blobFaces, pyramidFaces, ballFaces } from
 import { checkAchievements, trophyEarned, trophyProgress, TROPHY_GOALS } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
 import { HALL, HALL_SLOTS, DISPLAY, PAINTINGS, TROPHIES } from '../data/trophyHall.js';
+import { touchEnabled } from '../input/touch.js';
 
 // the room (px; x 0 = the middle of the hall, y 0 = eye height, +y down, +z away from you)
 const FLOOR = 110;          // the floor's height
@@ -29,6 +30,10 @@ const WALL = 300;           // the side walls (x = -WALL and +WALL)
 const COL_X = 262;          // the columns' line
 const PED_X = 196;          // the pedestals' line
 const DOOR_Z = -40;         // the entrance (the doors swing open into the hall)
+const VAULT = 130;          // how much higher the vaulted ceiling's crown is than where it springs from the walls
+const FAR = 3400;           // columns, pedestals, ropes and reflections further than this aren't drawn (lost in the fog anyway; keeps phones smooth)
+// the touch controls (phones / tablets): walk pad bottom left, look pad bottom right (centres, radius)
+const PAD = { r: 25, up: [52, 250], down: [52, 312], left: [530, 296], right: [598, 296] };
 const LEN = HALL.length;    // the far wall
 // a painting's canvas on the wall: half its width (along the hall), its top and bottom, how many strips it's drawn in
 // (ordinary frames hold 160x112 pictures, the GREAT frames at the far end the 320x224 masterpieces)
@@ -79,10 +84,11 @@ export class TrophyHallScene extends Phaser.Scene {
     // the 3D layers, back to front: the floor, the columns' reflections in it, the hall itself
     const L = { fog: 0x0e0814, zNear: 500, zFar: 4700, fogMax: 0.78, f: 300, lift: 0, near: 70, sat: 1.15, edge: 0.08, light: [-0.25, 1, 0.45] };
     this.floorR = new Poly3D(this, [], { ...L, edge: 0.04 });
-    this.reflR = new Poly3D(this, [], { ...L, edge: 0 });
+    this.reflR = new Poly3D(this, [], { ...L, edge: 0, far: FAR });
     this.mainR = new Poly3D(this, [], L);                                                  // the room itself: walls, ceiling, frames, the far end
-    this.objR = new Poly3D(this, [], L);                                                   // what stands in it: columns, pedestals, the dais, the trophy, doors, chandeliers
-    for (const [R, d] of [[this.floorR, -25], [this.reflR, -24], [this.mainR, -23.5], [this.objR, -23]]) R.g.setDepth(d);   // (the paintings go between the walls and the columns)
+    this.objR = new Poly3D(this, [], { ...L, far: FAR });                                  // what stands in it: columns, pedestals, the dais, the trophy, doors, chandeliers
+    this.frontR = new Poly3D(this, [], L);                                                 // the entrance wall, its portal and the doors - on top of everything while you're outside, so nothing in the hall shows through
+    for (const [R, d] of [[this.floorR, -25], [this.reflR, -24], [this.mainR, -23.5], [this.objR, -23], [this.frontR, -20.5]]) R.g.setDepth(d);   // (the paintings go between the walls and the columns)
     this.beams = this.add.graphics().setDepth(-22).setBlendMode(Phaser.BlendModes.ADD);   // spotlights, window light, chandelier glow
     this.motesG = this.add.graphics().setDepth(-21).setBlendMode(Phaser.BlendModes.ADD);
     this.items = Object.entries(DISPLAY).map(([slot, d]) => ({ slot: HALL_SLOTS.find((q) => q.id === slot), painting: d.painting && PAINTINGS.find((q) => q.id === d.painting), trophy: d.trophy && TROPHIES.find((q) => q.id === d.trophy) })).filter((it) => it.slot && (it.painting || it.trophy));
@@ -93,20 +99,31 @@ export class TrophyHallScene extends Phaser.Scene {
     this.motes = Array.from({ length: 70 }, (_, i) => ({ x: (this.rnd(i, 1) - 0.5) * 520, y: CEIL + this.rnd(i, 2) * (FLOOR - CEIL), z: this.rnd(i, 3) * 1400, s: 0.2 + this.rnd(i, 4) * 0.5 }));
 
     titleBanner(this, 'TROPHY HALL', ARC.sections.trinkets, { crumb: 'TRINKETS  >  TROPHY HALL' });
-    hintBar(this, 'W/S WALK   A/D LOOK   J  LOOK CLOSER   Q  ACHIEVEMENTS   K / ESC / B  BACK', ARC.sections.trinkets);
+    this.touch = touchEnabled();
+    if (this.touch) { this.reflR.far = FAR * 0.5; this.objR.far = FAR * 0.75; }       // (phones: reflections and far things drawn over a shorter range - they're lost in the fog there anyway)
+    hintBar(this, this.touch ? 'HOLD THE ARROWS  WALK / LOOK   TAP THE PROMPT  LOOK CLOSER' : 'W/S WALK   A/D LOOK   J  LOOK CLOSER   Q  ACHIEVEMENTS   K / ESC / B  BACK', ARC.sections.trinkets);
+    if (this.touch) {                                                                       // phones / tablets: two pads (walk, look) and an ACHIEVEMENTS button; several fingers at once
+      this.input.addPointer(2);
+      this.padG = this.add.graphics().setDepth(30);
+      this.padT = ['up', 'down', 'left', 'right'].map((k) => this.add.text(PAD[k][0], PAD[k][1] + (k === 'up' ? -PAD.r - 6 : PAD.r + 6), { up: 'WALK', down: 'BACK', left: 'LOOK', right: 'LOOK' }[k], { fontFamily: FONT, fontSize: '5px', color: '#ffffff' }).setOrigin(0.5).setDepth(31).setAlpha(0.8));
+      makeButton(this, VIEW_W - 8, 52, 'ACHIEVEMENTS', () => { if (!this.inspect) this.openLedger(); }, { originX: 1, size: '7px' });
+    }
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     const shown = this.items.filter((it) => it.painting || it.earned).length, total = HALL_SLOTS.length, cups = this.items.filter((it) => it.trophy);
     this.count = this.add.text(VIEW_W - 10, 26, 'ON DISPLAY  ' + shown + ' / ' + total + '\nTROPHIES  ' + cups.filter((it) => it.earned).length + ' / ' + cups.length, { fontFamily: FONT, fontSize: '7px', color: '#f0d890', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(1, 0).setDepth(20);
     this.title = this.add.text(VIEW_W / 2, 132, 'WELCOME TO THE TROPHY HALL', { fontFamily: FONT, fontSize: '16px', color: '#f6d77a', stroke: '#2a0a10', strokeThickness: 5 }).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.sub = this.add.text(VIEW_W / 2, 154, 'WALK UP TO A PAINTING OR A TROPHY AND PRESS J', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', stroke: '#2a0a10', strokeThickness: 3 }).setOrigin(0.5).setDepth(20).setAlpha(0);
-    this.slotText = this.add.text(VIEW_W / 2, VIEW_H - 38, '', { fontFamily: FONT, fontSize: '7px', color: '#e8d0a0', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
-    this.prompt = this.add.text(VIEW_W / 2, VIEW_H - 27, 'J / ENTER / TAP  LOOK CLOSER', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', backgroundColor: '#5a2a7a', padding: { x: 4, y: 2 } }).setOrigin(0.5).setDepth(20).setVisible(false)
+    this.slotText = this.add.text(VIEW_W / 2, VIEW_H - (touchEnabled() ? 48 : 38), '', { fontFamily: FONT, fontSize: '7px', color: '#e8d0a0', stroke: '#1a0a14', strokeThickness: 3 }).setOrigin(0.5).setDepth(20);
+    this.prompt = this.add.text(VIEW_W / 2, VIEW_H - 27, touchEnabled() ? 'TAP HERE  -  LOOK CLOSER' : 'J / ENTER / TAP  LOOK CLOSER', { fontFamily: FONT, fontSize: touchEnabled() ? '9px' : '7px', color: '#ffffff', backgroundColor: '#5a2a7a', padding: touchEnabled() ? { x: 10, y: 6 } : { x: 4, y: 2 } }).setOrigin(0.5).setDepth(20).setVisible(false)
       .setInteractive({ useHandCursor: true }).on('pointerdown', () => { if (this.near && !this.inspect) this.openInspect(this.items.indexOf(this.near)); });
     this.qKey = this.input.keyboard && this.input.keyboard.addKey('Q', false);
     if (fresh.length) achievementToasts(this, fresh, { delay: 3000 });
     this.held = null;
-    this.input.on('pointerdown', (p, over) => { if (!over.length) this.held = p; });
+    this.input.on('pointerdown', (p, over) => {
+      if (this.inspect) { if (p.x < 90) this.openInspect(this.inspect.i - 1); else if (p.x > VIEW_W - 90) this.openInspect(this.inspect.i + 1); else if (!over.length) this.closeInspect(); return; }   // the close-up: tap the sides to flip, anywhere else to go back
+      if (!over.length && !this.touch) this.held = p;                                     // (a mouse: hold the top / bottom half to walk; touch uses the pads)
+    });
     this.input.on('pointerup', () => { this.held = null; });
     sfx('clang', 0.4, 0.5);
   }
@@ -137,11 +154,34 @@ export class TrophyHallScene extends Phaser.Scene {
         M.faces.push(face([[x - s, CEIL, z], [x - s, CEIL, z2], [x - s, CEIL + 30, z2], [x - s, CEIL + 30, z]], n, P.goldD, { bias: 380 }));
       }
     }
-    // ---- the ceiling: dark blue coffers between gold beams that cross the hall at every column
-    for (let z = -600; z < LEN; z += T) for (let x = -WALL; x < WALL; x += T)
-      M.faces.push(face([[x, CEIL, z], [x + T, CEIL, z], [x + T, CEIL, z + T], [x, CEIL, z + T]], [0, 1, 0], ((x + z) / T) & 1 ? P.ceil : P.coffer, { bias: 600 }));
-    for (let i = -1; i <= HALL.bays + 1; i++) { const z = i * HALL.bay; M.faces.push(...boxFaces(-WALL, CEIL, z - 14, WALL, CEIL + 26, z + 14, P.goldD, P.goldD).map((f) => ({ ...f, bias: 300 }))); }
-    M.faces.push(...boxFaces(-16, CEIL, -600, 16, CEIL + 14, LEN, P.goldD).map((f) => ({ ...f, bias: 320 })));   // the spine beam
+    // ---- the ceiling: a barrel vault of deep blue coffers, a gold rib arching over at every column, a gold spine
+    // along its crown with a rosette in every bay
+    const arc = this.vaultArc(), seg = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l, 0]; };
+    for (let z = -600; z < LEN; z += T) for (let k = 0; k < arc.length - 1; k++) {
+      const [a, b] = [arc[k], arc[k + 1]];
+      M.faces.push(face([[a[0], a[1], z], [b[0], b[1], z], [b[0], b[1], z + T], [a[0], a[1], z + T]], seg(a, b), ((k + z / T) & 1) ? P.ceil : P.coffer, { bias: 600 }));
+    }
+    for (let i = -1; i <= HALL.bays + 1; i++) for (let k = 0; k < arc.length - 1; k++) {
+      const z = i * HALL.bay, [a, b] = [arc[k], arc[k + 1]], n = seg(a, b), d = 4;
+      M.faces.push(face([[a[0] + n[0] * d, a[1] + n[1] * d, z - 14], [b[0] + n[0] * d, b[1] + n[1] * d, z - 14], [b[0] + n[0] * d, b[1] + n[1] * d, z + 14], [a[0] + n[0] * d, a[1] + n[1] * d, z + 14]], n, k % 2 ? P.gold : P.goldD, { bias: 300 }));
+    }
+    M.faces.push(face([[-16, CEIL - VAULT + 3, -600], [16, CEIL - VAULT + 3, -600], [16, CEIL - VAULT + 3, LEN], [-16, CEIL - VAULT + 3, LEN]], [0, 1, 0], P.goldD, { bias: 320 }));   // the spine
+    for (let i = 0; i < HALL.bays; i++) { const z = i * HALL.bay + HALL.bay / 2, y = CEIL - VAULT + 4; M.faces.push(face([[0, y, z - 30], [30, y, z], [0, y, z + 30], [-30, y, z]], [0, 1, 0], P.gold, { bias: 310 }), face([[0, y + 1, z - 14], [14, y + 1, z], [0, y + 1, z + 14], [-14, y + 1, z]], [0, 1, 0], P.crimson, { bias: 305 })); }
+    // ---- gold arches painted on the walls over every bay, a keystone at the top
+    for (let i = 0; i < HALL.bays; i++) for (const s of [-1, 1]) {
+      const z1 = i * HALL.bay + 34, z2 = (i + 1) * HALL.bay - 34, x = s * (WALL - 1), N = 5, pt = (u) => [z1 + (z2 - z1) * u, -236 - Math.sin(u * Math.PI) * 54];
+      for (let k = 0; k < N; k++) { const [za, ya] = pt(k / N), [zb, yb] = pt((k + 1) / N); M.faces.push(face([[x, ya, za], [x, yb, zb], [x, yb + 6, zb], [x, ya + 6, za]], [-s, 0, 0], P.gold, { bias: 190 })); }
+      const zm = (z1 + z2) / 2; M.faces.push(face([[x, -296, zm - 8], [x, -296, zm + 8], [x, -280, zm + 5], [x, -280, zm - 5]], [-s, 0, 0], P.goldD, { bias: 185 }));
+    }
+    // ---- velvet ropes on gold posts along both sides of the carpet
+    for (let z = 90; z < LEN - 420; z += 320) for (const s of [-1, 1]) {
+      const x = s * 84;
+      O.faces.push(...boxFaces(x - 3, FLOOR - 34, z - 3, x + 3, FLOOR, z + 3, P.gold, P.gold), ...boxFaces(x - 5, FLOOR - 41, z - 5, x + 5, FLOOR - 34, z + 5, P.gold, 0xfff0a0));
+      if (z + 320 < LEN - 420) for (const [u0, u1] of [[0, 0.5], [0.5, 1]]) {
+        const y = (u) => FLOOR - 30 + Math.sin(u * Math.PI) * 14, za = z + 320 * u0, zb = z + 320 * u1;
+        O.faces.push(face([[x, y(u0), za], [x, y(u1), zb], [x, y(u1) + 3, zb], [x, y(u0) + 3, za]], null, 0x9a0c20));
+      }
+    }
     // ---- the columns (8-sided marble shafts with a gold capital and a square base), mirrored in the floor
     for (let i = -1; i <= HALL.bays; i++) for (const s of [-1, 1]) {
       const x = s * COL_X, z = i * HALL.bay, parts = [
@@ -149,7 +189,7 @@ export class TrophyHallScene extends Phaser.Scene {
         ...boxFaces(x - 28, CEIL + 26, z - 28, x + 28, CEIL + 50, z + 28, P.gold),
         ...boxFaces(x - 30, FLOOR - 22, z - 30, x + 30, FLOOR, z + 30, P.colDark, P.marbleW),
       ];
-      O.faces.push(...parts); Rf.faces.push(...this.mirror(parts));
+      (z < DOOR_Z ? this.frontR : O).faces.push(...parts); Rf.faces.push(...this.mirror(parts));   // (the columns outside the doors go with the entrance)
     }
     // ---- a pedestal in every bay on both sides (empty), with a gold plaque on its front
     for (const sl of HALL_SLOTS.filter((q) => q.kind === 'pedestal')) {
@@ -179,10 +219,11 @@ export class TrophyHallScene extends Phaser.Scene {
     }
     // ---- the far end: a three-step dais, the great plinth (empty), banners, and a stained-glass window
     const E = LEN, pl = HALL_SLOTS.find((q) => q.kind === 'plinth');
-    for (let i = 0; i < 3; i++) { const w = 240 - i * 40, d = 300 - i * 50, top = FLOOR - 14 * (i + 1); const st = boxFaces(-w, top, E - d, w, top + 14, E, P.marbleW, i === 2 ? P.carpet : P.marbleW); O.faces.push(...st); Rf.faces.push(...this.mirror(st)); }
+    for (let i = 0; i < 3; i++) { const w = 240 - i * 40, d = 300 - i * 50, top = FLOOR - 14 * (i + 1); const st = boxFaces(-w, top, E - d, w, top + 14, E, P.marbleW, i === 2 ? P.carpet : P.marbleW).map((f) => ({ ...f, keep: true })); O.faces.push(...st); Rf.faces.push(...this.mirror(st)); }
     const plinth = [...boxFaces(-46, FLOOR - 42 - 70, pl.z - 46, 46, FLOOR - 42, pl.z + 46, P.marbleW), ...boxFaces(-54, FLOOR - 42 - 80, pl.z - 54, 54, FLOOR - 42 - 70, pl.z + 54, P.gold)];
-    O.faces.push(...plinth); Rf.faces.push(...this.mirror(plinth));
+    O.faces.push(...plinth.map((f) => ({ ...f, keep: true }))); Rf.faces.push(...this.mirror(plinth));
     M.faces.push(face([[-WALL, CEIL, E], [WALL, CEIL, E], [WALL, FLOOR, E], [-WALL, FLOOR, E]], [0, 0, -1], P.crimsonD, { bias: 500 }));
+    M.faces.push(face(arc.slice().reverse().map(([x, y]) => [x, y, E]), [0, 0, -1], P.crimsonD, { bias: 500 }));   // (the vault's end, the lunette over the window)
     // the window: a tall pointed arch of coloured glass in lead, glowing (no fog on it)
     const wy1 = -300, wy2 = -60, ww = 110, segs = 9;
     const arch = []; for (let i = 0; i <= segs; i++) { const a = Math.PI * i / segs; arch.push([Math.cos(a) * ww, wy1 + 60 - Math.sin(a) * 90]); }
@@ -202,10 +243,22 @@ export class TrophyHallScene extends Phaser.Scene {
       M.faces.push(face([[x, -120, E - 5], [x + 14, -100, E - 5], [x, -80, E - 5], [x - 14, -100, E - 5]], [0, 0, -1], P.gold, { bias: 420 }));
     }
     // ---- the entrance wall round the doorway (seen from outside as you arrive)
+    // ---- the entrance (its own layer, frontR): the wall round the doorway and the vault's lunette over it, a grand
+    // portal - gold jambs and lintel, a pediment with a gold trophy medallion, two marble columns either side
+    const Fr = this.frontR, Z0 = DOOR_Z;
     for (const [x1, x2, y1, y2] of [[-WALL, -150, CEIL, FLOOR], [150, WALL, CEIL, FLOOR], [-150, 150, CEIL, -210]])
-      M.faces.push(face([[x1, y1, DOOR_Z], [x2, y1, DOOR_Z], [x2, y2, DOOR_Z], [x1, y2, DOOR_Z]], [0, 0, -1], P.crimsonD));
-    M.faces.push(...boxFaces(-166, -226, DOOR_Z - 8, 166, -210, DOOR_Z + 2, P.gold));
+      Fr.faces.push(face([[x1, y1, Z0], [x2, y1, Z0], [x2, y2, Z0], [x1, y2, Z0]], [0, 0, -1], P.crimsonD));
+    Fr.faces.push(face(arc.map(([x, y]) => [x, y, Z0]), [0, 0, -1], P.crimsonD));
+    Fr.faces.push(...boxFaces(-170, -228, Z0 - 10, 170, -210, Z0 + 2, P.gold));
+    for (const s of [-1, 1]) Fr.faces.push(...boxFaces(s * 150 - (s > 0 ? 0 : 16), -210, Z0 - 8, s * 150 + (s > 0 ? 16 : 0), FLOOR, Z0 + 2, P.gold, P.gold));
+    Fr.faces.push(face([[-176, -228, Z0 - 11], [176, -228, Z0 - 11], [0, -300, Z0 - 11]], [0, 0, -1], P.gold), face([[-150, -234, Z0 - 12], [150, -234, Z0 - 12], [0, -290, Z0 - 12]], [0, 0, -1], P.crimson));
+    const med = Array.from({ length: 10 }, (_, k) => [Math.cos(k / 10 * Math.PI * 2) * 15, -256 + Math.sin(k / 10 * Math.PI * 2) * 15, Z0 - 13]);
+    Fr.faces.push(face(med, [0, 0, -1], P.gold), face([[-6, -262, Z0 - 14], [6, -262, Z0 - 14], [3, -252, Z0 - 14], [-3, -252, Z0 - 14]], [0, 0, -1], P.goldD), face([[-2, -252, Z0 - 14], [2, -252, Z0 - 14], [5, -246, Z0 - 14], [-5, -246, Z0 - 14]], [0, 0, -1], P.goldD));   // (a little cup on it)
+    for (const s of [-1, 1]) { const x = s * 200, z = Z0 - 26; Fr.faces.push(...prismFaces(x, CEIL + 50, FLOOR - 22, z, 18, 8, P.column), ...boxFaces(x - 26, CEIL + 26, z - 26, x + 26, CEIL + 50, z + 26, P.gold), ...boxFaces(x - 28, FLOOR - 22, z - 28, x + 28, FLOOR, z + 28, P.colDark, P.marbleW)); }
   }
+
+  /** The vaulted ceiling's cross-section: points from one wall's top, up over the crown, down to the other's. */
+  vaultArc(N = 6) { return Array.from({ length: N + 1 }, (_, k) => { const u = k / N; return [-WALL * Math.cos(u * Math.PI), CEIL - VAULT * Math.sin(u * Math.PI)]; }); }
 
   /** The same faces flipped upside down about the floor (their reflection in the polished marble), faint. */
   mirror(faces) {
@@ -225,8 +278,9 @@ export class TrophyHallScene extends Phaser.Scene {
     }
     for (let i = 0; i < 5; i++) {                                                         // chandeliers: a chain, a gold ring of candles, crystals
       const z = 240 + i * 900, sw = Math.sin(this.t * 0.02 + i) * 6, y = -190;
-      out.push(...boxFaces(-2 + sw * 0.3, CEIL + 26, z - 2, 2 + sw * 0.3, y, z + 2, P.goldD));
-      out.push(...prismFaces(sw, y, y + 8, z, 46, 10, P.gold, P.gold));
+      out.push(...boxFaces(-2 + sw * 0.3, CEIL - VAULT + 4, z - 2, 2 + sw * 0.3, y - 30, z + 2, P.goldD));   // (the chain, from the vault's crown)
+      out.push(...prismFaces(sw, y, y + 8, z, 46, 10, P.gold, P.gold), ...prismFaces(sw, y - 30, y - 24, z, 26, 8, P.gold, P.gold));   // (two tiers)
+      for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3 + 0.5, cx = sw + Math.cos(a) * 26, cz = z + Math.sin(a) * 26; out.push(...boxFaces(cx - 1.5, y - 40, cz - 1.5, cx + 1.5, y - 30, cz + 1.5, 0xf8f0d8)); }
       out.push(...blobFaces(sw, y + 22, z, 14, 20, 14, [0xd8f0ff, 0xa8d0f0, 0xffffff], i, null, 0.15));
       for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, cx = sw + Math.cos(a) * 44, cz = z + Math.sin(a) * 44; out.push(...boxFaces(cx - 2, y - 12, cz - 2, cx + 2, y, cz + 2, 0xf8f0d8)); }
     }
@@ -244,19 +298,22 @@ export class TrophyHallScene extends Phaser.Scene {
   /** Draws every layer from where you stand. */
   draw() {
     const ex = this.lookX, ey = this.bob, cam = { midPoint: { x: ex, y: ey }, worldView: { x: ex - VIEW_W / 2, y: ey - VIEW_H / 2, width: VIEW_W, height: VIEW_H } };
-    for (const R of [this.floorR, this.reflR, this.mainR, this.objR]) {
+    for (const R of [this.floorR, this.reflR, this.mainR, this.objR, this.frontR]) {
       R.scene = { cameras: { main: cam } }; R.camZ = this.camZ;
       R.g.setPosition(VIEW_W / 2 - ex, VIEW_H / 2 - ey);
     }
     const g = this.bg; g.clear();
     g.fillGradientStyle(0x0a0614, 0x0a0614, 0x1a0a20, 0x1a0a20, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);   // (outside the doors: dark)
+    const outside = this.camZ < DOOR_Z + 2;                                             // still outside the doors: the entrance hides the hall (frontR on top)
     this.floorR.render([]);
     const dyn = this.dynamic();
+    this.reflR.clipZ = outside ? DOOR_Z : null;
     this.reflR.render(this.mirror(dyn.lights));
     this.mainR.render([]);
     const cups = this.items.filter((it) => it.trophy), ang = this.t * 0.02, tf = [];
-    for (const it of cups) { const S = trophySpot(it.slot); if (S.z - this.camZ < 4300) tf.push(...this.trophyFaces(it.trophy.model, S.x, S.y, S.z, ang, S.k, !it.earned)); }
-    this.objR.render([...dyn.doors, ...dyn.lights, ...tf]);
+    for (const it of cups) { const S = trophySpot(it.slot); if (S.z - this.camZ < 4300) tf.push(...this.trophyFaces(it.trophy.model, S.x, S.y, S.z, ang, S.k, !it.earned).map((f) => (S.k > 1 ? { ...f, keep: true } : f))); }
+    this.objR.render([...(outside ? [] : dyn.doors), ...dyn.lights, ...tf]);
+    if (outside) this.frontR.render(dyn.doors); else this.frontR.g.clear();
     this.drawPaintings();
     // light: a soft cone from the ceiling onto every pedestal and onto the plinth, the window's glow, candle glows
     const b = this.beams; b.clear();
@@ -300,6 +357,7 @@ export class TrophyHallScene extends Phaser.Scene {
     for (const m of this.motes) {
       m.y += 0.08; m.x += Math.sin(this.t * 0.01 + m.z) * 0.1; if (m.y > FLOOR) m.y = CEIL + 40;
       let z = m.z; while (z < this.camZ - 150) z += 1400; while (z > this.camZ + 1250) z -= 1400;
+      if (this.camZ < DOOR_Z + 2 && z > DOOR_Z) continue;                                  // (behind the entrance wall)
       const q = this.project(m.x, m.y, z); if (!q) continue;
       mg.fillStyle(0xfff0d0, m.s * Math.min(1, q.s * 1.5)); mg.fillRect(q.x, q.y, Math.max(1, 2 * q.s), Math.max(1, 2 * q.s));
     }
@@ -454,7 +512,7 @@ export class TrophyHallScene extends Phaser.Scene {
         title: this.add.text(VIEW_W / 2, 24, '', { fontFamily: FONT, fontSize: '12px', color: '#f6d77a', stroke: '#2a0a10', strokeThickness: 4 }).setOrigin(0.5).setDepth(D + 4),
         text: this.add.text(VIEW_W / 2, 302, '', { fontFamily: FONT, fontSize: '7px', color: '#ffffff', align: 'center', lineSpacing: 3, wordWrap: { width: 520 } }).setOrigin(0.5, 0).setDepth(D + 4),
         plaque: this.add.text(VIEW_W / 2, 222, 'YOU DID IT', { fontFamily: FONT, fontSize: '7px', color: '#3a2408' }).setOrigin(0.5).setDepth(D + 3),   // engraved on the trophy's plaque
-        hint: this.add.text(VIEW_W / 2, VIEW_H - 8, '< A / D >  MORE      J / K  BACK TO THE HALL', { fontFamily: FONT, fontSize: '6px', color: '#c8b8e8' }).setOrigin(0.5).setDepth(D + 4),
+        hint: this.add.text(VIEW_W / 2, VIEW_H - 8, this.touch ? 'TAP THE ARROWS  MORE      TAP ANYWHERE ELSE  BACK TO THE HALL' : '< A / D >  MORE      J / K  BACK TO THE HALL', { fontFamily: FONT, fontSize: '6px', color: '#c8b8e8' }).setOrigin(0.5).setDepth(D + 4),
       };
       this.insp.R.g.setDepth(D + 2);
       this.insp.img.setInteractive().on('pointerdown', () => this.closeInspect());
@@ -509,7 +567,25 @@ export class TrophyHallScene extends Phaser.Scene {
       }
       I.fx.fillStyle(0x2a1a08, 1);
     }
+    for (const s of [-1, 1]) {                                                                   // the flip arrows at the sides (tap / click them)
+      const x = VIEW_W / 2 + s * (VIEW_W / 2 - 34), y = 168, k = 1 + Math.sin(t * 0.12) * 0.08;
+      g.fillStyle(0x5a2a7a, 0.85); g.fillCircle(x, y, 18 * k); g.fillStyle(0xf6d77a, 1); g.fillTriangle(x + s * 8, y, x - s * 6, y - 9, x - s * 6, y + 9);
+    }
     I.text.setY(it.painting ? 303 : 290); I.plaque.setVisible(!it.painting).setY(it.trophy && it.trophy.model === 'phoenix' ? 214 : 222);
+  }
+
+  /** The touch pads: which are held this frame (any finger) - returns { fwd, side } - and draws them, lit while held. */
+  padPress() {
+    const held = { up: false, down: false, left: false, right: false };
+    for (const p of this.input.manager.pointers) if (p.isDown) for (const k in held) if (Math.hypot(p.x - PAD[k][0], p.y - PAD[k][1]) < PAD.r + 10) held[k] = true;
+    const g = this.padG; g.clear();
+    if (!this.inspect) for (const k in held) {
+      const [x, y] = PAD[k], on = held[k], d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[k];
+      g.fillStyle(0x000000, on ? 0.55 : 0.35); g.fillCircle(x, y, PAD.r); g.lineStyle(2, 0xf6d77a, on ? 1 : 0.55); g.strokeCircle(x, y, PAD.r); g.lineStyle(0);
+      g.fillStyle(on ? 0xffffff : 0xf6d77a, on ? 1 : 0.8); g.fillTriangle(x + d[0] * 12, y + d[1] * 12 - 3, x + d[1] * 9 - d[0] * 2, y - d[0] * 9 - 3 - d[1] * 2, x - d[1] * 9 - d[0] * 2, y + d[0] * 9 - 3 - d[1] * 2);
+    }
+    for (const T of this.padT) T.setVisible(!this.inspect);
+    return { fwd: (held.up ? 1 : 0) - (held.down ? 1 : 0), side: (held.right ? 1 : 0) - (held.left ? 1 : 0) };
   }
 
   /** Opens the ACHIEVEMENTS page; its BACK returns here, where you stood. */
@@ -525,6 +601,7 @@ export class TrophyHallScene extends Phaser.Scene {
     if (this.inspect) {                                                                         // the close-up: flip through, or go back to the hall
       if (backPress || okPress) this.closeInspect();
       else { if (m.left) this.openInspect(this.inspect.i - 1); if (m.right) this.openInspect(this.inspect.i + 1); this.drawInspect(); }
+      if (this.padG) { this.padG.clear(); for (const T of this.padT) T.setVisible(false); }
       this.draw(); return;
     }
     if (backPress) return this.back();
@@ -542,6 +619,7 @@ export class TrophyHallScene extends Phaser.Scene {
       if (ay < -0.4 || bt(12)) fwd += 1; if (ay > 0.4 || bt(13)) fwd -= 1;
       if (ax < -0.4 || bt(14)) side -= 1; if (ax > 0.4 || bt(15)) side += 1;
     }
+    if (this.touch) { const pr = this.padPress(); fwd += pr.fwd; side += pr.side; }
     if (this.held && this.held.isDown) { fwd += this.held.y < VIEW_H / 2 ? 1 : -1; side += Math.abs(this.held.x - VIEW_W / 2) > 90 ? Math.sign(this.held.x - VIEW_W / 2) : 0; }
     fwd = Math.max(-1, Math.min(1, fwd)); side = Math.max(-1, Math.min(1, side));
     if (this.t < ARRIVE.glide) {                                                            // the arrival: the doors open, you glide in

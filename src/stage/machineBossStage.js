@@ -22,6 +22,7 @@
 import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
 import { sfx } from '../audio/sfx.js';
+import { FONT } from '../config.js';
 
 // 90s desktop greys, teal, title-bar blue, beige plastic
 const C = { out: 0x101010, teal: [0x007070, 0x008080, 0x109090], grey: [0x404040, 0x808080, 0xc0c0c0, 0xdfdfdf, 0xffffff], navy: 0x000080, blue: 0x1084d0,
@@ -65,6 +66,14 @@ const HANG = { every: 4, dur: 170 };
 // hazards: POP-UP (a window falls on a mark) and DIAL-UP (a screeching beam: warning frames, sweep frames, band height, hit)
 const POPUP = { warn: 50, hit: [10, [80, 5.6, 0.7]] };
 const DIAL = { warn: 70, on: 60, h: 30, hit: [5, [40, 4.6, 0.4]] };
+// ITS LAST PHASE - ONLINE: below `at` health it dials up (`dial` frames - its screen takes x`open` meanwhile) and goes online
+const ONLINE = { at: 0.2, dial: 150, open: 1.6 };
+// SPAM: junk mail flies out of its screen and homes in on you a while (calm / enraged count; one hit pops one)
+const SPAM = { n: [6, 8], every: 9, speed: 4.2, turn: 0.045, home: 110, life: 240, hit: [6, [45, 4.6, 0.5]] };
+// BANNERS: ad windows fire marquee banners across the room at three heights - low (jump it), middle (stay down), high (off the ledges)
+const BANNER = { n: 3, warn: 46, gap: 40, speed: 8, h: 24, ys: [-24, -84, -138], len: 260, hit: [8, [40, 5, 0.6]], words: ['CLICK HERE!', 'YOU WIN!!!', 'FREE MONEY', 'FREE RAM', '1 NEW MSG', 'HIT #99999'] };
+// SNAKE: the old snake game escapes - a pixel snake slithers after you on a grid (frames per step calm / enraged), growing; bite its head to shorten it
+const SNAKE = { cell: 16, step: [6, 5], grow: 14, start: 4, life: 300, hit: [7, [50, 5, 0.55]] };
 // where the bedroom backdrop sits on the background camera (deco = how much lower its window, posters and furniture are)
 const SKY = { x: 320, y: 250, deco: 250 };
 
@@ -88,6 +97,7 @@ export class MachineBossStage extends BossArena {
     this.puddles = []; this.discs = []; this.tray = 0; this.pour = null; this.low = false;
     this.errs = []; this.cards = []; this.pipes = []; this.blocks = []; this.dial = null; this.win = null; this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.keyFlash = null;
     this.sparkColor = 0x30ff80; this.bodyW = 200; this.bodyH = 160;
+    this.online = false; this.needDial = false; this.dialing = false; this.onlineK = 0; this.spam = []; this.banners = []; this.snake = null;
   }
 
   /** Builds the bedroom wall behind (window, posters, shelves of stuff), the shelves (ledges) and the desk (the floor). */
@@ -95,10 +105,12 @@ export class MachineBossStage extends BossArena {
     const s = this.scene;
     const wall = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y); bg.push(wall);
     const deco = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y + SKY.deco); bg.push(deco); this.paintHome(wall, deco);
+    this.webG = s.add.graphics(); world.push(this.webG);              // (ONLINE: the web pouring through the room)
     const back = s.add.graphics(); world.push(back); this.paintShelves(back);
     this.monG = s.add.graphics(); world.push(this.monG);
     const front = s.add.graphics(); world.push(front); this.paintDesk(front);
     this.fxG = s.add.graphics(); world.push(this.fxG);
+    this.bannerT = [0, 1, 2].map(() => { const t = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setVisible(false); world.push(t); return t; });
     this.cycle.makeBanner(s);
   }
 
@@ -196,13 +208,15 @@ export class MachineBossStage extends BossArena {
   /** Where it can be hit: the screen (x1, x1.5 NOT RESPONDING), the casing (x0.5), the cursor (x0.3). */
   hurt() {
     const c = this.core(), sw = MON.sw / 2, sh = MON.sh / 2, b = MON.bez, k = this.cur;
-    return [{ x1: c.x - sw, y1: c.y - sh, x2: c.x + sw, y2: c.y + sh, mult: this.hang > 0 ? 1.5 : 1.0 },
+    return [{ x1: c.x - sw, y1: c.y - sh, x2: c.x + sw, y2: c.y + sh, mult: this.dialing ? ONLINE.open : this.hang > 0 ? 1.5 : 1.0 },
       { x1: c.x - sw - b, y1: c.y - sh - b, x2: c.x + sw + b, y2: c.y + sh + b + 20, mult: 0.5 },
       { x1: k.x - 4, y1: k.y - 4, x2: k.x + 30, y2: k.y + 46, mult: 0.3 }];
   }
-  /** What it does next: every few attacks it hangs (NOT RESPONDING); enraged adds PIPES and SYSTEM CRASH. */
+  /** What it does next: every few attacks it hangs (NOT RESPONDING); enraged adds PIPES and SYSTEM CRASH; ONLINE (its last phase) spams, banners and snakes. */
   pattern(phase) {
+    if (this.needDial) return ['connect'];
     if (this.count % HANG.every === HANG.every - 1) return ['hang'];
+    if (this.online) return ['spam', 'banner', 'snake', 'cds', 'spam', 'banner', 'sludge', 'snake', 'music'];
     if (this.low) return ['cds', 'sludge', 'cds', 'paint', 'mines', 'music', 'bin', 'notes'];
     return phase === 1 ? ['paint', 'mines', 'calc', 'notes', 'click', 'errors', 'cards', 'sludge'] : ['paint', 'mines', 'calc', 'notes', 'music', 'bin', 'errors', 'pipes', 'crash', 'sludge'];
   }
@@ -210,7 +224,7 @@ export class MachineBossStage extends BossArena {
   tally() { this.count++; }
   start_click() { this.tally(); } start_paint() { this.tally(); } start_mines() { this.tally(); } start_calc() { this.tally(); } start_notes() { this.tally(); } start_music() { this.tally(); } start_bin() { this.tally(); } start_sludge() { this.tally(); } start_cds() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
   /** The death card's form: the music tray out, blue-screened or not. */
-  cardForm() { return this.low ? 'low' : super.cardForm(); }
+  cardForm() { return this.online ? 'online' : this.low ? 'low' : super.cardForm(); }
   /** The drawing layers that make up the boss itself, for its death card's portrait (MatchScene.paintBossCard). */
   cardObjs() { return [this.monG]; }
   rageLine() { return 'FATAL EXCEPTION!'; }
@@ -318,6 +332,150 @@ export class MachineBossStage extends BossArena {
     if (a.t === 1) { this.hang = this.sp(HANG.dur) + 30; sfx('glitch', 0.8, 0.5); if (this.rageText && !this.boss.rage) { this.rageText.setText('(NOT RESPONDING)'); this.boss.rage = 70; } }
     this.mood = 'hang'; this.cur.mode = 'wait';
     return this.hang <= 0;
+  }
+
+  // ------------------------------------------------------------------ ONLINE (its last phase)
+  /**
+   * CONNECTING...: it dials up - the modem screeches, the lights on its modem flicker, its screen shows a phone and
+   * dots filling in (the screen takes x`ONLINE.open` while it's busy) - then YOU'VE GOT MAIL: it's ONLINE for the rest
+   * of the fight, and the room fills with the web.
+   */
+  atk_connect(match, a) {
+    const D = this.sp(ONLINE.dial);
+    this.mood = 'dial'; this.cur.mode = 'wait'; this.dialing = true; this.needDial = false;
+    if (a.t === 1) { sfx('dialup', 1, 1); this.rageText.setText('CONNECTING...'); this.boss.rage = D; }
+    if (a.t % 30 === 15) match.shake(3, 6);
+    if (a.t >= D) {
+      this.dialing = false; this.onlineK = 0.01; sfx('mail', 1, 1); sfx('ding', 0.8, 1.2); match.shake(8, 14);
+      this.rageText.setText('YOU\'VE GOT MAIL.'); this.boss.rage = 90; this.snob(match, ['WELCOME TO THE INFORMATION SUPERHIGHWAY.', 'NOW I AM EVERYWHERE.']);
+      return true;
+    }
+    return false;
+  }
+  /** SPAM: its screen spits junk mail - envelopes that home in on you for a while, then fly straight. One hit pops one. */
+  start_spam(match, a) { this.tally(); a.n = SPAM.n[this.boss.phase - 1] || SPAM.n[1]; a.k = 0; this.snob(match, ['FORWARD THIS TO TEN FRIENDS.', 'YOU HAVE WON A FREE PRIZE!']); }
+  /** SPAM, frame by frame (the envelopes move in stepOnline). */
+  atk_spam(match, a) {
+    this.mood = 'grin'; this.cur.mode = 'hand'; const c = this.core();
+    if (a.t > 20 && a.k < a.n && a.t % this.sp(SPAM.every) === 0) {
+      const tg = this.nearest(match, c.x), ang = Math.atan2((tg ? tg.y - 30 : 0) - c.y, (tg ? tg.x : 0) - c.x) + (Math.random() - 0.5) * 1.6;
+      this.spam.push({ x: c.x + (Math.random() - 0.5) * 60, y: c.y + (Math.random() - 0.5) * 30, a: ang, tg, age: 0, id: 'mc-spam-' + (++this.uidM || (this.uidM = 1)) });
+      sfx('mail', 0.35, 1.3 + Math.random() * 0.3); a.k++;
+    }
+    return a.k >= a.n && a.t > 20 + a.n * this.sp(SPAM.every) + 40;
+  }
+  /** BANNERS: ad windows pop up at the sides and fire scrolling marquee banners across the room - low (jump it), middle (stay down) and high (off the ledges). */
+  start_banner(match, a) {
+    this.tally(); const hs = [0, 1, 2].sort(() => Math.random() - 0.5);
+    a.list = hs.slice(0, BANNER.n).map((h, i) => ({ y: BANNER.ys[h], s: Math.random() < 0.5 ? -1 : 1, at: 20 + i * this.sp(BANNER.gap) }));
+  }
+  /** BANNERS, frame by frame: each ad warns (a flashing window and a dashed line at its height), then its banner scrolls across. */
+  atk_banner(match, a) {
+    this.mood = 'grin'; this.cur.mode = 'arrow';
+    for (const L of a.list) {
+      if (a.t === L.at) { this.banners.push({ y: L.y, s: L.s, t: 0, x: null, id: 'mc-ban-' + (++this.uidM || (this.uidM = 1)), word: BANNER.words[Math.floor(Math.random() * BANNER.words.length)] }); sfx('popup', 0.8, 1); }
+    }
+    return a.t > a.list[a.list.length - 1].at + this.sp(BANNER.warn) + 110;
+  }
+  /** SNAKE: the old snake game escapes out of its screen - a pixel snake that slithers after you on a grid, growing as it goes. Hit its head to bite a segment off. */
+  start_snake(match, a) {
+    this.tally(); const c = this.core(), S = SNAKE.cell, sx = Math.round(c.x / S) * S, sy = Math.round((c.y + 60) / S) * S;
+    this.snake = { segs: Array.from({ length: SNAKE.start }, (_, i) => ({ x: sx, y: sy - i * S })), dx: 0, dy: 1, t: 0, grow: SNAKE.grow - SNAKE.start, life: this.sp(SNAKE.life), id: 'mc-snk-' + (++this.uidM || (this.uidM = 1)), hurt: 0 };
+    sfx('glitch', 0.6, 1.4); this.snob(match, ['A CLASSIC. LIKE ME.']);
+  }
+  /** SNAKE, frame by frame (it moves in stepOnline): the attack ends when its time is up and it's slithered away. */
+  atk_snake(match, a) { this.mood = 'happy'; this.cur.mode = 'arrow'; return !this.snake; }
+  /** Moves everything ONLINE: the spam, the banners, the snake - and pushes their hitboxes. */
+  stepOnline(match, out) {
+    if (this.onlineK) this.onlineK = Math.min(1, this.onlineK + 0.02);
+    for (const E of this.spam) {
+      E.age++;
+      if (E.age < SPAM.home && E.tg && !E.tg.out) { const want = Math.atan2(E.tg.y - 30 - E.y, E.tg.x - E.x); let d = want - E.a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; E.a += Math.max(-SPAM.turn, Math.min(SPAM.turn, d)); }
+      E.x += Math.cos(E.a) * SPAM.speed; E.y += Math.sin(E.a) * SPAM.speed;
+      out.push(this.bhit(E.id, E.x - 11, E.y - 8, E.x + 11, E.y + 8, ...SPAM.hit, { dirX: Math.cos(E.a) >= 0 ? 1 : -1 }));
+      if (E.age > SPAM.life || E.y > 8 || Math.abs(E.x) > 400) E.dead = true;
+    }
+    this.spam = this.spam.filter((E) => !E.dead);
+    for (const B of this.banners) {
+      B.t++; const W = this.sp(BANNER.warn);
+      if (B.t === W) { B.x = -B.s * 330; sfx('airhorn', 0.4, 1.4); }
+      if (B.t > W) {
+        B.x += B.s * BANNER.speed; const x1 = Math.min(B.x, B.x - B.s * BANNER.len), x2 = Math.max(B.x, B.x - B.s * BANNER.len);
+        out.push(this.bhit(B.id, x1, B.y - BANNER.h / 2, x2, B.y + BANNER.h / 2, ...BANNER.hit, { dirX: B.s }));
+        if (Math.abs(B.x) > 330 + BANNER.len) B.dead = true;
+      }
+    }
+    this.banners = this.banners.filter((B) => !B.dead);
+    const N = this.snake;
+    if (N) {
+      N.t++; if (N.hurt > 0) N.hurt--;
+      const S = SNAKE.cell, step = SNAKE.step[this.boss && this.boss.phase === 2 ? 1 : 0];
+      if (N.t % step === 0) {
+        const h = N.segs[0], tg = this.nearest(match, h.x);
+        if (N.life > 0 && tg) {                                                     // turn toward you (never straight back on itself)
+          const ex = tg.x - h.x, ey = (tg.y - 24) - h.y, opts = Math.abs(ex) > Math.abs(ey) ? [[Math.sign(ex), 0], [0, Math.sign(ey) || 1]] : [[0, Math.sign(ey) || 1], [Math.sign(ex) || 1, 0]];
+          const ok = (d) => !(d[0] === -N.dx && d[1] === -N.dy) && (d[0] || d[1]);
+          const d = opts.find(ok) || [N.dx, N.dy]; N.dx = d[0]; N.dy = d[1];
+        } else { N.dx = 0; N.dy = -1; }                                              // time's up: it slithers back up into the screen
+        const nx = Math.max(-256, Math.min(256, h.x + N.dx * S)), ny = Math.max(-232, Math.min(-8, h.y + N.dy * S));
+        N.segs.unshift({ x: nx, y: ny }); if (N.grow > 0) N.grow--; else N.segs.pop();
+        if (N.t % (step * 3) === 0) sfx('menu', 0.25, 2);
+      }
+      N.life--;
+      const hid = N.id + '-' + Math.floor(N.t / 45); N.segs.forEach((q) => out.push(this.bhit(hid, q.x - S / 2 + 2, q.y - S / 2 + 2, q.x + S / 2 - 2, q.y + S / 2 - 2, ...SNAKE.hit, { dirX: N.dx || 1 })));
+      if (N.life < -60 || N.segs.length === 0) this.snake = null;
+    }
+  }
+  /** Players can pop spam and bite the snake's head; the rest is BossArena's. */
+  strikeTargets(match, hbs) {
+    super.strikeTargets(match, hbs);
+    const over = (hb, x1, y1, x2, y2) => hb.owner && hb.x1 < x2 && hb.x2 > x1 && hb.y1 < y2 && hb.y2 > y1;
+    for (const E of this.spam) if (!E.dead && hbs.some((hb) => over(hb, E.x - 12, E.y - 9, E.x + 12, E.y + 9))) { E.dead = true; match.puff(E.x, E.y, 0xffffff, 6); sfx('glass', 0.3, 2); }
+    const N = this.snake; if (N && N.segs.length && !N.hurt) {
+      const h = N.segs[0], S = SNAKE.cell;
+      if (hbs.some((hb) => over(hb, h.x - S, h.y - S, h.x + S, h.y + S))) { N.hurt = 12; const q = N.segs.pop(); if (q) match.puff(q.x, q.y, 0x30ff80, 6); match.popText({ x: h.x, y: h.y - 10 }, 'CRUNCH!', '#30ff80'); sfx('hit', 0.5, 1.6); if (N.segs.length <= 2) { N.life = Math.min(N.life, 0); } }
+    }
+  }
+  /** ONLINE's look: the web pouring through the room (data rain, link-blue lines), the modem on the desk, a phone cable glowing with data, and the spam, banners and snake. */
+  drawOnline(g, back) {
+    const t = this.t, k = this.onlineK || 0, dial = this.dialing;
+    if (k > 0) {                                                                        // the web in the room: falling data and link-blue lines
+      for (let i = 0; i < 26; i++) { const x = -300 + i * 24, sp = 1 + (i * 7) % 3, y = ((t * sp * 2 + i * 97) % 520) - 420; back.fillStyle(i % 3 ? 0x30ff80 : 0x40a0ff, 0.28 * k); for (let j = 0; j < 6; j++) back.fillRect(x, y - j * 10, 3, 6); back.fillStyle(0xffffff, 0.5 * k); back.fillRect(x, y, 3, 6); }
+      for (let i = 0; i < 4; i++) { const y = -60 - i * 50 + Math.sin(t * 0.02 + i) * 8; back.lineStyle(2, 0x40a0ff, 0.25 * k); back.lineBetween(-300, y, 300, y + 20); } back.lineStyle(0);
+    }
+    if (k > 0 || dial) {                                                               // the modem beside the tower, and its cable to the wall
+      const mx = 176, my = -18, on = (i) => (dial ? (t + i * 5) % 8 < 4 : (t * (i + 1)) % 23 < 12);
+      g.fillStyle(C.out, 1); g.fillRect(mx - 2, my - 2, 52, 20); g.fillStyle(C.beige[2], 1); g.fillRect(mx, my, 48, 16); g.fillStyle(C.beige[3], 1); g.fillRect(mx, my, 48, 3);
+      for (let i = 0; i < 6; i++) { g.fillStyle(on(i) ? [0x30ff60, 0xffa020, 0xff3030][i % 3] : 0x203020, 1); g.fillRect(mx + 5 + i * 7, my + 8, 4, 3); }
+      g.lineStyle(3, C.out, 1); g.lineBetween(mx + 48, my + 8, 290, my - 40); g.lineStyle(0);
+      for (let i = 0; i < 5; i++) { const q = ((t * 0.04 + i / 5) % 1); g.fillStyle(0x30ff80, dial ? 0.9 : 0.6 * k); g.fillCircle(lerpN(290, mx + 48, q), lerpN(my - 40, my + 8, q), 2); }
+    }
+    for (const E of this.spam) {                                                       // junk mail: envelopes with a red stamp
+      g.fillStyle(C.out, 1); g.fillRect(E.x - 12, E.y - 9, 24, 18); g.fillStyle(0xfafaf0, 1); g.fillRect(E.x - 11, E.y - 8, 22, 16);
+      g.lineStyle(1, C.grey[1], 1); g.lineBetween(E.x - 11, E.y - 8, E.x, E.y + 1); g.lineBetween(E.x + 11, E.y - 8, E.x, E.y + 1); g.lineStyle(0);
+      g.fillStyle(0xd02020, 1); g.fillRect(E.x + 5, E.y - 6, 5, 5); if (t % 10 < 5) { g.fillStyle(0xffe040, 1); g.fillRect(E.x - 16, E.y - 12, 3, 3); }
+    }
+    this.bannerT.forEach((x) => x.setVisible(false)); let bi = 0;
+    for (const B of this.banners) {                                                    // BANNERS: the ad window, the warning line, then the marquee
+      const W = this.sp(BANNER.warn), side = -B.s * 236, y = B.y;
+      if (B.t < W + 20) {
+        const a = Math.min(1, B.t / 6); this.bevel(g, side - 40, y - 26, 80, 52);
+        g.fillStyle(t % 8 < 4 ? 0xff2a8a : C.navy, a); g.fillRect(side - 38, y - 24, 76, 9); g.fillStyle(0xffe040, a); for (let i = 0; i < 5; i++) g.fillRect(side - 30 + i * 13, y - 8 + (i % 2) * 6, 8, 8);
+        g.fillStyle(t % 6 < 3 ? 0x30ff80 : 0xff3030, a); g.fillRect(side - 20, y + 14, 40, 7);
+      }
+      if (B.t < W) { for (let x = -270; x < 270; x += 16) { g.fillStyle(0xff2a8a, t % 8 < 4 ? 0.5 : 0.2); g.fillRect(x, y - 1, 8, 2); } continue; }
+      const x1 = Math.min(B.x, B.x - B.s * BANNER.len), h = BANNER.h;
+      g.fillStyle(C.out, 1); g.fillRect(x1 - 2, y - h / 2 - 2, BANNER.len + 4, h + 4);
+      for (let i = 0; i < BANNER.len; i += 20) { g.fillStyle(((i / 20 + Math.floor(t / 4)) % 2) ? 0xff2a8a : 0xffd020, 1); g.fillRect(x1 + i, y - h / 2, 20, h); }
+      g.fillStyle(0x000000, 0.55); g.fillRect(x1 + 4, y - h / 2 + 4, BANNER.len - 8, h - 8);
+      const T = this.bannerT[bi++]; if (T) T.setText(B.word).setPosition(x1 + BANNER.len / 2, y).setVisible(true);
+    }
+    const N = this.snake;
+    if (N) N.segs.forEach((q, i) => {                                                  // SNAKE: chunky green blocks, the head with eyes and a flicking tongue
+      const S = SNAKE.cell, hurt = N.hurt > 0 && N.hurt % 4 < 2;
+      g.fillStyle(C.out, 1); g.fillRect(q.x - S / 2, q.y - S / 2, S, S); g.fillStyle(hurt ? 0xffffff : i === 0 ? 0x60ff90 : i % 2 ? 0x30c860 : 0x28a850, 1); g.fillRect(q.x - S / 2 + 1, q.y - S / 2 + 1, S - 2, S - 2);
+      if (i === 0) { g.fillStyle(0x000000, 1); g.fillRect(q.x - 4 + N.dx * 2, q.y - 4 + N.dy * 2, 3, 3); g.fillRect(q.x + 2 + N.dx * 2, q.y - 4 + N.dy * 2, 3, 3); if (t % 12 < 6) { g.fillStyle(0xff3040, 1); g.fillRect(q.x + N.dx * 10 - 1, q.y + N.dy * 10 - 1, 3, 3); } }
+    });
   }
 
   // ------------------------------------------------------------------ its programs
@@ -540,7 +698,7 @@ export class MachineBossStage extends BossArena {
   }
 
   /** Its death: the screen collapses to a line, then a dot (the explosions come from BossArena). */
-  onDeath() { this.discs = []; this.pour = null; this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
+  onDeath() { this.spam = []; this.banners = []; this.snake = null; this.dialing = false; this.discs = []; this.pour = null; this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
 
   /**
    * THE ENTRANCE (k = 0..1): the switched-off monitor sits dark; the tower's power light blinks on, it whirs and
@@ -598,6 +756,8 @@ export class MachineBossStage extends BossArena {
       if (this.boss.dying) this.mood = 'dead';
       this.stepPuddles(match);
       if (!this.boss.atk || this.boss.atk.name !== 'cds') { this.stepDiscs(match, out); this.tray = Math.max(0, this.tray - 0.08); }
+      if (!this.boss.dying) this.stepOnline(match, out);
+      if (!this.online && !this.boss.dying && this.boss.hp <= this.boss.max * ONLINE.at) { this.online = true; this.needDial = true; }
       if (!this.low && !this.boss.dying && this.boss.hp <= this.boss.max * CDS.at) { this.low = true; this.rageText.setText('MUSIC TRAY ONLINE.'); this.boss.rage = 90; sfx('ding', 1, 0.5); }
     }
     return out;
@@ -609,7 +769,7 @@ export class MachineBossStage extends BossArena {
     const t = this.t, B = this.boss, g = this.monG, x = this.fxG;
     g.clear(); x.clear();
     this.drawMachine(g, B ? B.flash > 0 : false, !B);
-    this.drawMouse(x);
+    this.webG.clear(); this.drawMouse(x);
     for (const P of this.puddles) {                                                     // SLUDGE puddles: purple goo with bubbles, drying at the edges
       const k = Math.min(1, P.t / 12) * Math.min(1, (SLUDGE.life - P.t) / 40), w = P.w * k;
       x.fillStyle(C.sludge[0], 1); x.fillEllipse(P.x, -2, w + 6, 12); x.fillStyle(C.sludge[1], 1); x.fillEllipse(P.x, -3, w, 9); x.fillStyle(C.sludge[2], 1); x.fillEllipse(P.x - w * 0.15, -5, w * 0.5, 3);
@@ -654,6 +814,7 @@ export class MachineBossStage extends BossArena {
     }
     if (this.blue > 0 && this.blue % 10 < 5) { x.fillStyle(C.bsod, 0.25 * this.blue / 150); x.fillRect(-700, -700, 1400, 1100); }
     if (this.keyFlash) { const i = this.keyFlash.i, r = Math.floor(i / 18), k2 = i % 18; x.fillStyle(0xffffff, 0.8); x.fillRect(-112 + k2 * 12.6 + r * 3, -19 + r * 4.6 + 1, 10, 3.4); }
+    this.drawOnline(x, this.webG);
     this.drawCursor(x);
     if (B) this.drawBar();
   }
@@ -746,7 +907,7 @@ export class MachineBossStage extends BossArena {
     // the screen
     const x0 = c.x - sw / 2, y0 = c.y - sh / 2;
     g.fillStyle(C.out, 1); g.fillRoundedRect(x0 - 3, y0 - 3, sw + 6, sh + 6, 10);
-    const blue = this.blue > 0 || (this.boss && this.boss.phase === 2 && this.mood !== 'grin' && this.mood !== 'blank' && this.mood !== 'glitch' && this.t % 300 < 20);
+    const blue = this.mood !== 'dial' && this.mood !== 'dead' && (this.blue > 0 || (this.boss && this.boss.phase === 2 && this.mood !== 'grin' && this.mood !== 'blank' && this.mood !== 'glitch' && this.t % 300 < 20));
     let bgc = C.screen[0];
     if (off || this.mood === 'dead') bgc = 0x101810; else if (this.mood === 'hang') bgc = 0x3a4a40; else if (blue) bgc = C.bsod; else if (this.mood === 'blank') bgc = 0x000000;
     g.fillStyle(bgc, 1); g.fillRoundedRect(x0, y0, sw, sh, 8);
@@ -764,6 +925,10 @@ export class MachineBossStage extends BossArena {
     } else if (blue) {                                                                   // FATAL EXCEPTION
       const W = 0xffffff; px(2, 2, 2, 2, W); px(2, 6, 2, 2, W); px(7, 2, 1, 6, W); px(8, 2, 2, 1, W); px(8, 7, 2, 1, W);   // a ":("
       for (let i = 0; i < 5; i++) px(2, 10 + i, 6 + ((i * 7) % 10), 0.4, W);
+    } else if (this.mood === 'dial') {                                                   // dialling: a phone handset and the dots filling in
+      g.fillStyle(C.navy, 1); g.fillRoundedRect(x0, y0, sw, sh, 8); const W = 0xffffff;
+      px(6, 3, 8, 2, W); px(5, 4, 2, 3, W); px(13, 4, 2, 3, W);
+      for (let i = 0; i < 5; i++) px(5 + i * 2, 10, 1, 1, i <= Math.floor(t / 15) % 6 ? 0x30ff80 : 0x2a3a6a);
     } else if (this.mood === 'hang') {
       px(4, 3, 3, 3, C.grey[2]); px(13, 3, 3, 3, C.grey[2]); px(6, 10, 8, 1, C.grey[2]);
       g.fillStyle(0xffffff, 0.2); g.fillRect(x0, y0 + ((t * 3) % sh), sw, 3);
@@ -792,6 +957,11 @@ export class MachineBossStage extends BossArena {
         g.fillStyle(0xffffff, 0.12); g.fillCircle(mx, my, 14);
         for (let i = 0; i < 6; i++) { g.fillStyle(0xe0c040, 1); g.fillRect(mx + 10 + i * 3, my + 12 + i * 5, 2, 2); }
       }
+    }
+    if (this.onlineK && !off && this.mood !== 'dead') {                                  // ONLINE: a little spinning globe in the corner
+      const gx = x0 + sw - 18, gy = y0 + 16; g.fillStyle(0x1060d0, 1); g.fillCircle(gx, gy, 9); g.fillStyle(0x30c860, 1);
+      for (let i = 0; i < 3; i++) { const q = ((t * 0.03 + i / 3) % 1) * 2 - 1; g.fillEllipse(gx + q * 8, gy - 2 + i * 3, 6 * (1 - Math.abs(q)) + 1, 4); }
+      g.lineStyle(1, 0xffffff, 0.6); g.strokeCircle(gx, gy, 9); g.lineStyle(0);
     }
     if (!off) { for (let y = y0; y < y0 + sh; y += 3) { g.fillStyle(0x000000, 0.12); g.fillRect(x0, y, sw, 1); } }   // scanlines
     g.fillStyle(0xffffff, 0.1); g.fillRoundedRect(x0 + 8, y0 + 6, sw * 0.45, sh * 0.25, 8);                         // the glass's shine

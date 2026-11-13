@@ -223,6 +223,8 @@ export class Poly3D {
     const L = o.light || [-0.45, -1, -0.55], l = Math.hypot(...L); this.light = L.map((v) => -v / l);
     this.camZ = 0;                                             // how far the eye has walked into the scene (TROPHY HALL; stages keep 0)
     this.near = o.near ?? 0;                                   // >0: drop faces with any corner closer than this to the eye (walking through a room)
+    this.far = o.far ?? 0;                                     // >0: drop faces further than this past the eye (unless the face has `keep`) - the TROPHY HALL, for phones
+    this.clipZ = null;                                         // a z past which nothing is drawn (the TROPHY HALL hides the hall behind its entrance wall)
     this.faces = [];
     this.g = scene.add.graphics().setDepth(-5); layer.push(this.g);
     if (o.soft) this.soften(o.soft);
@@ -265,6 +267,7 @@ export class Poly3D {
       for (const v of P) { zs += v[2]; cx += v[0]; cy += v[1]; if (v[2] < zmin) zmin = v[2]; }
       const n = P.length, z = zs / n - cz;
       if (z < -f + 40 || zmin - cz < near) continue;
+      if ((this.far && !F.keep && zmin - cz > this.far) || (this.clipZ != null && zmin > this.clipZ)) continue;   // (far: drop faces too far off to matter - `keep` ones stay; clipZ: drop everything past that z)
       if (F.n) {                                            // facing away from the eye: skip it
         const dx = cx / n - ex, dy = cy / n - ey, dz = z + f;
         if (F.n[0] * dx + F.n[1] * dy + F.n[2] * dz > 0) continue;

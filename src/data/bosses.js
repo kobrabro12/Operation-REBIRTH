@@ -47,10 +47,10 @@ export const BOSSES = [
     card: { marks: [[0.75, 'BERSERK']], quotes: { base: 'NYAH! YOU HIT THE ARMOUR AGAIN, DIDN\'T YOU? EVERYBODY HITS THE ARMOUR.', rage: 'THE HELM IS OPEN AND STILL YOU COULDN\'T CATCH ME. THE GROVE KEEPS YOU NOW.' } },
     hazards: 'THORN ROOTS / SPORE BURSTS' },
   { id: 'machine', name: 'BEIGE.EXE, THE OLD MACHINE', short: 'BEIGE.EXE', title: 'THE COMPUTER THAT WILL NOT SHUT DOWN', stage: 'desktop', arena: 'THE DESKTOP', hp: 640, coins: 420, color: 0x30c8b0, trophy: 'golden-floppy',
-    blurb: 'A SNOBBY 90S COMPUTER THAT NEVER SHUT\nDOWN. MIND ITS PAINT SLUDGE AND ITS CDS.\nHIT ITS SCREEN - HARDEST WHEN IT FREEZES.',
+    blurb: 'A SNOBBY 90S COMPUTER THAT NEVER SHUT\nDOWN. NEAR THE END IT DIALS UP AND GOES\nONLINE. HIT ITS SCREEN WHEN IT FREEZES.',
     taunts: ['PLAYER HAS PERFORMED AN ILLEGAL OPERATION AND WILL BE SHUT DOWN.', 'ARE YOU SURE YOU WANT TO QUIT?  ...TOO LATE.', 'PRESS ANY KEY TO CONTINUE LOSING.'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
-    card: { marks: [[0.5, 'FATAL EXCEPTION'], [0.65, 'MUSIC TRAY']], quotes: { base: 'YOUR PROGRAM HAS STOPPED RESPONDING. HOW... PRIMITIVE.', rage: 'A BLUE SCREEN IS A BADGE OF HONOUR. YOU HAVE NO SCREEN AT ALL.', low: 'I PLAYED YOU OUT WITH MY FAVOURITE TRACK. IT WAS ON SHUFFLE. YOU WERE NOT.' } },
+    card: { marks: [[0.5, 'FATAL EXCEPTION'], [0.65, 'MUSIC TRAY'], [0.8, 'ONLINE']], quotes: { online: 'YOU HAVE BEEN UNSUBSCRIBED. FROM LIFE.', base: 'YOUR PROGRAM HAS STOPPED RESPONDING. HOW... PRIMITIVE.', rage: 'A BLUE SCREEN IS A BADGE OF HONOUR. YOU HAVE NO SCREEN AT ALL.', low: 'I PLAYED YOU OUT WITH MY FAVOURITE TRACK. IT WAS ON SHUFFLE. YOU WERE NOT.' } },
     hazards: 'POP-UPS / DIAL-UP' },
   { id: 'smudge', name: 'SMUDGE, THE LITTLE MASTER', short: 'SMUDGE', title: 'THE KID WHO REPAINTS THE WORLD', stage: 'blank-canvas', arena: 'THE BLANK CANVAS', hp: 680, coins: 560, color: 0xff2a6a, trophy: 'golden-brush',
     blurb: 'A NINE-YEAR-OLD ART PRODIGY WITH A BUCKET\nON HIS HEAD. EVERY FEW ATTACKS HE REPAINTS\nHIMSELF - AND THE WORLD - IN A NEW STYLE.',
