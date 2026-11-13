@@ -1,19 +1,19 @@
-"""The BOSS FIGHTS themes (Trinkets > BOSS FIGHTS; each boss arena plays its own: src/stage/*BossStage.js). Each loops.
+"""The BOSS FIGHTS themes (all of them driven by `drive()`: a dance-floor kick, claps, 16th hats, a pumping bass, fills, risers and crashes over each theme) (Trinkets > BOSS FIGHTS; each boss arena plays its own: src/stage/*BossStage.js). Each loops.
 
-  colossus  "Pressure Critical" - THE CLOCKWORK COLOSSUS (steampunk): 132 BPM in D minor. A pounding foundry march -
+  colossus  "Pressure Critical" - THE CLOCKWORK COLOSSUS (steampunk): 152 BPM in D minor. A pounding foundry march -
             kick and snare like a steam hammer, a ticking clock on the off-beats, anvil strikes, a churning low organ,
             brass stabs and a brass melody over it; a breakdown with just the ticking and the anvil, then it all comes back.
-  polygon   "Frame Rate King" - KING POLYGON (64-bit era): 150 BPM in E minor. Bright sampled-style synth brass, an
+  polygon   "Frame Rate King" - KING POLYGON (64-bit era): 170 BPM in E minor. Bright sampled-style synth brass, an
             orchestra-hit on the downbeats, a slap-ish pulse bass, a square-wave lead with vibrato, punchy drums, lots of reverb.
-  demon     "The Mad Blade" - KARNAX, THE MAD BLADE (medieval demon): 128 BPM in C minor. War drums and timpani, a low choir, a
+  demon     "The Mad Blade" - KARNAX, THE MAD BLADE (medieval demon): 150 BPM in C minor. War drums and timpani, a low choir, a
             horn melody, string pads, a chanting bridge, and a final phrase with everything at full force.
-  machine   "Fatal Exception" - BEIGE.EXE (a 90s computer): 138 BPM in A minor, like an old sound card's built-in
+  machine   "Fatal Exception" - BEIGE.EXE (a 90s computer): 162 BPM in A minor, like an old sound card's built-in
             synth: a square-wave lead, a sine bass, a stiff drum machine, a startup chime at the top, a glitchy middle
             where the beat stutters, then everything back at full volume.
-  hum       "Level 0" - THE HUM (the backrooms): 84 BPM. The fluorescent hum itself as the drone (mains buzz and its
+  hum       "Level 0" - THE HUM (the backrooms): 126 BPM, a half-time beat under it. The fluorescent hum itself as the drone (mains buzz and its
             harmonics), detuned pads, a slow wrong-sounding celesta tune, far-off thuds like footsteps in another room,
             and a swell of noise in the second half.
-  knight    "Rootbound" - THORNWARD, THE ROOTBOUND KNIGHT (forest guardian): 112 BPM in A dorian. Rolling harp plucks, frame
+  knight    "Rootbound" - THORNWARD, THE ROOTBOUND KNIGHT (forest guardian): 138 BPM in A dorian. Rolling harp plucks, frame
             drums and timpani, a deep choir under a breathy wooden-flute lead; a hushed middle with just plucks and wind,
             then the drums come crashing back with the choir up high.
 
@@ -93,8 +93,36 @@ def save(out, name, length):
         elif os.path.exists(src): os.remove(src)
 
 
+def drive(n, b, bars, roots, vel=1.0, quiet=(), half=False, saw=True):
+    """The energy layer (added dry, after the reverb): a four-on-the-floor kick (or half-time in `half`), claps on 2
+    and 4, 16th hats with open hats on the off-beats, a pumping 8th-note bass on each bar's root (`roots`, midi, one per
+    bar, repeating), a snare fill into every 4th bar, a noise riser into every 8th bar and a crash on it. `quiet` = bars
+    left without it (breakdowns). Returns the layer (n samples)."""
+    out = np.zeros(n)
+    for bar in range(bars):
+        t0 = bar * 4 * b
+        if bar in quiet: continue
+        r = roots[bar % len(roots)]
+        for i in range(4):
+            if not half or i % 2 == 0: add(out, drum_kick(1.0 * vel), t0 + i * b)
+            if i % 2 == 1: add(out, drum_snare(0.75 * vel) * 0.8, t0 + i * b); add(out, bp(noise(secs(0.12)), 900, 3000) * np.exp(-np.arange(secs(0.12)) / SR * 30) * 0.5 * vel, t0 + i * b + 0.005)
+            add(out, hp(noise(secs(0.18)), 6000) * np.exp(-np.arange(secs(0.18)) / SR * 14) * 0.18 * vel, t0 + i * b + b / 2)   # open hat
+        for i in range(16): add(out, drum_hat(0.45 * vel * (1 if i % 2 else 0.6)), t0 + i * b / 4)
+        if saw:
+            for i in range(8):                                                      # the pumping bass: ducks under each kick
+                note = saw_bass(r - 12 + (12 if i % 4 == 3 else 0), b / 2 * 0.8, 0.75 * vel, 700)
+                add(out, note * np.minimum(1, np.arange(len(note)) / (SR * 0.06)), t0 + i * b / 2)
+        if bar % 4 == 3:                                                            # a snare fill
+            for k in range(8): add(out, drum_snare(0.5 + k * 0.06) * vel, t0 + 2 * b + k * b / 4)
+        if bar % 8 == 7:                                                            # a riser
+            m = secs(4 * b); rise = hp(noise(m), 2500) * np.linspace(0, 1, m) ** 2 * 0.22 * vel
+            add(out, rise, t0)
+        if bar % 8 == 0: add(out, hp(noise(secs(1.6)), 4000) * np.exp(-np.arange(secs(1.6)) / SR * 2.5) * 0.3 * vel, t0)
+    return out
+
+
 def colossus():
-    b = 60 / 132; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    b = 60 / 152; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     prog = [(38, [62, 65, 69]), (38, [62, 65, 69]), (34, [62, 65, 70]), (36, [60, 64, 67]), (38, [62, 65, 69]), (41, [60, 65, 69]), (43, [62, 67, 70]), (45, [61, 64, 69])]
     for bar in range(bars):
         root, ch = prog[bar % 8]; t0 = bar * 4 * b
@@ -113,11 +141,12 @@ def colossus():
     for rep in (0, 2):                                                       # the brass tune: bars 0-7 and 16-23
         for beat, m, d in mel: add(out, brass(m, d * b * 0.95, 0.75 + 0.15 * rep / 2, 1.1), rep * 32 * b + beat * b)
     for beat in range(0, 16, 2): add(out, sq(86 if beat % 4 == 0 else 81, b * 0.4, 0.15, 0.25), 12 * 4 * b + beat * b)   # music-box chimes in the breakdown
-    save(reverb(out, 1.6, 4, 0.22), 'colossus', bars * 4 * b)
+    R = reverb(out, 1.6, 4, 0.22); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.9, quiet=range(12, 16))[:len(R)]
+    save(R, 'colossus', bars * 4 * b)
 
 
 def polygon():
-    b = 60 / 150; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    b = 60 / 170; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     prog = [(40, [64, 67, 71]), (36, [60, 64, 67]), (38, [62, 66, 69]), (35, [59, 63, 66]), (40, [64, 67, 71]), (36, [60, 64, 67]), (33, [57, 60, 64]), (35, [59, 63, 66])]
     for bar in range(bars):
         root, ch = prog[bar % 8]; t0 = bar * 4 * b
@@ -132,11 +161,12 @@ def polygon():
         for beat, m, d in lead:
             if rep: add(out, sq(m, d * b * 0.92, 0.32, 0.25, vib=0.25), rep * 32 * b + beat * b)        # (the first time round: no lead yet)
             if rep == 2: add(out, brass(m, d * b * 0.9, 0.35, 1.3), rep * 32 * b + beat * b)
-    save(reverb(out, 2.0, 3.4, 0.3), 'polygon', bars * 4 * b)
+    R = reverb(out, 2.0, 3.4, 0.3); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.85)[:len(R)]
+    save(R, 'polygon', bars * 4 * b)
 
 
 def demon():
-    b = 60 / 128; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    b = 60 / 150; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     prog = [(36, [60, 63, 67]), (32, [60, 63, 68]), (34, [58, 62, 65]), (31, [59, 62, 67]), (36, [60, 63, 67]), (29, [60, 65, 68]), (31, [59, 62, 67]), (31, [59, 62, 65])]
     for bar in range(bars):
         root, ch = prog[bar % 8]; t0 = bar * 4 * b
@@ -152,7 +182,8 @@ def demon():
             (16, 72, 2), (18, 75, 1.5), (19.5, 74, 0.5), (20, 72, 2), (22, 70, 2), (24, 68, 1), (25, 67, 1), (26, 65, 2), (28, 67, 4)]
     for rep in (0, 2):
         for beat, m, d in horn: add(out, brass(m - (12 if rep == 0 else 0), d * b * 0.95, 0.8, 0.8), rep * 32 * b + beat * b)
-    save(reverb(out, 2.8, 2.6, 0.32), 'demon', bars * 4 * b)
+    R = reverb(out, 2.8, 2.6, 0.32); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.95, quiet=(0, 1))[:len(R)]
+    save(R, 'demon', bars * 4 * b)
 
 
 def pluck(midi, dur, vel=1.0):
@@ -173,7 +204,7 @@ def flute(midi, dur, vel=1.0):
 
 
 def knight():
-    b = 60 / 112; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    b = 60 / 138; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     prog = [(33, [57, 60, 64]), (31, [55, 59, 62]), (38, [57, 62, 66]), (33, [57, 60, 64]), (29, [57, 60, 65]), (31, [55, 59, 62]), (28, [56, 59, 64]), (33, [57, 60, 64])]
     for bar in range(bars):
         root, ch = prog[bar % 8]; t0 = bar * 4 * b
@@ -195,7 +226,8 @@ def knight():
         for beat, m, d in tune:
             add(out, flute(m, d * b * 0.95, 0.9), rep * 32 * b + beat * b)
             if rep == 2: add(out, brass(m - 12, d * b * 0.9, 0.35, 0.9), rep * 32 * b + beat * b)
-    save(reverb(out, 2.6, 2.8, 0.34), 'knight', bars * 4 * b)
+    R = reverb(out, 2.6, 2.8, 0.34); R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.85, quiet=(8, 9, 10, 11))[:len(R)]
+    save(R, 'knight', bars * 4 * b)
 
 
 def sinew(midi, dur, vel=1.0, att=0.005, rel=0.08):
@@ -206,7 +238,7 @@ def sinew(midi, dur, vel=1.0, att=0.005, rel=0.08):
 
 
 def machine():
-    b = 60 / 138; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
+    b = 60 / 162; bars = 24; out = np.zeros(secs(bars * 4 * b + 3))
     for i, m in enumerate([60, 67, 72, 76]): add(out, sinew(m, 1.6, 0.5, 0.01, 1.2) + sinew(m + 12, 1.6, 0.2, 0.01, 1.2), i * 0.06)   # the startup chime
     prog = [45, 41, 43, 40, 45, 41, 38, 40]
     for bar in range(1, bars):
@@ -226,11 +258,12 @@ def machine():
             if rep == 2: add(out, sq(m + 12, d * b * 0.9, 0.12, 0.25), (rep * 32 + 4) * b + beat * b)
     for k in range(12, 16):                                                    # the glitch: a stuttering lead
         for i in range(0, 16, 3): add(out, sq(69 + (i % 5) * 2, 0.06, 0.3, 0.125), (k * 4 + i / 4) * b)
-    save(reverb(out, 1.2, 4, 0.18), 'machine', bars * 4 * b)
+    R = reverb(out, 1.2, 4, 0.18); R[:len(out)] += drive(len(out), b, bars, prog, 0.85, quiet=(0, 12, 13))[:len(R)]
+    save(R, 'machine', bars * 4 * b)
 
 
 def hum():
-    b = 60 / 84; bars = 16; L = bars * 4 * b; n = secs(L + 3); t = np.arange(n) / SR; out = np.zeros(n)
+    b = 60 / 126; bars = 24; L = bars * 4 * b; n = secs(L + 3); t = np.arange(n) / SR; out = np.zeros(n)
     buzz = sum(a * np.sin(2 * np.pi * f * t + f) for f, a in [(120, 0.5), (240, 0.25), (360, 0.15), (480, 0.08), (60, 0.3)])
     buzz *= 0.55 + 0.45 * np.sin(2 * np.pi * 0.11 * t) ** 2
     out += lp(buzz, 1400) * 0.12 + bp(noise(n), 2000, 7000) * 0.012                      # the lights
@@ -240,13 +273,14 @@ def hum():
     for bar in range(bars):                                                     # far-off thuds, like footsteps in another room
         for st in ([0, 2.75] if bar % 2 else [1.5]): add(out, lp(drum_kick(0.6), 200) * 0.7, bar * 4 * b + st * b)
     tune = [(0, 81, 2), (2, 80, 1), (3, 76, 3), (6, 75, 2), (8, 81, 2), (10, 82, 1), (11, 80, 5), (16, 77, 2), (18, 76, 2), (20, 75, 4), (24, 73, 2), (26, 74, 2), (28, 69, 4)]
-    for rep in (0, 1):
+    for rep in (0, 1, 2):
         for beat, m, d in tune:
             note = sinew(m + (0.3 if rep else 0), d * b, 0.25, 0.002, 1.5) * np.exp(-np.arange(secs(d * b)) / SR * 1.4)
             add(out, note, (rep * 32 + 2) * b + beat * b)
     k = np.clip((t - L * 0.5) / (L * 0.3), 0, 1) * np.clip((L - t) / (L * 0.1), 0, 1)
     out += lp(noise(n), 900) * 0.05 * k                                          # a swell of noise in the second half
-    save(reverb(out, 3.2, 2.2, 0.4), 'hum', L)
+    R = reverb(out, 3.2, 2.2, 0.4); R[:len(out)] += drive(len(out), b, bars, [33, 32, 34, 31], 0.85, quiet=(0, 1, 2, 3), half=True)[:len(R)]
+    save(R, 'hum', L)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,10 @@
 //   stretches along the floor right across the room - jump - then high across - stay low), LIGHTS OUT (the panels die
 //   one by one; in the dark only its smile shows - behind you - then it lunges), THE WALLS (yellow walls slide in from
 //   both sides and squeeze the room, then it charges across), and at half health LEVEL ! (red emergency light, faster;
-//   adds MIMICS - small copies of it that shamble after you and burst into static; one hit pops them).
+//   adds MIMICS - small copies of it that shamble after you and burst into static; one hit pops them). Every few
+//   attacks it becomes THE COPY: it turns into YOU - your fighter and costume - but wrong (cracks of light in the skin,
+//   shadow limbs writhing from its back, its face slipping into the smile), moves and swings the way you did a moment
+//   ago, and has tricks of its own (SHADOW LIMBS that grab at you, THE GRIN - a scream of static).
 // Stage hazards (also in VS, where it stands far off in the haze between the pillars, watching): FLICKER (the lights
 // die for a few seconds - in the dark you can see it smiling) and BURST PANEL (a fluorescent panel bursts, raining sparks).
 import { HazardCycle } from './hazardCycle.js';
@@ -32,6 +35,11 @@ const REACH = { wind: 30, stretch: 9, hold: 10, low: -16, high: -112, hit: [10, 
 const DARK = { every: 6, warn: 44, lunge: 10, hit: [12, [45, 6.2, 0.9]] };
 // THE WALLS: sliding in (frames), how far in they come, the charge, the walls' push, the charge's hit
 const WALLS = { slide: 56, in: 165, hold: 40, charge: 22, push: [4, [20, 5.2, 0.3]], hit: [11, [40, 6, 0.85]] };
+// THE COPY: how late it replays you (frames), how long it lasts, its walk, how close it keeps, how hard your echoed
+// swings hit (x their damage), frames between its own tricks, the limbs' wind-up, the limbs' and the grin's hits
+// every this-many attacks it becomes THE COPY
+const COPY_EVERY = 4;
+const COPY = { delay: 24, dur: 560, speed: 2.1, near: 64, echo: 0.9, trick: 120, limbWind: 22, limbHit: [11, [50, 6, 0.85]], grinHit: [10, [70, 5.8, 0.7]] };
 // MIMICS (LEVEL !): how many, speed, fuse when near, their life, the burst's hit
 const MIMIC = { n: 2, speed: 1.6, near: 46, fuse: 18, life: 330, hit: [10, [70, 6, 0.75]] };
 // hazards: FLICKER (dark frames) and BURST PANEL (warning, sparks, hit)
@@ -57,6 +65,7 @@ export class HumBossStage extends BossArena {
     this.cycle = new HazardCycle(this, ['flicker', 'burst'], { color: '#fff6b0', stroke: '#2a2008', gap: 720 });
     this.e = { x: 120, y: 0, dir: -1, sink: 0, walk: 0, crouch: 0, armL: [0.2, 0.1], armR: [-0.15, -0.05], reach: 0, alpha: 1, glitch: 0, scale: 1 };
     this.lamps = CEIL.lamps.map(() => ({ on: 1, flick: 0 }));
+    this.rec = {}; this.hbNow = {}; this.copy = null;
     this.count = 0; this.dark = 0; this.walls = null; this.stain = null; this.mimics = []; this.sparks = null; this.stuck = 0; this.smile = null;
     this.sparkColor = 0x8a8a8a; this.bodyW = 80; this.bodyH = 240;
   }
@@ -68,6 +77,8 @@ export class HumBossStage extends BossArena {
     const back = s.add.graphics(); world.push(back); this.paintRoom(back);
     this.humG = s.add.graphics(); world.push(this.humG);
     const front = s.add.graphics(); world.push(front); this.paintCarpet(front);
+    this.copySpr = s.add.sprite(0, 0, '__WHITE').setVisible(false); world.push(this.copySpr);
+    this.copyG = s.add.graphics(); world.push(this.copyG);
     this.fxG = s.add.graphics(); world.push(this.fxG);
     this.cycle.makeBanner(s);
   }
@@ -130,21 +141,23 @@ export class HumBossStage extends BossArena {
     return { ft, hip, sh, head, a1: arm(E.armL, HB.fore + E.reach), a2: arm(E.armR, HB.fore) };
   }
   /** Its head: what the camera, the death and the CPU aim at. */
-  core() { const b = this.body(); return { x: b.head.x, y: b.head.y }; }
+  core() { if (this.copy && this.copy.alpha > 0.5) return { x: this.copy.x, y: this.copy.y - 40 }; const b = this.body(); return { x: b.head.x, y: b.head.y }; }
   /** The camera keeps the whole room in view. */
   camPoints() { return this.boss && this.boss.dying < 100 ? [{ x: -250, y: -260 }, { x: 250, y: 0 }] : []; }
   /** Where it can be hit: the head (x1.3; x1.7 STUCK), the body and legs (x0.9). Nothing while it's sunk, gone or in the dark. */
   hurt() {
-    const E = this.e; if (E.alpha < 0.5 || E.sink > 0.6) return [];
+    const E = this.e, P = this.copy;
+    if (P && P.alpha > 0.5) return [{ x1: P.x - 22, y1: P.y - 70, x2: P.x + 22, y2: P.y, mult: 1.1 }];   // THE COPY: hit the copy
+    if (E.alpha < 0.5 || E.sink > 0.6) return [];
     const b = this.body(), s = E.scale;
     return [{ x1: b.head.x - 24 * s, y1: b.head.y - 30 * s, x2: b.head.x + 24 * s, y2: b.head.y + 22 * s, mult: this.stuck > 0 ? 1.7 : 1.3 },
       { x1: Math.min(b.hip.x, b.sh.x) - 34, y1: b.sh.y, x2: Math.max(b.hip.x, b.sh.x) + 34, y2: Math.min(b.ft.y, 0), mult: 0.9 }];
   }
   /** What it does next; at LEVEL ! it adds MIMICS. */
-  pattern(phase) { return phase === 1 ? ['noclip', 'reach', 'lights', 'walls', 'reach'] : ['noclip', 'reach', 'lights', 'walls', 'mimics', 'noclip']; }
+  pattern(phase) { if (this.count % COPY_EVERY === COPY_EVERY - 1) return ['copy']; return phase === 1 ? ['noclip', 'reach', 'lights', 'walls', 'reach'] : ['noclip', 'reach', 'lights', 'walls', 'mimics', 'noclip']; }
   /** Counts its attacks. */
   tally() { this.count++; }
-  start_noclip() { this.tally(); } start_reach() { this.tally(); } start_lights() { this.tally(); } start_walls() { this.tally(); } start_mimics() { this.tally(); }
+  start_noclip() { this.tally(); } start_reach() { this.tally(); } start_lights() { this.tally(); } start_walls() { this.tally(); } start_mimics() { this.tally(); } start_copy() { this.tally(); }
   rageLine() { return 'LEVEL !  -  RUN.'; }
   /** LEVEL !: the panels go red, an alarm, the room shudders. */
   onRage(match) { this.red = 1; sfx('warn', 1, 0.6); sfx('roar', 0.7, 1.5); match.shake(8, 30); for (const L of this.lamps) L.flick = 20; }
@@ -269,6 +282,7 @@ export class HumBossStage extends BossArena {
   }
   /** The players' hits: on it (BossArena), and on the mimics - one hit pops one harmlessly. */
   strikeTargets(match, hbs) {
+    for (const hb of hbs) { const i = match.fighters.indexOf(hb.owner); if (i < 0 || hb.projectile) continue; (this.hbNow[i] || (this.hbNow[i] = [])).push({ id: hb.id, x1: hb.x1 - hb.owner.x, x2: hb.x2 - hb.owner.x, y1: hb.y1 - hb.owner.y, y2: hb.y2 - hb.owner.y, dmg: hb.h && hb.h.dmg, face: hb.owner.facing || 1 }); }
     super.strikeTargets(match, hbs);
     for (const m of this.mimics) for (const hb of hbs) {
       if (!hb.owner || m.dead || !(hb.x1 < m.x + 20 && hb.x2 > m.x - 20 && hb.y1 < 0 && hb.y2 > -150)) continue;
@@ -277,8 +291,117 @@ export class HumBossStage extends BossArena {
     this.mimics = this.mimics.filter((m) => !m.dead);
   }
 
+  /** Records what each player looks like and swings this frame (THE COPY replays it `COPY.delay` frames later). */
+  record(match) {
+    match.fighters.forEach((f, i) => {
+      const s = f.sprite, R = this.rec[i] || (this.rec[i] = []);
+      if (!s || !s.texture) return;
+      R.push({ key: s.texture.key, frame: s.frame ? s.frame.name : 0, flip: s.flipX, sx: s.scaleX, sy: s.scaleY, ox: s.originX, oy: s.originY, dx: s.x - f.x, dy: s.y - f.y, fy: f.y, face: f.facing || 1, hbs: (this.hbNow[i] || []) });
+      if (R.length > COPY.delay + 2) R.shift();
+    });
+    this.hbNow = {};
+  }
+  /**
+   * THE COPY: it fades into static and comes back as YOU - your fighter, your costume - but wrong: greyed, cracks
+   * glowing through its skin, shadow limbs writhing out of its back, its face sometimes slipping into that smile. It
+   * moves the way you moved a moment ago and repeats your attacks (`COPY.delay` frames late, from where it stands), and
+   * now and then does things you can't: SHADOW LIMBS (black arms burst from its back and grab at you) and THE GRIN
+   * (its face splits open and it screams - a ring of static). Then it tears apart and the HUM re-forms.
+   */
+  atk_copy(match, a, out) {
+    const E = this.e, dur = this.sp(COPY.dur);
+    if (a.t === 1) {
+      const tg = this.nearest(match, E.x); a.i = Math.max(0, match.fighters.indexOf(tg)); a.tg = tg;
+      this.copy = { x: E.x, y: 0, dir: E.dir, t: 0, i: a.i, alpha: 0, limbs: 0, grin: 0, cracks: this.makeCracks(), next: COPY.trick };
+      sfx('glitch', 1, 0.5); sfx('laugh', 0.3, 0.4);
+    }
+    const P = this.copy, tg = match.fighters[P.i];
+    P.t++;
+    if (a.t <= 20) { E.alpha = 1 - a.t / 20; E.glitch = 1; P.alpha = a.t / 20; if (a.t % 3 === 0) this.staticBurst(match, P.x, -50, 3); return false; }
+    if (a.t === 21) { E.alpha = 0; E.glitch = 0; match.popText({ x: P.x, y: -150 }, '...?', '#ffffff'); }
+    const end = 20 + dur;
+    if (a.t > end) {                                                                   // it tears apart; the Hum re-forms
+      P.alpha = Math.max(0, 1 - (a.t - end) / 16); E.alpha = 1 - P.alpha; E.x = P.x; E.glitch = 1;
+      if (a.t % 3 === 0) this.staticBurst(match, P.x, -50, 4);
+      if (a.t === end + 1) sfx('glitch', 1, 0.7);
+      if (P.alpha <= 0) { this.copy = null; E.alpha = 1; E.glitch = 0; return true; }
+      return false;
+    }
+    // it moves the way you did a moment ago, staying close
+    const R = this.rec[P.i] || [], old = R.length > COPY.delay ? R[R.length - 1 - COPY.delay] : null;
+    if (tg && tg.alive) {
+      P.dir = Math.sign(tg.x - P.x) || P.dir;
+      if (Math.abs(tg.x - P.x) > COPY.near) P.x += P.dir * COPY.speed * (this.boss.phase === 2 ? 1.3 : 1);
+      P.x = Phaser.Math.Clamp(P.x, -255, 255);
+      P.y = old ? Math.min(0, old.fy) : 0;
+    }
+    P.pose = old;
+    if (old) for (const h of old.hbs) {                                              // ...and swings your swings, late
+      const flip = P.dir === h.face ? 1 : -1;
+      out.push(this.bhit('echo' + h.id, P.x + Math.min(h.x1 * flip, h.x2 * flip), P.y + h.y1, P.x + Math.max(h.x1 * flip, h.x2 * flip), P.y + h.y2, Math.max(3, Math.round((h.dmg || 6) * COPY.echo)), [45, 5.2, 0.6], { dirX: flip }));
+    }
+    // its own tricks
+    if (--P.next <= 0 && !P.trick) { P.trick = { kind: Math.random() < 0.55 ? 'limbs' : 'grin', t: 0, id: this.sid('trick') }; P.next = this.sp(COPY.trick); sfx('glitch', 0.8, 1.4); }
+    if (P.trick) {
+      const T = P.trick; T.t++;
+      if (T.kind === 'limbs') {                                                       // SHADOW LIMBS: wind up, then reach for you
+        const reach = T.t < COPY.limbWind ? 0.15 : Math.min(1, (T.t - COPY.limbWind) / 6);
+        P.limbs = reach; if (T.t === COPY.limbWind) { T.tx = tg ? tg.x : P.x + P.dir * 80; T.ty = tg ? tg.y - 30 : -30; sfx('whoosh', 1, 0.6); }
+        if (T.t >= COPY.limbWind && T.t < COPY.limbWind + 12) for (const L of this.limbTips(P, T)) out.push(this.bhit(T.id, L.x - 16, L.y - 16, L.x + 16, L.y + 16, ...COPY.limbHit, { dirX: P.dir }));
+        if (T.t > COPY.limbWind + 24) { P.trick = null; P.limbs = 0; }
+      } else {                                                                         // THE GRIN: the face splits, a scream of static
+        P.grin = Math.min(1, T.t / 14);
+        if (T.t === 24) { sfx('roar', 0.6, 1.8); sfx('glitch', 1, 0.4); match.shake(8, 14); }
+        if (T.t >= 24 && T.t < 40) { const r = (T.t - 24) * 7 + 20; P.ring = r; out.push(this.bhit(T.id, P.x - r, P.y - 60 - r * 0.6, P.x + r, P.y + 4, ...COPY.grinHit, { radial: true })); }
+        if (T.t > 48) { P.trick = null; P.grin = 0; P.ring = 0; }
+      }
+    }
+    return false;
+  }
+  /** Where its shadow limbs' hands are (reaching toward the target when T.tx is set). */
+  limbTips(P, T) {
+    const base = { x: P.x - P.dir * 10, y: P.y - 46 }, out = [];
+    for (let k = 0; k < 3; k++) {
+      const wig = Math.sin(this.t * 0.2 + k * 2) * 14, rx = (k - 1) * 26;
+      const idle = { x: base.x - P.dir * (30 + k * 8) + wig, y: base.y - 30 - k * 14 + rx * 0.3 };
+      const tgt = T && T.tx != null ? { x: T.tx + rx * 0.4, y: T.ty + rx } : idle;
+      const q = P.limbs > 0.2 ? P.limbs : 0;
+      out.push({ x: lerp(idle.x, tgt.x, q), y: lerp(idle.y, tgt.y, q), bx: base.x, by: base.y });
+    }
+    return out;
+  }
+  /** A fresh set of cracks for the copy's skin (relative to its body box, 0..1). */
+  makeCracks() { const c = []; for (let i = 0; i < 5; i++) { let x = 0.25 + Math.random() * 0.5, y = 0.15 + Math.random() * 0.7; const pts = [{ x, y }]; for (let k = 0; k < 4; k++) { x += (Math.random() - 0.5) * 0.25; y += (Math.random() - 0.5) * 0.25; pts.push({ x, y }); } c.push(pts); } return c; }
+  /** A puff of black-and-grey static. */
+  staticBurst(match, x, y, n) { for (let i = 0; i < n; i++) match.particles.push({ x: x + (Math.random() - 0.5) * 50, y: y + (Math.random() - 0.5) * 80, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, life: 16, color: C.static[i % 3], size: 3 }); }
+  /** The copy's sprite (your fighter, greyed and stuttering) and, over it, the cracks, the shadow limbs, the grin and its scream. */
+  drawCopy() {
+    const P = this.copy, spr = this.copySpr, g = this.copyG; g.clear();
+    if (!P || !P.pose || P.alpha <= 0.02 || !this.scene.textures.exists(P.pose.key)) { spr.setVisible(false); return; }
+    const o = P.pose, gl = (this.t % 40 < 3) ? (Math.random() - 0.5) * 8 : 0;
+    const same = P.dir === o.face;                                                  // (turned to face you: mirror the recorded pose if needed)
+    spr.setVisible(true).setTexture(o.key, o.frame).setOrigin(o.ox, o.oy).setScale(o.sx, o.sy).setFlipX(same ? o.flip : !o.flip);
+    spr.setPosition(P.x + o.dx * (same ? 1 : -1) + gl, P.y + o.dy).setAlpha(P.alpha).setTint(0x8a8480);
+    const w = spr.displayWidth, h = spr.displayHeight, x0 = spr.x - spr.originX * w, y0 = spr.y - spr.originY * h, A = P.alpha;
+    // the shadow limbs: thin black arms with long fingers, writhing out of its back
+    for (const L of this.limbTips(P, P.trick && P.trick.kind === 'limbs' ? P.trick : null)) {
+      const mx = (L.bx + L.x) / 2 - P.dir * 12, my = (L.by + L.y) / 2 - 10;
+      for (const [lw, c, al] of [[6, C.static[0], 0.5], [4, C.black, 1]]) { g.lineStyle(lw, c, A * al); g.lineBetween(L.bx, L.by, mx, my); g.lineBetween(mx, my, L.x, L.y); }
+      g.lineStyle(2, C.black, A); for (let f = -1; f <= 1; f++) g.lineBetween(L.x, L.y, L.x + P.dir * 10 + f * 4, L.y - 8 + f * 6);
+    }
+    g.lineStyle(0);
+    // cracks in its skin, a dim light seeping through
+    for (const pts of P.cracks) for (const [lw, c, al] of [[3, 0xfff0a0, 0.35], [1.5, 0x000000, 0.9]]) { g.lineStyle(lw, c, A * al); for (let i = 1; i < pts.length; i++) g.lineBetween(x0 + pts[i - 1].x * w, y0 + pts[i - 1].y * h, x0 + pts[i].x * w, y0 + pts[i].y * h); }
+    g.lineStyle(0);
+    // its face slipping into the smile now and then, or split wide open
+    const fx = x0 + w * (P.dir > 0 ? 0.6 : 0.4), fy = y0 + h * 0.25;
+    if (P.grin > 0) { g.fillStyle(C.black, A); g.fillEllipse(fx, fy + 4, 34 * P.grin, 22 * P.grin); this.drawFace(g, fx, fy, P.dir, A, 0.9 + P.grin * 0.6); }
+    else if (this.t % 90 < 6) this.drawFace(g, fx, fy, P.dir, A * 0.9, 0.6);
+    if (P.ring) { g.lineStyle(4, 0xffffff, 0.5 * A); g.strokeEllipse(P.x, P.y - 40, P.ring * 2, P.ring * 1.3); g.lineStyle(2, C.black, A); g.strokeEllipse(P.x, P.y - 40, P.ring * 2 + 8, P.ring * 1.3 + 6); g.lineStyle(0); }
+  }
+
   /** Its death: it flickers apart into static (the explosions come from BossArena). */
-  onDeath() { this.mimics = []; this.walls = null; this.stain = null; this.smile = null; this.e.alpha = 1; this.dark = 0; this.stuck = 0; for (const L of this.lamps) L.on = 1; }
+  onDeath() { this.copy = null; this.mimics = []; this.walls = null; this.stain = null; this.smile = null; this.e.alpha = 1; this.dark = 0; this.stuck = 0; for (const L of this.lamps) L.on = 1; }
 
   /**
    * THE ENTRANCE (k = 0..1): an empty, humming room. The panels flicker... out, one by one, from the far side. In the
@@ -338,6 +461,7 @@ export class HumBossStage extends BossArena {
     if (this.boss) {
       this.bossStep(match, out);
       if (this.stuck > 0) this.stuck--;
+      this.record(match);
       this.stepMimics(match, out);
       if (this.boss.dying) { this.e.glitch = this.t % 4 < 2 ? 1 : 0; this.e.alpha = 1 - this.deathK(); this.walls = null; }
     }
@@ -371,6 +495,7 @@ export class HumBossStage extends BossArena {
     }
     if (this.stain) { const S = this.stain, sh = S.shake ? (Math.random() - 0.5) * 6 : 0; g.fillStyle(0x1a1408, 0.35 + 0.35 * S.k); g.fillEllipse(S.x + sh, -2, 50 + 30 * S.k, 10 + 4 * S.k); }
     if (B) this.drawHum(g, this.e.x, this.e.dir, this.e.alpha, B.flash > 0, 1);
+    this.drawCopy();
     for (const m of this.mimics) this.drawMimic(g, m);
     if (dark > 0) { x.fillStyle(0x050302, 0.9 * dark); x.fillRect(-700, -700, 1400, 1100); }
     if (red && dark < 0.5) { x.fillStyle(C.red, 0.08 + 0.04 * Math.sin(t * 0.2)); x.fillRect(-700, -700, 1400, 1100); }

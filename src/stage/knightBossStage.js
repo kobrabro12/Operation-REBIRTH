@@ -50,10 +50,10 @@ const VOLLEY = { n: [4, 6], every: 9, flight: 44, grav: 0.3, hit: [7, [60, 4.6, 
 const FURY = { gap: 40, every: 4, hit: [10, [86, 5.8, 0.7]] };
 // THE SOUL: every `every` attacks it comes out to taunt for `out` frames (shorter on higher difficulties); how fast it
 // flies; what a hit on it does (x mult); below `bare` health it stays in his head for good (and he goes BERSERK)
-const SOUL = { every: 3, out: 250, speed: 0.11, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
+const SOUL = { every: 4, out: 400, speed: 0.06, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
 // THE SHELL GAME (from the second soul-out): fakes, the circle round you, how fast it turns, a shuffle every `every`
 // frames lasting `spin`, how long a hit fake takes to burst, the burst's size and hit
-const DECOY = { n: 2, r: 74, turn: 0.018, every: 96, spin: 34, fuse: 10, burst: 56, hit: [9, [60, 5.6, 0.6]] };
+const DECOY = { n: 2, r: 74, turn: 0.011, every: 130, spin: 48, fuse: 10, burst: 56, hit: [9, [60, 5.6, 0.6]] };
 // THORN ROOTS hazard: spikes, spacing, delay; SPORE BURST: warning, cloud frames, size, hit (ticks)
 const THORNS = { gap: 44, every: 5, hit: [8, [80, 5, 0.6]] };
 const SPORES = { warn: 60, on: 110, r: 64, x: 236, hit: [3, [70, 3, 0.25]] };
@@ -333,17 +333,17 @@ export class KnightBossStage extends BossArena {
       S.t++;
       const tg = this.nearest(match, S.x) || { x: 0, y: 0 }, R = this.ring, all = DECOY.n + 1, cx = Phaser.Math.Clamp(tg.x, -230, 230), cy = Math.max(-200, tg.y - 64);
       const spin = S.t % DECOY.every > DECOY.every - DECOY.spin;
-      R.a += spin ? 0.24 : DECOY.turn;
+      R.a += spin ? 0.14 : DECOY.turn;
       if (S.t % DECOY.every === DECOY.every - DECOY.spin) { sfx('whoosh', 0.6, 1.3); sfx('laugh', 0.3, 2); }
       const at = (k) => ({ x: cx + Math.cos(R.a + k / all * Math.PI * 2) * DECOY.r, y: cy + Math.sin(R.a + k / all * Math.PI * 2) * DECOY.r * 0.6 });
-      const p0 = at(R.slot); S.vx *= 0.85; S.x += (p0.x - S.x) * 0.2 + S.vx; S.y += (p0.y - S.y) * 0.2;
-      let k = 0; for (const d of this.decoys) { if (k === R.slot) k++; const p = at(k++); if (d.fuse == null) { d.x += (p.x - d.x) * 0.2; d.y += (p.y - d.y) * 0.2; } }
+      const p0 = at(R.slot); S.vx *= 0.85; S.x += (p0.x - S.x) * 0.12 + S.vx; S.y += (p0.y - S.y) * 0.12;
+      let k = 0; for (const d of this.decoys) { if (k === R.slot) k++; const p = at(k++); if (d.fuse == null) { d.x += (p.x - d.x) * 0.12; d.y += (p.y - d.y) * 0.12; } }
       if (S.t % 55 === 20) { const who = [S, ...this.decoys][Math.floor(Math.random() * (this.decoys.length + 1))]; match.popText({ x: who.x, y: who.y + 46 }, SOUL.lines[Math.floor(Math.random() * SOUL.lines.length)], '#9affd0'); sfx('laugh', 0.35, 1.8); }
       if (S.t >= out) { S.st = 'back'; sfx('soulhit', 0.6, 0.8); for (const d of this.decoys) this.burst(match, d.x, d.y, [C.soul[0], C.soul[2]], 6); this.decoys = null; }
     } else if (S.st === 'out') {
       S.t++;
       const tg = this.nearest(match, S.x) || { x: 0, y: 0 };
-      if (S.t % 70 === 69) S.side = -S.side;                                          // darts to your other side
+      if (S.t % 110 === 109) S.side = -S.side;                                        // drifts round to your other side
       if (Math.abs(tg.x - S.x) < 26 && S.t % 30 === 0) S.side = -S.side;
       const tx = Phaser.Math.Clamp(tg.x + S.side * 62, -280, 280), ty = Math.max(-260, tg.y - 70 + Math.sin(S.t * 0.12) * 16);
       S.vx *= 0.85; S.x += (tx - S.x) * SOUL.speed + S.vx; S.y += (ty - S.y) * SOUL.speed;

@@ -1,15 +1,19 @@
 // THE DESKTOP - the arena of BEIGE.EXE, THE OLD MACHINE (boss V, a vintage 90s computer; Trinkets > BOSS FIGHTS,
-// src/data/bosses.js). An original homage to old desktop computers - no real brand, logo or OS name anywhere.
-// You fight on the TASKBAR (a grey bevelled bar with a BEGIN button and a clock) in front of a teal desktop with
-// big pixel icons; two open WINDOWS are the side ledges (stand on their title bars). Behind the taskbar looms the
-// MACHINE: a huge beige CRT monitor on a tower case, a pixel face on its screen, and its giant MOUSE CURSOR is its hand.
-//   Weak point: its SCREEN (x1.2; x1.7 while it's NOT RESPONDING - every few attacks it freezes, an hourglass spinning
+// src/data/bosses.js). An original homage to old home computers - no real brand, logo, program or OS name anywhere.
+// You fight on top of a DESK in a bedroom in the evening (a window onto a dusky street, posters, a bookcase of games,
+// a guitar, a lava lamp); the two wall shelves above the desk are the ledges. On the desk sits the MACHINE: a fat
+// beige CRT monitor with a pixel face on its green screen, its tower beside it, the keyboard and the mouse in front -
+// and its giant MOUSE CURSOR, which climbs out of the screen, is its hand. It attacks with its PROGRAMS: each one's
+// window zooms out of the screen into the room.
+//   Weak point: its SCREEN (x1; x1.5 while it's NOT RESPONDING - every few attacks it freezes, an hourglass spinning
 //   and its screen greyed out). The beige casing takes x0.5, the cursor x0.3.
-//   Attacks: DOUBLE CLICK (the cursor tracks you overhead, then clicks twice - CLICK CLICK), DRAG SELECT (it drags a
-//   dashed selection box over you... DELETE? - get out before it fills), ERROR CASCADE (error dialogs rain down on
-//   marks - then lie on the taskbar as platforms until they close), SOLITAIRE (a card cascade bounces out of its screen
-//   and across the taskbar), FATAL EXCEPTION (at half health its screen goes BLUE; enraged it adds PIPES - the old 3D
-//   screensaver: pipes grow across the room in right angles - and SYSTEM CRASH - glitch blocks rain down in columns).
+//   Programs: PAINT (a brush sweeps a wavy stroke across the room, then the paint bucket floods half the desk),
+//   MINESWEEPER (a grid spreads along the desk, flags pop up on the mines - one under you - then they all blow),
+//   CALCULATOR (the numbers it punches in fly out at you), NOTEPAD (the keyboard clacks and the letters it types fly
+//   across the room: GET OUT), SOLITAIRE (bouncing cards), plus DOUBLE CLICK and ERROR CASCADE (error windows that land
+//   on the desk as ledges). At half health its screen goes BLUE (FATAL EXCEPTION) and it adds MEDIA PLAYER (a
+//   visualizer of bars bounces out of the desk to the beat - stand in the short ones), RECYCLE BIN (it sucks everyone
+//   to the middle, then spits balls of paper), PIPES (the old screensaver) and SYSTEM CRASH (glitch blocks rain down).
 // Stage hazards (also in VS, where the switched-off monitor just shows its reflection): POP-UP (a window falls on a
 // marked spot and lies there as a ledge) and DIAL-UP (a screeching modem beam sweeps across a marked band).
 import { HazardCycle } from './hazardCycle.js';
@@ -18,13 +22,25 @@ import { sfx } from '../audio/sfx.js';
 
 // 90s desktop greys, teal, title-bar blue, beige plastic
 const C = { out: 0x101010, teal: [0x007070, 0x008080, 0x109090], grey: [0x404040, 0x808080, 0xc0c0c0, 0xdfdfdf, 0xffffff], navy: 0x000080, blue: 0x1084d0,
-  beige: [0x8a8070, 0xb8ae98, 0xd8d0b8, 0xece6d4], screen: [0x0a2a1a, 0x103a24, 0x30ff80, 0xb0ffd0], bsod: 0x0000aa, card: [0xffffff, 0xd02020, 0x101010, 0x2050c0], pipe: [0xc02020, 0x20a040, 0x2060d0, 0xe0c020] };
+  beige: [0x8a8070, 0xb8ae98, 0xd8d0b8, 0xece6d4], home: { wall: [0x5a6a8a, 0x52617f], trim: 0xe8e0d0, floor: 0x5a3a28, frame: 0xf0e8d8, curtain: [0x8a2a3a, 0x7a2232], wood: [0x4a2e1a, 0x6a4428, 0x8a5a34, 0xb07a48] }, screen: [0x0a2a1a, 0x103a24, 0x30ff80, 0xb0ffd0], bsod: 0x0000aa, card: [0xffffff, 0xd02020, 0x101010, 0x2050c0], pipe: [0xc02020, 0x20a040, 0x2060d0, 0xe0c020] };
 // the monitor: where its screen's centre floats, its size, the casing round it
-const MON = { x: 0, y: -176, sw: 150, sh: 110, bez: 22 };
+const MON = { x: 0, y: -150, sw: 170, sh: 124, bez: 22 };
 // DOUBLE CLICK: tracking frames, the drop, the click's hit
 const CLICK = { track: 54, drop: 7, hold: 8, hit: [12, [70, 6.2, 0.9]] };
-// DRAG SELECT: the drag (frames), the DELETE? warning, the fill's hit; the smallest box
-const DRAG = { drag: 40, warn: 30, fill: 10, min: 130, hit: [13, [80, 6.2, 0.85]] };
+// PAINT: the brush stroke (frames), the bucket's warning, the paint colours, the brush's and the flood's hits
+const PAINT = { stroke: 54, warn: 34, cols: [0xff3040, 0x30a0ff, 0xffd020, 0x40d060, 0xc040ff, 0xff8020], hit: [10, [45, 5.8, 0.75]], fill: [12, [85, 6, 0.75]] };
+// MINESWEEPER: tile width, mines (normal / enraged), the reveal (frames), frames between blasts, a blast's hit
+const MINES = { w: 45, n: [4, 6], reveal: 60, chain: 7, hit: [11, [80, 6, 0.8]] };
+// CALCULATOR: numbers (normal / enraged), frames apart, flight frames, gravity, a number's hit
+const CALC = { n: [5, 7], every: 13, flight: 42, grav: 0.3, hit: [8, [55, 5.2, 0.6]] };
+// NOTEPAD: the words it types, frames per letter, the letters' speed and hit
+const NOTES = { words: ['GET OUT', 'GO AWAY', 'BYE BYE'], every: 9, speed: 6.5, hit: [7, [30, 5.2, 0.6]] };
+// MEDIA PLAYER (enraged): bar width, frames per beat, beats, the tall bars' height and hit
+const MUSIC = { w: 45, beat: 24, beats: 9, tall: 130, hit: [9, [85, 5.6, 0.6]] };
+// RECYCLE BIN (enraged): the suck (frames), how hard it pulls, paper balls, their hit
+const BIN = { suck: 80, pull: 1.25, n: 6, hit: [8, [50, 5.4, 0.65]] };
+// NOTEPAD's pixel letters (5x7, one bit per pixel per row)
+const GLYPHS = { G: [14, 17, 16, 23, 17, 17, 15], E: [31, 16, 16, 30, 16, 16, 31], T: [31, 4, 4, 4, 4, 4, 4], O: [14, 17, 17, 17, 17, 17, 14], U: [17, 17, 17, 17, 17, 17, 14], A: [14, 17, 17, 31, 17, 17, 17], W: [17, 17, 17, 21, 21, 21, 10], Y: [17, 17, 10, 4, 4, 4, 4], B: [30, 17, 17, 30, 17, 17, 30] };
 // ERROR CASCADE: dialogs (normal / enraged), frames apart, mark warning, fall speed, dialog size, how long they lie there, hit
 const ERR = { n: [3, 4], every: 16, warn: 34, fall: 13, w: 96, h: 62, life: 260, hit: [11, [80, 5.8, 0.75]] };
 // SOLITAIRE: cards (normal / enraged), frames apart, bounce, the card's hit
@@ -38,8 +54,11 @@ const HANG = { every: 4, dur: 170 };
 // hazards: POP-UP (a window falls on a mark) and DIAL-UP (a screeching beam: warning frames, sweep frames, band height, hit)
 const POPUP = { warn: 50, hit: [10, [80, 5.6, 0.7]] };
 const DIAL = { warn: 70, on: 60, h: 30, hit: [5, [40, 4.6, 0.4]] };
-// where the desktop backdrop sits on the background camera
-const SKY = { x: 320, y: 250 };
+// where the bedroom backdrop sits on the background camera (deco = how much lower its window, posters and furniture are)
+const SKY = { x: 320, y: 250, deco: 250 };
+
+/** A point along the way from a to b (k = 0..1). */
+const lerpN = (a, b, k) => a + (b - a) * k;
 
 /** THE DESKTOP and BEIGE.EXE (see the top of the file). */
 export class MachineBossStage extends BossArena {
@@ -47,25 +66,26 @@ export class MachineBossStage extends BossArena {
     super();
     this.scene = scene; this.t = 0; this.hazardsOn = true; this.music = 'bgm_boss_machine';
     this.platforms = [
-      { x1: -268, x2: 268, y: 0, solid: true, bottom: 40 },
-      { x1: -250, x2: -146, y: -104, solid: false },
-      { x1: 146, x2: 250, y: -104, solid: false },
+      { x1: -270, x2: 270, y: 0, solid: true, bottom: 36 },
+      { x1: -262, x2: -150, y: -112, solid: false },
+      { x1: 150, x2: 262, y: -112, solid: false },
     ];
     this.spawns = [{ x: -150, y: 0 }, { x: -60, y: 0 }, { x: -110, y: 0 }, { x: 150, y: 0 }];
     this.cycle = new HazardCycle(this, ['popup', 'dialup'], { color: '#ffffff', stroke: '#000080', gap: 700 });
     this.cur = { x: 120, y: -120, mode: 'arrow', press: 0 };
     this.count = 0; this.hang = 0; this.blue = 0; this.mood = 'idle';
-    this.drag = null; this.errs = []; this.cards = []; this.pipes = []; this.blocks = []; this.dial = null;
+    this.errs = []; this.cards = []; this.pipes = []; this.blocks = []; this.dial = null; this.win = null; this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.keyFlash = null;
     this.sparkColor = 0x30ff80; this.bodyW = 200; this.bodyH = 160;
   }
 
-  /** Builds the teal desktop (icons), the two open windows (ledges) and the taskbar (the floor). */
+  /** Builds the bedroom wall behind (window, posters, shelves of stuff), the shelves (ledges) and the desk (the floor). */
   draw(world, bg) {
     const s = this.scene;
-    const sky = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y); bg.push(sky); this.paintDesk(sky);
-    const back = s.add.graphics(); world.push(back); this.paintWindows(back);
+    const wall = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y); bg.push(wall);
+    const deco = s.add.graphics().setScrollFactor(0.15).setPosition(SKY.x, SKY.y + SKY.deco); bg.push(deco); this.paintHome(wall, deco);
+    const back = s.add.graphics(); world.push(back); this.paintShelves(back);
     this.monG = s.add.graphics(); world.push(this.monG);
-    const front = s.add.graphics(); world.push(front); this.paintTaskbar(front);
+    const front = s.add.graphics(); world.push(front); this.paintDesk(front);
     this.fxG = s.add.graphics(); world.push(this.fxG);
     this.cycle.makeBanner(s);
   }
@@ -76,39 +96,73 @@ export class MachineBossStage extends BossArena {
     g.fillStyle(inset ? C.grey[0] : C.grey[4], 1); g.fillRect(x, y, w, 2); g.fillRect(x, y, 2, h);
     g.fillStyle(inset ? C.grey[4] : C.grey[0], 1); g.fillRect(x, y + h - 2, w, 2); g.fillRect(x + w - 2, y, 2, h);
   }
-  /** The desktop far behind: flat teal, a faint dither, and a column of big pixel icons (computer, folder, bin, notepad). */
-  paintDesk(g) {
-    g.fillStyle(C.teal[1], 1); g.fillRect(-700, -700, 1400, 1100);
-    for (let y = -600; y < 300; y += 4) for (let x = -700 + ((y / 4) % 2) * 2; x < 700; x += 8) { g.fillStyle(C.teal[0], 0.25); g.fillRect(x, y, 1, 1); }
-    const icon = (x, y, kind) => {
-      if (kind === 'pc') { g.fillStyle(C.out, 1); g.fillRect(x - 15, y - 14, 30, 22); g.fillStyle(C.beige[2], 1); g.fillRect(x - 14, y - 13, 28, 20); g.fillStyle(C.navy, 1); g.fillRect(x - 10, y - 10, 20, 13); g.fillStyle(C.beige[1], 1); g.fillRect(x - 8, y + 8, 16, 4); }
-      if (kind === 'folder') { g.fillStyle(C.out, 1); g.fillRect(x - 15, y - 9, 30, 20); g.fillStyle(0xe8c840, 1); g.fillRect(x - 14, y - 8, 28, 18); g.fillRect(x - 14, y - 12, 12, 5); g.fillStyle(0xf8e070, 1); g.fillRect(x - 14, y - 4, 28, 3); }
-      if (kind === 'bin') { g.fillStyle(C.out, 1); g.fillRect(x - 11, y - 12, 22, 25); g.fillStyle(C.grey[3], 1); g.fillRect(x - 10, y - 11, 20, 23); for (let i = 0; i < 3; i++) { g.fillStyle(C.grey[1], 1); g.fillRect(x - 6 + i * 5, y - 7, 2, 16); } }
-      if (kind === 'note') { g.fillStyle(C.out, 1); g.fillRect(x - 11, y - 14, 22, 27); g.fillStyle(C.grey[4], 1); g.fillRect(x - 10, y - 13, 20, 25); for (let i = 0; i < 5; i++) { g.fillStyle(C.blue, 1); g.fillRect(x - 7, y - 9 + i * 4, 12 - (i % 2) * 4, 1); } }
-      g.fillStyle(C.grey[4], 1); g.fillRect(x - 16, y + 18, 32, 4); g.fillStyle(C.teal[0], 1); g.fillRect(x - 14, y + 19, 28, 2);   // its label
-    };
-    ['pc', 'folder', 'bin', 'note'].forEach((k, i) => icon(-290, -330 + i * 64, k));
-    ['folder', 'note'].forEach((k, i) => icon(-226, -330 + i * 64, k));
+  /**
+   * The bedroom far behind the desk, late in the evening: striped wallpaper, a window onto a dusky street (houses,
+   * lit windows, a streetlamp, the first stars) with curtains, a band-free poster and a star chart, a corkboard of
+   * notes, a bookcase full of games and tapes, a guitar against the wall, a glowing lava lamp.
+   */
+  paintHome(w, g) {
+    const H = C.home;
+    w.fillStyle(H.wall[0], 1); w.fillRect(-700, -700, 1400, 1100);
+    for (let x = -700; x < 700; x += 24) { w.fillStyle(H.wall[1], 1); w.fillRect(x, -700, 10, 1100); }
+    w.fillStyle(H.trim, 1); w.fillRect(-700, 40, 1400, 14); w.fillStyle(H.floor, 1); w.fillRect(-700, 54, 1400, 300);
+    // the window
+    const wx = -150, wy = -470, ww = 300, wh = 230;
+    g.fillStyle(H.frame, 1); g.fillRect(wx - 12, wy - 12, ww + 24, wh + 24);
+    for (let i = 0; i < 6; i++) { g.fillStyle([0x1a2050, 0x283070, 0x3a3a8a, 0x6a4a9a, 0xb06a8a, 0xe8905a][i], 1); g.fillRect(wx, wy + i * wh / 6, ww, wh / 6 + 1); }
+    for (let i = 0; i < 16; i++) { g.fillStyle(0xffffff, 0.7); g.fillRect(wx + (i * 67) % ww, wy + (i * 23) % 70, 1, 1); }
+    for (let i = 0; i < 6; i++) { const hx = wx + i * 52, hh = 50 + (i * 37) % 40; g.fillStyle(0x141428, 1); g.fillRect(hx, wy + wh - hh, 46, hh); g.fillTriangle(hx - 4, wy + wh - hh, hx + 50, wy + wh - hh, hx + 23, wy + wh - hh - 22); for (let k = 0; k < 2; k++) { g.fillStyle(0xffd070, (i + k) % 3 ? 0.9 : 0.2); g.fillRect(hx + 8 + k * 20, wy + wh - hh + 14, 8, 10); } }
+    g.fillStyle(0x30303a, 1); g.fillRect(wx + 250, wy + 90, 4, 140); g.fillStyle(0xffe8a0, 1); g.fillCircle(wx + 252, wy + 88, 6); g.fillStyle(0xffe8a0, 0.15); g.fillCircle(wx + 252, wy + 100, 40);
+    g.fillStyle(H.frame, 1); g.fillRect(wx + ww / 2 - 5, wy, 10, wh); g.fillRect(wx, wy + wh / 2 - 5, ww, 10);
+    for (const s of [-1, 1]) { g.fillStyle(H.curtain[0], 1); g.fillRect(s < 0 ? wx - 60 : wx + ww + 10, wy - 30, 50, wh + 70); for (let i = 0; i < 4; i++) { g.fillStyle(H.curtain[1], 1); g.fillRect((s < 0 ? wx - 56 : wx + ww + 14) + i * 12, wy - 30, 4, wh + 70); } }
+    g.fillStyle(H.frame, 1); g.fillRect(wx - 80, wy - 40, ww + 160, 10);
+    // posters and a corkboard
+    g.fillStyle(0x101010, 1); g.fillRect(-470, -460, 120, 170); g.fillStyle(0xe85a2a, 1); g.fillRect(-464, -454, 108, 158); g.fillStyle(0xffd040, 1); g.fillCircle(-410, -390, 34); g.fillStyle(0x101010, 1); g.fillRect(-454, -320, 88, 8); g.fillRect(-444, -306, 68, 5);
+    g.fillStyle(0x101010, 1); g.fillRect(250, -470, 140, 110); g.fillStyle(0x10183a, 1); g.fillRect(254, -466, 132, 102); for (let i = 0; i < 22; i++) { g.fillStyle(0xffffff, 0.8); g.fillRect(258 + (i * 47) % 124, -460 + (i * 29) % 94, 2, 2); } g.lineStyle(1, 0x8ab0ff, 0.6); g.lineBetween(270, -440, 310, -420); g.lineBetween(310, -420, 340, -440); g.lineBetween(340, -440, 370, -400); g.lineStyle(0);
+    g.fillStyle(0x6a4a2a, 1); g.fillRect(260, -340, 150, 100); g.fillStyle(0xb08a5a, 1); g.fillRect(266, -334, 138, 88);
+    for (let i = 0; i < 6; i++) { g.fillStyle([0xfff07a, 0x9ae0ff, 0xff9ac0, 0xffffff][i % 4], 1); g.fillRect(272 + (i % 3) * 44, -328 + Math.floor(i / 3) * 40, 34, 30); g.fillStyle(0xd02020, 1); g.fillCircle(289 + (i % 3) * 44, -326 + Math.floor(i / 3) * 40, 2); }
+    // a bookcase (games, tapes, books), a guitar and a lava lamp
+    g.fillStyle(H.wood[0], 1); g.fillRect(-640, -330, 150, 370); for (let k = 0; k < 4; k++) { g.fillStyle(H.wood[1], 1); g.fillRect(-632, -320 + k * 90, 134, 80); for (let i = 0; i < 9; i++) { g.fillStyle([0xc03030, 0x3060c0, 0x30a050, 0xe0c040, 0x8040a0, 0x202020][(i + k) % 6], 1); g.fillRect(-628 + i * 14, -300 + k * 90 + (i % 3) * 4, 11, 60 - (i % 3) * 4); } }
+    g.fillStyle(0x8a3a1a, 1); g.fillEllipse(470, -40, 70, 90); g.fillEllipse(470, -100, 52, 60); g.fillStyle(0x101010, 1); g.fillCircle(470, -70, 12); g.fillStyle(0x5a3a1a, 1); g.fillRect(466, -250, 8, 150); g.fillRect(460, -262, 20, 16);
+    g.fillStyle(0x3a3a50, 1); g.fillRect(-470, -30, 40, 70); g.fillStyle(0xff4aa0, 0.8); g.fillEllipse(-450, -80, 30, 80); g.fillStyle(0xffd040, 1); g.fillCircle(-452, -96, 7); g.fillCircle(-446, -66, 5); g.fillStyle(0xff4aa0, 0.12); g.fillCircle(-450, -80, 70);
   }
-  /** The two open windows the ledges stand on: navy title bars with their three buttons, grey frames, white pages. */
-  paintWindows(g) {
+  /** The two wall shelves above the desk (the ledges): wooden planks on brackets with things on them. */
+  paintShelves(g) {
+    const H = C.home;
     for (const p of this.platforms.slice(1)) {
-      const x = p.x1 - 6, w = p.x2 - p.x1 + 12, y = p.y, h = 104;
-      g.fillStyle(C.out, 1); g.fillRect(x - 1, y - 1, w + 2, h + 2); this.bevel(g, x, y, w, h);
-      g.fillStyle(C.navy, 1); g.fillRect(x + 3, y + 3, w - 6, 12); g.fillStyle(C.blue, 1); g.fillRect(x + 3 + (w - 6) * 0.5, y + 3, (w - 6) * 0.5, 12);
-      for (let i = 0; i < 3; i++) { this.bevel(g, x + w - 16 - i * 13, y + 5, 11, 9); g.fillStyle(C.out, 1); g.fillRect(x + w - 13 - i * 13, y + 9, 5, 2); }
-      g.fillStyle(C.grey[4], 1); g.fillRect(x + 4, y + 18, w - 8, h - 22); g.fillStyle(C.grey[1], 1); g.fillRect(x + w - 14, y + 18, 10, h - 22);
-      for (let i = 0; i < 8; i++) { g.fillStyle(C.grey[1], 1); g.fillRect(x + 10, y + 26 + i * 9, 30 + ((i * 17) % 40), 3); }
+      g.fillStyle(C.out, 1); g.fillRect(p.x1 - 2, p.y - 2, p.x2 - p.x1 + 4, 14); g.fillStyle(H.wood[2], 1); g.fillRect(p.x1, p.y, p.x2 - p.x1, 10); g.fillStyle(H.wood[3], 1); g.fillRect(p.x1, p.y, p.x2 - p.x1, 3);
+      for (const bx of [p.x1 + 14, p.x2 - 18]) { g.fillStyle(C.grey[1], 1); g.fillTriangle(bx, p.y + 10, bx + 4, p.y + 10, bx, p.y + 34); }
     }
+    const L = this.platforms[1], R = this.platforms[2];
+    for (let i = 0; i < 4; i++) { g.fillStyle([0x3060c0, 0xc03030, 0x30a050, 0xe0c040][i], 1); g.fillRect(L.x1 + 30 + i * 9, L.y - 30, 8, 30); }      // books
+    g.fillStyle(0x5a3a2a, 1); g.fillRect(L.x1 + 80, L.y - 14, 18, 14); g.fillStyle(0x40a040, 1); g.fillCircle(L.x1 + 89, L.y - 22, 12); g.fillCircle(L.x1 + 82, L.y - 28, 7);   // a plant
+    g.fillStyle(0xd8d0b8, 1); g.fillRect(R.x1 + 20, R.y - 22, 30, 22); g.fillStyle(0x202020, 1); g.fillRect(R.x1 + 24, R.y - 18, 22, 10);                                // a little TV
+    g.fillStyle(0xe8c030, 1); g.fillRect(R.x1 + 62, R.y - 26, 16, 26); g.fillStyle(0xffe070, 1); g.fillCircle(R.x1 + 70, R.y - 30, 7);                                  // a trophy
   }
-  /** The taskbar floor: a long grey bevel bar, the BEGIN button (a little power symbol), quick icons and the clock tray. */
-  paintTaskbar(g) {
-    const P = this.platforms[0], x = P.x1, w = P.x2 - P.x1;
-    g.fillStyle(C.out, 1); g.fillRect(x - 2, -2, w + 4, 44); this.bevel(g, x, 0, w, 40);
-    this.bevel(g, x + 6, 6, 70, 28); g.lineStyle(3, 0xd04020, 1); g.beginPath(); g.arc(x + 22, 20, 7, -1.2, 4.3); g.strokePath(); g.lineBetween(x + 22, 10, x + 22, 19); g.lineStyle(0);
-    for (let i = 0; i < 4; i++) { g.fillStyle(C.grey[1], 1); g.fillRect(x + 36 + i * 8, 16, 5, 7); }
-    for (let i = 0; i < 3; i++) { this.bevel(g, x + 90 + i * 112, 6, 104, 28, i === 0); g.fillStyle(C.navy, 1); g.fillRect(x + 96 + i * 112, 14, 10, 10); for (let k = 0; k < 5; k++) { g.fillStyle(C.out, 1); g.fillRect(x + 112 + i * 112 + k * 12, 18, 8, 3); } }
-    this.bevel(g, x + w - 84, 6, 78, 28, true);
+  /**
+   * The desk (the floor): its top seen a little from above - a desk mat, the keyboard, a mug of pens, papers - then
+   * the wooden front edge, drawers and the floor under it. The mouse is drawn every frame (it moves with the cursor).
+   */
+  paintDesk(g) {
+    const P = this.platforms[0], H = C.home, x1 = P.x1, x2 = P.x2;
+    g.fillStyle(C.out, 1); g.fillRect(x1 - 4, -30, x2 - x1 + 8, 34);
+    g.fillStyle(H.wood[2], 1); g.fillRect(x1, -28, x2 - x1, 28); g.fillStyle(H.wood[3], 1); g.fillRect(x1, -28, x2 - x1, 3);
+    for (let i = 0; i < 12; i++) { g.fillStyle(H.wood[1], 0.5); g.fillRect(x1 + (i * 97) % (x2 - x1), -24 + (i * 7) % 20, 60, 1); }
+    g.fillStyle(0x2a3a4a, 1); g.fillRect(-150, -24, 300, 20);                                                           // the desk mat
+    g.fillStyle(C.out, 1); g.fillRect(-118, -22, 236, 18); g.fillStyle(C.beige[2], 1); g.fillRect(-116, -21, 232, 15);   // the keyboard
+    for (let r = 0; r < 3; r++) for (let k = 0; k < 18; k++) { g.fillStyle(C.beige[1], 1); g.fillRect(-112 + k * 12.6 + r * 3, -19 + r * 4.6, 10, 3.4); }
+    g.fillStyle(0x2a2a2a, 1); g.fillRect(-250, -28, 22, 24); g.fillStyle(0xffffff, 1); g.fillRect(-248, -26, 18, 3); for (let i = 0; i < 4; i++) { g.fillStyle([0xd02020, 0x2050d0, 0x202020, 0xe0c020][i], 1); g.fillRect(-247 + i * 5, -38 - (i % 2) * 5, 2, 14); }   // pens in a mug
+    g.fillStyle(0xf8f4e8, 1); g.fillPoints([{ x: 180, y: -24 }, { x: 236, y: -26 }, { x: 240, y: -6 }, { x: 184, y: -4 }], true); g.fillStyle(0x8a8a9a, 1); for (let i = 0; i < 4; i++) g.fillRect(190, -20 + i * 4, 36, 1);   // papers
+    g.fillStyle(C.out, 1); g.fillRect(x1 - 4, 0, x2 - x1 + 8, 36); g.fillStyle(H.wood[1], 1); g.fillRect(x1, 0, x2 - x1, 32); g.fillStyle(H.wood[3], 1); g.fillRect(x1, 0, x2 - x1, 3);
+    for (const dx of [x1 + 20, x2 - 120]) { g.fillStyle(H.wood[0], 1); g.fillRect(dx, 8, 100, 20); g.fillStyle(C.grey[2], 1); g.fillRect(dx + 40, 16, 20, 4); }
+  }
+  /** The physical mouse on its mat: it slides along with the giant cursor (and its cable trails to the tower). */
+  drawMouse(g) {
+    const mx = Phaser.Math.Clamp(110 + (this.cur.x - 60) * 0.12, 60, 170), my = -14;
+    g.lineStyle(3, C.out, 1); g.lineBetween(mx, my - 8, 196, -30); g.lineStyle(1.5, C.grey[1], 1); g.lineBetween(mx, my - 8, 196, -30); g.lineStyle(0);
+    g.fillStyle(C.out, 1); g.fillEllipse(mx, my, 24, 16); g.fillStyle(C.beige[2], 1); g.fillEllipse(mx, my - 1, 21, 13); g.fillStyle(C.beige[3], 1); g.fillEllipse(mx - 3, my - 4, 8, 4);
+    g.fillStyle(C.out, 1); g.fillRect(mx - 1, my - 7, 1, 6);
+    if (this.cur.press > 0) { g.fillStyle(0xffffff, 0.6); g.fillRect(mx - 9, my - 7, 8, 4); }
   }
 
   // ------------------------------------------------------------------ BEIGE.EXE
@@ -118,21 +172,21 @@ export class MachineBossStage extends BossArena {
   core() { return { x: MON.x, y: MON.y + this.bob() }; }
   /** How far it floats up and down. */
   bob() { return Math.sin(this.t * 0.03) * 6 + (this.hang > 0 ? 18 : 0); }
-  /** Where it can be hit: the screen (x1.2, x1.7 NOT RESPONDING), the casing (x0.5), the cursor (x0.3). */
+  /** Where it can be hit: the screen (x1, x1.5 NOT RESPONDING), the casing (x0.5), the cursor (x0.3). */
   hurt() {
     const c = this.core(), sw = MON.sw / 2, sh = MON.sh / 2, b = MON.bez, k = this.cur;
-    return [{ x1: c.x - sw, y1: c.y - sh, x2: c.x + sw, y2: c.y + sh, mult: this.hang > 0 ? 1.7 : 1.2 },
+    return [{ x1: c.x - sw, y1: c.y - sh, x2: c.x + sw, y2: c.y + sh, mult: this.hang > 0 ? 1.5 : 1.0 },
       { x1: c.x - sw - b, y1: c.y - sh - b, x2: c.x + sw + b, y2: c.y + sh + b + 20, mult: 0.5 },
       { x1: k.x - 4, y1: k.y - 4, x2: k.x + 30, y2: k.y + 46, mult: 0.3 }];
   }
   /** What it does next: every few attacks it hangs (NOT RESPONDING); enraged adds PIPES and SYSTEM CRASH. */
   pattern(phase) {
     if (this.count % HANG.every === HANG.every - 1) return ['hang'];
-    return phase === 1 ? ['click', 'drag', 'errors', 'cards', 'click'] : ['click', 'drag', 'errors', 'cards', 'pipes', 'crash'];
+    return phase === 1 ? ['paint', 'mines', 'calc', 'notes', 'click', 'errors', 'cards'] : ['paint', 'mines', 'calc', 'notes', 'music', 'bin', 'errors', 'pipes', 'crash'];
   }
   /** Counts its attacks (every few, it hangs). */
   tally() { this.count++; }
-  start_click() { this.tally(); } start_drag() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
+  start_click() { this.tally(); } start_paint() { this.tally(); } start_mines() { this.tally(); } start_calc() { this.tally(); } start_notes() { this.tally(); } start_music() { this.tally(); } start_bin() { this.tally(); } start_errors() { this.tally(); } start_cards() { this.tally(); } start_pipes() { this.tally(); } start_crash() { this.tally(); } start_hang() { this.tally(); }
   rageLine() { return 'FATAL EXCEPTION!'; }
   /** Half health: the screen goes BLUE - a sad face, the error text - and the whole room flickers blue. */
   onRage(match) { this.blue = 150; sfx('glitch', 1, 0.6); sfx('ding', 1, 0.5); match.shake(8, 20); }
@@ -159,18 +213,6 @@ export class MachineBossStage extends BossArena {
     else if (e === CLICK.drop) { k.press = 6; sfx('clang', 0.8, 2.2); sfx('hit', 0.6, 1.8); match.shake(6, 6); match.popText({ x: k.x, y: -60 }, 'CLICK!', '#ffffff'); }
     else if (e > CLICK.drop + CLICK.hold) k.y += (-190 - k.y) * 0.4;
     return false;
-  }
-  /** DRAG SELECT: the cursor drags a dashed selection box over the nearest player; DELETE? flashes; then the box fills with static. */
-  atk_drag(match, a, out) {
-    const k = this.cur, dr = this.sp(DRAG.drag), wn = this.sp(DRAG.warn);
-    this.mood = 'angry';
-    if (a.t === 1) { const tg = this.nearest(match, k.x), cx = Phaser.Math.Clamp(tg ? tg.x : 0, -200, 200); a.x0 = cx - 70 - Math.random() * 30; a.y0 = -160; a.x1 = cx + 70 + Math.random() * 30; a.y1 = 0; }
-    if (a.t < 16) { this.toward(a.x0, a.y0, 0.3); return false; }
-    if (a.t < 16 + dr) { const q = (a.t - 16) / dr; k.x = a.x0 + (a.x1 - a.x0) * q; k.y = a.y0 + (a.y1 - a.y0) * q; this.drag = { x1: a.x0, y1: a.y0, x2: k.x, y2: k.y }; if (a.t % 6 === 0) sfx('menu', 0.3, 1.6); return false; }
-    if (a.t < 16 + dr + wn) { this.drag = { x1: a.x0, y1: a.y0, x2: a.x1, y2: a.y1, warn: true }; if (a.t === 16 + dr) { sfx('ding', 0.9, 0.9); match.popText({ x: (a.x0 + a.x1) / 2, y: a.y0 - 6 }, 'DELETE?', '#ffffff'); } return false; }
-    if (a.t < 16 + dr + wn + DRAG.fill) { this.drag = { x1: a.x0, y1: a.y0, x2: a.x1, y2: a.y1, fill: true }; out.push(this.bhit('drag' + a.id, a.x0, a.y0, a.x1, a.y1, ...DRAG.hit, { radial: true })); if (a.t === 16 + dr + wn) { sfx('glitch', 1, 1); match.shake(8, 10); } return false; }
-    this.drag = null; this.toward(80, -170, 0.1);
-    return a.t > 16 + dr + wn + DRAG.fill + 24;
   }
   /** ERROR CASCADE: error dialogs drop onto marks one after another (a chime each) and land on the taskbar as ledges. */
   atk_errors(match, a, out) {
@@ -251,8 +293,165 @@ export class MachineBossStage extends BossArena {
     return this.hang <= 0;
   }
 
+  // ------------------------------------------------------------------ its programs
+  /** Opens a program window: it zooms out of its screen to (x, y) - drawn by drawProgWin; kind picks its look and icon. */
+  openWin(kind, x, y, w, h) { const c = this.core(); this.win = { kind, x, y, w, h, k: 0, fx: c.x, fy: c.y }; sfx('menu', 0.6, 1.2); sfx('ding', 0.4, 1.5); }
+  /** Each frame: the window opening (k up to 1) or closing (down to 0, then gone). */
+  stepWin() { const W = this.win; if (!W) return; if (W.close) { W.k -= 0.12; if (W.k <= 0) this.win = null; } else W.k = Math.min(1, W.k + 0.09); }
+  /** Closes the open program window. */
+  closeWin() { if (this.win) this.win.close = true; }
+
+  /**
+   * PAINT: a paint program opens; its cursor becomes a brush and sweeps a thick wavy stroke across the room at your
+   * height (the brush hits); then it picks the paint bucket - one half of the desk flashes - and floods it with colour.
+   */
+  atk_paint(match, a, out) {
+    const k = this.cur, st = 20, sw = this.sp(PAINT.stroke), bw = st + sw + this.sp(PAINT.warn);
+    if (a.t === 1) { this.openWin('paint', 0, -258, 190, 64); const tg = this.nearest(match, 0); a.y = Phaser.Math.Clamp((tg ? tg.y : 0) - 22, -150, -16); a.s = Math.random() < 0.5 ? -1 : 1; a.col = PAINT.cols[Math.floor(Math.random() * PAINT.cols.length)]; this.paint = { pts: [], col: a.col }; k.mode = 'brush'; }
+    this.mood = 'happy';
+    if (a.t < st) { this.toward(-a.s * 270, a.y, 0.25); return false; }
+    if (a.t < st + sw) {
+      const q = (a.t - st) / sw; k.x = -a.s * 270 + a.s * 540 * q; k.y = a.y + Math.sin(q * Math.PI * 3) * 26;
+      this.paint.pts.push({ x: k.x, y: k.y + 8 }); if (a.t % 5 === 0) sfx('whoosh', 0.25, 1.6);
+      out.push(this.bhit('brush' + a.id + Math.floor(a.t / 12), k.x - 22, k.y - 18, k.x + 22, k.y + 26, ...PAINT.hit, { dirX: a.s }));
+      return false;
+    }
+    if (a.t === st + sw) { const tg = this.nearest(match, 0); a.b = tg && tg.x < 0 ? -1 : 1; k.mode = 'bucket'; this.fill = { s: a.b, k: 0, col: a.col, warn: true }; sfx('ding', 0.8, 0.8); }
+    if (a.t < bw) { this.toward(a.b * 130, -170, 0.2); return false; }
+    if (a.t === bw) { this.fill.warn = false; sfx('geyser', 1, 1.3); match.shake(6, 10); }
+    if (a.t < bw + 30) { this.fill.k = Math.min(1, (a.t - bw) / 8); out.push(this.bhit('bucket' + a.id, a.b < 0 ? -275 : 0, -135 * this.fill.k, a.b < 0 ? 0 : 275, 0, ...PAINT.fill)); return false; }
+    this.fill.k -= 0.06; this.closeWin(); if (this.paint) this.paint.fade = (this.paint.fade || 0) + 1;
+    if (this.fill.k <= 0) { this.fill = null; this.paint = null; k.mode = 'arrow'; return true; }
+    return false;
+  }
+  /**
+   * MINESWEEPER: a mines game opens and its grid spreads along the desk; tiles flip over one by one - numbers, and
+   * little red flags on the mines (always one under you); then every flagged tile blows up, one after another.
+   */
+  atk_mines(match, a, out) {
+    const rev = this.sp(MINES.reveal), n = MINES.n[this.boss.phase - 1];
+    if (a.t === 1) {
+      this.openWin('mines', -140, -250, 120, 70);
+      const tg = this.nearest(match, 0), cols = Math.floor(540 / MINES.w), under = Phaser.Math.Clamp(Math.floor(((tg ? tg.x : 0) + 270) / MINES.w), 0, cols - 1), set = new Set([under]);
+      while (set.size < n) set.add(Math.floor(Math.random() * cols));
+      this.mines = { tiles: Array.from({ length: cols }, (_, i) => ({ i, x: -270 + i * MINES.w + MINES.w / 2, mine: set.has(i), open: 0, boom: 0 })), id: this.sid('mines') };
+      for (const T of this.mines.tiles) T.num = [T.i - 1, T.i + 1].filter((j) => set.has(j)).length;
+      sfx('menu', 0.6, 0.9);
+    }
+    const M = this.mines; this.mood = 'angry';
+    M.tiles.forEach((T, i) => { if (a.t > 6 + i * (rev / M.tiles.length)) T.open = Math.min(1, T.open + 0.2); });
+    const mines = M.tiles.filter((T) => T.mine);
+    mines.forEach((T, j) => {
+      const at = rev + 10 + j * MINES.chain;
+      if (a.t === at) { T.boom = 1; sfx('bighit', 0.8, 1 + j * 0.05); match.shake(6, 6); for (let i = 0; i < 10; i++) match.particles.push({ x: T.x, y: -10, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 5, life: 20, color: [0x101010, 0xff3020, 0xffd040][i % 3], size: 3, grav: 0.15 }); }
+      if (a.t >= at && a.t < at + 6) out.push(this.bhit(M.id + T.i, T.x - MINES.w / 2 - 6, -96, T.x + MINES.w / 2 + 6, 0, ...MINES.hit, { radial: true }));
+      if (T.boom) T.boom++;
+    });
+    if (a.t > rev + 10 + mines.length * MINES.chain + 24) { this.closeWin(); this.mines = null; return true; }
+    return false;
+  }
+  /** CALCULATOR: a calculator opens and its keys clatter - each number it punches in flies out of its display at you, spinning. */
+  atk_calc(match, a, out) {
+    const n = CALC.n[this.boss.phase - 1], every = this.sp(CALC.every);
+    if (a.t === 1) this.openWin('calc', 150, -250, 76, 96);
+    this.mood = 'angry';
+    if (a.t > 16 && (a.t - 16) % every === 0 && (a.t - 16) / every <= n) {
+      const tg = this.nearest(match, 150), T = CALC.flight, x0 = 150, y0 = -270, tx = Phaser.Math.Clamp((tg ? tg.x : 0) + (Math.random() - 0.5) * 60, -255, 255);
+      this.digits.push({ x: x0, y: y0, vx: (tx - x0) / T, vy: ((tg ? tg.y - 20 : -10) - y0 - 0.5 * CALC.grav * T * T) / T, d: Math.floor(Math.random() * 10), a: 0, id: this.sid('digit') });
+      sfx('clang', 0.3, 2.2); sfx('menu', 0.3, 1.8);
+    }
+    this.stepDigits(match, out);
+    if (a.t > 16 + (n + 1) * every && !this.digits.length) { this.closeWin(); return true; }
+    return false;
+  }
+  /** The calculator's digits: arcing, spinning, gone when they hit the desk. */
+  stepDigits(match, out) {
+    for (const D of this.digits) { D.vy += CALC.grav; D.x += D.vx; D.y += D.vy; D.a += 0.2; out.push(this.bhit(D.id, D.x - 13, D.y - 17, D.x + 13, D.y + 17, ...CALC.hit, { dirX: Math.sign(D.vx) || 1 })); if (D.y > -14) { D.dead = true; sfx('hit', 0.4, 1.7); for (let i = 0; i < 5; i++) match.particles.push({ x: D.x, y: -12, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 3, life: 14, color: 0x30ff80, size: 2 }); } }
+    this.digits = this.digits.filter((D) => !D.dead);
+  }
+  /** NOTEPAD: a text editor opens; the keyboard's keys clack down and the letters it types fly out across the room at your height: GET OUT. */
+  atk_notes(match, a, out) {
+    const every = this.sp(NOTES.every);
+    if (a.t === 1) { a.w = Math.floor(Math.random() * NOTES.words.length); this.openWin('notes', 0, -258, 170, 64); const tg = this.nearest(match, 0); a.s = tg && tg.x < 0 ? -1 : 1; a.y = Phaser.Math.Clamp((tg ? tg.y : 0) - 24, -140, -18); a.typed = 0; }
+    this.mood = 'grin';
+    const W = NOTES.words[a.w];
+    if (a.t > 14 && (a.t - 14) % every === 0 && a.typed < W.length) {
+      const ch = W[a.typed++]; this.keyFlash = { i: Math.floor(Math.random() * 54), t: 6 };
+      if (ch !== ' ') { this.letters.push({ ch, x: -a.s * 280, y: a.y + Math.sin(a.typed) * 6, vx: a.s * NOTES.speed, id: this.sid('letter') }); sfx('clang', 0.4, 2.4); }
+    }
+    this.stepLetters(match, out);
+    if (a.typed >= W.length && !this.letters.length) { this.closeWin(); return true; }
+    return false;
+  }
+  /** The typed letters: flying flat across the room. */
+  stepLetters(match, out) {
+    for (const L of this.letters) { L.x += L.vx; out.push(this.bhit(L.id, L.x - 11, L.y - 15, L.x + 11, L.y + 15, ...NOTES.hit, { dirX: Math.sign(L.vx) })); if (Math.abs(L.x) > 330) L.dead = true; }
+    this.letters = this.letters.filter((L) => !L.dead);
+  }
+  /** MEDIA PLAYER (enraged): music blares and a visualizer of bars bounces up out of the desk to the beat - every other bar tall; stand in the short ones. */
+  atk_music(match, a, out) {
+    const beat = MUSIC.beat, warn = 3 * beat, live = MUSIC.beats * beat;
+    if (a.t === 1) { this.openWin('music', 0, -258, 170, 60); a.flip = Math.random() < 0.5 ? 0 : 1; }
+    this.mood = 'happy';
+    const n = Math.floor(540 / MUSIC.w), b = Math.floor(a.t / beat), ph = (a.t % beat) / beat;
+    this.viz = { bars: [] };
+    for (let i = 0; i < n; i++) {
+      const tall = (i + b + a.flip) % 2 === 0, x = -270 + i * MUSIC.w + MUSIC.w / 2;
+      const h = a.t < warn ? 10 + 8 * Math.abs(Math.sin(a.t * 0.3 + i)) + (tall ? 14 : 0) : tall ? MUSIC.tall * (1 - ph * 0.6) : 16;
+      this.viz.bars.push({ x, h, tall });
+      if (a.t >= warn && tall && ph < 0.55) out.push(this.bhit('viz' + a.id + b + i, x - MUSIC.w / 2 + 3, -h, x + MUSIC.w / 2 - 3, 0, ...MUSIC.hit));
+    }
+    if (a.t % beat === 0) { sfx(a.t >= warn ? 'bighit' : 'land', a.t >= warn ? 0.4 : 0.3, 1.4); if (a.t >= warn) match.shake(2, 4); }
+    if (a.t > warn + live) { this.viz = null; this.closeWin(); return true; }
+    return false;
+  }
+  /** RECYCLE BIN (enraged): the bin opens and starts sucking - everyone is dragged toward the middle - then it empties itself: crumpled paper balls shoot out both ways. */
+  atk_bin(match, a, out) {
+    const suck = this.sp(BIN.suck);
+    if (a.t === 1) { this.openWin('bin', 0, -262, 70, 70); sfx('geyser', 0.8, 0.6); }
+    this.mood = 'angry';
+    if (a.t < suck) {
+      for (const f of match.fighters) if (f.alive && f.state !== 'respawn') f.x += Math.sign(0 - f.x) * BIN.pull * (Math.abs(f.x) > 8 ? 1 : 0);
+      if (a.t % 3 === 0) { const s = Math.random() < 0.5 ? -1 : 1; match.particles.push({ x: s * 260, y: -40 - Math.random() * 160, vx: -s * 6, vy: -0.5, life: 40, color: 0xf8f4e8, size: 3 }); }
+      if (a.t % 20 === 0) sfx('whoosh', 0.5, 0.5);
+      return false;
+    }
+    if (a.t === suck) { sfx('bighit', 0.8, 0.8); for (let i = 0; i < BIN.n; i++) { const s = i % 2 ? 1 : -1; this.balls.push({ x: 0, y: -240, vx: s * (2.5 + (i >> 1) * 1.6), vy: -3 - Math.random() * 2, id: this.sid('ball'), a: 0 }); } }
+    for (const B2 of this.balls) { B2.vy += 0.3; B2.x += B2.vx; B2.y += B2.vy; B2.a += 0.2; if (B2.y > -12 && B2.vy > 0) { B2.y = -12; B2.vy *= -0.55; B2.vx *= 0.8; } out.push(this.bhit(B2.id, B2.x - 12, B2.y - 12, B2.x + 12, B2.y + 12, ...BIN.hit, { radial: true })); if (Math.abs(B2.x) > 320 || a.t > suck + 120) B2.dead = true; }
+    this.balls = this.balls.filter((b) => !b.dead);
+    if (a.t > suck && !this.balls.length) { this.closeWin(); return true; }
+    return false;
+  }
+
+  /** A pixel letter (5x7) - for NOTEPAD's typed words. */
+  glyph(g, ch, x, y, s, col) {
+    const G = GLYPHS[ch]; if (!G) return;
+    g.fillStyle(col, 1); G.forEach((row, r) => { for (let c = 0; c < 5; c++) if (row & (16 >> c)) g.fillRect(x + c * s, y + r * s, s, s); });
+  }
+  /** A seven-segment digit (the calculator's numbers), w x h, in colour col. */
+  seg7(g, d, x, y, w, h, col) {
+    const S = ['1111110', '0110000', '1101101', '1111001', '0110011', '1011011', '1011111', '1110000', '1111111', '1111011'][d], t = Math.max(2, w * 0.2);
+    const bars = [[x, y, w, t], [x + w - t, y, t, h / 2], [x + w - t, y + h / 2, t, h / 2], [x, y + h - t, w, t], [x, y + h / 2, t, h / 2], [x, y, t, h / 2], [x, y + h / 2 - t / 2, w, t]];
+    g.fillStyle(col, 1); bars.forEach((b, i) => { if (S[i] === '1') g.fillRect(...b); });
+  }
+  /** A program window (zooming out of its screen as it opens): bevelled frame, title bar with its icon, and its contents by kind. */
+  drawProgWin(g) {
+    const W = this.win; if (!W || W.k <= 0.02) return;
+    const k = W.k, e = 1 - Math.pow(1 - k, 3), cx = lerpN(W.fx, W.x, e), cy = lerpN(W.fy, W.y, e), w = W.w * e, h = W.h * e, x = cx - w / 2, y = cy - h / 2, t = this.t;
+    g.fillStyle(C.out, 1); g.fillRect(x - 1, y - 1, w + 2, h + 2); this.bevel(g, x, y, w, h);
+    g.fillStyle(C.navy, 1); g.fillRect(x + 3, y + 3, w - 6, 10); g.fillStyle(C.blue, 1); g.fillRect(x + 3 + (w - 6) / 2, y + 3, (w - 6) / 2, 10);
+    if (k < 0.7) return;
+    const ix = x + 6, iy = y + 4, bx = x + 4, by = y + 15, bw = w - 8, bh = h - 19;
+    if (W.kind === 'paint') { g.fillStyle(0xffd040, 1); g.fillCircle(ix + 4, iy + 4, 4); g.fillStyle(0xffffff, 1); g.fillRect(bx + 22, by, bw - 22, bh); PAINT.cols.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(bx + 2 + (i % 2) * 9, by + 2 + Math.floor(i / 2) * 9, 8, 8); }); if (this.paint) { g.fillStyle(this.paint.col, 1); g.fillRect(bx + 30, by + bh / 2, Math.min(bw - 40, this.paint.pts.length * 2), 5); } }
+    if (W.kind === 'mines') { g.fillStyle(0x101010, 1); g.fillCircle(ix + 4, iy + 4, 4); this.bevel(g, cx - 8, by + 2, 16, 14); g.fillStyle(0xffe020, 1); g.fillCircle(cx, by + 9, 5); g.fillStyle(0x101010, 1); g.fillRect(cx - 3, by + 7, 2, 2); g.fillRect(cx + 1, by + 7, 2, 2); for (let i = 0; i < 8; i++) for (let j = 0; j < 2; j++) this.bevel(g, bx + 6 + i * 13, by + 20 + j * 13, 12, 12, (i * 3 + j) % 4 === 0); }
+    if (W.kind === 'calc') { g.fillStyle(0x606060, 1); g.fillRect(ix, iy, 8, 8); g.fillStyle(0x203a20, 1); g.fillRect(bx + 4, by + 2, bw - 8, 18); for (let i = 0; i < 4; i++) this.seg7(g, (Math.floor(t / 6) + i * 3) % 10, bx + 10 + i * 13, by + 5, 9, 12, 0x30ff80); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) this.bevel(g, bx + 4 + i * 16, by + 24 + j * 13, 14, 11); }
+    if (W.kind === 'notes') { g.fillStyle(0xffffff, 1); g.fillRect(ix, iy, 7, 8); g.fillStyle(0xffffff, 1); g.fillRect(bx, by, bw, bh); for (let i = 0; i < 4; i++) { g.fillStyle(0x202020, 1); g.fillRect(bx + 4, by + 5 + i * 10, 20 + ((i * 37 + t) % 100), 3); } if (t % 30 < 15) { g.fillStyle(0x000000, 1); g.fillRect(bx + 30, by + 34, 2, 8); } }
+    if (W.kind === 'music') { g.fillStyle(0xffa020, 1); g.fillTriangle(ix, iy, ix + 8, iy + 4, ix, iy + 8); g.fillStyle(0x000000, 1); g.fillRect(bx, by, bw, bh); for (let i = 0; i < 16; i++) { const hh = (bh - 6) * Math.abs(Math.sin(t * 0.3 + i * 0.7)); g.fillStyle([0x30ff80, 0xffe040, 0xff4040][Math.min(2, Math.floor(hh / (bh / 3)))], 1); g.fillRect(bx + 4 + i * (bw - 8) / 16, by + bh - 3 - hh, (bw - 8) / 16 - 2, hh); } }
+    if (W.kind === 'bin') { g.fillStyle(C.grey[3], 1); g.fillRect(cx - 14, by + 6, 28, 34); g.fillStyle(C.grey[1], 1); for (let i = 0; i < 3; i++) g.fillRect(cx - 9 + i * 8, by + 10, 3, 26); g.fillStyle(C.grey[2], 1); g.fillRect(cx - 18, by + 2, 36, 5); }
+  }
+
   /** Its death: the screen collapses to a line, then a dot (the explosions come from BossArena). */
-  onDeath() { this.drag = null; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
+  onDeath() { this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
 
   /**
    * THE ENTRANCE (k = 0..1): the switched-off monitor sits dark; the tower's power light blinks on, it whirs and
@@ -302,6 +501,9 @@ export class MachineBossStage extends BossArena {
       if (this.hang > 0) this.hang--;
       if (this.blue > 0) this.blue--;
       if (this.cur.press > 0) this.cur.press--;
+      this.stepWin(); if (this.keyFlash && --this.keyFlash.t <= 0) this.keyFlash = null;
+      if (!this.boss.atk || this.boss.atk.name !== 'calc') this.stepDigits(match, out);
+      if (!this.boss.atk || this.boss.atk.name !== 'notes') this.stepLetters(match, out);
       if (!this.boss.atk || this.boss.atk.name !== 'errors') this.stepErrors(match, out);
       if (!this.boss.atk || this.boss.atk.name !== 'cards') this.stepCards(match, out);
       if (this.boss.dying) this.mood = 'dead';
@@ -315,13 +517,22 @@ export class MachineBossStage extends BossArena {
     const t = this.t, B = this.boss, g = this.monG, x = this.fxG;
     g.clear(); x.clear();
     this.drawMachine(g, B ? B.flash > 0 : false, !B);
-    if (this.drag) {                                                                    // the selection box
-      const D = this.drag, x1 = Math.min(D.x1, D.x2), x2 = Math.max(D.x1, D.x2), y1 = Math.min(D.y1, D.y2), y2 = Math.max(D.y1, D.y2);
-      if (D.fill) { for (let i = 0; i < 40; i++) { x.fillStyle([0xffffff, 0x000000, C.blue][i % 3], 0.6); x.fillRect(x1 + Math.random() * (x2 - x1 - 6), y1 + Math.random() * (y2 - y1 - 6), 6, 6); } x.fillStyle(0xffffff, 0.35); x.fillRect(x1, y1, x2 - x1, y2 - y1); }
-      else { x.fillStyle(C.blue, D.warn ? (t % 8 < 4 ? 0.35 : 0.15) : 0.12); x.fillRect(x1, y1, x2 - x1, y2 - y1); }
-      const dash = (ax, ay, bx, by) => { const L = Math.hypot(bx - ax, by - ay), n = Math.floor(L / 6); for (let i = 0; i < n; i += 2) { const q1 = i / n, q2 = (i + 1) / n; x.lineStyle(2, i % 4 ? 0xffffff : 0x000000, 1); x.lineBetween(ax + (bx - ax) * q1, ay + (by - ay) * q1, ax + (bx - ax) * q2, ay + (by - ay) * q2); } };
-      dash(x1, y1, x2, y1); dash(x2, y1, x2, y2); dash(x2, y2, x1, y2); dash(x1, y2, x1, y1); x.lineStyle(0);
+    this.drawMouse(x);
+    this.drawProgWin(x);
+    if (this.paint) { const P = this.paint, a = Math.max(0, 1 - (P.fade || 0) / 30); x.lineStyle(18, P.col, a); for (let i = 1; i < P.pts.length; i++) x.lineBetween(P.pts[i - 1].x, P.pts[i - 1].y, P.pts[i].x, P.pts[i].y); x.lineStyle(6, 0xffffff, 0.3 * a); for (let i = 1; i < P.pts.length; i++) x.lineBetween(P.pts[i - 1].x, P.pts[i - 1].y - 5, P.pts[i].x, P.pts[i].y - 5); x.lineStyle(0); for (let i = 0; i < P.pts.length; i += 7) { x.fillStyle(P.col, a); x.fillRect(P.pts[i].x - 2, P.pts[i].y + 8, 4, 6 + (i * 13) % 14); } }
+    if (this.fill) { const F = this.fill, x1 = F.s < 0 ? -275 : 0, x2 = F.s < 0 ? 0 : 275; if (F.warn) { x.lineStyle(2, F.col, t % 8 < 4 ? 1 : 0.3); x.strokeRect(x1, -135, x2 - x1, 135); x.lineStyle(0); x.fillStyle(F.col, 0.12); x.fillRect(x1, -135, x2 - x1, 135); } else if (F.k > 0) { x.fillStyle(F.col, 0.85 * Math.min(1, F.k * 1.2)); x.fillRect(x1, -135 * Math.min(1, F.k), x2 - x1, 135 * Math.min(1, F.k)); x.fillStyle(0xffffff, 0.3); x.fillRect(x1, -135 * Math.min(1, F.k), x2 - x1, 4); } }
+    if (this.mines) for (const T of this.mines.tiles) {                                   // MINESWEEPER's grid along the desk
+      const tx = T.x - MINES.w / 2 + 1, w = MINES.w - 2;
+      if (T.boom) { if (T.boom < 14) { x.fillStyle(0xffd040, 1 - T.boom / 14); x.fillCircle(T.x, -30, 20 + T.boom * 3); } x.fillStyle(0x101010, 1); x.fillRect(tx, -6, w, 6); continue; }
+      if (T.open < 1) { this.bevel(x, tx, -10, w, 10); continue; }
+      x.fillStyle(C.grey[3], 1); x.fillRect(tx, -10, w, 10); x.fillStyle(C.grey[1], 1); x.fillRect(tx, -10, 1, 10);
+      if (T.mine) { x.fillStyle(0x101010, 1); x.fillRect(T.x - 1, -38, 2, 28); x.fillStyle(0xff2020, t % 10 < 5 ? 1 : 0.6); x.fillTriangle(T.x + 1, -38, T.x + 1, -26, T.x + 14, -32); }
+      else if (T.num) { x.fillStyle(T.num > 1 ? 0x20a020 : 0x2040ff, 1); x.fillRect(T.x - 2, -9, 4, 8); }
     }
+    for (const D of this.digits) { x.fillStyle(0x0a1a0a, 0.8); x.fillRect(D.x - 13, D.y - 17, 26, 34); this.seg7(x, D.d, D.x - 9, D.y - 13, 18, 26, 0x30ff80); }
+    for (const L of this.letters) { x.fillStyle(0xffffff, 1); x.fillRect(L.x - 11, L.y - 15, 22, 30); x.fillStyle(C.grey[1], 1); x.fillRect(L.x - 11, L.y + 13, 22, 2); this.glyph(x, L.ch, L.x - 8, L.y - 11, 3.2, 0x101010); }
+    if (this.viz) for (const b of this.viz.bars) { x.fillStyle(C.out, 1); x.fillRect(b.x - MUSIC.w / 2 + 2, -b.h - 1, MUSIC.w - 4, b.h + 1); for (let yy = 0; yy < b.h; yy += 8) { x.fillStyle(yy > 90 ? 0xff4040 : yy > 40 ? 0xffe040 : 0x30ff80, 1); x.fillRect(b.x - MUSIC.w / 2 + 4, -yy - 6, MUSIC.w - 8, 5); } }
+    for (const B2 of this.balls) { x.fillStyle(C.out, 1); x.fillCircle(B2.x, B2.y, 12); x.fillStyle(0xf8f4e8, 1); x.fillCircle(B2.x, B2.y, 10); x.lineStyle(1, C.grey[1], 1); x.lineBetween(B2.x - 6 + Math.cos(B2.a) * 3, B2.y - 3, B2.x + 5, B2.y + 4 + Math.sin(B2.a) * 2); x.lineBetween(B2.x - 4, B2.y + 5, B2.x + 6, B2.y - 5); x.lineStyle(0); }
     for (const d of this.errs) this.drawDialog(x, d);
     for (const k of this.cards) { k.trail.forEach((p, i) => { if (i % 3 === 0) this.drawCard(x, p.x, p.y, k.suit, 0.9); }); this.drawCard(x, k.x, k.y, k.suit, 1); }
     for (const p of this.pipes) {                                                        // the screensaver's pipes: shaded tubes with ball joints
@@ -336,6 +547,7 @@ export class MachineBossStage extends BossArena {
       else for (let i = 0; i < 24; i++) { x.fillStyle([0xffffff, 0x30ff80, 0x00ffff][i % 3], 0.7); x.fillRect(D.x - 60 + Math.random() * 120, D.y + Math.random() * DIAL.h, 3 + Math.random() * 10, 2); }
     }
     if (this.blue > 0 && this.blue % 10 < 5) { x.fillStyle(C.bsod, 0.25 * this.blue / 150); x.fillRect(-700, -700, 1400, 1100); }
+    if (this.keyFlash) { const i = this.keyFlash.i, r = Math.floor(i / 18), k2 = i % 18; x.fillStyle(0xffffff, 0.8); x.fillRect(-112 + k2 * 12.6 + r * 3, -19 + r * 4.6 + 1, 10, 3.4); }
     this.drawCursor(x);
     if (B) this.drawBar();
   }
@@ -373,6 +585,20 @@ export class MachineBossStage extends BossArena {
       g.fillStyle(0xe8c840, 1); g.fillTriangle(x - 7, y + 4, x + 7, y + 4, x, y + 19); g.fillTriangle(x - 7 * Math.cos(a), y + 36, x + 7 * Math.cos(a), y + 36, x, y + 22);
       return;
     }
+    if (k.mode === 'brush') {                                                            // the paint brush: handle up and back, wet bristles at the tip
+      const col = this.paint ? this.paint.col : 0xff3040;
+      g.lineStyle(12, C.out, 1); g.lineBetween(x + 6, y - 10, x + 46, y - 60); g.lineStyle(8, 0xc08040, 1); g.lineBetween(x + 6, y - 10, x + 46, y - 60); g.lineStyle(0);
+      g.fillStyle(C.grey[2], 1); g.fillRect(x - 4, y - 18, 16, 12); g.fillStyle(C.out, 1); g.fillTriangle(x - 8, y - 8, x + 14, y - 8, x, y + 12); g.fillStyle(col, 1); g.fillTriangle(x - 5, y - 7, x + 11, y - 7, x, y + 9);
+      return;
+    }
+    if (k.mode === 'bucket') {                                                           // the paint bucket, tipping
+      const col = this.fill ? this.fill.col : 0x30a0ff;
+      g.fillStyle(C.out, 1); g.fillPoints([{ x: x - 20, y: y - 20 }, { x: x + 20, y: y - 26 }, { x: x + 26, y: y + 16 }, { x: x - 14, y: y + 22 }], true);
+      g.fillStyle(C.grey[2], 1); g.fillPoints([{ x: x - 17, y: y - 17 }, { x: x + 17, y: y - 22 }, { x: x + 22, y: y + 13 }, { x: x - 12, y: y + 18 }], true);
+      g.fillStyle(col, 1); g.fillEllipse(x + 22, y + 15, 16, 8); g.fillRect(x + 26, y + 15, 4, 10 + (this.t % 10));
+      g.lineStyle(3, C.out, 1); g.beginPath(); g.arc(x, y - 22, 18, Math.PI, 0); g.strokePath(); g.lineStyle(0);
+      return;
+    }
     const P = k.mode === 'hand'
       ? [[3, 0], [6, 0], [6, 6], [9, 6], [12, 7], [14, 9], [14, 16], [11, 20], [4, 20], [0, 14], [0, 9], [3, 11]]
       : [[0, 0], [0, 16], [4, 12], [7, 19], [10, 18], [7, 11], [12, 11]];
@@ -391,14 +617,13 @@ export class MachineBossStage extends BossArena {
   drawMachine(g, flash, off) {
     const c = this.core(), sw = MON.sw, sh = MON.sh, b = MON.bez, Bg = flash ? [0xffffff, 0xffffff, 0xffffff, 0xffffff] : C.beige, t = this.t;
     const dk = this.deathK();
-    // the tower case behind and to the right
-    const tx = 150, ty = -230;
-    g.fillStyle(C.out, 1); g.fillRect(tx - 2, ty - 2, 74, 234); g.fillStyle(Bg[1], 1); g.fillRect(tx, ty, 70, 230); g.fillStyle(Bg[2], 1); g.fillRect(tx, ty, 62, 230);
-    for (let i = 0; i < 3; i++) { g.fillStyle(C.out, 1); g.fillRect(tx + 8, ty + 14 + i * 22, 46, 14); g.fillStyle(Bg[0], 1); g.fillRect(tx + 9, ty + 15 + i * 22, 44, 12); g.fillStyle(C.out, 1); g.fillRect(tx + 14, ty + 20 + i * 22, 30, 2); }
-    g.fillStyle(off ? 0x203020 : (t % 40 < 30 ? 0x30ff60 : 0x108030), 1); g.fillRect(tx + 10, ty + 90, 6, 4); g.fillStyle(0xffa020, off ? 0.2 : (t % 7 < 3 ? 1 : 0.2)); g.fillRect(tx + 20, ty + 90, 6, 4);
-    for (let i = 0; i < 8; i++) { g.fillStyle(Bg[0], 1); g.fillRect(tx + 10, ty + 120 + i * 8, 44, 3); }
-    // the cable from the monitor to the tower
-    g.lineStyle(6, C.out, 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 30, tx + 30, ty + 200); g.lineStyle(4, C.grey[1], 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 30, tx + 30, ty + 200); g.lineStyle(0);
+    // the tower case beside it on the desk
+    const tx = 112, ty = -196, th = 172;
+    g.fillStyle(C.out, 1); g.fillRect(tx - 2, ty - 2, 60, th + 2); g.fillStyle(Bg[1], 1); g.fillRect(tx, ty, 56, th); g.fillStyle(Bg[2], 1); g.fillRect(tx, ty, 48, th);
+    for (let i = 0; i < 3; i++) { g.fillStyle(C.out, 1); g.fillRect(tx + 6, ty + 12 + i * 20, 36, 12); g.fillStyle(Bg[0], 1); g.fillRect(tx + 7, ty + 13 + i * 20, 34, 10); g.fillStyle(C.out, 1); g.fillRect(tx + 11, ty + 17 + i * 20, 22, 2); }
+    g.fillStyle(off ? 0x203020 : (t % 40 < 30 ? 0x30ff60 : 0x108030), 1); g.fillRect(tx + 8, ty + 80, 6, 4); g.fillStyle(0xffa020, off ? 0.2 : (t % 7 < 3 ? 1 : 0.2)); g.fillRect(tx + 18, ty + 80, 6, 4);
+    for (let i = 0; i < 7; i++) { g.fillStyle(Bg[0], 1); g.fillRect(tx + 8, ty + 100 + i * 9, 32, 3); }
+    g.lineStyle(6, C.out, 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 10, tx + 10, ty + 150); g.lineStyle(4, C.grey[1], 1); g.lineBetween(c.x + 60, c.y + sh / 2 + b + 10, tx + 10, ty + 150); g.lineStyle(0);
     // the stand
     g.fillStyle(C.out, 1); g.fillRect(c.x - 26, c.y + sh / 2 + b - 4, 52, 34); g.fillStyle(Bg[1], 1); g.fillRect(c.x - 24, c.y + sh / 2 + b - 2, 48, 30);
     g.fillStyle(C.out, 1); g.fillEllipse(c.x, c.y + sh / 2 + b + 32, 130, 22); g.fillStyle(Bg[2], 1); g.fillEllipse(c.x, c.y + sh / 2 + b + 30, 124, 18);

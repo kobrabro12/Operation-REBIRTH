@@ -1,5 +1,5 @@
 // BOSS FIGHTS (Trinkets > BOSS FIGHTS, src/scenes/BossFightsScene.js): six bosses, each in its own arena with
-// its own hazards, each harder than the last (boss II opens when you beat boss I, III when you beat II), and each
+// its own hazards, each harder than the last (all open from the start - pick any), and each
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
 // demonBossStage.js / knightBossStage.js / machineBossStage.js / humBossStage.js.
@@ -37,7 +37,7 @@ export const BOSSES = [
     blurb: 'A HOLLOW KNIGHT BOUND BY ROOTS. HIS ARMOUR\nCAN\'T BE HURT - HIT HIS SOUL WHEN IT COMES\nOUT TO TAUNT YOU. BELOW 25% HE GOES BERSERK.',
     taunts: ['NYAH! TOO SLOW! TOO SLOW!', 'THE ROOTS WILL KEEP YOU NOW.', 'HEHEHE - BETTER LUCK NEXT SEASON!'],
     hazards: 'THORN ROOTS / SPORE BURSTS' },
-  { id: 'machine', name: 'BEIGE.EXE, THE OLD MACHINE', short: 'BEIGE.EXE', title: 'THE COMPUTER THAT WILL NOT SHUT DOWN', stage: 'desktop', arena: 'THE DESKTOP', hp: 640, coins: 420, color: 0x30c8b0, trophy: 'golden-floppy',
+  { id: 'machine', name: 'BEIGE.EXE, THE OLD MACHINE', short: 'BEIGE.EXE', title: 'THE COMPUTER THAT WILL NOT SHUT DOWN', stage: 'desktop', arena: 'THE DESKTOP', hp: 690, coins: 420, color: 0x30c8b0, trophy: 'golden-floppy',
     blurb: 'A 90S COMPUTER THAT NEVER SHUT DOWN. ITS\nCURSOR CLICKS, DRAGS AND DELETES. HIT\nITS SCREEN - HARDEST WHEN IT FREEZES.',
     taunts: ['PLAYER HAS PERFORMED AN ILLEGAL OPERATION AND WILL BE SHUT DOWN.', 'ARE YOU SURE YOU WANT TO QUIT?  ...TOO LATE.', 'PRESS ANY KEY TO CONTINUE LOSING.'],
     hazards: 'POP-UPS / DIAL-UP' },
@@ -55,15 +55,13 @@ let save = {};
 try { save = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { save = {}; }
 const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* storage unavailable */ } };
 const rec = (id) => (save[id] = save[id] || { won: [0, 0, 0], best: [0, 0, 0] });
-// ?bosses=all opens every boss (testing)
-const allOpen = (() => { try { return new URLSearchParams(location.search).get('bosses') === 'all'; } catch (e) { return false; } })();
 
 /** How many times a boss has been beaten on a difficulty (0 = never). */
 export function bossWins(id, tier) { return (save[id] && save[id].won[tier]) || 0; }
 /** The fastest win on a difficulty, in frames (0 = none yet). */
 export function bossBest(id, tier) { return (save[id] && save[id].best[tier]) || 0; }
-/** Whether a boss can be fought yet: the first always; each one after it once the one before has been beaten. */
-export function bossOpen(i) { return allOpen || i === 0 || [0, 1, 2].some((t) => bossWins(BOSSES[i - 1].id, t) > 0); }
+/** Whether a boss can be fought: every one is open from the start (they used to unlock in order). */
+export function bossOpen(i) { return !!BOSSES[i]; }
 /** Whether a boss's arena has been opened for ordinary matches (by beating the boss on HARD or NIGHTMARE). */
 export function arenaOpen(bossId) { return bossWins(bossId, 1) + bossWins(bossId, 2) > 0; }
 
