@@ -318,6 +318,7 @@ export class FighterRender {
     if (d.wrong) this.drawBirthday(s === 'limit' && d.limit.type === 'birthday' ? this.ult : null);   // SEEN's Limit: the curtain
     if (d.sightings) this.drawSightings(g);                         // LAST SEEN: her SIGHTINGS meter
     if (d.wrong) this.drawSeen(g, spr);                              // SEEN: skipping frames, a dark haze
+    if (d.show) this.drawShow(g, spr);                              // PRESTO / ROUX: card marks, the order ticket, cabinet, doves, flames, Limits
     if (d.beat) this.drawBeat(g);                                   // NU: the beat ring at his feet and his STREAK
     if (s === 'upb' && d.moves.upb.crowd && this.t >= d.moves.upb.riseAt - 2) this.drawCrowdSurf(g);
     if (s === 'upb' && d.moves.upb.bubble && this.t >= d.moves.upb.riseAt - 2 && this.t < d.moves.upb.popAt) drawBubble(g, this.x, this.y - 22, 26 + Math.sin(this.anim * 0.3), this.pal);

@@ -140,6 +140,24 @@ Only the jab and specials are fully designed; tilts and aerials have their own a
 - **Up special**: Cyclone Slash. In the air she rises spinning, with four dragging hits then a launcher (helpless after). On the ground, hold to charge (up to 1 s) and release for one big spin all around her (9–16%).
 - **Limit**: Thousand Cuts (`blade` cutscene).
 
+### THE GREAT PRESTO (`presto`, test fighter) — trickster (weight 0.92)
+Normals share NU's poses and numbers (a wand where NU has a mic).
+- **Passive — PICK A CARD**: cards that hit stick on the foe (up to 3, 10 s).
+- **Neutral special**: CARD TRICK, a fan of three cards (3% each, they stick).
+- **Side special**: VANISHING ACT. Vanishes (intangible) and reappears behind a marked foe in range, or 120 px ahead; the TA-DA stab (7%) cashes in their cards, x1.55 damage per card (3 cards = 19%). Once per jump.
+- **Down special**: THE CABINET, a counter (ticks 5–28, 1.3×, min 8%).
+- **Up special**: DOVE LIFT, carried up by doves; two hits above him. Helpless after.
+- **Limit**: THE GRAND ILLUSION. A cabinet drops round whoever's in front of him; four saw cuts (7% each) and a launching TA-DA (16%) = 44%.
+
+### CHEF ROUX (`chef`, test fighter) — heavy bruiser (weight 1.08)
+Normals share NU's poses and numbers (a cleaver where NU has a mic).
+- **Passive — ORDER UP**: a ticket of three moves; land them in order for WELL DONE (8 s of x1.3 damage, x1.15 knockback, +20 Limit), then a new ticket.
+- **Neutral special**: FRYING PAN, an overhead pan smash (12%) that bats projectiles back.
+- **Side special**: CLEAVER TOSS, a boomerang (8% out, 5% back); one at a time.
+- **Down special**: HOT OIL, a 6 s puddle that slows and burns (3% every half second).
+- **Up special**: FLAMBE, a fire blast under him. Helpless after.
+- **Limit**: FULL COURSE. A giant pot scoops up whoever's in front of him; four boils (7% each) and an eruption (17%) = 45%.
+
 ## 10. Costumes and unlocks
 
 - Each fighter has several colour variations, built by shifting hue/saturation/value of colour groups

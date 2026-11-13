@@ -52,6 +52,7 @@ export class FighterLimit {
     if (L.type === 'barrage') return this.barrageLimit(L);
     if (L.type === 'screensaver') return this.screensaverLimit(L);
     if (L.type === 'level0') return this.level0Limit(L);
+    if (L.type === 'saw' || L.type === 'feast') return this.showLimit(L);   // PRESTO / ROUX (fighterShow.js)
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {

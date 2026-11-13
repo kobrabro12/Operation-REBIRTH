@@ -12,6 +12,7 @@ import { newAttackId } from './attackIds.js';
 import { FighterSpeech } from './fighterSpeech.js';
 import { FighterGrab } from './fighterGrab.js';
 import { FighterSpecials } from './fighterSpecials.js';
+import { FighterShow } from './fighterShow.js';
 import { FighterDefense } from './fighterDefense.js';
 import { FighterLimit } from './fighterLimit.js';
 import { LimitUndertow } from './limitUndertow.js';
@@ -133,6 +134,7 @@ export class Fighter {
     if (this.possessImmune > 0) this.possessImmune--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
     if (this.worn) this.updateWorn();
+    if (this.def.show && this.alive) this.showTick();         // THE GREAT PRESTO / CHEF ROUX (fighterShow.js)
     if (this.def.devoted && this.alive) this.devotedTick();   // THE DEVOTED: his symbol, sludge stages and stains
     if (this.possessed > 0) c = this.possessedInput(c);
     // remember presses so they fire as soon as the fighter can act
@@ -260,7 +262,7 @@ export class Fighter {
       if (this.axeLost > 0 && !c.up) { this.noAxe(); return false; }   // SEEN without its axe: only CLIMB
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB && M.downB.swim && this.canSwim()) this.startSwim(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
-      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
+      if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip || M.sideB.vanish) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut) || (M.sideB.cleaver && this.cleaverOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
       if (M.neutralB && M.neutralB.demons && !this.demon) { this.startDemonPick(); return true; }   // THE DEVOTED: choose a demon
       if (M.fireball) this.startCharge(); else if (M.neutralB && M.neutralB.charge) this.startSwingCharge(); else if (M.neutralB && M.neutralB.axeCharge) this.startAxeCharge(); else if (M.neutralB) this.startAttack('neutralB');
       return true;
@@ -398,6 +400,10 @@ export class Fighter {
     }
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
+    if (m.cards && this.t === m.spawnAt) this.throwCards(m.cards);        // PRESTO's CARD TRICK
+    if (m.vanish) this.vanishStep(m);                                    // PRESTO's VANISHING ACT
+    if (m.cleaver && this.t === m.spawnAt) this.tossCleaver(m.cleaver);   // ROUX's CLEAVER TOSS
+    if (m.oil && this.t === m.spawnAt) this.pourOil(m.oil);               // ROUX's HOT OIL
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);
     if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // (THE DEVOTED's old THE MAW)
     if (m.demons && this.t === m.cmdAt) this.demonCommand();   // THE DEVOTED: his demon attacks
@@ -602,7 +608,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted, FighterShow]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

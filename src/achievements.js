@@ -39,7 +39,7 @@ export function recordBoss(id, tier) { stats.bosses = stats.bosses || {}; stats.
 const bossTier = (s, id) => (s.bosses && s.bosses[id]) || 0;
 
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
-const TESTS = ['young-link', 'what-once-was', 'last-seen'];
+const TESTS = ['young-link', 'what-once-was', 'last-seen', 'presto', 'chef'];
 // every boss in BOSS FIGHTS (src/data/bosses.js - listed here because bosses.js imports this file)
 const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'hum', 'smudge', 'jackpot', 'maestro'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);

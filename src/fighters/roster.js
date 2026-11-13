@@ -8,6 +8,8 @@ import { HERO_KNIGHT } from './heroKnight.js';
 import { NU } from './nu.js';
 import { AERO } from './aero.js';
 import { DEVOTED } from './devoted.js';
+import { PRESTO } from './presto.js';
+import { CHEF } from './chef.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -25,6 +27,16 @@ export const ROSTER = [
 // TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a
 // CPU before they join the real roster. They never appear on the fighter select screen or as RANDOM.
 export const TEST_ROSTER = [
+  { id: 'presto', name: 'THE GREAT PRESTO', def: PRESTO, tag: 'PROTOTYPE 08',
+    notes: 'A STAGE MAGICIAN WHO NEVER BREAKS CHARACTER.\n\n'
+      + 'PICK A CARD: HIS CARDS STICK ON WHOEVER\nTHEY HIT (UP TO 3). VANISH TO A MARKED FOE\nAND HIS TA-DA CASHES THEM IN - BIG.\n\n'
+      + 'K      CARD TRICK - A FAN OF 3 CARDS\nSIDE K VANISHING ACT (BEHIND A MARKED FOE)\nUP K   DOVE LIFT\nDOWN K THE CABINET - A COUNTER\n'
+      + 'LIMIT  THE GRAND ILLUSION\n1      TAUNT: HAT TRICK\n\nCOSTUMES: ROYAL FLUSH / THE PHANTOM' },
+  { id: 'chef', name: 'CHEF ROUX', def: CHEF, tag: 'PROTOTYPE 09',
+    notes: 'A HEAVY, HOT-TEMPERED MASTER CHEF.\n\n'
+      + 'ORDER UP: A TICKET OF 3 MOVES FLOATS OVER\nHIS TOQUE. LAND THEM IN ORDER: WELL DONE -\nHE HITS HARDER FOR 8 S AND FILLS HIS LIMIT.\n\n'
+      + 'K      FRYING PAN - BATS SHOTS BACK\nSIDE K CLEAVER TOSS - IT COMES BACK\nUP K   FLAMBE\nDOWN K HOT OIL - SLOWS AND BURNS\n'
+      + "LIMIT  FULL COURSE\n1      TAUNT: CHEF'S KISS\n\nCOSTUMES: GRILL MASTER / PATISSIER" },
   { id: 'devoted', name: 'THE DEVOTED', def: DEVOTED, tag: 'PROTOTYPE 07 (WIP)',
     notes: 'A QUIET WOMAN WITH A KNIFE. SHE GETS WORSE\nTHE LONGER THE MATCH GOES ON.\n\n'
       + 'HER SYMBOL (A DYING TREE) GROWS WHERE\nSHE FIRST LANDS. HITS FILL HER DEVOTION;\nFULL? PRAY AT THE TREE TO SINK DEEPER:\n'

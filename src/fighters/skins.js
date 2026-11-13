@@ -494,6 +494,34 @@ export const SKINS = {
       vfx: { hit: { shape: 'drop', colors: [0xb8743a, 0xf4f0e8, 0xd8203a], n: 10, ring: 0xf4f0e8 },
              aura: { motes: { colors: [0xf4f0e8, 0xd8dce8], rate: 7 } }, trail: 0xd8203a } },
   ],
+  // THE GREAT PRESTO (test fighter): his hits burst into stars; drawn costumes ROYAL FLUSH / THE PHANTOM (presto_draw.py VARIANTS)
+  'presto': [
+    { name: 'SHOWTIME', swatch: 0xb070f0, vfx: { hit: { shape: 'star', colors: [0xb070f0, 0xffffff, 0xe02a48], n: 8, glint: true }, trail: 0xb070f0 } },
+    // ROYAL FLUSH: an ivory tailcoat with gold trim, a red cape scattered with card suits, a white hat with a card in its band, a gold wand
+    { name: 'ROYAL FLUSH', sheetSet: 'royal', swatch: 0xffd860, fx: 0xffd860,
+      lore: 'He played the casino circuit for ten years and never once lost a hand. Nobody ever worked out how.',
+      pal: { outline: 0x3a2206, deep: 0xa06a18, mid: 0xe0a830, light: 0xffd860, core: 0xfff8e0, shade: 0x4a2a06, void: 0x140a02 },
+      vfx: { hit: { shape: 'star', colors: [0xffd860, 0xffffff, 0xe8202a], n: 9, ring: 0xffd860, glint: true }, aura: { motes: { colors: [0xffd860, 0xffffff], rate: 8 } }, trail: 0xffd860 } },
+    // THE PHANTOM: a ghost of the stage - pale blue-grey skin, a white half-mask, glowing teal eyes, a ragged teal-lined cape
+    { name: 'THE PHANTOM', sheetSet: 'phantom', swatch: 0x3ae0c0, fx: 0x3ae0c0,
+      lore: 'The theatre burned down during his final act. Every night since, at curtain-up, the lights flicker on.',
+      pal: { outline: 0x022a24, deep: 0x0a6a5a, mid: 0x1aa890, light: 0x3ae0c0, core: 0xd0fff4, shade: 0x062a24, void: 0x020c0a },
+      vfx: { hit: { shape: 'star', colors: [0x3ae0c0, 0xd0fff4, 0xffffff], n: 8, ring: 0x3ae0c0 }, aura: { spooky: true }, trail: 0x3ae0c0 } },
+  ],
+  // CHEF ROUX (test fighter): his hits spray sparks off the grill; drawn costumes GRILL MASTER / PATISSIER (chef_draw.py VARIANTS)
+  'chef': [
+    { name: 'HEAD CHEF', swatch: 0xffa040, vfx: { hit: { shape: 'star', colors: [0xffa040, 0xfff0c8, 0xffffff], n: 7 }, trail: 0xffa040 } },
+    // GRILL MASTER: a black jacket and toque, a ginger moustache, a flame-licked apron, a red-hot cleaver
+    { name: 'GRILL MASTER', sheetSet: 'grill', style: 'chefGrill', swatch: 0xff6a1a, fx: 0xff6a1a,
+      lore: 'Thirty summers at the same smokehouse. He lights the coals with a glare.',
+      pal: { outline: 0x1a0604, deep: 0xb8320a, mid: 0xff6a1a, light: 0xffd060, core: 0xfff6c8, shade: 0x2a0a06, void: 0x0a0202 },
+      vfx: { hit: { shape: 'flame', colors: [0xffd060, 0xff6a1a, 0xff3a1a, 0xfff6c8], n: 9, ring: 0xff6a1a, sound: 'whoosh' }, aura: { inferno: true }, trail: 0xff6a1a } },
+    // PATISSIER: a pastel pink jacket, a mint apron with a cherry, a cream toque, a big whisk
+    { name: 'PATISSIER', sheetSet: 'pastry', style: 'chefPastry', swatch: 0xffc4dc, fx: 0xffc4dc,
+      lore: 'His croissants have forty-nine layers. He will tell you about every single one.',
+      pal: { outline: 0x6a2a48, deep: 0xd88aa8, mid: 0xffc4dc, light: 0xffe4f0, core: 0xffffff, shade: 0x5a2a40, void: 0x2a0e1c },
+      vfx: { hit: { shape: 'splat', colors: [0xffc4dc, 0xffffff, 0xa0e0c4, 0xe0203a], n: 8 }, aura: { motes: { colors: [0xffc4dc, 0xffffff], rate: 8 } }, trail: 0xffc4dc } },
+  ],
 };
 
 // Appended so existing saves and costume indices remain stable. This is a palette swap, not a redraw.

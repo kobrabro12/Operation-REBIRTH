@@ -444,8 +444,10 @@ export class MatchScene extends Phaser.Scene {
     const h = hb.h, owner = hb.owner;
     const beat = owner && owner.def.beat ? owner.beatBonus(hb) : null;        // NU: an attack started on the beat
     if (t.def.beat) t.dropStreak();
-    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1) * soulDamageMultiplier(hb) * soulIncomingMultiplier(t,hb)));
+    const show = owner && owner.def.show && t !== owner ? owner.showBonus(t, hb) : null;   // PRESTO's cards cashed in / ROUX's WELL DONE
+    const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1) * (show ? show.dmg : 1) * soulDamageMultiplier(hb) * soulIncomingMultiplier(t,hb)));
     if (beat) owner.beatLanded(t, hb);
+    if (owner && owner.def.show && t !== owner) owner.showLanded(t, hb);
     if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.dive && owner.move.dive.bounce) owner.diveBounce = true;
     if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.cling && t.alive) owner.startCling(t);
     if (owner && !hb.projectile && owner.state === 'attack' && owner.move && owner.move.flurry && t.alive) owner.startFlurry(t);   // SEEN's LUNGE hit: the flurry   // LAST SEEN: she clings on   // NU's Stage Dive: bounce off them
@@ -466,7 +468,7 @@ export class MatchScene extends Phaser.Scene {
       this.extras.onHit(t, dmg, 0, owner);
       return;
     }
-    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult * (beat ? beat.kb : 1);
+    const kb = (h.base + h.growth * kbPct / 100) / t.def.weight * t.kbTakenMult * (beat ? beat.kb : 1) * (show ? show.kb : 1);
     let dir = hb.facing || 1;
     if (!owner || h.radial) dir = h.dirX || Math.sign(t.x - srcX) || 1;   // moving hazards push the way they travel; explosions push outward
     const rad = h.angle * Math.PI / 180;
