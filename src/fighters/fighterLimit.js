@@ -18,6 +18,7 @@ export class FighterLimit {
     }
     if (this.def.limit.type === 'spirits') this.spiritGround = this.platform || this.match.stage.platforms[0];
     this.match.challengeEvent(this, 'limit');
+    this.stats.limits = (this.stats.limits || 0) + 1;                                   // (counted for the boss fight results)
     this.limit = 0; this.limitReadyShown = false; this.quip('limit'); voiceLine(this.match, this.def.id, 'limit'); if (!this.isCpu && !this.match.isTraining && !this.match.demo) stat('limits');
     // AERO with two computers out: FULL AERO instead of his usual Limit
     this.altLimit = !!(this.def.altLimit && !(this.fullAero > 0) && this.match.pcsOf(this).length >= 2);

@@ -9,7 +9,7 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { hintBar, slant, hex } from '../ui/arcade.js';
-import { bossById, TIERS, clock, BOSSES } from '../data/bosses.js';
+import { bossById, TIERS, clock, BOSSES, bossGrade, recordGrade } from '../data/bosses.js';
 import { checkAchievements, stat } from '../achievements.js';
 import { getCoins, addCoins } from '../progress.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
@@ -17,6 +17,7 @@ import { skinInfo, skinsFor, skinUnlocked } from '../fighters/skins.js';
 import { RUSH } from './BossFightsScene.js';
 import { achievementToasts } from '../ui/toast.js';
 import { deathCard } from '../ui/deathCard.js';
+import { resultsCard } from '../ui/resultsCard.js';
 
 // how quickly the reward lines come in (frames apart), and the first one's delay
 const LINE = { first: 50, every: 26 };
@@ -63,13 +64,19 @@ export class BossRewardScene extends Phaser.Scene {
     if (!this.won) {                                                                // THE DEATH CARD fills the screen (src/ui/deathCard.js)
       for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx) o.setVisible(false);
       this.card = deathCard(this, B, R, def, this.tip(), skinInfo(R.fighter, this.skin).name);
+    } else {                                                                        // THE RESULTS fill the screen (src/ui/resultsCard.js): the tally, the GRADE, the rewards
+      for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx && o !== this.sprite && o !== this.skinT) o.setVisible(false);
+      const result = bossGrade(R), newBest = recordGrade(R.id, R.tier, result.grade); this.grade = result.grade;
+      this.results = resultsCard(this, B, R, result, this.lines, { sub: rush ? headText : '', newBest, total: getCoins() });
+      this.sprite.setDepth(2); this.skinT.setDepth(2).setY(296); this.fx.setDepth(3);
     }
     this.totalT = txt(610, 104 + Math.max(1, this.lines.length) * 22 + 10, '', 9, '#ffe08a').setOrigin(1, 0);
     this.coinT = txt(236, 104 + Math.max(1, this.lines.length) * 22 + 12, '', 6, '#c9c4dc');
     if (!this.won) { this.totalT.setVisible(false); this.coinT.setVisible(false); }
-    const by = this.won ? 318 : 342;
+    const by = this.won ? 326 : 342;
     this.actions = [makeButton(this, this.won ? 236 : 220, by, this.next ? 'NEXT BOSS' : rush ? 'RUSH AGAIN' : this.won ? 'FIGHT AGAIN' : 'RETRY', () => this.leave(0), { size: '8px', bg: '#8a1a14', hover: '#d8342a' }),
       makeButton(this, this.won ? 400 : 380, by, 'BOSS FIGHTS', () => this.leave(1), { size: '8px' })];
+    if (this.won) for (const a of this.actions) a.setDepth(4);
     if (this.won) hintBar(this, 'A/D CHOOSE   W/S COSTUME   J / ENTER / A  CONFIRM   K / ESC / B  BOSS FIGHTS', B.color);
     this.setSkin(this.skin);
     this.input.on('pointerdown', (p, over) => { const Z = this.card && this.card.skinZone; if (!over.length && Z && p.x > Z.x1 && p.x < Z.x2 && p.y > Z.y1 && p.y < Z.y2) this.cycleSkin(p.x < (Z.x1 + Z.x2) / 2 ? -1 : 1); });
@@ -118,16 +125,17 @@ export class BossRewardScene extends Phaser.Scene {
   update() {
     this.t++;
     showFighter(this.sprite, this.def, Math.floor(this.t / 6), this.skin);
-    this.sprite.setPosition(118, 252);
+    this.sprite.setPosition(120, this.won ? 258 : 252);
     for (const r of this.rows) if (this.t === r.at) { r.a.setAlpha(1); r.b.setAlpha(1); sfx('ding', 0.5, 1 + this.rows.indexOf(r) * 0.08); }
     for (const r of this.rows) if (this.t > r.at && this.t < r.at + 10) { const k = (this.t - r.at) / 10; r.a.x = 236 + (1 - k) * 30; }
     const done = this.rows.length ? this.rows[this.rows.length - 1].at : 0;
     if (this.won && this.t > LINE.first && this.counted < this.total) { this.counted = Math.min(this.total, this.counted + Math.max(1, Math.ceil(this.total / 90))); if (this.t % 3 === 0) sfx('ding', 0.15, 1.8); }
     if (this.won) { this.totalT.setText(this.t > LINE.first ? 'TOTAL  +' + this.counted : ''); this.coinT.setText(this.t > done + 20 ? 'YOU NOW HAVE ' + getCoins() + ' COINS' : ''); }
     const f = this.fx; f.clear();
-    if (this.won) for (let i = 0; i < 14; i++) { const ph = (this.t * 1.3 + i * 37) % 160, x = 40 + (i * 97) % 560, y = -10 + ph * 2.4; f.fillStyle([0xffd23f, 0xffffff, this.B.color][i % 3], 1); f.fillRect(x + Math.sin(ph * 0.1 + i) * 8, y, 4, 2 + (i % 3)); }
+    if (this.won && this.grade && /^[SA]/.test(this.grade) && this.results.done(this.t - 40)) for (let i = 0; i < 14; i++) { const ph = (this.t * 1.3 + i * 37) % 160, x = 40 + (i * 97) % 560, y = -10 + ph * 2.4; f.fillStyle([0xffd23f, 0xffffff, this.B.color][i % 3], 1); f.fillRect(x + Math.sin(ph * 0.1 + i) * 8, y, 4, 2 + (i % 3)); }
     this.head.setScale(1 + Math.max(0, 0.3 - this.t * 0.02));
     if (this.card) this.card.update(this.t);
+    if (this.results) this.results.update(this.t);
     this.actions.forEach((a, i) => a.setColor(i === this.choice ? '#ffdf83' : '#ffffff'));
     const m = this.menu.poll();
     if (this.t < 20) return;

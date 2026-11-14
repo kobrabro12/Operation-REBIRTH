@@ -178,7 +178,8 @@ export class BossArena {
     return { x1, y1, x2, y2, dmg: this.dmg(dmg), angle, base, growth: growth * GROWTH, id, hazard: true, boss: true, ...more };
   }
   /** Extra points the match camera keeps in view: the boss (and the whole deck). */
-  camPoints() { if (!this.boss || this.boss.dying > 100) return []; const c = this.core(); return [{ x: c.x, y: c.y - (this.bodyH || 140) * 0.7 }, { x: -200, y: 0 }, { x: 200, y: 0 }]; }
+  camPoints() { if (!this.boss) return []; if (this.boss.dying) return [{ x: -230, y: -240 }, { x: 230, y: 20 }]; const c = this.core();   // (dying: wide on the whole arena, for its death)
+    return [{ x: c.x, y: c.y - (this.bodyH || 140) * 0.7 }, { x: -200, y: 0 }, { x: 200, y: 0 }]; }
   /** The nearest living player to a point (or null). */
   nearest(match, x = 0) {
     let best = null, bd = 1e9;
@@ -242,7 +243,7 @@ export class BossArena {
         continue;
       }
       const o = hb.owner, d = Math.max(1, (hb.h.dmg || 3) * (o.dmgMult || 1) * r.mult);
-      B.hp = Math.max(0, B.hp - d); B.flash = FLASH;
+      B.hp = Math.max(0, B.hp - d); B.flash = FLASH; if (r.mult > 1) o.stats.weak = (o.stats.weak || 0) + 1;   // (weak-spot hits count for the results grade)
       o.stats.damageDealt += d;
       if (!hb.projectile && !hb.soul && o.hitstop < HITSTOP) o.hitstop = HITSTOP;
       const x = (Math.max(hb.x1, r.x1) + Math.min(hb.x2, r.x2)) / 2, y = (Math.max(hb.y1, r.y1) + Math.min(hb.y2, r.y2)) / 2;
@@ -283,7 +284,7 @@ export class BossArena {
   /** The death: explosions all over the boss, a white flash at the end. */
   stepDeath(match) {
     const B = this.boss, c = this.core();
-    if (B.dying < DEATH && B.dying % 7 === 0) {
+    if (B.dying < this.deathLen() && B.dying % 7 === 0) {
       const x = c.x + (Math.random() - 0.5) * (this.bodyW || 160), y = c.y + (Math.random() - 0.5) * (this.bodyH || 140);
       for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * 4; match.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 20 + Math.random() * 20, color: [0xffffff, 0xffd040, 0xff7a20, this.sparkColor || 0xff4020][i % 4], size: 3, drag: 0.92, grav: 0.05 }); }
       match.particles.push({ shape: 'ring', x, y, vx: 0, vy: 0, life: 16, maxLife: 16, color: 0xffe080, grav: 0, r: 6, dr: 4 });
@@ -291,7 +292,9 @@ export class BossArena {
     }
   }
   /** How far into the death (0..1), for the arena's drawing (sinking, fading...). */
-  deathK() { return this.boss && this.boss.dying ? Math.min(1, this.boss.dying / DEATH) : 0; }
+  deathK() { return this.boss && this.boss.dying ? Math.min(1, this.boss.dying / this.deathLen()) : 0; }
+  /** How long the death lasts (frames); arenas with their own death animation make it longer. MatchScene waits for it before the results. */
+  deathLen() { return DEATH; }
 
   /** The health bar (UI layer): a slanted frame, the chip, the health (red when enraged), and a tick at half. */
   drawBar() {

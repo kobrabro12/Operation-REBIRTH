@@ -109,5 +109,40 @@ export function claimBossRewards(id, tier, frames) {
   recordBoss(id, tier);                                                 // (the NIGHTMARE trophies are checked from this)
   return out;
 }
+// THE RESULTS' GRADE (BossReward after a win, in the spirit of old cartoon run-and-gun results screens): points for
+// each line, out of 100 - the time against par (`par` seconds on NORMAL, longer as the boss gets tougher), lives kept,
+// damage taken, weak-spot hits, Limits fired and the difficulty - then the letter
+const GRADE = { par: 120, slow: 2.5, time: 25, lives: 25, hurt: 20, hurtPer: 12, weak: 10, limits: 5, perLimit: 2.5, skill: [3, 8, 15] };
+// the letters (best first) and the score each needs; S only on NIGHTMARE without losing a life
+const LETTERS = [['S', 94], ['A+', 88], ['A', 80], ['A-', 74], ['B+', 68], ['B', 60], ['B-', 54], ['C+', 48], ['C', 40], ['C-', 34], ['D+', 28], ['D', 20], ['D-', 0]];
+/**
+ * Grades a won boss fight (R = BossReward's data.boss). Returns { grade, score, rows } - rows are the results lines:
+ * { label, value (the text), have, max (for counting up), pts }.
+ */
+export function bossGrade(R) {
+  const T = TIERS[R.tier], par = GRADE.par * T.hp * 60, lives = (R.lives || 0) + (R.falls || 0) || 1, kept = Math.max(0, lives - (R.falls || 0));
+  const tPts = R.time <= par ? GRADE.time : Math.max(0, GRADE.time * (1 - (R.time - par) / (par * (GRADE.slow - 1))));
+  const rows = [
+    { label: 'TIME', value: clock(R.time) + ' / ' + clock(par), pts: tPts },
+    { label: 'LIVES KEPT', value: kept + ' / ' + lives, pts: GRADE.lives * kept / lives },
+    { label: 'DAMAGE TAKEN', value: (R.taken || 0) + '%', pts: Math.max(0, GRADE.hurt - (R.taken || 0) / GRADE.hurtPer) },
+    { label: 'WEAK SPOT HITS', value: String(R.weak || 0), pts: Math.min(GRADE.weak, R.weak || 0) },
+    { label: 'LIMITS FIRED', value: String(R.limits || 0), pts: Math.min(GRADE.limits, (R.limits || 0) * GRADE.perLimit) },
+    { label: 'SKILL LEVEL', value: T.name, stars: R.tier + 1, pts: GRADE.skill[R.tier] },
+  ];
+  const score = Math.round(rows.reduce((n, r) => n + r.pts, 0));
+  const ok = (L) => L !== 'S' || (R.tier === 2 && !R.falls);
+  const grade = LETTERS.find(([L, need]) => score >= need && ok(L))[0];
+  return { grade, score, rows };
+}
+/** Remembers a grade if it's the best yet for that boss and difficulty; returns true if it is. */
+export function recordGrade(id, tier, grade) {
+  const r = rec(id), order = LETTERS.map((l) => l[0]); r.grade = r.grade || ['', '', ''];
+  const better = !r.grade[tier] || order.indexOf(grade) < order.indexOf(r.grade[tier]);
+  if (better) { r.grade[tier] = grade; store(); }
+  return better;
+}
+/** The best grade on a difficulty ('' = none yet). */
+export function bestGrade(id, tier) { return (save[id] && save[id].grade && save[id].grade[tier]) || ''; }
 /** m:ss for a number of frames. */
 export function clock(frames) { const s = Math.floor(frames / 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }

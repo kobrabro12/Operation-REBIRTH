@@ -67,6 +67,8 @@ const HANG = { every: 4, dur: 170 };
 const POPUP = { warn: 50, hit: [10, [80, 5.6, 0.7]] };
 const DIAL = { warn: 70, on: 60, h: 30, hit: [5, [40, 4.6, 0.4]] };
 // ITS LAST PHASE - ONLINE: below `at` health it dials up (`dial` frames - its screen takes x`open` meanwhile) and goes online
+// ITS DEATH (SHUT DOWN): frames of crashing, when IT IS NOW SAFE TO TURN OFF YOUR COMPUTER shows, when it switches off, the whole length
+const SHUT = { crash: 60, safe: 70, off: 170, len: 320 };
 const ONLINE = { at: 0.2, dial: 150, open: 1.6 };
 // SPAM: junk mail flies out of its screen and homes in on you a while (calm / enraged count; one hit pops one)
 const SPAM = { n: [6, 8], every: 9, speed: 4.2, turn: 0.045, home: 110, life: 240, hit: [6, [45, 4.6, 0.5]] };
@@ -110,6 +112,7 @@ export class MachineBossStage extends BossArena {
     this.monG = s.add.graphics(); world.push(this.monG);
     const front = s.add.graphics(); world.push(front); this.paintDesk(front);
     this.fxG = s.add.graphics(); world.push(this.fxG);
+    this.safeT = s.add.text(MON.x, MON.y, 'IT IS NOW SAFE TO\nTURN OFF YOUR\nCOMPUTER.', { fontFamily: FONT, fontSize: '8px', color: '#ff9a20', align: 'center', lineSpacing: 6 }).setOrigin(0.5).setVisible(false); world.push(this.safeT);   // (its death)
     this.bannerT = [0, 1, 2].map(() => { const t = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setVisible(false); world.push(t); return t; });
     this.cycle.makeBanner(s);
   }
@@ -698,7 +701,30 @@ export class MachineBossStage extends BossArena {
   }
 
   /** Its death: the screen collapses to a line, then a dot (the explosions come from BossArena). */
-  onDeath() { this.spam = []; this.banners = []; this.snake = null; this.dialing = false; this.discs = []; this.pour = null; this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
+  /** Its death runs longer than the default (SHUT DOWN). */
+  deathLen() { return SHUT.len; }
+  /**
+   * ITS DEATH - SHUT DOWN: it crashes (glitching, a blue flash, the cursor spinning an hourglass), then, ever so
+   * politely, its screen goes black with IT IS NOW SAFE TO TURN OFF YOUR COMPUTER. in orange; a click - the picture
+   * collapses to a line, then a dot, then nothing (`offK`) - the tower sparks and smokes, every light dies, and its
+   * cursor drops out of the air onto the desk and lies there.
+   */
+  stepDeath(match) {
+    const d = this.boss.dying, c = this.core(), k = this.cur;
+    if (d < SHUT.crash) { this.mood = 'glitch'; k.mode = 'wait'; if (d % 8 === 0) { sfx('glitch', 0.7, 0.5 + Math.random() * 0.8); match.shake(4, 5); } if (d % 20 < 3) this.blue = 4; }
+    else if (d < SHUT.off) { this.mood = 'safe'; this.safeT.setVisible(true).setPosition(c.x, c.y); if (d === SHUT.crash) sfx('ding', 0.8, 0.6); k.mode = 'arrow'; this.toward(150, -120, 0.08); }
+    else {
+      this.mood = 'dead'; this.safeT.setVisible(false); this.offK = Math.min(1, (d - SHUT.off) / 40);
+      if (d === SHUT.off) { sfx('select', 0.8, 0.6); sfx('buzz', 0.6, 0.5); }
+      if (d > SHUT.off + 40 && d % 6 === 0 && d < SHUT.len - 40) { match.particles.push({ x: 140 + Math.random() * 30, y: -200 + Math.random() * 40, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2, life: 16, color: [0xffe060, 0xffffff, 0xff9a20][d % 3], size: 2, grav: 0.2 }); if (d % 24 === 0) sfx('laser', 0.2, 1.8); }
+      if (d > SHUT.off + 30 && d % 8 === 0) match.particles.push({ x: 128 + Math.random() * 40, y: -210, vx: 0.3, vy: -1 - Math.random(), life: 60, color: [0x3a3a3a, 0x5a5a5a, 0x2a2a2a][d % 3], size: 5, drag: 0.98 });
+    }
+    if (d >= SHUT.off + 20) {                                                         // the cursor drops onto the desk
+      k.vy = (k.vy || 0) + 0.4; k.y += k.vy; k.mode = 'arrow';
+      if (k.y > -12) { k.y = -12; if (Math.abs(k.vy) > 2) { k.vy *= -0.4; sfx('land', 0.5, 1.2); match.shake(2, 4); } else k.vy = 0; }
+    }
+  }
+  onDeath() { this.offK = 0; if (this.safeT) this.safeT.setVisible(false); this.spam = []; this.banners = []; this.snake = null; this.dialing = false; this.discs = []; this.pour = null; this.closeWin(); this.paint = null; this.fill = null; this.mines = null; this.digits = []; this.letters = []; this.viz = null; this.balls = []; this.cards = []; this.pipes = []; this.blocks = []; this.hang = 0; }
 
   /**
    * THE ENTRANCE (k = 0..1): the switched-off monitor sits dark; the tower's power light blinks on, it whirs and
@@ -753,7 +779,6 @@ export class MachineBossStage extends BossArena {
       if (!this.boss.atk || this.boss.atk.name !== 'notes') this.stepLetters(match, out);
       if (!this.boss.atk || this.boss.atk.name !== 'errors') this.stepErrors(match, out);
       if (!this.boss.atk || this.boss.atk.name !== 'cards') this.stepCards(match, out);
-      if (this.boss.dying) this.mood = 'dead';
       this.stepPuddles(match);
       if (!this.boss.atk || this.boss.atk.name !== 'cds') { this.stepDiscs(match, out); this.tray = Math.max(0, this.tray - 0.08); }
       if (!this.boss.dying) this.stepOnline(match, out);
@@ -768,7 +793,7 @@ export class MachineBossStage extends BossArena {
   render() {
     const t = this.t, B = this.boss, g = this.monG, x = this.fxG;
     g.clear(); x.clear();
-    this.drawMachine(g, B ? B.flash > 0 : false, !B);
+    this.drawMachine(g, B ? B.flash > 0 : false, !B || B.dying > SHUT.off + 40);   // (switched off at the end of its death)
     this.webG.clear(); this.drawMouse(x);
     for (const P of this.puddles) {                                                     // SLUDGE puddles: purple goo with bubbles, drying at the edges
       const k = Math.min(1, P.t / 12) * Math.min(1, (SLUDGE.life - P.t) / 40), w = P.w * k;
@@ -914,7 +939,12 @@ export class MachineBossStage extends BossArena {
     const px = (gx, gy, w = 1, h = 1, col = C.screen[2]) => { g.fillStyle(col, 1); g.fillRect(x0 + 15 + gx * 6, y0 + 10 + gy * 6, w * 6, h * 6); };   // the face's 20x15 pixel grid
     const boot = this.boot ?? 1;
     if (off) { g.fillStyle(0xffffff, 0.08); g.fillRoundedRect(x0 + 10, y0 + 8, 50, 26, 8); }
-    else if (this.mood === 'dead') { const k = 1 - dk; g.fillStyle(0xffffff, 1); g.fillRect(c.x - sw / 2 * k, c.y - 1, sw * k, 2); }
+    else if (this.mood === 'safe') { g.fillStyle(0x000000, 1); g.fillRoundedRect(x0, y0, sw, sh, 8); }   // (black - the orange words are safeT)
+    else if (this.mood === 'dead') {                                                       // switched off: the picture collapses to a line, then a dot
+      const k = this.offK ?? dk; g.fillStyle(0x000000, 1); g.fillRoundedRect(x0, y0, sw, sh, 8);
+      if (k < 0.5) { const q = k / 0.5; g.fillStyle(0xffffff, 1); g.fillRect(c.x - sw / 2 * (1 - q * 0.97), c.y - (sh / 2) * (1 - Math.min(1, q * 3)) - 1, sw * (1 - q * 0.97), Math.max(2, sh * (1 - Math.min(1, q * 3)))); }
+      else if (k < 1) { g.fillStyle(0xffffff, 1 - (k - 0.5) * 2); g.fillCircle(c.x, c.y, 3); g.fillStyle(0xffffff, 0.3 * (1 - (k - 0.5) * 2)); g.fillCircle(c.x, c.y, 8); }
+    }
     else if (boot < 0.45) {                                                              // booting: off, a dot, a line
       const q = boot / 0.45;
       if (q > 0.3) { g.fillStyle(0xffffff, 1); const w = q < 0.6 ? 4 : sw * (q - 0.6) / 0.4; g.fillRect(c.x - w / 2, c.y - 1, w, q < 0.6 ? 4 : 2); }

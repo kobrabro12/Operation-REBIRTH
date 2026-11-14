@@ -29,6 +29,8 @@ const C = { out: 0x12060a, sky: [0x0a0614, 0x1a0a20, 0x2e0e22, 0x4a1420, 0x7a201
   iron: [0x141218, 0x2a2630, 0x48444e, 0x6a6672], rune: [0xff2a10, 0xff7a2a, 0xffd060], cloth: [0x14080c, 0x2a1418],
   fire: [0xc02008, 0xff5010, 0xff9a20, 0xffe060, 0xfff8d8] };
 // his body (px): leg, torso, neck and head sizes, arm lengths, the sword's blade and grip; walking speed (normal / MAD)
+// HIS DEATH (TO ASH): when he plants the sword, when he laughs, when he starts to crumble, the whole length
+const ASH = { plant: 48, laugh: 96, crumble: 170, len: 320 };
 const DM = { thigh: 42, shin: 46, torso: 70, neck: 16, head: 30, upper: 40, fore: 38, blade: 126, grip: 22, walk: 2.4, mad: 3.3, range: 240 };
 // his poses (angles in radians): lean = torso forward; head = head tilt; u/f = upper arm / forearm from straight down,
 // + toward the front (1 = sword arm, 2 = the other); t/s = thigh / shin the same way; sw = the sword from straight up,
@@ -171,7 +173,7 @@ export class DemonBossStage extends BossArena {
   /** His head: what the camera, the death and the CPU aim at. */
   core() { const j = this.joints(); return { x: j.head.x, y: j.head.y }; }
   /** The camera keeps the whole walk and him in view (up on a tower too). */
-  camPoints() { if (!this.boss || this.boss.dying >= 100) return []; const p = [{ x: -250, y: -230 }, { x: 250, y: 0 }]; if (this.dm.y < -20) p.push({ x: this.dm.x, y: this.dm.y - 250 }); return p; }
+  camPoints() { if (!this.boss) return []; if (this.boss.dying) return [{ x: -250, y: -230 }, { x: 250, y: 0 }]; const p = [{ x: -250, y: -230 }, { x: 250, y: 0 }]; if (this.dm.y < -20) p.push({ x: this.dm.x, y: this.dm.y - 250 }); return p; }
   /** Where he can be hit: his head (x1.3, x1.7 while laughing), his body (x0.9) and his legs (x0.75). Nothing while he's vanished. */
   hurt() {
     if (this.dm.alpha < 0.5) return [];
@@ -507,7 +509,45 @@ export class DemonBossStage extends BossArena {
   /** A puff of black smoke round him. */
   smoke(match) { const j = this.joints(); for (let i = 0; i < 6; i++) match.particles.push({ x: j.chest.x + (Math.random() - 0.5) * 50, y: j.chest.y + (Math.random() - 0.5) * 90, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.5, life: 30, color: [0x1a0a10, 0x3a1a20, 0x5a1a1a][i % 3], size: 4, drag: 0.95 }); }
   /** His death: he drops to his knees (the explosions come from BossArena). */
-  onDeath() { this.tail = null; this.braz = null; this.dm.y = 0; this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
+  /** His death runs longer than the default (TO ASH). */
+  deathLen() { return ASH.len; }
+  /**
+   * HIS DEATH - TO ASH: he staggers and roars, drives his sword into the battlement and sinks to his knees on it;
+   * cracks of molten light split his skin from the heart outward (`crackK`) while he laughs one last, weak HA... HA...;
+   * then he crumbles - ash and embers stream up off him on the wind until nothing's left but his sword, planted in the
+   * stone, its fire guttering out.
+   */
+  stepDeath(match) {
+    const d = this.boss.dying, D = this.dm, j = this.joints();
+    this.aim('kneel', d < ASH.plant ? 0.04 : 0.1);
+    if (d === 1) sfx('roar', 1, 0.5);
+    if (d === ASH.plant) { D.held = false; this.planted = { x: j.h1.x + D.dir * 20, fire: 1 }; sfx('clang', 1, 0.6); sfx('bighit', 0.8, 0.7); match.shake(10, 14); for (let i = 0; i < 16; i++) match.particles.push({ x: this.planted.x, y: -4, vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4, life: 24, color: [0xffd040, 0xff7a20, 0x8a8a8a][i % 3], size: 3, grav: 0.2 }); }
+    if (d > ASH.plant) this.crackK = Math.min(1, (d - ASH.plant) / (ASH.crumble - ASH.plant));
+    if (d === ASH.laugh || d === ASH.laugh + 34) { match.popText({ x: j.head.x, y: j.head.y + 40 }, d === ASH.laugh ? 'HA...' : '...HA.', '#ff9a7a'); sfx('laugh', 0.4, 0.45); }
+    if (d > ASH.plant && d % 20 === 0 && d < ASH.crumble) sfx('flame', 0.4, 0.6 + this.crackK * 0.6);
+    if (d >= ASH.crumble) {                                                          // crumbling to ash on the wind
+      const k = (d - ASH.crumble) / (ASH.len - 40 - ASH.crumble); D.alpha = Math.max(0, 1 - k);
+      if (d === ASH.crumble) { sfx('smoke', 1, 0.5); sfx('thunder', 0.6, 0.8); match.shake(8, 20); }
+      if (D.alpha > 0) for (let i = 0; i < 4; i++) { const ps = [j.head, j.chest, j.hip, j.s1, j.s2, j.kn1, j.kn2, j.h2], q = ps[Math.floor(Math.random() * ps.length)]; match.particles.push({ x: q.x + (Math.random() - 0.5) * 30, y: q.y + (Math.random() - 0.5) * 30, vx: 1 + Math.random() * 2, vy: -1 - Math.random() * 2, life: 50 + Math.random() * 30, color: [0x3a3030, 0x5a4a44, 0xff7a20, 0xffc040, 0x2a2020][i % 5], size: 2 + (i % 2), drag: 0.98, grav: -0.02 }); }
+    }
+    if (this.planted && d > ASH.len - 80) this.planted.fire = Math.max(0, this.planted.fire - 0.015);
+  }
+  /** The death's cracks of light through him, and his sword planted in the stone. */
+  drawAsh(x) {
+    const B = this.boss; if (!B || !B.dying) return;
+    const j = this.joints(), k = this.crackK || 0, A = this.dm.alpha, t = this.t;
+    if (k > 0 && A > 0.02) {
+      x.fillStyle(0xffa040, 0.25 * k * A); x.fillCircle(j.chest.x, j.chest.y, 20 + k * 30);
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * Math.PI * 2 + 0.4, L = (26 + (i * 37) % 30) * k, bx = j.chest.x + Math.cos(a) * L * 0.5 + Math.sin(i * 3) * 6, by = j.chest.y + Math.sin(a) * L * 0.5, ex = j.chest.x + Math.cos(a) * L, ey = j.chest.y + Math.sin(a) * L * 1.3;
+        x.lineStyle(3, 0xff7a20, 0.8 * A); x.lineBetween(j.chest.x, j.chest.y, bx, by); x.lineBetween(bx, by, ex, ey); x.lineStyle(1, 0xfff0a0, A); x.lineBetween(j.chest.x, j.chest.y, bx, by); x.lineBetween(bx, by, ex, ey);
+      }
+      for (const q of [j.head, j.kn1, j.kn2, j.e1, j.e2]) { x.lineStyle(2, 0xff9a30, 0.7 * k * A); x.lineBetween(q.x - 5, q.y - 4, q.x + 4, q.y + 5); } x.lineStyle(0);
+    }
+    const P = this.planted;
+    if (P) { this.drawSword(x, P.x, -DM.blade + 18, P.x, 18, P.fire > 0.3); if (P.fire > 0 && t % 3 === 0) { x.fillStyle(0xff7a20, 0.5 * P.fire); x.fillEllipse(P.x + Math.sin(t * 0.3) * 3, -DM.blade + 4, 10, 18 * P.fire); } if (P.fire < 0.6) { x.fillStyle(0x8a8a8a, 0.25); x.fillCircle(P.x + Math.sin(t * 0.05) * 6, -DM.blade - 20 - (t % 60), 6); } }
+  }
+  onDeath() { this.crackK = 0; this.planted = null; this.tail = null; this.braz = null; this.dm.y = 0; this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
 
   /**
    * THE ENTRANCE (k = 0..1): a pillar of fire bursts up in the middle of the walk; he rises out of it laughing,
@@ -576,7 +616,7 @@ export class DemonBossStage extends BossArena {
     const t = this.t, B = this.boss, D = this.dm, g = this.demonG, x = this.fxG;
     g.clear(); x.clear();
     if (this.introFire > 0) this.fire(g, 30, 4, 60 * this.introFire, 300 * this.introFire, t);
-    if (B) { if (D.alpha > 0.02) this.drawDemon(g, B.flash > 0); }
+    if (B) { if (D.alpha > 0.02) this.drawDemon(g, B.flash > 0); this.drawAsh(x); }
     else this.drawSword(g, 0, -150, 0, -150 + DM.blade, false);
     if (this.blade) { const b = this.blade, ca = Math.cos(b.a), sa = Math.sin(b.a); this.drawSword(x, b.x - ca * 70, b.y - sa * 70, b.x + ca * 70, b.y + sa * 70, B && B.phase === 2); x.fillStyle(0xffffff, 0.15); x.fillEllipse(b.x, b.y, THROW.r * 2.4, THROW.r * 0.9); }
     if (this.toss) this.drawSword(x, this.toss.x, this.toss.y + DM.blade, this.toss.x, this.toss.y, B && B.phase === 2);

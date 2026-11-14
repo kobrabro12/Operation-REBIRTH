@@ -21,6 +21,8 @@ const C = { out: 0x1a0e08, brass: [0x6a4210, 0x9a6a20, 0xc8962e, 0xf0c860, 0xfff
   iron: [0x1c1a20, 0x2e2c34, 0x45424c, 0x625e68, 0x8a8690], brick: [0x3a1a14, 0x4e2418, 0x62301e], glow: [0xff5a10, 0xffa020, 0xffe070, 0xfffbe0],
   sky: [0x3a1e2e, 0x5e2e32, 0x8e4434, 0xc8683a, 0xf0a048, 0xffd070], steam: 0xf2ece4 };
 // where the Colossus stands (its chest), how far it slumps when it overheats, and how far its arms reach
+// ITS DEATH (WOUND DOWN): frames seizing up, its whole length, how many pieces burst out of its chest, how far it sinks
+const DIE = { seize: 70, len: 330, junk: 22, sink: 260 };
 const COL = { coreY: -128, headY: -212, shoulderY: -182, shoulderX: 80, lean: 46, upper: 82, fore: 86, rest: [150, -110] };
 // PISTON SLAM: frames tracking overhead, the drop, how long the fist rests in the deck, its hit and the shockwave's
 const SLAM = { track: 56, high: -236, drop: 9, rest: 50, hit: [14, [62, 6.5, 1.0]], wave: [6, [30, 4.5, 0.6]], waveW: 80 };
@@ -406,7 +408,50 @@ export class SteamBossStage extends BossArena {
   /** The furnace heart takes a hit: sparks fly, and a fist resting in the deck jerks back up. */
   onHurt(match, r) { if (r.mult >= 1) for (let i = 0; i < 3; i++) this.puff(this.core().x + (Math.random() - 0.5) * 30, this.core().y, 0.5, -1.2); }
   /** The death: it slumps, its eyes go out, steam pours from every joint. */
-  onDeath() { this.hot = 0; this.cuckoo = null; }
+  onDeath() { this.hot = 0; this.cuckoo = null; this.junk = []; this.missile = null; }
+  /** Its death runs longer than the default: it seizes, bursts, winds down and sinks. */
+  deathLen() { return DIE.len; }
+  /**
+   * ITS DEATH - WOUND DOWN: it seizes up (the key in its back spins wildly backwards, steam screams out of every joint,
+   * the whistle shrieks), its chest bursts and its insides spill across the deck (cogs, springs, bolts, a valve
+   * wheel - `junk`, bouncing), the key slows to a stop, the furnace and the eye die, and it slumps and sinks behind the
+   * deck in a great cloud of steam.
+   */
+  stepDeath(match) {
+    const d = this.boss.dying, c = this.core();
+    if (d < DIE.seize) {                                                            // seizing: steam from every joint, the key racing backwards
+      this.keyA -= 0.45 * (1 - d / DIE.seize) + 0.1;
+      if (d % 3 === 0) this.puff(c.x + (Math.random() - 0.5) * 200, c.y - 60 + Math.random() * 120, 1.4, -2.2);
+      if (d % 10 === 0) { sfx('whoosh', 0.7, 1.8 + Math.random() * 0.4); match.shake(4, 6); }
+      if (d === 1) sfx('airhorn', 0.5, 0.6);                                        // (the whistle)
+    } else if (d === DIE.seize) {                                                   // the chest bursts
+      sfx('bighit', 1, 0.6); sfx('clang', 1, 0.8); match.shake(16, 26);
+      for (let i = 0; i < DIE.junk; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, v = 4 + Math.random() * 6; this.junk.push({ kind: ['cog', 'cog', 'spring', 'bolt', 'wheel'][i % 5], x: c.x + (Math.random() - 0.5) * 30, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.5, r: 8 + Math.random() * 10, rest: false }); }
+      for (let i = 0; i < 30; i++) match.particles.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 9, vy: -Math.random() * 7, life: 30, color: [C.glow[2], C.glow[3], 0xffffff][i % 3], size: 3, grav: 0.2 });
+    } else {                                                                        // winding down, then sinking
+      const q = (d - DIE.seize) / (DIE.len - DIE.seize);
+      this.keyA += 0.12 * Math.max(0, 1 - q * 2.2);
+      if (d === DIE.seize + 40) sfx('clocktick', 0.8, 0.5);
+      if (q > 0.35) { const k = (q - 0.35) / 0.65; this.sink = k * k * DIE.sink; if (d % 2 === 0) this.puff((Math.random() - 0.5) * 300, -4 - Math.random() * 30, 2, -1.6); if (d % 25 === 0) { sfx('rumble', 0.7, 0.6); match.shake(5, 12); } }
+      if (d % 9 === 0 && q < 0.5) this.puff(c.x + (Math.random() - 0.5) * 80, c.y, 0.8, -1.2);
+    }
+    for (const f of this.fists) { f.shadow = null; f.x += (f.s * 150 - f.x) * 0.05; f.y += ((d > DIE.seize ? -22 + this.sink : f.y) - f.y) * 0.1; }   // (its fists flop to the deck, then go down with it)
+    for (const j of this.junk) {                                                     // its insides bouncing across the deck
+      if (j.rest) continue;
+      j.vy += 0.35; j.x += j.vx; j.y += j.vy; j.a += j.va;
+      if (j.y > -j.r * 0.6) { j.y = -j.r * 0.6; if (Math.abs(j.vy) < 1.5) { j.rest = true; j.vx = 0; } else { j.vy *= -0.45; j.vx *= 0.7; j.va *= 0.7; sfx('clang', 0.25, 1.4 + Math.random() * 0.6); } }
+      if (Math.abs(j.x) > 300) j.vx *= -0.6;
+    }
+  }
+  /** Its spilled insides (the death): cogs, springs, bolts, valve wheels. */
+  drawJunk(x) {
+    for (const j of this.junk || []) {
+      if (j.kind === 'cog') this.cog(x, j.x, j.y, j.r, j.a, C.brass);
+      else if (j.kind === 'wheel') { x.lineStyle(4, C.out, 1); x.strokeCircle(j.x, j.y, j.r); x.lineStyle(3, 0xb03020, 1); x.strokeCircle(j.x, j.y, j.r); for (let k = 0; k < 3; k++) { const a = j.a + k * 2.1; x.lineBetween(j.x, j.y, j.x + Math.cos(a) * j.r, j.y + Math.sin(a) * j.r); } x.lineStyle(0); }
+      else if (j.kind === 'spring') { x.lineStyle(2, C.brass[3], 1); for (let k = 0; k < 6; k++) { const a = j.a, ox = Math.cos(a) * (k * 3 - 8), oy = Math.sin(a) * (k * 3 - 8); x.lineBetween(j.x + ox - Math.sin(a) * 5, j.y + oy + Math.cos(a) * 5, j.x + ox + Math.cos(a) * 3 + Math.sin(a) * 5, j.y + oy + Math.sin(a) * 3 - Math.cos(a) * 5); } x.lineStyle(0); }
+      else { x.fillStyle(C.out, 1); x.fillRect(j.x - 6, j.y - 3, 12, 6); x.fillStyle(C.iron ? C.iron[2] : 0x8a8a8a, 1); x.fillRect(j.x - 5, j.y - 2, 10, 4); x.fillRect(j.x + 3, j.y - 4, 4, 8); }
+    }
+  }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_pipe(match, h) { h.title = 'PIPE BURST!'; h.s = Math.random() < 0.5 ? -1 : 1; sfx('geyser', 0.5, 1.5); }
@@ -468,6 +513,7 @@ export class SteamBossStage extends BossArena {
     const t = this.t, B = this.boss, dk = this.deathK(), off = !B || dk > 0.6;
     this.drawGears(this.gearG, t);
     const g = this.bossG; g.clear(); g.setY(this.sink);
+    const fade = B && B.dying ? Math.max(0, 1 - Math.max(0, this.sink - 60) / (DIE.sink - 60)) : 1; g.setAlpha(fade); this.armG.setAlpha(fade);   // (sinking out of sight behind the deck)
     this.drawBody(g, off || this.dark, B ? B.flash : 0);
     const a = this.armG; a.clear();
     for (const f of this.fists) {
@@ -491,6 +537,7 @@ export class SteamBossStage extends BossArena {
       if (r.y !== undefined && !r.done) { x.fillStyle(C.glow[0], 0.5); x.fillRect(r.x - 2, r.y - 26, 4, 22); x.fillStyle(C.glow[2], 1); x.fillCircle(r.x, r.y, 6); x.fillStyle(C.glow[3], 1); x.fillCircle(r.x - 1, r.y - 1, 3); }
     }
     for (const c of this.cogs) this.cog(x, c.x, c.y, COGS.r, c.a, C.brass);
+    this.drawJunk(x);
     this.drawCuckoo(x);
     if (!this.cuckoo && this.lid > 0) this.drawLid(x, this.lid);
     if (this.missile) this.drawMissile(x, this.missile);

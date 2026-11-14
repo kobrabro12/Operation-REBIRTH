@@ -50,6 +50,8 @@ const VOLLEY = { n: [4, 6], every: 9, flight: 44, grav: 0.3, hit: [7, [60, 4.6, 
 const FURY = { gap: 40, every: 4, hit: [10, [86, 5.8, 0.7]] };
 // THE SOUL: every `every` attacks it comes out to taunt for `out` frames (shorter on higher difficulties); how fast it
 // flies; what a hit on it does (x mult); below `bare` health it stays in his head for good (and he goes BERSERK)
+// HIS DEATH (AT PEACE): when his soul slips free, when the grove starts to take him back, when the soul flies off, the whole length
+const REST = { free: 50, grow: 100, away: 220, len: 330 };
 const SOUL = { every: 4, out: 400, speed: 0.06, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
 // THE SHELL GAME (from the second soul-out): fakes, the circle round you, how fast it turns, a shuffle every `every`
 // frames lasting `spin`, how long a hit fake takes to burst, the burst's size and hit
@@ -170,7 +172,7 @@ export class KnightBossStage extends BossArena {
   /** What the camera, the explosions and the CPU go for: his soul when it's out, else his head. */
   core() { if (this.soul.st !== 'home') return { x: this.soul.x, y: this.soul.y }; const j = this.joints(); return { x: j.head.x, y: j.head.y }; }
   /** The camera keeps the clearing and him in view (and his soul, out taunting you). */
-  camPoints() { return this.boss && this.boss.dying < 100 ? [{ x: -250, y: -230 }, { x: 250, y: 0 }] : []; }
+  camPoints() { return this.boss ? [{ x: -250, y: -230 }, { x: 250, y: 0 }] : []; }
   /** Whether his soul is bared for good (low health): it shows in his torn-open helm and can always be hit. */
   bare() { return this.boss && this.boss.hp <= this.boss.max * SOUL.bare; }
   /**
@@ -386,7 +388,52 @@ export class KnightBossStage extends BossArena {
   /** A burst of bits (stone, leaves, moss). */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 20 + Math.random() * 12, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: he crumbles to his knees, the roots letting go (the explosions come from BossArena). */
-  onDeath() { this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
+  /** His death runs longer than the default (AT PEACE). */
+  deathLen() { return REST.len; }
+  /**
+   * HIS DEATH - AT PEACE: he sinks to his knee and the light in his visor goes out; his soul slips free and floats up
+   * out of the helm, free at last (FREE!); the grove takes him back - roots wind up his armour, moss and leaves cover
+   * him, flowers bloom all round him (`bloom`) - and the soul spins up into the light and bursts into fireflies.
+   */
+  stepDeath(match) {
+    const d = this.boss.dying, S = this.soul, j = this.joints();
+    this.aim('kneel', 0.05);
+    if (d === 1) sfx('clang', 0.8, 0.5);
+    if (d < REST.free) { S.st = 'home'; this.lit = Math.max(0, (this.lit ?? 1) - 0.03); }
+    if (d === REST.free) { S.st = 'free'; S.x = j.head.x; S.y = j.head.y; sfx('soulhit', 0.8, 1.2); match.popText({ x: j.head.x, y: j.head.y + 10 }, 'FREE!', '#9affd0'); }
+    if (S.st === 'free') {
+      const q = (d - REST.free) / (REST.len - REST.free);
+      if (d < REST.away) { S.x = j.head.x + Math.sin(d * 0.05) * 30; S.y = j.head.y - 20 - Math.min(1, (d - REST.free) / 60) * 50 + Math.sin(d * 0.09) * 6; }
+      else { S.y -= 2.4 + (d - REST.away) * 0.05; S.x += Math.sin(d * 0.3) * 4; if (d % 4 === 0) match.particles.push({ x: S.x, y: S.y, vx: (Math.random() - 0.5) * 2, vy: Math.random() * 1.5, life: 40, color: [0x9affd0, 0xe8ffa0, 0xffffff][d % 3], size: 2, drag: 0.97 }); }
+      if (d === REST.away + 60) { for (let i = 0; i < 30; i++) { const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 3; match.particles.push({ x: S.x, y: S.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 60 + Math.random() * 40, color: [0x9affd0, 0xe8ffa0, 0xfff8c0][i % 3], size: 2, drag: 0.96, grav: -0.01 }); } sfx('ding', 0.8, 1.6); sfx('summon', 0.6, 1.4); S.st = 'gone'; }
+      this.restK = q;
+    }
+    if (d >= REST.grow) {                                                            // the grove takes him back
+      if (!this.bloom) this.bloom = Array.from({ length: 26 }, (_, i) => ({ x: j.hip.x + (Math.random() - 0.5) * 220, at: REST.grow + Math.random() * 120, c: [0xff7aa0, 0xffe060, 0xffffff, 0xb08aff, 0xff9a50][i % 5], s: 0.7 + Math.random() * 0.6 }));
+      if (d % 30 === 0) sfx('petal', 0.5, 0.9 + Math.random() * 0.4);
+    }
+  }
+  /** The death's greenery (roots and leaves climbing his armour) and the flowers blooming round him, and the freed soul. */
+  drawRest(x) {
+    const B = this.boss; if (!B || !B.dying) return;
+    const d = B.dying, j = this.joints(), t = this.t;
+    const g = Math.max(0, Math.min(1, (d - REST.grow) / 140));
+    if (g > 0) {
+      const pts = [j.ft1, j.kn1, j.hip, j.chest, j.s1, j.e1, j.head, j.ft2, j.kn2, j.s2, j.e2];
+      for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (i === 6) continue; const k = Math.min(1, g * 1.4 - i * 0.06); if (k <= 0) continue; x.lineStyle(4, C.moss ? C.moss[1] : 0x3a6a2a, 0.9); x.lineBetween(a.x, a.y, a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k); x.lineStyle(2, 0x5a9a3a, 1); x.lineBetween(a.x + 2, a.y, a.x + (b.x - a.x) * k + 2, a.y + (b.y - a.y) * k); }
+      x.lineStyle(0);
+      for (let i = 0; i < 30; i++) { const q = pts[i % pts.length], k = g * 30 - i; if (k <= 0) continue; const r = Math.min(1, k) * (3 + (i % 3)); x.fillStyle([0x4a8a30, 0x6aaa3a, 0x2a6a2a][i % 3], 1); x.fillEllipse(q.x + Math.sin(i * 2.3) * 12, q.y + Math.cos(i * 1.7) * 10, r * 2.2, r * 1.4); }
+    }
+    for (const F of this.bloom || []) {                                              // flowers opening on the ground
+      const k = Math.max(0, Math.min(1, (d - F.at) / 30)) * F.s; if (k <= 0) continue;
+      x.lineStyle(2, 0x3a7a2a, 1); x.lineBetween(F.x, 0, F.x, -10 * k); x.lineStyle(0);
+      for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2 + t * 0.01; x.fillStyle(F.c, 1); x.fillCircle(F.x + Math.cos(a) * 4 * k, -10 * k + Math.sin(a) * 4 * k, 2.6 * k); }
+      x.fillStyle(0xffe060, 1); x.fillCircle(F.x, -10 * k, 1.8 * k);
+    }
+    const S = this.soul;
+    if (S.st === 'free') { x.fillStyle(0x9affd0, 0.15); x.fillCircle(S.x, S.y, 24 + Math.sin(t * 0.2) * 4); this.drawSoul(x, S.x, S.y, 1, false, false); }
+  }
+  onDeath() { this.bloom = null; this.restK = 0; this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
 
   /**
    * THE ENTRANCE (k = 0..1): his empty armour kneels in the clearing, dark and overgrown; his soul drifts in out of
@@ -441,7 +488,7 @@ export class KnightBossStage extends BossArena {
     this.cycle.run(match, out);
     if (this.boss) {
       this.bossStep(match, out);
-      if (this.boss.dying) { this.aim('kneel', 0.04); this.soul.st = 'home'; }
+      if (this.boss.dying) this.aim('kneel', 0.04);
       this.stepMarks(out); this.stepThorns(match, out); this.stepDecoys(match, out);
       if (this.soul.flash > 0) this.soul.flash--;
     }
@@ -461,6 +508,7 @@ export class KnightBossStage extends BossArena {
     g.clear(); x.clear();
     if (!B) { this.aim('kneel', 1); this.kn.x = 0; this.kn.dir = 1; this.lit = 0; this.soul.st = 'home'; }
     this.drawKnight(g, B ? B.flash > 0 && this.bare() : false);
+    this.drawRest(x);
     const S = this.soul;
     if (S.st === 'out' || S.st === 'back') this.drawSoul(x, S.x, S.y, 1, S.flash > 0, true);
     if (this.decoys) for (const d of this.decoys) {
@@ -578,7 +626,7 @@ export class KnightBossStage extends BossArena {
     const bare = this.bare() || (this.boss && this.boss.dying);
     if (bare) {                                                                          // the visor torn open: the soul inside
       HP([[0, -2], [15, -2], [15, 12], [0, 12]], C.out);
-      const c = H(8, 5); this.drawSoul(g, c.x, c.y, 0.75, flash, berserk && t % 50 < 25);
+      const c = H(8, 5); if (!['free', 'gone'].includes(this.soul.st)) this.drawSoul(g, c.x, c.y, 0.75, flash, berserk && t % 50 < 25);   // (dying: empty once it's slipped free)
       HP([[0, -2], [4, -2], [4, 12], [0, 12]], ac[1]);
     } else {
       HP([[2, 2], [15, 2], [15, 5], [2, 5]], C.out);                                     // the visor slit

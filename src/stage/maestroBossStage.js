@@ -62,6 +62,8 @@ const ARIA = { sing: 36, n: [7, 11], every: 13, speed: 2.7, turn: 0.06, home: 10
 // FROM BELOW: ghost marks spread on the boards under you (more enraged), then spectral hands burst up grabbing
 const GRASP = { n: [1, 2], warn: 52, rise: 30, w: 34, spread: 70, hit: [11, [88, 6.4, 0.75]] };
 // THE HAUNTING (looks only): candles floating in the dark, wisps off his cape, banks of mist on the boards, his glow
+// HIS DEATH (THE FINAL BOW): when he dissolves, when the curtain starts to fall, the whole length
+const BOW = { fade: 112, curtain: 190, len: 280 };
 const MYST = { candles: 10, wisp: 3, mist: 7, glow: 0x9af0ff };
 // the notes of his aria (sfx pitch per note: a minor scale)
 const SCALE = [1, 1.12, 1.19, 1.33, 1.5, 1.59, 1.78, 2];
@@ -604,7 +606,9 @@ export class MaestroBossStage extends BossArena {
 
   // ------------------------------------------------------------------ the death: THE FINAL BOW
   /** Health gone: everything he threw is cleared; he starts his final bow. */
-  onDeath() { this.clones = null; this.stag = 0; this.singK = 0; this.fx = []; this.chand = null; this.mark = null; this.e.vanish = 0; this.e.alpha = 1; this.talk('...BRAVO. THE FINAL ACT... IS YOURS.', 150); }
+  /** His death runs longer than the default (THE FINAL BOW). */
+  deathLen() { return BOW.len; }
+  onDeath() { this.relic = null; this.clones = null; this.stag = 0; this.singK = 0; this.fx = []; this.chand = null; this.mark = null; this.e.vanish = 0; this.e.alpha = 1; this.talk('...BRAVO. THE FINAL ACT... IS YOURS.', 150); }
   /** THE FINAL BOW: his arms flung up for the last chord (thunder), he sinks to the stage and bows low, roses rain down from the boxes, and the great red curtain falls over him. */
   stepDeath(match) {
     const B = this.boss, E = this.e, f = B.dying;
@@ -613,7 +617,18 @@ export class MaestroBossStage extends BossArena {
     else { E.arms = 'bow'; E.bow = Math.min(1, E.bow + 0.06); if (f % 4 === 0) this.fx.push({ k: 'fallrose', x: E.x + (Math.random() - 0.5) * 300, y: -400, vx: (Math.random() - 0.5), vy: 2.5 + Math.random(), life: 200 }); }
     this.poseStep();
     if (f === 60) sfx('laugh', 0.4, 0.6);
-    E.curtain = Math.max(0, (f - 80) / 60);
+    if (f >= BOW.fade && f < BOW.fade + 40) {                                       // he dissolves into a swirl of petals...
+      E.vanish = (f - BOW.fade) / 40; E.wrap = E.vanish;
+      if (f === BOW.fade) { sfx('curse', 0.8, 0.5); this.talk('...REMEMBER ME.', 90); }
+      if (f % 3 === 0) { const b = this.body(); this.petals(match, b.hip.x, b.sh.y, 4); }
+    }
+    if (f === BOW.fade + 40) {                                                        // ...and all that's left is his mask (or a rose, if it broke), falling to the stage
+      E.alpha = 0; const b = this.body(); this.relic = { x: b.head.x, y: b.head.y, vy: 0, a: 0, mask: !!E.mask };
+      for (let i = 0; i < 24; i++) match.particles.push({ x: b.hip.x, y: b.sh.y, vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3, life: 60, color: [MYST.glow, 0xffffff, LOOK.rose][i % 3], size: 2, drag: 0.97, grav: -0.02 });
+    }
+    const Rl = this.relic;
+    if (Rl && Rl.y < -6) { Rl.vy += 0.25; Rl.y = Math.min(-6, Rl.y + Rl.vy); Rl.a += 0.12; if (Rl.y >= -6) { Rl.a = 0; sfx(Rl.mask ? 'clang' : 'petal', 0.6, 1.4); } }
+    E.curtain = Math.max(0, (f - BOW.curtain) / 70);
     for (const F of this.fx) if (F.k === 'fallrose') { F.x += F.vx; F.y = Math.min(-4, F.y + F.vy); F.life--; }
     if (this.say && ++this.say.t > this.say.life) this.say = null;
   }
@@ -862,6 +877,12 @@ export class MaestroBossStage extends BossArena {
     }
     for (const [f] of this.dazed) {                                                       // STUNNED: petals circling their head
       for (let i = 0; i < 4; i++) { const a = t * 0.15 + i * Math.PI / 2, x = f.x + Math.cos(a) * 16, y = f.y - 62 + Math.sin(a) * 5; g.fillStyle(i % 2 ? LOOK.rose : 0xff7a9a, 1); g.fillEllipse(x, y, 7, 4); }
+    }
+    const Rl = this.relic;                                                               // his death: the mask (or a rose) left on the stage
+    if (Rl) {
+      if (Rl.mask) { const x = Rl.x, y = Rl.y, c = Math.cos(Rl.a), s2 = Math.sin(Rl.a), P = (px, py) => ({ x: x + px * c - py * s2, y: y + px * s2 + py * c }); g.fillStyle(LOOK.ink, 1); g.fillPoints([P(-2, -10), P(8, -9), P(10, -2), P(9, 6), P(4, 4), P(-2, 2)].map((q) => ({ x: q.x, y: q.y + 1 })), true); g.fillStyle(LOOK.mask, 1); g.fillPoints([P(-2, -10), P(8, -9), P(10, -2), P(9, 6), P(4, 4), P(-2, 2)], true); g.fillStyle(LOOK.ink, 1); g.fillEllipse(P(4, -3).x, P(4, -3).y, 4, 3); g.fillStyle(LOOK.gold, 0.6 + 0.4 * Math.sin(t * 0.1)); g.fillCircle(P(4, -3).x, P(4, -3).y, 1); }
+      else { g.fillStyle(0x2a6a2a, 1); g.fillRect(Rl.x - 8, Rl.y - 1, 12, 2); g.fillStyle(LOOK.ink, 1); g.fillCircle(Rl.x + 5, Rl.y, 5); g.fillStyle(LOOK.rose, 1); g.fillCircle(Rl.x + 5, Rl.y, 4); }
+      g.fillStyle(MYST.glow, 0.08 + 0.04 * Math.sin(t * 0.08)); g.fillEllipse(Rl.x + 2, -3, 50, 10);
     }
     const C = this.chand;                                                                // the chandelier: gilded tiers of crystal and candle flames on a rope
     if (C) {

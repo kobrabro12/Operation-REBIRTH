@@ -48,6 +48,8 @@ const PAL = {
 const KID = { leg: 15, torso: 15, head: 20, arm: 12, brush: 50, walk: 2.4, fast: 3.4, range: 210 };
 // how much quicker than the tables he is: every wind-up and pause is divided by this
 const QUICK = 1.3;
+// HIS DEATH (TANTRUM): when the bucket flies off, when he starts to melt, the whole length
+const MELT = { pop: 90, melt: 110, len: 290 };
 // MASTERPIECE: frames charging up, dash speed and how far he dashes, the cutscene (brush strokes, how often, when he
 // says it, when the canvas explodes, its length), and the explosion - always exactly `dmg` damage, a huge launch
 // (often = the chance a normal round of attacks includes it; it's always in the last stretch)
@@ -823,13 +825,47 @@ export class SmudgeBossStage extends BossArena {
     if (t >= F.n) { this.cut = null; this.gone = true; this.sayBox(null); super.startDeath(match); }
   }
   /** His death: paint, not fire - splats of every colour burst off him, and confetti (BossArena's death timing). */
+  /** His death runs longer than the default (TANTRUM). */
+  deathLen() { return this.gone ? 150 : MELT.len; }
+  /**
+   * HIS DEATH - TANTRUM: he throws a full tantrum (stomping, hopping, flailing the brush, WAAAH!, paint everywhere),
+   * the bucket flies off his head and bounces away across the canvas (`ibk` while it's loose), then - I'M TELLING!! -
+   * he melts into a spreading rainbow puddle of paint (`puddleK`) and is gone, the bucket rolling to a stop by it.
+   * (The ART-OFF's finale already burst him into paint - then just the splats.)
+   */
   stepDeath(match) {
-    const B = this.boss, b = this.body();
-    if (B.dying < 150 && B.dying % 7 === 0) { this.splash(match, b.hip.x + (Math.random() - 0.5) * 80, b.sh.y + (Math.random() - 0.5) * 120, 14, [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][B.dying % 4]); match.particles.push({ shape: 'ring', x: b.hip.x, y: b.sh.y, vx: 0, vy: 0, life: 16, maxLife: 16, color: 0xffffff, grav: 0, r: 6, dr: 5 }); sfx('geyser', 0.4, 1.4 + Math.random() * 0.4); }
+    const B = this.boss, b = this.body(), E = this.e, d = B.dying;
+    if (this.gone) { if (d < 150 && d % 9 === 0) this.splash(match, (Math.random() - 0.5) * 300, -60 - Math.random() * 120, 10, [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][d % 4]); return; }
+    if (d < MELT.pop) {                                                              // the tantrum
+      E.hop = Math.abs(Math.sin(d * 0.35)) * 16; E.ba = -1.6 + Math.sin(d * 0.6) * 1.3; E.free = true; E.bb = 0.5 + Math.sin(d * 0.5) * 1.2;
+      if (d % 12 === 0) E.dir = -E.dir;
+      if (d % 10 === 0) { this.splash(match, b.hip.x + (Math.random() - 0.5) * 60, -4, 8, [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060][(d / 10) % 4]); sfx('land', 0.4, 1.4); }
+      if (d === 20 || d === 60) { match.popText({ x: b.head.x, y: b.head.y + 20 }, 'WAAAH!', '#ff7ab8'); sfx('scream', 0.35, 1.8); }
+    }
+    if (d === MELT.pop) {                                                            // the bucket flies off
+      E.bucketOff = true; this.dBucket = { x: b.head.x, y: b.head.y, vx: E.dir * 3.5, vy: -9, a: 0 }; sfx('clang', 0.8, 1.4); this.splash(match, b.head.x, b.head.y, 18);
+    }
+    const K = this.dBucket;
+    if (K) { K.vy += 0.4; K.x += K.vx; K.y += K.vy; K.a += K.vx * 0.06; if (K.y > -8) { K.y = -8; K.vy *= -0.4; K.vx *= 0.8; if (Math.abs(K.vy) > 1) sfx('clang', 0.3, 1.6); } if (Math.abs(K.x) > 240) K.vx = -K.vx; this.ibk = { x: K.x, y: K.y, a: K.a, up: false }; }
+    if (d >= MELT.melt) {                                                            // melting into a puddle
+      const k = Math.min(1, (d - MELT.melt) / (MELT.len - 50 - MELT.melt));
+      E.hop = 0; E.free = false; E.squash = Math.min(1, k * 1.3); E.alpha = Math.max(0, 1 - k * 1.1); this.puddleK = k; this.puddleX = this.puddleX ?? E.x;
+      if (d === MELT.melt) { this.talk('I\'M TELLIIIING!!', 120); sfx('geyser', 0.6, 1.4); }
+      if (d % 6 === 0 && E.alpha > 0.1) match.particles.push({ x: b.hip.x + (Math.random() - 0.5) * 30, y: b.sh.y + Math.random() * 40, vx: 0, vy: 1 + Math.random(), life: 30, color: [0xff2a4a, 0x2a8aff, 0xffd400, 0x2ad060, 0xb84aff][d % 5], size: 3, grav: 0.15 });
+    }
   }
+  /** His death's rainbow puddle of paint, spreading under where he melted. */
+  drawPuddle(fx) {
+    const k = this.puddleK || 0; if (!k || !this.boss || !this.boss.dying) return;
+    const x = this.puddleX, cols = [0xb84aff, 0x2a8aff, 0x2ad060, 0xffd400, 0xff8a20, 0xff2a4a];
+    cols.forEach((c, i) => { const r = (90 - i * 13) * k; fx.fillStyle(c, 1); fx.fillEllipse(x + Math.sin(i * 1.7) * 6 * k, -1, r * 2, r * 0.32 + 2); });
+    fx.fillStyle(0xffffff, 0.35); fx.fillEllipse(x - 20 * k, -3, 30 * k, 3);
+  }
+
   /** His death: he plops down and wails (MOOOM!) - the explosions come from BossArena. */
   onDeath(match) {
     this.pieces = []; this.blobs = []; this.doodles = []; this.bursts = []; this.dots = null; this.scrib = null; this.eraser = null; this.spikes = null; this.beams = null; this.swirl = null; this.stars = []; this.wave = null; this.splats = []; this.bucket = null; this.e.free = false;
+    this.dBucket = null; this.puddleK = 0; this.puddleX = null;
     this.e.alpha = this.gone ? 0 : 1; this.e.bucketOff = false; if (!this.rival) this.talk('NO FAIR!! MOOOOM!!', 200); if (match) this.splash(match, this.e.x, -100, 30);
   }
 
@@ -987,7 +1023,7 @@ export class SmudgeBossStage extends BossArena {
       this.stepBlobs(match, out); this.stepDoodles(match, out); this.stepBursts(match, out); this.stepBubbles(match); this.stepStars(match, out); this.stepSplats(match, out);
       if (this.sayCD > 0) this.sayCD--;
       if (this.say && ++this.say.t > this.say.life) this.say = null;
-      if (this.boss.dying) { this.e.squash = Math.min(0.5, this.e.squash + 0.01); this.e.alpha = this.gone ? 0 : 1 - this.deathK(); }
+      if (this.boss.dying && this.gone) this.e.alpha = 0;
     }
     if (this.wipe) { this.wipe.t++; if (this.wipe.t === 18) this.setStyle(this.wipe.next); if (this.wipe.t > 40) this.wipe = null; }
     return out;
@@ -1010,7 +1046,7 @@ export class SmudgeBossStage extends BossArena {
     this.pen.img.setVisible(!!(B || this.intro) && this.e.alpha > 0.02 && !this.inBucket);
     if (this.pen.img.visible) this.drawKid(this.pen, this.style);
     this.drawLooseBucket();
-    this.drawFx(fx);
+    this.drawFx(fx); this.drawPuddle(fx);
     this.drawMaster(this.overG);
     if (this.say && !(this.intro && this.introPhase().ph === 'freeze')) this.drawBubble();   // (not over his title card)
     if (this.wipe) this.drawWipe(fx);

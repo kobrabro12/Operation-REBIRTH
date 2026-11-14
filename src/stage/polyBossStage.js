@@ -57,6 +57,8 @@ const RAIN = { n: 6, every: 12, warn: 44, s: 20, hit: [10, [80, 5, 0.7]] };
 const BEAM = { charge: 50, sweep: 70, hit: [6, [70, 4.8, 0.5]] };
 // FRAME DROP: every `every` attacks; how long he stutters low (head x1.5)
 const DROP = { every: 4, dur: 170 };
+// HIS DEATH (GAME OVER): frames of glitching before he shatters, when CONTINUE? starts counting, when GAME OVER slams in, the whole length
+const OVER = { glitch: 50, cont: 96, over: 186, len: 290 };
 // how big the gauntlets are drawn (x their model)
 const HAND = 1.5;
 // BLOW THE CARTRIDGE: it rising, the breath in, the gale (frames), how hard the wind pushes (px / frame, more in the air),
@@ -185,6 +187,7 @@ export class PolyBossStage extends BossArena {
     for (const sx of [-1, 1]) { R.prism(sx * 238, -96, 0, 40, 6, 6, C.rock[2], C.rock[3]); }   // the pylons' stands
     this.ledgeFaces.push(R.faces.length);
     this.fxG = s.add.graphics(); world.push(this.fxG);
+    this.overT = s.add.text(0, -150, '', { fontFamily: FONT, fontSize: '26px', color: '#ffe060', stroke: '#3a1060', strokeThickness: 7, align: 'center' }).setOrigin(0.5).setVisible(false); world.push(this.overT);   // CONTINUE? / GAME OVER (his death)
     this.cycle.makeBanner(s);
     this.orig = R.faces.map((f) => f.c); this.fog0 = R.fog; this.faceX = R.faces.map((f) => f.p.reduce((a, v) => a + v[0], 0) / f.p.length);
   }
@@ -277,6 +280,40 @@ export class PolyBossStage extends BossArena {
   startDeath(match) {
     if (this.legend && this.sayG && !this.finaleDone) { this.finaleDone = true; this.clearArena(); this.boss.atk = null; this.startCut(match, 'finale'); return; }
     super.startDeath(match);
+  }
+  /** His death runs longer than the default (GAME OVER). */
+  deathLen() { return OVER.len; }
+  /**
+   * HIS DEATH - GAME OVER: he freezes and glitches (stutters, tears, a buzz), then SHATTERS - every polygon of him
+   * (`shards`, each a face of `kingFaces` with its own spin and fling) bursts apart and rains down, bouncing on the
+   * floor and fading; CONTINUE? counts down over the arena (3... 2... 1...) and GAME OVER slams in.
+   * (LEGENDARY: he already exploded in the finale - just the words.)
+   */
+  stepDeath(match) {
+    const d = this.boss.dying, H = this.head;
+    if (d < OVER.glitch && !this.gone) {
+      H.x += (Math.random() - 0.5) * 8; if (d % 8 === 0) { sfx('glitch', 0.7, 0.6 + Math.random() * 0.6); match.shake(3, 4); }
+      if (d % 12 < 2) this.flashT = 2;
+    }
+    if (d === OVER.glitch && !this.gone) {                                           // SHATTER
+      const F = this.kingFaces(); let cx = 0, cy = 0; for (const f of F) { cx += f.p[0][0]; cy += f.p[0][1]; } cx /= F.length || 1; cy /= F.length || 1;
+      this.shards = F.map((f) => { const m = f.p.reduce((a, v) => [a[0] + v[0] / f.p.length, a[1] + v[1] / f.p.length, a[2] + v[2] / f.p.length], [0, 0, 0]), dx = m[0] - cx, dy = m[1] - cy, l = Math.hypot(dx, dy) || 1, v = 2 + Math.random() * 5;
+        return { f, m, ox: 0, oy: 0, vx: dx / l * v + (Math.random() - 0.5) * 2, vy: dy / l * v - 3 - Math.random() * 3, a: 0, va: (Math.random() - 0.5) * 0.3, life: 1 }; });
+      sfx('glass', 1, 0.7); sfx('bighit', 1, 0.6); match.shake(18, 24); this.flashT = 6;
+    }
+    for (const S of this.shards || []) {                                             // the pieces raining down
+      S.vy += 0.3; S.ox += S.vx; S.oy += S.vy; S.a += S.va;
+      if (S.m[1] + S.oy > -4) { S.oy = -4 - S.m[1]; S.vy *= -0.35; S.vx *= 0.7; S.va *= 0.6; }
+      if (d > OVER.glitch + 90) S.life = Math.max(0, S.life - 0.012);
+    }
+    const T = this.overT;
+    if (d >= OVER.cont && d < OVER.over) { const n = 3 - Math.floor((d - OVER.cont) / ((OVER.over - OVER.cont) / 3)); T.setVisible(true).setText('CONTINUE?\n' + Math.max(1, n)).setFontSize(18).setScale(1); if ((d - OVER.cont) % 30 === 0) sfx('clocktick', 0.8, 1); }
+    if (d === OVER.over) { T.setText('GAME OVER').setFontSize(28).setScale(2.4); sfx('bighit', 1, 0.5); sfx('ko', 0.7, 0.6); match.shake(10, 16); }
+    if (d > OVER.over) T.setScale(Math.max(1, T.scaleX - 0.12));
+  }
+  /** His shattered pieces this frame (the death): each face flung, spun round its own middle, fading. */
+  shardFaces() {
+    return (this.shards || []).filter((S) => S.life > 0.02).map((S) => { const c = Math.cos(S.a), sn = Math.sin(S.a); return { ...S.f, a: (S.f.a ?? 1) * S.life, p: S.f.p.map(([x, y, z]) => { const rx = x - S.m[0], ry = y - S.m[1]; return [S.m[0] + rx * c - ry * sn + S.ox, S.m[1] + rx * sn + ry * c + S.oy, z]; }), n: null }; });
   }
   /** The entrance's camera: following his falling head, wide as the gauntlets fly in, in close for the finger guns. */
   introShot(k) {
@@ -1144,7 +1181,7 @@ export class PolyBossStage extends BossArena {
   /** A burst of tumbling polygon gems. */
   burst(match, x, y, cols, n) { for (let i = 0; i < n; i++) match.particles.push({ shape: 'polygem', x, y, vx: (Math.random() - 0.5) * 5, vy: -Math.random() * 4, life: 22 + Math.random() * 14, color: cols[i % cols.length], size: 3, grav: 0.15 }); }
   /** His death: the polygons come apart (handled by the drawing, with the explosions). */
-  onDeath() { if (this.trap && this.trap.v) { this.trap.v.seizedBy = null; this.trap.v.setState('air'); } this.trap = null; this.pix = []; this.cells = []; this.errs = []; this.orbit = null; this.sector = null; this.cannon = null; this.warpMark = null; this.drop = 0; this.beam = null; this.popMark = null; this.wind = null; this.cart = null; if (this.glitch) this.glitch.tiles = []; }
+  onDeath() { this.shards = null; if (this.trap && this.trap.v) { this.trap.v.seizedBy = null; this.trap.v.setState('air'); } this.trap = null; this.pix = []; this.cells = []; this.errs = []; this.orbit = null; this.sector = null; this.cannon = null; this.warpMark = null; this.drop = 0; this.beam = null; this.popMark = null; this.wind = null; this.cart = null; if (this.glitch) this.glitch.tiles = []; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_zap(match, h) { h.title = 'PYLON ZAP!'; sfx('laser', 0.4, 0.5); }
@@ -1261,7 +1298,8 @@ export class PolyBossStage extends BossArena {
   /** Draws the 3D scene (scenery + King + stars + cubes + pylons) and the beams, zaps, shadows, rings; and the health bar. */
   render() {
     const t = this.t, dyn = [], B = this.boss;
-    if (B && this.deathK() < 0.95 && !this.gone) dyn.push(...this.kingFaces());
+    if (B && B.dying && this.shards) dyn.push(...this.shardFaces());                   // (dead: his pieces)
+    else if (B && (!B.dying || B.dying < OVER.glitch) && !this.gone) dyn.push(...this.kingFaces());
     else if (!B) dyn.push(...xf(prismFaces(0, -50, -30, 0, 34, 8, C.gold, 0xffe070), Math.sin(t * 0.01) * 40, -210 + Math.sin(t * 0.03) * 8, 30, t * 0.01));   // VS: his empty crown drifts overhead
     for (const s of this.shots) {
       if (s.kind === 'shard') dyn.push(...xf([...pyramidFaces(0, 0, 0, 10, 10, 12, LEG.glow[0]), ...pyramidFaces(0, 0, 0, 10, 10, -12, LEG.glow[1])], s.x, s.y, 0, s.a, s.a * 0.7).map((f) => ({ ...f, nofog: true })));

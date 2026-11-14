@@ -371,6 +371,7 @@ export class MatchScene extends Phaser.Scene {
       if (this.timeLeft <= 0) this.endMatch('TIME!');
     }
     if (this.bossOutcome === 'lose' && this.stage.boss && this.stage.boss.gloat >= 50) this.paintBossCard();   // (the death card's portrait, in its gloating pose)
+    if (this.koBanner > 0 && --this.koBanner === 0) this.bigText.setText('');   // (BOSS DEFEATED! clears so the boss's death can be seen)
     if (this.over > 0 && --this.over === 0) { if (this.demo) { this.over = 1; return; } this.toResults(); }
   }
 
@@ -569,7 +570,7 @@ export class MatchScene extends Phaser.Scene {
   /** Counts a lifetime stat for the achievements (achievements.js `stat`) - not in the title demo. Stages and fighters call this so they needn't import achievements.js. */
   stat(name, n = 1) { if (!this.demo) stat(name, n); }
 
-  bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.over = 210; }
+  bossDefeated() { if (this.over) return; this.bossOutcome = 'win'; this.endMatch('BOSS DEFEATED!'); this.koBanner = 90; this.over = Math.max(210, (this.stage.deathLen ? this.stage.deathLen() : 150) + 70); }   // (waits for the boss's own death animation)
 
   /** A boss fight is over: pays out a win (bosses.js) and goes to the reward / defeat screen (BossRewardScene). */
   /** The death card's picture (the arena may ask for it at a moment of its choosing - the Colossus does at NOW I'VE GOTCHA): paints it now. */
@@ -611,7 +612,7 @@ export class MatchScene extends Phaser.Scene {
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
-      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks }, rewards });
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, weak: f.stats.weak || 0, limits: f.stats.limits || 0, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks }, rewards });
   }
 
   toResults() {

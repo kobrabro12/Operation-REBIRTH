@@ -11,7 +11,7 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ArcadeBg, titleBanner, hintBar, ARC, panel, slant, hex } from '../ui/arcade.js';
-import { BOSSES, TIERS, bossOpen, bossWins, bossBest, arenaOpen, clock, FIRST_BONUS } from '../data/bosses.js';
+import { BOSSES, TIERS, bossOpen, bossWins, bossBest, arenaOpen, clock, FIRST_BONUS, bestGrade } from '../data/bosses.js';
 import { TROPHY_GOALS, trophyEarned } from '../achievements.js';
 import { stageById } from '../stage/stages.js';
 import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
@@ -137,7 +137,7 @@ export class BossFightsScene extends Phaser.Scene {
       const extra = this.tier === 2 ? '+ TROPHY: ' + (tg ? tg.name : '') + (trophyEarned(B.trophy) ? ' (EARNED)' : '') : this.tier === 1 ? '+ ARENA FOR VS' + (arenaOpen(B.id) ? ' (OPEN)' : '') : '';
       this.txt.reward.setText(open ? 'REWARD: ' + coins + ' COINS' + (first ? '  + ' + Math.round(B.coins * T.coins * FIRST_BONUS) + ' FIRST WIN' : '  (REPEAT: 40%)') + '\n' + extra + '\nYOUR LIVES: ' + T.stocks + '   BOSS: ' + Math.round(B.hp * T.hp) + ' HP' : '');
       const best = bossBest(B.id, this.tier);
-      this.txt.best.setText(open ? 'WINS: ' + bossWins(B.id, this.tier) + (best ? '    BEST TIME: ' + clock(best) : '') : '');
+      this.txt.best.setText(open ? 'WINS: ' + bossWins(B.id, this.tier) + (best ? '    BEST TIME: ' + clock(best) : '') + (bestGrade(B.id, this.tier) ? '    BEST GRADE: ' + bestGrade(B.id, this.tier) : '') : '');
       for (let k = 0; k < 3; k++) this.txt['tier' + k].setColor(k === this.tier ? '#ffffff' : '#8a87a3');
     } else {
       const f = this.fighters[this.fi];
