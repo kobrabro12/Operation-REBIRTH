@@ -18,7 +18,7 @@ const GRADE_COL = (g) => (g === 'S' ? '#ffe060' : g[0] === 'A' ? '#ffd040' : g[0
 /**
  * Builds the results card in `scene`. B = the boss, R = BossReward's data.boss, result = bossGrade(R), rewards = the
  * reward lines ({ text, coins, kind }), opts: { sub (a line under the title, e.g. the BOSS RUSH count), newBest,
- * total (coins now) }. Returns { update(t), done(t) } - update every frame; done says the tally has finished.
+ * total (coins now) }. Returns { update(t), done(t), end() } - update every frame; done says the tally has finished; end = the frame to jump to to skip it.
  */
 export function resultsCard(scene, B, R, result, rewards, opts = {}) {
   const box = scene.add.container(0, 0).setDepth(1);
@@ -58,14 +58,16 @@ export function resultsCard(scene, B, R, result, rewards, opts = {}) {
   const two = rewards.length > 6, rh = two ? 12 : 10, rw = rewards.map((l, i) => {
     const col = two ? i % 2 : 0, rI = two ? Math.floor(i / 2) : i, x = LAY.rx + col * 196, y = LAY.ry + rI * rh, w = two ? 186 : 380;
     const c = l.kind === 'unlock' ? '#7affb0' : l.kind === 'trophy' ? '#ffd23f' : l.kind === 'ach' ? '#ffb0ff' : '#f4e4c0';
-    return { a: txt(x, y, l.text, 6, c).setAlpha(0), b: txt(x + w, y, l.coins ? '+' + l.coins : l.kind === 'unlock' ? 'NEW!' : l.kind === 'record' ? '!' : '', 6, '#ffe08a').setOrigin(1, 0).setAlpha(0), at: gradeAt + TIME.rewards + i * TIME.rEvery };
+    const a = txt(x, y, l.text, 6, c).setAlpha(0), b = txt(x + w, y, l.coins ? '+' + l.coins : l.kind === 'unlock' ? 'NEW!' : l.kind === 'record' ? '!' : '', 6, '#ffe08a').setOrigin(1, 0).setAlpha(0);
+    for (let s = String(l.text); a.width > w - b.width - 8 && s.length > 4;) { s = s.slice(0, -1); a.setText(s.trimEnd() + '.'); }   // (a long name is cut to fit beside its coins)
+    return { a, b, at: gradeAt + TIME.rewards + i * TIME.rEvery };
   });
   const totalCoins = rewards.reduce((n, l) => n + (l.coins || 0), 0), totalAt = gradeAt + TIME.rewards + rewards.length * TIME.rEvery + 10;
   const totalT = txt(LAY.rx + 380, LAY.ry + Math.ceil(rewards.length / (two ? 2 : 1)) * rh + 2, '', 8, '#ffe08a').setOrigin(1, 0);
   const haveT = txt(LAY.rx, LAY.ry + Math.ceil(rewards.length / (two ? 2 : 1)) * rh + 4, '', 6, '#a89878');
   const leader = (gr, x1, x2, y) => { gr.clear(); gr.fillStyle(INK.goldDk, 1); for (let x = x1; x < x2; x += 5) gr.fillRect(x, y, 2, 2); };
   const star = (gr, x, y, r, on) => { const p = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; p.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr }); } gr.fillStyle(on ? INK.gold : 0x3a2a1a, 1); gr.fillPoints(p, true); };
-  let counted = 0;
+  let counted = 0, stamped = false;
   return {
     box,
     /** One frame of the tally: lines in, numbers counting up with ticks, the grade stamping in, rewards, the coin total; film grain and flicker over it all. */
@@ -90,7 +92,8 @@ export function resultsCard(scene, B, R, result, rewards, opts = {}) {
         gTxt.setAlpha(1).setScale(3.2 - 2.2 * e);
         ring.clear();
         if (k >= 1) { const p = Math.min(1, (t - gradeAt - 10) / 8); ring.lineStyle(3, INK.red, 0.9); ring.strokeCircle(LAY.gx, LAY.gy, 21 + (1 - p) * 10); ring.lineStyle(1, INK.red, 0.6); ring.strokeCircle(LAY.gx, LAY.gy, 25 + (1 - p) * 10); ring.lineStyle(0); best.setAlpha(p); }
-        if (t === gradeAt + 10) {
+        if (t >= gradeAt + 10 && !stamped) {
+          stamped = true;
           sfx('bighit', 0.9, 0.8); sfx('ding', 0.8, result.grade[0] === 'S' || result.grade[0] === 'A' ? 1.5 : 0.9);
           if (result.grade === 'S' || result.grade === 'A+') sfx('limitready', 0.8, 1);
           scene.cameras.main.shake(160, 0.006);
@@ -110,5 +113,7 @@ export function resultsCard(scene, B, R, result, rewards, opts = {}) {
     },
     /** Whether the whole tally has finished. */
     done(t) { return t > totalAt + 30; },
+    /** The frame the tally has finished by (BossReward jumps here when you press a button to skip it). */
+    end() { counted = totalCoins; return totalAt + 31; },
   };
 }

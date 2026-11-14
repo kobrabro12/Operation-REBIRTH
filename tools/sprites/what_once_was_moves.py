@@ -289,7 +289,7 @@ def build_style(style):
         menu = N.animate(small, idle_keys(), 192, step=6, life=life)
         N.strip(menu, os.path.join(d, 'menu_idle_sheet.png'))
     hide = HEAD_PARTS + (('cord',) if style in D.HUMAN else ())
-    base, out = N.build_all(without(small, hide), without(big, hide), MOVES, d, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)))
+    base, out = N.build_all(without(small, hide), without(big, hide), MOVES, d, JS, 'WOW_MOVES', 'what_once_was_moves.py', life_fn=life, idle=idle_keys, run=run_keys, jumps=((JUMP, JUMP2), (FALL, FALL2)), cols=36)   # (36 a row: under 4096 px for phones)
     icon = os.path.join(d, 'icon.png')                # build_all cropped a headless icon: the costumes get the TV head back
     if style in D.HUMAN: os.remove(icon)
     else: Image.fromarray(menu[0]).crop((22, 0, 50, 15)).resize((72, 38), Image.NEAREST).save(icon)

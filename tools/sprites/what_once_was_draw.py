@@ -2,8 +2,9 @@
 built part by part on the same joints as NU (tools/sprites/nu_draw.py) so the puppet rig animates it.
 
 An original design: a hunched, deformed body whose skin has turned into the Backrooms' stained yellow
-wallpaper - peeling in places, damp-stained, a torn hole in its side showing the dark. Its legs don't
-match (one thin and bent wrong, one swollen), its front arm hangs far too long and ends in a three-
+wallpaper - peeling in places, damp-stained, a torn hole in its side showing the dark. Its legs are long
+and gaunt, wallpaper peeling off them in strips, the knees turned into a mannequin's ball joints, and it still
+wears the scuffed office loafers of whoever it used to be (legs_kit.py); its front arm hangs far too long and ends in a three-
 fingered claw. Its head is an old CRT television on a stretched neck, rabbit-ear antennae on top and a
 power cord trailing down its spine. The screen shows one of several pictures - each is its own layer,
 so a move picks what's on screen by hiding the others:
@@ -37,6 +38,7 @@ from the upper left), dark outline. draw_parts() returns {name: RGBA array}.
 import numpy as np
 from PIL import Image, ImageDraw
 from nu_draw import hx, capsule, blank, JOINTS
+import legs_kit as LK
 
 OUT = 0x120e06
 STYLE = 'default'                                   # set by set_style()
@@ -144,33 +146,38 @@ def draw_parts():
     a = finish(im, PAL['cord'])
     a[42:45, 20:23] = hx(PAL['metal'][2]); a[44, 20] = hx(PAL['metal'][1]); a[44, 22] = hx(PAL['metal'][1])   # the plug, dangling
     P['cord'] = a
-    # ---------------- back leg: thin, bent the wrong way
-    im = blank(); d = ImageDraw.Draw(im)
-    F = PAL['far']
-    capsule(d, JOINTS['bhip'], JOINTS['bknee'], 6, hx(F[1]))
-    P['bthigh'] = finish(im, F)
-    im = blank(); d = ImageDraw.Draw(im)
-    capsule(d, (24, 48), (27, 55), 5, hx(F[1]))
-    P['bshin'] = finish(im, F)
-    im = blank(); d = ImageDraw.Draw(im)
-    d.polygon([(22, 54), (28, 54), (31, 57), (31, 58), (19, 58), (20, 56)], fill=hx(PAL['flesh'][1]))   # a long bare foot
-    a = finish(im, PAL['flesh']); put(a, [(30, 58), (28, 58)], OUT)
-    P['bshoe'] = a
-    # ---------------- front leg: swollen, lumpy
-    im = blank(); d = ImageDraw.Draw(im)
-    Lm = PAL['limb']
-    capsule(d, JOINTS['fhip'], JOINTS['fknee'], 10, hx(Lm[1]))
-    a = finish(im, Lm)
-    put(a, [(39, 43), (40, 43), (40, 44), (41, 44)], Lm[2])              # a swollen bruise
-    P['fthigh'] = a
-    im = blank(); d = ImageDraw.Draw(im)
-    d.polygon([(37, 47), (45, 47), (44, 55), (39, 55)], fill=hx(Lm[1]))
-    a = finish(im, Lm)
-    P['fshin'] = a
-    im = blank(); d = ImageDraw.Draw(im)
-    d.polygon([(37, 54), (46, 54), (51, 57), (51, 58), (36, 58), (36, 56)], fill=hx(PAL['flesh'][1]))
-    a = finish(im, PAL['flesh']); put(a, [(49, 57), (47, 57)], PAL['flesh'][2])   # toes
-    P['fshoe'] = a
+    # ---------------- legs (legs_kit, on the rig's own joints): a matched pair now - long, gaunt legs of stained
+    # wallpaper skin peeling in strips, knees turned into a mannequin's ball joints, and the scuffed office loafers
+    # of whoever it used to be (the bodies: SUIT trousers + dress shoes, SWAT cargo pants + boots, DOCTOR scrubs + clogs)
+    human = STYLE in HUMAN
+    F, Lm = PAL['far'], PAL['limb']                                                    # (the arms use these too)
+    for side, hip, knee, ank, L in (('b', (28, 40), (26, 48), (24, 55), PAL['far']), ('f', (36, 40), (39, 48), (40, 55), PAL['limb'])):
+        im = blank(); d = ImageDraw.Draw(im)
+        LK.seg(d, hip, knee, 6 if human else 5, 4.5 if human else 3.5, hx(L[1]), bulge=0.6 if human else 1.0, at=0.3)
+        a = finish(im, L)
+        if not human:
+            put(a, LK.along(hip, knee, -1, 0.15, 0.7, 2), PAL['flesh'][1])            # a strip of paper peeled away
+            put(a, LK.along(hip, knee, 1, 0.3, 0.6, 3), L[2])                         # damp stain
+        else:
+            put(a, LK.along(hip, knee, 0, 0.2, 0.9, 2), L[2])                         # the crease / seam
+        P[side + 'thigh'] = a
+        im = blank(); d = ImageDraw.Draw(im)
+        LK.seg(d, knee, (ank[0], ank[1] - 1), 4.5 if human else 3.5, 4.5 if human else 2.5, hx(L[1]), bulge=0.4 if human else 0.8, at=0.3)
+        if not human: d.ellipse([knee[0] - 2.5, knee[1] - 2.5, knee[0] + 2.5, knee[1] + 2.5], fill=hx(L[1]))   # the ball joint
+        a = finish(im, L)
+        if not human:
+            put(a, [(knee[0] - 1, knee[1] - 1), (knee[0], knee[1] - 1)], L[0]); put(a, [(knee[0] + 1, knee[1] + 1)], L[2])   # its gloss and shadow
+            put(a, [(ank[0] - 1, ank[1] - 2), (ank[0], ank[1] - 2), (ank[0] + 1, ank[1] - 2)], 0x7a7466)   # a slouched grey sock
+        elif STYLE == 'swat':
+            put(a, [(x, y) for x in range(knee[0] - 2, knee[0] + 2) for y in (knee[1] - 1, knee[1])], PAL['flesh'][0])   # a knee pad
+        P[side + 'shin'] = a
+        im = blank(); d = ImageDraw.Draw(im)
+        kind = {'suit': 'point', 'swat': 'boot', 'doctor': 'clog'}.get(STYLE, 'loafer')
+        LK.shoe(d, ank, hx(PAL['flesh'][1]), kind, length=8)
+        a = finish(im, PAL['flesh'])
+        put(a, [(ank[0] + 4, 55), (ank[0] + 5, 56)], PAL['flesh'][0])                 # the scuffed shine on the toe
+        if kind == 'loafer': put(a, [(ank[0] + 1, 56), (ank[0] + 2, 56)], PAL['flesh'][2])   # the loafer's strap
+        P[side + 'shoe'] = a
     # ---------------- back arm: short and withered
     im = blank(); d = ImageDraw.Draw(im)
     capsule(d, JOINTS['bshoulder'], JOINTS['belbow'], 5, hx(F[1]))
@@ -495,8 +502,8 @@ RIG = {
     **{s: ((33, 21), 'head') for s in SCREENS},
     'bupper': ((27, 24), 'torso'), 'bfore': ((25, 31), 'bupper'),
     'fupper': ((38, 24), 'torso'), 'ffore': ((42, 31), 'fupper'), 'ffist': ((50, 43), 'ffore'),
-    'bthigh': ((28, 40), None), 'bshin': ((24, 48), 'bthigh'), 'bshoe': ((26, 54), 'bshin'),
-    'fthigh': ((36, 40), None), 'fshin': ((40, 48), 'fthigh'), 'fshoe': ((41, 55), 'fshin'),
+    'bthigh': ((28, 40), None), 'bshin': ((26, 48), 'bthigh'), 'bshoe': ((24, 55), 'bshin'),
+    'fthigh': ((36, 40), None), 'fshin': ((39, 48), 'fthigh'), 'fshoe': ((40, 55), 'fshin'),
 }
 PROPS = ('scr_warn', 'scr_missing', 'scr_eye', 'scr_red', 'scr_smile')     # hidden unless a pose shows them
 

@@ -4,7 +4,7 @@
 An original design: a big, barrel-chested cook with a tall pleated toque (the 'hair' slot, so it wobbles on
 his head), a ruddy face with a huge black handlebar moustache, bushy brows and a big nose; a white double-
 breasted chef's jacket with two rows of buttons and a red neckerchief; a long white apron (its own part,
-'apron', tied at the waist - it flaps with every move); houndstooth trousers and black clogs; sleeves rolled
+'apron', tied at the waist - it flaps with every move); baggy houndstooth trousers with rolled cuffs over chunky clogs on wooden soles (legs_kit.py); sleeves rolled
 up; a frying pan in his back hand (drawn with the back forearm) and a heavy cleaver in the front one ('mic' slot).
 
 Costumes (VARIANTS, picked by `--set`): GRILL MASTER (a black jacket and toque, a ginger moustache, a red
@@ -14,6 +14,7 @@ mint apron with a cherry, a cream toque, a big whisk instead of the cleaver, a c
 Every part is a 64x64 layer, facing right, feet on row 58, shaded like NU (`shade5`).
 """
 import numpy as np
+import legs_kit as LK
 from PIL import Image, ImageDraw
 from nu_draw import hx, shade5, put, limb, blank
 
@@ -63,16 +64,25 @@ def draw_parts():
     """CHEF ROUX (or the costume in VARIANT): every part as a 64x64 RGBA array."""
     P = pal(); V = VARIANTS[VARIANT]; parts = {}
     # ---------------- legs: houndstooth trousers, black clogs
-    for side, hip, knee, ank in (('b', (28, 40), (25, 48), (24, 54)), ('f', (37, 40), (40, 48), (40, 54))):
-        for nm, a0, b0 in (('thigh', hip, knee), ('shin', knee, ank)):
-            a = layer(lambda d, c: limb(d, a0, b0, 6, c), 'pants')
-            ys, xs = np.nonzero(a[..., 3])
-            for y, x in zip(ys, xs):                                                           # the houndstooth check
-                if (x + y) % 3 == 0 and (x * 2 + y) % 4 == 0 and not np.all(a[y, x, :3] == np.array(hx(P['pants'][4])[:3])): a[y, x] = hx(P['pants'][0])
-            parts[side + nm] = a
-        x0 = ank[0] - 4
-        a = layer(lambda d, c: d.polygon([(x0, 53), (x0 + 7, 53), (x0 + 10, 55), (x0 + 10, 58), (x0, 58)], fill=c), 'clog')
-        put(a, [(x, 58) for x in range(x0, x0 + 11)], P['clog'][4]); put(a, [(x0 + 7, 55)], P['clog'][0])
+    # (legs_kit: shaped on the rig's own joints - big baggy check trousers that balloon at the knee and break in a
+    # rolled cuff over chunky clogs on a thick wooden sole)
+    def check(a):
+        ys, xs = np.nonzero(a[..., 3])
+        for y, x in zip(ys, xs):                                                               # the houndstooth check
+            if (x + y) % 3 == 0 and (x * 2 + y) % 4 == 0 and not np.all(a[y, x, :3] == np.array(hx(P['pants'][4])[:3])): a[y, x] = hx(P['pants'][0])
+        return a
+    for side, hip, knee, ank in (('b', (28, 40), (26, 48), (24, 55)), ('f', (36, 40), (39, 48), (40, 55))):
+        a = check(layer(lambda d, c: LK.seg(d, hip, knee, 7, 7, c, bulge=1.2, at=0.55), 'pants'))
+        put(a, LK.along(hip, knee, 1, 0.3, 0.9, 3), P['pants'][3])                                     # baggy folds
+        parts[side + 'thigh'] = a
+        a = check(layer(lambda d, c: LK.seg(d, knee, (ank[0], ank[1] - 2), 7, 7, c, bulge=0.6, at=0.2), 'pants'))
+        put(a, [(x, ank[1] - 2) for x in range(ank[0] - 3, ank[0] + 4)], P['pants'][3])               # the rolled cuff
+        put(a, [(x, ank[1] - 3) for x in range(ank[0] - 2, ank[0] + 3)], P['pants'][1])
+        put(a, LK.along(knee, ank, -1, 0.2, 0.6, 2), P['pants'][3])
+        parts[side + 'shin'] = a
+        a = layer(lambda d, c: LK.shoe(d, ank, c, 'clog', length=8), 'clog')
+        put(a, [(x, 58) for x in range(ank[0] - 4, ank[0] + 9)], 0x8a5a2a); put(a, [(x, 57) for x in range(ank[0] - 3, ank[0] + 8)], 0xb88040)   # the wooden sole
+        put(a, [(ank[0] + 4, 55), (ank[0] + 5, 55)], P['clog'][0])                                    # the shine on the toe
         parts[side + 'shoe'] = a
     # ---------------- the back arm: rolled sleeve, bare forearm, a frying pan (PATISSIER: a cake tin)
     parts['bupper'] = layer(lambda d, c: limb(d, (27, 24), (25, 31), 5, c), 'jacket')

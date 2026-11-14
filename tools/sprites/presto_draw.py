@@ -5,7 +5,8 @@ An original design: a lean showman in a tall top hat with a crimson band (the 'h
 head), slicked black hair, a sly face with violet eyes, a curled moustache and a pointed goatee; a black
 tailcoat with crimson lapels over a white shirt and a violet bow tie; a long black cape lined with crimson
 (its own part, 'cape', hung from his shoulders - it streams behind every move); white gloves; a black wand with
-white tips (the 'mic' slot); striped trousers and patent shoes with white spats.
+white tips (the 'mic' slot); long tapered tuxedo trousers with a crimson satin stripe and long pointed patent shoes with tall white
+spats (legs_kit.py).
 
 Costumes (VARIANTS, picked by `--set`): ROYAL FLUSH (an ivory tailcoat with gold trim, a red cape scattered with
 card suits, a white hat with a playing card in its band, a gold wand) and THE PHANTOM (a ghost of the stage:
@@ -17,6 +18,7 @@ upper left, each part outlined in its own darkest shade).
 import numpy as np
 from PIL import Image, ImageDraw
 from nu_draw import hx, shade5, put, limb, blank
+import legs_kit as LK
 
 # five tones per material: highlight, light, mid, shadow, outline
 BASE = {
@@ -51,7 +53,7 @@ VARIANTS = {
         'lining': (0x8affe8, 0x3ae0c0, 0x1aa890, 0x0a6a5a, 0x022a24), 'tie': (0x8affe8, 0x3ae0c0, 0x1aa890, 0x0a6a5a, 0x022a24),
         'hair': (0xe8f4fa, 0xc8d8e4, 0xa0b0c0, 0x708090, 0x30404c), 'wand': (0xf4f0e0, 0xe0d8c0, 0xc0b498, 0x8a7c60, 0x3a3220),
         'tip': (0x8affe8, 0x3ae0c0, 0x1aa890, 0x0a6a5a, 0x022a24), 'pants': (0x2a4048, 0x1a2e36, 0x102028, 0x08141a, 0x02080a),
-    }, 'eye': (0xd0fff4, 0x3ae0c0), 'mask': True, 'ragged': True},
+    }, 'eye': (0xd0fff4, 0x3ae0c0), 'mask': True, 'ragged': True, 'stripe': 0x1aa890},
 }
 VARIANT = 'default'
 
@@ -83,15 +85,23 @@ def draw_parts():
         for (x, y) in [(20, 44), (21, 38), (19, 47)]: put(a, [(x, y), (x + 1, y), (x, y + 1)], 0xffffff)
     parts['cape'] = a
     # ---------------- legs: striped trousers, patent shoes with white spats
-    for side, hip, knee, ank in (('b', (28, 40), (25, 48), (24, 54)), ('f', (37, 40), (40, 48), (40, 54))):
-        a = layer(lambda d, c: limb(d, hip, knee, 5, c), 'pants'); put(a, [(hip[0] + 1, y) for y in range(hip[1] + 1, knee[1])], P['pants'][3])
+    # (legs_kit: shaped on the rig's own joints - a long tapered dancer's leg, a satin stripe down the side, a crisp
+    # crease, the trousers breaking over long pointed patent shoes with buttoned white spats)
+    for side, hip, knee, ank in (('b', (28, 40), (26, 48), (24, 55)), ('f', (36, 40), (39, 48), (40, 55))):
+        a = layer(lambda d, c: LK.seg(d, hip, knee, 5.5, 4, c, bulge=0.6, at=0.3), 'pants')
+        put(a, LK.along(hip, knee, -1, 0.15, 0.9), V.get('stripe', P['band'][1]))   # the satin side stripe
+        put(a, LK.along(hip, knee, 1, 0.2, 0.8, 2), P['pants'][3])                                                           # the crease's shadow
         parts[side + 'thigh'] = a
-        a = layer(lambda d, c: limb(d, knee, ank, 5, c), 'pants'); put(a, [(knee[0] + (0 if side == 'b' else 0), y) for y in range(knee[1], ank[1])], P['pants'][3])
+        a = layer(lambda d, c: LK.seg(d, knee, (ank[0], ank[1] - 1), 4, 5, c, bulge=0.7, at=0.35), 'pants')
+        put(a, LK.along(knee, ank, -1, 0.1, 0.8), V.get('stripe', P['band'][1]))
+        put(a, [(ank[0] + 2, ank[1] - 2), (ank[0] - 2, ank[1] - 1)], P['pants'][3])                                        # the break over the shoe
         parts[side + 'shin'] = a
-        x0 = ank[0] - 3
-        a = layer(lambda d, c: d.polygon([(x0, 54), (x0 + 5, 54), (x0 + 7, 56), (x0 + 9, 56), (x0 + 9, 58), (x0, 58)], fill=c), 'shoe')
-        put(a, [(x0 + 1, 54), (x0 + 2, 54), (x0 + 3, 54), (x0 + 1, 55), (x0 + 2, 55), (x0 + 3, 55), (x0 + 4, 55)], 0xf4f2fa)    # the spats
-        put(a, [(x0 + 7, 56)], 0xffffff); put(a, [(x, 58) for x in range(x0, x0 + 10)], P['shoe'][4])
+        a = layer(lambda d, c: LK.shoe(d, ank, c, 'point', length=9, top=53), 'shoe')
+        sp = [(ank[0] + dx, y) for y in (53, 54, 55) for dx in range(-2, 3)] + [(ank[0] + 3, 55)]
+        put(a, sp, P['shirt'][1]); put(a, [(ank[0] - 2, 53), (ank[0] - 2, 54), (ank[0] - 2, 55)], P['shirt'][3])                             # the spats
+        put(a, [(ank[0], 54)], P['shirt'][3])                                                                                 # a spat button
+        put(a, [(ank[0] + 5, 56), (ank[0] + 6, 56)], 0xffffff)                                                               # the patent shine
+        put(a, [(x, 58) for x in range(ank[0] - 3, ank[0] + 9)], P['shoe'][4])
         parts[side + 'shoe'] = a
     # ---------------- the back arm: a black sleeve and a white glove
     parts['bupper'] = layer(lambda d, c: limb(d, (27, 24), (25, 31), 4, c), 'coat')

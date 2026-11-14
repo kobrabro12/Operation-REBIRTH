@@ -4,7 +4,7 @@
 // clone with no history), every file counts as changed.
 import { execFileSync } from 'node:child_process';
 
-const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 512 * 1024 * 1024 });   // (regenerated atlas JSON is one huge line per file)
 
 /** The commit this change started from, or null when there's nothing to compare against. */
 export function baseRef() {

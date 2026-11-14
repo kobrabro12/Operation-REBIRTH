@@ -21,6 +21,9 @@ import { resultsCard } from '../ui/resultsCard.js';
 
 // how quickly the reward lines come in (frames apart), and the first one's delay
 const LINE = { first: 50, every: 26 };
+// how long (frames) buttons are ignored when the screen opens - so the attack you were mashing as the boss fell doesn't
+// press FIGHT AGAIN at once - and again after a press skips the tally
+const LOCK = { open: 75, skip: 40 };
 
 /** The win / defeat screen after a boss fight (see the top of the file). */
 export class BossRewardScene extends Phaser.Scene {
@@ -29,7 +32,7 @@ export class BossRewardScene extends Phaser.Scene {
 /** data: { boss: { id, tier, won, time, hp, fighter, skin, falls, dealt, taken, setup }, rewards } from MatchScene.toBossReward. Checks trophies and achievements, lays out the reward lines. */
   create(data) {
     const R = data.boss, B = bossById(R.id), T = TIERS[R.tier];
-    this.R = R; this.B = B; this.t = 0; this.choice = 0; this.menu = new MenuInput(this);
+    this.R = R; this.B = B; this.t = 0; this.lockUntil = LOCK.open; this.choice = 0; this.menu = new MenuInput(this);
     this.skin = R.skin; this.skinList = skinsFor(R.fighter).map((_, i) => i).filter((i) => skinUnlocked(R.fighter, i));   // (W/S changes costume for the retry)
     this.won = R.won;
     // BOSS RUSH: which boss of the run this was, whether there's another, and the prize at the end
@@ -121,6 +124,8 @@ export class BossRewardScene extends Phaser.Scene {
 
   /** Back to the fight (same boss, difficulty, fighter) or to BOSS FIGHTS. */
   leave(i) {
+    if (this.t < this.lockUntil) return;                                            // (still the press that won the fight)
+    if (this.results && !this.results.done(this.t)) { this.t = this.results.end(); this.lockUntil = this.t + LOCK.skip; sfx('menu', 0.6); return; }   // the first press skips the tally
     sfx('go', 0.7);
     const R = this.R;
     if (i === 0 && R.rush && R.setup) {                                // BOSS RUSH: on to the next boss with the lives left - or a fresh run
@@ -137,7 +142,7 @@ export class BossRewardScene extends Phaser.Scene {
     this.t++;
     showFighter(this.sprite, this.def, Math.floor(this.t / 6), this.skin);
     this.sprite.setPosition(120, this.won ? 258 : 252);
-    for (const r of this.rows) if (this.t === r.at) { r.a.setAlpha(1); r.b.setAlpha(1); sfx('ding', 0.5, 1 + this.rows.indexOf(r) * 0.08); }
+    for (const r of this.rows) if (this.t >= r.at && !r.shown) { r.shown = true; r.a.setAlpha(1); r.b.setAlpha(1); sfx('ding', 0.5, 1 + this.rows.indexOf(r) * 0.08); }
     for (const r of this.rows) if (this.t > r.at && this.t < r.at + 10) { const k = (this.t - r.at) / 10; r.a.x = 236 + (1 - k) * 30; }
     const done = this.rows.length ? this.rows[this.rows.length - 1].at : 0;
     if (this.won && this.t > LINE.first && this.counted < this.total) { this.counted = Math.min(this.total, this.counted + Math.max(1, Math.ceil(this.total / 90))); if (this.t % 3 === 0) sfx('ding', 0.15, 1.8); }
@@ -148,7 +153,7 @@ export class BossRewardScene extends Phaser.Scene {
     try { if (this.card) this.card.update(this.t); if (this.results) this.results.update(this.t); } catch (e) { this.cardFailed(e); }
     this.actions.forEach((a, i) => a.setColor(i === this.choice ? '#ffdf83' : '#ffffff'));
     const m = this.menu.poll();
-    if (this.t < 20) return;
+    if (this.t < this.lockUntil) return;
     if (m.left) this.choice = 0; if (m.right) this.choice = 1;
     if (m.up) this.cycleSkin(-1); if (m.down) this.cycleSkin(1);
     if (m.ok || m.pads.some((p) => p.button === 'a')) this.leave(this.choice);

@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(__file__))
 import aero_draw as D
+import legs_kit as LK
 import aero_moves as A
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -76,7 +77,7 @@ def bloody(x, y, seed, heavy=0.0):
 COVER = [0.0, 0.34, 0.6, 1.0]
 # which parts are what (the shading ramp they get)
 KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
-        'bthigh': PANTS, 'fthigh': PANTS, 'bshin': PANTS, 'fshin': PANTS, 'bshoe': SHOE, 'fshoe': SHOE}
+        'bthigh': PANTS, 'fthigh': PANTS, 'bshin': SHOE, 'fshin': SHOE, 'bshoe': SHOE, 'fshoe': SHOE}
 
 def apply_variant(name):
     """Switches the module's palettes to a drawn costume's (see VARIANTS) - before anything is drawn."""
@@ -87,7 +88,7 @@ def apply_variant(name):
     if v.get('poly'): SHIRT, PANTS, SHOE, SKIN, HAIR = (expand(r) for r in (SHIRT, PANTS, SHOE, SKIN, HAIR))
     STRIPE = SHIRT; SLUDGE = v['sludge']; SHEEN = v['sheen']; FACET = v.get('facet', 0)
     KIND = {'torso': SHIRT, 'bupper': SHIRT, 'fupper': SHIRT, 'bfore': SHIRT, 'ffore': SHIRT, 'bfist': SKIN, 'ffist': SKIN,
-            'bthigh': PANTS, 'fthigh': PANTS, 'bshin': PANTS, 'fshin': PANTS, 'bshoe': SHOE, 'fshoe': SHOE}
+            'bthigh': PANTS, 'fthigh': PANTS, 'bshin': SHOE, 'fshin': SHOE, 'bshoe': SHOE, 'fshoe': SHOE}
 
 LIGHT = np.array([-0.62, -0.68, 0.4]) / np.linalg.norm([-0.62, -0.68, 0.4])   # CARTRIDGE's light: up, left, a little toward us
 
@@ -482,12 +483,51 @@ def dress(P, stage):
         for dy in range(0, 4): t[min(63, y + dy), x] = hx(0xf0c03a)
         t[min(63, y + 1), x - 1] = hx(0xf0c03a); t[min(63, y + 1), x + 1] = hx(0xf0c03a)                        # its little cross
 
+MARKS = {}     # her_legs' details that keep their own colour through `repaint` (laces, the skin through the rips)
+
+def her_legs():
+    """Her own legs (legs_kit, on AERO's leg joints), drawn in greys for `repaint` to colour: skinny jeans slashed
+    open at the knees, and knee-high lace-up combat boots (the shin part is all boot - KIND gives it the SHOE ramp),
+    criss-crossed laces, a buckle strap at the top, a deep lugged sole. Returns the six leg parts."""
+    import nu_draw as N
+    G = (0xb0b0b0, 0x808080, 0x505050); out = {}; MARKS.clear()
+    for side, hip, knee, ank in (('b', (28, 40), (24, 48), (24, 55)), ('f', (37, 40), (41, 48), (41, 55))):
+        im = N.blank(); d = ImageDraw.Draw(im); LK.seg(d, hip, knee, 6, 4.5, N.hx(G[1]), bulge=0.7, at=0.3)
+        a = D.finish(im, G)
+        for (x, y) in LK.along(hip, knee, 0, 0.48, 0.75, 1): a[y, x] = hx(0x202020)          # the slash above the knee
+        MARKS[side + 'thigh'] = [(x, y, 'rip') for (x, y) in LK.along(hip, knee, 0.8, 0.5, 0.72, 1) + LK.along(hip, knee, -0.6, 0.55, 0.7, 1)]
+        out[side + 'thigh'] = a
+        im = N.blank(); d = ImageDraw.Draw(im); LK.seg(d, knee, (ank[0], ank[1] - 1), 5, 4.5, N.hx(G[1]), bulge=0.8, at=0.3)
+        a = D.finish(im, G)
+        for y in range(knee[1] + 2, ank[1] - 1):                                             # the laces, criss-crossed
+            x = ank[0] + (knee[0] - ank[0]) * (ank[1] - y) / (ank[1] - knee[1]) + 1
+            for dx in (-1, 0, 1):
+                xx = int(round(x + dx * (1 if y % 2 else -1)))
+                if dx and y % 2 == 0: continue                                                         # (an X every other row)
+                if a[y, xx, 3] and not np.all(a[y, xx, :3] == hx(D.OUT)[:3]): a[y, xx] = hx(0xe8e8e8); MARKS.setdefault(side + 'shin', []).append((xx, y, 'lace'))
+        for (x, y) in LK.along(knee, ank, 0, 0.05, 0.2, 1): a[y, x] = hx(0x303030)              # the strap at the top...
+        tx, ty = LK.along(knee, ank, -1.5, 0.12, 0.12)[0]
+        if a[ty, tx, 3]: a[ty, tx] = hx(0xffffff)                                                 # ...and its buckle
+        out[side + 'shin'] = a
+        im = N.blank(); d = ImageDraw.Draw(im); LK.shoe(d, ank, N.hx(G[1]), 'boot', length=8, top=ank[1] - 1)
+        a = D.finish(im, G)
+        for x in range(ank[0] - 4, ank[0] + 9): a[58, x] = hx(D.OUT) if x % 2 else hx(0x303030)   # the lugged sole
+        for x in range(ank[0] - 3, ank[0] + 8): a[57, x] = hx(0x404040) if a[57, x, 3] else a[57, x]
+        a[55, ank[0] + 5] = hx(0xe8e8e8)                                                           # the toe cap's scuff
+        out[side + 'shoe'] = a
+    return out
+
 def draw_parts(stage):
     base = D.draw_parts()
+    base.update(her_legs())
     P = {}
     for n, l in base.items():
         if n in ('head', 'fish', 'scarf'): continue
         P[n] = repaint(l, KIND.get(n, SHIRT), stage, hash(n) % 97)
+        for (x, y, kind) in MARKS.get(n, ()):                       # laces and torn knees, unless the sludge has them
+            px = tuple(int(v) for v in P[n][y, x, :3])
+            if not P[n][y, x, 3] or px in [tuple(int(v) for v in hx(c)[:3]) for c in SLUDGE] or px == tuple(int(v) for v in hx(LINE)[:3]): continue
+            P[n][y, x] = hx(SKIN[2] if kind == 'rip' else (SHIRT[3] if VARIANT == 'bride' else 0xd8cfb8))
     P['ffist'] = knife(P['ffist'])
     dress(P, stage)
     P['head'] = head(stage)

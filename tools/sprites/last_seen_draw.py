@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 import nu_draw
 from nu_draw import blank, hx
+import legs_kit as LK
 
 STYLE = 'calm'
 def set_style(s):
@@ -396,29 +397,29 @@ def draw_parts():
     C = WRONG if W else SOVIET if STYLE == 'soviet' else CALM
     K, T, B, CO, HR = C['skin'], C['tight'], C['boot'], C['coat'], C['hair']
     P = {}
-    # ---------------- legs: slim; under the coat only the shins show
-    for side, hip, knee, ank, toe in (('b', (28, 40), (25, 48), (24, 55), -1), ('f', (37, 40), (40, 48), (40, 55), 1)):
-        TH = T if W else CO                                                    # (calm: her thighs are under the coat)
-        im = blank(); d = ImageDraw.Draw(im); limb(d, hip, knee, 5 if not W else 4, hx(TH[2])); P[side + 'thigh'] = shade(im, TH)
-        im = blank(); d = ImageDraw.Draw(im)
-        if W:
-            limb(d, knee, ank, 3, hx(T[2])); a = shade(im, T)
-        else:
-            limb(d, knee, (ank[0], 50), 4, hx(T[2]))                          # tights above the boot
-            d.polygon([(ank[0] - 2, 51), (ank[0] + 1, 51), (ank[0] + 1, 56), (ank[0] - 2, 56)], fill=hx(B[2]))   # the boot's shaft
-            a = np.array(im); tg = np.array(shade(Image.fromarray(np.where((np.arange(64)[:, None, None] < 51), a, 0).astype(np.uint8)), T))
-            bt = shade(Image.fromarray(np.where((np.arange(64)[:, None, None] >= 51), a, 0).astype(np.uint8)), B)
-            a = tg.copy(); m = bt[..., 3] > 0; a[m] = bt[m]
-            put(a, [(ank[0] - 1, 52), (ank[0] - 1, 53)], B[0])                 # a shine on the rubber
+    # ---------------- legs (legs_kit, on the rig's own joints): the coat over her thighs, slim calves in dark tights,
+    # tall red rain boots with a turned-down cuff and a chunky ridged sole (RED ARMY: khaki trousers, black jackboots)
+    SV = STYLE == 'soviet'
+    for side, hip, knee, ank in (('b', (28, 40), (26, 48), (24, 55)), ('f', (36, 40), (39, 48), (40, 55))):
+        im = blank(); d = ImageDraw.Draw(im); LK.seg(d, hip, knee, 6, 5, hx(CO[2]), bulge=0.5, at=0.3); a = shade(im, CO)
+        put(a, LK.along(hip, knee, 1, 0.3, 0.8, 3), CO[3])                                         # a fold in the coat
+        P[side + 'thigh'] = a
+        top = 50 if SV else 52                                                                       # where the boot starts
+        im = blank(); d = ImageDraw.Draw(im); LK.seg(d, knee, (ank[0], top + 1), 4.5 if SV else 4, 3, hx(T[2]), bulge=1.1, at=0.3)
+        tg = shade(im, T)
+        if not SV: put(tg, LK.along(knee, (ank[0], top), 1, 0.2, 0.9, 1), T[1])                      # the sheen on her tights
+        else: put(tg, LK.along(knee, (ank[0], top), 0, 0.1, 0.9, 1), T[3])                           # the trousers' seam
+        im = blank(); d = ImageDraw.Draw(im); LK.seg(d, (ank[0], top), (ank[0], ank[1]), 4.5 if SV else 4, 5 if SV else 4.5, hx(B[2]), cap_a=False)
+        bt = shade(im, B)
+        put(bt, [(ank[0] - 1, top + 2), (ank[0] - 1, top + 3)], B[0])                                # a shine on the rubber
+        if not SV: put(bt, [(x, top) for x in range(ank[0] - 2, ank[0] + 3)], B[1]); put(bt, [(x, top + 1) for x in range(ank[0] - 2, ank[0] + 3)], B[3])   # the turned-down cuff
+        a = tg.copy(); m = bt[..., 3] > 0; a[m] = bt[m]
         P[side + 'shin'] = a
-        im = blank(); d = ImageDraw.Draw(im)
-        x0 = ank[0] - 3
-        if W:                                                                  # long grey feet, toes splayed
-            d.polygon([(x0 + 1, 54), (x0 + 5, 54), (x0 + 10, 57), (x0 + 10, 58), (x0, 58)], fill=hx(K[2]))
-            a = shade(im, K); put(a, [(x0 + 6, 58), (x0 + 8, 58), (x0 + 10, 58)], K[4])
-        else:                                                                  # the boot's foot, a dark sole
-            d.polygon([(x0 + 1, 55), (x0 + 5, 55), (x0 + 7, 57), (x0 + 7, 58), (x0 + 1, 58)], fill=hx(B[2]))
-            a = shade(im, B); put(a, [(x, 58) for x in range(x0 + 1, x0 + 8)], 0x2a1010); put(a, [(x0 + 2, 56)], B[0])
+        im = blank(); d = ImageDraw.Draw(im); LK.shoe(d, ank, hx(B[2]), 'boot' if SV else 'rain', length=7 if SV else 5)
+        a = shade(im, B)
+        put(a, [(x, 58) for x in range(ank[0] - 3, ank[0] + 8)], 0x1a0c0c if SV else 0x2a1010)       # the sole
+        if not SV: put(a, [(x, 57) for x in range(ank[0] - 2, ank[0] + 6, 2)], 0x4a1a14)              # its ridges
+        put(a, [(ank[0] + 3, 55)], B[0])
         P[side + 'shoe'] = a
     # ---------------- back arm: a thin sleeve and a small hand (calm: holding her poster)
     im = blank(); d = ImageDraw.Draw(im); limb(d, (27, 24), (25, 31), 4, hx(CO[2])); a = shade(im, CO); put(a, [(26, 27)], CO[3]); P['bupper'] = a
