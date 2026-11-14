@@ -42,7 +42,8 @@ const CUCKOO = { size: 1.7, open: 26, pecks: [2, 4], aim: 38, lunge: 8, hold: 12
 const CRANE = { rail: -300, travel: 90, w: 46, h: 40, hit: [13, [80, 6, 0.9]] };
 // BROKEN (the third stage): the health left when its core breaks, how long the clock gives you (frames), the cutscene's
 // length, how much more its exposed core takes, how far its sloppy attacks miss by, and its shorter pauses
-const BROKE = { at: 0.25, time: 1800, cut: 170, mult: 1.5, slop: 70, wait: 46 };
+// (armor = what your hits do to it while broken - 20% less everywhere; hit / kb = how much harder its own hits land; fast = how much quicker its wind-ups are)
+const BROKE = { at: 0.2, time: 1800, cut: 170, armor: 0.8, hit: 1.3, kb: 1.15, fast: 1.3, slop: 70, wait: 34 };
 // NOW I'VE GOTCHA (the clock ran out): the cutscene's length, when it says the line, launches, and the missile lands
 const GOTCHA = { n: 300, line: 34, launch: 96, hit: 196 };
 // the cracks across its chest when the core breaks: polylines from the porthole outward (x, y from the core)
@@ -175,11 +176,16 @@ export class SteamBossStage extends BossArena {
   /** Where the Colossus can be hit: its heart (white-hot = x1.6 while overheated), its head, a fist resting on the deck. */
   hurt() {
     const c = this.core(), hy = COL.headY + this.lean * (COL.lean + 10), out = [];
-    out.push({ x1: c.x - 30, y1: c.y - 30, x2: c.x + 30, y2: c.y + 30, mult: (this.hot > 0 ? 1.6 : 1) * (this.broken ? BROKE.mult : 1) });
+    out.push({ x1: c.x - 30, y1: c.y - 30, x2: c.x + 30, y2: c.y + 30, mult: this.hot > 0 ? 1.6 : 1 });
     out.push({ x1: -26, y1: hy - 24, x2: 26, y2: hy + 18, mult: 0.7 });
     for (const f of this.fists) if (f.resting) out.push({ x1: f.x - 28, y1: f.y - 22, x2: f.x + 28, y2: f.y + 22, mult: 0.5 });
+    if (this.broken) for (const r of out) r.mult *= BROKE.armor;                    // (BROKEN: it shrugs off 20% of every hit)
     return out;
   }
+  /** BROKEN: its wind-ups are quicker (on top of the difficulty's speed). */
+  sp(n) { return super.sp(this.broken ? n / BROKE.fast : n); }
+  /** BROKEN: its hits land harder - more damage and more knockback. */
+  bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { const k = this.broken ? BROKE.hit : 1, kb = this.broken ? BROKE.kb : 1; return super.bhit(id, x1, y1, x2, y2, dmg * k, [angle, base * kb, growth * kb], more); }
   /** Attacks it can pick: normal, then enraged. */
   pattern(phase) { if (this.broken) return ['slam', 'sweep', 'cogs', 'rivets', 'slam', 'cuckoo', 'rivets']; return phase === 1 ? ['slam', 'sweep', 'cogs', 'vent', 'slam', 'cuckoo'] : ['slam', 'sweep', 'cogs', 'vent', 'rivets', 'slam', 'cuckoo']; }
   /** At rest: fists hover by its sides, bobbing. */
@@ -765,7 +771,7 @@ export class SteamBossStage extends BossArena {
    * Its core breaks (health under `BROKE.at`): with a player watching, a short cutscene - the camera on its chest, cracks
    * spreading, the glass bursts, a gout of fire and steam, it staggers, and the 30-SECOND CLOCK appears. Without one
    * (the sim) it just breaks. From then on its attacks get sloppy (they miss by more, come faster), its core is
-   * exposed (x`BROKE.mult`) - and if the clock runs out first: NOW I'VE GOTCHA.
+   * exposed but it shrugs off 20% of every hit (`BROKE.armor`), and it hits harder and faster (`BROKE.hit` / `kb` / `fast`) - and if the clock runs out first: NOW I'VE GOTCHA.
    */
   breakCore(match) {
     this.broken = true; this.clock = BROKE.time; this.boss.atk = null; this.cuckoo = null; this.cogs = []; this.rivets = []; this.hot = 0;

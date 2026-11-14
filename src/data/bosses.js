@@ -26,7 +26,7 @@ export const BOSSES = [
     blurb: 'A STEAM-DRIVEN GIANT OF BRASS AND RIVETS,\nBUILT TO GUARD THE FOUNDRY. ITS FURNACE\nHEART OVERHEATS - THAT IS WHEN IT BREAKS.',
     taunts: ['TICK. TOCK. YOUR TIME IS UP.', 'MAINTENANCE COMPLETE. PEST REMOVED.', 'YOU WERE NEVER BUILT FOR THIS.'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
-    card: { marks: [[0.5, 'OVERDRIVE'], [0.75, 'CORE BROKEN']], quotes: { base: 'TICK... TOCK. I WAS WOUND BEFORE YOUR GRANDFATHER WAS BORN. I WILL BE TICKING LONG AFTER YOU.', rage: 'PRESSURE RISING. TEMPERATURE RISING. YOUR CHANCES? FALLING.', broken: 'CRACKED, LEAKING, HALF MY GEARS ON THE FLOOR... AND STILL I OUTLASTED YOU.', gotcha: 'NOW I\'VE GOTCHA. NEXT TIME, MIND THE CLOCK.' } },
+    card: { marks: [[0.5, 'OVERDRIVE'], [0.8, 'CORE BROKEN']], quotes: { base: 'TICK... TOCK. I WAS WOUND BEFORE YOUR GRANDFATHER WAS BORN. I WILL BE TICKING LONG AFTER YOU.', rage: 'PRESSURE RISING. TEMPERATURE RISING. YOUR CHANCES? FALLING.', broken: 'CRACKED, LEAKING, HALF MY GEARS ON THE FLOOR... AND STILL I OUTLASTED YOU.', gotcha: 'NOW I\'VE GOTCHA. NEXT TIME, MIND THE CLOCK.' } },
     hazards: 'PIPE BURSTS / CRANE DROPS' },
   { id: 'polygon', name: 'KING POLYGON', short: 'KING POLYGON', title: 'RULER OF THE 64-BIT SKY', stage: 'polygon-peak', arena: 'POLYGON PEAK', hp: 360, coins: 180, color: 0x5ad8ff, trophy: 'golden-cartridge',
     blurb: 'THE LOW-POLY RULER OF A 64-BIT SKY, A\nCROWNED HEAD AND TWO GIANT HANDS. HIT\nTHE HEAD. NEAR THE END, HE BATS IT AT YOU.',
