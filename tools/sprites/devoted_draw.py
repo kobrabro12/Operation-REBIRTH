@@ -597,11 +597,11 @@ def idle_keys():
         c = {n: lerp(lerp(GUARD[n], SPIN[n], sp), CHIN[n], chin) for n in GUARD}
         flip = -720 * spin if i <= 96 else -720                               # two full flips of the karambit round her finger
         ff_out = 0
-        keys.append(k(i, P(root=(round(sh), 0, round(2 + br + chin), 1.05, 0.93 - 0.01 * br - 0.02 * chin),
+        keys.append(k(i, P(root=(round(sh), 0, round(1 + 0.5 * br + chin), 1.0, 1.0 - 0.005 * br - 0.01 * chin),
                            torso=(c['tor'] + 2 * br, 0, 1 + 0.5 * br), head=(c['head'] - br + 14 * roll, 0, round(roll)),
                            fupper=(c['fu'] + 4 * br + ff_out * 0.3, 0, 0), ffore=(c['ff'] + 3 * sh + ff_out, 0, 0), ffist=(c['fx'] + flip, 0, 0),
                            bupper=(c['bu'] - 4 * br, 0, 0), bfore=(c['bf'] + 5 * sh, 0, 0),
-                           **A.legs(24 + 4 * sh, -26 - 3 * br, -26 + 4 * sh, 30 + 3 * br, 8, -10)), 'linear'))
+                           **A.legs(16 + 3 * sh, -22 - 2 * br, -18 + 3 * sh, 24 + 2 * br, 6, -6)), 'linear'))
     return keys
 
 def drowned_idle_keys():
@@ -630,10 +630,32 @@ def drowned_glide_keys():
                            **A.legs(34 + 8 * w, 30 - 10 * w, 26 - 8 * w, 36 + 10 * w, 50, 46)), 'linear'))
     return keys
 
+# how much of the rig's whole-body squash & stretch she keeps (AERO's poses squash him up to ~8% - on her chunky boots
+# and short frame that read as stretched legs, so she keeps only a little of it)
+SQUASH = 0.2
+
+def unstretch(pose):
+    """The pose with its whole-body squash / stretch (root sx, sy) cut down to SQUASH of itself."""
+    if 'root' not in pose: return pose
+    r = list(A.N.full(pose['root'])) if hasattr(A.N, 'full') else list(pose['root'])
+    r = (r + [0, 0, 0, 1, 1][len(r):])[:5]
+    r[3] = 1 + (r[3] - 1) * SQUASH; r[4] = 1 + (r[4] - 1) * SQUASH
+    return {**pose, 'root': tuple(r)}
+
+# how far her legs swing in the run, against AERO's (his long stride splayed her short legs)
+STRIDE = 0.8
+
+def her_run_keys():
+    """AERO's run, without the squash that stretched her legs, and a shorter stride (STRIDE)."""
+    def short(p):
+        legs_ = {n: (v[0] * STRIDE,) + tuple(v[1:]) for n, v in p.items() if n in ('bthigh', 'bshin', 'fthigh', 'fshin')}
+        return {**p, **legs_}
+    return [(t, unstretch(short(p)), e) for (t, p, e) in A.N.run_keys()]
+
 def make_life(stage):
-    """AERO's breathing, minus the goldfish; DROWNED's wing beats slowly and heavily."""
+    """AERO's breathing, minus the goldfish; DROWNED's wing beats slowly and heavily. Squash & stretch cut down (SQUASH)."""
     def life(pose, t):
-        p = A.life(pose, t)
+        p = unstretch(A.life(pose, t))
         p['fish'] = (0, 0, 0, 1, 1)
         sc = A.N.full(p.get('scarf'))
         if stage == 3: sc[0] += -8 * math.sin(t * 0.09) - 2 * math.sin(t * 0.21)
@@ -676,7 +698,7 @@ if __name__ == '__main__':
         root = os.path.join(OUT, VARIANT) if VARIANT else OUT
         out = root if i == 0 else os.path.join(root, name)
         os.makedirs(out, exist_ok=True)
-        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=drowned_idle_keys if i == 3 else idle_keys, run=drowned_glide_keys if i == 3 else A.N.run_keys)
+        A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=drowned_idle_keys if i == 3 else idle_keys, run=drowned_glide_keys if i == 3 else her_run_keys)
         if i:
             p = os.path.join(out, 'icon.png')
             if os.path.exists(p): os.remove(p)
