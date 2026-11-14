@@ -72,6 +72,7 @@ export function deathCard(scene, B, R, def, tip, skinName) {
   const pct = txt(L.x1, L.y - 46, '', 8, hex(B.color), { stroke: '#2a1a10', strokeThickness: 3 }).setOrigin(0.5, 1);
   let landed = false, skin = R.skin;
   const api = {
+    box,
     /** One frame of the card's animation. */
     update(t) {
       const k = Math.min(1, t / TIME.drop), e = 1 - Math.pow(1 - k, 3), bounce = k >= 1 ? Math.max(0, Math.sin((t - TIME.drop) * 0.5)) * 6 * Math.max(0, 1 - (t - TIME.drop) / 14) : 0;

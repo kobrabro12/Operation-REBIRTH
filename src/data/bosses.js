@@ -130,9 +130,10 @@ export function bossGrade(R) {
     { label: 'LIMITS FIRED', value: String(R.limits || 0), pts: Math.min(GRADE.limits, (R.limits || 0) * GRADE.perLimit) },
     { label: 'SKILL LEVEL', value: T.name, stars: R.tier + 1, pts: GRADE.skill[R.tier] },
   ];
+  for (const r of rows) if (!Number.isFinite(r.pts)) r.pts = 0;                      // (missing numbers never break the grade)
   const score = Math.round(rows.reduce((n, r) => n + r.pts, 0));
   const ok = (L) => L !== 'S' || (R.tier === 2 && !R.falls);
-  const grade = LETTERS.find(([L, need]) => score >= need && ok(L))[0];
+  const grade = (LETTERS.find(([L, need]) => score >= need && ok(L)) || ['D-'])[0];
   return { grade, score, rows };
 }
 /** Remembers a grade if it's the best yet for that boss and difficulty; returns true if it is. */

@@ -67,6 +67,7 @@ export function resultsCard(scene, B, R, result, rewards, opts = {}) {
   const star = (gr, x, y, r, on) => { const p = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; p.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr }); } gr.fillStyle(on ? INK.gold : 0x3a2a1a, 1); gr.fillPoints(p, true); };
   let counted = 0;
   return {
+    box,
     /** One frame of the tally: lines in, numbers counting up with ticks, the grade stamping in, rewards, the coin total; film grain and flicker over it all. */
     update(t) {
       title.setScale(1 + Math.max(0, 0.25 - t * 0.02));

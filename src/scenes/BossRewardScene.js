@@ -61,15 +61,19 @@ export class BossRewardScene extends Phaser.Scene {
       return { a, b, at: LINE.first + i * LINE.every };
     });
     this.skinT = txt(118, 300, '', 6, '#ffe08a').setOrigin(0.5, 0);
-    if (!this.won) {                                                                // THE DEATH CARD fills the screen (src/ui/deathCard.js)
-      for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx) o.setVisible(false);
-      this.card = deathCard(this, B, R, def, this.tip(), skinInfo(R.fighter, this.skin).name);
-    } else {                                                                        // THE RESULTS fill the screen (src/ui/resultsCard.js): the tally, the GRADE, the rewards
-      for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx && o !== this.sprite && o !== this.skinT) o.setVisible(false);
-      const result = bossGrade(R), newBest = recordGrade(R.id, R.tier, result.grade); this.grade = result.grade;
-      this.results = resultsCard(this, B, R, result, this.lines, { sub: rush ? headText : '', newBest, total: getCoins() });
-      this.sprite.setDepth(2); this.skinT.setDepth(2).setY(296); this.fx.setDepth(3);
-    }
+    this.plain = [];                                                                // (the plain layout, hidden under the full-screen card - shown again if the card ever fails)
+    try {
+      if (!this.won) {                                                              // THE DEATH CARD fills the screen (src/ui/deathCard.js)
+        for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx && o.visible) { o.setVisible(false); this.plain.push(o); }
+        this.card = deathCard(this, B, R, def, this.tip(), skinInfo(R.fighter, this.skin).name);
+      } else {                                                                      // THE RESULTS fill the screen (src/ui/resultsCard.js): the tally, the GRADE, the rewards
+        for (const o of this.children.list.slice()) if (o !== this.bg && o !== this.fx && o !== this.sprite && o !== this.skinT && o.visible) { o.setVisible(false); this.plain.push(o); }
+        const result = bossGrade(R); this.grade = result.grade;
+        let newBest = false; try { newBest = recordGrade(R.id, R.tier, result.grade); } catch (e) { console.error('grade save failed', e); }
+        this.results = resultsCard(this, B, R, result, this.lines, { sub: rush ? headText : '', newBest, total: getCoins() });
+        this.sprite.setDepth(2); this.skinT.setDepth(2).setY(296); this.fx.setDepth(3);
+      }
+    } catch (e) { this.cardFailed(e); }
     this.totalT = txt(610, 104 + Math.max(1, this.lines.length) * 22 + 10, '', 9, '#ffe08a').setOrigin(1, 0);
     this.coinT = txt(236, 104 + Math.max(1, this.lines.length) * 22 + 12, '', 6, '#c9c4dc');
     if (!this.won) { this.totalT.setVisible(false); this.coinT.setVisible(false); }
@@ -84,6 +88,13 @@ export class BossRewardScene extends Phaser.Scene {
     if (fresh.length) achievementToasts(this, fresh);
   }
 
+  /** A full-screen card broke: drop it and show the plain results layout instead, so the screen still works. */
+  cardFailed(e) {
+    console.error('end screen card failed', e);
+    for (const c of [this.card, this.results]) if (c && c.box) c.box.destroy();
+    this.card = null; this.results = null; this.grade = null;
+    for (const o of this.plain || []) if (o.active) o.setVisible(true);
+  }
   /** Changes the costume you'll retry in (and shows it). */
   setSkin(s) { this.skin = s; const name = skinInfo(this.R.fighter, s).name; if (this.card) this.card.setSkin(name, s); this.skinT.setText('COSTUME: ' + name + '  (W/S)'); }
   /** Next / previous unlocked costume. */
@@ -132,10 +143,9 @@ export class BossRewardScene extends Phaser.Scene {
     if (this.won && this.t > LINE.first && this.counted < this.total) { this.counted = Math.min(this.total, this.counted + Math.max(1, Math.ceil(this.total / 90))); if (this.t % 3 === 0) sfx('ding', 0.15, 1.8); }
     if (this.won) { this.totalT.setText(this.t > LINE.first ? 'TOTAL  +' + this.counted : ''); this.coinT.setText(this.t > done + 20 ? 'YOU NOW HAVE ' + getCoins() + ' COINS' : ''); }
     const f = this.fx; f.clear();
-    if (this.won && this.grade && /^[SA]/.test(this.grade) && this.results.done(this.t - 40)) for (let i = 0; i < 14; i++) { const ph = (this.t * 1.3 + i * 37) % 160, x = 40 + (i * 97) % 560, y = -10 + ph * 2.4; f.fillStyle([0xffd23f, 0xffffff, this.B.color][i % 3], 1); f.fillRect(x + Math.sin(ph * 0.1 + i) * 8, y, 4, 2 + (i % 3)); }
+    if (this.won && this.grade && this.results && /^[SA]/.test(this.grade) && this.results.done(this.t - 40)) for (let i = 0; i < 14; i++) { const ph = (this.t * 1.3 + i * 37) % 160, x = 40 + (i * 97) % 560, y = -10 + ph * 2.4; f.fillStyle([0xffd23f, 0xffffff, this.B.color][i % 3], 1); f.fillRect(x + Math.sin(ph * 0.1 + i) * 8, y, 4, 2 + (i % 3)); }
     this.head.setScale(1 + Math.max(0, 0.3 - this.t * 0.02));
-    if (this.card) this.card.update(this.t);
-    if (this.results) this.results.update(this.t);
+    try { if (this.card) this.card.update(this.t); if (this.results) this.results.update(this.t); } catch (e) { this.cardFailed(e); }
     this.actions.forEach((a, i) => a.setColor(i === this.choice ? '#ffdf83' : '#ffffff'));
     const m = this.menu.poll();
     if (this.t < 20) return;

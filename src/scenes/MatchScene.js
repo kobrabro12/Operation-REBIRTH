@@ -584,6 +584,13 @@ export class MatchScene extends Phaser.Scene {
   paintBossCard() {
     const st = this.stage; if (this.cardPainted || this.demo || !st || !st.core || !st.cardObjs) return;
     this.cardPainted = true;
+    try { this.paintBossCardArt(st); } catch (e) {                                  // (a portrait that fails must never take the game down: the card shows its silhouette instead)
+      console.error('boss card portrait failed', e); if (this.bossCard) this.bossCard.art = false;
+      try { if (st.cardDone) st.cardDone(this); } catch (e2) { /* (already restored) */ }
+    }
+  }
+  /** paintBossCard's actual painting (see there). */
+  paintBossCardArt(st) {
     const N = 256, B = this.bossFight ? bossById(this.bossFight.id) : null, col = B ? B.color : 0xffffff, tx = this.textures;
     const dt = tx.exists('boss_card_art') ? tx.get('boss_card_art') : tx.addDynamicTexture('boss_card_art', N, N);
     if (!dt || !dt.capture) return;
