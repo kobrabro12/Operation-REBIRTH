@@ -537,19 +537,31 @@ MOVES['demonpick'] = (48, [k(0, BOOK), k(6, FLICK, 'out'), k(12, BOOK, 'in'), k(
 FOLLOW = dict(A.FOLLOW, fish=(0, 0), scarf=(0.5, 1.0))
 
 def idle_keys():
-    """Her own idle - a vigil: she stands upright, her free hand pressed to her heart, the karambit hanging point-down
-    at her side, rocking gently as she murmurs a prayer (a small bow on every line); halfway through she stops, her head
-    turns as if she heard something behind her, she rolls the blade once in her fingers, then goes back to praying.
-    192 ticks."""
+    """Her own idle - ON THE HUNT: a low, wide knife-fighter's crouch, the karambit thrust out in front of her, chest
+    heaving, weight rolling from foot to foot like she's about to spring. She flips the karambit round her finger
+    twice, snaps it back up beside her chin and leans in, then rolls her neck (left, right) and drops back into her
+    guard. 192 ticks, keyed every 6, every part always moving a little so it never sits still."""
+    def ease(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
+    def lerp(a, b, q): return a + (b - a) * q
+    GUARD = dict(fu=-6, ff=-44, fx=-36, bu=-66, bf=-34, tor=13, head=6)    # the karambit out front, back hand up as a guard
+    CHIN = dict(fu=-90, ff=-100, fx=60, bu=-60, bf=-60, tor=22, head=14)   # the blade up beside her face, head down, leaning in
+    SPIN = dict(fu=-40, ff=-30, fx=-36, bu=-66, bf=-34, tor=13, head=12)   # forearm out low, watching the blade flip
     keys = []
     for i in range(0, 193, 6):
-        bow = math.sin(i * math.pi / 24) ** 2 if i < 96 or i >= 156 else 0    # a small bow on every line of the prayer
-        listen = 1.0 if 108 <= i <= 144 else 0.5 if i in (102, 150) else 0  # ...the head lifts and turns: something behind her
-        roll = -60 * math.sin((i - 120) / 18 * math.pi) if 120 <= i <= 138 else 0   # the blade rolled once in her fingers
-        sway = math.sin(i * math.pi / 96)
-        keys.append(k(i, P(root=(0, 0, round(bow), 1.0, 1.0 - 0.015 * bow), torso=(4 + 6 * bow + 2 * sway, 0, 1), head=(10 + 12 * bow - 26 * listen, 0, 1 - listen),
-                           fupper=(12 + 3 * sway, 0, 0), ffore=(-12 + roll * 0.4, 0, 0), ffist=(30 + roll, 0, 0),
-                           bupper=(-44 - 4 * bow, 0, 0), bfore=(-104 + 6 * bow, 0, 0), **A.legs(6, -6, -8, 10)), 'linear'))
+        br = math.sin(i * math.pi / 24)                                      # heavy breathing: four breaths a loop
+        sh = math.sin(i * math.pi / 48)                                      # weight rolling foot to foot: two shifts a loop
+        spin = ease((i - 60) / 36) if 60 <= i <= 96 else (1.0 if i > 96 else 0.0)
+        chin = ease((i - 90) / 18) * (1 - ease((i - 150) / 24))              # up to the chin after the spin, back down at the end
+        roll = math.sin((i - 126) / 42 * 2 * math.pi) if 126 <= i <= 168 else 0   # the neck roll: one way, then the other
+        sp = math.sin(spin * math.pi) if i <= 96 else 0                     # (the forearm drops out low to make room for the flip)
+        c = {n: lerp(lerp(GUARD[n], SPIN[n], sp), CHIN[n], chin) for n in GUARD}
+        flip = -720 * spin if i <= 96 else -720                               # two full flips of the karambit round her finger
+        ff_out = 0
+        keys.append(k(i, P(root=(round(sh), 0, round(2 + br + chin), 1.05, 0.93 - 0.01 * br - 0.02 * chin),
+                           torso=(c['tor'] + 2 * br, 0, 1 + 0.5 * br), head=(c['head'] - br + 14 * roll, 0, round(roll)),
+                           fupper=(c['fu'] + 4 * br + ff_out * 0.3, 0, 0), ffore=(c['ff'] + 3 * sh + ff_out, 0, 0), ffist=(c['fx'] + flip, 0, 0),
+                           bupper=(c['bu'] - 4 * br, 0, 0), bfore=(c['bf'] + 5 * sh, 0, 0),
+                           **A.legs(24 + 4 * sh, -26 - 3 * br, -26 + 4 * sh, 30 + 3 * br, 8, -10)), 'linear'))
     return keys
 
 def drowned_idle_keys():

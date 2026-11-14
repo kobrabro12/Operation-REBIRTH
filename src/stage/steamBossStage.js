@@ -45,7 +45,10 @@ const CRANE = { rail: -300, travel: 90, w: 46, h: 40, hit: [13, [80, 6, 0.9]] };
 // (armor = what your hits do to it while broken - 20% less everywhere; hit / kb = how much harder its own hits land; fast = how much quicker its wind-ups are)
 const BROKE = { at: 0.2, time: 1800, cut: 170, armor: 0.8, hit: 1.3, kb: 1.15, fast: 1.3, slop: 70, wait: 34 };
 // NOW I'VE GOTCHA (the clock ran out): the cutscene's length, when it says the line, launches, and the missile lands
-const GOTCHA = { n: 300, line: 34, launch: 96, hit: 196 };
+const GOTCHA = { n: 370, line: 34, launch: 96, hit: 246 };
+// THE ROCKET (NOW I'VE GOTCHA): how big it gets (1 = about 160 px nose to nozzle), how long it takes to grow out of the hat,
+// its climb and dive speeds, and the explosion (frames, size)
+const ROCKET = { size: 1, grow: 56, climb: 1.4, dive: 9, boom: 80, blast: 150 };
 // the cracks across its chest when the core breaks: polylines from the porthole outward (x, y from the core)
 const CRACKS = [[[-30, -12], [-48, -22], [-60, -20], [-76, -34]], [[28, -16], [44, -30], [58, -28], [70, -46]], [[-22, 24], [-34, 36], [-30, 46]], [[24, 22], [40, 30], [52, 26], [64, 40]], [[4, -34], [8, -46], [2, -60]]];
 
@@ -370,16 +373,45 @@ export class SteamBossStage extends BossArena {
     const o = this.hatTop(), la = -door * 1.9, hx = 17, lx = Math.cos(Math.PI + la) * 34, ly = Math.sin(Math.PI + la) * 34;
     g.lineStyle(6, C.out, 1); g.lineBetween(o.x + hx, o.y, o.x + hx + lx, o.y + ly); g.lineStyle(4, C.iron[1], 1); g.lineBetween(o.x + hx, o.y, o.x + hx + lx, o.y + ly); g.lineStyle(0);
   }
-  /** THE MISSILE (NOW I'VE GOTCHA): a riveted brass rocket with a red nose cone and fins, flame and a smoke trail. */
+  /**
+   * THE ROCKET (NOW I'VE GOTCHA): a doomsday rocket far too big for the hat it came out of - riveted brass hull with
+   * copper bands, a band of hazard stripes, a porthole with a glowing gauge, a red nose cone with a brass tip, four red
+   * fins edged in brass, an iron nozzle and a roaring, flickering flame; a thick trail of smoke behind it. `M.s` = how
+   * far it has grown out of the hat. Then the blast (`this.blast`): a fireball, shockwave rings and a white flash.
+   */
   drawMissile(g, M) {
-    for (let i = 0; i < M.trail.length; i++) { const p = M.trail[i], k = i / M.trail.length; g.fillStyle(C.steam, 0.5 * k); g.fillCircle(p.x, p.y, 3 + 6 * (1 - k)); }
-    const ca = Math.cos(M.a), sa = Math.sin(M.a), P = (x, y) => ({ x: M.x + x * ca - y * sa, y: M.y + x * sa + y * ca });
-    const poly = (pts, c) => { g.fillStyle(c, 1); g.fillPoints(pts.map(([x, y]) => P(x, y)), true); };
-    const fl = 10 + Math.random() * 8; poly([[-18, -5], [-18 - fl, 0], [-18, 5]], C.glow[1]); poly([[-18, -3], [-18 - fl * 0.6, 0], [-18, 3]], C.glow[3]);
-    poly([[-16, -7], [-26, -14], [-12, -7]], C.out); poly([[-16, 7], [-26, 14], [-12, 7]], C.out); poly([[-15, -6], [-23, -12], [-12, -6]], 0xc02818); poly([[-15, 6], [-23, 12], [-12, 6]], 0xc02818);
-    poly([[-18, -8], [12, -8], [12, 8], [-18, 8]], C.out); poly([[-17, -6], [12, -6], [12, 6], [-17, 6]], C.brass[2]); poly([[-17, -6], [12, -6], [12, -3], [-17, -3]], C.brass[4]);
-    poly([[12, -8], [26, 0], [12, 8]], C.out); poly([[12, -6], [23, 0], [12, 6]], 0xd02818); poly([[12, -6], [18, -3], [12, -2]], 0xff8a6a);
-    for (const x of [-10, 0, 8]) { const p = P(x, 0); g.fillStyle(C.copper[1], 1); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
+    if (M) {
+      const S = M.s * ROCKET.size;
+      for (let i = 0; i < M.trail.length; i++) { const p = M.trail[i], k = i / M.trail.length; g.fillStyle(C.steam, 0.45 * k); g.fillCircle(p.x, p.y, (6 + 18 * (1 - k)) * p.s); g.fillStyle(0xffffff, 0.2 * k); g.fillCircle(p.x - 3, p.y - 3, (3 + 8 * (1 - k)) * p.s); }
+      const ca = Math.cos(M.a), sa = Math.sin(M.a), P = (x, y) => ({ x: M.x + (x * ca - y * sa) * S, y: M.y + (x * sa + y * ca) * S });
+      const poly = (pts, c, a = 1) => { g.fillStyle(c, a); g.fillPoints(pts.map(([x, y]) => P(x, y)), true); };
+      const fl = 34 + Math.random() * 22;                                                       // the flame: four layers, flickering
+      poly([[-80, -15], [-80 - fl * 1.25, 0], [-80, 15]], C.glow[0], 0.6); poly([[-80, -12], [-80 - fl, 0], [-80, 12]], C.glow[1]); poly([[-80, -8], [-80 - fl * 0.7, 0], [-80, 8]], C.glow[2]); poly([[-80, -4], [-80 - fl * 0.4, 0], [-80, 4]], 0xffffff);
+      poly([[-66, -12], [-82, -17], [-82, 17], [-66, 12]], C.out); poly([[-66, -10], [-80, -14], [-80, 14], [-66, 10]], C.iron[1]); poly([[-66, -10], [-80, -14], [-80, -9], [-66, -6]], C.iron[3]);   // the nozzle
+      for (const sY of [-1, 1]) {                                                                // the fins (top and bottom), edged in brass
+        poly([[-36, 15 * sY], [-76, 42 * sY], [-80, 40 * sY], [-66, 15 * sY]], C.out); poly([[-38, 14 * sY], [-74, 38 * sY], [-64, 14 * sY]], 0xc02818); poly([[-60, 14 * sY], [-74, 38 * sY], [-70, 38 * sY], [-56, 14 * sY]], C.brass[3]);
+      }
+      poly([[-68, -18], [42, -18], [42, 18], [-68, 18]], C.out); poly([[-66, -16], [42, -16], [42, 16], [-66, 16]], C.brass[2]);   // the hull
+      poly([[-66, -16], [42, -16], [42, -9], [-66, -9]], C.brass[4]); poly([[-66, 9], [42, 9], [42, 16], [-66, 16]], C.brass[0]);
+      for (let x = -30; x < -14; x += 4) poly([[x, -16], [x + 2, -16], [x + 6, 16], [x + 4, 16]], 0x141414);                   // a band of hazard stripes
+      poly([[-31, -16], [-30, -16], [-30, 16], [-31, 16]], C.out); poly([[-32, -16], [-14, -16], [-14, -15], [-32, -15]], 0xf0c020, 0);
+      for (let x = -32; x < -14; x += 4) poly([[x + 2, -16], [x + 4, -16], [x + 8, 16], [x + 6, 16]], 0xf0c020);
+      for (const bx of [-56, -8, 30]) { poly([[bx, -17], [bx + 5, -17], [bx + 5, 17], [bx, 17]], C.copper[1]); poly([[bx, -17], [bx + 5, -17], [bx + 5, -11], [bx, -11]], C.copper[2]); for (let ry = -12; ry <= 12; ry += 6) { const r = P(bx + 2.5, ry); g.fillStyle(C.brass[4], 1); g.fillRect(r.x - 1, r.y - 1, 2, 2); } }
+      const pc = P(12, 0); g.fillStyle(C.out, 1); g.fillCircle(pc.x, pc.y, 10 * S); g.fillStyle(C.brass[3], 1); g.fillCircle(pc.x, pc.y, 8.5 * S); g.fillStyle(0x1a3a4a, 1); g.fillCircle(pc.x, pc.y, 6 * S);   // the porthole
+      g.fillStyle(C.glow[2], 0.8); g.fillCircle(pc.x, pc.y, 2.5 * S); const gl = P(9, -3); g.fillStyle(0xffffff, 0.8); g.fillCircle(gl.x, gl.y, 1.6 * S);
+      poly([[42, -18], [82, 0], [42, 18]], C.out); poly([[42, -16], [78, 0], [42, 16]], 0xc82818); poly([[42, -16], [64, -7], [42, -6]], 0xff7a5a); poly([[42, 6], [66, 6], [42, 16]], 0x8a1410);   // the nose cone
+      poly([[70, -4], [86, 0], [70, 4]], C.out); poly([[71, -3], [84, 0], [71, 3]], C.brass[3]);
+    }
+    const X = this.blast;
+    if (X && X.t < ROCKET.boom) {                                                                 // THE BLAST
+      const k = X.t / ROCKET.boom, R = ROCKET.blast * Math.min(1, k * 3);
+      if (X.t < 8) { g.fillStyle(0xffffff, 1 - X.t / 8); g.fillRect(X.x - 2000, X.y - 2000, 4000, 4000); }                       // (white flash)
+      g.fillStyle(0x2a2a2a, 0.5 * (1 - k)); g.fillCircle(X.x, X.y - R * 0.4, R * 1.1);
+      g.fillStyle(C.glow[0], 0.85 * (1 - k)); g.fillCircle(X.x, X.y - R * 0.3, R);
+      g.fillStyle(C.glow[1], 0.9 * (1 - k)); g.fillCircle(X.x, X.y - R * 0.3, R * 0.75);
+      g.fillStyle(C.glow[3], (1 - k)); g.fillCircle(X.x, X.y - R * 0.3, R * 0.45);
+      for (const rr of [1.3, 1.8]) { g.lineStyle(6 * (1 - k), 0xffffff, 0.7 * (1 - k)); g.strokeEllipse(X.x, X.y, R * rr * 2.2, R * rr * 0.5); } g.lineStyle(0);
+    }
   }
   /** The cuckoo, its spring and the open hat lid (drawn while it's out). */
   drawCuckoo(g) {
@@ -414,7 +446,7 @@ export class SteamBossStage extends BossArena {
   /** The furnace heart takes a hit: sparks fly, and a fist resting in the deck jerks back up. */
   onHurt(match, r) { if (r.mult >= 1) for (let i = 0; i < 3; i++) this.puff(this.core().x + (Math.random() - 0.5) * 30, this.core().y, 0.5, -1.2); }
   /** The death: it slumps, its eyes go out, steam pours from every joint. */
-  onDeath() { this.hot = 0; this.cuckoo = null; this.junk = []; this.missile = null; }
+  onDeath() { this.hot = 0; this.cuckoo = null; this.junk = []; this.missile = null; this.blast = null; }
   /** Its death runs longer than the default: it seizes, bursts, winds down and sinks. */
   deathLen() { return DIE.len; }
   /**
@@ -546,7 +578,7 @@ export class SteamBossStage extends BossArena {
     this.drawJunk(x);
     this.drawCuckoo(x);
     if (!this.cuckoo && this.lid > 0) this.drawLid(x, this.lid);
-    if (this.missile) this.drawMissile(x, this.missile);
+    if (this.missile || this.blast) this.drawMissile(x, this.missile);
     for (const p of this.puffs) { const k = p.t / p.life; x.fillStyle(C.steam, 0.55 * (1 - k)); x.fillCircle(p.x, p.y, p.r); }
     if (B) this.drawBar();
     if (this.clockG && !this.cut) this.drawClockUI(this.broken && !this.gotchaDone && B && !B.dying && !this.scene.over ? 1 : 0);
@@ -812,23 +844,25 @@ export class SteamBossStage extends BossArena {
     }
     // NOW I'VE GOTCHA: the lid flips, the line, the missile climbs out of its hat, arcs over and dives on you - BOOM
     const tg = C2.target, h = this.hatTop();
-    C2.shot = t < GOTCHA.launch ? { x: 0, y: h.y + 40, zoom: 1.7 } : t < GOTCHA.hit ? (this.missile ? { x: this.missile.x, y: this.missile.y, zoom: 1.4 } : { x: 0, y: h.y, zoom: 1.4 }) : { x: tg ? tg.x : 0, y: tg ? Math.min(-40, tg.y - 30) : -60, zoom: 1.4 };
+    C2.shot = t < GOTCHA.launch ? { x: 0, y: h.y + 40, zoom: 1.7 } : t < GOTCHA.hit ? (this.missile ? { x: this.missile.x, y: this.missile.y - (t - GOTCHA.launch < ROCKET.grow ? 60 : 0), zoom: 0.95 } : { x: 0, y: h.y, zoom: 1.2 }) : { x: tg ? tg.x : 0, y: tg ? Math.min(-80, tg.y - 70) : -100, zoom: 0.9 };   // (pulled back for the blast)
     this.lid = Math.min(1, t / 20); this.jaw = t > GOTCHA.line && t < GOTCHA.line + 50 ? 0.5 + 0.5 * Math.abs(Math.sin(t * 0.4)) : 0;
     if (once('line', GOTCHA.line)) { this.rageText.setText('NOW I\'VE GOTCHA.').setColor('#ffc860').setFontSize(16).setVisible(true); sfx('laugh', 1, 0.6); match.snapBoss(); }
     if (once('quiet', GOTCHA.launch + 20)) this.rageText.setVisible(false);
-    if (once('launch', GOTCHA.launch)) { this.missile = { x: h.x, y: h.y, vx: 0, vy: -4, a: -Math.PI / 2, trail: [] }; sfx('flame', 1, 0.6); sfx('whoosh', 1, 0.5); sfx('geyser', 0.8, 1.2); }
+    if (once('launch', GOTCHA.launch)) { this.missile = { x: h.x, y: h.y, vx: 0, vy: -ROCKET.climb * 0.4, a: -Math.PI / 2, s: 0.2, trail: [] }; sfx('flame', 1, 0.5); sfx('rumble', 1, 0.6); sfx('geyser', 0.8, 1.0); }
     const M = this.missile;
     if (M && t < GOTCHA.hit) {                                                     // up out of the hat, over the top, then homing down
-      const k = (t - GOTCHA.launch) / (GOTCHA.hit - GOTCHA.launch), aimX = tg ? tg.x : 0, aimY = tg ? tg.y - 20 : -20;
-      if (k < 0.22) { M.vy -= 0.12; M.vx += (aimX > 0 ? 0.14 : -0.14); }
-      else { const dx = aimX - M.x, dy = aimY - M.y, d = Math.hypot(dx, dy) || 1, sp = 6 + k * 10; M.vx += (dx / d * sp - M.vx) * 0.15; M.vy += (dy / d * sp - M.vy) * 0.15; }
+      const u = t - GOTCHA.launch, k = u / (GOTCHA.hit - GOTCHA.launch), aimX = tg ? tg.x : 0, aimY = tg ? tg.y - 20 : -20, S = M.s * ROCKET.size;
+      if (u < ROCKET.grow) { M.s = 0.2 + 0.8 * (u / ROCKET.grow) ** 0.7; M.vy = -ROCKET.climb * (0.4 + u / ROCKET.grow); M.x = h.x + Math.sin(u * 0.9) * 1.5; if (u % 6 === 0) { match.shake(5, 6); sfx('clang', 0.4, 0.6 + u / 100); } }   // (it telescopes up out of the hat, far too big for it, shuddering)
+      else if (k < 0.55) { M.vy -= 0.1; M.vx += (aimX > 0 ? 0.12 : -0.12); }       // (climbing away, tipping over the top)
+      else { const dx = aimX - M.x, dy = aimY - M.y, d = Math.hypot(dx, dy) || 1, sp = ROCKET.dive * (0.6 + k); M.vx += (dx / d * sp - M.vx) * 0.12; M.vy += (dy / d * sp - M.vy) * 0.12; }
       M.x += M.vx; M.y += M.vy; M.a = Math.atan2(M.vy, M.vx);
-      M.trail.push({ x: M.x - Math.cos(M.a) * 16, y: M.y - Math.sin(M.a) * 16 }); if (M.trail.length > 30) M.trail.shift();
-      if (t % 3 === 0) this.puff(M.x - Math.cos(M.a) * 18, M.y - Math.sin(M.a) * 18, 0.8, -0.3);
-      if (t % 12 === 0) sfx('whoosh', 0.4, 1.6);
+      M.trail.push({ x: M.x - Math.cos(M.a) * 84 * S, y: M.y - Math.sin(M.a) * 84 * S, s: S }); if (M.trail.length > 46) M.trail.shift();
+      if (t % 2 === 0) this.puff(M.x - Math.cos(M.a) * 90 * S, M.y - Math.sin(M.a) * 90 * S, 1.4 * S + 0.4, -0.3);
+      if (t % 10 === 0) sfx('whoosh', 0.5, 0.9);
     }
     if (once('boom', GOTCHA.hit)) {                                                 // BOOM - blown to pieces
-      this.missile = null; sfx('bighit', 1, 0.4); sfx('thunder', 1, 0.7); sfx('ko', 1, 0.5); match.shake(22, 40);
+      const Mx = this.missile ? this.missile.x : tg ? tg.x : 0, My = this.missile ? this.missile.y : -40; this.missile = null; this.blast = { x: Mx, y: My, t: 0 };
+      sfx('bighit', 1, 0.3); sfx('thunder', 1, 0.5); sfx('ko', 1, 0.4); sfx('rumble', 1, 0.5); match.shake(30, 60);
       for (const f of match.fighters) {
         if (!f.alive) continue;
         for (let i = 0; i < 60; i++) { const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 9; match.particles.push({ x: f.x, y: f.y - 25, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, life: 50 + Math.random() * 40, color: [f.color, 0x1a1a1a, f.color, 0xffffff, C.glow[1]][i % 5], size: 2 + (i % 4), grav: 0.25, drag: 0.98 }); }
@@ -836,7 +870,8 @@ export class SteamBossStage extends BossArena {
         f.x = 0; f.y = 3000;                                                          // (gone - in pieces)
       }
     }
-    if (t >= GOTCHA.n) { this.cut = null; this.lid = 0; this.ending = true; this.ko(match); }
+    if (this.blast) { this.blast.t++; if (this.blast.t % 4 === 0 && this.blast.t < 40) this.puff(this.blast.x + (Math.random() - 0.5) * 160, this.blast.y - Math.random() * 100, 3, -1.8); }
+    if (t >= GOTCHA.n) { this.cut = null; this.lid = 0; this.ending = true; this.blast = null; this.ko(match); }
   }
   /** NOW I'VE GOTCHA (the clock ran out): with a player watching, the cutscene; then everyone is out - the fight is lost. */
   gotcha(match) {
