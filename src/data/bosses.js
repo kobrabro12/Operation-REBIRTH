@@ -3,7 +3,7 @@
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
 // demonBossStage.js / knightBossStage.js / machineBossStage.js / smudgeBossStage.js /
-// maestroBossStage.js.
+// maestroBossStage.js / starBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -66,6 +66,13 @@ export const BOSSES = [
     card: { marks: [[0.5, 'THE MASK SLIPS'], [0.7, 'THE FINAL ACT']], quotes: { base: 'THE OPERA IS MINE. EVERY SEAT, EVERY SHADOW... AND NOW, YOU.', rage: 'YOU SAW MY FACE. NOW NO ONE WILL EVER SEE YOURS AGAIN.', low: 'A FINALE NEEDS A FALLEN HERO. HOW KIND OF YOU TO VOLUNTEER.' } },
     tip: 'IN HIS MASQUERADE, ONLY THE REAL ONE WEARS A ROSE - HIT HIM AND THE ACT BREAKS. GHOST NOTES POP IF YOU HIT THEM. WHEN THE BOARDS GLOW BLUE, MOVE.',
     hazards: 'SANDBAGS / TRAPDOOR SMOKE' },
+  { id: 'stareater', name: 'VESPERION, THE STAR-EATER', short: 'VESPERION', title: 'HE SWALLOWS THE SKY', stage: 'star-observatory', arena: 'THE OBSERVATORY', hp: 760, coins: 860, color: 0xb48aff, trophy: 'stolen-star',
+    blurb: 'A TITAN WHO HAS EATEN EVERY STAR BUT\nYOURS. NOTHING TOUCHES HIM - BUT HIT HIS\nFALLEN STARS AND THEY FLY HOME TO HIS HEART.',
+    taunts: ['ANOTHER LIGHT GOES OUT.', 'I HAVE EATEN SUNS. YOU WERE A CANDLE.', 'THE SKY IS MINE. NOW, SO ARE YOU.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'TOTAL ECLIPSE'], [0.75, 'THE LAST LIGHT']], quotes: { base: 'YOU STRUCK THE VOID AND THE VOID DID NOT EVEN NOTICE. LOOK UP NEXT TIME. LOOK AT THE STARS.', rage: 'IN A TOTAL ECLIPSE THERE IS NO LIGHT LEFT TO FIGHT BY. THERE IS ONLY ME.', low: 'SO CLOSE. I FELT THE STARS STIRRING IN MY HEART. THEY WILL NEVER COME HOME NOW.' } },
+    tip: 'YOUR HITS CAN\'T TOUCH HIM. HIT THE FALLEN STARS - THEY FLY INTO HIS HEART. THREE CRACKS AND HIS SHIELD SHATTERS. DON\'T LET HIM EAT THEM.',
+    hazards: 'METEOR SHOWERS / SOLAR FLARES' },
 ];
 /** The boss with this id (a BOSSES entry). */
 export const bossById = (id) => BOSSES.find((b) => b.id === id);

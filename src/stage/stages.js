@@ -26,6 +26,7 @@ import { KnightBossStage, drawElderGrovePreview } from './knightBossStage.js';
 import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
 import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
 import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
+import { StarBossStage, drawObservatoryPreview } from './starBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -167,6 +168,9 @@ export const STAGES = [
   { id: 'grand-opera', music: 'bgm_boss_maestro', name: 'THE GRAND OPERA', available: true, bossArena: 'maestro', make: (scene) => new MaestroBossStage(scene),
     blurb: ['An opera stage in a horseshoe of gilded', 'balconies, a painted dome overhead.'],
     hazard: 'SANDBAG: A SANDBAG DROPS FROM THE FLY TOWER ON THE MARK.\nTRAPDOOR SMOKE: A TRAP IN THE FLOOR BLASTS SMOKE UP.', preview: drawGrandOperaPreview },
+  { id: 'star-observatory', music: 'bgm_boss_stareater', name: 'THE LAST OBSERVATORY', available: true, bossArena: 'stareater', make: (scene) => new StarBossStage(scene),
+    blurb: ['A ruined observatory adrift in deep space,', 'a sleeping titan filling the sky behind it.'],
+    hazard: 'METEOR SHOWER: METEORS CRASH DOWN ON THE MARKS.\nSOLAR FLARE: A BEAM OF SUNLIGHT SWEEPS THE GLOWING BAND.', preview: drawObservatoryPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

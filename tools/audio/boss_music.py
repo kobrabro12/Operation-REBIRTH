@@ -29,12 +29,18 @@
             soprano line over a low choir, brass fanfares; a quiet adagio middle with only harp and violins, then
             the storm comes back fortissimo.
 
+  stareater "Event Horizon" - VESPERION, THE STAR-EATER (a cosmic titan who swallows the stars): 140 BPM in F minor.
+            A space-opera storm: a shimmering glass-harmonica arpeggio like starlight, a supersaw arp racing over it, a
+            huge choir and pipe organ, timpani, a sub-bass that swallows everything, a heroic brass theme; a hushed
+            "void" in the middle - only the glass arp, a slow heartbeat and the choir in the dark - then the theme comes
+            back an octave up with everything at full force.
+
 Run:  python3 tools/audio/boss_music.py [colossus polygon demon knight machine hum]  -> public/assets/audio/music/boss_<name>.ogg (bgm_boss_<name>)
 """
 import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
-from outro_music import SR, secs, hz, lp, hp, bp, add, adsr, reverb, finish, OUT, brass, timpani, sq, drum_kick, drum_snare, drum_hat, noise
+from outro_music import SR, secs, hz, lp, hp, bp, add, adsr, reverb, finish, OUT, brass, timpani, sq, glass, pad, drum_kick, drum_snare, drum_hat, noise
 from trophy_hall_music import organ, choir
 
 
@@ -341,6 +347,58 @@ def maestro():
     save(R, 'maestro', bars * 4 * b)
 
 
+def supersaw(midi, dur, vel=1.0, cut=3200):
+    """A bright trance supersaw pluck: seven detuned saws, a filter that closes fast."""
+    n = secs(dur); t = np.arange(n) / SR; x = np.zeros(n)
+    for d in (-0.18, -0.11, -0.05, 0, 0.05, 0.11, 0.18): x += 2 * ((t * hz(midi + d) + d) % 1) - 1
+    return lp(x, cut) * np.exp(-t * 7) * adsr(n, 0.004, 0.05, 1, 0.03) * vel / 7
+
+
+def sub(midi, dur, vel=1.0):
+    """A deep sine sub-bass with a little growl on top - the black hole's hum."""
+    n = secs(dur); t = np.arange(n) / SR; f = hz(midi)
+    return (np.sin(2 * np.pi * f * t) + 0.25 * np.tanh(3 * np.sin(2 * np.pi * f * 2 * t))) * adsr(n, 0.01, 0.1, 0.9, 0.08) * vel * 0.5
+
+
+def stareater():
+    b = 60 / 140; bars = 32; out = np.zeros(secs(bars * 4 * b + 4))
+    # F minor: i - VI - iv - V, then i - VII - VI - V (a falling, heroic turn)
+    prog = [(41, [65, 68, 72]), (37, [65, 68, 73]), (34, [65, 70, 73]), (36, [64, 67, 72]), (41, [65, 68, 72]), (39, [63, 67, 70]), (37, [61, 65, 68]), (36, [64, 67, 72])]
+    intro, void = range(0, 4), range(16, 22)
+    for bar in range(bars):
+        root, ch = prog[bar % 8]; t0 = bar * 4 * b
+        arp = [ch[0], ch[1], ch[2], ch[0] + 12, ch[2], ch[1] + 12, ch[0] + 12, ch[2] + 12]
+        for i in range(8): add(out, glass(arp[i] + 12, b * 0.9, 0.11), t0 + i * b / 2)               # starlight, always there
+        add(out, choir([m - 12 for m in ch] + [ch[0]], 4 * b, 0.45 if bar in void else 0.32), t0)
+        add(out, sub(root - 12, 4 * b * 0.98, 0.55 if bar not in intro else 0.35), t0)
+        if bar in void:                                                                     # the void: a slow heartbeat
+            for i in (0, 2): add(out, timpani(root, 1.0, 0.55), t0 + i * b); add(out, timpani(root, 0.6, 0.35), t0 + i * b + b * 0.35)
+            continue
+        if bar in intro:
+            add(out, pad([m + 12 for m in ch], 4 * b, 0.25), t0)
+            if bar == 3: add(out, timpani(root, 1.6, 1.0, roll=1.0), t0 + 2 * b)
+            continue
+        for i in range(16):                                                                 # the racing supersaw arp
+            add(out, supersaw(arp[i % 8], b / 4 * 0.95, 0.26 if bar < 22 else 0.32, 2600 + 1400 * (i % 4 == 0)), t0 + i * b / 4)
+        add(out, sum(organ(m - 12, 4 * b, 0.16) for m in ch), t0)
+        add(out, strings([root, root + 12] + ch, 4 * b, 0.35), t0)
+        for i in (0, 1.5, 2, 3.5): add(out, timpani(root, 0.8, 0.7), t0 + i * b)
+        if bar % 4 == 3: add(out, timpani(root, 1.6, 0.9, roll=1.0), t0 + 2 * b)
+    # the heroic theme (beat, midi, beats long): played by brass + choir, then an octave up after the void
+    theme = [(0, 72, 1.5), (1.5, 75, .5), (2, 77, 2), (4, 80, 1.5), (5.5, 79, .5), (6, 77, 1), (7, 75, 1), (8, 73, 3), (11, 72, .5), (11.5, 73, .5),
+             (12, 75, 2), (14, 79, 2), (16, 80, 1.5), (17.5, 79, .5), (18, 77, 1), (19, 80, 1), (20, 84, 3), (23, 82, 1), (24, 80, 2), (26, 79, 1), (27, 77, 1), (28, 77, 4)]
+    for start, up in ((4, 0), (22, 12)):
+        for beat, m, d in theme:
+            at = start * 4 * b + beat * b
+            if at >= (16 if start == 4 else bars) * 4 * b: break
+            add(out, brass(m - 12 + up, d * b * 0.95, 0.3, 1.1), at)
+            add(out, sinew(m + up, d * b, 0.12, 0.04, 0.2), at)
+            if up: add(out, choir([m], d * b, 0.18), at)
+    R = reverb(out, 3.2, 2.4, 0.38)
+    R[:len(out)] += drive(len(out), b, bars, [p[0] for p in prog], 0.5, quiet=tuple(intro) + tuple(void), saw=False)[:len(R)]
+    save(R, 'stareater', bars * 4 * b)
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro']
+    which = sys.argv[1:] or ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro', 'stareater']
     for w in which: globals()[w]()

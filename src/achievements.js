@@ -41,7 +41,7 @@ const bossTier = (s, id) => (s.bosses && s.bosses[id]) || 0;
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
 const TESTS = ['young-link', 'what-once-was', 'last-seen', 'presto', 'chef'];
 // every boss in BOSS FIGHTS (src/data/bosses.js - listed here because bosses.js imports this file)
-const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro'];
+const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro', 'stareater'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
@@ -110,6 +110,7 @@ export const TROPHY_GOALS = [
   { id: 'golden-floppy', name: 'THE GOLDEN FLOPPY', info: 'BEAT BEIGE.EXE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'machine') >= 3), coins: 1500 },
   { id: 'golden-brush', name: 'THE GOLDEN BRUSH', info: 'BEAT SMUDGE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'smudge') >= 3), coins: 1900 },
   { id: 'golden-baton', name: 'THE GOLDEN BATON', info: 'BEAT THE PHANTOM MAESTRO ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'maestro') >= 3), coins: 2200 },
+  { id: 'stolen-star', name: 'THE STOLEN STAR', info: 'BEAT VESPERION, THE STAR-EATER ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'stareater') >= 3), coins: 2600 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

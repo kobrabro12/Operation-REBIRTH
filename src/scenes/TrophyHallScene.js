@@ -446,6 +446,11 @@ export class TrophyHallScene extends Phaser.Scene {
       T.push(...xyz(boxFaces(-13, -8, -1, 13, 8, 1, 0xd8a830, 0xffd040), 0, -36, 0, 0, -0.35), ...xyz(boxFaces(-12, -7, -1.6, 12, 7, -1.1, 0xfffff0, 0xfffff0), 0, -36, 0, 0, -0.35));
       for (let i = 0; i < 4; i++) T.push(...xyz(boxFaces(-11, -5 + i * 3.4, -1.9, 11, -4.6 + i * 3.4, -1.6, 0x1a1428), 0, -36, 0, 0, -0.35));
       T.push(...xyz(prismFaces(0, -24, 0, 0, 0.7, 6, 0xffe070, 0xffffff), 0, -46, -2, 1.2), ...xyz(ballFaces(0, 0, 0, 1.8, 1.8, 1.8, 0xfff4f0, { seg: 6, rings: 4 }), 0, -46, -2, 1.2));
+    } else if (model === 'star') {                                    // THE STOLEN STAR: a gold star held in an obsidian crescent moon on a little plinth
+      T.push(...prismFaces(0, -3, 0, 0, 8, 6, 0x2a2240, 0x3e3460), ...prismFaces(0, -6, -3, 0, 6, 6, 0xb8801e, 0xe8b440), ...prismFaces(0, -15, -6, 0, 1.8, 6, 0xb8801e, 0xe8b440));
+      for (let i = 0; i <= 8; i++) { const q = Math.PI * (0.15 + i / 8 * 0.7); T.push(...xyz(boxFaces(-2.2, -2.6, -2, 2.2, 2.6, 2, 0x1a1630, 0x4a4280), Math.cos(q) * 16, -30 + Math.sin(q) * 16, 0, q)); }
+      for (let i = 0; i < 5; i++) T.push(...xyz(pyramidFaces(0, 0, 0, 4.4, 3.2, 10, i % 2 ? 0xe8b440 : 0xffd040), 0, -32, 0, i / 5 * Math.PI * 2));
+      T.push(...ballFaces(0, -32, 0, 4.4, 4.4, 3.2, 0xfff8e0, { seg: 8, rings: 5 }));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));

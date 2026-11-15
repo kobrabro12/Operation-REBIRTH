@@ -71,6 +71,7 @@ export const TROPHIES = [
   { id: 'golden-floppy', model: 'floppy', plaque: 'BEIGE.EXE', title: 'THE GOLDEN FLOPPY', text: 'A solid gold floppy disk. The label just says BACKUP. Nobody knows what is on it, and nobody has a drive old enough to find out.' },
   { id: 'golden-brush', model: 'brush', plaque: 'SMUDGE', title: 'THE GOLDEN BRUSH', text: "Smudge's paintbrush, dipped in gold and stood in his bucket. There's a note taped to it in crayon: I LET YOU WIN. (HE DID NOT.)" },
   { id: 'golden-baton', model: 'baton', plaque: 'THE PHANTOM', title: 'THE GOLDEN BATON', text: "The Phantom Maestro's baton - he conducted every ghost in the house with it - laid across a gold music stand open at the last page. The final note is marked ffff. You played it." },
+  { id: 'stolen-star', model: 'star', plaque: 'VESPERION', title: 'THE STOLEN STAR', text: "The last star Vesperion swallowed, cut back out of his heart and set in an obsidian crescent. It is still warm. On a clear night it hums the tune of every star that came home." },
   { id: 'phoenix', model: 'phoenix', plaque: 'REBIRTH', title: 'THE REBIRTH PHOENIX', text: 'The highest honour in the hall: a golden phoenix rising out of its own fire. Every achievement, done. Operation REBIRTH complete.' },
 ];
 
@@ -78,7 +79,7 @@ export const TROPHIES = [
 export const DISPLAY = {
   'pedestal-l1': { trophy: 'you-did-it' }, 'pedestal-r1': { trophy: 'first-sword' }, 'pedestal-l2': { trophy: 'bronze-boot' },
   'pedestal-r2': { trophy: 'silver-fish' }, 'pedestal-l3': { trophy: 'crystal-crown' }, 'plinth': { trophy: 'phoenix' },
-  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' }, 'pedestal-l5': { trophy: 'verdant-helm' }, 'pedestal-r5': { trophy: 'golden-floppy' }, 'pedestal-l6': { trophy: 'golden-brush' }, 'pedestal-r6': { trophy: 'golden-baton' },
+  'pedestal-r3': { trophy: 'brass-heart' }, 'pedestal-l4': { trophy: 'golden-cartridge' }, 'pedestal-r4': { trophy: 'mad-blade' }, 'pedestal-l5': { trophy: 'verdant-helm' }, 'pedestal-r5': { trophy: 'golden-floppy' }, 'pedestal-l6': { trophy: 'golden-brush' }, 'pedestal-r6': { trophy: 'golden-baton' }, 'pedestal-l7': { trophy: 'stolen-star' },
   'frame-l1a': { painting: 'gates' }, 'frame-l1b': { painting: 'tea' }, 'frame-r1a': { painting: 'star' }, 'frame-r1b': { painting: 'burned' },
   'frame-l2a': { painting: 'encore' }, 'frame-l2b': { painting: 'spar' }, 'frame-r2a': { painting: 'purge' }, 'frame-r2b': { painting: 'ascend' },
   'frame-l3a': { painting: 'level0' }, 'frame-l3b': { painting: 'baseplate' }, 'frame-r3a': { painting: 'birthday' }, 'frame-r3b': { painting: 'willow' },
