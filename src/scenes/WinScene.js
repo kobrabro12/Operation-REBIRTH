@@ -22,6 +22,7 @@ import { PremiumShots } from './premiumOutros.js';
 import { ShowcaseShots } from './skinShowcase.js';
 import { SKIN_CUTS, SkinShots } from './winSkins.js';
 import { DevotedShots } from './devotedOutros.js';
+import { LoreShots } from './devotedLoreOutros.js';
 import { BeachShots } from './beachOutros.js';
 import { sfx } from '../audio/sfx.js';
 import { stopMusic, playMusic } from '../audio/music.js';
@@ -62,6 +63,7 @@ export class WinScene extends Phaser.Scene {
     queueSheets(this, res.filter((r) => r && r.fighter).map((r) => ({ id: r.fighter, skin: r.skin || 0 })));
   }
   create(data) {
+    this.cameras.main.setZoom(1).centerOn(VIEW_W / 2, VIEW_H / 2); this.camNow = null;   // (the lore outros move the camera - start every cutscene square)
     this.data0 = data; this.t = 0; this.leaving = false; this.glint = 0; this.koiImg = null; this.menu = new MenuInput(this);   // (the scene object is reused: reset everything)
     const win = data.results[0];
     this.win = win;
@@ -172,15 +174,15 @@ export class WinScene extends Phaser.Scene {
     // which shot
     let si = 0; while (si + 1 < C.shots.length && t >= C.shots[si + 1][0]) si++;
     const [from, name] = C.shots[si], to = si + 1 < C.shots.length ? C.shots[si + 1][0] : C.len;
-    if (t === from && si > 0 && !C.cinematic) this.cutTo();
+    if (t === from && si > 0 && !C.cinematic && !C.film) this.cutTo();   // (film: true = the lore outros cut cleanly, no flash)
     this['shot_' + (C.fn || this.def.id.replace(/-/g, '_')) + '_' + name](t, (t - from) / (to - from), t - from);
     if(this.cineAzureCape)syncAzureCape(this.cineAzureCape,this.hero,t,false);
     // the title card
     if(t<C.card){this.title.setVisible(false);this.subT.setVisible(false);this.lineT.setVisible(false);}
     if(t>=C.card&&C.minimalCard){this.title.setVisible(false);this.subT.setVisible(false);this.lineT.setText(C.line).setVisible(true);}
     else if (t >= C.card) {
-      const k = t - C.card, slam = C.cinematic?1:Math.max(1, 3 - k * 0.4);
-      if (k === 0 && !C.cinematic) { sfx('bighit', 0.9, 0.6); this.cameras.main.shake(160, 0.01); this.flash = 4; }
+      const k = t - C.card, slam = (C.cinematic || C.film)?1:Math.max(1, 3 - k * 0.4);
+      if (k === 0 && !C.cinematic && !C.film) { sfx('bighit', 0.9, 0.6); this.cameras.main.shake(160, 0.01); this.flash = 4; }
       this.title.setText(C.name).setScale(slam).setAlpha(Math.min(1, k / 3)).setVisible(true);
       this.subT.setVisible(k > 10);
       const n = Math.max(0, Math.floor((k - 18) / 2));                       // the line, typed out
@@ -922,5 +924,6 @@ for(const n of Object.getOwnPropertyNames(ShowcaseShots.prototype))if(n!=='const
 for (const n of Object.getOwnPropertyNames(BeachShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = BeachShots.prototype[n];
 // THE DEVOTED's drawn costumes' outros (devotedOutros.js)
 for (const n of Object.getOwnPropertyNames(DevotedShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = DevotedShots.prototype[n];
+for (const n of Object.getOwnPropertyNames(LoreShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = LoreShots.prototype[n];
 
 for(const n of Object.getOwnPropertyNames(PremiumShots.prototype))if(n!=='constructor')WinScene.prototype[n]=PremiumShots.prototype[n];

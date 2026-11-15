@@ -28,7 +28,7 @@ export const DEVOTED_CUTS = {
   'devoted:HOLLOW BRIDE': { fn: 'dv_bride', len: 900, card: 750, name: 'THE DEVOTED', sub: 'HOLLOW BRIDE', line: 'TILL DEATH DO US PART.', music: 'bgm_outro_bride',
     color: '#f6f2e6', stroke: '#0a0810', shots: [[0, 'aisle'], [210, 'veil'], [380, 'vows'], [470, 'cuts'], [560, 'bouquet'], [690, 'tableau']] },
   // (no title card: it ends on the red)
-  'devoted:MAD MURDER': { fn: 'dv_murder', len: 820, card: 99999, name: 'THE DEVOTED', sub: 'MAD MURDER', line: 'I PREFER BLOOD BETTER!', music: 'bgm_outro_murder',
+  'devoted:MAD MURDER': { fn: 'dv_murder', len: 820, card: 99999, film: true, name: 'THE DEVOTED', sub: 'MAD MURDER', line: 'I PREFER BLOOD BETTER!', music: 'bgm_outro_murder',
     color: '#e83a3a', stroke: '#1a0608', shots: [[0, 'party'], [240, 'door'], [330, 'black'], [420, 'table'], [560, 'cake'], [700, 'red']] },
   'devoted:EMBER SAINT': { fn: 'dv_ember', len: 960, card: 880, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
     color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment'], [660, 'throw'], [700, 'burn']] },
@@ -499,6 +499,11 @@ export class DevotedShots {
       this.fx.fillStyle(0xffffff, 1); this.fx.fillCircle(cx, cy, 3);
     });
   }
+  /** Words placed on the SCREEN (sx, sy) even while the camera is pushed in (dvCam): kept the same size on screen. */
+  dvScreenText(i, txt, sx, sy, size, color, o = {}) {
+    const c = this.camNow || { zoom: 1, cx: W / 2, cy: H / 2 };
+    return this.dvText(i, txt, c.cx + (sx - W / 2) / c.zoom, c.cy + (sy - H / 2) / c.zoom, size, color, o).setScale(1 / c.zoom).setDepth(900);
+  }
   /** The beaten in colour (posLosers draws silhouettes): a MULTIPLY tint instead. */
   dvColorLosers(spots, tint = 0xffffff) {
     this.posLosers(spots);
@@ -506,6 +511,8 @@ export class DevotedShots {
   }
   /** [0] The party: the beaten in party hats, bopping round the table, turning to each other; a popper at [60]. */
   shot_dv_murder_party(t, k, s) {
+    const q = ease(s / 150);
+    this.dvCam(1.9 - q * 0.9, 300 + (W / 2 - 300) * q, 215 + (H / 2 - 215) * q);   // (opens close on the candles, pulls back on the party)
     this.hero.setVisible(false);
     this.dvParty(t, 1, 0, 0);
     const hop = (i) => Math.abs(Math.sin(t * 0.12 + i * 1.3)) * -8;
@@ -514,6 +521,7 @@ export class DevotedShots {
     this.dvHats(0);
     this.dvTable(t, 1, 0);
     this.dvText(0, 'HAPPY BIRTHDAY!', W / 2, 52, 14, '#ffe060', { stroke: '#5a1a3a', sw: 5 });
+    this.dvFilm(t, 30, 30);
     if (s === 60) { sfx('popup', 0.6, 1.3); sfx('airhorn', 0.3, 1.4); }
     if (s >= 60 && s < 160) for (let i = 0; i < 40; i++) {                                   // confetti from the popper
       const sp = this.spots[i], d = s - 60, x = 220 + (sp[0] - 0.4) * d * 5, y = 220 - d * 2 * sp[1] + d * d * 0.03;
@@ -522,7 +530,8 @@ export class DevotedShots {
   }
   /** [240] The music goes wrong. The door swings open on black; she stands in it. They turn and stare; the candles gutter out. */
   shot_dv_murder_door(t, k, s) {
-    const open = ease(s / 40), lit = 1 - k * 0.25;
+    const open = ease(s / 40), lit = 1 - k * 0.25, push = ease(k);
+    this.dvCam(1 + push * 0.7, W / 2 + (555 - W / 2) * push, H / 2 + (190 - H / 2) * push);   // (the camera creeps in on the doorway)
     this.dvParty(t, lit, 0, open);
     if (s === 0) sfx('whoosh', 0.5, 0.35);
     this.dvColorLosers([[110, 320, 2.0, 0, 1], [470, 320, 2.0, 0, 1], [60, 326, 1.9, 0, 1]], Phaser.Display.Color.GetColor(255 * lit, 232 * lit, 216 * lit));
@@ -531,10 +540,11 @@ export class DevotedShots {
     if (open > 0.4) { this.dvPose('', 'idle', 0, 555, 250, 1.5, true).setTintMode(Phaser.TintModes.FILL).setTint(0x050505); this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(545, 176, 3, 2); this.fx.fillStyle(0xc8202a, 1); this.fx.fillRect(546, 177, 1, 1); }
     else this.hero.setVisible(false);
     this.dvTable(t, lit, 0, false, s < 50);
-    this.vignette(this.over, 0.4 + k * 0.4);
+    this.dvFilm(t, 30 + push * 10, 40);
   }
   /** [330] Black. Three cuts: impact frames, blood slashes across the screen. */
   shot_dv_murder_black(t, k, s) {
+    this.dvCam(1);
     this.hideLosers(); this.hero.setVisible(false);
     this.bg.fillStyle(0x000000, 1); this.bg.fillRect(0, 0, W, H);
     [8, 30, 52].forEach((c, i) => {
@@ -561,15 +571,18 @@ export class DevotedShots {
   }
   /** [420] The lights come back up, dim and red: everyone at the table, gone. She walks in, past them, to the cake. */
   shot_dv_murder_table(t, k, s) {
+    this.dvCam(1.25, 200 + ease(k) * 140, H / 2 + 10);                                   // (a slow dolly along the table)
     this.dvParty(t, 0.7, 1, 1);
     this.dvSlumped(t);
     this.dvTable(t, 0.7, 1, false, false);
     const x = -40 + ease(k) * 165;
     if (k < 1) this.dvPose('', 'run', s / 4, x, 338, 2.1, false); else this.dvPose('', 'idle', s / 6, 125, 338, 2.1, false);
-    this.vignette(this.over, 0.7);
+    this.dvFilm(t, 34, 40);
   }
   /** [560] She takes a slice of cake, turns to us: I PREFER BLOOD BETTER! */
   shot_dv_murder_cake(t, k, s) {
+    const push = ease(Math.max(0, s - 30) / 120);
+    this.dvCam(1.2 + push * 0.8, 200 - push * 60, H / 2 + 10 + push * 70);               // (pushes in on her as she speaks)
     this.dvParty(t, 0.7, 1, 1);
     this.dvSlumped(t);
     this.dvTable(t, 0.7, 1, s >= 24, false);
@@ -579,13 +592,13 @@ export class DevotedShots {
       this.front.fillStyle(0xe87a9a, 1); this.front.fillTriangle(x - 9, y + 8, x + 9, y + 8, x + 9, y - 8); this.front.fillStyle(0xfff4f8, 1); this.front.fillRect(x - 9, y + 6, 18, 2); this.front.fillRect(x + 7, y - 8, 2, 16);
       this.front.fillStyle(0x8e1a1e, 1); this.front.fillRect(x - 2, y + 2, 3, 3);                // (a red fingerprint on it)
     }
-    if (s >= 44) { const T = 'I PREFER BLOOD BETTER!', n = Math.min(T.length, Math.floor((s - 44) / 2)); this.dvText(0, T.slice(0, n), W / 2, 96, 14, '#e83a3a', { stroke: '#1a0608', sw: 5 }); }
-    this.vignette(this.over, 0.65);
+    if (s >= 44) { const T = 'I PREFER BLOOD BETTER!', n = Math.min(T.length, Math.floor((s - 44) / 2)); this.dvScreenText(0, T.slice(0, n), W / 2, 300, 16, '#e83a3a', { stroke: '#1a0608', sw: 5 }); }
+    this.dvFilm(t, 34, 40);
   }
   /** [700] The screen floods red, and it ends. */
   shot_dv_murder_red(t, k, s) {
     this.shot_dv_murder_cake(t, 1, 140 + s);
-    this.over.fillStyle(0xa00810, Math.min(1, s / 50)); this.over.fillRect(0, 0, W, H);
+    this.over.fillStyle(0xa00810, Math.min(1, s / 50)); this.over.fillRect(-W, -H, W * 3, H * 3);   // (covers wherever the camera is)
     if (s === 0) this.cameras.main.shake(300, 0.01);
   }
 

@@ -2,7 +2,7 @@
 halos, collars, horns, visors, shades...), reshaped capes and robes, new weapons - on top of the costume's colours.
 
   python3 tools/sprites/shop_costumes.py [tricolore teatime liberty luckyred amber olive eclipse aurora celestial vampire sakura plague obsidian cyber verdant vapor glam
-                                           sunset midnight] [--preview DIR]
+                                           sunset midnight frost holo] [--preview DIR]
 
 How each fighter is done:
   Soul Summoner, Mr Wake  their puppets (ss_rig.py / mw_rig.py, cut from Mason's idle drawing) get the costume's
@@ -833,6 +833,85 @@ def aero_tide(N):
         if K.shade_of(sc[y, x]) < 0.15: continue
         sc[y, x, :3] = K.hexrgb([0xff4a4a, 0xffffff, 0xffd23a, 0xffffff, 0x2ab0e8, 0xffffff][(x + y) // 2 % 6])
 
+def y2k_paint(lay, fn):
+    """Calls fn(x, y, hue, sat, val) for every coloured (non-outline) pixel of a layer; a colour it returns replaces it."""
+    if lay is None: return
+    ys, xs = np.nonzero(lay[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        r, g_, b = (int(c) for c in lay[y, x, :3]); hh, ss, vv = K._rgb2hsv(r, g_, b)
+        if vv < 0.16: continue                                                 # (outline stays)
+        c = fn(x, y, hh, ss, vv)
+        if c is not None: lay[y, x, :3] = K.hexrgb(c) if isinstance(c, int) else c
+
+def nu_frost(N):
+    """FROSTED TIPS (shop, legendary - Y2K): spiky hair dark at the roots, bleached frost on the tips, a wraparound
+    shield visor in ice blue, a chrome puffer jacket quilted in bands, baggy dark-wash jeans and chunky white sneakers,
+    a chrome flip-phone-silver mic."""
+    h = N['hair']; ys, xs = np.nonzero(h[..., 3] > 0); top = ys.min() if len(ys) else 0
+    for x, y in zip(xs, ys):
+        v = K.shade_of(h[y, x])
+        h[y, x, :3] = K.hexrgb(K.ramp_pick([0xa8b8c8, 0xd8e4f0, 0xf4f8ff, 0xffffff] if y <= top + 4 else [0x2a1a10, 0x4a3020, 0x6a4a30, 0x8a6a48], v, 0.3, 1.0))
+    hd = N['head']
+    for y in range(9, 16):                                                     # the shield visor: ice blue fading to violet
+        for x in range(23, 43):
+            if hd[y, x, 3] and K.shade_of(hd[y, x]) < 0.32: hd[y, x, :3] = K.hexrgb([0xe8f8ff, 0x8ad8ff, 0x4aa8ff, 0x3a7aff, 0x5a5ae8, 0x7a4ad8, 0x9a5ae8][(y - 9) % 7])
+    CHROME = [0x4a5468, 0x7a869a, 0xaab4c4, 0xd8e0ea, 0xffffff]
+    def puffer(x, y, hh, ss, vv):
+        if y % 7 == 0 and vv > 0.3: return 0x8a94a8                            # the quilting seams (soft)
+        c = K.ramp_pick(CHROME, vv, 0.12, 0.6)
+        if (x - y) % 11 == 0 and vv > 0.3: return 0xffffff                     # chrome glints
+        return 0x8ad8ff if (x + y) % 23 == 0 else c                            # (and a blue sheen)
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore'): y2k_paint(N.get(n), puffer)
+    DENIM = [0x10203a, 0x1a3458, 0x2a4a78, 0x4a6a98]
+    def jeans(x, y, hh, ss, vv):
+        if x % 7 == 3 and y % 2 == 0: return 0xd8a040                          # gold stitching
+        return K.ramp_pick(DENIM, vv, 0.12, 0.6)
+    for n in ('bthigh', 'fthigh', 'bshin', 'fshin'): y2k_paint(N.get(n), jeans)
+    for n in ('bshoe', 'fshoe'):                                               # chunky white sneakers: a thick sole, a blue swoosh
+        lay = N.get(n); ys, xs = np.nonzero(lay[..., 3] > 0)
+        if not len(ys): continue
+        bot = ys.max()
+        y2k_paint(lay, lambda x, y, hh, ss, vv: 0xc8ccd8 if y >= bot - 1 else 0x3a7aff if y == bot - 3 else K.ramp_pick([0xc8ccd8, 0xeef0f6, 0xffffff], vv, 0.2, 0.8))
+    y2k_paint(N.get('mic'), lambda x, y, hh, ss, vv: K.ramp_pick(CHROME, vv, 0.15, 0.9))
+
+def aero_holo(N):
+    """HOLO 2K (shop, legendary - Y2K): his dome is see-through blue plastic like an old translucent computer, with
+    moulded ridges, the goldfish turned bubblegum pink with a star sticker; a holographic suit that shifts pink, lilac
+    and aqua, a fuzzy pink boa with butterfly clips for a scarf, chunky platform sneakers."""
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    PLASTIC = [0x0a5a8a, 0x1a7ab0, 0x3aa0d0, 0x6ac8ea, 0xb8ecff]
+    glass = (hd[..., 3] > 0) & (yy >= 3) & (yy < 22) & (hd[..., :3].max(-1) > 80) & ~np.all(hd[..., :3] >= 240, -1)
+    for y, x in zip(*np.nonzero(glass)):
+        v = K.shade_of(hd[y, x]); c = K.ramp_pick(PLASTIC, v, 0.4, 1.2)
+        if x % 4 == 0: c = PLASTIC[max(0, PLASTIC.index(c) - 1)]               # moulded ridges in the plastic
+        hd[y, x, :3] = K.hexrgb(c)
+        if (x * 11 + y * 5) % 31 == 0: hd[y, x, :3] = (255, 255, 255)
+    f = N['fish']; y2k_paint(f, lambda x, y, hh, ss, vv: 0xff5ab8 if vv < 0.85 else 0xffa8dc)
+    ys, xs = np.nonzero(f[..., 3] > 0)
+    if len(xs): K.stamp(f, int(np.median(xs)) - 1, int(np.median(ys)) - 1, [".y.", "yyy", ".y."], {'y': 0xffe85a}, only_full=True)   # a star sticker
+    HOLO = [0xff9ad8, 0xd8a8ff, 0x9ae8ff, 0xb8ffe0, 0xffd8f4]
+    def holo(x, y, hh, ss, vv):
+        if ss < 0.2 and vv > 0.5:                                              # the white suit: holographic film
+            c = HOLO[(x + y * 2) // 3 % len(HOLO)]
+            if vv < 0.7: c = {0xff9ad8: 0xc85aa8, 0xd8a8ff: 0x9a6ad8, 0x9ae8ff: 0x4ab0d8, 0xb8ffe0: 0x5ac8a0, 0xffd8f4: 0xd890c0}[c]
+            return 0xffffff if (x * 5 + y) % 19 == 0 else c
+        return None
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore', 'bthigh', 'fthigh', 'bshin', 'fshin'): y2k_paint(N.get(n), holo)
+    K.stamp(N['torso'], 30, 24, ["b.b.b", "bbbbb", ".bbb.", "b.b.b"], {'b': 0x7a4ad8}, only_full=True)   # a butterfly on his chest
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)                       # the fuzzy pink boa
+    for x, y in zip(xs, ys):
+        v = K.shade_of(sc[y, x]); c = K.ramp_pick([0xb02a8a, 0xff5ab8, 0xff9ad8, 0xffe0f4], v, 0.15, 1.0)
+        sc[y, x, :3] = K.hexrgb(0xffffff if (x * 7 + y * 3) % 5 == 0 and v > 0.4 else c)
+    if len(xs):                                                                # butterfly clips along it
+        for i, (bx, col) in enumerate(((np.percentile(xs, 20), 0x3ad8ff), (np.percentile(xs, 55), 0xffe85a), (np.percentile(xs, 85), 0x8a5aff))):
+            bx = int(bx); col_y = ys[xs == bx]
+            if len(col_y): K.stamp(sc, bx - 1, int(col_y.min()), ["c.c", ".k.", "c.c"], {'c': col, 'k': 0x1a1028}, only_full=True)
+    for n in ('bshoe', 'fshoe', 'ffist'):                                       # platform sneakers + glove: white with a lilac sole
+        lay = N.get(n); ys, xs = np.nonzero(lay[..., 3] > 0)
+        if not len(ys): continue
+        bot = ys.max()
+        y2k_paint(lay, lambda x, y, hh, ss, vv: (0xb88aff if y >= bot - 2 else 0xffffff if vv > 0.6 else 0xd8d0e8) if n != 'ffist' else (0xffffff if vv > 0.6 else 0xd8c8f0))
+
 PART_LOOKS = {
     'luckyred': ('nu', 'nu_draw', NUG, {'acid': {'to': 44, 'sat': 1.2, 'val': 1.1}, 'hair': {'sat': 0.2, 'val': 0.3}, 'cloth': {'to': 356, 'sat': 3.2, 'val': 1.7}}, nu_luckyred, (255, 64, 56)),
     'amber': ('aero', 'aero_draw', AEG, {'aqua': {'to': 30, 'sat': 0.9, 'val': 1.0}, 'lime': {'to': 44, 'sat': 0.8, 'val': 1.1}, 'fish': {'to': 46, 'sat': 1.1, 'val': 1.2}}, aero_amber, (255, 176, 70)),
@@ -840,6 +919,8 @@ PART_LOOKS = {
     'glam': ('nu', 'nu_draw', NUG, {'acid': {'to': 322, 'sat': 1.1, 'val': 1.15}, 'hair': {'sat': 0.2, 'val': 1.2}, 'cloth': {'to': 44, 'sat': 2.4, 'val': 2.2}}, nu_glam, (255, 74, 184)),
     'midnight': ('aero', 'aero_draw', AEG, {'aqua': {'to': 232, 'sat': 1.0, 'val': 0.6}, 'lime': {'to': 268, 'sat': 0.5, 'val': 1.1}, 'fish': {'to': 44, 'sat': 0.9, 'val': 1.15}}, aero_midnight, (122, 150, 255)),
     'surf': ('nu', 'nu_draw', NUG, {}, nu_surf, (42, 208, 208)),
+    'frost': ('nu', 'nu_draw', NUG, {}, nu_frost, (138, 216, 255)),
+    'holo': ('aero', 'aero_draw', AEG, {'lime': {'to': 322, 'sat': 1.1, 'val': 1.15}}, aero_holo, (255, 154, 216)),
     'tide': ('aero', 'aero_draw', AEG, {'lime': {'to': 48, 'sat': 1.2, 'val': 1.15}}, aero_tide, (42, 208, 224)),
     'sunset': ('aero', 'aero_draw', AEG, {'aqua': {'to': 24, 'sat': 1.0, 'val': 1.05}, 'lime': {'to': 322, 'sat': 0.9}, 'fish': {'to': 2, 'sat': 1.1, 'val': 1.0}}, aero_sunset, (255, 154, 90)),
 }
@@ -867,18 +948,18 @@ def build_parts(name):
         small, big = M.build_rig(look, M.FOLLOW)
         M.GHOST = ghost
         res = M.build_all(small, big, M.MOVES, out, os.devnull, 'NU_MOVES', 'nu_moves.py')
-        if name == 'surf': retile(os.path.join(out, 'moves_sheet.png'))      # (new sheets must stay under 4096 px)
+        if name in ('surf', 'frost'): retile(os.path.join(out, 'moves_sheet.png'))      # (new sheets must stay under 4096 px)
         return res
     import aero_moves as A
     small, big = A.N.build_rig(look, A.FOLLOW)
     A.N.GHOST = ghost
     res = A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
-    if name == 'tide': retile(os.path.join(out, 'moves_sheet.png'))
+    if name in ('tide', 'holo'): retile(os.path.join(out, 'moves_sheet.png'))
     return res
 
 # ====================================================================== run
 LOOKS = {'artist': build_mw, 'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
-         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts}
+         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts, 'frost': build_parts, 'holo': build_parts}
 
 if __name__ == '__main__':
     names = [a for a in sys.argv[1:] if a in LOOKS] or list(LOOKS)

@@ -18,6 +18,13 @@ scored to its shots (frame numbers at 60 fps in brackets):
   murder     MAD MURDER's THE PARTY: a bouncy party tune (her own) with claps and a popper [0], slowing and souring
              as the door creaks open [240], three stabs in the dark [330], a broken music-box version of it and her
              footsteps in the red room [420], a sting as she speaks [600], a swell and a hit as it floods red [700]
+  heartwood  HEARTWOOD's THE GROVE: wind and a lone flute in the dead forest [0], the thorn and the sap racing out
+             [210], a rising choir as the beaten kneel [390], a warm full chord, harp and bells as the tree blooms [600]
+  forge      FORGEBOUND's TEMPERED: the anvil is the beat under low brass and bellows [0], a bonk on every blow as one
+             of the beaten is hammered flat [200], steam [400], a smug little statue and its smash [480], a swaggering
+             brass riff as she sits on them [660]
+  keeper     THE LAST KEEPER's THE LAST LIGHT: storm, rain, thunder, the sea [0], a lone reed melody and the lens
+             blazing [200], cold strings as the light finds the beaten and swings away [380], dawn: the melody warm [600]
   devoted    her own outro (no costume): wind, her music-box theme, the stab, the beaten sinking, three splashes as the
              sludge takes her, a whisper, the thing's eyes opening
 Spoken lines (tools/audio/voice_src/dv_*.ogg) were made with Kokoro TTS (kokoro-onnx, voice af_nicole, slowed).
@@ -322,6 +329,71 @@ def murder():
     finish(reverb(out, 2.6, 1.6, 0.36), 'murder', fade=0.8)
 
 
-PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted, 'murder': murder}
+def heartwood():
+    """HEARTWOOD's THE GROVE (15 s): wind and a lone wooden flute over a low drone as she walks the dead forest [0];
+    a deep hit and a swelling rumble as the sap races out [210+]; the kneeling - a slow choir rising [390]; the bloom - a
+    full warm chord, harp and bells, leaves falling [600]; the title [770]."""
+    L = 15.0; out = np.zeros(secs(L))
+    out += lp(noise(secs(L)), 260) * 0.05
+    add(out, pad([38, 45, 50], 3.6, 0.35, detune=0.2), 0.0)
+    t = 0.4
+    for mi, d in seq('D5:2 F5:1 E5:1 D5:2 A4:2  C5:2 D5:1 F5:1 E5:3'): add(out, flute(mi, d * 0.38, 0.45), t); t += d * 0.38
+    add(out, mx(drum_kick(1.3), timpani(26, 2.0, 1.2)), 3.5 + 0.9)                       # the thorn driven in
+    sw = lp(noise(secs(2.6)), 220) * np.linspace(0, 1, secs(2.6)) ** 2; add(out, sw, 4.4)
+    for i in range(14): add(out, glass(62 + (i * 5) % 12, 0.3, 0.2), 4.5 + i * 0.14)
+    for i, ch in enumerate([[50, 57, 62], [52, 59, 64], [53, 60, 65]]): add(out, choir(ch, 1.6, 0.5 + 0.12 * i, (600, 1000)), 6.5 + i * 1.1)
+    add(out, mx(choir([50, 57, 62, 66, 69], 4.5, 0.9, (800, 1300)), pad([38, 45, 50, 54], 5.0, 0.5)), 10.0)
+    for i, mi in enumerate([74, 78, 81, 86, 81, 78, 74, 69]): add(out, harp(mi, 1.6, 0.4), 10.0 + i * 0.18)
+    add(out, mx(bell(50, 3.6, 0.5), timpani(26, 1.6, 0.6)), 12.83)
+    finish(reverb(out, 3.0, 1.8, 0.42), 'heartwood', fade=1.0)
+
+
+def forge():
+    """FORGEBOUND's TEMPERED (15 s), cheeky and heavy: the anvil IS the beat - hammer blows every 40 frames over low
+    brass and bellows [0]; the beaten hammered flat, a bonk on every blow [200]; a great hiss of steam [400]; the
+    statue - a smug little brass figure, then a smash [480-612]; a swaggering brass riff as she sits on them [660]."""
+    L = 15.0; out = np.zeros(secs(L))
+    for i in range(8):                                                                   # the bellows, breathing
+        n = secs(0.6); add(out, lp(noise(n), 400) * np.sin(np.linspace(0, np.pi, n)) * 0.25, i * 0.83)
+    for i in range(5): add(out, clank(0.9, 0.9 + (i % 2) * 0.1), 0.3 + i * 0.667)          # hammer blows [18, 58, ...]
+    add(out, pad([33, 40, 45], 3.4, 0.35, detune=0.3), 0.0)
+    for i, mi in enumerate([45, 45, 48, 43]): add(out, horn(mi, 0.7, 0.45, bright=0.8), 0.3 + i * 0.83)
+    for i in range(5):                                                                    # [216 + 34n] hammered flat - a bonk with each
+        tt = 3.33 + 0.27 + i * 0.567
+        add(out, mx(clank(0.7, 0.7), clank(0.4, 0.5)), tt)
+    for i, mi in enumerate([57, 55, 53, 52]): add(out, horn(mi, 0.5, 0.35), 3.4 + i * 0.6)
+    st = hp(noise(secs(2.4)), 2500) * np.exp(-np.arange(secs(2.4)) / SR * 1.4) * 0.6; add(out, st, 6.67)   # [400] the steam
+    for i, mi in enumerate([69, 72, 76, 72, 69]): add(out, marimba(mi, 0.4, 0.4), 8.1 + i * 0.25)        # the little statue
+    add(out, mx(glass(88, 0.8, 0.5), clank(0.5, 1.6)), 10.2)                             # [612] it smashes
+    t = 11.0
+    for mi, d in seq('A2:1 A2:.5 C3:.5 D3:1 E3:1  G3:.5 E3:.5 D3:1 A2:2'): add(out, horn(mi + 12, d * 0.28, 0.6, bright=0.9), t); add(out, bass(mi, d * 0.28, 0.5), t); t += d * 0.28
+    for i in range(8): add(out, drum_kick(0.6), 11.0 + i * 0.28); add(out, drum_snare(0.4), 11.14 + i * 0.28)
+    add(out, mx(clank(1.0, 0.8), timpani(28, 1.4, 0.9)), 13.17)
+    finish(reverb(out, 2.0, 1.4, 0.3), 'forge', fade=0.8)
+
+
+def keeper():
+    """THE LAST KEEPER's THE LAST LIGHT (15 s): storm - wind, rain, thunder, a low churning sea [0]; the lamp room - a
+    lone accordion-like reed melody, the lens blazing up with a swell [200/240]; the tide - cold strings, a cry, the
+    light swinging away [380/500]; dawn - calm, gulls, the melody again warm and full [600], the title [780]."""
+    L = 15.0; out = np.zeros(secs(L))
+    out[:secs(10.0)] += lp(noise(secs(10.0)), 500) * 0.12 + rainfall(10.0, 1.4)
+    for tt in (1.17, 2.5): add(out, thunder(2.6, 0.9), tt)
+    sea = lp(noise(secs(10)), 120) * (0.6 + 0.4 * np.sin(np.linspace(0, 18, secs(10)))) * 0.5; add(out, sea, 0.0)
+    melody = seq('A4:1 C5:1 E5:2 D5:1 C5:1 A4:2  G4:1 A4:1 C5:1 B4:1 A4:3')
+    t = 3.4
+    for mi, d in melody[:7]: add(out, mx(flute(mi, d * 0.36, 0.3), flute(mi - 12, d * 0.36, 0.15)), t); t += d * 0.36   # (a reed and its octave)
+    add(out, mx(choir([57, 64, 69], 2.0, 0.6, (900, 1400)), glass(81, 2.0, 0.4)), 4.0)
+    add(out, pad([45, 52, 57, 60], 3.6, 0.45, detune=0.4), 6.33)
+    add(out, mx(drum_kick(0.8), pad([44, 51, 56], 1.6, 0.5, detune=0.6)), 8.33)              # [500] the light swings away
+    t = 10.2
+    for mi, d in melody: add(out, flute(mi, d * 0.34, 0.5), t); add(out, harp(mi - 12, d * 0.34, 0.3), t); t += d * 0.34
+    add(out, pad([45, 52, 57, 61, 64], 4.6, 0.45), 10.0)
+    for tt in (10.6, 11.4, 12.1): add(out, glass(91, 0.25, 0.2), tt)                          # gulls
+    add(out, mx(bell(45, 2.6, 0.5), timpani(28, 1.6, 0.6)), 13.0)
+    finish(reverb(out, 3.2, 1.9, 0.42), 'keeper', fade=1.0)
+
+
+PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted, 'murder': murder, 'heartwood': heartwood, 'forge': forge, 'keeper': keeper}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

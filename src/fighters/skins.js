@@ -267,6 +267,12 @@ export const SKINS = {
       pal: { outline: 0x0a2a3a, deep: 0x109aa8, mid: 0x2ad0d0, light: 0xfff4a0, core: 0xffffff, shade: 0x0a3a4a, void: 0x041418 },
       vfx: { hit: { shape: 'drop', colors: [0xffffff, 0x8af4ec, 0x2ad0d0], n: 14, ring: 0x8af4ec, glint: true, flash: true },
              aura: { motes: { colors: [0xfff4a0, 0x8af4ec, 0xffffff], rate: 4 } }, trail: 0x2ad0d0 } },
+    // FROSTED TIPS (SHOP, legendary - Y2K): bleached spikes over dark roots, an ice-blue shield visor, a chrome puffer
+    // jacket, baggy dark-wash jeans, chunky white sneakers (drawn: shop_costumes.py). Hits throw chrome sparkles
+    { name: 'FROSTED TIPS', sheetSet: 'frost', shop: 'cos-frost', swatch: 0xd8e0ea, fx: 0x8ad8ff, groups: NUG, rules: {},
+      pal: { outline: 0x10182a, deep: 0x3a7aff, mid: 0x8ad8ff, light: 0xd8e0ea, core: 0xffffff, shade: 0x1a2440, void: 0x060a14 },
+      vfx: { hit: { shape: 'star', colors: [0xffffff, 0x8ad8ff, 0xaab4c4, 0x7a4ad8], n: 11, ring: 0x8ad8ff, glint: true, flash: true },
+             aura: { motes: { colors: [0xffffff, 0x8ad8ff], rate: 4 } }, trail: 0x8ad8ff } },
     // LUCKY RED (nesting dolls): a red silk jacket with gold cloud swirls and knotted gold buttons, black hair tied with a red
     // ribbon, gold-rimmed shades (drawn: shop_costumes.py)
     { name: 'LUCKY RED', sheetSet: 'luckyred', shop: 'cos-luckyred', swatch: 0xd8201e, fx: 0xffc83a, groups: NUG, rules: { acid: { to: 356, sat: 1.3, val: 1.0 }, hair: { to: 46, sat: 2.4, val: 1.05 }, cloth: { to: 0, sat: 1.6, val: 0.8 } },
@@ -408,6 +414,12 @@ export const SKINS = {
     { name: 'MIDNIGHT', sheetSet: 'midnight', shop: 'cos-midnight', swatch: 0x101a44, fx: 0x7a96ff, groups: AEG, rules: { aqua: { to: 232, sat: 1.0, val: 0.6 }, lime: { to: 268, sat: 0.5, val: 1.1 }, fish: { to: 44, sat: 0.9, val: 1.15 } },
       pal: { outline: 0x02040e, deep: 0x101a44, mid: 0x2a427a, light: 0x7a96ff, core: 0xfff4c8, shade: 0x060820, void: 0x010208 },
       vfx: { hit: { shape: 'star', colors: [0xfff4c8, 0x7a96ff, 0xffffff], n: 8, ring: 0x7a96ff, glint: true }, aura: { motes: { colors: [0xfff4c8, 0x7a96ff], rate: 7 } } } },
+    // HOLO 2K (SHOP, legendary - Y2K): a see-through blue plastic dome with moulded ridges, a bubblegum-pink goldfish with a
+    // star sticker, a holographic suit, a fuzzy pink boa with butterfly clips, platform sneakers (drawn: shop_costumes.py)
+    { name: 'HOLO 2K', sheetSet: 'holo', shop: 'cos-holo', swatch: 0xff9ad8, fx: 0x9ae8ff, groups: AEG, rules: { lime: { to: 322, sat: 1.1, val: 1.15 } },
+      pal: { outline: 0x1a1030, deep: 0x7a4ad8, mid: 0xff9ad8, light: 0x9ae8ff, core: 0xffffff, shade: 0x2a1840, void: 0x0a0614 },
+      vfx: { hit: { shape: 'bubble', colors: [0xff9ad8, 0x9ae8ff, 0xd8a8ff, 0xffffff], n: 10, ring: 0xd8a8ff, glint: true, flash: true },
+             aura: { motes: { colors: [0xff9ad8, 0x9ae8ff, 0xd8a8ff], rate: 5 } }, trail: 0xd8a8ff } },
     // AMBER (nesting dolls): his dome turned to Baltic amber with trapped bubbles and a fossil leaf, an ivory suit, a golden
     // goldfish, a scarf of folk paper-cut colours (drawn: shop_costumes.py)
     { name: 'AMBER', sheetSet: 'amber', shop: 'cos-amber', swatch: 0xe8a03a, fx: 0xffc860, groups: AEG, rules: { aqua: { to: 36, sat: 1.1, val: 1.0 }, lime: { to: 44, sat: 0.9 } },
@@ -810,15 +822,16 @@ SKINS['devoted'] = [
   // embers in it, and DROWNED burns her down to a smouldering shape with a wing of smoke ribbed with cinders
   { name: 'CINDER WRAITH', sheetSet: 'cinder', swatch: 0xb89e7a, fx: 0xff7a1a, pal: { outline: 0x0c0a0a, deep: 0x36302e, mid: 0xff7a1a, light: 0xdcc8a2, core: 0xfff0b8, shade: 0x0c0a0a, void: 0x000000 },
     vfx: { hit: { shape: 'flame', colors: [0xff7a1a, 0xffd080, 0x5a5654], n: 10, ring: 0xffa040 }, aura: { motes: { colors: [0xff7a1a, 0xffa040, 0x5a5654], rate: 7, shape: 'wisp' } } } },
-  // ---- three lore costumes (devoted_draw.py --set heartwood|vesper|keeper; their stories: SKIN_LORE in lore.js)
+  // ---- three lore costumes (devoted_draw.py --set heartwood|forge|keeper; their stories: SKIN_LORE in lore.js)
   // HEARTWOOD: the dying tree of her symbol has grown into her - bark skin split by glowing sap, branches from her
   // shoulders, dead leaves for hair, a weeping knot for a mouth, a black thorn for a blade
   { name: 'HEARTWOOD', sheetSet: 'heartwood', swatch: 0x6a4a30, fx: 0xffb030, pal: { outline: 0x0a0604, deep: 0x3a2410, mid: 0xc86a10, light: 0xffc040, core: 0xffe890, shade: 0x0a0604, void: 0x000000 },
     vfx: { hit: { shape: 'leaf', colors: [0xa86a2a, 0xd8a050, 0xffb030], n: 10 }, aura: { motes: { colors: [0xa86a2a, 0xd8a050, 0x7a4a1a], rate: 9 } } } },
-  // VESPER: the first voice in the choir that heard the dark - indigo vestments stitched with silver hymns, a crown
-  // of melted candles, eyes sewn shut with silver thread, a hymnal at her hip; sludge of ink and wax, a wing of pages
-  { name: 'VESPER', sheetSet: 'vesper', swatch: 0x3a2e6a, fx: 0xd8d8ff, pal: { outline: 0x08061a, deep: 0x2a2252, mid: 0x564a90, light: 0xd8d8f0, core: 0xffffff, shade: 0x08061a, void: 0x000000 },
-    vfx: { hit: { shape: 'note', colors: [0xd8d8f0, 0xffd860, 0x564a90], n: 8 }, aura: { motes: { colors: [0xffd860, 0xd8d8f0], rate: 11 } } } },
+  // FORGEBOUND: the smith of the faithful, who forges every karambit they carry - soot-black tunic, sleeves rolled
+  // over scarred forearms, a leather apron, goggles up on a red head-cloth, a hammer at her hip, a blade still glowing
+  // from the anvil; her sludge is slag and cooling iron, her wing a fan of hammered plates with molten seams
+  { name: 'FORGEBOUND', sheetSet: 'forge', swatch: 0x9a1a12, fx: 0xff9a30, pal: { outline: 0x0a0606, deep: 0x3a1a10, mid: 0xe0500c, light: 0xffa030, core: 0xfff0b8, shade: 0x0a0606, void: 0x000000 },
+    vfx: { hit: { shape: 'spark', colors: [0xffa030, 0xfff0b8, 0xe0500c], n: 12, ring: 0xff9a30 }, aura: { motes: { colors: [0xffa030, 0xff7a1a, 0x4a4a52], rate: 7 } } } },
   // THE LAST KEEPER: she kept the lighthouse that watched the black tide come in - sea-green oilskins, a rain hat,
   // a brass lantern glowing at her hip, a whalebone hook; her sludge is the tide, her wing kelp and torn net
   { name: 'THE LAST KEEPER', sheetSet: 'keeper', swatch: 0x2a6a5e, fx: 0xffc040, pal: { outline: 0x040a0e, deep: 0x16303a, mid: 0x2a6a5e, light: 0xd8f0f0, core: 0xffe890, shade: 0x040a0e, void: 0x000000 },
