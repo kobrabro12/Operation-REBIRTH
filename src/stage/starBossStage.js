@@ -16,6 +16,9 @@
 //   heart does double. And he is hungry: DEVOUR - his maw opens and he inhales, pulling the loose stars (and you)
 //   toward it; every star he swallows heals him and mends a crack, so race him for them.
 //   Attacks: STARFALL (meteors onto marks), GALACTIC SLAM (a fist from above, shockwaves along the floor - jump them),
+//   PLANET TOSS (he plucks the ringed planet out of his orbit, it swells in his hand, he hurls it and it rolls across the
+//   floor, rebounding off the edges - jump it), CRESCENT BLADES (he tears the crescent moons off his shoulders and throws
+//   them like boomerangs, one skimming the floor and one at ledge height, both at once - time a jump between them),
 //   PALM SWEEP (a hand sweeps the floor), CONSTELLATION (stars appear, lines join them, then the lines turn to beams),
 //   GRAVITY WELL (a little black hole pulls you in, then bursts), DEVOUR; TOTAL ECLIPSE (half health: the sky goes
 //   red, two-handed slams) adds SUPERNOVA (a sun forms between his hands and bursts into two rings - stand in a gap or
@@ -64,6 +67,12 @@ const DEVOUR = { time: 130, star: 0.06, pull: 0.7, heal: 18 };
 const NOVA = { charge: 84, rings: 2, apart: 26, speed: 4.4, gap: 0.34, hit: [11, [70, 6, 0.75]] };
 // COMET (TOTAL ECLIPSE): comets, frames apart, flight, gravity, the blast (radius, hit)
 const COMET = { n: 3, every: 16, flight: 46, grav: 0.32, r: 40, hit: [10, [70, 5.2, 0.6]] };
+// PLANET TOSS: the wind-up, the planet's size in his hand, its flight to the floor (frames, gravity), how fast it rolls
+// (normal / TOTAL ECLIPSE), how many times it rebounds off the arena's edges, its hit
+const PLANET = { wind: 42, r: 26, flight: 24, grav: 0.5, roll: [5.5, 7.5], bounces: [1, 2], hit: [12, [45, 6.2, 0.85]] };
+// CRESCENT BLADES: the wind-up, one throw's flight (frames, out and back), how big a thrown moon is, the lanes (floor /
+// ledge height), passes (normal / TOTAL ECLIPSE - the second pass swaps the lanes), hit
+const MOONS = { wind: 36, fly: 80, r: 40, lanes: [-26, -122], passes: [1, 2], hit: [10, [60, 5.6, 0.7]] };
 // hazards: METEOR SHOWER (marks), SOLAR FLARE (warning, the beam's speed, its half-height, hit)
 const SHOWER = { n: 4 };
 const FLARE = { warn: 80, speed: 13, h: 22, hit: [9, [30, 5.4, 0.55]] };
@@ -261,12 +270,12 @@ export class StarBossStage extends BossArena {
     const loose = this.stars.filter((s) => s.st === 'free').length;
     if (!loose && this.sinceStar >= 2) return ['starfall'];
     if (loose && this.count % 3 === 2) return ['devour'];
-    return phase === 1 ? ['starfall', 'slam', 'sweep', 'constellation', 'well'] : ['starfall', 'slam', 'sweep', 'constellation', 'well', 'supernova', 'comet', 'slam'];
+    return phase === 1 ? ['starfall', 'slam', 'sweep', 'constellation', 'well', 'planet', 'moons'] : ['starfall', 'slam', 'sweep', 'constellation', 'well', 'planet', 'moons', 'supernova', 'comet', 'slam'];
   }
   /** Counts his attacks (for DEVOUR) and how long since he last gave the sky a star. */
   tally(gives) { this.count++; this.sinceStar = gives ? 0 : this.sinceStar + 1; }
   start_starfall() { this.tally(true); } start_slam() { this.tally(); } start_sweep() { this.tally(); } start_constellation() { this.tally(true); }
-  start_well() { this.tally(); } start_devour() { this.tally(); } start_supernova() { this.tally(); } start_comet() { this.tally(true); }
+  start_well() { this.tally(); } start_planet() { this.tally(); } start_moons() { this.tally(); } start_devour() { this.tally(); } start_supernova() { this.tally(); } start_comet() { this.tally(true); }
   /** The drawing layers that make up him, for his death card's portrait (MatchScene.paintBossCard). */
   cardObjs() { return [this.bodyG, this.handG]; }
   /** Which form he was in when he beat you (bosses.js card quotes). */
@@ -324,6 +333,7 @@ export class StarBossStage extends BossArena {
     const B = this.boss, h = this.joints().heart;
     this.brk = BREAK.time; this.cracks = 0; B.atk = null; B.wait = BREAK.time + 30;
     this.rings = []; this.cons = null; this.well = null; this.nova = null; this.comets = [];
+    if (this.ball) this.ball.st = 'home'; this.moons = null;
     this.rageText.setText('THE EVENT HORIZON SHATTERS!').setColor('#e0d4ff').setFontSize(12); B.rage = 100;
     sfx('glass', 1, 0.6); sfx('roar', 1, 0.6); sfx('bighit', 1, 0.5); match.shake(16, 30);
     for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2, v = 3 + Math.random() * 5; match.particles.push({ x: h.x + Math.cos(a) * 40, y: h.y + Math.sin(a) * 40, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life: 30 + Math.random() * 20, color: C.shell[i % 3], size: 3, grav: 0.12, drag: 0.97 }); }
@@ -561,6 +571,91 @@ export class StarBossStage extends BossArena {
     this.comets = this.comets.filter((c) => !c.dead && c.y < 400);
   }
 
+  /**
+   * PLANET TOSS: one hand reaches up into the ring round his head and plucks out the ringed planet; it swells to a
+   * boulder in his palm, then he hurls it down at you - it lands with a crash and rolls across the floor, rebounding off
+   * the arena's edges (PLANET.bounces), then lifts back up into its orbit. The ball moves on its own (stepBall).
+   */
+  atk_planet(match, a) {
+    const j = this.joints(), wind = this.sp(PLANET.wind);
+    if (a.t === 1) {
+      const tg = this.nearest(match, 0); a.h = this.hands[tg && tg.x > 0 ? 1 : 0];
+      this.planetOut = true; this.ball = { x: j.head.x + a.h.side * 80, y: j.head.y - 10, r: 9, vx: 0, vy: 0, st: 'hold', spin: 0, bounce: 0, id: this.sid('planet') };
+      sfx('summon', 0.6, 0.8);
+    }
+    const b = this.ball, h = a.h;
+    if (b && b.st === 'hold') {
+      const k = Math.min(1, a.t / wind);
+      h.tx = j.head.x + h.side * (90 + 20 * k); h.ty = j.head.y - 30 + 50 * k; h.ta = h.side * (0.6 + k * 1.2); h.tf = 0.55; h.glow = k;
+      b.x = lerp(b.x, h.x, 0.25); b.y = lerp(b.y, h.y - 26, 0.25); b.r = lerp(9, PLANET.r, k); b.spin += 0.05;
+      if (a.t % 12 === 0) sfx('rumble', 0.35, 1.4);
+      if (a.t >= wind) {                                                                       // the throw: an arc down onto your spot
+        const tg = this.nearest(match, 0), tx = Phaser.Math.Clamp(tg ? tg.x : 0, -225, 225), T = PLANET.flight;
+        b.st = 'fly'; b.vx = (tx - b.x) / T; b.vy = (-b.r - b.y - 0.5 * PLANET.grav * T * T) / T; b.dir = Math.sign(tx - b.x) || (Math.random() < 0.5 ? -1 : 1);
+        h.tx = h.x + b.dir * 60; h.ty = h.y + 70; h.tf = 0; sfx('whoosh', 0.9, 0.5);
+      }
+    }
+    return a.t > 10 && !this.ball;
+  }
+  /** The tossed planet: flies, lands with a crash, rolls (rebounding off the edges), then rises back into his orbit. */
+  stepBall(match, out) {
+    const b = this.ball; if (!b) return;
+    const j = this.joints(), roll = PLANET.roll[(this.boss && this.boss.phase === 2) ? 1 : 0];
+    if (b.st === 'fly') {
+      b.vy += PLANET.grav; b.x += b.vx; b.y += b.vy; b.spin += b.vx * 0.05;
+      if (b.y >= -b.r) {
+        b.y = -b.r; b.st = 'roll'; sfx('bighit', 1, 0.5); match.shake(9, 12);
+        for (let i = 0; i < 14; i++) match.particles.push({ x: b.x, y: -3, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 4, life: 22, color: [C.marble[2], C.gold[2], 0xd8b06a][i % 3], size: 3, grav: 0.2 });
+      }
+    } else if (b.st === 'roll') {
+      b.x += b.dir * roll; b.spin += b.dir * roll / b.r;
+      if (this.t % 4 === 0) match.particles.push({ x: b.x - b.dir * b.r, y: -3, vx: -b.dir * 1.5, vy: -1, life: 14, color: C.marble[2], size: 2 });
+      if (this.t % 18 === 0) sfx('rumble', 0.4, 1.6);
+      if (Math.abs(b.x) > 262 - b.r && Math.sign(b.x) === b.dir) {
+        if (b.bounce < PLANET.bounces[(this.boss && this.boss.phase === 2) ? 1 : 0]) { b.bounce++; b.dir = -b.dir; b.id = this.sid('planet'); sfx('clang', 0.9, 0.5); match.shake(6, 8); }
+        else { b.st = 'home'; sfx('summon', 0.5, 1.2); }
+      }
+    } else if (b.st === 'home') {                                                               // back up into his orbit, shrinking
+      b.x = lerp(b.x, j.head.x + 80, 0.06); b.y = lerp(b.y, j.head.y - 10, 0.06); b.r = lerp(b.r, 9, 0.06); b.spin += 0.05;
+      if (Math.hypot(b.x - j.head.x - 80, b.y - j.head.y + 10) < 8) { this.ball = null; this.planetOut = false; return; }
+    }
+    if (b.st === 'fly' || b.st === 'roll') out.push(this.bhit(b.id, b.x - b.r, b.y - b.r, b.x + b.r, b.y + b.r, ...PLANET.hit, { dirX: b.st === 'roll' ? b.dir : Math.sign(b.vx) || 1 }));
+  }
+  /**
+   * CRESCENT BLADES: his shoulders shudder, then he tears the crescent-moon pauldrons free and throws them like
+   * boomerangs - one skimming the floor, one at ledge height, crossing each other - and they fly back and lock onto his
+   * shoulders. TOTAL ECLIPSE: a second throw with the lanes swapped. The moons move on their own (stepMoons).
+   */
+  atk_moons(match, a) {
+    const wind = this.sp(MOONS.wind);
+    if (a.t === 1) { a.pass = 0; a.next = wind; sfx('rumble', 0.6, 0.9); }
+    if (!this.moons && a.t < a.next) { this.v.shake = 2 + 3 * (a.t / wind); this.hands.forEach((h) => { h.tx = h.side * 150; h.ty = -150; h.tf = 0.8; h.ta = -h.side * 0.4; }); }
+    if (!this.moons && a.t >= a.next) {
+      if (a.pass >= MOONS.passes[this.boss.phase - 1]) return true;
+      const j = this.joints(), swap = a.pass % 2 === 1;
+      this.moons = [-1, 1].map((side) => { const sh = side < 0 ? j.shL : j.shR; return { side, x: sh.x, y: sh.y, a: 0, t: 0, lane: MOONS.lanes[(side < 0) !== swap ? 0 : 1], id: this.sid('moon'), trail: [] }; });
+      a.pass++; a.next = a.t + MOONS.fly + 24;
+      sfx('slash', 1, 0.6); sfx('whoosh', 0.9, 0.7); match.shake(5, 8);
+      this.hands.forEach((h) => { h.tx = h.side * -60; h.ty = -120; h.tf = 0; });
+    }
+    return false;
+  }
+  /** The thrown crescents: out to the far edge in their lanes, spinning, and back to his shoulders. */
+  stepMoons(match, out) {
+    if (!this.moons) return;
+    const j = this.joints();
+    for (const m of this.moons) {
+      m.t++; const u = m.t / MOONS.fly, sh = m.side < 0 ? j.shL : j.shR;
+      m.x = lerp(sh.x, -m.side * 285, Math.sin(Math.PI * Math.min(1, u)));
+      m.y = u < 0.18 ? lerp(sh.y, m.lane, u / 0.18) : u > 0.82 ? lerp(m.lane, sh.y, (u - 0.82) / 0.18) : m.lane;
+      m.a += 0.32 * -m.side; m.trail.push({ x: m.x, y: m.y }); if (m.trail.length > 8) m.trail.shift();
+      if (u > 0.08 && u < 0.92) out.push(this.bhit(m.id, m.x - 28, m.y - 16, m.x + 28, m.y + 16, ...MOONS.hit, { dirX: Math.sign(Math.cos(Math.PI * u)) * -m.side || 1 }));
+      if (m.t % 14 === 0) sfx('whoosh', 0.35, 1.3);
+      if (u >= 1) m.dead = true;
+    }
+    if (this.moons.every((m) => m.dead)) { this.moons = null; sfx('clang', 0.9, 0.6); match.shake(4, 6); }
+  }
+
   /** You lost: he cups a little light in his hands - yours - lifts it to his maw and swallows it, laughing. */
   onGloat(match, t) {
     const j = this.joints(), c = { x: j.heart.x, y: j.heart.y - 30 - Math.min(1, t / GLOAT.eat) * 60 };
@@ -576,7 +671,7 @@ export class StarBossStage extends BossArena {
   /** His death runs long (THE STARS COME HOME). */
   deathLen() { return DIE.len; }
   /** The fight's over: everything he's doing stops. */
-  onDeath() { this.meteors = []; this.waves = []; this.rings = []; this.comets = []; this.cons = null; this.well = null; this.nova = null; this.devouring = false; this.brk = 0; this.stars = this.stars.filter((s) => s.st === 'shot'); }
+  onDeath() { this.ball = null; this.planetOut = false; this.moons = null; this.meteors = []; this.waves = []; this.rings = []; this.comets = []; this.cons = null; this.well = null; this.nova = null; this.devouring = false; this.brk = 0; this.stars = this.stars.filter((s) => s.st === 'shot'); }
   /**
    * THE STARS COME HOME: he convulses, his hands clawing at the sky, and light cracks out of his heart; he implodes
    * into it (everything of him shrinks into the black hole), a white flash - and every star he ever swallowed bursts
@@ -684,7 +779,7 @@ export class StarBossStage extends BossArena {
       // the CPU (the sim) goes for a loose star while the shell holds, his heart while it's open
       const P = match.bossProxy, free = this.stars.find((s) => s.st === 'free');
       if (P && free && !this.brk) { P.x = free.x; P.y = free.y + 26; }
-      this.stepStars(match); this.stepWaves(match, out); this.stepRings(out); this.stepComets(match, out);
+      this.stepStars(match); this.stepWaves(match, out); this.stepRings(out); this.stepComets(match, out); this.stepBall(match, out); this.stepMoons(match, out);
     }
     this.stepMeteors(match, out);
     this.stepHands();
@@ -764,6 +859,12 @@ export class StarBossStage extends BossArena {
       x.lineStyle(0);
     }
     for (const c of this.comets) this.drawComet(x, c.x, c.y, c.vx, c.vy, 11, [0x8a5aff, 0xc8a8ff, 0xffffff]);
+    if (this.ball) this.drawPlanet(x, this.ball);
+    if (this.moons) for (const m of this.moons) {
+      m.trail.forEach((p, i) => { x.fillStyle(C.moon[2], 0.12 * i / m.trail.length); x.fillCircle(p.x, p.y, MOONS.r * 0.8); });
+      x.fillStyle(0xe0e8ff, 0.15); x.fillCircle(m.x, m.y, MOONS.r * 1.3); x.fillStyle(C.star[1], 0.18); x.fillCircle(m.x, m.y, MOONS.r * 0.9); x.lineStyle(2, C.star[1], 0.7); x.strokeCircle(m.x, m.y, MOONS.r * 1.05 + Math.sin(this.t * 0.4) * 2); x.lineStyle(0);
+      this.crescent(x, m.x, m.y, MOONS.r, m.side, false, m.a);
+    }
     if (this.flare) {
       const F = this.flare;
       if (F.t < FLARE.warn) { const k = F.t / FLARE.warn; x.fillStyle(0xffb040, 0.08 + 0.12 * k * (t % 8 < 4 ? 1 : 0.5)); x.fillRect(-300, F.y - FLARE.h, 600, FLARE.h * 2); x.fillStyle(0xfff0b0, 0.5 * k); x.fillCircle(-F.s * 300, F.y, 12 + 16 * k); }
@@ -804,6 +905,18 @@ export class StarBossStage extends BossArena {
     const d = Math.hypot(vx, vy) || 1, ux = -vx / d, uy = -vy / d, nx = -uy, ny = ux;
     for (let i = 5; i >= 0; i--) { const L = r * (2 + i * 1.6), w = r * (1 - i * 0.13); g.fillStyle(cols[Math.min(2, Math.floor(i / 2))] , 0.18 + 0.1 * (5 - i)); g.fillTriangle(x + nx * w, y + ny * w, x - nx * w, y - ny * w, x + ux * L, y + uy * L); }
     g.fillStyle(cols[0], 0.5); g.fillCircle(x, y, r * 1.5); g.fillStyle(cols[1], 1); g.fillCircle(x, y, r); g.fillStyle(cols[2], 1); g.fillCircle(x - ux * r * 0.2, y - uy * r * 0.2, r * 0.55);
+  }
+  /** The tossed planet: a banded gas giant (bands slide as it rolls), a storm spot turning with its spin, its tilted ring in front and behind, a shadow on the floor. */
+  drawPlanet(g, b) {
+    const r = b.r, ring = (front) => { const pts = []; for (let i = 0; i <= 20; i++) { const q = (front ? 0 : Math.PI) + i / 20 * Math.PI; pts.push({ x: b.x + Math.cos(q) * r * 1.9 * Math.cos(-0.35) - Math.sin(q) * r * 0.45 * Math.sin(-0.35), y: b.y + Math.cos(q) * r * 1.9 * Math.sin(-0.35) + Math.sin(q) * r * 0.45 * Math.cos(-0.35) }); } g.lineStyle(4, C.out, 1); g.strokePoints(pts); g.lineStyle(2.5, 0xf0e0b0, 1); g.strokePoints(pts); g.lineStyle(0); };
+    if (b.st !== 'roll') { g.fillStyle(0x000000, 0.25); g.fillEllipse(b.x, -2, r * 2.2 * Math.max(0.3, 1 - Math.abs(b.y) / 400), 6); }
+    ring(false);
+    g.fillStyle(C.out, 1); g.fillCircle(b.x, b.y, r + 2.5); g.fillStyle(0xb88a50, 1); g.fillCircle(b.x, b.y, r);
+    for (let i = -3; i <= 3; i++) { const dy = i * r * 0.26 + ((b.spin * r * 0.2) % (r * 0.26)), w = Math.sqrt(Math.max(0, r * r - dy * dy)); if (w > 1) { g.fillStyle([0xd8b06a, 0xa86a3a, 0xe8c88a][(i + 3) % 3], 1); g.fillRect(b.x - w, b.y + dy - r * 0.07, w * 2, r * 0.14); } }
+    const sq = Math.cos(b.spin), sx = b.x + Math.sin(b.spin) * r * 0.55;
+    if (sq > 0) { g.fillStyle(0xd85a3a, 1); g.fillEllipse(sx, b.y + r * 0.3, r * 0.5 * sq, r * 0.28); g.fillStyle(0xffa080, 1); g.fillEllipse(sx, b.y + r * 0.27, r * 0.25 * sq, r * 0.12); }
+    g.fillStyle(0x000000, 0.3); g.fillCircle(b.x + r * 0.3, b.y + r * 0.25, r * 0.8); g.fillStyle(0xfff0d0, 0.5); g.fillCircle(b.x - r * 0.4, b.y - r * 0.4, r * 0.25);
+    ring(true);
   }
   /** A ring of flame tongues round (x, y): r = the disk's radius, cols = outer..inner, k = how alight (0..1), n = tongues. */
   drawCorona(g, x, y, r, cols, k, n = 26) {
@@ -857,7 +970,8 @@ export class StarBossStage extends BossArena {
     g.lineStyle(1.5, C.gold[2], 0.85); for (const sx of [-1, 1]) { g.lineBetween(Ht.x + sx * 46, Ht.y + 40, Ht.x + sx * 22, Ht.y + 100); g.lineBetween(Ht.x + sx * 70, sl.y + 10, Ht.x + sx * 46, Ht.y - 34); g.strokeCircle(Ht.x + sx * 44, Ht.y + 64, 6); }
     g.lineStyle(0);
     // the crescent-moon pauldrons
-    for (const [p, sd] of [[sl, -1], [sr, 1]]) this.crescent(g, p.x + sd * 6, p.y - 6, 46, sd, flash);
+    for (const [p, sd] of [[sl, -1], [sr, 1]]) if (!this.moons) this.crescent(g, p.x + sd * 6, p.y - 6, 46, sd, flash);   // (not while he's thrown them)
+    if (this.moons) for (const p of [sl, sr]) { g.fillStyle(C.moon[1], 0.25 + 0.2 * Math.sin(this.t * 0.3)); g.fillCircle(p.x, p.y, 14); }
     // the collar of gold spikes round his neck
     for (let i = -4; i <= 4; i++) { const bx = Ht.x + i * 14, by = top + 4; g.fillStyle(C.out, 1); g.fillTriangle(bx - 8, by + 2, bx + 8, by + 2, bx + i * 3, by - 26 + Math.abs(i) * 2); g.fillStyle(C.gold[i % 2 ? 1 : 2], 1); g.fillTriangle(bx - 6, by, bx + 6, by, bx + i * 3, by - 22 + Math.abs(i) * 2); }
     // the black-hole heart
@@ -898,21 +1012,23 @@ export class StarBossStage extends BossArena {
     g.lineStyle(2, C.gold[2], 0.55 * v.corona); g.strokePoints(pts); g.lineStyle(0);
     for (const [ph, r, c] of [[0, 7, 0x6ac8e8], [2.1, 5, 0xe86a4a], [4.2, 9, 0xd8b06a]]) {
       const q = ((ph + t * 0.012) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), near = Math.sin(q) > 0;
-      if (near !== front) continue;
+      if (near !== front || (r > 8 && this.planetOut)) continue;   // (the ringed one's gone while he's thrown it)
       const p = at(q); g.fillStyle(C.out, v.corona); g.fillCircle(p.x, p.y, r + 1.5); g.fillStyle(c, v.corona); g.fillCircle(p.x, p.y, r); g.fillStyle(0x000000, 0.35 * v.corona); g.fillCircle(p.x + r * 0.35, p.y + r * 0.3, r * 0.75); g.fillStyle(0xffffff, 0.6 * v.corona); g.fillCircle(p.x - r * 0.4, p.y - r * 0.4, r * 0.25);
       if (r > 8) { g.lineStyle(1.5, 0xf0e0b0, 0.8 * v.corona); g.strokeEllipse(p.x, p.y, r * 3.6, r * 0.9); g.lineStyle(0); }
     }
   }
-  /** A crescent-moon pauldron at (x, y), r big, horns curving up and outward (side = -1 left / 1 right). */
-  crescent(g, x, y, r, side, flash) {
+  /** A crescent moon at (x, y), r big, horns curving up and outward (side = -1 left / 1 right), turned by ang (a thrown one spins). */
+  crescent(g, x, y, r, side, flash, ang = 0) {
+    const ca = Math.cos(ang), sa = Math.sin(ang), T = (p) => ({ x: x + (p.x - x) * ca - (p.y - y) * sa, y: y + (p.x - x) * sa + (p.y - y) * ca });
     const outer = [], inner = [];
     for (let i = 0; i <= 20; i++) { const q = -0.25 + i / 20 * (Math.PI + 0.5); outer.push({ x: x + Math.cos(q) * r, y: y + Math.sin(q) * r * 0.8 }); }
     for (let i = 20; i >= 0; i--) { const q = -0.1 + i / 20 * (Math.PI + 0.2); inner.push({ x: x + side * 4 + Math.cos(q) * r * 0.72, y: y - 12 + Math.sin(q) * r * 0.62 }); }
+    for (const L of [outer, inner]) L.forEach((p, i) => { L[i] = T(p); });
     const shape = [...outer, ...inner];
     g.fillStyle(C.out, 1); g.fillPoints(shape.map((p) => ({ x: x + (p.x - x) * 1.07, y: y + (p.y - y) * 1.08 })), true);
     g.fillStyle(flash ? 0xffffff : C.moon[1], 1); g.fillPoints(shape, true);
     g.fillStyle(C.moon[2], 1); g.fillPoints(outer.slice(2, 10).concat(inner.slice(12, 19)), true);
-    g.fillStyle(C.moon[0], 0.8); for (const [ox, oy, rr] of [[-16, 14, 5], [10, 20, 4], [22, 8, 3], [-4, 24, 3]]) g.fillCircle(x + ox * side, y + oy, rr);   // its craters
+    g.fillStyle(C.moon[0], 0.8); for (const [ox, oy, rr] of [[-16, 14, 5], [10, 20, 4], [22, 8, 3], [-4, 24, 3]]) { const c = T({ x: x + ox * side * r / 46, y: y + oy * r / 46 }); g.fillCircle(c.x, c.y, rr * r / 46); }   // its craters
     g.fillStyle(0xe0e8ff, 0.12); g.fillCircle(x, y + 6, r * 1.1);
   }
   /** His heart: a black hole with a spinning accretion disk and its ring of light, inside THE EVENT HORIZON (cracked by the stars that hit it). */
