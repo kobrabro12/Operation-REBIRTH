@@ -146,9 +146,11 @@ export const DEVOTED = {
     dripEvery: [0, 26, 12, 5],
   },
 
-  // TAUNT (1): SHE LISTENS - tilts her head as if someone spoke, and smiles
-  taunt: { name: 'SHE LISTENS', frames: 70, lines: ['...YES.', 'I HEAR IT.', 'SOON.'],
-    sounds: [[8, 'curse', 0.25, 1.6], [40, 'curse', 0.2, 1.3]] },
+  // KNIFE TOSS: she flicks the karambit up, watches it spin three times and snatches it back out of the air
+  // (frames drawn by tools/sprites/devoted_knife_toss.py: it leaves her hand on 14, she catches it on 54);
+  // her line comes after the catch (lineAt), so the words never hide the spinning knife
+  taunt: { name: 'KNIFE TOSS', frames: 80, lineAt: 56, lines: ['...YES.', 'I HEAR IT.', 'SOON.'],
+    sounds: [[13, 'whoosh', 0.35, 1.4], [54, 'shing', 0.45, 1.3]] },
 
   moves: {
     ...DEFAULT_GRAB,

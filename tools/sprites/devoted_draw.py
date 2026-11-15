@@ -926,6 +926,8 @@ if __name__ == '__main__':
         out = root if i == 0 else os.path.join(root, name)
         os.makedirs(out, exist_ok=True)
         A.N.build_all(small, big, MOVES, out, JS if i == 0 and not VARIANT else os.devnull, 'DV_MOVES', 'devoted_draw.py', life_fn=make_life(i), idle=drowned_idle_keys if i == 3 else idle_keys, run=drowned_glide_keys if i == 3 else her_run_keys)
+        if VARIANT != 'cartridge':                                   # her taunt: the KNIFE TOSS (devoted_knife_toss.py)
+            import devoted_knife_toss; devoted_knife_toss.patch_sheet(os.path.join(out, 'moves_sheet.png'), i)
         if i:
             p = os.path.join(out, 'icon.png')
             if os.path.exists(p): os.remove(p)

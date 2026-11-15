@@ -10,7 +10,8 @@ export class FighterTaunt {
     const T = this.def.taunt;
     if (!this.grounded) { this.setState('air'); return; }
     const lines = (this.vfx && this.vfx.wow && this.vfx.wow.taunt) || T.lines;   // a costume can have its own taunt lines
-    if (this.t === 1 && lines) this.say(lines[Math.floor(Math.random() * lines.length)], 70, this.vfx && this.vfx.wow ? null : 'taunt');
+    // T.lineAt: the frame the line pops up (default 1; THE DEVOTED's waits until she has caught her knife, so it doesn't cover it)
+    if (this.t === (T.lineAt || 1) && lines) this.say(lines[Math.floor(Math.random() * lines.length)], 70, this.vfx && this.vfx.wow ? null : 'taunt');
     if (this.t === 1) { voiceLine(this.match, this.def.id, 'taunt'); if (!this.isCpu && !this.match.isTraining && !this.match.demo) stat('taunts'); }   // Mason's voice line for it, if he made one
     for (const [at, name, vol, rate] of T.sounds || []) if (this.t === at) sfx(name, vol, rate);
     for (const f of T.fx || []) if (this.t >= f.from && this.t <= f.to && (this.t - f.from) % f.every === 0) this.tauntFx(f);
