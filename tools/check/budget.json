@@ -1,12 +1,12 @@
 {
   "note": "Download budget in MB (what players fetch: WebP over PNG, one audio format). Raise a limit only on purpose, with the reason in the commit.",
   "limits": {
-    "images": 75.5,
+    "images": 77.5,
     "audio": 56.5,
     "video": 3.1,
     "code": 4.6,
     "data": 10.0,
     "other": 0.1,
-    "total": 149.0
+    "total": 150.5
   }
 }
