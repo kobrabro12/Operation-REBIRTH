@@ -72,7 +72,32 @@ VARIANTS = {
                    shoe=[0x26221e, 0x3a3430, 0x56504a, 0x766e66], skin=[0x5a3a28, 0x7a5038, 0x9a6a4a, 0xbc8a64],
                    hair=[0x161414, 0x262222, 0x3a3434, 0x564e4c], sludge=[0x0c0a0a, 0x1c1818, 0x36302e, 0xff7a1a], sheen=0xffa040,
                    wing=(0x1c1818, 0x36302e, 0xff7a1a, 0xffd080), blade=[0x7a1604, 0xd8480c, 0xffa030, 0xfff0b8]),
+    # --- three lore costumes (each tied to her story; see SKIN_LORE in src/data/lore.js) ---
+    # HEARTWOOD: her symbol, the dying tree, has grown into her - bark-plated skin split by glowing amber sap, branches
+    # rising from her shoulders, dead leaves for hair, a weeping knot where her mouth was, a black thorn for a blade
+    'heartwood': dict(shirt=[0x2a1a10, 0x4a3220, 0x6a4a30, 0x8a6a48], stripe=None, pants=[0x1e140c, 0x34241a, 0x4a3626, 0x62503a],
+                      shoe=[0x1a120a, 0x2e2014, 0x46321e, 0x5e4a30], skin=[0x7a6a54, 0x9a8a70, 0xb8a88a, 0xd6c8a8],
+                      hair=[0x4a2a10, 0x7a4a1a, 0xa86a2a, 0xd8a050], sludge=[0x0a0604, 0x1a1008, 0x3a2410, 0xffb030], sheen=0xffb030,
+                      wing=(0x2a1a10, 0x4a3220, 0xffb030, 0xd8a050), blade=[0x140c06, 0x2a1a0e, 0x5a3a1e, 0xc89a5a]),
+    # VESPER: she sang in the choir that first heard the voice under the floor - indigo vestments embroidered with silver
+    # hymns, a white ruff, a crown of melted candles still burning, eyes sewn shut with silver thread (she only listens
+    # now), a hymnal on a chain at her hip, a silver blade; her sludge is ink and candle wax, her wing a fan of hymn pages
+    'vesper': dict(shirt=[0x14102a, 0x241c48, 0x3a2e6a, 0x564a90], stripe=None, pants=[0x100c22, 0x1c1638, 0x2c2450, 0x40366a],
+                   shoe=[0x0c0a14, 0x1a1624, 0x2a2438, 0x3e3850], skin=[0x8a8494, 0xaaa4b4, 0xccc6d4, 0xece8f2],
+                   hair=[0x6a6a7a, 0x9a9aac, 0xc8c8d8, 0xf0f0fa], sludge=[0x08061a, 0x14102e, 0x2a2252, 0xd8d8ff], sheen=0xc8c8ff,
+                   wing=(0xe8e0c8, 0xc8bea0, 0x3a2e6a, 0xffffff), blade=[0x5a5a6a, 0x9a9aac, 0xd8d8e8, 0xffffff]),
+    # THE LAST KEEPER: she kept the lighthouse that watched the black tide come in, and kept the light lit after - a
+    # sea-green oilskin coat with brass buttons, a rope over her shoulder, a wide oilskin rain hat, a brass lantern
+    # glowing at her hip, barnacled boots, lamp-amber eyes and a whalebone hook; her sludge is the black tide, flecked
+    # with sea foam, her wing a mass of kelp and torn net
+    'keeper': dict(shirt=[0x0e2a26, 0x1a4640, 0x2a6a5e, 0x4a9484], stripe=None, pants=[0x101a1e, 0x1c2a30, 0x2c3e46, 0x40565e],
+                   shoe=[0x1a1410, 0x2e241c, 0x46382a, 0x5e4e3c], skin=[0x6a4a3a, 0x8a6450, 0xa8806a, 0xc8a088],
+                   hair=[0x3a3e42, 0x5e6468, 0x8a9094, 0xb8bec2], sludge=[0x040a0e, 0x0a1820, 0x16303a, 0xd8f0f0], sheen=0x8ae0e0,
+                   wing=(0x0e2a1a, 0x1a4a2a, 0x6aa86a, 0xd8f0f0), blade=[0x8a8070, 0xb8ae98, 0xe0d8c4, 0xfffaf0]),
 }
+AMBER = [0xc86a10, 0xf09a20, 0xffc040, 0xffe890]     # HEARTWOOD's sap
+SILVER = [0x8a8aa0, 0xb8b8d0, 0xd8d8f0, 0xffffff]    # VESPER's embroidery and thread
+BRASS = [0x6a4a14, 0xa8781e, 0xd8a838, 0xfff0a0]     # THE LAST KEEPER's lantern and buttons
 ASH = [0x5a5654, 0x8a8682, 0xb4b0aa, 0xd8d4cc]       # CINDER WRAITH's mask
 HOOD = [0x4a3c2c, 0x76624a, 0xa08868, 0xc8b28c]      # ...and her hood
 FACET = 0
@@ -195,6 +220,18 @@ def vpaint(x, y, ramp, v, stage, seed):
         if ramp in (SHIRT, PANTS) and y > 34 and noise(x, y, seed + 62) > 0.97: return [0x2a2420, 0x3a322c, 0x4a4038, 0x5a5048][k]   # scorch marks
         if ramp in (SHIRT, PANTS) and noise(x, y, seed + 63) > 0.985: return 0xff8a2a                    # a smouldering spark in the cloth
         if ramp is SKIN and noise(x, y, seed + 64) > 0.8: return SKIN[max(0, k - 1)]                     # ash on her hands
+    if VARIANT == 'heartwood':
+        if ramp in (SHIRT, PANTS, SHOE) and blob(x, y, seed + 70) > 0.8 and noise(x, y, seed + 71) > 0.35: return AMBER[k]   # sap glowing in the cracks
+        if ramp in (SHIRT, PANTS, SHOE) and (x + int(noise(x // 4, y // 6, seed + 72) * 3)) % 3 == 0: return ramp[max(0, k - 1)]   # bark grain, running down
+        if ramp is SKIN and blob(x, y, seed + 73) > 0.66: return SHIRT[min(3, k)]                        # bark growing over her hands
+    if VARIANT == 'vesper':
+        if ramp is SHIRT and y % 6 == 3 and (x * 7 + y) % 5 < 3: return SILVER[min(3, k)]               # lines of hymn-script embroidered in silver
+        if ramp is SHIRT and noise(x, y, seed + 74) > 0.97: return 0xf0e8d0                              # a drop of candle wax
+        if ramp is PANTS and x % 6 == 0: return PANTS[max(0, k - 1)]                                     # pleats in the robe
+    if VARIANT == 'keeper':
+        if ramp is SHIRT and x % 7 == 3: return SHIRT[max(0, k - 1)]                                     # the oilskin's seams
+        if ramp is SHIRT and noise(x, y, seed + 75) > 0.9 and k >= 2: return 0x8ad0c0                    # a wet sheen on the oilskin
+        if ramp in (SHOE, PANTS) and y > 50 and noise(x, y, seed + 76) > 0.8: return [0x8a9490, 0xb0b8b4, 0xd0d8d4, 0xe8f0ec][k]   # salt crust, barnacles
     return None
 
 def repaint(a, ramp, stage, seed):
@@ -379,6 +416,48 @@ def vhead(a, stage):
             a[11, x0 + 1] = hx(glow[1]); a[11, x0 + 2] = hx(glow[0]); a[12, x0 + 1] = hx(glow[1])
         if stage >= 2:                                                                            # (the glow seeps out of the crack)
             for x, y in [(40, 9), (41, 10)]: a[y, x] = hx(0xff7a1a)
+    elif v == 'heartwood':
+        # twigs growing up out of her crown of dead leaves, a leaf or two still on them
+        for (x0, y0, x1, y1) in [(29, 6, 26, 1), (26, 2, 24, 0), (33, 5, 33, 0), (33, 2, 36, 0), (37, 6, 40, 2)]:
+            for q in np.linspace(0, 1, 8):
+                x, y = int(round(x0 + (x1 - x0) * q)), int(round(y0 + (y1 - y0) * q))
+                if 0 <= y < 64: a[y, x] = hx(0x2a1a10 if q > 0.3 else 0x4a3220)
+        for x, y, c in [(24, 1, 0xa86a2a), (36, 1, 0x7a4a1a), (40, 3, 0xd8a050)]: a[y, x] = hx(c); a[y, x + 1] = hx(c)
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):                                              # bark creeping over the back of her face
+            if x < 35 and 9 <= y <= 21 and tuple(a[y, x, :3]) in [tuple(hx(c)[:3]) for c in SKIN] and blob(x, y, 77) > 0.45:
+                a[y, x] = hx([0x2a1a10, 0x4a3220, 0x6a4a30][(x + y) % 3])
+        for x0 in (34, 38):                                                                       # eyes of glowing sap
+            a[12, x0:x0 + 3] = hx(0x1a1008); a[13, x0:x0 + 3] = hx(0x1a1008)
+            a[12, x0 + 1] = hx(AMBER[3]); a[12, x0 + 2] = hx(AMBER[2]); a[13, x0 + 1] = hx(AMBER[1])
+        if stage < 3:                                                                             # her mouth is the tree's knot now, weeping sap
+            for x, y in [(36, 17), (37, 17), (38, 17), (36, 18), (37, 18), (38, 18)]: a[y, x] = hx(0x0a0604)
+            for y in range(19, 21 + stage): a[y, 37] = hx(AMBER[1])
+    elif v == 'vesper':
+        # the crown of candles: five stubs of wax standing in her hair, wax running down, each with a little flame
+        for i, x in enumerate((28, 31, 34, 37, 40)):
+            top = 2 + (i % 2)
+            for y in range(top, 7): a[y, x] = hx(0xf0e8d0 if y > top else 0xffffff)
+            a[7, x] = hx(0xd8d0b8); a[7 + (i % 2), x + (1 if i % 2 else 0)] = hx(0xe8e0c8)       # (wax drips)
+            if stage < 3: a[top - 1, x] = hx(0xffd860); a[max(0, top - 2), x] = hx(0xff9a20) if i % 2 == 0 else a[max(0, top - 2), x]
+        for x in range(27, 42): a[7, x] = hx(0xd8d0b8) if a[7, x, 3] else a[7, x]                 # the wax pooled into a crown
+        for x0 in (34, 38):                                                                       # eyes sewn shut with silver thread
+            a[12, x0:x0 + 3] = hx(SKIN[1]); a[13, x0:x0 + 3] = hx(SKIN[0])
+            a[12, x0:x0 + 3] = hx(0x2a2240)
+            for dx in (0, 2): a[11, x0 + dx] = hx(SILVER[2]); a[13, x0 + dx] = hx(SILVER[2])
+            a[12, x0 + 1] = hx(SILVER[3])
+    elif v == 'keeper':
+        # a wide oilskin rain hat: crown over her hair, a brim that comes down long over the back of her neck
+        for y in range(3, 9):
+            for x in range(28 - (8 - y) // 3, 43):
+                if ((x - 35) / 8) ** 2 + ((y - 8) / 5.5) ** 2 <= 1: a[y, x] = hx([0x0e2a26, 0x1a4640, 0x2a6a5e, 0x4a9484][min(3, 3 - (y - 3) // 2 + (1 if x > 37 else 0))])
+        for x in range(22, 46):                                                                   # the brim
+            y = 9 if x > 26 else 9 + (27 - x) // 2
+            a[y, x] = hx(0x1a4640); a[y + 1, x] = hx(0x0e2a26) if x < 30 else a[y + 1, x]
+        for x in range(30, 41): a[8, x] = hx(BRASS[1]) if x % 3 == 0 else a[8, x]                # a band stitched with brass thread
+        for x0 in (34, 38):                                                                       # eyes lit like the lamp
+            a[12, x0:x0 + 3] = hx(0x1a1008); a[13, x0:x0 + 3] = hx(0x1a1008)
+            a[12, x0 + 1] = hx(0xffe890); a[12, x0 + 2] = hx(0xffc040); a[13, x0 + 1] = hx(0xf09a20)
+        for x, y in [(41, 15), (42, 16), (40, 17)]: a[y, x] = hx(0x8a6450)                         # (salt-wind lines on her cheek)
     return a
 
 def mask(a, stage):
@@ -458,6 +537,7 @@ def _knife(a):
 def wing(stage):
     """The scarf slot: a single giant demon wing (DROWNED), a strand of sludge (TAKEN / SEMI), nothing (DEFAULT)."""
     a = np.zeros((64, 64, 4), np.uint8)
+    if stage == 3 and VARIANT in ('heartwood', 'vesper', 'keeper'): return outline(lore_wing())
     if stage == 3:
         im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
         root = (29, 23)
@@ -488,6 +568,48 @@ def wing(stage):
             a[y, x] = hx(SLUDGE[1]); a[y, x - 1] = hx(SLUDGE[0])
         return outline(a)
     a[24, 29] = hx(SHIRT[1])                                               # (hidden behind her back)
+    return a
+
+def lore_wing():
+    """DROWNED's wing for the three lore costumes: HEARTWOOD's great bare branch with dead leaves and sap running down
+    it, VESPER's fan of torn hymn pages, THE LAST KEEPER's mass of kelp tangled in torn net with sea foam on it."""
+    a = np.zeros((64, 64, 4), np.uint8); root = (29, 23)
+    def ln(p0, p1, c, w=1):
+        im = Image.new('RGBA', (64, 64)); ImageDraw.Draw(im).line([p0, p1], fill=(255, 255, 255, 255), width=w)
+        for y, x in zip(*np.nonzero(np.array(im)[..., 3] > 0)): a[y, x] = hx(c)
+    if VARIANT == 'heartwood':
+        for tip, w in [((4, 2), 3), ((0, 16), 3), ((6, 30), 2), ((16, 4), 2)]:
+            ln(root, tip, 0x2a1a10, w); ln(root, tip, 0x4a3220, 1)
+            mx_, my_ = (root[0] + tip[0]) // 2, (root[1] + tip[1]) // 2
+            ln((mx_, my_), (mx_ - 6, my_ - 5), 0x2a1a10)                                              # side twigs
+        for x, y, c in [(4, 3, 0xa86a2a), (1, 17, 0xd8a050), (6, 31, 0x7a4a1a), (16, 5, 0xa86a2a), (10, 9, 0xd8a050), (8, 22, 0xa86a2a)]:
+            a[y, x] = hx(c); a[y + 1, x] = hx(c); a[y, x + 1] = hx(c)
+        for x, y in [(18, 14), (14, 20), (22, 10)]:                                                   # sap running down it
+            for d in range(3): a[y + d, x] = hx(AMBER[2 - min(2, d)])
+    elif VARIANT == 'vesper':
+        for i in range(7):                                                                            # pages fanned out from her back
+            ang = math.radians(-160 + i * 18); L = 22 + (i % 3) * 3
+            ex, ey = root[0] + math.cos(ang) * L, root[1] + math.sin(ang) * L
+            im = Image.new('RGBA', (64, 64)); dd = ImageDraw.Draw(im)
+            px, py = -math.sin(ang) * 3, math.cos(ang) * 3
+            dd.polygon([(root[0] + px, root[1] + py), (root[0] - px, root[1] - py), (ex - px * 1.6, ey - py * 1.6), (ex + px * 1.6, ey + py * 1.6)], fill=(255, 255, 255, 255))
+            m = np.array(im)[..., 3] > 0
+            for y, x in zip(*np.nonzero(m)):
+                if noise(x, y, 80 + i) > 0.9: continue                                                # (torn holes)
+                a[y, x] = hx(0x3a2e6a if (y % 3 == 0 and x % 4 != 0) else (0xe8e0c8 if (x + y) % 7 else 0xc8bea0))   # (lines of script)
+        for i in range(5): a[root[1] - 4 - i * 3, root[0] - 8 - i * 3] = hx(SILVER[3])               # a silver thread binding them
+    elif VARIANT == 'keeper':
+        for i in range(6):                                                                            # kelp, streaming up and back
+            x, y = float(root[0]), float(root[1])
+            for k in range(26):
+                ang = math.radians(-150 + i * 14) + math.sin(k * 0.5 + i) * 0.35
+                x += math.cos(ang); y += math.sin(ang)
+                if 0 <= int(y) < 64 and 0 <= int(x) < 64:
+                    a[int(y), int(x)] = hx([0x0e2a1a, 0x1a4a2a, 0x2a6a3a][(k + i) % 3])
+                    if int(x) + 1 < 64: a[int(y), int(x) + 1] = hx(0x0e2a1a)
+        for x in range(6, 26, 4):                                                                     # a torn net over them
+            ln((x, 2), (x + 8, 26), 0x8a8a7a); ln((x + 8, 2), (x, 26), 0x6a6a5a)
+        for x, y in [(8, 4), (14, 12), (5, 20), (20, 6)]: a[y, x] = hx(0xd8f0f0)                    # sea foam
     return a
 
 def dress(P, stage):
@@ -536,6 +658,58 @@ def dress(P, stage):
                 if y < 64 and noise(x, y, 93) < 0.85 - dy * 0.06: t[y, x] = hx(HOOD[2 - dx] if dy < 6 else HOOD[0])
         P['torso'] = outline(t)
 
+def lore_dress(P, stage):
+    """The three lore costumes' extra pieces on her body (after dress()): HEARTWOOD's branches rising from her
+    shoulders with dead leaves and a vine round her waist; VESPER's white ruff, silver stole and the hymnal on its
+    chain at her hip; THE LAST KEEPER's brass buttons, the coil of rope over her shoulder and the brass lantern
+    glowing at her hip."""
+    if VARIANT not in ('heartwood', 'vesper', 'keeper'): return
+    t = P['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+    top, bot = int(ys.min()), int(ys.max())
+    row = lambda y: (int(xs[ys == y].min()), int(xs[ys == y].max())) if (ys == y).any() else (int(xs.min()), int(xs.max()))
+    l0, r0 = row(top + 2); lb, rb = row(bot - 1); mid = (lb + rb) // 2
+    sl = lambda x, y: tuple(int(v) for v in t[y, x, :3]) in [tuple(int(c) for c in hx(q)[:3]) for q in SLUDGE]
+    put = lambda x, y, c: (0 <= x < 64 and 0 <= y < 64) and t.__setitem__((y, x), hx(c))
+    if VARIANT == 'heartwood':
+        if stage < 3:
+            for (x0, y0, x1, y1) in [(l0 + 1, top + 4, l0 - 9, top - 6), (l0 - 5, top - 1, l0 - 12, top - 1), (l0 - 4, top - 2, l0 - 8, top - 12), (l0 - 7, top - 8, l0 - 4, top - 15)]:
+                for q in np.linspace(0, 1, 12):                                                      # branches rising out of her back
+                    put(int(round(x0 + (x1 - x0) * q)), int(round(y0 + (y1 - y0) * q)), 0x2a1a10 if q > 0.4 else 0x4a3220)
+            for x, y, c in [(l0 - 10, top - 7, 0xa86a2a), (l0 - 13, top - 2, 0x7a4a1a), (l0 - 5, top - 16, 0xd8a050), (l0 - 9, top - 13, 0xa86a2a)]:
+                put(x, y, c); put(x + 1, y, c); put(x, y + 1, c)                                      # dead leaves still hanging on
+        for x in range(lb, rb + 1):                                                                   # a vine wound round her waist
+            y = bot - 3 + (1 if (x // 2) % 2 else 0)
+            if t[y, x, 3] and not sl(x, y): put(x, y, 0x3a5a1a if x % 3 else 0x5a7a2a)
+    elif VARIANT == 'vesper':
+        for x in range(l0 - 1, r0 + 2):                                                               # the white ruff at her collar
+            for dy in (0, 1):
+                y = top + dy + (1 if (x + dy) % 2 else 0)
+                if 0 <= y < 64 and not sl(x, y): put(x, y, 0xf4f0f8 if dy == 0 else 0xc8c4d8)
+        for y in range(top + 3, bot + 1):                                                             # the silver stole hanging down her front
+            for x in (mid + 2, mid + 3):
+                if t[y, x, 3] and not sl(x, y): put(x, y, SILVER[1] if x == mid + 2 else SILVER[2])
+        hx0, hy0 = lb - 2, bot - 2                                                                    # the hymnal on its chain at her hip
+        for i in range(4): put(hx0 + 3 - i // 2, hy0 - 6 + i, SILVER[1])
+        for y in range(hy0, hy0 + 6):
+            for x in range(hx0 - 2, hx0 + 3): put(x, y, 0x3a1a1a if x > hx0 - 2 else 0x241010)
+        for y in range(hy0 + 1, hy0 + 5): put(hx0 + 2, y, 0xe8e0c8)                                  # (its page edges)
+        put(hx0, hy0 + 2, SILVER[3])                                                                  # a silver clasp
+    elif VARIANT == 'keeper':
+        for i, y in enumerate(range(top + 3, bot - 1, 3)):                                            # brass buttons down the front
+            if t[y, mid + 2, 3] and not sl(mid + 2, y): put(mid + 2, y, BRASS[2]); put(mid + 2, y + 1, BRASS[0])
+        for q in np.linspace(0, 1, 18):                                                               # a coil of rope over her shoulder
+            x, y = int(round(l0 + (rb - l0) * q)), int(round(top + 1 + (bot - 3 - top) * q))
+            if t[y, x, 3] and not sl(x, y): put(x, y, 0x8a6a3a if int(q * 18) % 2 else 0x6a4a24)
+        lx, ly = lb - 3, bot - 4                                                                      # the brass lantern at her hip
+        for y in range(ly, ly + 8):
+            for x in range(lx - 2, lx + 3):
+                edge = x in (lx - 2, lx + 2) or y in (ly, ly + 7)
+                put(x, y, BRASS[1] if edge else ([0xffe890, 0xffc040, 0xf09a20][(y - ly) % 3] if stage < 3 else 0x3a2a10))
+        put(lx, ly - 1, BRASS[2]); put(lx, ly - 2, BRASS[1]); put(lx - 1, ly - 2, BRASS[1]); put(lx + 1, ly - 2, BRASS[1])   # its handle
+        if stage < 3:
+            for x, y in [(lx - 3, ly + 3), (lx + 3, ly + 3), (lx, ly + 8)]: put(x, y, 0xffd860)        # (light spilling out)
+    P['torso'] = outline(t)
+
 MARKS = {}     # her_legs' details that keep their own colour through `repaint` (laces, the skin through the rips)
 
 def her_legs():
@@ -582,7 +756,7 @@ def draw_parts(stage):
             if not P[n][y, x, 3] or px in [tuple(int(v) for v in hx(c)[:3]) for c in SLUDGE] or px == tuple(int(v) for v in hx(LINE)[:3]): continue
             P[n][y, x] = hx(SKIN[2] if kind == 'rip' else (SHIRT[3] if VARIANT in ('bride', 'cinder') else 0xd8cfb8))
     P['ffist'] = knife(P['ffist'])
-    dress(P, stage)
+    dress(P, stage); lore_dress(P, stage)
     P['head'] = head(stage)
     f = np.zeros((64, 64, 4), np.uint8); f[16, 33] = P['head'][16, 33] if P['head'][16, 33, 3] else hx(SKIN[2])   # (the goldfish slot: a still pixel of her cheek)
     P['fish'] = f

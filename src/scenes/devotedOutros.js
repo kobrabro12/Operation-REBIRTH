@@ -6,10 +6,10 @@
 //   HOLLOW BRIDE  THE WEDDING - a rain-lashed chapel lit by candles, she walks the aisle past the beaten seated as
 //                 guests; through her veil, black tears; lightning; the vows; three cuts as the bell tolls; the bouquet
 //                 of dead roses falls in slow motion; the last tableau under the broken rose window
-//   MAD MURDER    LIGHTS OUT - a lone house on a hill in a storm, one lit window with the beaten inside; lightning shows
-//                 her standing in the field. Inside, a hallway under one bulb: each time it flickers back on she's
-//                 further down the hall. Her mask, close; three cuts in the dark; morning, the hall quiet, the blade
-//                 dripping by the window - SHH... THEY'RE SLEEPING.
+//   MAD MURDER    THE PARTY - the beaten at a birthday party in hats, bopping round the cake; the music goes wrong, the
+//                 door swings open on black and she's standing in it; black, three blood slashes; the lights come back
+//                 dim and red on them all slumped dead in their chairs; she walks in, takes a slice of cake -
+//                 I PREFER BLOOD BETTER! - and the screen floods red
 //   EMBER SAINT   MARTYRDOM - a ruined cathedral, she stands on a pyre while the beaten close in with torches; the fire
 //                 catches and her eyes burn through it; she rises out of the flames as the burning DROWNED, the windows
 //                 burst into embers; she hangs in a shaft of light over the beaten, kneeling in the ash
@@ -27,8 +27,9 @@ export const DEVOTED_CUTS = {
     color: '#2ac8c0', stroke: '#0c0418', shots: [[0, 'boot'], [150, 'field'], [420, 'shard'], [620, 'corrupt'], [700, 'void']] },
   'devoted:HOLLOW BRIDE': { fn: 'dv_bride', len: 900, card: 750, name: 'THE DEVOTED', sub: 'HOLLOW BRIDE', line: 'TILL DEATH DO US PART.', music: 'bgm_outro_bride',
     color: '#f6f2e6', stroke: '#0a0810', shots: [[0, 'aisle'], [210, 'veil'], [380, 'vows'], [470, 'cuts'], [560, 'bouquet'], [690, 'tableau']] },
-  'devoted:MAD MURDER': { fn: 'dv_murder', len: 900, card: 760, name: 'THE DEVOTED', sub: 'MAD MURDER', line: "SHH... THEY'RE SLEEPING.", music: 'bgm_outro_murder',
-    color: '#e83a3a', stroke: '#1a0608', shots: [[0, 'house'], [180, 'hall'], [360, 'mask'], [480, 'cuts'], [560, 'dawn']] },
+  // (no title card: it ends on the red)
+  'devoted:MAD MURDER': { fn: 'dv_murder', len: 820, card: 99999, name: 'THE DEVOTED', sub: 'MAD MURDER', line: 'I PREFER BLOOD BETTER!', music: 'bgm_outro_murder',
+    color: '#e83a3a', stroke: '#1a0608', shots: [[0, 'party'], [240, 'door'], [330, 'black'], [420, 'table'], [560, 'cake'], [700, 'red']] },
   'devoted:EMBER SAINT': { fn: 'dv_ember', len: 960, card: 880, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
     color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment'], [660, 'throw'], [700, 'burn']] },
   // AERO64 (AERO's 3D costume) shares CARTRIDGE's console world: boot, the field, the golden shard, then a party
@@ -422,89 +423,121 @@ export class DevotedShots {
     this.vignette(this.over, 0.65);
   }
 
-  // ================================================================= MAD MURDER - LIGHTS OUT
-  /** [0] A lone house on a hill in a storm, one lit window with the beaten inside; the lightning shows her, standing in the field. */
-  shot_dv_murder_house(t, k, s) {
-    const g = this.bg, bolt = (s >= 84 && s < 90) || (s >= 94 && s < 97);
-    this.sky(g, bolt ? 0x8a8aa8 : 0x06060c, bolt ? 0x4a4a60 : 0x14141e, 10);
-    if (s === 84) { sfx('bighit', 0.4, 0.4); this.cameras.main.shake(120, 0.004); }
-    if (bolt) { this.mid.lineStyle(3, 0xffffff, 1); const bx = 520; let y = 0, x = bx; for (let i = 0; i < 6; i++) { const nx = x + (this.spots[i][0] - 0.5) * 50, ny = y + 30; this.mid.lineBetween(x, y, nx, ny); x = nx; y = ny; } }
-    const hill = bolt ? 0x22222c : 0x0c0c12;
-    g.fillStyle(hill, 1); g.fillEllipse(W / 2, H + 120, W * 1.6, 330);
-    const hx = 380, hy = 196;                                                         // the house: walls, a pitched roof, a chimney, one lit window
-    g.fillStyle(bolt ? 0x3a3a46 : 0x1c1c26, 1); g.fillRect(hx - 60, hy - 50, 120, 60); g.fillTriangle(hx - 72, hy - 50, hx + 72, hy - 50, hx, hy - 100); g.fillRect(hx + 30, hy - 96, 12, 30);
-    const flick = (t % 47) < 2 ? 0.5 : 1;
-    this.glow(this.mid, hx - 24, hy - 26, 34, 0xffc860, 0.25 * flick);
-    g.fillStyle(0xffd890, flick); g.fillRect(hx - 36, hy - 38, 24, 22); g.fillStyle(0x1a1408, 1); g.fillRect(hx - 25, hy - 38, 2, 22); g.fillRect(hx - 36, hy - 28, 24, 2);
-    g.fillStyle(0xffd890, 0.6 * flick); g.fillRect(hx + 14, hy - 4, 14, 14);          // (a dim one by the door)
-    this.posLosers([[hx - 30, hy - 16, 0.42, 0, 1], [hx - 20, hy - 16, 0.4, 0, 1], [hx - 26, hy - 16, 0.38, 0, 0.8]], 0x1a1408);   // the beaten, at the window
-    if (bolt || s > 150) this.dvPose('', 'idle', 0, 150, 300, 1.3).setTintMode(Phaser.TintModes.FILL).setTint(bolt ? 0x0a0a10 : 0x050508);   // her, in the field
-    else this.hero.setVisible(false);
-    if (s > 150) { this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(146, 238, 2, 2); }  // (after the flash: just her eye, still there)
-    for (let i = 0; i < 70; i++) { const sp = this.spots[i % 40], x = (sp[0] * W + i * 13 + t * 2) % W, y = (sp[1] * H + t * (9 + sp[2] * 4) + i * 37) % H; this.front.lineStyle(1, 0x8a96b4, 0.35); this.front.lineBetween(x, y, x - 3, y + 12); }   // rain
-    this.vignette(this.over, 0.7);
-  }
-  /** The hallway inside: peeling wallpaper, boards running to a door at the end, one bulb; light 0-1, red = the morning-after stains. */
-  dvHall(g, t, light, stains = 0) {
-    const vx = W * 0.64, b = { x1: vx - 46, x2: vx + 46, y1: 112, y2: 214 }, sh = (c) => Phaser.Display.Color.GetColor(((c >> 16) & 255) * light, ((c >> 8) & 255) * light, (c & 255) * light);
-    g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, H);
-    if (light <= 0) return b;
-    g.fillStyle(sh(0x3a3a2a), 1); g.fillPoints([{ x: 0, y: 0 }, { x: b.x1, y: b.y1 }, { x: b.x1, y: b.y2 }, { x: 0, y: H }], true);
-    g.fillStyle(sh(0x323224), 1); g.fillPoints([{ x: W, y: 0 }, { x: b.x2, y: b.y1 }, { x: b.x2, y: b.y2 }, { x: W, y: H }], true);
-    g.fillStyle(sh(0x3e2c1e), 1); g.fillPoints([{ x: 0, y: H }, { x: b.x1, y: b.y2 }, { x: b.x2, y: b.y2 }, { x: W, y: H }], true);
-    g.fillStyle(sh(0x1a1612), 1); g.fillPoints([{ x: 0, y: 0 }, { x: b.x1, y: b.y1 }, { x: b.x2, y: b.y1 }, { x: W, y: 0 }], true);
-    g.fillStyle(sh(0x0e0a08), 1); g.fillRect(b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1);
-    g.fillStyle(sh(0x4a3020), 1); g.fillRect(vx - 16, b.y1 + 30, 32, b.y2 - b.y1 - 30); g.fillStyle(sh(0x180e08), 1); g.fillRect(vx - 12, b.y1 + 34, 24, b.y2 - b.y1 - 34);
-    for (let i = 1; i < 9; i++) { const q = i / 9; g.lineStyle(1, sh(0x241810), 1); g.lineBetween(W * q, H, b.x1 + (b.x2 - b.x1) * q, b.y2); }
+  // ================================================================= MAD MURDER - THE PARTY
+  /**
+   * The party room: striped wallpaper, a window on the night, streamers and balloons, a HAPPY BIRTHDAY banner, the
+   * door on the right (open 0-1), the table with its cloth, the cake and its candles. lit = 0-1 how bright;
+   * after = 0-1 the aftermath (torn streamers, popped balloons, blood up the wall and across the cloth, candles out).
+   * Returns where the table and the cake are.
+   */
+  dvParty(t, lit = 1, after = 0, open = 0) {
+    const g = this.bg, m = this.mid, sh = (c) => { const k = lit, r = ((c >> 16) & 255) * k, gg = ((c >> 8) & 255) * k * (1 - after * 0.35), b = (c & 255) * k * (1 - after * 0.35); return Phaser.Display.Color.GetColor(Math.min(255, r), gg, b); };
+    g.fillStyle(sh(0x5a3a4a), 1); g.fillRect(0, 0, W, 250);                                      // the wall
+    for (let x = 0; x < W; x += 28) { g.fillStyle(sh(0x6a4656), 1); g.fillRect(x, 0, 12, 250); }    // wallpaper stripes
+    g.fillStyle(sh(0x3a2418), 1); g.fillRect(0, 250, W, H - 250);                                  // the floor
+    for (let x = 0; x < W; x += 40) { g.fillStyle(sh(0x2a1a10), 1); g.fillRect(x, 250, 1, H - 250); }
+    g.fillStyle(sh(0x241418), 1); g.fillRect(0, 244, W, 8);                                        // the skirting
+    g.fillStyle(sh(0x10142a), 1); g.fillRect(70, 60, 80, 90); g.fillStyle(sh(0x4a3020), 1); g.fillRect(66, 56, 88, 4); g.fillRect(66, 150, 88, 4); g.fillRect(108, 60, 4, 90);   // a window, night outside
+    // the door (right): a frame, and the door swinging open onto black
+    const dx = 520, dy = 110, dw = 70, dh = 140;
+    g.fillStyle(0x000000, 1); g.fillRect(dx, dy, dw, dh);
+    g.fillStyle(sh(0x6a4028), 1); g.fillRect(dx - 6, dy - 6, dw + 12, 6); g.fillRect(dx - 6, dy, 6, dh); g.fillRect(dx + dw, dy, 6, dh);
+    const ow = dw * (1 - open * 0.85);
+    g.fillStyle(sh(0x7a4a2a), 1); g.fillRect(dx, dy, ow, dh); g.fillStyle(sh(0x5a3420), 1); g.fillRect(dx + 6, dy + 10, Math.max(0, ow - 12), 50); g.fillRect(dx + 6, dy + 74, Math.max(0, ow - 12), 56);
+    if (open < 0.5) { g.fillStyle(sh(0xd8b040), 1); g.fillCircle(dx + ow - 10, dy + 76, 3); }   // the handle
+    // streamers: zig-zags across the top (torn ones hang down)
+    const cols = [0xe84a6a, 0x4ac8e8, 0xf0d040, 0x8ae84a];
+    for (let i = 0; i < 4; i++) {
+      const y0 = 20 + i * 6;
+      for (let x = 0; x < W; x += 20) {
+        const torn = after > 0.5 && (x / 20 + i) % 5 === 0; if (torn) { m.fillStyle(sh(cols[i]), 1); m.fillRect(x, y0, 3, 30 + i * 6); continue; }
+        m.lineStyle(3, sh(cols[i]), 1); m.lineBetween(x, y0 + ((x / 20) % 2) * 8, x + 20, y0 + (((x / 20) + 1) % 2) * 8);
+      }
+    }
+    // balloons, bobbing (popped ones are just a scrap on a string)
     for (let i = 0; i < 7; i++) {
-      const q = (i + 0.5) / 7, ex = b.x1 * q, y1 = b.y1 * q, y2 = H + (b.y2 - H) * q, rx = W - (W - b.x2) * q;
-      g.lineStyle(i === 3 ? 4 : 2, sh(i === 3 ? 0x1a1a14 : 0x4a4a34), 1); g.lineBetween(ex, y1 + 6, ex, y2 - 6); g.lineStyle(2, sh(0x44442e), 1); g.lineBetween(rx, y1 + 6, rx, y2 - 6);
+      const bx = 30 + i * 92 + (i % 2) * 20, by = 60 + (i % 3) * 22 + Math.sin(t * 0.04 + i) * 4, c = cols[i % 4];
+      m.lineStyle(1, sh(0xd8d0c0), 1); m.lineBetween(bx, by + 14, bx + Math.sin(t * 0.03 + i) * 4, by + 70);
+      if (after > 0.5 && i % 2 === 0) { m.fillStyle(sh(c), 1); m.fillTriangle(bx - 4, by + 10, bx + 4, by + 10, bx, by + 18); continue; }
+      m.fillStyle(sh(c), 1); m.fillEllipse(bx, by, 22, 28); m.fillStyle(0xffffff, 0.35 * lit); m.fillEllipse(bx - 5, by - 6, 6, 9); m.fillTriangle(bx - 3, by + 14, bx + 3, by + 14, bx, by + 10);
     }
-    g.fillStyle(sh(0x5a4626), 1); g.fillRect(70, 120, 46, 36); g.fillStyle(sh(0x241c14), 1); g.fillRect(74, 124, 38, 28);
-    if (stains > 0) {                                                                  // the morning after: a smear along the wall, a trail out of the door
-      g.fillStyle(0x6a0c10, 0.8 * stains); g.fillPoints([{ x: 60, y: 210 }, { x: 200, y: 196 }, { x: 204, y: 204 }, { x: 64, y: 222 }], true);
-      for (let i = 0; i < 12; i++) { const q = i / 12; g.fillStyle(0x5a0a10, 0.85 * stains); g.fillEllipse(220 + (vx - 220) * q, 330 + (b.y2 + 4 - 330) * q, 26 * (1 - q * 0.8), 6 * (1 - q * 0.7)); }
+    if (after > 0) {                                                                              // blood up the wall
+      m.fillStyle(0x6a0c10, 0.85 * after);
+      for (let i = 0; i < 14; i++) { const sp = this.spots[i]; const x = 180 + sp[0] * 300, y = 120 + sp[1] * 90; m.fillCircle(x, y, 3 + sp[2] * 7); m.fillRect(x - 1, y, 2 + sp[2] * 2, 20 + sp[2] * 50); }
     }
-    return b;
+    return { tx: 300, ty: 268, cx: 300, cy: 228 };
   }
-  /** The bulb on its cord, swinging, and its cone of light (on = 0-1). */
-  dvBulb(g, t, on) {
-    const sw = Math.sin(t * 0.045) * 0.28, bx = W * 0.42 + Math.sin(sw) * 70, by = 40 + Math.cos(sw) * 8;
-    g.lineStyle(1, 0x2a2a2a, 1); g.lineBetween(W * 0.42, 0, bx, by);
-    if (on > 0) { g.fillStyle(0xfff0c0, 0.07 * on); g.fillTriangle(bx, by, bx - 150, 312, bx + 150, 312); g.fillStyle(0xfff0c0, 0.12 * on); g.fillEllipse(bx, 312, 260, 22); }
-    g.fillStyle(on > 0 ? 0xfff8d8 : 0x2a2a2a, 1); g.fillCircle(bx, by + 6, 6);
+  /** The table, its cloth (bloodied 0-1), plates and the cake (candles lit or out, a slice gone or not), in front of whoever sits at it. */
+  dvTable(t, lit, after, slice = false, candles = true) {
+    const f = this.front, k = lit, col = (c, red = 0) => { const r = ((c >> 16) & 255) * k, g = ((c >> 8) & 255) * k * (1 - red * 0.6), b = (c & 255) * k * (1 - red * 0.6); return Phaser.Display.Color.GetColor(Math.min(255, r), g, b); };
+    f.fillStyle(col(0xf4ecdc, after), 1); f.fillRect(150, 262, 300, 14); f.fillRect(150, 276, 300, 30);   // the cloth
+    for (let x = 150; x < 450; x += 12) { f.fillStyle(col(0xe0d4c0, after), 1); f.fillTriangle(x, 306, x + 12, 306, x + 6, 312); }
+    f.fillStyle(col(0x4a2a1a), 1); f.fillRect(162, 312, 8, 40); f.fillRect(430, 312, 8, 40);         // its legs
+    if (after > 0) { f.fillStyle(0x7a0c12, 0.9 * after); f.fillEllipse(230, 268, 70, 8); f.fillEllipse(372, 270, 50, 7); for (let i = 0; i < 6; i++) f.fillRect(200 + i * 34, 276, 3, 10 + (i % 3) * 8); }
+    for (const px of [190, 250, 350, 410]) { f.fillStyle(col(0xffffff), 1); f.fillEllipse(px, 264, 30, 6); }   // plates
+    // the cake: three tiers of pink with white icing; a slice cut out of the front
+    const cx = 300;
+    f.fillStyle(col(0xe87a9a), 1); f.fillRect(cx - 40, 232, 80, 30); f.fillRect(cx - 28, 210, 56, 22);
+    f.fillStyle(col(0xfff4f8), 1); f.fillRect(cx - 40, 230, 80, 4); f.fillRect(cx - 28, 208, 56, 4);
+    for (let x = cx - 38; x < cx + 40; x += 8) { f.fillStyle(col(0xfff4f8), 1); f.fillCircle(x, 234, 3); }
+    if (slice) { f.fillStyle(col(0x6a2a3a), 1); f.fillRect(cx + 4, 234, 18, 28); f.fillStyle(col(0xf8d8e0), 1); f.fillRect(cx + 4, 244, 18, 3); }   // (the gap where her slice was)
+    for (let i = 0; i < 5; i++) {                                                                    // the candles
+      const x = cx - 20 + i * 10; f.fillStyle(col([0x4ac8e8, 0xf0d040, 0xe84a6a][i % 3]), 1); f.fillRect(x - 1, 196, 3, 12);
+      if (candles) { const fl = Math.sin(t * 0.5 + i) * 1.5; this.glow(this.fx, x, 192, 10, 0xffc860, 0.35); f.fillStyle(0xffd860, 1); f.fillTriangle(x - 2, 195, x + 3, 195, x + fl, 186); }
+      else if (after < 1) { f.fillStyle(0x8a8a8a, 0.4); f.fillRect(x + Math.sin(t * 0.05 + i) * 2, 180 - (t % 30), 1, 6); }   // (smoke curling off them)
+    }
   }
-  /** [180] The hallway: the beaten huddled under the bulb; every time it flickers back on, she's further down the hall. */
-  shot_dv_murder_hall(t, k, s) {
-    const flicks = [50, 100, 140], off = flicks.some((f) => s >= f - 10 && s < f), n = flicks.filter((f) => s >= f).length;
-    const light = off ? 0 : 0.9 + (t % 9 === 0 ? 0.1 : 0);
-    this.dvHall(this.bg, t, light);
-    this.dvBulb(this.mid, t, light);
-    if (flicks.includes(s)) sfx('clang', 0.12, 1.6);
-    if (light > 0) this.posLosers([[200, 316, 2.0, 0, 1], [250, 318, 1.9, 0, 1], [160, 320, 1.8, 0, 1]], 0x2a2418); else this.hideLosers();
-    const spots = [[430, 196, 0.8], [400, 224, 1.15], [360, 256, 1.55], [320, 292, 2.0]], sp = spots[n];
-    if (n > 0 && light > 0) this.dvPose('', 'idle', 0, sp[0], sp[1], sp[2], true).setTint(0x9a9a8a); else this.hero.setVisible(false);
-    if (off && n > 0) { this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(sp[0] - 5 * sp[2], sp[1] - 47 * sp[2], 3, 2); }   // (in the dark: her eye)
-    this.vignette(this.over, 0.75);
+  /** Party hats on the beaten (on top of each one's sprite; tilt = how far it's knocked askew). */
+  dvHats(tilt = 0) {
+    const cols = [0xe84a6a, 0x4ac8e8, 0xf0d040];
+    this.losers.forEach((l, i) => {
+      if (!l.s.visible) return;
+      const b = l.s.getBounds(), x = b.centerX, y = b.top + 6, a = tilt * (i % 2 ? 1 : -1);
+      const P = (px, py) => [x + px * Math.cos(a) - py * Math.sin(a), y + px * Math.sin(a) + py * Math.cos(a)];
+      const [ax, ay] = P(-9, 0), [bx, by] = P(9, 0), [cx, cy] = P(0, -24);
+      this.fx.fillStyle(cols[i % 3], 1); this.fx.fillTriangle(ax, ay, bx, by, cx, cy);
+      this.fx.fillStyle(0xffffff, 1); this.fx.fillCircle(cx, cy, 3);
+    });
   }
-  /** [360] Her mask, close: the painted grin, the crack, the wild eye darting; the heart racing. */
-  shot_dv_murder_mask(t, k, s) {
-    this.hideLosers();
-    this.bg.fillStyle(0x0a0606, 1); this.bg.fillRect(0, 0, W, H);
-    const sc = 6.4 + k * 0.8;
-    this.closeUp(W / 2, 176, sc, 0);
-    this.hero.setTint(0xd8d0c8);
-    const [hx, hy] = this.headOf(this.def), ex = W / 2 + (39 - hx) * sc + sc / 2, ey = 176 + (11.5 - hy) * sc;
-    this.glow(this.fx, ex + Math.sin(s * 0.5) * 2, ey, 20 + Math.sin(s * 0.4) * 4, 0xc8202a, 0.4);   // the eye in the crack, darting
-    const beat = (s % 16) < 3;
-    this.vignette(this.over, beat ? 0.95 : 0.75);
-    if (s % 16 === 0) this.cameras.main.shake(40, 0.003);
+  /** The beaten in colour (posLosers draws silhouettes): a MULTIPLY tint instead. */
+  dvColorLosers(spots, tint = 0xffffff) {
+    this.posLosers(spots);
+    this.losers.forEach((l) => { if (l.s.visible) l.s.setTintMode(Phaser.TintModes.MULTIPLY).setTint(tint); });
   }
-  /** [480] Black. Three cuts: impact frames, slashes and blood thrown across the screen. */
-  shot_dv_murder_cuts(t, k, s) {
+  /** [0] The party: the beaten in party hats, bopping round the table, turning to each other; a popper at [60]. */
+  shot_dv_murder_party(t, k, s) {
+    this.hero.setVisible(false);
+    this.dvParty(t, 1, 0, 0);
+    const hop = (i) => Math.abs(Math.sin(t * 0.12 + i * 1.3)) * -8;
+    this.dvColorLosers([[110, 320 + hop(0), 2.0, 0, 1], [490, 320 + hop(1), 2.0, 0, 1], [60, 326 + hop(2), 1.9, 0, 1]], 0xffe8d8);
+    this.losers.forEach((l, i) => l.s.setFlipX(Math.floor((t + i * 40) / 70) % 2 === 1));    // turning to talk to each other
+    this.dvHats(0);
+    this.dvTable(t, 1, 0);
+    this.dvText(0, 'HAPPY BIRTHDAY!', W / 2, 52, 14, '#ffe060', { stroke: '#5a1a3a', sw: 5 });
+    if (s === 60) { sfx('popup', 0.6, 1.3); sfx('airhorn', 0.3, 1.4); }
+    if (s >= 60 && s < 160) for (let i = 0; i < 40; i++) {                                   // confetti from the popper
+      const sp = this.spots[i], d = s - 60, x = 220 + (sp[0] - 0.4) * d * 5, y = 220 - d * 2 * sp[1] + d * d * 0.03;
+      this.front.fillStyle([0xe84a6a, 0x4ac8e8, 0xf0d040, 0x8ae84a][i % 4], 1); this.front.fillRect(x, y, 3, 2);
+    }
+  }
+  /** [240] The music goes wrong. The door swings open on black; she stands in it. They turn and stare; the candles gutter out. */
+  shot_dv_murder_door(t, k, s) {
+    const open = ease(s / 40), lit = 1 - k * 0.25;
+    this.dvParty(t, lit, 0, open);
+    if (s === 0) sfx('whoosh', 0.5, 0.35);
+    this.dvColorLosers([[110, 320, 2.0, 0, 1], [470, 320, 2.0, 0, 1], [60, 326, 1.9, 0, 1]], Phaser.Display.Color.GetColor(255 * lit, 232 * lit, 216 * lit));
+    this.losers.forEach((l) => l.s.setFlipX(false));                                            // all of them, staring at the door
+    this.dvHats(0);
+    if (open > 0.4) { this.dvPose('', 'idle', 0, 555, 250, 1.5, true).setTintMode(Phaser.TintModes.FILL).setTint(0x050505); this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(545, 176, 3, 2); this.fx.fillStyle(0xc8202a, 1); this.fx.fillRect(546, 177, 1, 1); }
+    else this.hero.setVisible(false);
+    this.dvTable(t, lit, 0, false, s < 50);
+    this.vignette(this.over, 0.4 + k * 0.4);
+  }
+  /** [330] Black. Three cuts: impact frames, blood slashes across the screen. */
+  shot_dv_murder_black(t, k, s) {
     this.hideLosers(); this.hero.setVisible(false);
     this.bg.fillStyle(0x000000, 1); this.bg.fillRect(0, 0, W, H);
-    [0, 20, 40].forEach((c, i) => {
+    [8, 30, 52].forEach((c, i) => {
       const d = s - c;
       if (d === 0) this.cameras.main.shake(140, 0.02);
       if (d >= 0 && d < 3) { this.front.fillStyle(d < 2 ? (i === 1 ? 0xffffff : 0xc8202a) : 0x000000, 1); this.front.fillRect(0, 0, W, H); }
@@ -519,18 +552,41 @@ export class DevotedShots {
       }
     });
   }
-  /** [560] Morning: pale light through the end door, the hall quiet and stained; she stands by the wall, the blade dripping. SHH... */
-  shot_dv_murder_dawn(t, k, s) {
-    this.hideLosers();
-    const b = this.dvHall(this.bg, t, 0.75 + 0.25 * ease(s / 60), ease(s / 40));
-    this.mid.fillStyle(0xffe8d0, 0.5); this.mid.fillRect(W * 0.64 - 12, b.y1 + 34, 24, b.y2 - b.y1 - 34);            // dawn through the open door
-    this.mid.fillStyle(0xffe8d0, 0.08); this.mid.fillTriangle(W * 0.64 - 12, b.y2, W * 0.64 + 12, b.y2, 380, H); this.mid.fillTriangle(W * 0.64 - 12, b.y2, 380, H, 180, H);
-    this.dvBulb(this.mid, t * 0.3, 0);
-    this.dvPose('', 'idle', s / 6, 250, 318, 2.2, false);
-    const dy = (s * 1.4) % 34; this.fx.fillStyle(0xc8202a, 1); this.fx.fillRect(250 + 34, 270 + dy, 2, 4);              // the blade, dripping
-    for (let i = 0; i < 20; i++) { const sp = this.spots[i]; const x = 300 + sp[0] * 200, y = 120 + ((sp[1] * 200 + t * (0.15 + sp[2] * 0.2)) % 200); this.front.fillStyle(0xffe8d0, 0.35); this.front.fillRect(x, y, 1, 1); }   // dust in the light
-    if (s >= 50) { const T = "SHH... THEY'RE SLEEPING.", n = Math.min(T.length, Math.floor((s - 50) / 2.2)); this.dvText(0, T.slice(0, n), W / 2, 74, 12, '#e83a3a', { stroke: '#1a0608', sw: 5 }); }
-    this.vignette(this.over, 0.55);
+  /** The beaten after: slumped in their chairs at the table, hats knocked askew, in the dim red room. */
+  dvSlumped(t) {
+    for (const x of [205, 250, 395]) { this.mid.fillStyle(0x2a160c, 1); this.mid.fillRect(x - 20, 200, 6, 70); this.mid.fillRect(x + 14, 200, 6, 70); this.mid.fillRect(x - 20, 200, 40, 6); }   // chair backs
+    this.dvColorLosers([[205, 300, 1.9, -0.45, 1, 1], [395, 300, 1.9, 0.5, 1, 1], [250, 302, 1.8, 0.25, 1, 1]], 0xc89090);
+    this.losers[0] && this.losers[0].s.setFlipX(false); this.losers[1] && this.losers[1].s.setFlipX(true);
+    this.dvHats(0.7);
+  }
+  /** [420] The lights come back up, dim and red: everyone at the table, gone. She walks in, past them, to the cake. */
+  shot_dv_murder_table(t, k, s) {
+    this.dvParty(t, 0.7, 1, 1);
+    this.dvSlumped(t);
+    this.dvTable(t, 0.7, 1, false, false);
+    const x = -40 + ease(k) * 165;
+    if (k < 1) this.dvPose('', 'run', s / 4, x, 338, 2.1, false); else this.dvPose('', 'idle', s / 6, 125, 338, 2.1, false);
+    this.vignette(this.over, 0.7);
+  }
+  /** [560] She takes a slice of cake, turns to us: I PREFER BLOOD BETTER! */
+  shot_dv_murder_cake(t, k, s) {
+    this.dvParty(t, 0.7, 1, 1);
+    this.dvSlumped(t);
+    this.dvTable(t, 0.7, 1, s >= 24, false);
+    this.dvPose('', 'idle', s / 6, 125, 338, 2.1, false);
+    if (s >= 12) {                                                                                 // the slice, lifted from the cake to her hand
+      const q = ease((s - 12) / 18), x = 313 + (160 - 313) * q, y = 248 + (262 - 248) * q - Math.sin(q * Math.PI) * 40;
+      this.front.fillStyle(0xe87a9a, 1); this.front.fillTriangle(x - 9, y + 8, x + 9, y + 8, x + 9, y - 8); this.front.fillStyle(0xfff4f8, 1); this.front.fillRect(x - 9, y + 6, 18, 2); this.front.fillRect(x + 7, y - 8, 2, 16);
+      this.front.fillStyle(0x8e1a1e, 1); this.front.fillRect(x - 2, y + 2, 3, 3);                // (a red fingerprint on it)
+    }
+    if (s >= 44) { const T = 'I PREFER BLOOD BETTER!', n = Math.min(T.length, Math.floor((s - 44) / 2)); this.dvText(0, T.slice(0, n), W / 2, 96, 14, '#e83a3a', { stroke: '#1a0608', sw: 5 }); }
+    this.vignette(this.over, 0.65);
+  }
+  /** [700] The screen floods red, and it ends. */
+  shot_dv_murder_red(t, k, s) {
+    this.shot_dv_murder_cake(t, 1, 140 + s);
+    this.over.fillStyle(0xa00810, Math.min(1, s / 50)); this.over.fillRect(0, 0, W, H);
+    if (s === 0) this.cameras.main.shake(300, 0.01);
   }
 
   // ================================================================= EMBER SAINT - MARTYRDOM

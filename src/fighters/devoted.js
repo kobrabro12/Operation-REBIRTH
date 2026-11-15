@@ -12,7 +12,7 @@ import { DV_MOVES } from './dvMoves.js';
 export const PAL_SLUDGE = { outline: 0x1a1418, deep: 0x0e0c12, mid: 0x2e2a38, light: 0xd2d2ca, core: 0xf8f4ec, shade: 0x060508, void: 0x000000 };
 
 // the drawn costumes' sheet sets (tools/sprites/devoted_draw.py --set NAME -> devoted/NAME/...)
-export const DV_SETS = ['murder', 'cartridge', 'bride', 'ember', 'cinder'];
+export const DV_SETS = ['murder', 'cartridge', 'bride', 'ember', 'cinder', 'heartwood', 'vesper', 'keeper'];
 const SET = (dir) => Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'dv_' + (dir ? dir + '_' : '') + k]));
 
 export const DEVOTED = {
@@ -21,7 +21,7 @@ export const DEVOTED = {
   sheets: SET(''),
   // her look at each sludge stage (fighterDevoted.js swaps to it when she prays her way up)
   sludgeSheets: [SET(''), SET('semi'), SET('taken'), SET('drowned')],
-  // the drawn costumes (MAD MURDER, CARTRIDGE, HOLLOW BRIDE, EMBER SAINT, CINDER WRAITH): their own drawing at every stage - one group
+  // the drawn costumes (MAD MURDER, CARTRIDGE, HOLLOW BRIDE, EMBER SAINT, CINDER WRAITH, HEARTWOOD, VESPER, THE LAST KEEPER): their own drawing at every stage - one group
   // each, loaded per match (lazySheets); setSludge picks the stage's strips out of it (`<stage>_<strip>`)
   costumeSheets: Object.fromEntries(DV_SETS.map((set) => [set, Object.assign({}, ...['', 'semi', 'taken', 'drowned'].map((st) => Object.fromEntries(
     ['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [(st ? st + '_' : '') + k, 'dv_' + set + '_' + (st ? st + '_' : '') + k]))))])),

@@ -15,10 +15,9 @@ scored to its shots (frame numbers at 60 fps in brackets):
              fanfare for the golden shard [420], then a party: the tune again with the whole band and fireworks [560],
              a big final chord [660]
 
-  murder     MAD MURDER's LIGHTS OUT: rain and thunder on a lone house, a slow out-of-tune music-box lullaby (her own,
-             D minor) [0], inside: a buzzing bulb, a heartbeat, a footstep each time it flickers back on [180], a
-             high glassy cluster swelling over the close-up on her mask [360], three stabs in the dark and silence
-             [480], dawn: the lullaby again, slower, and a low bell under the title [560 / 760]
+  murder     MAD MURDER's THE PARTY: a bouncy party tune (her own) with claps and a popper [0], slowing and souring
+             as the door creaks open [240], three stabs in the dark [330], a broken music-box version of it and her
+             footsteps in the red room [420], a sting as she speaks [600], a swell and a hit as it floods red [700]
   devoted    her own outro (no costume): wind, her music-box theme, the stab, the beaten sinking, three splashes as the
              sludge takes her, a whisper, the thing's eyes opening
 Spoken lines (tools/audio/voice_src/dv_*.ogg) were made with Kokoro TTS (kokoro-onnx, voice af_nicole, slowed).
@@ -287,35 +286,40 @@ def aero64():
 
 
 def murder():
-    """MAD MURDER's LIGHTS OUT (15 s): the house in the storm, the hallway and its flickering bulb, the mask, three
-    cuts in the dark, the quiet morning after."""
-    L = 15.0; out = np.zeros(secs(L))
-    out[:secs(9.0)] += rainfall(9.0, 1.2)
-    add(out, thunder(3.0, 0.9), 1.4)
-    add(out, pad([38, 45, 50], 3.2, 0.35, detune=0.3), 0.0)
-    lull = seq('A4:1 D5:1 F5:1 E5:2  D5:1 C5:1 A4:2  Bb4:1 A4:1 G4:1 F4:1 E4:2 D4:3')      # her lullaby (original), on a music box
-    t = 0.3
-    for i, (mi, d) in enumerate(lull[:8]): add(out, musicbox(mi - 0.25 * (i % 3 == 1), 2.2, 0.55), t); t += d * 0.36
-    # [180] inside: the bulb's hum, a heartbeat, a footstep on each flicker (230, 280, 320)
-    n = secs(3.2); tt = np.arange(n) / SR
-    hum = (np.sin(2 * np.pi * 60 * tt) + 0.5 * np.sin(2 * np.pi * 120 * tt) + 0.3 * np.sin(2 * np.pi * 180 * tt)) * 0.03
-    add(out, hum * (1 + 0.6 * (np.sin(2 * np.pi * 7 * tt) > 0.9)), 3.0)
-    for i in range(6): add(out, timpani(31, 0.5, 0.6), 3.1 + i * 0.55); add(out, timpani(31, 0.4, 0.35), 3.3 + i * 0.55)
-    for tt_ in (3.83, 4.67, 5.33): add(out, mx(drum_kick(0.5), lp(noise(secs(0.25)), 600) * np.exp(-np.arange(secs(0.25)) / SR * 14) * 0.5), tt_)
-    # [360] the mask: a high glassy cluster swelling, the heart racing
-    for j, mi in enumerate((86, 87, 91, 92)): add(out, glass(mi, 2.0, 0.25 + j * 0.04), 6.0 + j * 0.05)
-    add(out, pad([74, 75, 80], 2.0, 0.25, detune=0.5), 6.0)
-    for i in range(8): add(out, timpani(31, 0.3, 0.5 + i * 0.05), 6.0 + i * 0.25)
-    # [480] three stabs in the dark, then nothing
-    for i, tt_ in enumerate((8.0, 8.33, 8.67)):
-        st = mx(drum_kick(1.2), hp(noise(secs(0.3)), 2200) * np.exp(-np.arange(secs(0.3)) / SR * 12) * 0.9, clank(0.4, 1.3 - i * 0.1))
-        add(out, st * (0.9 + i * 0.15), tt_)
-    # [560] dawn: the lullaby again, slower; [760] a low bell under the title
-    t = 9.5
-    for i, (mi, d) in enumerate(lull): add(out, musicbox(mi - 0.3 * (i % 2), 2.6, 0.45), t); t += d * 0.33
-    add(out, pad([38, 45, 50, 53], 4.5, 0.3, detune=0.25), 9.4)
-    add(out, mx(bell(38, 3.0, 0.55), timpani(26, 1.6, 0.8)), 12.67)
-    finish(reverb(out, 2.8, 1.7, 0.4), 'murder', fade=1.0)
+    """MAD MURDER's THE PARTY (14 s): a bouncy party tune (her own, original) with claps and a popper [0]; it slows and
+    sours as the door creaks open [240]; three stabs in the dark [330]; a broken music-box version of the tune and her
+    footsteps in the red room [420]; a sting under I PREFER BLOOD BETTER! [600]; a swell and a hit as it floods red [700]."""
+    L = 14.0; out = np.zeros(secs(L))
+    tune = seq('C5:1 E5:1 G5:1 E5:1 F5:1 A5:1 G5:2  E5:1 G5:1 C6:1 B5:1 A5:1 F5:1 G5:2')      # the party tune (original)
+    t = 0.15
+    for i, (mi, d) in enumerate(tune):
+        add(out, musicbox(mi, 0.9, 0.55), t); add(out, marimba(mi - 12, 0.5, 0.35), t)
+        t += d * 0.22
+    for i in range(14):                                                                         # bass + claps on the beat
+        bt = 0.15 + i * 0.27
+        add(out, bass(36 + [0, 7, 5, 7][i % 4], 0.25, 0.4), bt)
+        if i % 2: add(out, hp(noise(secs(0.08)), 1500) * np.exp(-np.arange(secs(0.08)) / SR * 50) * 0.5, bt)
+    add(out, mx(sq(hz(84), 0.4) * 0.15, hp(noise(secs(0.3)), 3000) * np.exp(-np.arange(secs(0.3)) / SR * 14) * 0.6), 1.0)   # the popper [60]
+    # [240] the tune again, slowing and going flat; the door creaks
+    t = 4.0; seg = np.zeros(secs(2.0)); tt = 0.0
+    for i, (mi, d) in enumerate(tune[:6]): add(seg, musicbox(mi - i * 0.3, 1.0, 0.5), tt); tt += d * 0.22 * (1 + i * 0.25)
+    add(out, tapestop(seg, 1.2), t)
+    creak = bp(noise(secs(1.2)), 300, 900) * np.sin(np.linspace(0, 40, secs(1.2))) ** 2 * 0.4; add(out, creak, 4.1)
+    add(out, pad([37, 44, 49], 1.6, 0.35, detune=0.5), 4.4)
+    # [330] three stabs in the dark
+    for i, tt_ in enumerate((5.63, 6.0, 6.37)):
+        add(out, mx(drum_kick(1.2), hp(noise(secs(0.3)), 2200) * np.exp(-np.arange(secs(0.3)) / SR * 12) * 0.9, clank(0.4, 1.3 - i * 0.1)) * (0.9 + i * 0.15), tt_)
+    # [420] the red room: the tune on a broken music box, slow and detuned, and her footsteps
+    t = 7.1
+    for i, (mi, d) in enumerate(tune): add(out, musicbox(mi - 12 - 0.35 * (i % 2), 1.8, 0.4), t); t += d * 0.3
+    add(out, pad([36, 43, 48], 4.6, 0.3, detune=0.4), 7.0)
+    for i in range(5): add(out, mx(drum_kick(0.35), lp(noise(secs(0.2)), 600) * np.exp(-np.arange(secs(0.2)) / SR * 16) * 0.4), 7.2 + i * 0.4)
+    # [600] the sting as she speaks
+    add(out, mx(pad([37, 40, 44, 49], 1.6, 0.45, detune=0.6), glass(85, 1.4, 0.3)), 10.0)
+    # [700] it floods red: a swell, then a hit
+    sw = lp(noise(secs(1.0)), 300) * np.linspace(0, 1, secs(1.0)) ** 2; add(out, sw * 1.2, 11.67)
+    add(out, mx(drum_kick(1.5), timpani(26, 2.0, 1.2), bell(38, 2.0, 0.5)), 12.5)
+    finish(reverb(out, 2.6, 1.6, 0.36), 'murder', fade=0.8)
 
 
 PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted, 'murder': murder}

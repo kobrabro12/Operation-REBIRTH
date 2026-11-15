@@ -810,6 +810,19 @@ SKINS['devoted'] = [
   // embers in it, and DROWNED burns her down to a smouldering shape with a wing of smoke ribbed with cinders
   { name: 'CINDER WRAITH', sheetSet: 'cinder', swatch: 0xb89e7a, fx: 0xff7a1a, pal: { outline: 0x0c0a0a, deep: 0x36302e, mid: 0xff7a1a, light: 0xdcc8a2, core: 0xfff0b8, shade: 0x0c0a0a, void: 0x000000 },
     vfx: { hit: { shape: 'flame', colors: [0xff7a1a, 0xffd080, 0x5a5654], n: 10, ring: 0xffa040 }, aura: { motes: { colors: [0xff7a1a, 0xffa040, 0x5a5654], rate: 7, shape: 'wisp' } } } },
+  // ---- three lore costumes (devoted_draw.py --set heartwood|vesper|keeper; their stories: SKIN_LORE in lore.js)
+  // HEARTWOOD: the dying tree of her symbol has grown into her - bark skin split by glowing sap, branches from her
+  // shoulders, dead leaves for hair, a weeping knot for a mouth, a black thorn for a blade
+  { name: 'HEARTWOOD', sheetSet: 'heartwood', swatch: 0x6a4a30, fx: 0xffb030, pal: { outline: 0x0a0604, deep: 0x3a2410, mid: 0xc86a10, light: 0xffc040, core: 0xffe890, shade: 0x0a0604, void: 0x000000 },
+    vfx: { hit: { shape: 'leaf', colors: [0xa86a2a, 0xd8a050, 0xffb030], n: 10 }, aura: { motes: { colors: [0xa86a2a, 0xd8a050, 0x7a4a1a], rate: 9 } } } },
+  // VESPER: the first voice in the choir that heard the dark - indigo vestments stitched with silver hymns, a crown
+  // of melted candles, eyes sewn shut with silver thread, a hymnal at her hip; sludge of ink and wax, a wing of pages
+  { name: 'VESPER', sheetSet: 'vesper', swatch: 0x3a2e6a, fx: 0xd8d8ff, pal: { outline: 0x08061a, deep: 0x2a2252, mid: 0x564a90, light: 0xd8d8f0, core: 0xffffff, shade: 0x08061a, void: 0x000000 },
+    vfx: { hit: { shape: 'note', colors: [0xd8d8f0, 0xffd860, 0x564a90], n: 8 }, aura: { motes: { colors: [0xffd860, 0xd8d8f0], rate: 11 } } } },
+  // THE LAST KEEPER: she kept the lighthouse that watched the black tide come in - sea-green oilskins, a rain hat,
+  // a brass lantern glowing at her hip, a whalebone hook; her sludge is the tide, her wing kelp and torn net
+  { name: 'THE LAST KEEPER', sheetSet: 'keeper', swatch: 0x2a6a5e, fx: 0xffc040, pal: { outline: 0x040a0e, deep: 0x16303a, mid: 0x2a6a5e, light: 0xd8f0f0, core: 0xffe890, shade: 0x040a0e, void: 0x000000 },
+    vfx: { hit: { shape: 'drop', colors: [0xd8f0f0, 0x2a6a5e, 0xffc040], n: 10 }, aura: { motes: { colors: [0xffc040, 0xd8f0f0], rate: 10 } } } },
   { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
 ];
 

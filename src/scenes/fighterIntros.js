@@ -55,6 +55,9 @@ export const SKIN_INTROS = {
   'devoted:CARTRIDGE': { kind: 'n64', color: 0x20e8ff, color2: 0xff3ad8, gem: [0x2ac8c0, 0xffe848, 0x9038c0, 0xff9420], pre: ['glass', 0.4, 1.6], sfx: ['limitready', 0.5, 1.4] },
   'devoted:HOLLOW BRIDE': { kind: 'swarm', shape: 'petal', colors: [0xf6f2e6, 0x5a1420, 0xd6d0c2], n: 26, pre: ['whoosh', 0.35, 0.5], sfx: ['ding', 0.4, 0.5] },
   'devoted:CINDER WRAITH': { kind: 'rise', color: 0x5a5654, color2: 0xff7a1a, shape: 'ember', pre: ['rumble', 0.5, 0.8], sfx: ['flame', 0.6, 0.7] },   // out of a column of smoke and embers
+  'devoted:HEARTWOOD': { kind: 'rise', color: 0xa86a2a, color2: 0xffb030, shape: 'leaf', pre: ['rumble', 0.5, 0.7], sfx: ['curse', 0.5, 0.8] },   // up out of a whirl of dead leaves
+  'devoted:VESPER': { kind: 'rise', color: 0xd8d8f0, color2: 0xffd860, shape: 'note', pre: ['curse', 0.3, 1.4], sfx: ['ding', 0.5, 0.6] },   // a rising hymn of silver notes and candlelight
+  'devoted:THE LAST KEEPER': { kind: 'pool', dur: 120, color: 0x2a6a5e, pool: { deep: 0x040a0e, mid: 0x16303a, rim: 0xd8f0f0, sheen: 0x8ae0e0, glow: 0xffc040 }, pre: ['rumble', 0.4, 0.8], sfx: ['geyser', 0.5, 0.8] },   // up out of the black tide
   'devoted:EMBER SAINT': { kind: 'pool', dur: 120, lava: true, color: 0xff6a10, pool: { deep: 0x5a1408, mid: 0xff6a10, rim: 0xffe070, sheen: 0xfff4c0, glow: 0xff5a0a }, pre: ['rumble', 0.6, 0.6], sfx: ['flame', 0.7, 0.6] },   // up out of the lava
   'soul-summoner:TRICOLORE': { kind: 'swarm', shape: 'leaf', colors: [0x2a4ab8, 0xffffff, 0xe8303a], n: 24, pre: ['whoosh', 0.4, 0.8], sfx: ['shing', 0.5, 1.1] },
   'mr-wake:TEATIME': { kind: 'portal', color: 0x1a2a6a, color2: 0xd8203a, pre: ['glass', 0.4, 1.4], sfx: ['ding', 0.4, 1.6] },
