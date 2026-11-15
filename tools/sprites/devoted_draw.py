@@ -65,7 +65,16 @@ VARIANTS = {
                   shoe=[0x120a08, 0x1e1210, 0x2c1c18, 0x3c2820], skin=[0x2a1a16, 0x40281e, 0x5a3626, 0x7a4c34],
                   hair=[0xa81808, 0xe84a10, 0xff9a20, 0xffe070], sludge=[0x140604, 0x2a0a06, 0x5a1408, 0xff6a10], sheen=0xffb040,
                   wing=(0x140604, 0x2a0a06, 0xff6a10, 0xffe070), blade=[0xa82808, 0xf06010, 0xffb040, 0xfff4c0]),
+    # CINDER WRAITH: a hooded wanderer out of a burnt desert - sand-coloured wraps bound round her arms and legs, a hood,
+    # a cracked ash-grey mask over her eyes with embers glowing through it, a blade of cooling lava; her sludge is
+    # smoke and ash with embers in it, and DROWNED's wing is a sheet of smoke ribbed with glowing cinders
+    'cinder': dict(shirt=[0x5e4e3a, 0x8c765a, 0xb89e7a, 0xdcc8a2], stripe=None, pants=[0x3a3026, 0x56483a, 0x766450, 0x96826a],
+                   shoe=[0x26221e, 0x3a3430, 0x56504a, 0x766e66], skin=[0x5a3a28, 0x7a5038, 0x9a6a4a, 0xbc8a64],
+                   hair=[0x161414, 0x262222, 0x3a3434, 0x564e4c], sludge=[0x0c0a0a, 0x1c1818, 0x36302e, 0xff7a1a], sheen=0xffa040,
+                   wing=(0x1c1818, 0x36302e, 0xff7a1a, 0xffd080), blade=[0x7a1604, 0xd8480c, 0xffa030, 0xfff0b8]),
 }
+ASH = [0x5a5654, 0x8a8682, 0xb4b0aa, 0xd8d4cc]       # CINDER WRAITH's mask
+HOOD = [0x4a3c2c, 0x76624a, 0xa08868, 0xc8b28c]      # ...and her hood
 FACET = 0
 FLAT3D = False          # set by devoted_3d.py: paint CARTRIDGE flat (its 3D model does the lighting)
 
@@ -181,6 +190,11 @@ def vpaint(x, y, ramp, v, stage, seed):
         if ramp is SKIN and blob(x, y, seed + 60) > 0.72: return [0xff5a0a, 0xff8a1a, 0xffc040, 0xfff090][k]       # glowing cracks in the char
         if ramp is SHIRT and y % 8 == 0: return VARIANTS['ember']['stripe'][k]                                 # gold trim on the robe
         if ramp is SHIRT and noise(x, y, seed + 61) > 0.96: return 0xff7a1a                                     # ...and the odd ember
+    if VARIANT == 'cinder':
+        if ramp in (SHIRT, PANTS, SHOE) and (x + y * 2) % 6 == 0: return ramp[max(0, k - 1)]                 # the wraps: bound strips, slanting
+        if ramp in (SHIRT, PANTS) and y > 34 and noise(x, y, seed + 62) > 0.97: return [0x2a2420, 0x3a322c, 0x4a4038, 0x5a5048][k]   # scorch marks
+        if ramp in (SHIRT, PANTS) and noise(x, y, seed + 63) > 0.985: return 0xff8a2a                    # a smouldering spark in the cloth
+        if ramp is SKIN and noise(x, y, seed + 64) > 0.8: return SKIN[max(0, k - 1)]                     # ash on her hands
     return None
 
 def repaint(a, ramp, stage, seed):
@@ -336,6 +350,35 @@ def vhead(a, stage):
                 a[1, x] = hx(0xfff07a if abs(dx) < 0.6 else 0xf0c03a)
                 if abs(dx) > 0.85: a[2, x] = hx(0xc8901a)
         a[0, 34:39] = hx(0xfff8c0)
+    elif v == 'cinder':
+        im = Image.new('RGBA', (64, 64)); d = ImageDraw.Draw(im)
+        d.ellipse([23, 2, 44, 19], fill=(255, 255, 255, 255))                                     # the hood over her crown...
+        d.polygon([(24, 10), (31, 12), (31, 23), (28, 26), (24, 24), (23, 17)], fill=(255, 255, 255, 255))   # ...falling to her shoulders
+        d.ellipse([31, 8, 46, 23], fill=(0, 0, 0, 0))                                             # (the opening for her face)
+        hm = np.array(im)[..., 3] > 0
+        for y, x in zip(*np.nonzero(hm)):
+            if stage == 3: continue                                                                # (DROWNED: burnt away)
+            if stage >= 1 and a[y, x, 3] and tuple(a[y, x, :3]) in [tuple(hx(c)[:3]) for c in SLUDGE] and noise(x, y, 90) > 0.5: continue
+            vv = 0.95 - 0.5 * min(1, math.hypot(x - 36, y - 5) / 16) - (0.25 if x < 26 else 0)
+            k = min(3, int(vv * 3.99)); k = max(0, k - 1) if (x + 2 * y) % 7 == 0 else k            # (folds in the cloth)
+            a[y, x] = hx(HOOD[k])
+        for x in range(31, 45):                                                                   # the hood's ragged rim round her face
+            for y in range(7, 23):
+                if hm[y, x] and not hm[y, min(63, x + 1)] and noise(x, y, 91) > 0.6 and stage < 3: a[y, min(63, x + 1)] = hx(HOOD[0])
+        # the mask: a curved plate of cracked ash-grey ceramic over her brow and eyes, two slits with embers behind them
+        for y in range(8, 15):
+            for x in range(32, 44):
+                if ((x - 38) / 6.2) ** 2 + ((y - 11) / 3.8) ** 2 <= 1 and a[y, x, 3]:
+                    vv = 1 - min(1, math.hypot(x - 40, y - 9) / 7)
+                    a[y, x] = hx(ASH[min(3, int(vv * 3.99))])
+        for x, y in [(41, 8), (40, 9), (41, 10), (40, 11), (41, 12), (37, 13), (36, 14)]:            # the crack through it
+            if a[y, x, 3]: a[y, x] = hx(0x2a2624)
+        glow = [(0xffd060, 0xff7a1a), (0xffe080, 0xff8a2a), (0xfff0b0, 0xffa040), (0xffffff, 0xffc060)][stage]
+        for x0 in (34, 38):                                                                       # the eye slits: embers behind the mask
+            a[11, x0:x0 + 3] = hx(0x140c08); a[12, x0:x0 + 3] = hx(0x140c08)
+            a[11, x0 + 1] = hx(glow[1]); a[11, x0 + 2] = hx(glow[0]); a[12, x0 + 1] = hx(glow[1])
+        if stage >= 2:                                                                            # (the glow seeps out of the crack)
+            for x, y in [(40, 9), (41, 10)]: a[y, x] = hx(0xff7a1a)
     return a
 
 def mask(a, stage):
@@ -482,6 +525,16 @@ def dress(P, stage):
         x, y = x1, y1
         for dy in range(0, 4): t[min(63, y + dy), x] = hx(0xf0c03a)
         t[min(63, y + 1), x - 1] = hx(0xf0c03a); t[min(63, y + 1), x + 1] = hx(0xf0c03a)                        # its little cross
+    if VARIANT == 'cinder':
+        t = P['torso']; ys, xs = np.nonzero(t[..., 3] > 0)
+        bot, l0, r0 = int(ys.max()), int(xs[ys >= ys.max() - 1].min()), int(xs[ys >= ys.max() - 1].max())
+        for x in range(l0, r0 + 1):                                                                          # a cord belt round her waist
+            if t[bot - 2, x, 3] and not np.all(t[bot - 2, x, :3] == hx(LINE)[:3]): t[bot - 2, x] = hx(0x3a2a1a if x % 2 else 0x5a4028)
+        for dy in range(0, 8):                                                                               # the ragged ends of her sash, hanging
+            for dx in (0, 1):
+                y, x = bot - 1 + dy, l0 + 1 + dx - dy // 3
+                if y < 64 and noise(x, y, 93) < 0.85 - dy * 0.06: t[y, x] = hx(HOOD[2 - dx] if dy < 6 else HOOD[0])
+        P['torso'] = outline(t)
 
 MARKS = {}     # her_legs' details that keep their own colour through `repaint` (laces, the skin through the rips)
 
@@ -527,7 +580,7 @@ def draw_parts(stage):
         for (x, y, kind) in MARKS.get(n, ()):                       # laces and torn knees, unless the sludge has them
             px = tuple(int(v) for v in P[n][y, x, :3])
             if not P[n][y, x, 3] or px in [tuple(int(v) for v in hx(c)[:3]) for c in SLUDGE] or px == tuple(int(v) for v in hx(LINE)[:3]): continue
-            P[n][y, x] = hx(SKIN[2] if kind == 'rip' else (SHIRT[3] if VARIANT == 'bride' else 0xd8cfb8))
+            P[n][y, x] = hx(SKIN[2] if kind == 'rip' else (SHIRT[3] if VARIANT in ('bride', 'cinder') else 0xd8cfb8))
     P['ffist'] = knife(P['ffist'])
     dress(P, stage)
     P['head'] = head(stage)

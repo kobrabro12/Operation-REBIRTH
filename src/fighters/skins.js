@@ -805,6 +805,11 @@ SKINS['devoted'] = [
   // EMBER SAINT: a burning martyr (--set ember): charred skin with glowing cracks, crimson robe, hair of fire, a gold halo
   { name: 'EMBER SAINT', sheetSet: 'ember', swatch: 0xff6a10, fx: 0xffb040, pal: { outline: 0x140604, deep: 0x5a1408, mid: 0xff6a10, light: 0xffe070, core: 0xfff8c0, shade: 0x140604, void: 0x000000 },
     vfx: { hit: { shape: 'flame', colors: [0xff6a10, 0xffe070, 0xa81808], n: 10, ring: 0xffb040 }, aura: { motes: { colors: [0xff9a20, 0xffe070, 0xff5a0a], rate: 5 } } } },
+  // CINDER WRAITH: a hooded wanderer out of a burnt desert (--set cinder): sand-coloured wraps, a hood, a cracked
+  // ash-grey mask with embers glowing behind the eye slits, a blade of cooling lava; her sludge is smoke and ash with
+  // embers in it, and DROWNED burns her down to a smouldering shape with a wing of smoke ribbed with cinders
+  { name: 'CINDER WRAITH', sheetSet: 'cinder', swatch: 0xb89e7a, fx: 0xff7a1a, pal: { outline: 0x0c0a0a, deep: 0x36302e, mid: 0xff7a1a, light: 0xdcc8a2, core: 0xfff0b8, shade: 0x0c0a0a, void: 0x000000 },
+    vfx: { hit: { shape: 'flame', colors: [0xff7a1a, 0xffd080, 0x5a5654], n: 10, ring: 0xffa040 }, aura: { motes: { colors: [0xff7a1a, 0xffa040, 0x5a5654], rate: 7, shape: 'wisp' } } } },
   { name: 'CHOIRBOY', swatch: 0x6aa8e0, fx: 0x9ad0ff, groups: DVG, rules: { wing: { to: 214, sat: 1.1, val: 1.5 }, shirt: { to: 208, sat: 0.9, val: 1.05 }, hair: { sat: 0.25, val: 1.12 }, pants: { to: 222, sat: 2.2, val: 0.9 } } },
 ];
 
