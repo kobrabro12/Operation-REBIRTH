@@ -6,6 +6,10 @@
 //   HOLLOW BRIDE  THE WEDDING - a rain-lashed chapel lit by candles, she walks the aisle past the beaten seated as
 //                 guests; through her veil, black tears; lightning; the vows; three cuts as the bell tolls; the bouquet
 //                 of dead roses falls in slow motion; the last tableau under the broken rose window
+//   MAD MURDER    LIGHTS OUT - a lone house on a hill in a storm, one lit window with the beaten inside; lightning shows
+//                 her standing in the field. Inside, a hallway under one bulb: each time it flickers back on she's
+//                 further down the hall. Her mask, close; three cuts in the dark; morning, the hall quiet, the blade
+//                 dripping by the window - SHH... THEY'RE SLEEPING.
 //   EMBER SAINT   MARTYRDOM - a ruined cathedral, she stands on a pyre while the beaten close in with torches; the fire
 //                 catches and her eyes burn through it; she rises out of the flames as the burning DROWNED, the windows
 //                 burst into embers; she hangs in a shaft of light over the beaten, kneeling in the ash
@@ -23,6 +27,8 @@ export const DEVOTED_CUTS = {
     color: '#2ac8c0', stroke: '#0c0418', shots: [[0, 'boot'], [150, 'field'], [420, 'shard'], [620, 'corrupt'], [700, 'void']] },
   'devoted:HOLLOW BRIDE': { fn: 'dv_bride', len: 900, card: 750, name: 'THE DEVOTED', sub: 'HOLLOW BRIDE', line: 'TILL DEATH DO US PART.', music: 'bgm_outro_bride',
     color: '#f6f2e6', stroke: '#0a0810', shots: [[0, 'aisle'], [210, 'veil'], [380, 'vows'], [470, 'cuts'], [560, 'bouquet'], [690, 'tableau']] },
+  'devoted:MAD MURDER': { fn: 'dv_murder', len: 900, card: 760, name: 'THE DEVOTED', sub: 'MAD MURDER', line: "SHH... THEY'RE SLEEPING.", music: 'bgm_outro_murder',
+    color: '#e83a3a', stroke: '#1a0608', shots: [[0, 'house'], [180, 'hall'], [360, 'mask'], [480, 'cuts'], [560, 'dawn']] },
   'devoted:EMBER SAINT': { fn: 'dv_ember', len: 960, card: 880, name: 'THE DEVOTED', sub: 'EMBER SAINT', line: 'ASHES TO ASHES.', music: 'bgm_outro_ember',
     color: '#ffb040', stroke: '#140604', shots: [[0, 'pyre'], [180, 'ignite'], [360, 'ascend'], [560, 'judgment'], [660, 'throw'], [700, 'burn']] },
   // AERO64 (AERO's 3D costume) shares CARTRIDGE's console world: boot, the field, the golden shard, then a party
@@ -414,6 +420,117 @@ export class DevotedShots {
     this.dvPetals(this.fx, t, 22, 0.8, 0.4);
     if (s === 0) sfx('ding', 0.3, 0.4);
     this.vignette(this.over, 0.65);
+  }
+
+  // ================================================================= MAD MURDER - LIGHTS OUT
+  /** [0] A lone house on a hill in a storm, one lit window with the beaten inside; the lightning shows her, standing in the field. */
+  shot_dv_murder_house(t, k, s) {
+    const g = this.bg, bolt = (s >= 84 && s < 90) || (s >= 94 && s < 97);
+    this.sky(g, bolt ? 0x8a8aa8 : 0x06060c, bolt ? 0x4a4a60 : 0x14141e, 10);
+    if (s === 84) { sfx('bighit', 0.4, 0.4); this.cameras.main.shake(120, 0.004); }
+    if (bolt) { this.mid.lineStyle(3, 0xffffff, 1); const bx = 520; let y = 0, x = bx; for (let i = 0; i < 6; i++) { const nx = x + (this.spots[i][0] - 0.5) * 50, ny = y + 30; this.mid.lineBetween(x, y, nx, ny); x = nx; y = ny; } }
+    const hill = bolt ? 0x22222c : 0x0c0c12;
+    g.fillStyle(hill, 1); g.fillEllipse(W / 2, H + 120, W * 1.6, 330);
+    const hx = 380, hy = 196;                                                         // the house: walls, a pitched roof, a chimney, one lit window
+    g.fillStyle(bolt ? 0x3a3a46 : 0x1c1c26, 1); g.fillRect(hx - 60, hy - 50, 120, 60); g.fillTriangle(hx - 72, hy - 50, hx + 72, hy - 50, hx, hy - 100); g.fillRect(hx + 30, hy - 96, 12, 30);
+    const flick = (t % 47) < 2 ? 0.5 : 1;
+    this.glow(this.mid, hx - 24, hy - 26, 34, 0xffc860, 0.25 * flick);
+    g.fillStyle(0xffd890, flick); g.fillRect(hx - 36, hy - 38, 24, 22); g.fillStyle(0x1a1408, 1); g.fillRect(hx - 25, hy - 38, 2, 22); g.fillRect(hx - 36, hy - 28, 24, 2);
+    g.fillStyle(0xffd890, 0.6 * flick); g.fillRect(hx + 14, hy - 4, 14, 14);          // (a dim one by the door)
+    this.posLosers([[hx - 30, hy - 16, 0.42, 0, 1], [hx - 20, hy - 16, 0.4, 0, 1], [hx - 26, hy - 16, 0.38, 0, 0.8]], 0x1a1408);   // the beaten, at the window
+    if (bolt || s > 150) this.dvPose('', 'idle', 0, 150, 300, 1.3).setTintMode(Phaser.TintModes.FILL).setTint(bolt ? 0x0a0a10 : 0x050508);   // her, in the field
+    else this.hero.setVisible(false);
+    if (s > 150) { this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(146, 238, 2, 2); }  // (after the flash: just her eye, still there)
+    for (let i = 0; i < 70; i++) { const sp = this.spots[i % 40], x = (sp[0] * W + i * 13 + t * 2) % W, y = (sp[1] * H + t * (9 + sp[2] * 4) + i * 37) % H; this.front.lineStyle(1, 0x8a96b4, 0.35); this.front.lineBetween(x, y, x - 3, y + 12); }   // rain
+    this.vignette(this.over, 0.7);
+  }
+  /** The hallway inside: peeling wallpaper, boards running to a door at the end, one bulb; light 0-1, red = the morning-after stains. */
+  dvHall(g, t, light, stains = 0) {
+    const vx = W * 0.64, b = { x1: vx - 46, x2: vx + 46, y1: 112, y2: 214 }, sh = (c) => Phaser.Display.Color.GetColor(((c >> 16) & 255) * light, ((c >> 8) & 255) * light, (c & 255) * light);
+    g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, H);
+    if (light <= 0) return b;
+    g.fillStyle(sh(0x3a3a2a), 1); g.fillPoints([{ x: 0, y: 0 }, { x: b.x1, y: b.y1 }, { x: b.x1, y: b.y2 }, { x: 0, y: H }], true);
+    g.fillStyle(sh(0x323224), 1); g.fillPoints([{ x: W, y: 0 }, { x: b.x2, y: b.y1 }, { x: b.x2, y: b.y2 }, { x: W, y: H }], true);
+    g.fillStyle(sh(0x3e2c1e), 1); g.fillPoints([{ x: 0, y: H }, { x: b.x1, y: b.y2 }, { x: b.x2, y: b.y2 }, { x: W, y: H }], true);
+    g.fillStyle(sh(0x1a1612), 1); g.fillPoints([{ x: 0, y: 0 }, { x: b.x1, y: b.y1 }, { x: b.x2, y: b.y1 }, { x: W, y: 0 }], true);
+    g.fillStyle(sh(0x0e0a08), 1); g.fillRect(b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1);
+    g.fillStyle(sh(0x4a3020), 1); g.fillRect(vx - 16, b.y1 + 30, 32, b.y2 - b.y1 - 30); g.fillStyle(sh(0x180e08), 1); g.fillRect(vx - 12, b.y1 + 34, 24, b.y2 - b.y1 - 34);
+    for (let i = 1; i < 9; i++) { const q = i / 9; g.lineStyle(1, sh(0x241810), 1); g.lineBetween(W * q, H, b.x1 + (b.x2 - b.x1) * q, b.y2); }
+    for (let i = 0; i < 7; i++) {
+      const q = (i + 0.5) / 7, ex = b.x1 * q, y1 = b.y1 * q, y2 = H + (b.y2 - H) * q, rx = W - (W - b.x2) * q;
+      g.lineStyle(i === 3 ? 4 : 2, sh(i === 3 ? 0x1a1a14 : 0x4a4a34), 1); g.lineBetween(ex, y1 + 6, ex, y2 - 6); g.lineStyle(2, sh(0x44442e), 1); g.lineBetween(rx, y1 + 6, rx, y2 - 6);
+    }
+    g.fillStyle(sh(0x5a4626), 1); g.fillRect(70, 120, 46, 36); g.fillStyle(sh(0x241c14), 1); g.fillRect(74, 124, 38, 28);
+    if (stains > 0) {                                                                  // the morning after: a smear along the wall, a trail out of the door
+      g.fillStyle(0x6a0c10, 0.8 * stains); g.fillPoints([{ x: 60, y: 210 }, { x: 200, y: 196 }, { x: 204, y: 204 }, { x: 64, y: 222 }], true);
+      for (let i = 0; i < 12; i++) { const q = i / 12; g.fillStyle(0x5a0a10, 0.85 * stains); g.fillEllipse(220 + (vx - 220) * q, 330 + (b.y2 + 4 - 330) * q, 26 * (1 - q * 0.8), 6 * (1 - q * 0.7)); }
+    }
+    return b;
+  }
+  /** The bulb on its cord, swinging, and its cone of light (on = 0-1). */
+  dvBulb(g, t, on) {
+    const sw = Math.sin(t * 0.045) * 0.28, bx = W * 0.42 + Math.sin(sw) * 70, by = 40 + Math.cos(sw) * 8;
+    g.lineStyle(1, 0x2a2a2a, 1); g.lineBetween(W * 0.42, 0, bx, by);
+    if (on > 0) { g.fillStyle(0xfff0c0, 0.07 * on); g.fillTriangle(bx, by, bx - 150, 312, bx + 150, 312); g.fillStyle(0xfff0c0, 0.12 * on); g.fillEllipse(bx, 312, 260, 22); }
+    g.fillStyle(on > 0 ? 0xfff8d8 : 0x2a2a2a, 1); g.fillCircle(bx, by + 6, 6);
+  }
+  /** [180] The hallway: the beaten huddled under the bulb; every time it flickers back on, she's further down the hall. */
+  shot_dv_murder_hall(t, k, s) {
+    const flicks = [50, 100, 140], off = flicks.some((f) => s >= f - 10 && s < f), n = flicks.filter((f) => s >= f).length;
+    const light = off ? 0 : 0.9 + (t % 9 === 0 ? 0.1 : 0);
+    this.dvHall(this.bg, t, light);
+    this.dvBulb(this.mid, t, light);
+    if (flicks.includes(s)) sfx('clang', 0.12, 1.6);
+    if (light > 0) this.posLosers([[200, 316, 2.0, 0, 1], [250, 318, 1.9, 0, 1], [160, 320, 1.8, 0, 1]], 0x2a2418); else this.hideLosers();
+    const spots = [[430, 196, 0.8], [400, 224, 1.15], [360, 256, 1.55], [320, 292, 2.0]], sp = spots[n];
+    if (n > 0 && light > 0) this.dvPose('', 'idle', 0, sp[0], sp[1], sp[2], true).setTint(0x9a9a8a); else this.hero.setVisible(false);
+    if (off && n > 0) { this.fx.fillStyle(0xf8f0e8, 1); this.fx.fillRect(sp[0] - 5 * sp[2], sp[1] - 47 * sp[2], 3, 2); }   // (in the dark: her eye)
+    this.vignette(this.over, 0.75);
+  }
+  /** [360] Her mask, close: the painted grin, the crack, the wild eye darting; the heart racing. */
+  shot_dv_murder_mask(t, k, s) {
+    this.hideLosers();
+    this.bg.fillStyle(0x0a0606, 1); this.bg.fillRect(0, 0, W, H);
+    const sc = 6.4 + k * 0.8;
+    this.closeUp(W / 2, 176, sc, 0);
+    this.hero.setTint(0xd8d0c8);
+    const [hx, hy] = this.headOf(this.def), ex = W / 2 + (39 - hx) * sc + sc / 2, ey = 176 + (11.5 - hy) * sc;
+    this.glow(this.fx, ex + Math.sin(s * 0.5) * 2, ey, 20 + Math.sin(s * 0.4) * 4, 0xc8202a, 0.4);   // the eye in the crack, darting
+    const beat = (s % 16) < 3;
+    this.vignette(this.over, beat ? 0.95 : 0.75);
+    if (s % 16 === 0) this.cameras.main.shake(40, 0.003);
+  }
+  /** [480] Black. Three cuts: impact frames, slashes and blood thrown across the screen. */
+  shot_dv_murder_cuts(t, k, s) {
+    this.hideLosers(); this.hero.setVisible(false);
+    this.bg.fillStyle(0x000000, 1); this.bg.fillRect(0, 0, W, H);
+    [0, 20, 40].forEach((c, i) => {
+      const d = s - c;
+      if (d === 0) this.cameras.main.shake(140, 0.02);
+      if (d >= 0 && d < 3) { this.front.fillStyle(d < 2 ? (i === 1 ? 0xffffff : 0xc8202a) : 0x000000, 1); this.front.fillRect(0, 0, W, H); }
+      if (d >= 3) {
+        const a = [-0.5, 0.6, -0.12][i], cx = W / 2 + (i - 1) * 60, cy = H / 2 + (i - 1) * 20, l = 520;
+        this.front.lineStyle(10, 0x5a0a10, 0.9); this.front.lineBetween(cx - Math.cos(a) * l / 2, cy - Math.sin(a) * l / 2, cx + Math.cos(a) * l / 2, cy + Math.sin(a) * l / 2);
+        this.front.lineStyle(3, 0xff5a4a, 1); this.front.lineBetween(cx - Math.cos(a) * l / 2, cy - Math.sin(a) * l / 2, cx + Math.cos(a) * l / 2, cy + Math.sin(a) * l / 2);
+        for (let j = 0; j < 10; j++) {
+          const sp = this.spots[(j + i * 10) % 40], q = sp[0], px = cx - Math.cos(a) * l / 2 + Math.cos(a) * l * q, py = cy - Math.sin(a) * l / 2 + Math.sin(a) * l * q + (sp[1] - 0.5) * 40;
+          this.front.fillStyle(0x8e1a1e, 0.95); this.front.fillCircle(px, py, 2 + sp[2] * 4); this.front.fillRect(px - 1, py, 2, Math.min(80, d * (0.4 + sp[2])));
+        }
+      }
+    });
+  }
+  /** [560] Morning: pale light through the end door, the hall quiet and stained; she stands by the wall, the blade dripping. SHH... */
+  shot_dv_murder_dawn(t, k, s) {
+    this.hideLosers();
+    const b = this.dvHall(this.bg, t, 0.75 + 0.25 * ease(s / 60), ease(s / 40));
+    this.mid.fillStyle(0xffe8d0, 0.5); this.mid.fillRect(W * 0.64 - 12, b.y1 + 34, 24, b.y2 - b.y1 - 34);            // dawn through the open door
+    this.mid.fillStyle(0xffe8d0, 0.08); this.mid.fillTriangle(W * 0.64 - 12, b.y2, W * 0.64 + 12, b.y2, 380, H); this.mid.fillTriangle(W * 0.64 - 12, b.y2, 380, H, 180, H);
+    this.dvBulb(this.mid, t * 0.3, 0);
+    this.dvPose('', 'idle', s / 6, 250, 318, 2.2, false);
+    const dy = (s * 1.4) % 34; this.fx.fillStyle(0xc8202a, 1); this.fx.fillRect(250 + 34, 270 + dy, 2, 4);              // the blade, dripping
+    for (let i = 0; i < 20; i++) { const sp = this.spots[i]; const x = 300 + sp[0] * 200, y = 120 + ((sp[1] * 200 + t * (0.15 + sp[2] * 0.2)) % 200); this.front.fillStyle(0xffe8d0, 0.35); this.front.fillRect(x, y, 1, 1); }   // dust in the light
+    if (s >= 50) { const T = "SHH... THEY'RE SLEEPING.", n = Math.min(T.length, Math.floor((s - 50) / 2.2)); this.dvText(0, T.slice(0, n), W / 2, 74, 12, '#e83a3a', { stroke: '#1a0608', sw: 5 }); }
+    this.vignette(this.over, 0.55);
   }
 
   // ================================================================= EMBER SAINT - MARTYRDOM

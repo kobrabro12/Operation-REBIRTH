@@ -15,6 +15,10 @@ scored to its shots (frame numbers at 60 fps in brackets):
              fanfare for the golden shard [420], then a party: the tune again with the whole band and fireworks [560],
              a big final chord [660]
 
+  murder     MAD MURDER's LIGHTS OUT: rain and thunder on a lone house, a slow out-of-tune music-box lullaby (her own,
+             D minor) [0], inside: a buzzing bulb, a heartbeat, a footstep each time it flickers back on [180], a
+             high glassy cluster swelling over the close-up on her mask [360], three stabs in the dark and silence
+             [480], dawn: the lullaby again, slower, and a low bell under the title [560 / 760]
   devoted    her own outro (no costume): wind, her music-box theme, the stab, the beaten sinking, three splashes as the
              sludge takes her, a whisper, the thing's eyes opening
 Spoken lines (tools/audio/voice_src/dv_*.ogg) were made with Kokoro TTS (kokoro-onnx, voice af_nicole, slowed).
@@ -282,6 +286,38 @@ def aero64():
     finish(reverb(out, 2.0, 2.4, 0.26), 'aero64', fade=0.8)
 
 
-PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted}
+def murder():
+    """MAD MURDER's LIGHTS OUT (15 s): the house in the storm, the hallway and its flickering bulb, the mask, three
+    cuts in the dark, the quiet morning after."""
+    L = 15.0; out = np.zeros(secs(L))
+    out[:secs(9.0)] += rainfall(9.0, 1.2)
+    add(out, thunder(3.0, 0.9), 1.4)
+    add(out, pad([38, 45, 50], 3.2, 0.35, detune=0.3), 0.0)
+    lull = seq('A4:1 D5:1 F5:1 E5:2  D5:1 C5:1 A4:2  Bb4:1 A4:1 G4:1 F4:1 E4:2 D4:3')      # her lullaby (original), on a music box
+    t = 0.3
+    for i, (mi, d) in enumerate(lull[:8]): add(out, musicbox(mi - 0.25 * (i % 3 == 1), 2.2, 0.55), t); t += d * 0.36
+    # [180] inside: the bulb's hum, a heartbeat, a footstep on each flicker (230, 280, 320)
+    n = secs(3.2); tt = np.arange(n) / SR
+    hum = (np.sin(2 * np.pi * 60 * tt) + 0.5 * np.sin(2 * np.pi * 120 * tt) + 0.3 * np.sin(2 * np.pi * 180 * tt)) * 0.03
+    add(out, hum * (1 + 0.6 * (np.sin(2 * np.pi * 7 * tt) > 0.9)), 3.0)
+    for i in range(6): add(out, timpani(31, 0.5, 0.6), 3.1 + i * 0.55); add(out, timpani(31, 0.4, 0.35), 3.3 + i * 0.55)
+    for tt_ in (3.83, 4.67, 5.33): add(out, mx(drum_kick(0.5), lp(noise(secs(0.25)), 600) * np.exp(-np.arange(secs(0.25)) / SR * 14) * 0.5), tt_)
+    # [360] the mask: a high glassy cluster swelling, the heart racing
+    for j, mi in enumerate((86, 87, 91, 92)): add(out, glass(mi, 2.0, 0.25 + j * 0.04), 6.0 + j * 0.05)
+    add(out, pad([74, 75, 80], 2.0, 0.25, detune=0.5), 6.0)
+    for i in range(8): add(out, timpani(31, 0.3, 0.5 + i * 0.05), 6.0 + i * 0.25)
+    # [480] three stabs in the dark, then nothing
+    for i, tt_ in enumerate((8.0, 8.33, 8.67)):
+        st = mx(drum_kick(1.2), hp(noise(secs(0.3)), 2200) * np.exp(-np.arange(secs(0.3)) / SR * 12) * 0.9, clank(0.4, 1.3 - i * 0.1))
+        add(out, st * (0.9 + i * 0.15), tt_)
+    # [560] dawn: the lullaby again, slower; [760] a low bell under the title
+    t = 9.5
+    for i, (mi, d) in enumerate(lull): add(out, musicbox(mi - 0.3 * (i % 2), 2.6, 0.45), t); t += d * 0.33
+    add(out, pad([38, 45, 50, 53], 4.5, 0.3, detune=0.25), 9.4)
+    add(out, mx(bell(38, 3.0, 0.55), timpani(26, 1.6, 0.8)), 12.67)
+    finish(reverb(out, 2.8, 1.7, 0.4), 'murder', fade=1.0)
+
+
+PIECES = {'aero64': aero64, 'cartridge': cartridge, 'bride': bride, 'ember': ember, 'devoted': devoted, 'murder': murder}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

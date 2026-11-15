@@ -135,6 +135,10 @@ export const DEVOTED = {
     hover: { float: { gravity: 0.45, maxFall: 3.0, hover: 6 }, hold: 110, sink: 0.3 },   // (sink: how fast she drifts down while hanging, px per frame)
     // CROSS CUTS (side special): how many cuts she can chain at each stage (the last one launches)
     cuts: [3, 3, 4, 5],
+    // MAD MURDER's CROSS CUTS = BLOODLETTING (fighterDevoted.js, `this.murder`): every cut that lands sprays blood and
+    // splashes it on the floor under them (pools fade after `poolLife` frames, at most `maxPools`); the finisher
+    // leaves them BLEEDING - `bleed.dmg`% every `bleed.every` frames for `bleed.time` frames (ends if they're KO'd)
+    murder: { spray: 14, poolLife: 900, maxPools: 40, bleed: { time: 240, every: 30, dmg: 1 } },
     // the sludge she leaves on the floor: frames between drops while standing, per stage (0 = none), and
     // the most stains a match keeps (the oldest goes)
     stainEvery: [0, 40, 20, 9], maxStains: 220,
@@ -226,6 +230,10 @@ export const DEVOTED = {
     // the cutscene's beats (frames from its start): black, they look round, the demon steps out, grabs their head,
     // slams them down twice, the uppercut, it flies up after them, catches them, the tear, back to the arena
     scene: { dark: 4, look: 24, emerge: 92, grab: 136, slam1: 156, slam2: 178, hit: 204, fly: 214, catch: 240, tear: 262, end: 322 },
+    // MAD MURDER's own cutscene, LIGHTS OUT (drawMurderRite): a dark hallway under one swinging bulb; every time it
+    // flickers back on (`flick`) she's further down the hall towards them; the light dies (`out`), four cuts in the
+    // dark (`cuts`); the light comes back on (`on`) over what's left; back to the arena at `end`
+    murderScene: { dark: 4, look: 20, flick: [70, 120, 165, 205], out: 236, cuts: [252, 262, 272, 290], on: 322, end: 410 },
     colors: PAL_SLUDGE,
   },
 };

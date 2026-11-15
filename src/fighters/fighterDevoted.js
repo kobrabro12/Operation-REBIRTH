@@ -13,6 +13,8 @@ const STAGE_DIRS = ['', 'semi', 'taken', 'drowned'];
 const SLUDGE = [0x060508, 0x0e0c12, 0x1a1720];
 // CARTRIDGE's sludge is corrupted data: indigo, violet, a few cyan / magenta bits
 const CART_SLUDGE = [0x1c0838, 0x3a1070, 0x20e8ff, 0x1c0838, 0xff3ad8];
+// MAD MURDER's blood: dark, red, bright
+const BLOOD = [0x5a0a10, 0x8e1a1e, 0xc8202a];
 
 /** THE DEVOTED's methods (symbol, devotion, PRAY, sludge stages, stains, BLACK TIDE), attached to Fighter. */
 export class FighterDevoted {
@@ -49,6 +51,7 @@ export class FighterDevoted {
     if (this.state === 'hitstun' && this.demon && this.demon.alive && this.demon.kind === 'wraith' && this.buffer.special) {   // THE WRAITH: SHADOW BREAK out of a combo
       if (this.demon.breakOut()) this.buffer.special = 0;
     }
+    if (this.murder || this.bloodPools) this.bleedTick();   // MAD MURDER: BLEEDING, blood pools
     if (this.cutFx) {                                       // CROSS CUTS' marks hang where they hit until the combo's over
       const chain = this.state === 'attack' && this.move && this.move.cut;
       if (!chain) { for (const c of this.cutFx) c.age++; this.cutFx = this.cutFx.filter((c) => c.age < 16); }
@@ -176,6 +179,56 @@ export class FighterDevoted {
     if (!c || c.age > 0) return;
     if (this.move.cut === 9) { const o = this.cutFx[this.cutFx.length - 2]; if (o) { o.x = t.x; o.y = t.y - t.body.h / 2; } }
     c.x = t.x; c.y = t.y - t.body.h / 2;
+    if (this.murder) this.bloodletting(t);
+  }
+
+  /**
+   * MAD MURDER's CROSS CUTS (BLOODLETTING): a cut that lands sprays blood out of them along the cut and splashes it
+   * on the floor under them; the finisher leaves them BLEEDING (`devoted.murder.bleed`, ticked in `bleedTick`).
+   * @param {object} t - who the cut hit
+   */
+  bloodletting(t) {
+    const B = this.def.devoted.murder, m = this.match, R = Math.random, fin = this.move.cut === 9;
+    const n = m.demo ? 0 : B.spray * (fin ? 2 : 1), y = t.y - t.body.h / 2;   // (the bleeding still happens in demos and the sim; only the spray is skipped)
+    for (let i = 0; i < n; i++) m.particles.push({ x: t.x, y: y + (R() - 0.5) * 10, vx: this.facing * (1 + R() * (fin ? 6 : 4)) + (R() - 0.5) * 2, vy: -1.5 - R() * 3.5, life: 26 + R() * 14, color: BLOOD[i % 3], size: 2 + (R() < 0.35), grav: 0.26 });
+    sfx('hit', 0.35, 0.55 + R() * 0.1);
+    const plat = t.platform || t.lastPlatform || this.platform;
+    if (plat) this.bloodPool(t.x + this.facing * (6 + R() * 20), plat, fin ? 10 : 5);
+    if (fin) {
+      t.bleed = { owner: this, left: B.bleed.time };
+      m.popText(t, 'BLEEDING', '#e83a3a'); sfx('slash', 0.6, 0.6);
+    }
+  }
+
+  /** A pool of blood on a platform at x (grows one that's already there); they fade after `murder.poolLife`. */
+  bloodPool(x, plat, w) {
+    const B = this.def.devoted.murder, P = this.bloodPools = this.bloodPools || [];
+    if (x < plat.x1 || x > plat.x2) x = Math.max(plat.x1 + 4, Math.min(plat.x2 - 4, x));
+    const dx = x - plat.x1, near = P.find((p) => p.plat === plat && Math.abs(p.dx - dx) < 8);
+    if (near) { near.w = Math.min(30, near.w + 2); near.age = 0; return; }
+    P.push({ plat, dx, w, age: 0 });
+    if (P.length > B.maxPools) P.shift();
+  }
+
+  /**
+   * Every frame: MAD MURDER's BLEEDING on whoever her finisher cut (`o.bleed`) - a % every `bleed.every` frames, a
+   * trail of drips, a pool where they stand - and her blood pools drying up.
+   */
+  bleedTick() {
+    const B = this.def.devoted.murder, m = this.match, R = Math.random;
+    for (const o of m.fighters) {
+      const b = o.bleed;
+      if (!b || b.owner !== this) continue;
+      if (!o.alive || o.state === 'respawn' || --b.left <= 0) { o.bleed = null; continue; }
+      if (b.left % B.bleed.every === 0) {
+        if (m.mode === 'stamina') o.hp -= B.bleed.dmg; else o.percent = Math.min(999, o.percent + B.bleed.dmg);
+        o.limit = Math.min(100, (o.limit || 0) + B.bleed.dmg);
+        o.lastHitBy = this; o.lastHitTimer = Math.max(o.lastHitTimer || 0, 60);
+        if (o.grounded && o.platform) this.bloodPool(o.x + (R() - 0.5) * 10, o.platform, 3);
+      }
+      if (b.left % 5 === 0 && !m.demo) m.particles.push({ x: o.x + (R() - 0.5) * o.body.w * 0.6, y: o.y - o.body.h * (0.3 + R() * 0.4), vx: (R() - 0.5) * 0.4, vy: 0.2, life: 24, color: BLOOD[Math.floor(R() * 3)], size: 2, grav: 0.2 });
+    }
+    if (this.bloodPools) { for (const p of this.bloodPools) p.age++; this.bloodPools = this.bloodPools.filter((p) => p.age < B.poolLife); }
   }
 
   /**
@@ -210,6 +263,7 @@ export class FighterDevoted {
     const D = this.def.devoted;
     this.sludge = n;
     this.n64 = !!skinInfo(this.def.id, this.skin || 0).n64;                 // (CARTRIDGE: everything drawn for her comes out N64-style - n64Draw.js)
+    this.murder = skinInfo(this.def.id, this.skin || 0).sheetSet === 'murder';   // (MAD MURDER: BLOODLETTING and LIGHTS OUT)
     const set = skinInfo(this.def.id, this.skin || 0).sheetSet, cs = set && this.def.costumeSheets && this.def.costumeSheets[set];
     if (cs) this.sheets = Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, cs[(n ? STAGE_DIRS[n] + '_' : '') + k]]));   // (a drawn costume: its own strips for this stage)
     else this.sheets = Object.fromEntries(Object.entries(this.def.sludgeSheets[n]).map(([k, key]) => [k, skinTexture(this.scene, key, this.def.id, this.skin)]));   // (in her costume's colours)
@@ -315,11 +369,21 @@ export class FighterDevoted {
         }
       }
     }
+    if (this.bloodPools) for (const p of this.bloodPools) {  // MAD MURDER: pools of blood, drying darker, then fading
+      const x = p.plat.x1 + p.dx, y = p.plat.y, B = this.def.devoted.murder, a = Math.min(1, (B.poolLife - p.age) / 120);
+      g.fillStyle(p.age > 300 ? 0x3a0608 : 0x6a0c10, 0.9 * a); g.fillEllipse(x, y + 1, p.w * 2, 3 + p.w * 0.1);
+      g.fillStyle(0xc8202a, 0.5 * a * Math.max(0, 1 - p.age / 300)); g.fillRect(x - p.w * 0.4, y, Math.max(1, p.w * 0.35), 1);   // (a wet shine while it's fresh)
+    }
     if (this.cutFx) for (const c of this.cutFx) {         // CROSS CUTS: the slashes left hanging where they hit
       const flash = c.age > 0 && c.age < 4, k = c.age < 4 ? 1 : 1 - (c.age - 4) / 12, dx = Math.cos(c.a) * c.len / 2, dy = Math.sin(c.a) * c.len / 2;
       const jit = c.age === 0 ? Math.sin(this.age * 0.8 + c.x) * 0.6 : 0;
-      g.lineStyle((flash ? 8 : 5) * k, flash ? 0xf4eefc : 0x7a2ad8, (flash ? 0.9 : 0.75) * k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
-      g.lineStyle(2 * k, flash ? 0x7a2ad8 : 0xf4eefc, k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
+      const [OUT, IN] = this.murder ? [0x8e1a1e, 0xff5a4a] : [0x7a2ad8, 0xf4eefc];      // (MAD MURDER's cuts are red)
+      g.lineStyle((flash ? 8 : 5) * k, flash ? 0xf4eefc : OUT, (flash ? 0.9 : 0.75) * k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
+      g.lineStyle(2 * k, flash ? OUT : IN, k); g.lineBetween(c.x - dx, c.y - dy + jit, c.x + dx, c.y + dy + jit);
+      if (this.murder) for (let i = 0; i < 4; i++) {        // blood running down off the cut
+        const q = (i + 0.5) / 4, len = 3 + ((i * 7 + Math.floor(c.x)) % 5) + (c.age === 0 ? (this.age % 30) / 6 : 4);
+        g.fillStyle(0x8e1a1e, 0.85 * k); g.fillRect(c.x - dx + dx * 2 * q, c.y - dy + dy * 2 * q, 1.5, len);
+      }
       if (c.age === 0) { g.fillStyle(0xf4eefc, 0.6); g.fillCircle(c.x + dx * Math.sin(this.age * 0.3), c.y + dy * Math.sin(this.age * 0.3), 1.5); }   // a glint running along it
     }
     if (this.state === 'demonpick') this.drawDemonWheel(g);
@@ -617,6 +681,7 @@ export class FighterDevoted {
       if (m.cut === 9) { this.cutFx.push({ x, y, a: 0.8, len: 70, age: 0 }, { x, y, a: -0.8, len: 70, age: 0 }); sfx('shing', 0.6, 0.7); }
       else this.cutFx.push({ x, y, a: [-0.6, 0.6, -0.15, 1.2][(m.cut - 1) % 4] * this.facing, len: 52, age: 0 });
       sfx('slash', 0.5, 0.9 + m.cut * 0.07);
+      if (this.murder && !this.match.demo) { const R = Math.random; for (let i = 0; i < 5; i++) this.match.particles.push({ x, y, vx: this.facing * (2 + R() * 3), vy: -1 - R() * 2, life: 18, color: BLOOD[i % 3], size: 2, grav: 0.25 }); }   // (blood flicked off the blade)
     }
     if (!m.next || !this.buffer.special || this.t < m.next[0] || this.t > m.next[1]) return false;   // (no tap: the combo ends and the marks vanish)
     this.buffer.special = 0;
@@ -695,6 +760,7 @@ export class FighterDevoted {
       return;
     }
     if (U.phase === 'miss') { U.kx += U.kvx; U.ky += U.kvy + (this.t - L.throwAt) * 0.02; U.spin += 0.6; if (this.t >= U.missEnd) this.endRite(); return; }
+    if (U.phase === 'cutscene' && this.murder) return this.murderRiteTick(L, U, T);
     if (U.phase === 'cutscene') {
       const C = L.scene, ct = ++U.ct;
       if (!T.alive) return this.endRite();
@@ -723,6 +789,132 @@ export class FighterDevoted {
     if (U.phase === 'out' && this.t >= U.outEnd) this.endRite();
   }
 
+  /**
+   * MAD MURDER's Limit cutscene, LIGHTS OUT (`limit.murderScene`; drawn by drawMurderRite): the sounds of each beat -
+   * the bulb buzzing, a footstep every time it flickers back on, the light dying, four cuts in the dark, the light
+   * coming back - then back in the arena they're KO'd on the spot.
+   */
+  murderRiteTick(L, U, T) {
+    const m = this.match, C = L.murderScene, ct = ++U.ct;
+    if (!T.alive) return this.endRite();
+    T.vx = T.vy = T.lx = T.ly = 0; T.x = U.tx; T.y = U.ty;
+    if (ct === 1) sfx('whoosh', 0.6, 0.4);
+    if (ct >= C.look && ct < C.out && ct % 36 === 0) sfx('curse', 0.12, 2.2);            // the bulb, buzzing
+    for (const f of C.flick) {
+      if (ct === f - 10) sfx('clang', 0.18, 1.8);                                      // it flickers out...
+      if (ct === f) { sfx('land', 0.45, 0.55); sfx('clang', 0.12, 1.5); }               // ...and back on: a footstep - she's closer
+    }
+    if (ct === C.out) { sfx('clang', 0.3, 1.2); sfx('whoosh', 0.5, 0.35); }            // the light dies
+    C.cuts.forEach((c, i) => { if (ct === c) { sfx('slash', 1, 0.55 + i * 0.06); sfx('hit', 0.8, 0.5); if (i === C.cuts.length - 1) sfx('bighit', 0.9, 0.45); } });
+    if (ct === C.on) sfx('clang', 0.25, 1.4);                                           // the light flickers back on
+    if (ct === C.on + 36) sfx('laugh', 0.35, 0.55);
+    if (ct >= C.end) {
+      m.frozen = 0; m.cutscene = null; this.x = U.origin.x; this.y = U.origin.y;
+      T.hitstun = 0; T.setState('air'); T.lastHitBy = this; T.lastHitTimer = 120;
+      const R = Math.random;
+      for (let i = 0; i < 34; i++) m.particles.push({ x: T.x, y: T.y - 30, vx: (R() - 0.5) * 8, vy: -1 - R() * 5, life: 40, color: BLOOD[i % 3], size: 3, grav: 0.22 });
+      if (T.platform || T.lastPlatform) this.bloodPool(T.x, T.platform || T.lastPlatform, 14);
+      m.popText(T, 'LIGHTS OUT', '#e83a3a'); m.shake(14, 12);
+      m.onKO(T);
+      U.phase = 'out'; U.outEnd = this.t + 20;
+    }
+  }
+
+  /**
+   * Draws LIGHTS OUT (MAD MURDER's Limit) on screen: a long dark hallway lit by one swinging bulb, peeling
+   * wallpaper, a door at the far end. They stand under the bulb looking round; every time it flickers back on she's
+   * standing further down the hall towards them (`flick`), still, smiling; the light dies and only her wild eye shows;
+   * four red cuts in the dark (impact frames, blood across the screen); the light comes back on, red, over them lying
+   * in a spreading pool, and her standing over them with the blade dripping. SHH...
+   */
+  drawMurderRite(U) {
+    const C = this.def.limit.murderScene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 58;
+    const ui = this.riteUI, fr = this.riteFront, her = this.riteHer, vic = this.riteTop;
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const passed = C.flick.filter((f) => ct >= f).length;                               // how many times it's flickered back on
+    const flickOff = C.flick.some((f) => ct >= f - 10 && ct < f) || (ct >= C.look - 6 && ct < C.look && ct % 3 === 0);
+    let light = ct < C.look ? clamp((ct - C.dark) / 30) * 0.3 : ct < C.out ? (flickOff ? 0 : 0.85 + 0.15 * Math.sin(ct * 0.9) * (ct % 7 === 0 ? 1 : 0.2)) : ct < C.on ? 0 : clamp((ct - C.on) / 6) * (ct % 23 < 2 ? 0.5 : 1);
+    const red = ct >= C.on;                                                             // (when it comes back, everything's red)
+    const shade = (c, k) => { const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255, f = k; return red ? ((Math.min(255, r * f * 1.25 + 30 * f) | 0) << 16) | (((g * f * 0.45) | 0) << 8) | ((b * f * 0.45) | 0) : (((r * f) | 0) << 16) | (((g * f) | 0) << 8) | ((b * f) | 0); };
+    ui.fillStyle(0x000000, 1); ui.fillRect(0, 0, W, H);
+    // ---- the hallway: walls narrowing to a door far down it, a floor of boards, wallpaper, a picture askew
+    const vx = W * 0.64, back = { x1: vx - 46, x2: vx + 46, y1: 112, y2: 214 };
+    if (light > 0) {
+      const L = light;
+      ui.fillStyle(shade(0x2a2a1e, L), 1); ui.fillPoints([{ x: 0, y: 0 }, { x: back.x1, y: back.y1 }, { x: back.x1, y: back.y2 }, { x: 0, y: H }], true);     // left wall
+      ui.fillStyle(shade(0x24241a, L), 1); ui.fillPoints([{ x: W, y: 0 }, { x: back.x2, y: back.y1 }, { x: back.x2, y: back.y2 }, { x: W, y: H }], true);     // right wall
+      ui.fillStyle(shade(0x2e2016, L), 1); ui.fillPoints([{ x: 0, y: H }, { x: back.x1, y: back.y2 }, { x: back.x2, y: back.y2 }, { x: W, y: H }], true);     // the floor
+      ui.fillStyle(shade(0x141010, L), 1); ui.fillPoints([{ x: 0, y: 0 }, { x: back.x1, y: back.y1 }, { x: back.x2, y: back.y1 }, { x: W, y: 0 }], true);   // ceiling
+      ui.fillStyle(shade(0x0a0806, L), 1); ui.fillRect(back.x1, back.y1, back.x2 - back.x1, back.y2 - back.y1);                                          // the far end, dark
+      ui.fillStyle(shade(0x3a2618, L), 1); ui.fillRect(vx - 16, back.y1 + 30, 32, back.y2 - back.y1 - 30); ui.fillStyle(shade(0x140c08, L), 1); ui.fillRect(vx - 12, back.y1 + 34, 24, back.y2 - back.y1 - 34);   // a door, ajar
+      for (let i = 1; i < 9; i++) {                                                   // floorboards, running away to the door
+        const q = i / 9; ui.lineStyle(1, shade(0x1a120c, L), 1); ui.lineBetween(W * q, H, back.x1 + (back.x2 - back.x1) * q, back.y2);
+      }
+      for (let i = 0; i < 7; i++) {                                                   // wallpaper stripes on both walls (and a torn strip)
+        const q = (i + 0.5) / 7, ex = back.x1 * q, ey1 = back.y1 * q, ey2 = H + (back.y2 - H) * q;
+        ui.lineStyle(i === 3 ? 4 : 2, shade(i === 3 ? 0x141410 : 0x3a3a28, L), 1); ui.lineBetween(ex, ey1 + 6, ex, ey2 - 6);
+        const rx = W - (W - back.x2) * q; ui.lineStyle(2, shade(0x34342a, L), 1); ui.lineBetween(rx, ey1 + 6, rx, ey2 - 6);
+      }
+      ui.fillStyle(shade(0x4a3a20, L), 1); ui.fillRect(70, 120, 46, 36); ui.fillStyle(shade(0x1a1610, L), 1); ui.fillRect(74, 124, 38, 28);   // a picture frame (its picture too dark to see)
+    }
+    // ---- the bulb on its cord, swinging; its cone of light
+    const sw = Math.sin(ct * 0.045) * 0.28, bx = W * 0.42 + Math.sin(sw) * 70, by = 40 + Math.cos(sw) * 8;
+    ui.lineStyle(1, 0x2a2a2a, 1); ui.lineBetween(W * 0.42, 0, bx, by);
+    if (light > 0) {
+      ui.fillStyle(red ? 0xff3020 : 0xfff0c0, 0.07 * light); ui.fillTriangle(bx, by, bx - 150, floor + 10, bx + 150, floor + 10);
+      ui.fillStyle(red ? 0xff3020 : 0xfff0c0, 0.08 * light); ui.fillTriangle(bx, by, bx - 80, floor + 10, bx + 80, floor + 10);
+      ui.fillStyle(red ? 0xff3020 : 0xfff0c0, 0.12 * light); ui.fillEllipse(bx, floor + 8, 260, 22);
+    }
+    ui.fillStyle(light > 0 ? (red ? 0xff6050 : 0xfff8d8) : 0x2a2a2a, 1); ui.fillCircle(bx, by + 6, 6);
+    if (light > 0) { ui.fillStyle(red ? 0xff3020 : 0xfff0c0, 0.25 * light); ui.fillCircle(bx, by + 6, 16); }
+    // ---- the pool of blood under them once the light's back
+    const vxp = 230;
+    if (red) { const k = clamp((ct - C.on) / 60); ui.fillStyle(shade(0x8e1a1e, 1), 0.95); ui.fillEllipse(vxp + 10, floor + 4, 60 + k * 120, 8 + k * 10); }
+    // ---- them: looking round under the bulb; later, lying in it
+    if (T.def.menuSheets) showFighter(vic, T.def, Math.floor(ct / 6), T.skin);
+    else vic.setTexture(T.sheets.idle, Math.floor(ct / 6) % Math.max(1, Math.min(32, this.scene.textures.get(T.sheets.idle).frameTotal - 1))).setOrigin(T.def.originX ?? 0.5, T.def.originY ?? 1);
+    let flip = !!T.def.facesLeft;
+    if (ct >= C.look && ct < C.out) flip = (Math.floor((ct - C.look) / 26) % 2 === 1) !== flip;   // looking round, left then right
+    const lv = Math.min(1, Math.max(0.08, light)), tint = Phaser.Display.Color.GetColor(Math.min(255, 255 * lv * (red ? 1.1 : 1)), Math.min(255, 255 * lv * (red ? 0.4 : 1)), Math.min(255, 255 * lv * (red ? 0.4 : 1)));
+    vic.setCrop().setScale(2).setFlipX(flip).setTintMode(Phaser.TintModes.MULTIPLY).setTint(tint).setVisible(ct >= C.dark && (light > 0 || ct < C.look)).setAlpha(1).setDepth(41);
+    if (red) vic.setPosition(vxp, floor + 6).setRotation(flip ? 1.45 : -1.45).setVisible(true);
+    else vic.setPosition(vxp, floor).setRotation(0);
+    // ---- her: standing still further down the hall each time the light comes back; right behind them at the end
+    const SPOTS = [[430, 196, 0.8], [400, 222, 1.15], [360, 252, 1.5], [312, 284, 1.9], [282, floor, 2.15]];
+    const sp = red ? [300, floor, 2.2] : SPOTS[Math.min(SPOTS.length - 1, passed)];
+    const idleN = Math.max(1, this.scene.textures.get(this.sheets.idle).frameTotal - 1);
+    her.setTexture(this.sheets.idle, red ? Math.floor(ct / 6) % idleN : 0).setOrigin(this.def.originX ?? 0.5, this.def.originY ?? 1)
+      .setPosition(sp[0], sp[1]).setScale(sp[2]).setFlipX(!this.def.facesLeft).setTintMode(Phaser.TintModes.MULTIPLY).setTint(Phaser.Display.Color.GetColor(Math.min(255, 255 * lv * (red ? 1.05 : 0.95)), Math.min(255, 255 * lv * (red ? 0.4 : 0.92)), Math.min(255, 255 * lv * (red ? 0.4 : 0.92))))   // (each channel kept under 256, or it spills into the next)
+      .setVisible(passed > 0 && light > 0 && ct < C.out || red).setDepth(41.5);
+    const eye = { x: sp[0] - 5 * sp[2], y: sp[1] - 47 * sp[2] };
+    if (ct >= C.out && ct < C.on && !C.cuts.some((c) => ct >= c && ct < c + 4)) {         // in the dark: only her eye, staring
+      fr.fillStyle(0xf8f0e8, 1); fr.fillRect(eye.x - 2, eye.y - 1, 4, 3); fr.fillStyle(0xc8202a, 1); fr.fillRect(eye.x - 1, eye.y, 2, 2);
+    }
+    // ---- the cuts: impact frames, slashes and blood thrown across the screen (they stay, then run down it)
+    C.cuts.forEach((c, i) => {
+      const d = ct - c;
+      if (d >= 0 && d < 4) { fr.fillStyle(d < 2 ? (i % 2 ? 0xffffff : 0xc8202a) : 0x000000, 1); fr.fillRect(0, 0, W, H); }
+      if (d >= 2 && ct < C.on + 70) {                                                // the slash, hanging on the screen
+        const a = [-0.5, 0.6, -0.15, 0.9][i % 4], cx = W / 2 + (i - 1.5) * 50, cy = H / 2 + (i % 2 ? -20 : 20), l = 320 + i * 40;
+        const k = ct >= C.on ? 1 - clamp((ct - C.on) / 70) : 1;
+        fr.lineStyle(9 * k, 0x5a0a10, 0.9 * k); fr.lineBetween(cx - Math.cos(a) * l / 2, cy - Math.sin(a) * l / 2, cx + Math.cos(a) * l / 2, cy + Math.sin(a) * l / 2);
+        fr.lineStyle(3 * k, 0xff5a4a, k); fr.lineBetween(cx - Math.cos(a) * l / 2, cy - Math.sin(a) * l / 2, cx + Math.cos(a) * l / 2, cy + Math.sin(a) * l / 2);
+        for (let j = 0; j < 9; j++) {                                               // spatters, running down the glass
+          const q = (j * 11 + i * 5) % 17 / 17, px = cx - Math.cos(a) * l / 2 + Math.cos(a) * l * q, py = cy - Math.sin(a) * l / 2 + Math.sin(a) * l * q + (j % 3 - 1) * 14;
+          const run = Math.min(60, (ct - c) * (0.2 + (j % 4) * 0.12));
+          fr.fillStyle(0x8e1a1e, 0.9 * k); fr.fillCircle(px, py, 2 + (j % 3)); fr.fillRect(px - 1, py, 2, run);
+        }
+      }
+    });
+    // ---- her blade dripping over them at the end
+    if (red && ct > C.on + 10) { const dy = ((ct - C.on) * 1.6) % 40; fr.fillStyle(0xc8202a, 1); fr.fillRect(sp[0] - 34, sp[1] - 52 + dy, 2, 4); }
+    // ---- letterbox, a line, fades
+    fr.fillStyle(0x000000, 1); fr.fillRect(0, 0, W, 34); fr.fillRect(0, H - 34, W, 34);
+    const line = ct >= C.look + 10 && ct < C.flick[0] - 10 ? '...HELLO?' : ct >= C.flick[2] && ct < C.out ? "WHO'S THERE?" : ct >= C.on + 36 ? 'SHH...' : '';
+    if (line) this.riteText.setText(line).setColor(ct >= C.on ? '#e83a3a' : '#d8d0c0').setVisible(true);
+    if (ct > C.end - 10) { fr.fillStyle(0x000000, (ct - (C.end - 10)) / 10); fr.fillRect(0, 0, W, H); }
+  }
+
   /** Ends FEED THE DARK (lifting the cutscene if it was still on). */
   endRite() {
     const U = this.ult, m = this.match;
@@ -746,16 +938,19 @@ export class FighterDevoted {
       this.riteTop = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteTop);
       this.riteBot = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41).setVisible(false); m.addUI(this.riteBot);
       this.riteText = this.scene.add.text(VIEW_W / 2, 17, '', { fontFamily: FONT, fontSize: '10px', color: '#c890ff' }).setOrigin(0.5).setDepth(43).setVisible(false); m.addUI(this.riteText);
+      this.riteHer = this.scene.add.sprite(0, 0, this.sheets.idle, 0).setDepth(41.5).setVisible(false); m.addUI(this.riteHer);   // (MAD MURDER's LIGHTS OUT: her, down the hall)
     }
     const g = this.n64 ? n64(this.riteG) : this.riteG, ui = this.riteUI, mid = this.n64 ? n64(this.riteMid) : this.riteMid, fr = this.riteFront;
-    g.clear(); ui.clear(); mid.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false);
+    g.clear(); ui.clear(); mid.clear(); fr.clear(); this.riteTop.setVisible(false); this.riteBot.setVisible(false); this.riteText.setVisible(false); this.riteHer.setVisible(false);
+    this.riteText.setColor('#c890ff');
     if (!U) return;
     if (U.phase === 'throw' || U.phase === 'miss') {        // the knife, spinning through the air
-      for (let i = 1; i <= 3; i++) { g.fillStyle(0x7a2ad8, 0.25 / i); g.fillCircle(U.kx - U.kvx * i * 0.6, U.ky - U.kvy * i * 0.6, 4); }
+      for (let i = 1; i <= 3; i++) { g.fillStyle(this.murder ? 0x8e1a1e : 0x7a2ad8, 0.25 / i); g.fillCircle(U.kx - U.kvx * i * 0.6, U.ky - U.kvy * i * 0.6, 4); }
       this.drawKarambit(g, U.kx, U.ky, U.spin, 1);
       return;
     }
     if (U.phase !== 'cutscene') return;
+    if (this.murder) { mid.setVisible(false); return this.drawMurderRite(U); }
     const C = this.def.limit.scene, ct = U.ct, T = U.target, W = VIEW_W, H = VIEW_H, floor = H - 60, R = Math.random;
     const clamp = (v) => Math.max(0, Math.min(1, v)), ease = (v) => v * v * (3 - 2 * v);
     const up = ct >= C.fly ? ease(clamp((ct - C.fly) / (C.catch - C.fly))) : 0;      // how far "up" the camera has flown with them
