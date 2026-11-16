@@ -111,6 +111,7 @@ export const TROPHY_GOALS = [
   { id: 'golden-brush', name: 'THE GOLDEN BRUSH', info: 'BEAT SMUDGE ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'smudge') >= 3), coins: 1900 },
   { id: 'golden-baton', name: 'THE GOLDEN BATON', info: 'BEAT THE PHANTOM MAESTRO ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'maestro') >= 3), coins: 2200 },
   { id: 'stolen-star', name: 'THE STOLEN STAR', info: 'BEAT VESPERION, THE STAR-EATER ON NIGHTMARE (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => +(bossTier(s, 'stareater') >= 3), coins: 2600 },
+  { id: 'in-the-stars', name: 'SOMEWHERE IN THE STARS', info: 'BEAT VESPERION, THE STAR-EATER - ANY DIFFICULTY (TRINKETS > BOSS FIGHTS). A MEGA TROPHY.', goal: 1, have: (s) => +(bossTier(s, 'stareater') >= 1), coins: 1500 },
   { id: 'phoenix', name: 'THE REBIRTH PHOENIX', info: 'UNLOCK EVERY ACHIEVEMENT (SECRETS DON\'T COUNT).', goal: ACHIEVEMENTS.filter((a) => !a.secret).length, have: () => ACHIEVEMENTS.filter((a) => !a.secret && got[a.id]).length, coins: 3000 },
 ];
 /** Whether a trophy (TROPHY_GOALS id) has been earned in this browser. */

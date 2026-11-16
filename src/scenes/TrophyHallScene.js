@@ -57,7 +57,7 @@ const ease = (v) => v * v * (3 - 2 * v);
 // the ledger of ACHIEVEMENTS: a lectern with an open book just inside the doors, on the left (look closer = the ACHIEVEMENTS page)
 const LEDGER = { id: 'ledger', kind: 'ledger', side: -1, x: -132, z: 70 };
 // where a trophy stands: on its pedestal, or (the phoenix) twice as big on the great plinth
-const trophySpot = (sl) => (sl.kind === 'plinth' ? { x: 0, y: FLOOR - 122, z: sl.z, k: 2.2 } : { x: sl.side * PED_X, y: FLOOR - 64, z: sl.z, k: 1 });
+const trophySpot = (sl, tr) => (sl.kind === 'plinth' ? { x: 0, y: FLOOR - 122, z: sl.z, k: 2.2 } : { x: sl.side * PED_X, y: FLOOR - 64, z: sl.z, k: tr && tr.mega ? 1.6 : 1 });   // (a MEGA trophy stands bigger on its pedestal)
 
 /** A flat face with a known outward normal (so it's culled and lit like the stage geometry). */
 const face = (pts, n, c, extra = {}) => ({ p: pts, n, c, ...extra });
@@ -311,7 +311,7 @@ export class TrophyHallScene extends Phaser.Scene {
     this.reflR.render(this.mirror(dyn.lights));
     this.mainR.render([]);
     const cups = this.items.filter((it) => it.trophy), ang = this.t * 0.02, tf = [];
-    for (const it of cups) { const S = trophySpot(it.slot); if (S.z - this.camZ < 4300) tf.push(...this.trophyFaces(it.trophy.model, S.x, S.y, S.z, ang, S.k, !it.earned).map((f) => (S.k > 1 ? { ...f, keep: true } : f))); }
+    for (const it of cups) { const S = trophySpot(it.slot, it.trophy); if (S.z - this.camZ < 4300) tf.push(...this.trophyFaces(it.trophy.model, S.x, S.y, S.z, ang, S.k, !it.earned).map((f) => (S.k > 1 ? { ...f, keep: true } : f))); }
     this.objR.render([...(outside ? [] : dyn.doors), ...dyn.lights, ...tf]);
     if (outside) this.frontR.render(dyn.doors); else this.frontR.g.clear();
     this.drawPaintings();
@@ -334,7 +334,7 @@ export class TrophyHallScene extends Phaser.Scene {
     }
     for (const it of cups) {                                                              // the earned trophies glinting
       if (!it.earned) continue;
-      const S = trophySpot(it.slot);
+      const S = trophySpot(it.slot, it.trophy);
       for (let i = 0; i < 5; i++) {
         const a = this.t * 0.05 + i * 1.26, q = this.project(S.x + Math.cos(a) * 16 * S.k, S.y - (34 + Math.sin(a * 1.7) * 8) * S.k, S.z + Math.sin(a) * 16 * S.k);
         if (q && (this.t + i * 11) % 40 < 20) { const r = Math.max(1, 3 * q.s); b.fillStyle(0xfff0a0, 0.9); b.fillRect(q.x - r, q.y, r * 2 + 1, 1); b.fillRect(q.x, q.y - r, 1, r * 2 + 1); }
@@ -451,6 +451,16 @@ export class TrophyHallScene extends Phaser.Scene {
       for (let i = 0; i <= 8; i++) { const q = Math.PI * (0.15 + i / 8 * 0.7); T.push(...xyz(boxFaces(-2.2, -2.6, -2, 2.2, 2.6, 2, 0x1a1630, 0x4a4280), Math.cos(q) * 16, -30 + Math.sin(q) * 16, 0, q)); }
       for (let i = 0; i < 5; i++) T.push(...xyz(pyramidFaces(0, 0, 0, 4.4, 3.2, 10, i % 2 ? 0xe8b440 : 0xffd040), 0, -32, 0, i / 5 * Math.PI * 2));
       T.push(...ballFaces(0, -32, 0, 4.4, 4.4, 3.2, 0xfff8e0, { seg: 8, rings: 5 }));
+    } else if (model === 'mega-star') {                               // SOMEWHERE IN THE STARS: a great gold star wearing his gem crown, a gold galaxy ring round it, three planets, on an obsidian drum
+      T.push(...prismFaces(0, -4, 0, 0, 11, 8, 0x1a1630, 0x3e3460), ...prismFaces(0, -7, -4, 0, 9, 8, 0xb8801e, 0xe8b440), ...prismFaces(0, -13, -7, 0, 2, 6, 0xb8801e, 0xffd040));
+      for (let i = 0; i < 16; i++) { const q = i / 16 * Math.PI * 2; T.push(...boxFaces(Math.cos(q) * 17 - 1.3, -25, Math.sin(q) * 17 - 1.3, Math.cos(q) * 17 + 1.3, -23.6, Math.sin(q) * 17 + 1.3, i % 2 ? 0xd8a830 : 0xffe070)); }
+      for (let i = 0; i < 5; i++) T.push(...xyz(pyramidFaces(0, 0, 0, 4.6, 3.4, 12, i % 2 ? 0xe8b440 : 0xffd040), 0, -24, 0, i / 5 * Math.PI * 2));
+      T.push(...ballFaces(0, -24, 0, 3.4, 3.4, 2.6, 0xfff0b0, { seg: 8, rings: 5 }));
+      for (const sx of [-1.4, 1.4]) T.push(...boxFaces(sx - 0.8, -25, -2.9, sx + 0.8, -24, -2.6, 0xff2a1a));
+      T.push(...boxFaces(-0.5, -27.6, -2.9, 0.5, -26.2, -2.6, 0xff2a1a));
+      T.push(...prismFaces(0, -38, -35, 0, 4.4, 8, 0xb8801e, 0xffd040));
+      [[-3.2, 4, 0x8a5aff], [-1.6, 6, 0x5ae8ff], [0, 8, 0xff5ad0], [1.6, 6, 0x5ae8ff], [3.2, 4, 0x8a5aff]].forEach(([dx, hh, c]) => T.push(...pyramidFaces(dx, -38, 0, 1.3, 1.3, hh, c)));
+      for (const [q, pr, c] of [[0.6, 2, 0x6ac8e8], [2.6, 2.6, 0xd8b06a], [4.4, 1.6, 0xe86a4a]]) T.push(...ballFaces(Math.cos(q) * 17, -24, Math.sin(q) * 17, pr, pr, pr, c, { seg: 6, rings: 4 }));
     } else if (model === 'phoenix') {
       for (let i = 0; i < 9; i++) { const q = i / 9 * Math.PI * 2; T.push(...pyramidFaces(Math.cos(q) * 6, 0, Math.sin(q) * 6, 4, 4, 10 + (i % 3) * 4, [0xff3a1a, 0xff8a1a, 0xffd040][i % 3])); }
       T.push(...blobFaces(0, -24, 0, 6, 8, 5, [0xffa030, 0xffc040], 8, 0xffe070, 0.12), ...blobFaces(2, -35, 0, 3.6, 3.6, 3, [0xffc040, 0xffd060], 2, null, 0.05));
