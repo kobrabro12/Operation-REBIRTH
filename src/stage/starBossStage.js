@@ -30,6 +30,7 @@
 import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
 import { sfx } from '../audio/sfx.js';
+import { HeartPhase } from './starHeart.js';
 
 const C = {
   out: 0x05030c, sky: [0x020108, 0x060312, 0x0c061e, 0x140a2c, 0x1e0e3a, 0x2a1048],
@@ -40,7 +41,7 @@ const C = {
   disk: [0xff5a1a, 0xffa040, 0xff5ad0, 0x8a5aff], star: [0xffb030, 0xffe070, 0xfff8e0],
 };
 // where his heart and head sit (standing tall / slumped when THE EVENT HORIZON shatters), the robe's shoulders and hem
-const BODY = { heart: -150, head: -255, slumpHeart: 62, slumpHead: 80, shoulder: 118, hem: 205, headR: 44 };
+const BODY = { heart: -150, head: -255, slumpHeart: 62, slumpHead: 80, shoulder: 118, hem: 205, headR: 44, sink: 104 };   // (sink: how far his body falls once beheaded)
 // his hands: where they rest, how big the palm is; how fast they move toward where they're going (0..1 a frame)
 const HAND = { rest: [[-178, -196], [178, -196]], palm: 24, ease: 0.12 };
 // the stars: how big (hit radius), how long a loose one lasts, at most this many loose at once, the speed a hit one
@@ -125,12 +126,14 @@ export class StarBossStage extends BossArena {
   /** Builds the sky, the observatory behind him, his layers, the floor in front of his robe, then his hands and the effects. */
   draw(world, bg) {
     const s = this.scene;
-    const sky = s.add.graphics().setScrollFactor(0.15); bg.push(sky); this.paintSky(sky);
+    const sky = s.add.graphics().setScrollFactor(0.15); bg.push(sky); this.paintSky(sky); this.skyPaint = sky;
     this.skyG = s.add.graphics().setScrollFactor(0.15); bg.push(this.skyG);
-    const back = s.add.graphics(); world.push(back); this.paintBack(back);
+    this.innerG = s.add.graphics().setVisible(false); world.push(this.innerG); this.paintInner(this.innerG);   // (inside him: starHeart.js)
+    const back = s.add.graphics(); world.push(back); this.paintBack(back); this.backG = back;
     this.bodyG = s.add.graphics(); world.push(this.bodyG);
-    const floor = s.add.graphics(); world.push(floor); this.paintFloor(floor);
+    const floor = s.add.graphics(); world.push(floor); this.paintFloor(floor); this.floorG = floor;
     this.handG = s.add.graphics(); world.push(this.handG);
+    this.heartG = s.add.graphics().setVisible(false); world.push(this.heartG);
     this.fxG = s.add.graphics(); world.push(this.fxG);
     this.cycle.makeBanner(s);
   }
@@ -225,7 +228,7 @@ export class StarBossStage extends BossArena {
 
   // ------------------------------------------------------------------ VESPERION
   /** The boss's own state when the fight starts: the hazards come rarely (he's busy enough). */
-  makeBoss() { this.cycle.gap = 1500; this.cycle.next = 1500; this.v.vis = 1; this.v.eye = 1; this.v.corona = 1; this.v.shell = 1; this.lastStar = 0; }
+  makeBoss() { this.headless = null; this.inside = false; this.headFall = null; this.headGone = false; this.bolts = []; this.lashes = []; this.vrings = []; this.grasps = []; this.hwaves = []; this.cycle.gap = 1500; this.cycle.next = 1500; this.v.vis = 1; this.v.eye = 1; this.v.corona = 1; this.v.shell = 1; this.lastStar = 0; }
   /** His hits, harder than the base (HIT). */
   bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
   /** His wind-ups and pauses, quicker than the base (QUICK). */
@@ -233,12 +236,12 @@ export class StarBossStage extends BossArena {
   /** Where his body is: the heart, the head, the shoulders - lower and forward as he slumps. */
   joints() {
     const v = this.v, k = v.slump, bob = Math.sin(this.t * 0.03) * 5 * (1 - k), sh = v.shake ? (Math.random() - 0.5) * v.shake : 0;
-    const heart = { x: v.x + sh, y: BODY.heart + BODY.slumpHeart * k + bob };
-    const head = { x: v.x + sh * 1.5, y: BODY.head + BODY.slumpHead * k + bob * 1.2 + Math.sin(this.t * 0.03 + 0.6) * 2 };
+    const heart = { x: v.x + sh, y: BODY.heart + BODY.slumpHeart * k + bob + (v.sink || 0) * BODY.sink };
+    const head = this.headFall ? { x: this.headFall.x, y: this.headFall.y } : { x: v.x + sh * 1.5, y: BODY.head + BODY.slumpHead * k + bob * 1.2 + Math.sin(this.t * 0.03 + 0.6) * 2 };   // (once beheaded, wherever it fell)
     return { heart, head, shL: { x: heart.x - BODY.shoulder, y: heart.y - 46 + k * 18 }, shR: { x: heart.x + BODY.shoulder, y: heart.y - 46 + k * 18 }, mouth: { x: head.x, y: head.y + 20 } };
   }
   /** What the camera, the explosions and the CPU go for: his heart. */
-  core() { return this.joints().heart; }
+  core() { return this.inside && this.heartS ? { x: this.heartS.x, y: this.heartS.y } : this.joints().heart; }
   /** The camera keeps him and the whole observatory in view. */
   camPoints() { if (!this.boss) return []; return this.boss.dying ? [{ x: -300, y: -340 }, { x: 300, y: 30 }] : [{ x: -270, y: -320 }, { x: 270, y: 20 }]; }
   /** Cracks it takes to shatter THE EVENT HORIZON (fewer in THE LAST LIGHT). */
@@ -248,6 +251,7 @@ export class StarBossStage extends BossArena {
    * shatters, his heart (x1.6), head and hands.
    */
   hurt() {
+    if (this.headless) return this.heartHurt();                                             // (beheaded: nothing until you're inside, then his heart)
     const j = this.joints(), o = this.brk > 0, out = [];
     out.push({ x1: j.heart.x - 40, y1: j.heart.y - 40, x2: j.heart.x + 40, y2: j.heart.y + 40, mult: o ? BREAK.heart : 0, heart: true });
     out.push({ x1: j.head.x - 42, y1: j.head.y - 42, x2: j.head.x + 42, y2: j.head.y + 40, mult: o ? BREAK.head : 0 });
@@ -263,10 +267,11 @@ export class StarBossStage extends BossArena {
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; match.particles.push({ x: x + Math.cos(a) * 18, y: y + Math.sin(a) * 18, vx: -Math.cos(a) * 1.5, vy: -Math.sin(a) * 1.5, life: 14, color: C.shell[1], size: 2 }); }
   }
   /** A real hit (the shell is down): he flinches, his eyes flare. */
-  onHurt() { this.v.shake = 4; }
+  onHurt(match, r) { this.v.shake = 4; if (this.inside) this.heartHurtFx(match, r); }
 
   /** His pattern: STARFALL whenever the sky has run out of stars, DEVOUR when stars lie loose, else his attacks. */
   pattern(phase) {
+    if (this.inside) return this.heartPattern();
     const loose = this.stars.filter((s) => s.st === 'free').length;
     if (!loose && this.sinceStar >= 2) return ['starfall'];
     if (loose && this.count % 3 === 2) return ['devour'];
@@ -277,12 +282,16 @@ export class StarBossStage extends BossArena {
   start_starfall() { this.tally(true); } start_slam() { this.tally(); } start_sweep() { this.tally(); } start_constellation() { this.tally(true); }
   start_well() { this.tally(); } start_planet() { this.tally(); } start_moons() { this.tally(); } start_devour() { this.tally(); } start_supernova() { this.tally(); } start_comet() { this.tally(true); }
   /** The drawing layers that make up him, for his death card's portrait (MatchScene.paintBossCard). */
-  cardObjs() { return [this.bodyG, this.handG]; }
+  cardObjs() { return this.inside ? [this.innerG, this.heartG] : [this.bodyG, this.handG]; }
   /** Which form he was in when he beat you (bosses.js card quotes). */
-  cardForm() { return this.low ? 'low' : this.boss && this.boss.phase === 2 ? 'rage' : 'base'; }
-  rageLine() { return 'TOTAL ECLIPSE!'; }
-  /** TOTAL ECLIPSE: the sky goes blood red behind him, his corona burns red, he roars. */
-  onRage(match) { this.rageText.setColor('#ff5a3a').setFontSize(14); sfx('thunder', 0.8, 0.7); match.shake(12, 50); }
+  cardForm() { return this.inside ? 'heart' : this.headless ? 'rage' : this.low ? 'low' : this.boss && this.boss.phase === 2 ? 'rage' : 'base'; }
+  rageLine() { return 'HE BREAKS!'; }
+  /** Half health: the sky goes blood red and his head comes off (THE BEHEADING, starHeart.js) - the rest of the fight is inside him. */
+  onRage(match) { this.rageText.setColor('#ff5a3a').setFontSize(14); sfx('thunder', 0.8, 0.7); match.shake(12, 50); this.startHeadless(match); }
+  /** A real player's fight: remember someone's watching (the mid-fight cutscenes play) and make the screen layer they draw on. */
+  startIntro(match) { super.startIntro(match); this.watched = true; this.uiG = match.add.graphics().setDepth(39); match.addUI(this.uiG); }
+  /** The camera: the intro's, or a mid-fight cutscene's (THE BEHEADING, the fall inside). */
+  introCam() { return this.cut ? this.cutCam() : super.introCam(); }
 
   /** Moves a hand part of the way to where it's going (and its angle and fist). */
   stepHands() {
@@ -295,7 +304,7 @@ export class StarBossStage extends BossArena {
   restHands(bob = true) { this.hands.forEach((h, i) => { h.tx = HAND.rest[i][0] + (bob ? Math.sin(this.t * 0.025 + i * 2) * 8 : 0); h.ty = HAND.rest[i][1] + (bob ? Math.sin(this.t * 0.035 + i) * 10 : 0); h.ta = h.side * 0.25; h.tf = 0.2; h.fast = 0; }); }
 
   /** At rest: he hovers, his hands drift, his eyes follow you. */
-  idle() { if (this.brk) return; this.restHands(); this.v.mouth *= 0.9; }
+  idle() { if (this.brk || this.headless) return; this.restHands(); this.v.mouth *= 0.9; }
 
   // ---- the stars (his weakness)
   /** A loose star at (x, y) - it drifts to its floating height and waits to be hit. fall = it streaks down from the sky first. */
@@ -359,7 +368,7 @@ export class StarBossStage extends BossArena {
     this.stars = this.stars.filter((s) => !s.dead);
     // a FALLING STAR when the sky is out of them (so there's always a way to hurt him)
     const B = this.boss;
-    if (B && !B.dying && !match.over && !this.brk && !this.stars.length && this.t - this.lastStar > (this.low ? LOW.drift : STAR.drift)) {
+    if (B && !B.dying && !match.over && !this.brk && !this.headless && !this.stars.length && this.t - this.lastStar > (this.low ? LOW.drift : STAR.drift)) {
       const tg = this.nearest(match, 0); this.addStar(Phaser.Math.Clamp((tg ? tg.x : 0) + (Math.random() - 0.5) * 260, -230, 230), -420, true); sfx('summon', 0.5, 1.6);
     }
   }
@@ -374,6 +383,7 @@ export class StarBossStage extends BossArena {
   /** The players' hits: a hit on a loose star sends it home into his heart; then hits on him (BossArena). */
   strikeTargets(match, hbs) {
     const B = this.boss;
+    if (B && !B.dying && !match.over && this.inside) this.heartStrike(match, hbs);
     if (B && !B.dying && !match.over) for (const s of this.stars) {
       if (s.st !== 'free' && s.st !== 'fall') continue;
       const r = STAR.r + 4, hb = hbs.find((q) => q.owner && q.x1 < s.x + r && q.x2 > s.x - r && q.y1 < s.y + r && q.y2 > s.y - r);
@@ -658,6 +668,7 @@ export class StarBossStage extends BossArena {
 
   /** You lost: he cups a little light in his hands - yours - lifts it to his maw and swallows it, laughing. */
   onGloat(match, t) {
+    if (this.inside) { this.heartGloat(match, t); return; }
     const j = this.joints(), c = { x: j.heart.x, y: j.heart.y - 30 - Math.min(1, t / GLOAT.eat) * 60 };
     this.hands.forEach((h) => { h.tx = c.x + h.side * 34; h.ty = c.y + 10; h.ta = -h.side * 0.9; h.tf = 0.4; });
     this.stepHands();
@@ -671,13 +682,14 @@ export class StarBossStage extends BossArena {
   /** His death runs long (THE STARS COME HOME). */
   deathLen() { return DIE.len; }
   /** The fight's over: everything he's doing stops. */
-  onDeath() { this.ball = null; this.planetOut = false; this.moons = null; this.meteors = []; this.waves = []; this.rings = []; this.comets = []; this.cons = null; this.well = null; this.nova = null; this.devouring = false; this.brk = 0; this.stars = this.stars.filter((s) => s.st === 'shot'); }
+  onDeath() { if (this.headless) this.heartClear(); this.ball = null; this.planetOut = false; this.moons = null; this.meteors = []; this.waves = []; this.rings = []; this.comets = []; this.cons = null; this.well = null; this.nova = null; this.devouring = false; this.brk = 0; this.stars = this.stars.filter((s) => s.st === 'shot'); }
   /**
    * THE STARS COME HOME: he convulses, his hands clawing at the sky, and light cracks out of his heart; he implodes
    * into it (everything of him shrinks into the black hole), a white flash - and every star he ever swallowed bursts
    * back out into the sky (`freed`), joining into constellations; a new little star shines where his heart was.
    */
   stepDeath(match) {
+    if (this.inside && this.heartDeath(match, DIE.flash)) return;                          // (his heart's death first, then the stars come home outside)
     const d = this.boss.dying, j = this.joints();
     this.v.shell = Math.max(0, this.v.shell - 0.05);
     if (d < DIE.implode) {
@@ -736,9 +748,9 @@ export class StarBossStage extends BossArena {
     return { x: 0, y: -160, zoom: 0.92 };
   }
   /** The freeze frame: his eclipse face and spread hands. */
-  introAt() { const j = this.joints(); return { x: j.head.x, y: j.head.y + 50, zoom: 1.12 }; }
+  introAt() { if (this.inside && this.heartS) return { x: this.heartS.x, y: this.heartS.y + 34, zoom: 1.45 }; const j = this.joints(); return { x: j.head.x, y: j.head.y + 50, zoom: 1.12 }; }
   /** After the intro: all of him there. */
-  endIntro() { super.endIntro(); this.v.vis = 1; this.v.corona = 1; this.v.eye = 1; this.voidK = 0; this.streaks = []; }
+  endIntro() { super.endIntro(); if (this.headless) return; this.v.vis = 1; this.v.corona = 1; this.v.eye = 1; this.voidK = 0; this.streaks = []; }
 
   // ------------------------------------------------------------------ hazards (VS too)
   start_meteor(match, h) { h.title = 'METEOR SHOWER!'; for (let i = 0; i < SHOWER.n; i++) this.meteor((Math.random() * 2 - 1) * 245, 30 + i * 14, this.boss && i === 0); }
@@ -764,21 +776,24 @@ export class StarBossStage extends BossArena {
     const out = [], B = this.boss;
     this.cycle.run(match, out);
     if (B) {
-      if (this.brk > 0 && !B.dying) {                                                      // THE EVENT HORIZON is shattered: he hangs there, open
+      if (this.headless && !B.dying) this.stepHeadless(match);                             // beheaded: the neck, then his heart (starHeart.js)
+      else if (this.brk > 0 && !B.dying) {                                                      // THE EVENT HORIZON is shattered: he hangs there, open
         this.brk--; B.atk = null; B.wait = Math.max(B.wait, this.brk + 20); this.devouring = false; this.v.mouth *= 0.9;
         this.v.slump = lerp(this.v.slump, 1, 0.08); this.v.shell = Math.max(0, this.v.shell - 0.1);
         this.hands.forEach((h, i) => { h.tx = h.side * 205; h.ty = -26; h.ta = h.side * 1.4; h.tf = 0.1; h.fast = 0.08; });
         if (this.brk % 40 === 0) sfx('rumble', 0.3, 1.5);
         if (this.brk === 90) match.popText({ x: 0, y: -150 }, 'THE VOID IS CLOSING!', '#c8a8ff');
         if (this.brk === 0) { sfx('summon', 1, 0.5); sfx('roar', 0.8, 0.9); match.shake(8, 16); B.wait = 50; }
-      } else if (!B.dying) { this.v.slump = lerp(this.v.slump, 0, 0.06); this.v.shell = Math.min(1, this.v.shell + 0.04); }
-      if (!this.low && B.hp <= B.max * LOW.at && !B.dying) { this.low = true; match.popText({ x: 0, y: -240 }, 'THE LAST LIGHT', '#ff9a6a'); sfx('roar', 0.9, 0.5); }
+      } else if (!B.dying && !this.headless) { this.v.slump = lerp(this.v.slump, 0, 0.06); this.v.shell = Math.min(1, this.v.shell + 0.04); }
+      if (!this.low && B.hp <= B.max * LOW.at && !B.dying) { this.low = true; match.popText({ x: 0, y: -240 }, this.inside ? 'THE LAST LIGHT - IT PANICS!' : 'THE LAST LIGHT', '#ff9a6a'); sfx('roar', 0.9, 0.5); }
       this.bossStep(match, out);
       if (B.dying && this.stars.length) this.stars = this.stars.filter((s) => s.st === 'shot');
       if (!B.dying && !match.over && !this.brk && B.atk == null) this.v.mouth *= 0.9;
       // the CPU (the sim) goes for a loose star while the shell holds, his heart while it's open
       const P = match.bossProxy, free = this.stars.find((s) => s.st === 'free');
-      if (P && free && !this.brk) { P.x = free.x; P.y = free.y + 26; }
+      if (P && free && !this.brk && !this.headless) { P.x = free.x; P.y = free.y + 26; }
+      if (P && this.headless === 'neck') { const n = this.neckAt(); P.x = n.x; P.y = n.y + 40; }
+      if (this.headless) this.stepHeartFx(match, out);
       this.stepStars(match); this.stepWaves(match, out); this.stepRings(out); this.stepComets(match, out); this.stepBall(match, out); this.stepMoons(match, out);
     }
     this.stepMeteors(match, out);
@@ -812,6 +827,7 @@ export class StarBossStage extends BossArena {
       for (const st of this.streaks) { const q = st.t / 40; x.lineStyle(2, 0xffffff, 0.8 * (1 - q)); x.lineBetween(lerp(st.x, j.head.x, q * q), lerp(st.y, j.head.y, q * q), lerp(st.x, j.head.x, Math.min(1, q * q + 0.1)), lerp(st.y, j.head.y, Math.min(1, q * q + 0.1))); }
       x.lineStyle(0);
     }
+    if (this.inside) this.drawInside(this.heartG);
     this.drawEffects(x, j);
     if (B) this.drawBar();
   }
@@ -880,7 +896,7 @@ export class StarBossStage extends BossArena {
     if (this.gloatLight) { const c = this.gloatLight; x.fillStyle(0xffffff, 0.25); x.fillCircle(c.x, c.y, 22); this.drawStarShape(x, c.x, c.y, 9, t * 0.1, 1); }
     // the death: cracks of light out of him, then the freed stars and their constellations, then the new star
     const B = this.boss, d = B && B.dying;
-    if (d && d >= DIE.crack && d < DIE.flash) {
+    if (d && !this.inside && !this.headless && d >= DIE.crack && d < DIE.flash) {
       const h = j.heart, n = Math.min(12, Math.floor((d - DIE.crack) / 8)), R = seeded(3);
       for (let i = 0; i < n; i++) { const q = R() * Math.PI * 2, L = 120 + R() * 220; x.lineStyle(4, 0xfff0b0, 0.35); x.lineBetween(h.x, h.y, h.x + Math.cos(q) * L * this.v.scale, h.y + Math.sin(q) * L * this.v.scale); x.lineStyle(1.5, 0xffffff, 0.9); x.lineBetween(h.x, h.y, h.x + Math.cos(q) * L * this.v.scale, h.y + Math.sin(q) * L * this.v.scale); }
       x.lineStyle(0);
@@ -974,8 +990,9 @@ export class StarBossStage extends BossArena {
     if (this.moons) for (const p of [sl, sr]) { g.fillStyle(C.moon[1], 0.25 + 0.2 * Math.sin(this.t * 0.3)); g.fillCircle(p.x, p.y, 14); }
     // the collar of gold spikes round his neck
     for (let i = -4; i <= 4; i++) { const bx = Ht.x + i * 14, by = top + 4; g.fillStyle(C.out, 1); g.fillTriangle(bx - 8, by + 2, bx + 8, by + 2, bx + i * 3, by - 26 + Math.abs(i) * 2); g.fillStyle(C.gold[i % 2 ? 1 : 2], 1); g.fillTriangle(bx - 6, by, bx + 6, by, bx + i * 3, by - 22 + Math.abs(i) * 2); }
-    // the black-hole heart
-    this.drawHeart(g, Ht, flash);
+    // the black-hole heart (gone once he's beheaded: the torn neck instead - starHeart.js)
+    if (!this.headless) this.drawHeart(g, Ht, flash);
+    if (this.headless || this.neckCrack > 0) this.drawNeck(g, Ht);
     // the eclipse head
     this.drawCorona(g, H.x, H.y, R, cor, v.corona * lowFlick);
     g.fillStyle(cor[0], 0.12 * v.corona); g.fillCircle(H.x, H.y, R + 30);
@@ -1090,6 +1107,12 @@ export class StarBossStage extends BossArena {
     g.fillStyle(C.star[0], 0.18 * gl); g.fillCircle(c.x, c.y, 18 + h.glow * 10); g.fillStyle(C.star[1], 0.5); g.fillCircle(c.x, c.y, 8);
     this.drawStarShape(g, c.x, c.y, 7 + h.glow * 2, t * 0.03 * sd, 1);
   }
+}
+
+for (const k of Object.getOwnPropertyNames(HeartPhase.prototype)) {                            // VESPERION's heart (starHeart.js)
+  if (k === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(StarBossStage.prototype, k)) throw new Error('starHeart.js: ' + k + ' already exists on StarBossStage');
+  StarBossStage.prototype[k] = HeartPhase.prototype[k];
 }
 
 /** THE LAST OBSERVATORY's miniature for the stage select screen: space, a gold-ringed eclipse, the marble floor. */

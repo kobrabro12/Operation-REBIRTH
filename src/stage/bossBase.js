@@ -101,7 +101,7 @@ export class BossArena {
     return false;
   }
   /** Skips the rest of the intro (a fresh J / Enter / A / click): straight to its pose and the countdown. */
-  skipIntro(match) { if (!this.intro) return; if (this.intro.t < INTRO.wide + this.enterLen()) this.introPose(match, 1, this.enterLen(), this.enterLen()); this.endIntro(); }
+  skipIntro(match) { if (!this.intro) return; if (!this.intro.card && this.intro.t < INTRO.wide + this.enterLen()) this.introPose(match, 1, this.enterLen(), this.enterLen()); this.endIntro(); }
   /** The intro is over: the letterbox and the card fade away, the health bar comes in, the camera eases back into play. */
   endIntro() {
     this.intro = null; this.icam = null;
@@ -161,6 +161,21 @@ export class BossArena {
     const tag = ease((f - 14) / 12);
     this.introTag.setVisible(f > 14).setPosition(W / 2, bar / 2).setAlpha(tag);
     this.introTier.setVisible(f > 20).setPosition(W / 2, H - bar / 2).setAlpha(ease((f - 20) / 12));
+  }
+
+  /**
+   * A second name card mid-fight (a boss's new form - VESPERION's heart): the intro's freeze-frame card again with new
+   * words (card = { name, title, tag? }), the camera on the arena's introAt(); then the fight carries on. Only after a
+   * real intro (its pieces exist). Returns whether it started.
+   */
+  startCard(match, card) {
+    if (!this.introParts) return false;
+    this.introName.setText(card.name); this.introGlow.setText(card.name); this.introSub.setText(card.title || ''); if (card.tag) this.introTag.setText(card.tag);
+    for (const o of this.introParts) { match.tweens.killTweensOf(o); o.setAlpha(1); }
+    this.intro = { t: INTRO.wide + this.enterLen(), card: true }; this.icam = null; this.icamFreeze = null;
+    this.barG.setVisible(false); this.barName.setVisible(false); this.barTier.setVisible(false);
+    match.skipReady = false;                                                           // (skipping it needs a fresh press)
+    return true;
   }
 
   /** Frames scaled by the difficulty's speed (wind-ups and pauses get shorter on HARD / NIGHTMARE). */
