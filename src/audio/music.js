@@ -21,6 +21,8 @@ export const TRACKS = [
   'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_smudge', 'boss_maestro', 'boss_stareater',
   // LEGENDARY KING POLYGON's theme: Mason's pixelated_audio 22
   'boss_legend',
+  // the miracle costumes' outros (tools/audio/costume_outros.py)
+  'outro_storm', 'outro_pharaoh', 'outro_starfarer',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
   ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'showtime', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),

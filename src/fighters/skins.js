@@ -948,3 +948,28 @@ SKINS['young-link'].push(
   ms('EMBER', 3, 0xd8402a, 'Walked out of the fire with the tunic still smoking. It never quite stopped.', YLG, { clothes: { to: 8, sat: 1.0, val: 1.1 } }, 'flame', [0xff6a2a, 0xffd060, 0xffffff]),
   ms('GILDED', 4, 0xffd860, 'Sewn with gold thread by everyone he ever helped, one stitch each.', YLG, { clothes: { ramp: RADIANT_RAMP, lo: 0.25, hi: 1 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 );
+
+// ---- MIRACLE costumes (Trinkets > SHOP): their own drawing (tools/sprites/shop_costumes.py storm / pharaoh / starfarer),
+// a custom aura (fighterCostumeFx.drawSkinAura: storm / pharaoh / starfarer), an arrival (costumeEntrances.js) and a
+// cinematic outro with its own music (costumeOutros.js, tools/audio/costume_outros.py). Appended last so saved costume
+// indices never move.
+// STORMCALLER: steel armour veined with lightning, a crown of bolts, a thundercloud cape and an electric-blue soul flame;
+// a little storm cloud follows him, rain falling from it, and now and then it strikes him with lightning
+SKINS['soul-summoner'].push({ name: 'STORMCALLER', sheetSet: 'storm', shop: 'cos-storm', swatch: 0x3a465e, fx: 0x6ae0ff,
+  lore: 'He was struck by lightning on the day he died. He has been calling it back down ever since.',
+  pal: { outline: 0x0a1020, deep: 0x1a4a7a, mid: 0x3aa8e8, light: 0x8ae8ff, core: 0xfff8c0, shade: 0x1a2438, void: 0x05080e },
+  vfx: { hit: { shape: 'star', colors: [0xffe040, 0x8ae8ff, 0xffffff], n: 11, ring: 0xffe040, glint: true }, trail: 0x8ae8ff, aura: { storm: true },
+    minion: { flame: { to: 188, sat: 0.7, val: 1.4 }, eyes: { to: 52 } } } });
+// SUN PHARAOH: a lapis-and-gold striped headdress with a cobra at the brow, a broad collar, gold hems, a sun disk on a gold
+// staff; golden sand drifts round his feet, a sun halo turns behind him and two gold ankhs orbit him
+SKINS['mr-wake'].push({ name: 'SUN PHARAOH', sheetSet: 'pharaoh', shop: 'cos-pharaoh', swatch: 0x2a44b8, fx: 0xffc840,
+  lore: 'A king of a desert that drowned. He kept the sun in his staff so the dark under the sea could never have it.',
+  pal: { outline: 0x1a0e04, deep: 0x8a5a10, mid: 0xe0aa30, light: 0xffd860, core: 0xfff8d8, shade: 0x0a1446, void: 0x050818 },
+  vfx: { hit: { shape: 'dust', colors: [0xffd860, 0xe0aa30, 0xfff0c8], n: 11, ring: 0xffc840 }, trail: 0xffc840, aura: { pharaoh: true } } });
+// SPACEWALK: a white spacesuit, a dome that is a window onto deep space (a nebula, a ringed planet), a jetpack, a mission
+// patch, a red mission streamer and the goldfish in its own little helmet; a tiny moon orbits him, stars twinkle round
+// him and his jetpack fires whenever he's in the air
+SKINS['aero'].push({ name: 'SPACEWALK', sheetSet: 'starfarer', shop: 'cos-starfarer', swatch: 0xe8eef8, fx: 0xb07aff,
+  lore: 'He left the meadow in a bowl of water and came back from the edge of the sky. The fish has seen things.',
+  pal: { outline: 0x0a0618, deep: 0x3a1a7a, mid: 0x7a4ae0, light: 0xc8a8ff, core: 0xffffff, shade: 0x1a0e3a, void: 0x04020c },
+  vfx: { hit: { shape: 'star', colors: [0xffffff, 0xc8a8ff, 0xff8a40], n: 10, ring: 0xc8a8ff, glint: true }, trail: 0xc8a8ff, aura: { starfarer: true } } });

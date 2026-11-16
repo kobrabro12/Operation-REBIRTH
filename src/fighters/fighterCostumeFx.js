@@ -35,6 +35,67 @@ export class FighterCostumeFx {
     drawNavi(g,p.x,p.y,this.anim);
   }
 
+  /**
+   * STORMCALLER's aura: a little thundercloud hangs over his crown with rain falling out of it; every few seconds it
+   * strikes him with a bolt of lightning (a flash round his head), and while he attacks, sparks crackle off him.
+   */
+  stormAura(g, back, cx, top) {
+    const t = this.anim, cy = top - 20 + Math.round(Math.sin(t * 0.05) * 2), P = this.match.particles;
+    for (let i = 0; i < 5; i++) {                                    // the cloud: grey billows with a pale top
+      const x = cx - 14 + i * 7 + Math.sin(t * 0.03 + i) * 1.5, r = 6 + (i % 2) * 2;
+      back.fillStyle(0x2a3448, 0.9); back.fillCircle(x, cy + 1, r); back.fillStyle(0x6a7a98, 0.9); back.fillCircle(x - 1, cy - 1, r - 2);
+    }
+    for (let i = 0; i < 5; i++) { const k = (t * 1.5 + i * 7) % 16, x = cx - 11 + i * 5.5; back.lineStyle(1, 0x8ab8e8, 0.55); back.lineBetween(x, cy + 6 + k, x - 1, cy + 9 + k); }   // rain
+    const strike = t % 170;
+    if (strike < 5) {                                               // the lightning: a jagged bolt from the cloud down to him
+      let x = cx, y = cy + 6; const end = top + 10;
+      g.lineStyle(3, 0xffe040, 0.55); const pts = [[x, y]];
+      while (y < end) { y += 4; x = cx + ((y * 7 + t) % 9) - 4; pts.push([x, y]); }
+      for (let i = 1; i < pts.length; i++) g.lineBetween(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+      g.lineStyle(1, 0xffffff, 1); for (let i = 1; i < pts.length; i++) g.lineBetween(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+      g.lineStyle(0); g.fillStyle(0xfff8c0, 0.35 * (1 - strike / 5)); g.fillCircle(cx, top + 10, 18);
+      back.fillStyle(0xffffff, 0.4); back.fillCircle(cx, cy, 14);
+    }
+    if (this.state === 'attack' && t % 3 === 0) P.push({ x: this.x + (Math.random() - 0.5) * 30, y: this.y - 10 - Math.random() * 40, vx: 0, vy: 0, life: 6, color: Math.random() < 0.5 ? 0xffe040 : 0x8ae8ff, shape: 'star', size: 2, grav: 0 });
+  }
+  /**
+   * SUN PHARAOH's aura: a sun halo turning slowly behind his head, two gold ankhs orbiting him (in front on one side,
+   * behind on the other), and golden sand blowing round his feet.
+   */
+  pharaohAura(g, back, cx, top, mid) {
+    const t = this.anim, f = this.facing, hx = cx - f * 3, hy = top + 8, P = this.match.particles;
+    back.fillStyle(0xffd860, 0.12); back.fillCircle(hx, hy, 17);
+    back.lineStyle(2, 0xe0aa30, 0.75); back.strokeCircle(hx, hy, 12);
+    for (let i = 0; i < 10; i++) { const q = t * 0.01 + i / 10 * Math.PI * 2; back.lineStyle(1, 0xffe490, 0.7); back.lineBetween(hx + Math.cos(q) * 14, hy + Math.sin(q) * 14, hx + Math.cos(q) * (i % 2 ? 18 : 21), hy + Math.sin(q) * (i % 2 ? 18 : 21)); }
+    back.lineStyle(0);
+    for (let i = 0; i < 2; i++) {                                    // the ankhs
+      const q = t * 0.025 + i * Math.PI, x = cx + Math.cos(q) * 24, y = mid + Math.sin(q) * 7 + Math.sin(t * 0.08 + i) * 2, L = Math.sin(q) < 0 ? back : g;
+      L.lineStyle(3, 0x5a3a08, 1); L.strokeEllipse(x, y - 5, 5, 6); L.lineBetween(x, y - 2, x, y + 7); L.lineBetween(x - 4, y, x + 4, y);
+      L.lineStyle(1.5, 0xffd860, 1); L.strokeEllipse(x, y - 5, 5, 6); L.lineBetween(x, y - 2, x, y + 7); L.lineBetween(x - 4, y, x + 4, y);
+      L.lineStyle(0);
+    }
+    if (t % 5 === 0) P.push({ x: this.x + (Math.random() - 0.5) * 34, y: this.y - 2, vx: (Math.random() - 0.5) * 0.9, vy: -0.25 - Math.random() * 0.3, life: 34, color: Math.random() < 0.7 ? 0xe0c070 : 0xfff0b0, size: 1, grav: 0 });
+  }
+  /**
+   * SPACEWALK's aura: a tiny cratered moon orbiting his dome, stars twinkling round him, and his jetpack firing (a
+   * flickering flame and puffs of smoke) whenever he's off the ground.
+   */
+  starfarerAura(g, back, cx, top, mid) {
+    const t = this.anim, f = this.facing, P = this.match.particles;
+    const q = t * 0.04, mx = cx + Math.cos(q) * 22, my = top + 6 + Math.sin(q) * 6, L = Math.sin(q) < 0 ? back : g;   // the little moon
+    L.fillStyle(0x3a3a4a, 1); L.fillCircle(mx, my, 3.5); L.fillStyle(0xd8d8e8, 1); L.fillCircle(mx, my, 2.8); L.fillStyle(0x9a9aae, 1); L.fillCircle(mx + 1, my + 0.5, 1);
+    for (let i = 0; i < 4; i++) {                                    // twinkling stars
+      const k = (t + i * 23) % 70; if (k > 30) continue;
+      const a = Math.sin(k / 30 * Math.PI), x = cx + Math.cos(i * 2.4) * 26, y = mid - 8 + Math.sin(i * 1.7) * 22;
+      g.fillStyle(i % 2 ? 0xc8a8ff : 0xffffff, a); g.fillRect(x - 0.5, y - 2.5, 1, 5); g.fillRect(x - 2.5, y - 0.5, 5, 1);
+    }
+    if (!this.grounded && this.state !== 'respawn') {                // the jetpack, firing
+      const jx = this.x - f * 12, jy = this.y - 24, fl = 7 + (t % 3) * 2;
+      back.fillStyle(0xff7a20, 0.9); back.fillTriangle(jx - 3, jy, jx + 3, jy, jx, jy + fl); back.fillStyle(0xffe040, 1); back.fillTriangle(jx - 1.5, jy, jx + 1.5, jy, jx, jy + fl * 0.6);
+      if (t % 3 === 0) P.push({ x: jx, y: jy + fl, vx: (Math.random() - 0.5) * 0.6, vy: 1, life: 18, color: 0xc8c8d8, shape: 'smoke', size: 2, r: 2, maxLife: 18, grav: 0 });
+    }
+  }
+
   // SAMURAI costume's Cyclone Slash: a red-and-gold Eastern dragon chasing its tail around her.
   // The head leads at angle `head` on the ellipse (rx, ry) and the long body trails behind, rippling.
   drawSpinDragon(front, cx, cy, rx, ry, head, fade, big) {
@@ -155,6 +216,9 @@ export class FighterCostumeFx {
         }
       }
     }
+    if (a.storm) this.stormAura(g, back, cx, top);
+    if (a.pharaoh) this.pharaohAura(g, back, cx, top, mid);
+    if (a.starfarer) this.starfarerAura(g, back, cx, top, mid);
     if (a.wings) {                                   // feathered wings of light behind her back, slowly beating
       const sx = cx - f * 4, sy = this.y - d.body.h * 0.78, flap = Math.sin(t * 0.08);
       for (const far of [1, 0]) {                     // far wing first (dimmer, a little higher), then the near one

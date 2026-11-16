@@ -19,6 +19,7 @@
 // `sfx`: [name, volume, rate] played on arrival; `pre`: one played as the intro starts.
 import { n64Gem, n64Star, shadeCol } from '../fighters/n64Draw.js';
 import { drawPremiumEntrance } from './premiumEntrances.js';
+import { drawCostumeEntrance } from './costumeEntrances.js';
 import { syncAzureCape } from '../fighters/azureCape.js';
 import { sfx } from '../audio/sfx.js';
 import { skinInfo } from '../fighters/skins.js';
@@ -45,6 +46,10 @@ export const SKIN_INTROS = {
   'soul-summoner:JUDGMENT':{kind:'judgment-door',dur:100,color:0x77eaff,color2:0xf3f9ff,pre:['glass',.25,.8],sfx:['ding',.3,.7]},
   'soul-summoner:ORRERY':{kind:'clockwork',dur:100,shape:'ring',color:0xd9bb74,color2:0x95ebcf,pre:['clocktick',.35,.8],sfx:['glass',.35,.8]},
   'hero-knight:PRISM REGENT':{kind:'prism-shell',dur:100,shape:'star',color:0xa2eee7,color2:0xe4b5f5,pre:['glass',.3,.8],sfx:['glass',.4,1.2]},
+  // the miracle costumes STORMCALLER / SUN PHARAOH / SPACEWALK (costumeEntrances.js)
+  'soul-summoner:STORMCALLER': { kind: 'stormcall', dur: 110, pre: ['rumble', 0.4, 0.7], sfx: ['thunder', 0.7, 0.9] },
+  'mr-wake:SUN PHARAOH': { kind: 'sun-rise', dur: 110, pre: ['summon', 0.4, 0.6], sfx: ['ding', 0.5, 0.6] },
+  'aero:SPACEWALK': { kind: 're-entry', dur: 110, pre: ['whoosh', 0.5, 0.5], sfx: ['bighit', 0.6, 0.8] },
   'mr-wake:ABYSSAL CHOIR':{kind:'choir-tide',dur:100,shape:'bubble',color:0x123347,color2:0x8cebd4,pre:['glass',.25,.6],sfx:['ding',.35,.5]},
   // the nesting-doll costumes (code PAPERSPLEASE)
   // the beach costumes NU and AERO arrived on the roster with
@@ -186,7 +191,7 @@ export class FighterIntros {
       const p = this.prog(e), { f, I } = e, A = TIME.arrive, x = e.x, y = e.y, c = e.col, c2 = e.col2;
       const pre = Math.max(0, Math.min(1, p / A)), post = Math.max(0, (p - A) / (1 - A));   // before / after the arrival, 0..1
       let vis = p < A ? 0 : 1, dy = 0, sc = 1;
-      const premium=drawPremiumEntrance(g,e,p,this.t);
+      const premium=drawPremiumEntrance(g,e,p,this.t)||drawCostumeEntrance(g,e,p,this.t);
       if(premium){vis=premium.vis;dy=premium.dy;sc=premium.sc;}
       else if (p > 0 && p <= 1.05) switch (I.kind) {
         case 'rise': {                                                     // a pillar of colour, they come up out of it

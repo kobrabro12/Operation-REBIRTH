@@ -85,6 +85,39 @@ def ss_aurora(N, L):
     K.stamp(N['fupper'], 36, 19, ["..o..", ".o4o.", "o232o"], ICE, only_empty=True)
     return [], set(), lambda orig, out: aurora_paint(out, mask=ss_cape_mask(orig))
 
+def ss_storm(N, L):
+    """STORMCALLER: a crown of lightning bolts, a cape that is a thundercloud split by a lightning strike."""
+    BOLT = {'o': 0x1a2030, '1': 0xc8a010, '2': 0xffe040, '3': 0xfff8c0, '4': 0xffffff}
+    K.stamp(N['head'], 26, 0, ["..o....o....o..",
+                               ".o3o..o4o..o3o.",
+                               ".o2...32o...2o.",
+                               "..o3..o23..3o..",
+                               ".o21o.o12o.12o.",
+                               "o2.1o.o21o.1.2o"], BOLT)
+    for n in N: storm_paint(N[n], mask=ss_cape_mask(L[n]))
+    # a little storm cloud of fur on his back pauldron
+    K.stamp(N['bupper'], 15, 16, [".oo.", "o22o", ".oo."], {'o': 0x2a3448, '2': 0x8a9ab8}, only_empty=True)
+    return [], set(), lambda orig, out: storm_paint(out, mask=ss_cape_mask(orig))
+
+def storm_paint(cape, mask=None):
+    """a thundercloud: billows of slate and blue-grey, and a jagged lightning bolt forking down through it"""
+    ys, xs = np.nonzero(mask if mask is not None else cape[..., 3] > 0)
+    if not len(xs): return
+    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
+    bolt = set()
+    bx = x0 + (x1 - x0) * 0.6
+    for y in range(y0, y1 + 1):                                                  # the bolt: zigzags down, with a fork
+        bx += [1.6, -1.2, 1.4, -1.8, 1.0][(y // 3) % 5] * 0.6
+        bolt.add((int(round(bx)), y))
+        if y > y0 + (y1 - y0) * 0.45 and y < y0 + (y1 - y0) * 0.75: bolt.add((int(round(bx - (y - y0 - (y1 - y0) * 0.45) * 0.8)), y))
+    for x, y in zip(xs, ys):
+        v = K.shade_of(cape[y, x])
+        puff = math.sin(x * 0.7) * math.cos(y * 0.5) + math.sin((x + y) * 0.33)
+        ramp = [0x1e2638, 0x303c58, 0x485676, 0x687896] if puff < 0.6 else [0x3a465e, 0x5a6a88, 0x8494b4, 0xb8c6dc]
+        cape[y, x, :3] = K.hexrgb(K.ramp_pick(ramp, v, 0.0, 0.5))
+        if (x, y) in bolt: cape[y, x, :3] = (255, 248, 192)
+        elif (x - 1, y) in bolt or (x + 1, y) in bolt: cape[y, x, :3] = (255, 220, 64)
+
 def ss_cape_mask(frame):
     """pixels of his cape (by its colours) in one of Mason's frames"""
     f = K.color_fn(SSG, {})
@@ -200,6 +233,7 @@ SS_LOOKS = {
     'olive': (ss_olive, {'armor': {'hue': 70, 'satAdd': 0.2, 'val': 0.85}, 'cape': {'to': 42, 'sat': 0.95, 'val': 1.75}, 'gold': {'to': 40, 'sat': 0.55, 'val': 0.9}, 'flame': {'to': 32, 'sat': 1.0, 'val': 1.2}, 'eyes': {'to': 18, 'sat': 1.0, 'val': 1.2}}, (200, 186, 120)),
     'eclipse': (ss_eclipse, {'armor': {'sat': 0.2, 'val': 0.32}, 'cape': {'sat': 0.15, 'val': 0.35}, 'gold': {'to': 44, 'sat': 1.1, 'val': 1.25}, 'flame': {'to': 46, 'sat': 0.35, 'val': 1.35}, 'eyes': {'to': 48, 'sat': 0.3, 'val': 1.3}}, (255, 220, 128)),
     'celestial': (ss_celestial, {'armor': {'to': 222, 'sat': 0.25, 'val': 1.35}, 'gold': {'to': 210, 'sat': 0.35, 'val': 1.3}, 'flame': {'to': 196, 'sat': 0.55, 'val': 1.3}, 'eyes': {'to': 188, 'sat': 0.9, 'val': 1.3}, 'cape': {'to': 230, 'sat': 0.8, 'val': 0.5}}, (180, 210, 255)),
+    'storm': (ss_storm, {'armor': {'to': 212, 'satAdd': 0.18, 'val': 2.2}, 'gold': {'to': 50, 'sat': 1.15, 'val': 1.3}, 'flame': {'to': 188, 'sat': 0.7, 'val': 1.4}, 'eyes': {'to': 52, 'sat': 1.0, 'val': 1.35}, 'cape': {'to': 220, 'sat': 0.35, 'val': 1.1}}, (255, 230, 80)),
     'aurora': (ss_aurora, {'cape': {'to': 172, 'sat': 1.4, 'val': 0.9}, 'flame': {'to': 312, 'sat': 1.1, 'val': 1.15}, 'gold': {'sat': 0.12, 'val': 1.2}, 'eyes': {'to': 160, 'val': 1.2}, 'armor': {'to': 200, 'satAdd': 0.12, 'val': 0.8}}, (90, 224, 248)),
 }
 
@@ -385,6 +419,31 @@ def mw_artist(N, L):
     for x, y in ((9, 15), (9, 16), (13, 16), (13, 17), (13, 18)): K.put(staff, x, y, P['r']) if not staff[y, x, 3] else None   # drips off the tuft
     return [], set(), None
 
+def mw_pharaoh(N, L):
+    """SUN PHARAOH: his hat becomes a striped lapis-and-gold headdress with a gold cobra at the brow, a broad
+    beaded collar, gold hems on the robes, and a blazing sun disk crowning the gold staff."""
+    G = {'o': 0x3a2208, '1': 0x9a6a14, '2': 0xe0aa30, '3': 0xffe07a, '4': 0xfff8d8, 'r': 0xd8301a, 'R': 0xff7a3a, 't': 0x1ab0a8, 'b': 0x1a3a9a}
+    LAPIS = [0x0a1446, 0x14247a, 0x2a44b8, 0x5a7ae8]
+    GOLD = [0x6a440c, 0xb07e1c, 0xe8b440, 0xffe490]
+    h = N['head']
+    ys, xs = np.nonzero(h[..., 3] > 0)
+    for x, y in zip(xs, ys):                                                       # the headdress: stripes on the hat (not the white mask)
+        c = h[y, x, :3]
+        if y > 15 or max(c) > 200 and min(c) > 170: continue
+        v = K.shade_of(c)
+        h[y, x, :3] = K.hexrgb(K.ramp_pick(GOLD if (y // 2) % 2 else LAPIS, v, 0.0, 0.5))
+    K.stamp(h, 37, 6, [".o.", "o3o", "o2o", ".2.", "o1o"], G)                       # the cobra at his brow
+    K.stamp(h, 36, 4, ["..oo..", ".o32o.", ".o2ro."], G)
+    K.stamp(N['torso'], 30, 17, ["o2t2b2t2b2t2o", ".o2t2b2t2b2o.", "..o3333333o.."], G, only_full=True)   # the broad collar
+    for n in ('cape', 'bskirt', 'fskirt', 'torso'):                              # gold hems
+        lay = N[n]
+        for x in range(64):
+            col = np.nonzero(lay[:, x, 3] > 0)[0]
+            if len(col) and col.max() > 40:
+                yb = col.max(); K.put(lay, x, yb, G['2']); K.put(lay, x, yb - 1, G['1'] if (x % 3) else G['3'])
+    K.stamp(N['staff'], 6, 6, ["..3.3.3..", ".3o222o3.", "3o2RRR2o3", ".2RrrrR2.", "32RrrrR23", ".2RrrrR2.", "3o2RRR2o3", ".3o222o3.", "..3.3.3.."], G)   # the sun disk
+    return [], set(), None
+
 def tartan_paint(lay):
     """a red tartan: red ground, dark green and navy bands crossing, thin yellow and white lines - shaded by the original"""
     ys, xs = np.nonzero(lay[..., 3] > 0)
@@ -402,6 +461,7 @@ MW_LOOKS = {
     'teatime': (mw_teatime, {'robe': {'to': 224, 'sat': 1.0, 'val': 0.75}, 'magic': {'to': 214, 'sat': 0.8, 'val': 1.2}, 'cloth': {'to': 220, 'sat': 0.6}, 'wood': {'to': 28, 'sat': 0.8, 'val': 1.0}}),
     'vampire': (mw_vampire, {'robe': {'to': 350, 'sat': 1.15, 'val': 0.55}, 'magic': {'to': 356, 'sat': 1.2, 'val': 1.15}, 'cloth': {'to': 330, 'sat': 0.6, 'val': 0.45}, 'wood': {'sat': 0.1, 'val': 1.3}}),
     'plague': (mw_plague, {'robe': {'to': 150, 'sat': 0.25, 'val': 0.42}, 'magic': {'to': 118, 'sat': 1.1, 'val': 1.15}, 'cloth': {'to': 28, 'sat': 0.9, 'val': 1.1}, 'wood': {'to': 20, 'sat': 0.3, 'val': 0.6}}),
+    'pharaoh': (mw_pharaoh, {'robe': {'to': 224, 'sat': 1.0, 'val': 0.85}, 'magic': {'to': 40, 'sat': 1.1, 'val': 1.3}, 'cloth': {'to': 214, 'sat': 0.9, 'val': 1.0}, 'wood': {'to': 42, 'sat': 0.9, 'val': 1.3}, 'staff': {'to': 42, 'satAdd': 0.65, 'val': 2.6}}),
     'sakura': (mw_sakura, {'robe': {'to': 334, 'sat': 0.55, 'val': 1.9}, 'magic': {'to': 340, 'sat': 0.4, 'val': 1.3}, 'cloth': {'to': 300, 'sat': 0.9, 'val': 1.3}, 'wood': {'to': 18, 'sat': 0.7, 'val': 0.8}}),
 }
 
@@ -670,6 +730,34 @@ def aero_midnight(N):
     for x, y in zip(xs, ys):
         if (x * 5 + y * 11) % 17 == 0: sc[y, x, :3] = (255, 244, 200)
 
+def aero_starfarer(N):
+    """SPACEWALK (AERO; sheets in aero/starfarer/): his dome is a window onto deep space - a nebula, stars and a ringed planet - a gold visor glint, the
+    goldfish in its own tiny space helmet, a jetpack on his back, a mission patch, and the scarf a red mission streamer."""
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    SPACE = [0x02020c, 0x080620, 0x120a34, 0x1e0e48, 0x2a1460]
+    glass = (hd[..., 3] > 0) & (yy >= 3) & (yy < 21) & (hd[..., :3].max(-1) > 80)
+    for y, x in zip(*np.nonzero(glass)):
+        neb = math.sin(x * 0.4 + y * 0.3)
+        hd[y, x, :3] = K.hexrgb(SPACE[min(4, max(0, (y - 3) * 5 // 18))]) if neb < 0.5 else K.hexrgb(0x5a2a8a if neb < 0.85 else 0x9a4ab8)
+        if (x * 13 + y * 7) % 19 == 0: hd[y, x, :3] = (255, 255, 255)
+    r, _ = rad(29, 9)                                                               # a ringed planet
+    planet = (r <= 2.6) & glass
+    hd[planet, :3] = K.hexrgb(0xe8a060); hd[planet & (yy < 9), :3] = K.hexrgb(0xffd090)
+    for dx in range(-5, 6): K.put(hd, 29 + dx, 9 + (1 if dx > 2 else -1 if dx < -2 else 0), 0xf0e0b0) if glass[9, min(63, 29 + dx)] else None
+    K.stamp(hd, 38, 5, ["33", "3."], {'3': 0xffe080})                               # the visor's glint
+    fh = N['fish']; ys, xs = np.nonzero(fh[..., 3] > 0)
+    if len(xs):                                                                    # the goldfish's own little helmet
+        cx, cy = int(xs.mean()), int(ys.mean()); r2, _ = rad(cx, cy)
+        ring = (r2 > 3.6) & (r2 <= 4.4)
+        fh[ring & (fh[..., 3] == 0)] = (200, 240, 255, 255)
+    K.stamp(N['torso'], 20, 22, ["oooo.", "o22o.", "o12oo", "o12o.", "o12o.", "o22o.", "oooo.", "rr.rr", "R..R."],
+            {'o': 0x2a2a34, '1': 0x8a8a9a, '2': 0xc8c8d4, 'r': 0xff7a20, 'R': 0xffd040}, only_empty=True)   # the jetpack
+    K.stamp(N['torso'], 31, 26, [".oo.", "o32o", "o23o", ".oo."], {'o': 0x1a2a6a, '2': 0x3a6aff, '3': 0xffe040}, only_full=True)   # mission patch
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        v = K.shade_of(sc[y, x]); sc[y, x, :3] = K.hexrgb(K.ramp_pick([0x7a0a10, 0xc81a20, 0xff4a3a, 0xff9a80], v, 0.2, 0.95))
+        if (x + y) % 6 == 0: sc[y, x, :3] = (255, 255, 255)
+
 def nu_luckyred(N):
     """LUCKY RED (from the shop's nesting dolls): a red silk jacket with gold cloud swirls and knotted gold buttons
     down the front, black hair tied with a red ribbon, gold-rimmed shades"""
@@ -917,6 +1005,7 @@ PART_LOOKS = {
     'amber': ('aero', 'aero_draw', AEG, {'aqua': {'to': 30, 'sat': 0.9, 'val': 1.0}, 'lime': {'to': 44, 'sat': 0.8, 'val': 1.1}, 'fish': {'to': 46, 'sat': 1.1, 'val': 1.2}}, aero_amber, (255, 176, 70)),
     'vapor': ('nu', 'nu_draw', NUG, {'acid': {'to': 318, 'sat': 0.8, 'val': 1.1}, 'hair': {'hue': 184, 'sat': 0.9, 'val': 1.05}, 'cloth': {'to': 270, 'sat': 1.6, 'val': 1.3}}, nu_vapor, (255, 122, 208)),
     'glam': ('nu', 'nu_draw', NUG, {'acid': {'to': 322, 'sat': 1.1, 'val': 1.15}, 'hair': {'sat': 0.2, 'val': 1.2}, 'cloth': {'to': 44, 'sat': 2.4, 'val': 2.2}}, nu_glam, (255, 74, 184)),
+    'starfarer': ('aero', 'aero_draw', AEG, {'aqua': {'to': 215, 'sat': 0.18, 'val': 0.95}, 'lime': {'to': 0, 'sat': 1.0, 'val': 1.0}}, aero_starfarer, (255, 140, 70)),
     'midnight': ('aero', 'aero_draw', AEG, {'aqua': {'to': 232, 'sat': 1.0, 'val': 0.6}, 'lime': {'to': 268, 'sat': 0.5, 'val': 1.1}, 'fish': {'to': 44, 'sat': 0.9, 'val': 1.15}}, aero_midnight, (122, 150, 255)),
     'surf': ('nu', 'nu_draw', NUG, {}, nu_surf, (42, 208, 208)),
     'frost': ('nu', 'nu_draw', NUG, {}, nu_frost, (138, 216, 255)),
@@ -954,12 +1043,12 @@ def build_parts(name):
     small, big = A.N.build_rig(look, A.FOLLOW)
     A.N.GHOST = ghost
     res = A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
-    if name in ('tide', 'holo'): retile(os.path.join(out, 'moves_sheet.png'))
+    if name in ('tide', 'holo', 'starfarer'): retile(os.path.join(out, 'moves_sheet.png'))
     return res
 
 # ====================================================================== run
 LOOKS = {'artist': build_mw, 'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
-         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts, 'frost': build_parts, 'holo': build_parts}
+         'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts, 'frost': build_parts, 'holo': build_parts, 'storm': build_ss, 'pharaoh': build_mw, 'starfarer': build_parts}
 
 if __name__ == '__main__':
     names = [a for a in sys.argv[1:] if a in LOOKS] or list(LOOKS)
