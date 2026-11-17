@@ -28,6 +28,8 @@ const C = { out: 0x0a120c, sky: [0x0a1a14, 0x10281c, 0x183a26, 0x24502e, 0x3a6a3
   moss: [0x1e4a18, 0x2e6a22, 0x48902e, 0x6ab840, 0x9ad860], armor: [0x141a18, 0x262e2a, 0x3a4640, 0x56665c, 0x7a8c80], bronze: [0x5a4020, 0x8a6a34, 0xb89a58],
   root: [0x24160c, 0x3e2814, 0x5a3c20, 0x7a5430], soul: [0x1ae890, 0x5affb8, 0xb0ffe0, 0xf0fff8], shroom: [0x2ad0c0, 0x8affe8], spore: 0xb8f070, leaf: [0x3a8a2a, 0x6ab840, 0xc8a040] };
 // his body (px): leg, torso, neck and head sizes, arm lengths, the maul's haft; walking speed (normal / BERSERK)
+// how big he's drawn and how big his body is in play (his skeleton, `rawJoints`, is scaled round his feet by this)
+const SIZE = 0.76;
 const DM = { thigh: 40, shin: 40, torso: 64, neck: 14, head: 30, upper: 38, fore: 36, haft: 104, walk: 2.0, mad: 3.0, range: 235 };
 // his poses (as KARNAX's: angles from straight down, + toward the front; sw = the maul from straight up)
 const LEGS = { t1: 0.3, s1: -0.04, t2: -0.26, s2: -0.36 };
@@ -51,11 +53,11 @@ const CHARGE = { wind: 34, speed: 7.5, hit: [12, [30, 6.4, 0.9]] };
 const VOLLEY = { n: [4, 6], every: 9, flight: 44, grav: 0.3, hit: [7, [60, 4.6, 0.55]] };
 // VERDANT FURY (BERSERK): spikes across the floor, spacing, delay, hit
 const FURY = { gap: 40, every: 4, hit: [10, [86, 5.8, 0.7]] };
-// THE SOUL: every `every` attacks it comes out to taunt for `out` frames (shorter on higher difficulties); how fast it
+// THE SOUL: every `every` attacks (`bloom` IN BLOOM) it comes out to taunt for `out` frames (shorter on higher difficulties); how fast it
 // flies; what a hit on it does (x mult); below `bare` health it stays in his head for good (and he goes BERSERK)
 // HIS DEATH (AT PEACE): when his soul slips free, when the grove starts to take him back, when the soul flies off, the whole length
 const REST = { free: 50, grow: 100, away: 220, len: 330 };
-const SOUL = { every: 4, out: 400, speed: 0.06, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
+const SOUL = { every: 4, bloom: 3, out: 400, speed: 0.06, mult: 1.2, bare: 0.25, lines: ['NYAH!', 'TOO SLOW!', 'OVER HERE!', 'HEHEHE!', 'CAN\'T CATCH ME!', 'BLEH!'] };
 // THE SHELL GAME (from the second soul-out): fakes, the circle round you, how fast it turns, a shuffle every `every`
 // frames lasting `spin`, how long a hit fake takes to burst, the burst's size and hit
 const DECOY = { n: 2, r: 74, turn: 0.011, every: 130, spin: 48, fuse: 10, burst: 56, hit: [9, [60, 5.6, 0.6]] };
@@ -85,9 +87,10 @@ export class KnightBossStage extends BossArena {
     this.kn = { x: 130, y: 0, dir: -1, p: { ...LEGS, ...POSES.kneel }, alpha: 1, walk: 0 };
     this.soul = { st: 'home', x: 130, y: -150, t: 0, flash: 0, vx: 0 };
     this.rageAt = SOUL.bare;
+    this.cages = []; this.oaks = []; this.acorns = []; this.vine = null;
     this.count = 0; this.uid = 0; this.spikes = []; this.marks = []; this.thorns = []; this.clouds = null; this.leaves = []; this.flies = [];
     for (let i = 0; i < 26; i++) this.flies.push({ x: (Math.random() - 0.5) * 600, y: -40 - Math.random() * 260, p: Math.random() * 6 });
-    this.sparkColor = 0x6ae060; this.bodyW = 110; this.bodyH = 170; this.lit = 0;
+    this.sparkColor = 0x6ae060; this.bodyW = 110 * SIZE; this.bodyH = 170 * SIZE; this.lit = 0;
   }
 
   /** Builds the forest backdrop, the giant trees and the archway, the flagstone floor and its roots. */
@@ -175,7 +178,7 @@ export class KnightBossStage extends BossArena {
   /** What the camera, the explosions and the CPU go for: his soul when it's out, else his head. */
   core() { if (this.soul.st !== 'home') return { x: this.soul.x, y: this.soul.y }; const j = this.joints(); return { x: j.head.x, y: j.head.y }; }
   /** The camera keeps the clearing and him in view (and his soul, out taunting you). */
-  camPoints() { return this.boss ? [{ x: -250, y: -230 }, { x: 250, y: 0 }] : []; }
+  camPoints() { return this.boss ? [{ x: -250, y: this.elder ? -290 : -230 }, { x: 250, y: 0 }] : []; }   // (IN BLOOM: high enough for his canopy)
   /** Whether his soul is bared for good (low health): it shows in his torn-open helm and can always be hit. */
   bare() { return this.boss && this.boss.hp <= this.boss.max * SOUL.bare; }
   /**
@@ -185,9 +188,10 @@ export class KnightBossStage extends BossArena {
   hurt() {
     const j = this.joints(), out = [], S = this.soul;
     if (S.st === 'out' || S.st === 'back') out.push({ x1: S.x - 20, y1: S.y - 20, x2: S.x + 20, y2: S.y + 20, mult: SOUL.mult, soul: true });
-    out.push({ x1: j.head.x - 30, y1: j.head.y - 34, x2: j.head.x + 30, y2: j.head.y + 26, mult: this.bare() ? 0.8 : 0 });
-    out.push({ x1: Math.min(j.hip.x, j.chest.x) - 40, y1: j.chest.y - 12, x2: Math.max(j.hip.x, j.chest.x) + 40, y2: j.hip.y + 24, mult: 0 });
-    out.push({ x1: Math.min(j.ft1.x, j.ft2.x) - 16, y1: j.hip.y, x2: Math.max(j.ft1.x, j.ft2.x) + 16, y2: Math.max(j.ft1.y, j.ft2.y), mult: 0 });
+    const z = SIZE;
+    out.push({ x1: j.head.x - 30 * z, y1: j.head.y - 34 * z, x2: j.head.x + 30 * z, y2: j.head.y + 26 * z, mult: this.bare() ? 0.8 : 0 });
+    out.push({ x1: Math.min(j.hip.x, j.chest.x) - 40 * z, y1: j.chest.y - 12 * z, x2: Math.max(j.hip.x, j.chest.x) + 40 * z, y2: j.hip.y + 24 * z, mult: 0 });
+    out.push({ x1: Math.min(j.ft1.x, j.ft2.x) - 16 * z, y1: j.hip.y, x2: Math.max(j.ft1.x, j.ft2.x) + 16 * z, y2: Math.max(j.ft1.y, j.ft2.y), mult: 0 });
     return out;
   }
   /** Hitting armour: now and then a little "NO EFFECT" so it's clear where to hit. */
@@ -197,6 +201,12 @@ export class KnightBossStage extends BossArena {
 
   /** His skeleton in world space (hips set so his lower foot is on the floor) - as KARNAX's. */
   joints() {
+    const R = this.rawJoints(), D = this.kn, out = {};
+    for (const k of Object.keys(R)) out[k] = k === 'sv' ? R.sv : { x: D.x + (R[k].x - D.x) * SIZE, y: D.y + (R[k].y - D.y) * SIZE };
+    return out;
+  }
+  /** His skeleton at full drawing size (before `SIZE`): what drawKnight / drawElder paint, on a layer scaled by SIZE round his feet. */
+  rawJoints() {
     const D = this.kn, p = D.p, d = D.dir, down = (a, l) => ({ x: Math.sin(a) * d * l, y: Math.cos(a) * l });
     const k1 = down(p.t1, DM.thigh), f1 = down(p.s1, DM.shin), k2 = down(p.t2, DM.thigh), f2 = down(p.s2, DM.shin);
     const hip = { x: D.x, y: D.y - Math.max(k1.y + f1.y, k2.y + f2.y) };
@@ -207,7 +217,7 @@ export class KnightBossStage extends BossArena {
     const e1 = add(s1, down(p.u1, DM.upper)), h1 = add(e1, down(p.f1, DM.fore)), e2 = add(s2, down(p.u2, DM.upper)), h2 = add(e2, down(p.f2, DM.fore));
     const sv = { x: Math.sin(p.sw) * d, y: -Math.cos(p.sw) };
     const kn1 = add(hip, k1), ft1 = add(kn1, f1), kn2 = add(hip, k2), ft2 = add(kn2, f2);
-    const L = sv.y > 0 && h1.y + sv.y * DM.haft > D.y - 26 ? Math.max(30, (D.y - 26 - h1.y) / sv.y) : DM.haft;   // the maul's head rests on the floor, not in it
+    const L = sv.y > 0 && h1.y + sv.y * DM.haft > D.y - 33 ? Math.max(30, (D.y - 33 - h1.y) / sv.y) : DM.haft;   // the maul's head rests on the floor, not in it
     return { hip, chest, head, s1, e1, h1, s2, e2, h2, kn1, ft1, kn2, ft2, sv, tip: { x: h1.x + sv.x * L, y: h1.y + sv.y * L } };
   }
   /** Moves his pose part of the way (k) toward a named pose. */
@@ -228,15 +238,16 @@ export class KnightBossStage extends BossArena {
   maulHits(out, id, [dmg, kb]) {
     const j = this.joints();
     for (const q of [0.5, 0.8]) { const x = lerp(j.h1.x, j.tip.x, q), y = lerp(j.h1.y, j.tip.y, q); out.push(this.bhit(id + q, x - 16, y - 16, x + 16, y + 16, dmg, kb, { dirX: this.kn.dir })); }
-    out.push(this.bhit(id + 'h', j.tip.x - 30, j.tip.y - 30, j.tip.x + 30, j.tip.y + 30, dmg, kb, { dirX: this.kn.dir }));
+    out.push(this.bhit(id + 'h', j.tip.x - 30 * SIZE, j.tip.y - 30 * SIZE, j.tip.x + 30 * SIZE, j.tip.y + 30 * SIZE, dmg, kb, { dirX: this.kn.dir }));
   }
   /** A thorn spike erupting from the floor at x after `delay` frames. */
   spike(x, delay, hit, tag) { if (Math.abs(x) < 262) this.spikes.push({ x, t: -delay, hit, id: 'kn-' + tag + '-' + (++this.uid) }); }
   /** What he does next: every few attacks his SOUL comes out to taunt (until it's bared); BERSERK adds VERDANT FURY; IN BLOOM adds its own (knightBloom.js). */
   pattern(phase) {
-    if (!this.bare() && this.count % SOUL.every === SOUL.every - 1) return ['soul'];
+    const ev = this.elder ? SOUL.bloom : SOUL.every;                                     // (IN BLOOM his soul gets restless: out more often)
+    if (!this.bare() && this.count % ev === ev - 1) return ['soul'];
     if (this.elder) return this.bloomPattern(phase);
-    return phase === 1 ? ['slam', 'grasp', 'charge', 'volley'] : ['slam', 'grasp', 'charge', 'volley', 'fury', 'slam'];
+    return phase === 1 ? ['slam', 'grasp', 'charge', 'volley', 'hook', 'cage'] : ['slam', 'grasp', 'charge', 'volley', 'fury', 'slam', 'hook', 'cage'];
   }
   /** Counts his attacks (every few, the soul comes out). */
   tally() { this.count++; }
@@ -437,7 +448,7 @@ export class KnightBossStage extends BossArena {
     const S = this.soul;
     if (S.st === 'free') { x.fillStyle(0x9affd0, 0.15); x.fillCircle(S.x, S.y, 24 + Math.sin(t * 0.2) * 4); this.drawSoul(x, S.x, S.y, 1, false, false); }
   }
-  onDeath() { this.rings = []; this.seeds = []; if (this.eld) this.eld.roots = 0; this.bloom = null; this.restK = 0; this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
+  onDeath() { this.rings = []; this.seeds = []; this.vine = null; this.cages = []; this.oaks = []; this.acorns = []; if (this.eld) this.eld.roots = 0; this.bloom = null; this.restK = 0; this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
 
   /**
    * THE ENTRANCE (k = 0..1): his empty armour kneels in the clearing, dark and overgrown; his soul drifts in out of
@@ -512,7 +523,8 @@ export class KnightBossStage extends BossArena {
     for (let i = 0; i < 5; i++) { const x0 = -260 + i * 130 + Math.sin(t * 0.01 + i) * 10, a = 0.06 + 0.03 * Math.sin(t * 0.02 + i * 2); r.fillStyle(this.elder ? 0xffe0a0 : 0xe8f8a0, this.elder ? a * 1.7 : a); r.fillPoints([{ x: x0, y: -420 }, { x: x0 + 40, y: -420 }, { x: x0 + 160, y: 100 }, { x: x0 + 80, y: 100 }], true); }
     g.clear(); x.clear();
     if (!B) { this.aim('kneel', 1); this.kn.x = 0; this.kn.dir = 1; this.lit = 0; this.soul.st = 'home'; }
-    this.drawKnight(g, B ? B.flash > 0 && this.bare() : false);
+    g.setScale(SIZE).setPosition(this.kn.x * (1 - SIZE), this.kn.y * (1 - SIZE));     // (he's drawn at full size, shrunk round his feet)
+    if (this.elderLook()) this.drawElder(g, B ? B.flash > 0 && this.bare() : false); else this.drawKnight(g, B ? B.flash > 0 && this.bare() : false);
     this.drawRest(x); this.drawBloomFx(x);
     const S = this.soul;
     if (S.st === 'out' || S.st === 'back') this.drawSoul(x, S.x, S.y, 1, S.flash > 0, true);
@@ -581,7 +593,7 @@ export class KnightBossStage extends BossArena {
    * maul arm and the maul (a boulder bound with roots to a trunk). Vines with leaves sprout from the joints.
    */
   drawKnight(g, flash) {
-    const j = this.joints(), D = this.kn, d = D.dir, A = C.armor, berserk = this.boss && this.boss.phase === 2, t = this.t;
+    const j = this.rawJoints(), D = this.kn, d = D.dir, A = C.armor, berserk = this.boss && this.boss.phase === 2, t = this.t;
     const ac = flash ? [0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff] : A;
     const quad = (a, b, wa, wb) => { const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L; return [{ x: a.x + nx * wa, y: a.y + ny * wa }, { x: b.x + nx * wb, y: b.y + ny * wb }, { x: b.x - nx * wb, y: b.y - ny * wb }, { x: a.x - nx * wa, y: a.y - ny * wa }]; };
     const roots = (a, b, w, n) => { for (let i = 0; i < n; i++) { const q1 = (i + 0.2) / n, q2 = (i + 0.75) / n, L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L; const p1 = { x: lerp(a.x, b.x, q1) + nx * w, y: lerp(a.y, b.y, q1) + ny * w }, p2 = { x: lerp(a.x, b.x, q2) - nx * w, y: lerp(a.y, b.y, q2) - ny * w }; g.lineStyle(5, C.out, 1); g.lineBetween(p1.x, p1.y, p2.x, p2.y); g.lineStyle(3, C.root[2], 1); g.lineBetween(p1.x, p1.y, p2.x, p2.y); g.lineStyle(0); } };
@@ -614,7 +626,6 @@ export class KnightBossStage extends BossArena {
     // the front leg
     limb(j.hip, j.kn1, 17, 13, [ac[2], ac[3]]); limb(j.kn1, j.ft1, 13, 11, [ac[2], ac[3]]); g.fillStyle(C.out, 1); g.fillRoundedRect(j.ft1.x - 15 + d * 5, j.ft1.y - 11, 32, 13, 4); g.fillStyle(ac[3], 1); g.fillRoundedRect(j.ft1.x - 13 + d * 5, j.ft1.y - 9, 28, 9, 3);
     leaf(j.kn1.x, j.kn1.y, -1.2); leaf(j.kn2.x, j.kn2.y, -2);
-    this.drawBloomBody(g, j, d);                                                       // (IN BLOOM: the flowering crown, blossoms)
     // the head: antlers, the great helm, the visor
     const h = j.head, tilt = D.p.lean + D.p.head, HK = 1.45;
     const H = (lx, ly) => { lx *= HK; ly *= HK; const c = Math.cos(tilt), s = Math.sin(tilt); return { x: h.x + (lx * c - ly * s) * d, y: h.y + lx * s + ly * c }; };
