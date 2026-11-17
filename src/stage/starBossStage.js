@@ -632,7 +632,7 @@ export class StarBossStage extends BossArena {
       b.x += b.dir * roll; b.spin += b.dir * roll / b.r;
       if (this.t % 4 === 0) match.particles.push({ x: b.x - b.dir * b.r, y: -3, vx: -b.dir * 1.5, vy: -1, life: 14, color: C.marble[2], size: 2 });
       if (this.t % 18 === 0) sfx('rumble', 0.4, 1.6);
-      if (Math.abs(b.x) > 262 - b.r && Math.sign(b.x) === b.dir) {
+      if (Math.abs(b.x) > Math.min(262, this.platforms[0].x2 - 3) - b.r && Math.sign(b.x) === b.dir) {
         if (b.bounce < PLANET.bounces[(this.boss && this.boss.phase === 2) ? 1 : 0]) { b.bounce++; b.dir = -b.dir; b.id = this.sid('planet'); sfx('clang', 0.9, 0.5); match.shake(6, 8); }
         else { b.st = 'home'; sfx('summon', 0.5, 1.2); }
       }

@@ -39,6 +39,9 @@ const CROWN_SZ = 1.35;
 // shooting stars, the rubble (warning shadow, fall speed, half-width, hit), a shooting star (warning line, flight, size, hit), sky streaks
 const CHAOS = { breakEvery: 280, props: ['p2', 'ringB', 'colL0', 'colR1', 'p0', 'ringA', 'colR0', 'colL1', 'p1'], every: 170,
   rock: { warn: 54, fall: 15, w: 24, hit: [7, [80, 4.6, 0.45]] }, shoot: { warn: 40, fly: 18, r: 16, hit: [6, [45, 4.2, 0.4]] }, streaks: 3, max: 130 };
+// THE STAGE BREAKS (as THE STAR KING): when (frames into the chaos) each piece goes - a ledge, or the floor's edges
+// crumbling in to that half-width - and how long its cracks glow first
+const QUAKE = { steps: [[540, 'ledgeL'], [1080, 'ledgeR'], [1620, 215], [2400, 180]], warn: 110 };
 // where each prop is (for its debris) and its colours
 const PROPS = { tele: [-300, -170, [0xb8801e, 0xe8b440, 0x7a4a10]], colL0: [-300, -230, [0xe8e4f0, 0xb8b4c8, 0xffffff]], colL1: [-360, -150, [0xe8e4f0, 0xb8b4c8, 0xffffff]],
   colR0: [300, -230, [0xe8e4f0, 0xb8b4c8, 0xffffff]], colR1: [360, -150, [0xe8e4f0, 0xb8b4c8, 0xffffff]], ringA: [-250, -140, [0xb8801e, 0xe8b440]], ringB: [230, -200, [0xb8801e, 0xe8b440]],
@@ -255,7 +258,8 @@ export class KingPhase {
         if (tg && tg.y < -60 && (a.t - HROLL.lift) % HROLL.hop === 0) { F.vy = HROLL.hopV; sfx('whoosh', 0.6, 0.9); }
         if (a.t % 2 === 0 && Math.abs(F.vx) > 3) match.particles.push({ x: F.x - Math.sign(F.vx) * R, y: -3, vx: -F.vx * 0.3, vy: -1 - Math.random(), life: 16, color: K.fire[a.t % 4], size: 2 });
       }
-      if (Math.abs(F.x) > HROLL.edge) { F.x = Math.sign(F.x) * HROLL.edge; F.vx = -F.vx * 0.6; sfx('clang', 0.6, 0.6); match.shake(6, 8); }
+      const edge = Math.min(HROLL.edge, this.platforms[0].x2 - HROLL.r);
+      if (Math.abs(F.x) > edge) { F.x = Math.sign(F.x) * edge; F.vx = -F.vx * 0.6; sfx('clang', 0.6, 0.6); match.shake(6, 8); }
       this.headSpin = (this.headSpin || 0) + F.vx / R;
       if (a.t % 24 === 0) sfx('rumble', 0.3, 1.2);
       out.push(this.bhit('hr' + a.id + '-' + Math.floor(a.t / HROLL.rehit), F.x - R, F.y - R, F.x + R, F.y + R, ...HROLL.hit, { dirX: Math.sign(F.vx) || 1 }));
@@ -285,6 +289,29 @@ export class KingPhase {
     if (match.popText && id === 'tele') match.popText({ x: x + 60, y: y - 40 }, 'CRASH!', '#ffe070');
   }
   /**
+   * THE STAGE BREAKS: a ledge ('ledgeL' / 'ledgeR') crumbles and falls away, or (a number) both ends of the floor break
+   * off in to that half-width - anyone standing there drops (the platform's ends move, so they walk off it). The floor
+   * is repainted, the pieces tumble down as debris and a new glowing crack spreads across the floor.
+   */
+  crumbleNow(match, what) {
+    this.crumble = null; this.debris = this.debris || []; this.fcracks = this.fcracks || [];
+    const chunk = (x, y, w, h, cols, n) => { for (let i = 0; i < n; i++) this.debris.push({ x: x + Math.random() * w, y: y + Math.random() * h, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 3, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.3, s: 9 + Math.random() * 16, c: cols[i % cols.length] }); };
+    const M = [0xe8e4f0, 0xb8b4c8, 0x8a5aff, 0xe8b440, 0x3a2a5a];
+    if (typeof what === 'string') {
+      const p = this.platforms.find((q, i) => i > 0 && (what === 'ledgeL' ? q.x1 < 0 : q.x1 > 0)); if (!p) return;
+      chunk(p.x1, p.y - 4, p.x2 - p.x1, 50, M, 30);
+      p.x1 = p.x2 = 1e5; this.platforms = this.platforms.filter((q) => q !== p);           // (whoever stood on it falls)
+    } else {
+      const P = this.platforms[0];
+      if (P.x2 > what) { chunk(what, -4, P.x2 - what, 140, M, 26); chunk(-P.x2, -4, P.x2 - what, 140, M, 26); P.x1 = -what; P.x2 = what; }
+    }
+    const x0 = (Math.random() - 0.5) * 300, pts = [{ x: x0, y: 0 }]; for (let i = 0; i < 6; i++) { const l = pts[pts.length - 1]; pts.push({ x: l.x + (Math.random() - 0.5) * 40, y: l.y + 8 }); }
+    this.fcracks.push(pts);
+    this.floorG.clear(); this.paintFloor(this.floorG);
+    sfx('bighit', 1, 0.4); sfx('rumble', 1, 0.4); sfx('glass', 0.8, 0.5); match.shake(16, 26);
+    match.popText({ x: 0, y: -300 }, 'CRASH!', '#ff9a6a');
+  }
+  /**
    * THE CHAOS, every frame as THE STAR KING: stars streak across the sky every which way, the observatory snaps apart
    * piece by piece (breakProp), and the arena turns on you - rubble falls on a warning shadow, shooting stars streak
    * across on a warning line. `out` gets the hits (nothing during a cutscene).
@@ -297,6 +324,11 @@ export class KingPhase {
     for (const s of S) { s.x += s.vx; s.y += s.vy; s.life--; } this.cstreaks = S.filter((s) => s.life > 0);
     for (const d of this.debris || []) { d.vy += 0.3; d.x += d.vx; d.y += d.vy; d.a += d.va; } this.debris = (this.debris || []).filter((d) => d.y < 420);
     if (dying || this.cut) return;
+    for (const [at, what] of QUAKE.steps) {                                            // THE STAGE BREAKS: cracks glow, then it goes
+      if (this.chaosT === at - QUAKE.warn) { this.crumble = { what, t: 0 }; sfx('rumble', 1, 0.5); match.popText({ x: 0, y: -300 }, typeof what === 'number' ? 'THE FLOOR IS BREAKING!' : 'THE LEDGE IS CRUMBLING!', '#ffb070'); }
+      if (this.chaosT === at) this.crumbleNow(match, what);
+    }
+    if (this.crumble) { this.crumble.t++; if (this.chaosT % 8 === 0) match.shake(2 + this.crumble.t / 30, 8); }
     if (this.chaosT % CHAOS.breakEvery === 0) { const next = CHAOS.props.find((id) => !(this.ruin && this.ruin.has(id))); if (next) this.breakProp(match, next); }
     if (this.chaosT % 70 === 0) match.shake(2, 20);
     const H = this.hz || (this.hz = []);
@@ -331,9 +363,18 @@ export class KingPhase {
     for (const s of this.cstreaks || []) { const L = 3; g.lineStyle(1.5, s.c, 0.7 * a * Math.min(1, s.life / 15)); g.lineBetween(s.x, s.y, s.x - s.vx * L, s.y - s.vy * L); g.fillStyle(0xffffff, a); g.fillRect(s.x - 1, s.y - 1, 2, 2); }
     g.lineStyle(0);
   }
-  /** The chaos in front: debris of the broken props tumbling, rubble's warning shadows and the rubble, shooting stars' warning lines and the stars. */
+  /** The chaos in front: the floor's glowing cracks, THE STAGE BREAKS' warnings, debris of the broken props tumbling, rubble's warning shadows and the rubble, shooting stars' warning lines and the stars. */
   drawChaosFx(x) {
-    const t = this.t;
+    const t = this.t, pulse = 0.6 + 0.4 * Math.sin(t * 0.15), P = this.platforms[0];
+    for (const c of this.fcracks || []) { x.lineStyle(4, K.out, 0.9); for (let i = 1; i < c.length; i++) x.lineBetween(c[i - 1].x, c[i - 1].y, c[i].x, c[i].y); x.lineStyle(2, K.fire[1], pulse); for (let i = 1; i < c.length; i++) x.lineBetween(c[i - 1].x, c[i - 1].y, c[i].x, c[i].y); }
+    if (this.crumble) {                                                                 // the warning: cracks glowing where it's about to go
+      const W = this.crumble.what, k = Math.min(1, this.crumble.t / QUAKE.warn), fl = t % 8 < 4 ? 1 : 0.5;
+      const zig = (x1, y1, x2, y2, n) => { const pts = []; for (let i = 0; i <= n; i++) { const q = i / n; pts.push({ x: x1 + (x2 - x1) * q + (i % 2 ? 4 : -4) * (i && i < n ? 1 : 0), y: y1 + (y2 - y1) * q + (i % 2 ? 3 : -3) * (i && i < n ? 1 : 0) }); } x.lineStyle(5, K.out, 1); for (let i = 1; i < pts.length; i++) x.lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y); x.lineStyle(2.5, K.fire[2], fl * (0.4 + 0.6 * k)); for (let i = 1; i < pts.length; i++) x.lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y); };
+      if (typeof W === 'string') { const p = this.platforms.find((q, i) => i > 0 && (W === 'ledgeL' ? q.x1 < 0 : q.x1 > 0)); if (p) { zig(p.x1 + 6, p.y + 2, p.x2 - 6, p.y + 6, 7); zig((p.x1 + p.x2) / 2, p.y, (p.x1 + p.x2) / 2 + 10, p.y + 40 * k, 4); x.fillStyle(K.fire[1], 0.15 * k * fl); x.fillRect(p.x1, p.y - 4, p.x2 - p.x1, 16); } }
+      else for (const sd of [-1, 1]) { const ex = sd * W; zig(ex, -2, ex + sd * 6, 50, 6); x.fillStyle(K.fire[1], 0.18 * k * fl); x.fillRect(sd > 0 ? ex : -P.x2, -6, P.x2 - W, 10); }
+      x.lineStyle(0);
+    }
+    x.lineStyle(0);
     for (const d of this.debris || []) { const c = Math.cos(d.a) * d.s, s = Math.sin(d.a) * d.s; x.fillStyle(K.out, 0.9); x.fillTriangle(d.x - c, d.y - s, d.x + s, d.y - c, d.x + c * 0.6, d.y + s * 0.6); x.fillStyle(d.c, 1); x.fillTriangle(d.x - c * 0.8, d.y - s * 0.8, d.x + s * 0.8, d.y - c * 0.8, d.x + c * 0.4, d.y + s * 0.4); }
     for (const z of this.hz || []) {
       if (z.k === 'rock') {
