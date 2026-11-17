@@ -169,31 +169,37 @@ export class StarBossStage extends BossArena {
   /** Behind him: the great brass orrery rings, broken marble columns either side and a giant brass telescope. */
   paintBack(g) {
     const G = C.gold, M = C.marble;
-    for (const [rx, ry, rot, w] of [[340, 74, -0.12, 4], [300, 52, 0.18, 3]]) {                 // the orrery rings round the arena
+    const ruin = this.ruin || new Set();                                                         // (what THE STAR KING's chaos has broken: starKing.js)
+    [[340, 74, -0.12, 4, 'ringA'], [300, 52, 0.18, 3, 'ringB']].forEach(([rx, ry, rot, w, id]) => {   // the orrery rings round the arena
       const pts = []; for (let i = 0; i <= 60; i++) { const q = i / 60 * Math.PI * 2, x = Math.cos(q) * rx, y = Math.sin(q) * ry; pts.push({ x: x * Math.cos(rot) - y * Math.sin(rot), y: -170 + x * Math.sin(rot) + y * Math.cos(rot) }); }
-      g.lineStyle(w + 3, C.out, 0.8); g.strokePoints(pts, true); g.lineStyle(w, G[1], 0.85); g.strokePoints(pts, true); g.lineStyle(1, G[3], 0.5); g.strokePoints(pts, true);
-    }
+      const parts = ruin.has(id) ? [pts.slice(0, 18), pts.slice(31).map((p, i) => ({ x: p.x, y: p.y + (i < 8 ? (8 - i) * 6 : 0) }))] : [pts];   // (snapped: a gap, one end sagging)
+      for (const q of parts) { g.lineStyle(w + 3, C.out, 0.8); g.strokePoints(q, !ruin.has(id)); g.lineStyle(w, G[1], 0.85); g.strokePoints(q, !ruin.has(id)); g.lineStyle(1, G[3], 0.5); g.strokePoints(q, !ruin.has(id)); }
+    });
     g.lineStyle(0);
-    for (const [x, y, r, c] of [[-318, -196, 9, 0xd86a4a], [292, -128, 7, 0x6ac8e8], [-140, -236, 5, 0xe8d08a]]) { g.fillStyle(C.out, 1); g.fillCircle(x, y, r + 2); g.fillStyle(c, 1); g.fillCircle(x, y, r); g.fillStyle(0xffffff, 0.5); g.fillCircle(x - r * 0.35, y - r * 0.35, r * 0.35); }
+    for (const [x, y, r, c, id] of [[-318, -196, 9, 0xd86a4a, 'p0'], [292, -128, 7, 0x6ac8e8, 'p1'], [-140, -236, 5, 0xe8d08a, 'p2']]) {
+      if (ruin.has(id)) continue; g.fillStyle(C.out, 1); g.fillCircle(x, y, r + 2); g.fillStyle(c, 1); g.fillCircle(x, y, r); g.fillStyle(0xffffff, 0.5); g.fillCircle(x - r * 0.35, y - r * 0.35, r * 0.35); }
     for (const s of [-1, 1]) {                                                                   // broken columns
-      for (const [cx, top] of [[s * 300, -230], [s * 360, -150]]) {
+      [[s * 300, -230], [s * 360, -150]].forEach(([cx, top0], ci) => {
+        const broke = ruin.has('col' + (s < 0 ? 'L' : 'R') + ci), top = top0 + (broke ? 120 : 0);
         g.fillStyle(C.out, 1); g.fillRect(cx - 22, top, 44, 330 - top);
         g.fillStyle(M[1], 1); g.fillRect(cx - 19, top + 2, 38, 330 - top); for (let i = -14; i <= 14; i += 7) { g.fillStyle(M[i % 14 ? 2 : 0], 1); g.fillRect(cx + i - 2, top + 2, 3, 330 - top); }
-        g.fillStyle(C.out, 1); g.fillTriangle(cx - 22, top, cx + 22, top, cx + s * 10, top - 26); g.fillStyle(M[2], 1); g.fillTriangle(cx - 18, top + 1, cx + 18, top + 1, cx + s * 10, top - 22);
+        if (broke) { for (let k = 0; k < 4; k++) { g.fillStyle(C.out, 1); g.fillTriangle(cx - 22 + k * 11, top + 1, cx - 11 + k * 11, top + 1, cx - 16 + k * 11, top - 8 - (k % 2) * 8); } }   // (sheared off, jagged)
+        else { g.fillStyle(C.out, 1); g.fillTriangle(cx - 22, top, cx + 22, top, cx + s * 10, top - 26); g.fillStyle(M[2], 1); g.fillTriangle(cx - 18, top + 1, cx + 18, top + 1, cx + s * 10, top - 22); }
         g.fillStyle(G[1], 1); g.fillRect(cx - 22, top + 40, 44, 5); g.fillStyle(G[2], 1); g.fillRect(cx - 22, top + 40, 44, 2);
-      }
+      });
     }
     // the giant brass telescope, left, pointing up at him
-    const tx = -404, ty = -40, ang = -0.95, L = 230;
+    const tx = -404, ty = -40, ang = -0.95, tb = ruin.has('tele'), L = tb ? 120 : 230;   // (snapped in half by the chaos)
     const pt = (d, o) => ({ x: tx + Math.cos(ang) * d - Math.sin(ang) * o, y: ty + Math.sin(ang) * d + Math.cos(ang) * o });
     g.fillStyle(C.out, 1); g.fillRect(tx - 34, ty - 4, 68, 120); g.fillStyle(G[0], 1); g.fillRect(tx - 30, ty, 60, 116); g.fillStyle(G[1], 1); g.fillRect(tx - 30, ty, 60, 6);
-    for (const [d0, d1, r0, r1] of [[-30, 60, 18, 22], [60, 150, 22, 26], [150, L, 26, 32]]) {
+    for (const [d0, d1, r0, r1] of (tb ? [[-30, 60, 18, 22], [60, L, 22, 25]] : [[-30, 60, 18, 22], [60, 150, 22, 26], [150, L, 26, 32]])) {
       g.fillStyle(C.out, 1); g.fillPoints([pt(d0, -r0 - 3), pt(d1, -r1 - 3), pt(d1, r1 + 3), pt(d0, r0 + 3)], true);
       g.fillStyle(G[1], 1); g.fillPoints([pt(d0, -r0), pt(d1, -r1), pt(d1, r1), pt(d0, r0)], true);
       g.fillStyle(G[2], 1); g.fillPoints([pt(d0, -r0), pt(d1, -r1), pt(d1, -r1 * 0.4), pt(d0, -r0 * 0.4)], true);
       g.fillStyle(G[0], 1); g.fillPoints([pt(d1 - 6, -r1 - 2), pt(d1, -r1 - 2), pt(d1, r1 + 2), pt(d1 - 6, r1 + 2)], true);
     }
-    const lens = pt(L, 0); g.fillStyle(C.out, 1); g.fillCircle(lens.x, lens.y, 30); g.fillStyle(0x6ac8ff, 0.5); g.fillCircle(lens.x, lens.y, 26); g.fillStyle(0xffffff, 0.6); g.fillCircle(lens.x - 7, lens.y - 7, 7);
+    if (tb) { for (let k = -2; k <= 2; k++) { g.fillStyle(C.out, 1); g.fillPoints([pt(L - 2, k * 10 - 6), pt(L + 10 + (k % 2) * 8, k * 10), pt(L - 2, k * 10 + 6)], true); } }   // (the jagged break)
+    else { const lens = pt(L, 0); g.fillStyle(C.out, 1); g.fillCircle(lens.x, lens.y, 30); g.fillStyle(0x6ac8ff, 0.5); g.fillCircle(lens.x, lens.y, 26); g.fillStyle(0xffffff, 0.6); g.fillCircle(lens.x - 7, lens.y - 7, 7); }
     g.fillStyle(G[2], 1); g.fillCircle(tx, ty, 12); g.fillStyle(G[3], 1); g.fillCircle(tx - 3, ty - 3, 4);
   }
 
@@ -271,7 +277,7 @@ export class StarBossStage extends BossArena {
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; match.particles.push({ x: x + Math.cos(a) * 18, y: y + Math.sin(a) * 18, vx: -Math.cos(a) * 1.5, vy: -Math.sin(a) * 1.5, life: 14, color: C.shell[1], size: 2 }); }
   }
   /** A real hit (the shell is down): he flinches, his eyes flare. */
-  onHurt(match, r) { this.v.shake = 4; if (this.inside) this.heartHurtFx(match, r); }
+  onHurt(match, r) { this.v.shake = 4; if (this.inside) this.heartHurtFx(match, r); if (this.crowned) this.kingHurtFx(match, r); }
 
   /** His pattern: STARFALL whenever the sky has run out of stars, DEVOUR when stars lie loose, else his attacks. */
   pattern(phase) {
@@ -789,7 +795,7 @@ export class StarBossStage extends BossArena {
         if (this.brk % 40 === 0) sfx('rumble', 0.3, 1.5);
         if (this.brk === 90) match.popText({ x: 0, y: -150 }, 'THE VOID IS CLOSING!', '#c8a8ff');
         if (this.brk === 0) { sfx('summon', 1, 0.5); sfx('roar', 0.8, 0.9); match.shake(8, 16); B.wait = 50; }
-      } else if (this.crowned && !B.dying) { this.v.slump = lerp(this.v.slump, this.kingSlump(), 0.06); this.v.shell = 0; this.stepKing(match); }   // (THE STAR KING: starKing.js)
+      } else if (this.crowned && !B.dying) { this.v.slump = lerp(this.v.slump, this.kingSlump(), 0.06); this.v.shell = 0; this.stepKing(match, out); }   // (THE STAR KING: starKing.js)
       else if (!B.dying && !this.headless) { this.v.slump = lerp(this.v.slump, 0, 0.06); this.v.shell = Math.min(1, this.v.shell + 0.04); }
       if (!this.low && !this.headless && !this.crowned && B.hp <= B.max * LOW.at && !B.dying) { this.low = true; match.popText({ x: 0, y: -240 }, this.inside ? 'THE LAST LIGHT - IT PANICS!' : 'THE LAST LIGHT', '#ff9a6a'); sfx('roar', 0.9, 0.5); }
       this.bossStep(match, out);
@@ -847,6 +853,7 @@ export class StarBossStage extends BossArena {
     if (this.ecl > 0.01) { g.fillStyle(0x5a0a10, 0.35 * this.ecl); g.fillRect(-760, -480, 1520, 1300); g.fillStyle(0xff3a2a, 0.08 * this.ecl); g.fillCircle(0, -220, 380); }
     const gone = this.voidK ? Math.floor(this.voidK * this.skyStars.length) : 0;
     this.skyStars.forEach((s, i) => { if (i < gone && this.v.vis < 1) return; const a = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.03 + s.p)); g.fillStyle(0xffffff, a); g.fillRect(s.x, s.y, s.s, s.s); if (s.s > 1 && a > 0.85) { g.fillStyle(0xffffff, 0.4); g.fillRect(s.x - 2, s.y + 0.5, 6, 1); g.fillRect(s.x + 0.5, s.y - 2, 1, 6); } });
+    if (this.chaos) this.drawChaosSky(g);                                                       // (THE STAR KING: stars flying everywhere - starKing.js)
   }
   /** The effects in front: meteors and their marks, waves, the well, constellation, the sun and its rings, comets, the stars, the flare, the death's light. */
   drawEffects(x, j) {

@@ -14,11 +14,14 @@
 //   into the earth; roots burst up under each player after their mark glows), SHIELD CHARGE (shield up, he charges
 //   across the clearing), THORN VOLLEY (thorns burst from the vines on his back and arc onto you), VERDANT FURY
 //   (BERSERK: roots erupt across the whole floor from one side to the other).
+//   At half health the grove claims him: THORNWARD IN BLOOM (knightBloom.js) - a flowering crown of branches,
+//   blossoms all over him, a golden grove - with PETAL STORM and SEEDFALL.
 // Stage hazards (also in VS, where his empty armour kneels by the archway): THORN ROOTS (a line of thorns erupts
 // across the floor - jump it) and SPORE BURST (the glowing mushrooms puff clouds of stinging spores).
 import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
 import { sfx } from '../audio/sfx.js';
+import { BloomPhase } from './knightBloom.js';
 
 const C = { out: 0x0a120c, sky: [0x0a1a14, 0x10281c, 0x183a26, 0x24502e, 0x3a6a3a, 0x5a8a4a, 0x8ab060],
   far: [0x14302a, 0x1c3e32, 0x26503c], bark: [0x1e140c, 0x2e2014, 0x44301c, 0x5e4428, 0x7a5c38], stone: [0x2a302a, 0x3e463c, 0x56604f, 0x727c68, 0x929c84],
@@ -229,9 +232,10 @@ export class KnightBossStage extends BossArena {
   }
   /** A thorn spike erupting from the floor at x after `delay` frames. */
   spike(x, delay, hit, tag) { if (Math.abs(x) < 262) this.spikes.push({ x, t: -delay, hit, id: 'kn-' + tag + '-' + (++this.uid) }); }
-  /** What he does next: every few attacks his SOUL comes out to taunt (until it's bared); BERSERK adds VERDANT FURY. */
+  /** What he does next: every few attacks his SOUL comes out to taunt (until it's bared); BERSERK adds VERDANT FURY; IN BLOOM adds its own (knightBloom.js). */
   pattern(phase) {
     if (!this.bare() && this.count % SOUL.every === SOUL.every - 1) return ['soul'];
+    if (this.elder) return this.bloomPattern(phase);
     return phase === 1 ? ['slam', 'grasp', 'charge', 'volley'] : ['slam', 'grasp', 'charge', 'volley', 'fury', 'slam'];
   }
   /** Counts his attacks (every few, the soul comes out). */
@@ -433,7 +437,7 @@ export class KnightBossStage extends BossArena {
     const S = this.soul;
     if (S.st === 'free') { x.fillStyle(0x9affd0, 0.15); x.fillCircle(S.x, S.y, 24 + Math.sin(t * 0.2) * 4); this.drawSoul(x, S.x, S.y, 1, false, false); }
   }
-  onDeath() { this.bloom = null; this.restK = 0; this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
+  onDeath() { this.rings = []; this.seeds = []; if (this.eld) this.eld.roots = 0; this.bloom = null; this.restK = 0; this.decoys = null; this.soul.st = 'home'; this.spikes = []; this.marks = []; }
 
   /**
    * THE ENTRANCE (k = 0..1): his empty armour kneels in the clearing, dark and overgrown; his soul drifts in out of
@@ -488,6 +492,7 @@ export class KnightBossStage extends BossArena {
     this.cycle.run(match, out);
     if (this.boss) {
       this.bossStep(match, out);
+      this.stepBloom(match, out);
       if (this.boss.dying) this.aim('kneel', 0.04);
       this.stepMarks(out); this.stepThorns(match, out); this.stepDecoys(match, out);
       if (this.soul.flash > 0) this.soul.flash--;
@@ -504,11 +509,11 @@ export class KnightBossStage extends BossArena {
   render() {
     const t = this.t, B = this.boss, g = this.knG, x = this.fxG, r = this.rayG;
     r.clear();
-    for (let i = 0; i < 5; i++) { const x0 = -260 + i * 130 + Math.sin(t * 0.01 + i) * 10, a = 0.06 + 0.03 * Math.sin(t * 0.02 + i * 2); r.fillStyle(0xe8f8a0, a); r.fillPoints([{ x: x0, y: -420 }, { x: x0 + 40, y: -420 }, { x: x0 + 160, y: 100 }, { x: x0 + 80, y: 100 }], true); }
+    for (let i = 0; i < 5; i++) { const x0 = -260 + i * 130 + Math.sin(t * 0.01 + i) * 10, a = 0.06 + 0.03 * Math.sin(t * 0.02 + i * 2); r.fillStyle(this.elder ? 0xffe0a0 : 0xe8f8a0, this.elder ? a * 1.7 : a); r.fillPoints([{ x: x0, y: -420 }, { x: x0 + 40, y: -420 }, { x: x0 + 160, y: 100 }, { x: x0 + 80, y: 100 }], true); }
     g.clear(); x.clear();
     if (!B) { this.aim('kneel', 1); this.kn.x = 0; this.kn.dir = 1; this.lit = 0; this.soul.st = 'home'; }
     this.drawKnight(g, B ? B.flash > 0 && this.bare() : false);
-    this.drawRest(x);
+    this.drawRest(x); this.drawBloomFx(x);
     const S = this.soul;
     if (S.st === 'out' || S.st === 'back') this.drawSoul(x, S.x, S.y, 1, S.flash > 0, true);
     if (this.decoys) for (const d of this.decoys) {
@@ -609,6 +614,7 @@ export class KnightBossStage extends BossArena {
     // the front leg
     limb(j.hip, j.kn1, 17, 13, [ac[2], ac[3]]); limb(j.kn1, j.ft1, 13, 11, [ac[2], ac[3]]); g.fillStyle(C.out, 1); g.fillRoundedRect(j.ft1.x - 15 + d * 5, j.ft1.y - 11, 32, 13, 4); g.fillStyle(ac[3], 1); g.fillRoundedRect(j.ft1.x - 13 + d * 5, j.ft1.y - 9, 28, 9, 3);
     leaf(j.kn1.x, j.kn1.y, -1.2); leaf(j.kn2.x, j.kn2.y, -2);
+    this.drawBloomBody(g, j, d);                                                       // (IN BLOOM: the flowering crown, blossoms)
     // the head: antlers, the great helm, the visor
     const h = j.head, tilt = D.p.lean + D.p.head, HK = 1.45;
     const H = (lx, ly) => { lx *= HK; ly *= HK; const c = Math.cos(tilt), s = Math.sin(tilt); return { x: h.x + (lx * c - ly * s) * d, y: h.y + lx * s + ly * c }; };
@@ -670,6 +676,12 @@ export class KnightBossStage extends BossArena {
     g.lineStyle(0);
     if (glow) { g.fillStyle(C.soul[0], 0.25); g.fillCircle(b.x, b.y, 34); }
   }
+}
+
+for (const k of Object.getOwnPropertyNames(BloomPhase.prototype)) {   // THORNWARD IN BLOOM (knightBloom.js)
+  if (k === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(KnightBossStage.prototype, k)) throw new Error('BloomPhase: ' + k + ' already exists on KnightBossStage');
+  KnightBossStage.prototype[k] = BloomPhase.prototype[k];
 }
 
 /** THE ELDER GROVE's miniature for the stage select screen. */

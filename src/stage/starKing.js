@@ -20,9 +20,9 @@ const K = {
 };
 // his head's radius and where it sits on his neck (BODY in starBossStage.js): the height, and how much lower per slump
 const HEAD = { r: 44, y: -255, slump: 80 };
-// THE CROWNING (cutscene frames): rising, reaching for the head, the grab, lifting it, spinning it (the face turning
-// evil part way through), the toss, back on the neck, the crown growing, the end
-const CROWN = { rise: 60, reach: 66, grab: 104, lift: 150, spin: 252, evil: [196, 236], land: 282, grow: [286, 332], n: 372 };
+// THE CROWNING (cutscene frames): rising, reaching for the head, the grab, spinning it slowly up (the face turning evil part way), set on the neck,
+// the crown appearing, the chaos starting (the telescope snaps), the end
+const CROWN = { rise: 60, reach: 66, grab: 100, up: 250, evil: [150, 220], land: 276, spawn: 296, chaos: 330, n: 392 };
 // THE STAR KING: how far he leans in (slump), how much his chest wound / head / hands take, his bare head (crown thrown), his chest while he powers up
 const KING = { slump: 0.6, chest: 1.6, head: 1.8, hands: 0.6, bare: 2.4, charge: 2.6 };
 // POWER UP: the charge, how long the power lasts, how much harder and quicker he is meanwhile
@@ -35,6 +35,17 @@ const CTHROW = { wind: 30, fly: 104, r: 34, reach: 250, low: -28, swing: 72, hit
 const MOLT = { boom: 80, melt: [96, 380], stars: 396, len: 560 };
 // how big his crown is on his head (x its drawing)
 const CROWN_SZ = 1.35;
+// THE CHAOS (as THE STAR KING): frames between props snapping, the order they go in, frames between falling rubble /
+// shooting stars, the rubble (warning shadow, fall speed, half-width, hit), a shooting star (warning line, flight, size, hit), sky streaks
+const CHAOS = { breakEvery: 280, props: ['p2', 'ringB', 'colL0', 'colR1', 'p0', 'ringA', 'colR0', 'colL1', 'p1'], every: 170,
+  rock: { warn: 54, fall: 15, w: 24, hit: [7, [80, 4.6, 0.45]] }, shoot: { warn: 40, fly: 18, r: 16, hit: [6, [45, 4.2, 0.4]] }, streaks: 3, max: 130 };
+// where each prop is (for its debris) and its colours
+const PROPS = { tele: [-300, -170, [0xb8801e, 0xe8b440, 0x7a4a10]], colL0: [-300, -230, [0xe8e4f0, 0xb8b4c8, 0xffffff]], colL1: [-360, -150, [0xe8e4f0, 0xb8b4c8, 0xffffff]],
+  colR0: [300, -230, [0xe8e4f0, 0xb8b4c8, 0xffffff]], colR1: [360, -150, [0xe8e4f0, 0xb8b4c8, 0xffffff]], ringA: [-250, -140, [0xb8801e, 0xe8b440]], ringB: [230, -200, [0xb8801e, 0xe8b440]],
+  p0: [-318, -196, [0xd86a4a, 0xffb08a]], p1: [292, -128, [0x6ac8e8, 0xb8f0ff]], p2: [-140, -236, [0xe8d08a, 0xfff0c0]] };
+// HEAD SPIN: lifting it, then 15 s of it rolling after you (accel / top speed, a hop at ledge-standers every `hop`,
+// its size, where it bounces off the deck's edges, a fresh hit every `rehit`), fetching it back; hit
+const HROLL = { lift: 40, time: 900, accel: 0.15, max: 5.6, hop: 140, hopV: -8, r: 44, edge: 221, rehit: 30, fetch: 30, back: 40, hit: [8, [45, 5.2, 0.55]] };
 // the part of his health where THE LAST LIGHT starts (powered for good)
 const LAST = 0.1;
 
@@ -59,59 +70,66 @@ export class KingPhase {
     this.crownNow(match);
   }
   /**
-   * THE CROWNING: his body heaves itself back up; his right hand reaches down and closes on his head; he lifts it, turns
-   * his hand over and spins it on one finger like a basketball, faster and faster - sparks fly, and as it whirls his face
-   * turns evil (flash, flash); he tosses it up, it drops back onto his neck - BOOM - and a giant crown of gems grows
-   * out of it: NOW... I AM WHOLE. Then his name card.
+   * THE CROWNING: you flow out of his neck on the sludge; his body heaves itself back up; his right hand reaches down
+   * and closes on his head; then, slowly, he SPINS IT UP - the head turning on his fingertip as it rises, and as it
+   * turns his face turns evil (flash, flash) - and sets it back on his neck: BOOM. Light gathers above it and the gem
+   * CROWN appears in a burst - NOW... I AM WHOLE. - and the observatory starts to come apart (THE STAR KING's chaos,
+   * stepChaos). Then his name card.
    */
   crownStep(match) {
     const C = this.cut, t = ++C.t, v = this.v, F = this.headFall, h = this.hands[1], o = this.hands[0];
     const once = (k, at) => t >= at && !C.once.has(k) && !!C.once.add(k);
-    v.sink = 1 - ease(t / CROWN.rise); v.slump = lerp(1, KING.slump, ease(t / CROWN.rise)); v.eye = 0; v.mouth *= 0.95; this.mawBig *= 0.95;
+    v.sink = 1 - ease(t / CROWN.rise); v.slump = lerp(1, KING.slump, ease(t / CROWN.rise)); v.mouth *= 0.95; this.mawBig *= 0.95;
+    if (t < CROWN.land) v.eye = 0;
     if (once('rise', 1)) { sfx('rumble', 1, 0.4); sfx('roar', 0.7, 0.35); }
     if (t < CROWN.rise && t % 10 === 0) match.shake(4, 10);
     o.tx = -170; o.ty = -190; o.ta = -0.3; o.tf = 0.3; o.fast = 0.08;
+    const home = this.headHome();
     if (t < CROWN.reach) { h.tx = 170; h.ty = -190; h.ta = 0.3; h.tf = 0.2; C.shot = { x: 0, y: -150, zoom: 0.9 }; }
-    else if (t < CROWN.grab) { h.tx = F.x; h.ty = F.y - 40; h.ta = Math.PI; h.tf = 0.1; h.fast = 0.1; C.shot = { x: F.x - 40, y: F.y - 40, zoom: 1.4 }; }
-    else if (t < CROWN.lift) {
-      if (once('grab', CROWN.grab)) { h.tf = 1; sfx('clang', 0.9, 0.5); match.shake(5, 8); }
-      const k = ease((t - CROWN.grab) / (CROWN.lift - CROWN.grab)); h.tx = lerp(F.x, 150, k); h.ty = lerp(F.y - 40, -210, k); h.ta = lerp(Math.PI, 0, k); h.fast = 0.2;
-      F.x = h.x; F.y = h.y + 36 - 70 * k; this.headSpin = (this.headSpin || 0) * 0.9;
-      C.shot = { x: 120, y: -180, zoom: 1.25 };
-    } else if (t < CROWN.spin) {                                                        // spinning it on one finger
-      const k = (t - CROWN.lift) / (CROWN.spin - CROWN.lift);
-      h.tx = 150 + Math.sin(t * 0.2) * 4; h.ty = -200; h.ta = 0; h.tf = 0.7;
-      F.x = h.x + Math.sin(t * 0.5) * 3 * k; F.y = h.y - 72;
-      this.spinV = Math.min(0.62, (this.spinV || 0) + 0.012); this.headSpin = (this.headSpin || 0) + this.spinV;
-      if (t % Math.max(4, Math.round(14 - k * 10)) === 0) sfx('whoosh', 0.5, 0.8 + k * 0.9);
-      if (t % 2 === 0) { const q = Math.random() * Math.PI * 2; match.particles.push({ x: F.x + Math.cos(q) * HEAD.r, y: F.y + Math.sin(q) * HEAD.r, vx: -Math.sin(q) * 5, vy: Math.cos(q) * 5, life: 18, color: [K.fire[3], K.gem[0], 0xffffff][t % 3], size: 2 }); }
+    else if (t < CROWN.grab) { h.tx = F.x; h.ty = F.y + 46; h.ta = 0; h.tf = 0.6; h.fast = 0.1; C.shot = { x: F.x - 30, y: F.y - 20, zoom: 1.4 }; }
+    else if (t < CROWN.up) {                                                           // spinning it slowly up on his fingertip
+      if (once('grab', CROWN.grab)) { sfx('clang', 0.7, 0.6); C.from = { x: F.x, y: F.y }; }
+      const k = ease((t - CROWN.grab) / (CROWN.up - CROWN.grab));
+      F.x = lerp(C.from.x, home.x, k); F.y = lerp(C.from.y, home.y - 80, k);
+      h.tx = F.x; h.ty = F.y + 52; h.ta = 0; h.tf = 0.7; h.fast = 0.25;
+      this.spinV = lerp(0.03, 0.2, Math.sin(k * Math.PI)); this.headSpin = (this.headSpin || 0) + this.spinV;
+      if (t % 18 === 0) sfx('whoosh', 0.35, 0.6 + k * 0.4);
+      if (t % 3 === 0) { const q = Math.random() * Math.PI * 2; match.particles.push({ x: F.x + Math.cos(q) * HEAD.r, y: F.y + Math.sin(q) * HEAD.r, vx: -Math.sin(q) * 2, vy: Math.cos(q) * 2 - 0.5, life: 26, color: [K.fire[3], K.gem[0], 0xffffff][t % 3], size: 2 }); }
       v.evil = ease((t - CROWN.evil[0]) / (CROWN.evil[1] - CROWN.evil[0]));
       if (once('e1', CROWN.evil[0])) { this.whiteT = 6; sfx('bighit', 0.7, 0.7); }
-      if (once('e2', CROWN.evil[0] + 22)) { this.whiteT = 6; sfx('bighit', 0.8, 0.55); sfx('laugh', 0.6, 0.5); }
-      C.shot = { x: F.x - 20, y: F.y + 10, zoom: 1.5 + k * 0.4 };
-    } else if (t < CROWN.land) {                                                        // the toss, back onto his neck
-      if (once('toss', CROWN.spin)) { sfx('whoosh', 1, 0.5); C.from = { x: F.x, y: F.y }; }
-      const k = (t - CROWN.spin) / (CROWN.land - CROWN.spin), home = this.headHome();
-      F.x = lerp(C.from.x, home.x, k); F.y = lerp(C.from.y, home.y, k) - Math.sin(k * Math.PI) * 120;
-      this.spinV *= 0.9; this.headSpin += this.spinV; h.tx = 210; h.ty = -170; h.tf = 0.3;
-      C.shot = { x: 40, y: -200, zoom: 1.1 };
+      if (once('e2', CROWN.evil[0] + 30)) { this.whiteT = 6; sfx('bighit', 0.8, 0.55); sfx('laugh', 0.6, 0.5); }
+      C.shot = { x: F.x, y: F.y + 20, zoom: 1.35 + k * 0.35 };
+    } else if (t < CROWN.land) {                                                        // setting it down on his neck
+      const k = ease((t - CROWN.up) / (CROWN.land - CROWN.up));
+      F.x = home.x; F.y = lerp(home.y - 80, home.y, k);
+      this.headSpin = lerp(this.headSpin, Math.round(this.headSpin / (Math.PI * 2)) * Math.PI * 2, 0.15);
+      h.tx = home.x + 70; h.ty = F.y + 40; h.tf = 0.3;
+      C.shot = { x: home.x, y: home.y + 10, zoom: 1.6 };
     } else {
       if (once('land', CROWN.land)) {
-        this.headFall = null; this.headSpin = 0; this.spinV = 0; v.evil = 1; v.eye = 1; v.corona = 1; v.mouth = 0; this.mawBig = 0; this.whiteT = 12;
-        sfx('bighit', 1, 0.4); sfx('roar', 1, 0.45); sfx('thunder', 0.8, 0.8); match.shake(18, 26);
+        this.headFall = null; this.headSpin = 0; this.spinV = 0; v.evil = 1; v.eye = 1; v.corona = 1; v.mouth = 0; this.mawBig = 0; this.whiteT = 10;
+        sfx('bighit', 1, 0.4); sfx('roar', 1, 0.45); match.shake(16, 22);
       }
-      this.crownK = ease((t - CROWN.grow[0]) / (CROWN.grow[1] - CROWN.grow[0])); this.crownGlow = this.crownK;
-      if (t >= CROWN.grow[0] && t < CROWN.grow[1] && t % 8 === 0) sfx('shing', 0.6, 0.6 + this.crownK);
-      if (once('say', CROWN.grow[1] - 10)) { match.popText({ x: 0, y: this.headHome().y - 140 }, 'NOW... I AM WHOLE.', '#ffb090'); sfx('laugh', 0.8, 0.45); }
-      const sp = ease((t - CROWN.grow[1]) / 30); this.hands.forEach((q) => { q.tx = q.side * lerp(190, 240, sp); q.ty = lerp(-190, -250, sp); q.ta = q.side * 0.7 * sp; q.tf = 0; q.glow = sp; });
-      const H = this.headHome(); C.shot = { x: H.x, y: H.y + 30, zoom: 1.3 };
+      const G = this.gemAt();
+      if (t < CROWN.spawn && t % 1 === 0) for (let i = 0; i < 3; i++) { const q = Math.random() * Math.PI * 2, r = 160; match.particles.push({ x: G.x + Math.cos(q) * r, y: G.y + Math.sin(q) * r, vx: -Math.cos(q) * r / 12, vy: -Math.sin(q) * r / 12, life: 12, color: [K.gem[0], K.gem[1], K.gem[2], 0xffffff][(t + i) % 4], size: 3 }); }   // light gathering
+      if (once('spawn', CROWN.spawn)) {                                                  // THE CROWN appears
+        this.crownK = 1; this.crownGlow = 2; this.whiteT = 14; sfx('shing', 1, 0.5); sfx('thunder', 0.9, 0.8); sfx('bighit', 0.8, 0.6); match.shake(14, 18);
+        for (let i = 0; i < 36; i++) { const q = i / 36 * Math.PI * 2; match.particles.push({ x: G.x, y: G.y, vx: Math.cos(q) * 6, vy: Math.sin(q) * 6, life: 30, color: [K.gem[0], K.gem[1], K.gem[2], K.gold[3]][i % 4], size: 3, drag: 0.93 }); }
+      }
+      if (t > CROWN.spawn) this.crownGlow = Math.max(0.4, this.crownGlow * 0.97);
+      if (once('say', CROWN.spawn + 18)) { match.popText({ x: 0, y: home.y - 150 }, 'NOW... I AM WHOLE.', '#ffb090'); sfx('laugh', 0.8, 0.45); }
+      if (once('chaos', CROWN.chaos)) { this.chaos = 0.01; this.breakProp(match, 'tele'); sfx('roar', 1, 0.4); match.shake(20, 30); }
+      if (t > CROWN.chaos) this.stepChaos(match, []);
+      const sp = ease((t - CROWN.spawn - 10) / 30); this.hands.forEach((q) => { q.tx = q.side * lerp(190, 240, sp); q.ty = lerp(-190, -250, sp); q.ta = q.side * 0.7 * sp; q.tf = 0; q.glow = sp; });
+      C.shot = t < CROWN.chaos ? { x: home.x, y: home.y - 10, zoom: 1.4 } : { x: 0, y: -160, zoom: 0.85 };
     }
     if (t >= C.n) { this.cut = null; if (this.uiG) this.uiG.clear(); this.crownNow(match); this.kingCard(match); }
   }
   /** The crowning's end state: THE STAR KING, whole, crowned and ready (the fight resumes). */
   crownNow(match) {
     const v = this.v, B = this.boss;
-    Object.assign(this, { crowned: true, headless: null, headFall: null, headSpin: 0, spinV: 0, crownK: 1, crownGlow: 0, mawBig: 0, headGone: false, kingN: 0, powered: 0 });
+    Object.assign(this, { crowned: true, headless: null, headFall: null, headSpin: 0, spinV: 0, crownK: 1, crownGlow: 0, mawBig: 0, headGone: false, kingN: 0, powered: 0, rolling: false });
+    if (!this.chaos) { this.chaos = 0.01; this.breakProp(match, 'tele'); }                       // (the chaos starts with the telescope snapping)
     Object.assign(v, { evil: 1, sink: 0, slump: KING.slump, eye: 1, corona: 1, mouth: 0, vis: 1, shell: 0 });
     this.restHands(); B.atk = null; B.wait = 70;
     this.barName.setText('VESPERION, THE STAR KING');
@@ -136,17 +154,21 @@ export class KingPhase {
   kingHurt() {
     const j = this.joints(), out = [];
     out.push({ x1: j.heart.x - 54, y1: j.heart.y - 50, x2: j.heart.x + 54, y2: j.heart.y + 66, mult: this.charging ? KING.charge : KING.chest, heart: true });
-    out.push({ x1: j.head.x - 44, y1: j.head.y - 44, x2: j.head.x + 44, y2: j.head.y + 42, mult: this.crownOff ? KING.bare : KING.head });
+    out.push({ x1: j.head.x - 44, y1: j.head.y - 44, x2: j.head.x + 44, y2: j.head.y + 42, mult: this.crownOff ? KING.bare : KING.head, head: true });
     for (const h of this.hands) out.push({ x1: h.x - 28, y1: h.y - 30, x2: h.x + 28, y2: h.y + 28, mult: KING.hands });
     return out;
   }
-  /** His attacks as THE STAR KING: POWER UP when it's worn off (every fifth or so), else beams, throws, slams, sweeps, the planet and the moons. */
+  /** His attacks as THE STAR KING: POWER UP when it's worn off (every fifth or so), HEAD SPIN now and then, else beams, throws, slams, sweeps, the planet and the moons. */
   kingPattern() {
     if (!(this.powered > 0) && this.kingN % 5 === 1) return ['power'];
+    if (this.kingN % 6 === 3) return ['hroll'];                                         // (HEAD SPIN, every sixth or so)
     return ['slam', 'sweep', 'cbeam', 'cthrow', 'planet', 'moons', 'cbeam', 'cthrow', 'slam'];
   }
-  /** Every frame as THE STAR KING: counts his attacks, runs the power down, THE LAST LIGHT, his crown's glow. */
-  stepKing(match) {
+  /** A hit on him as THE STAR KING: knocks his rolling head back the other way (HEAD SPIN). */
+  kingHurtFx(match, r) { const F = this.headFall; if (F && r && r.head && this.rolling) { F.vx = -F.vx * 0.8 - Math.sign(F.vx || 1) * 1.5; F.vy = Math.min(F.vy, -2.5); } }
+  /** Every frame as THE STAR KING: counts his attacks, runs the power down, THE LAST LIGHT, his crown's glow, the chaos. */
+  stepKing(match, out) {
+    this.stepChaos(match, out || []);
     const B = this.boss;
     if (!this.kWas && B.atk) this.kingN = (this.kingN || 0) + 1;
     this.kWas = !!B.atk;
@@ -204,6 +226,129 @@ export class KingPhase {
     return false;
   }
 
+  /**
+   * HEAD SPIN: HEADS UP! - he lifts his head off with both hands and hurls it down; for 15 s it rolls after you along the
+   * floor, crown and all - speeding up toward you, overshooting, turning back (back and forth), bouncing off the edges and
+   * hopping at anyone on a ledge; hit it and it's knocked back the other way (it takes x KING.head). Then it slows, his
+   * hand fetches it and sets it back on his neck.
+   */
+  atk_hroll(match, a, out) {
+    const home = this.headHome(), R = HROLL.r, end = HROLL.lift + HROLL.time, h = this.hands[1];
+    if (a.t === 1) { match.popText({ x: home.x, y: home.y - 120 }, 'HEADS UP!', '#ff9a6a'); sfx('laugh', 0.8, 0.5); }
+    if (a.t < HROLL.lift) {
+      for (const q of this.hands) { q.tx = home.x + q.side * 56; q.ty = home.y; q.ta = -q.side * 0.9; q.tf = 0.6; q.fast = 0.15; }
+      return false;
+    }
+    if (a.t === HROLL.lift) {
+      const tg = this.nearest(match, home.x), d = tg && tg.x < home.x ? -1 : 1;
+      this.headFall = { x: home.x, y: home.y, vx: d * 3, vy: -3, rest: false }; this.rolling = true;
+      sfx('whoosh', 1, 0.5); sfx('bighit', 0.6, 0.8); for (const q of this.hands) { q.tx = q.side * 200; q.ty = -160; q.tf = 0.2; }
+    }
+    const F = this.headFall;
+    if (a.t < end) {
+      F.vy += 0.42; F.x += F.vx; F.y += F.vy;
+      if (F.y >= -R) {
+        if (F.vy > 3) { sfx('bighit', 0.5, 0.6); match.shake(5, 6); }
+        F.y = -R; F.vy = F.vy > 3 ? -F.vy * 0.35 : 0;
+        const tg = this.nearest(match, F.x), max = HROLL.max * (this.powered > 0 ? 1.2 : 1);
+        if (tg) F.vx = Math.max(-max, Math.min(max, F.vx + Math.sign(tg.x - F.x) * HROLL.accel));
+        if (tg && tg.y < -60 && (a.t - HROLL.lift) % HROLL.hop === 0) { F.vy = HROLL.hopV; sfx('whoosh', 0.6, 0.9); }
+        if (a.t % 2 === 0 && Math.abs(F.vx) > 3) match.particles.push({ x: F.x - Math.sign(F.vx) * R, y: -3, vx: -F.vx * 0.3, vy: -1 - Math.random(), life: 16, color: K.fire[a.t % 4], size: 2 });
+      }
+      if (Math.abs(F.x) > HROLL.edge) { F.x = Math.sign(F.x) * HROLL.edge; F.vx = -F.vx * 0.6; sfx('clang', 0.6, 0.6); match.shake(6, 8); }
+      this.headSpin = (this.headSpin || 0) + F.vx / R;
+      if (a.t % 24 === 0) sfx('rumble', 0.3, 1.2);
+      out.push(this.bhit('hr' + a.id + '-' + Math.floor(a.t / HROLL.rehit), F.x - R, F.y - R, F.x + R, F.y + R, ...HROLL.hit, { dirX: Math.sign(F.vx) || 1 }));
+      for (const q of this.hands) { q.tx = q.side * 200 + Math.sin(this.t * 0.05 + q.side) * 20; q.ty = -150; q.tf = 0.4; q.fast = 0.06; }
+      return false;
+    }
+    this.rolling = false;                                                              // fetching it back
+    const f = a.t - end;
+    F.vx *= 0.88; F.vy += 0.42; F.x += F.vx; F.y = Math.min(-R, F.y + F.vy); if (F.y >= -R) F.vy = 0; this.headSpin += F.vx / R;
+    if (f < HROLL.fetch) { h.tx = F.x; h.ty = F.y + 46; h.ta = 0; h.tf = 0.6; h.fast = 0.15; return false; }
+    if (f === HROLL.fetch) { sfx('clang', 0.8, 0.6); a.from = { x: F.x, y: F.y }; }
+    const k = ease((f - HROLL.fetch) / HROLL.back);
+    F.x = lerp(a.from.x, home.x, k); F.y = lerp(a.from.y, home.y, k) - Math.sin(k * Math.PI) * 60; h.tx = F.x; h.ty = F.y + 50;
+    this.headSpin = lerp(this.headSpin, Math.round(this.headSpin / (Math.PI * 2)) * Math.PI * 2, 0.2);
+    if (k >= 1) { this.headFall = null; this.headSpin = 0; sfx('bighit', 0.9, 0.5); match.shake(10, 12); this.restHands(); return true; }
+    return false;
+  }
+
+  // ------------------------------------------------------------------ THE CHAOS
+  /** Snaps one of the observatory's props (the telescope, a column, an orrery ring, a little planet): repaints the back broken and throws its pieces. */
+  breakProp(match, id) {
+    this.ruin = this.ruin || new Set(); if (this.ruin.has(id)) return;
+    this.ruin.add(id); this.backG.clear(); this.paintBack(this.backG);
+    const [x, y, cols] = PROPS[id]; this.debris = this.debris || [];
+    for (let i = 0; i < 16; i++) { const q = Math.random() * Math.PI * 2, s = 2 + Math.random() * 5; this.debris.push({ x: x + (Math.random() - 0.5) * 40, y: y + (Math.random() - 0.5) * 40, vx: Math.cos(q) * s, vy: Math.sin(q) * s - 3, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, s: 4 + Math.random() * 9, c: cols[i % cols.length] }); }
+    sfx(id === 'tele' || id.startsWith('ring') ? 'clang' : 'glass', 1, 0.5 + Math.random() * 0.3); sfx('rumble', 0.8, 0.6); match.shake(10, 14);
+    if (match.popText && id === 'tele') match.popText({ x: x + 60, y: y - 40 }, 'CRASH!', '#ffe070');
+  }
+  /**
+   * THE CHAOS, every frame as THE STAR KING: stars streak across the sky every which way, the observatory snaps apart
+   * piece by piece (breakProp), and the arena turns on you - rubble falls on a warning shadow, shooting stars streak
+   * across on a warning line. `out` gets the hits (nothing during a cutscene).
+   */
+  stepChaos(match, out) {
+    if (!this.chaos) return;
+    const B = this.boss, dying = B && B.dying; this.chaos = Math.min(1, this.chaos + 0.01); this.chaosT = (this.chaosT || 0) + 1;
+    const S = this.cstreaks || (this.cstreaks = []);
+    if (!dying) for (let i = 0; i < CHAOS.streaks; i++) if (S.length < CHAOS.max) { const q = Math.random() * Math.PI * 2, sp = 8 + Math.random() * 16; S.push({ x: (Math.random() * 2 - 1) * 700, y: -460 + Math.random() * 520, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp * 0.6, life: 30 + Math.random() * 30, c: [0xffffff, 0xffe070, 0xa8c8ff, 0xff9ad8, 0xff7a3a][i % 5] }); }
+    for (const s of S) { s.x += s.vx; s.y += s.vy; s.life--; } this.cstreaks = S.filter((s) => s.life > 0);
+    for (const d of this.debris || []) { d.vy += 0.3; d.x += d.vx; d.y += d.vy; d.a += d.va; } this.debris = (this.debris || []).filter((d) => d.y < 420);
+    if (dying || this.cut) return;
+    if (this.chaosT % CHAOS.breakEvery === 0) { const next = CHAOS.props.find((id) => !(this.ruin && this.ruin.has(id))); if (next) this.breakProp(match, next); }
+    if (this.chaosT % 70 === 0) match.shake(2, 20);
+    const H = this.hz || (this.hz = []);
+    if (this.chaosT % CHAOS.every === 0) {
+      const tg = this.nearest(match, 0), tx = tg ? tg.x + (Math.random() - 0.5) * 120 : (Math.random() * 2 - 1) * 220;
+      if ((this.chaosT / CHAOS.every) % 2) H.push({ k: 'rock', x: Math.max(-240, Math.min(240, tx)), t: 0, y: -440, c: Math.random() < 0.5 ? 0xe8e4f0 : 0xb8801e });
+      else { const sd = Math.random() < 0.5 ? -1 : 1, y0 = -320 + Math.random() * 60, y1 = tg ? tg.y - 20 : -20; H.push({ k: 'shoot', x0: sd * 360, y0, x1: -sd * 360, y1: y1 + (y1 - y0) * 0.6, t: 0, id: this.sid('shoot') }); }
+    }
+    for (const z of H) {
+      z.t++;
+      if (z.k === 'rock') {
+        if (z.t === CHAOS.rock.warn) { sfx('whoosh', 0.6, 0.7); z.id = this.sid('rock'); }
+        if (z.t > CHAOS.rock.warn) {
+          z.y += CHAOS.rock.fall;
+          out.push(this.bhit(z.id, z.x - CHAOS.rock.w, z.y - CHAOS.rock.w, z.x + CHAOS.rock.w, z.y + CHAOS.rock.w, ...CHAOS.rock.hit));
+          if (z.y >= -CHAOS.rock.w) { z.dead = true; sfx('bighit', 0.6, 0.7); match.shake(5, 6); for (let i = 0; i < 10; i++) match.particles.push({ x: z.x, y: -6, vx: (Math.random() - 0.5) * 6, vy: -1 - Math.random() * 4, life: 24, color: z.c, size: 3, grav: 0.25 }); }
+        }
+      } else {
+        if (z.t === CHAOS.shoot.warn) sfx('laser', 0.6, 1.3);
+        if (z.t > CHAOS.shoot.warn) {
+          const k = (z.t - CHAOS.shoot.warn) / CHAOS.shoot.fly, x = lerp(z.x0, z.x1, k), y = lerp(z.y0, z.y1, k); z.hx = x; z.hy = y;
+          out.push(this.bhit(z.id, x - CHAOS.shoot.r, y - CHAOS.shoot.r, x + CHAOS.shoot.r, y + CHAOS.shoot.r, ...CHAOS.shoot.hit, { dirX: Math.sign(z.x1 - z.x0) }));
+          if (k >= 1) z.dead = true;
+        }
+      }
+    }
+    this.hz = H.filter((z) => !z.dead);
+  }
+  /** The chaos in the sky layer: streaks of stars flying every which way. */
+  drawChaosSky(g) {
+    const a = this.chaos;
+    for (const s of this.cstreaks || []) { const L = 3; g.lineStyle(1.5, s.c, 0.7 * a * Math.min(1, s.life / 15)); g.lineBetween(s.x, s.y, s.x - s.vx * L, s.y - s.vy * L); g.fillStyle(0xffffff, a); g.fillRect(s.x - 1, s.y - 1, 2, 2); }
+    g.lineStyle(0);
+  }
+  /** The chaos in front: debris of the broken props tumbling, rubble's warning shadows and the rubble, shooting stars' warning lines and the stars. */
+  drawChaosFx(x) {
+    const t = this.t;
+    for (const d of this.debris || []) { const c = Math.cos(d.a) * d.s, s = Math.sin(d.a) * d.s; x.fillStyle(K.out, 0.9); x.fillTriangle(d.x - c, d.y - s, d.x + s, d.y - c, d.x + c * 0.6, d.y + s * 0.6); x.fillStyle(d.c, 1); x.fillTriangle(d.x - c * 0.8, d.y - s * 0.8, d.x + s * 0.8, d.y - c * 0.8, d.x + c * 0.4, d.y + s * 0.4); }
+    for (const z of this.hz || []) {
+      if (z.k === 'rock') {
+        const k = Math.min(1, z.t / CHAOS.rock.warn); x.fillStyle(0x000000, 0.3 + 0.3 * k); x.fillEllipse(z.x, -2, CHAOS.rock.w * 2 * (0.5 + k), 8);
+        if (z.t < CHAOS.rock.warn) { x.lineStyle(2, 0xff5a3a, t % 8 < 4 ? 0.9 : 0.4); x.strokeEllipse(z.x, -2, CHAOS.rock.w * 2.6, 12); x.lineStyle(0); }
+        else { const w = CHAOS.rock.w; x.fillStyle(K.out, 1); x.fillPoints([{ x: z.x - w, y: z.y - w * 0.4 }, { x: z.x - w * 0.3, y: z.y - w }, { x: z.x + w, y: z.y - w * 0.6 }, { x: z.x + w * 0.7, y: z.y + w }, { x: z.x - w * 0.6, y: z.y + w * 0.8 }], true); x.fillStyle(z.c, 1); x.fillPoints([{ x: z.x - w * 0.8, y: z.y - w * 0.3 }, { x: z.x - w * 0.2, y: z.y - w * 0.8 }, { x: z.x + w * 0.8, y: z.y - w * 0.5 }, { x: z.x + w * 0.5, y: z.y + w * 0.7 }, { x: z.x - w * 0.4, y: z.y + w * 0.6 }], true); }
+      } else if (z.t < CHAOS.shoot.warn) { x.lineStyle(z.t > CHAOS.shoot.warn - 12 ? 3 : 1.5, 0xffe070, t % 6 < 3 ? 0.8 : 0.35); x.lineBetween(z.x0, z.y0, z.x1, z.y1); x.lineStyle(0); }
+      else if (z.hx !== undefined) {
+        const dx = z.x1 - z.x0, dy = z.y1 - z.y0, d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
+        x.lineStyle(14, 0xff9a3a, 0.35); x.lineBetween(z.hx, z.hy, z.hx - ux * 120, z.hy - uy * 120); x.lineStyle(5, 0xffe070, 0.9); x.lineBetween(z.hx, z.hy, z.hx - ux * 90, z.hy - uy * 90); x.lineStyle(0);
+        x.fillStyle(0xffffff, 1); x.fillCircle(z.hx, z.hy, 9); x.fillStyle(0xffe070, 0.5); x.fillCircle(z.hx, z.hy, 18);
+      }
+    }
+  }
+
   // ------------------------------------------------------------------ his death
   /** How long his molten death runs. */
   kingDeathLen() { return MOLT.len; }
@@ -215,7 +360,8 @@ export class KingPhase {
    */
   kingDeath(match) {
     const B = this.boss, d = B.dying, v = this.v, j = this.joints(), H = j.head;
-    this.cbeam = null; this.flyCrown = null; this.crownOff = false; this.charging = false;
+    this.cbeam = null; this.flyCrown = null; this.crownOff = false; this.charging = false; this.hz = [];
+    if (this.headFall) { this.headFall = null; this.headSpin = 0; this.rolling = false; }   // (killed mid HEAD SPIN: it snaps home)
     if (d < MOLT.boom) {
       v.shake = 2 + d * 0.06; this.lava = d / MOLT.boom; this.crownGlow = 1 + Math.sin(d * 0.6);
       this.hands.forEach((h) => { h.tx = H.x + h.side * 58; h.ty = H.y + 10; h.ta = -h.side * 0.9; h.tf = 0.6; h.fast = 0.12; });
@@ -322,6 +468,7 @@ export class KingPhase {
   }
   /** THE STAR KING's effects in front: his power aura, the beam (aiming / firing), the thrown crown, and in his death the fireball and the lava pool. */
   drawKingFx(x) {
+    this.drawChaosFx(x);
     const t = this.t, j = this.joints(), H = j.head;
     if (this.powered > 0 && !this.headGone && !(this.boss && this.boss.dying)) {         // a crown of fire round his head
       for (let i = 0; i < 14; i++) { const q = i / 14 * Math.PI * 2 + t * 0.03, L = 70 + 16 * Math.abs(Math.sin(t * 0.2 + i)); x.fillStyle(K.fire[i % 3], 0.18); x.fillTriangle(H.x + Math.cos(q - 0.12) * 52, H.y + Math.sin(q - 0.12) * 52, H.x + Math.cos(q + 0.12) * 52, H.y + Math.sin(q + 0.12) * 52, H.x + Math.cos(q) * L, H.y + Math.sin(q) * L); }

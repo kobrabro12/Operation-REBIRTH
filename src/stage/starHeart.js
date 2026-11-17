@@ -53,7 +53,7 @@ const STORM = { turns: 3, arms: 7, every: 12 };
 const FLAT = { rise: 40, start: 50, speed: [4.2, 7.5], beats: 5, base: -12, spike: 104, w: 12, burn: 18, clear: 56, zap: 14, stop: 150, open: 1.6,
   hit: [9, [80, 5, 0.5]], shock: [10, [85, 5.2, 0.6]] };
 // THE EYE SHATTERS (frames): the eye cracking, shattering, the sludge gushing, the flood rising (start, full), you're spat out, you land, the end
-const BURST = { crack: 40, gush: 52, rise: [70, 165], out: 172, land: 214, n: 222 };
+const BURST = { crack: 40, gush: 52, rise: [70, 165], out: 172, land: 236, n: 246 };
 // the great eye's moods: how open the upper / lower lid is, the brow (+ = angry V, - = worried), pupil size, iris glow, tremble, black tears, a smile, a spiral
 const MOODS = {
   watch: { top: 1, bot: 1, brow: 0.2, pupil: 1, glow: 0.4, shake: 0 },
@@ -563,8 +563,8 @@ export class HeartPhase {
   /**
    * THE EYE SHATTERS: the heart thrashes, panicking, the great eye cracks and cracks - and bursts into shards; black
    * sludge pours out of the empty socket and every crack, the heart bleeding out, and the flood rises through the
-   * mouth, floating everyone up on its surface - black - then his fallen head spits you out across the observatory in
-   * a geyser of sludge, and his crowning begins (starKing.js).
+   * mouth, floating everyone up on its surface - black - then the sludge bursts out of the torn neck on his fallen body
+   * and you flow out with it, riding the stream to the floor, and his crowning begins (starKing.js).
    */
   burstStep(match) {
     const C = this.cut, t = ++C.t, S = this.heartS;
@@ -587,9 +587,9 @@ export class HeartPhase {
         if (o.f.y > top) { o.f.y = lerp(o.f.y, top + Math.sin(t * 0.1 + o.x) * 4, 0.3); o.f.x += Math.sin(t * 0.05 + o.x) * 0.6; }
       }
     }
-    if (once('out', BURST.out)) { this.popOut(match, false); sfx('bighit', 1, 0.35); sfx('whoosh', 1, 0.4); match.shake(12, 20); this.geyser = 50; }
+    if (once('out', BURST.out)) { this.popOut(match, false); sfx('bighit', 1, 0.35); sfx('whoosh', 1, 0.4); sfx('rumble', 1, 0.5); match.shake(12, 20); this.geyser = 90; }
     if (t > BURST.out) {
-      const m = this.mawAt(), k = Math.min(1, (t - BURST.out) / (BURST.land - BURST.out));
+      const m = this.neckAt(), k = Math.min(1, (t - BURST.out) / (BURST.land - BURST.out));   // (out of his NECK, riding the sludge)
       C.shot = { x: m.x * 0.5, y: -110, zoom: 1 };
       for (const o of C.landing || []) { o.f.x = lerp(m.x, o.x, k); o.f.y = lerp(m.y, o.y, k) - Math.sin(k * Math.PI) * 170; o.f.vx = o.f.vy = 0; }
       if (once('land', BURST.land)) { sfx('land', 0.8, 0.8); for (const o of C.landing || []) { o.f.placeAt(o.x, o.y - 1); o.f.setState('idle'); o.f.grounded = true; o.f.platform = this.platforms[0]; } }
@@ -602,13 +602,13 @@ export class HeartPhase {
   }
   /**
    * Back outside: the cavern hides, the observatory shows again with his head still lying on the floor, and everyone
-   * is put by his mouth (now = at once at the spawn points; else they fly out of the maw to them in burstStep).
+   * is put at his torn neck (now = at once at the spawn points; else they flow out of the neck on the sludge to them in burstStep).
    */
   popOut(match, now) {
     this.inside = false; this.innerG.setVisible(false); this.heartG.setVisible(false);
     for (const o of this.outLayers()) o.setVisible(true);
     this.headGone = false; this.headless = 'out'; this.v.mouth = 1; this.mawBig = 1; this.barName.setText(this.boss.cfg.boss.name);
-    const sp = this.spawns, m = this.mawAt(), land = [];
+    const sp = this.spawns, m = this.neckAt(), land = [];
     match.fighters.forEach((f, i) => {
       if (!f.alive || f.state === 'respawn') return;
       const at = sp[i % sp.length];
@@ -951,10 +951,15 @@ export class HeartPhase {
       x.lineStyle(0);
       const ay = m.y - 120 + Math.sin(t * 0.12) * 7; x.fillStyle(P.out, 1); x.fillTriangle(m.x - 15, ay - 3, m.x + 15, ay - 3, m.x, ay + 18); x.fillStyle(P.star[1], 1); x.fillTriangle(m.x - 11, ay - 1, m.x + 11, ay - 1, m.x, ay + 14);
     }
-    if (this.geyser > 0) {
-      const k = this.geyser / 50, h = 260 * Math.min(1, (50 - this.geyser) / 8 + 0.2);
-      x.fillStyle(0x000000, 0.9 * k); x.fillRect(m.x - 16, m.y - h, 32, h); x.fillStyle(0x3a2a4a, 0.8 * k); x.fillRect(m.x - 10, m.y - h, 3, h);
-      for (let i = 0; i < 8; i++) { const q = i / 8 * Math.PI - Math.PI, r = 30 + (50 - this.geyser) * 3; x.fillStyle(0x000000, 0.9 * k); x.fillCircle(m.x + Math.cos(q) * r, m.y - h + Math.sin(q) * r * 0.5 + (50 - this.geyser) * 2, 6); }
+    if (this.geyser > 0) {                                                             // the sludge gushing out of his neck, arcing down both sides
+      const n = this.neckAt(), k = Math.min(1, this.geyser / 30), age = 90 - this.geyser;
+      for (const sd of [-1, 1]) {
+        const pts = []; for (let i = 0; i <= 16; i++) { const q = i / 16; pts.push({ x: n.x + sd * q * 230, y: n.y - Math.sin(q * Math.PI * 0.85) * 150 + q * q * 60 + Math.sin(age * 0.3 + i) * 3 }); }
+        x.lineStyle(26, 0x000000, 0.92 * k); x.strokePoints(pts); x.lineStyle(4, 0x3a2a4a, 0.8 * k); x.strokePoints(pts.map((p) => ({ x: p.x, y: p.y - 8 }))); x.lineStyle(0);
+        for (let i = 0; i < 5; i++) { const q = ((age * 0.03 + i * 0.2) % 1), p = pts[Math.floor(q * 16)]; x.fillStyle(0x000000, 0.9 * k); x.fillCircle(p.x + sd * 6, p.y + 8, 7); }
+      }
+      x.fillStyle(0x000000, 0.92 * k); x.fillEllipse(n.x, n.y - 10, 70, 40);
+      for (const sd of [-1, 1]) { x.fillStyle(0x050208, 0.85 * k); x.fillEllipse(n.x + sd * 230, -4, 90 * Math.min(1, age / 30), 12); }   // puddles where it lands
     }
   }
 }

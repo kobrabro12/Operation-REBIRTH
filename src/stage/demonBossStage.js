@@ -17,11 +17,14 @@
 //   tower, kicks its burning brazier down onto the walk - spilled fire - and dives off it sword-first onto you), BLADE STORM (he hurls the sword into the sky, it splits into a storm of
 //   ghost blades that rain down point-first and stick in the walk - then he clenches his fist and every blade rips free
 //   and flies back to his hand in a straight line, through anyone in the way).
+//   Near the end he breaks his chains: KARNAX UNCHAINED (demonUnchained.js) - burning wings, a mane of fire, a black
+//   moon - with CHAIN WHIP and INFERNO.
 // Stage hazards (also in VS, where his sword stands planted in the walk): CATAPULT STONE (a boulder lobbed in on a
 // marked spot, then rolling) and BRAZIER FLARE (the tower braziers erupt into pillars of fire).
 import { HazardCycle } from './hazardCycle.js';
 import { BossArena } from './bossBase.js';
 import { sfx } from '../audio/sfx.js';
+import { UnchainedPhase } from './demonUnchained.js';
 
 const C = { out: 0x12060a, sky: [0x0a0614, 0x1a0a20, 0x2e0e22, 0x4a1420, 0x7a2018, 0xb83a14, 0xe86a1a], moon: [0xe8b0a0, 0xc88070, 0xa86058],
   stone: [0x1e1a26, 0x2e2834, 0x403848, 0x585060, 0x787080], banner: [0x6a0a12, 0x9a1418, 0xd8a838],
@@ -110,6 +113,7 @@ export class DemonBossStage extends BossArena {
     const s = this.scene;
     // (the background camera shows about 0..640 x 0..360: the sky is drawn round 0,0 and placed so its horizon sits behind the keep)
     const sky = s.add.graphics().setScrollFactor(0.12).setPosition(SKY.x, SKY.y); bg.push(sky); this.paintSky(sky);
+    this.hellG = s.add.graphics().setScrollFactor(0.12).setPosition(SKY.x, SKY.y); bg.push(this.hellG);   // (UNCHAINED's burning sky over it)
     const back = s.add.graphics(); world.push(back); this.paintKeep(back);
     this.demonG = s.add.graphics(); world.push(this.demonG);
     const front = s.add.graphics(); world.push(front); this.paintWalk(front);
@@ -220,8 +224,9 @@ export class DemonBossStage extends BossArena {
     const j = this.joints();
     for (let i = 1; i <= 4; i++) { const q = i / 4, x = j.h1.x + (j.tip.x - j.h1.x) * q, y = j.h1.y + (j.tip.y - j.h1.y) * q; out.push(this.bhit(id + i, x - 18, y - 18, x + 18, y + 18, dmg, kb, { dirX: this.dm.dir, ...more })); }
   }
-  /** What he'll do: every few attacks he stops to LAUGH; MAD adds HELLFIRE. */
+  /** What he'll do: every few attacks he stops to LAUGH; MAD adds HELLFIRE; UNCHAINED has its own list (demonUnchained.js). */
   pattern(phase) {
+    if (this.unchained) return this.unchainedPattern();
     if (this.atFeet()) return ['stomp', 'tail'];
     if (this.count % LAUGH.every === LAUGH.every - 1) return ['laugh'];
     return phase === 1 ? ['combo', 'leap', 'throw', 'behind', 'combo', 'storm', 'tower'] : ['combo', 'leap', 'throw', 'behind', 'hellfire', 'combo', 'storm', 'tower'];
@@ -547,7 +552,7 @@ export class DemonBossStage extends BossArena {
     const P = this.planted;
     if (P) { this.drawSword(x, P.x, -DM.blade + 18, P.x, 18, P.fire > 0.3); if (P.fire > 0 && t % 3 === 0) { x.fillStyle(0xff7a20, 0.5 * P.fire); x.fillEllipse(P.x + Math.sin(t * 0.3) * 3, -DM.blade + 4, 10, 18 * P.fire); } if (P.fire < 0.6) { x.fillStyle(0x8a8a8a, 0.25); x.fillCircle(P.x + Math.sin(t * 0.05) * 6, -DM.blade - 20 - (t % 60), 6); } }
   }
-  onDeath() { this.crackK = 0; this.planted = null; this.tail = null; this.braz = null; this.dm.y = 0; this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
+  onDeath() { this.chain = null; this.fireballs = []; this.flying = false; this.crackK = 0; this.planted = null; this.tail = null; this.braz = null; this.dm.y = 0; this.laughing = false; this.blade = null; this.storm = null; this.toss = null; this.dm.held = true; this.dm.alpha = 1; this.glint = null; }
 
   /**
    * THE ENTRANCE (k = 0..1): a pillar of fire bursts up in the middle of the walk; he rises out of it laughing,
@@ -603,6 +608,7 @@ export class DemonBossStage extends BossArena {
     this.cycle.run(match, out);
     if (this.boss) {
       this.bossStep(match, out);
+      this.stepUnchained(match, out);
       if (this.boss.dying) { this.aim('kneel', 0.05); this.dm.y = 0; }
       this.stepWaves(match, out); this.stepPillars(match, out); this.stepFloorFire(match, out);
       if (this.boss.phase === 2 && this.t % 3 === 0 && this.dm.held && !this.boss.dying) { const j = this.joints(), q = Math.random(); match.particles.push({ x: j.h1.x + (j.tip.x - j.h1.x) * q, y: j.h1.y + (j.tip.y - j.h1.y) * q, vx: (Math.random() - 0.5), vy: -1 - Math.random(), life: 18, color: C.fire[1 + Math.floor(Math.random() * 3)], size: 2 }); }
@@ -616,7 +622,8 @@ export class DemonBossStage extends BossArena {
     const t = this.t, B = this.boss, D = this.dm, g = this.demonG, x = this.fxG;
     g.clear(); x.clear();
     if (this.introFire > 0) this.fire(g, 30, 4, 60 * this.introFire, 300 * this.introFire, t);
-    if (B) { if (D.alpha > 0.02) this.drawDemon(g, B.flash > 0); this.drawAsh(x); }
+    if (this.hellG) this.drawHellSky(this.hellG);
+    if (B) { if (D.alpha > 0.02) this.drawDemon(g, B.flash > 0); this.drawAsh(x); this.drawUnchainedFx(x); }
     else this.drawSword(g, 0, -150, 0, -150 + DM.blade, false);
     if (this.blade) { const b = this.blade, ca = Math.cos(b.a), sa = Math.sin(b.a); this.drawSword(x, b.x - ca * 70, b.y - sa * 70, b.x + ca * 70, b.y + sa * 70, B && B.phase === 2); x.fillStyle(0xffffff, 0.15); x.fillEllipse(b.x, b.y, THROW.r * 2.4, THROW.r * 0.9); }
     if (this.toss) this.drawSword(x, this.toss.x, this.toss.y + DM.blade, this.toss.x, this.toss.y, B && B.phase === 2);
@@ -689,7 +696,7 @@ export class DemonBossStage extends BossArena {
   drawDemon(g, flash) {
     const j = this.joints(), D = this.dm, d = D.dir, mad = this.boss && this.boss.phase === 2, A = D.alpha, t = this.t;
     const sk = flash ? [0xffffff, 0xffe8e0, 0xffffff, 0xffffff, 0xffffff] : C.skin;
-    const glow = mad ? C.rune[1] : C.rune[0], pulse = 0.65 + 0.35 * Math.sin(t * 0.15);
+    const U = this.unch, uw = U ? U.wings : 0, glow = uw > 0.5 ? C.rune[2] : mad ? C.rune[1] : C.rune[0], pulse = 0.65 + 0.35 * Math.sin(t * 0.15);
     const quad = (a, b, wa, wb) => { const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L; return [{ x: a.x + nx * wa, y: a.y + ny * wa }, { x: b.x + nx * wb, y: b.y + ny * wb }, { x: b.x - nx * wb, y: b.y - ny * wb }, { x: a.x - nx * wa, y: a.y - ny * wa }]; };
     const limb = (a, b, wa, wb, cols, vein = true) => {
       g.fillStyle(C.out, A); g.fillPoints(quad(a, b, wa + 2.5, wb + 2.5), true); g.fillStyle(cols[0], A); g.fillPoints(quad(a, b, wa, wb), true);
@@ -707,7 +714,7 @@ export class DemonBossStage extends BossArena {
       for (let i = 0; i < 3; i++) { g.fillStyle(C.hair[1], A); g.fillTriangle(hock.x - 5 + i * 4, hock.y - 6, hock.x - 3 + i * 4, hock.y - 6, hock.x - d * 8 + i * 3, hock.y + 6); }   // a tuft of fur
     };
     // the wings, behind everything
-    const wb = { x: j.chest.x - d * 14, y: j.chest.y + 2 }, spread = mad ? 1.25 : 1, flap = Math.sin(t * (mad ? 0.14 : 0.07)) * 0.18;
+    const wb = { x: j.chest.x - d * 14, y: j.chest.y + 2 }, spread = (mad ? 1.25 : 1) + uw * 0.3, flap = Math.sin(t * (uw ? 0.2 : mad ? 0.14 : 0.07)) * (0.18 + uw * 0.06);
     for (const [side, k] of [[1, 0.8], [-1, 1]]) {
       const base = { x: wb.x - d * side * 4, y: wb.y - side * 2 }, ang = -2.2 + flap * side - (side < 0 ? 0.25 : 0);
       const tip = { x: base.x - d * Math.cos(ang + 1.6) * 110 * k * spread, y: base.y + Math.sin(ang) * 90 * k * spread };
@@ -716,6 +723,10 @@ export class DemonBossStage extends BossArena {
       g.fillStyle(C.out, A); g.fillPoints(mem, true);
       g.fillStyle(flash ? 0xffffff : C.wing[side < 0 ? 0 : 1], A * 0.97); g.fillPoints(mem.map((p) => ({ x: base.x + (p.x - base.x) * 0.95, y: base.y + (p.y - base.y) * 0.95 })), true);
       if (mad) { g.lineStyle(2, C.fire[2], A * 0.7); g.strokePoints(mem.slice(1, -1), false); g.lineStyle(0); }
+      if (uw > 0) {                                                                    // UNCHAINED: the wings catch fire, base to tip
+        g.fillStyle(C.fire[0], 0.35 * uw * A); g.fillPoints(mem.map((p) => ({ x: base.x + (p.x - base.x) * 0.9, y: base.y + (p.y - base.y) * 0.9 })), true);
+        const edge = mem.slice(1, -1); edge.forEach((p, i) => { if (i / edge.length <= uw * 1.1) this.fire(g, p.x, p.y + 4, 6, 18 + (i % 2) * 8, t + i * 9 + side * 30); });
+      }
       for (const f of [tip, ...fingers]) { g.lineStyle(4, C.out, A); g.lineBetween(base.x, base.y, f.x, f.y); g.lineStyle(2, C.wing[2], A); g.lineBetween(base.x, base.y, f.x, f.y); }
       g.lineStyle(0); g.fillStyle(C.horn[1], A); g.fillTriangle(tip.x - 3, tip.y + 2, tip.x + 3, tip.y + 2, tip.x - d * 4, tip.y - 9);
     }
@@ -754,7 +765,9 @@ export class DemonBossStage extends BossArena {
     const h = j.head, tilt = D.p.lean + D.p.head;
     const HK = 1.45, H = (lx, ly) => { lx *= HK; ly *= HK; const c = Math.cos(tilt), s = Math.sin(tilt); return { x: h.x + (lx * c - ly * s) * d, y: h.y + lx * s + ly * c }; };
     const HP = (pts, col) => { g.fillStyle(col, A); g.fillPoints(pts.map(([x, y]) => H(x, y)), true); };
+    if (uw > 0) for (let i = 0; i < 10; i++) { const q = i / 10 * Math.PI * 2 + t * 0.02, r = 56 * HK * 0.7; this.fire(g, h.x + Math.cos(q) * r, h.y + Math.sin(q) * r * 0.8 + 8, 5 * uw, 16 * uw, t + i * 11); }   // a halo of fire behind his head
     for (let i = 0; i < 8; i++) { const q = -2.7 + i * 0.3; HP([[Math.cos(q) * 12 - 8, Math.sin(q) * 12 - 4], [Math.cos(q) * 38 - 16 + Math.sin(t * 0.1 + i) * 2, Math.sin(q) * 32 + 4], [Math.cos(q + 0.3) * 12 - 8, Math.sin(q + 0.3) * 12 - 4]], i % 2 ? 0xe8e0e0 : 0xb8a8b0); }   // the wild white mane
+    if (uw > 0) for (let i = 0; i < 8; i++) { const q = -2.7 + i * 0.3, p = H(Math.cos(q) * 38 - 16, Math.sin(q) * 32 + 4); this.fire(g, p.x, p.y + 6, 5 * uw, 15 * uw, t + i * 7); }   // UNCHAINED: a mane of fire
     for (const [side, hk] of [[-1, 0.85], [1, 1]]) {                                                  // long horns sweeping back, then up and forward
       const pts = []; for (let i = 0; i <= 14; i++) { const q = i / 14; pts.push(H(-2 - q * 22 + q * q * 34 + (side < 0 ? -9 : 3), -14 - q * 26 * hk - q * q * 14 * hk + (side < 0 ? 3 : 0))); }
       pts.forEach((p, i) => { const r = (5.8 - i * 0.36) * HK; g.fillStyle(C.out, A); g.fillCircle(p.x, p.y, r + 1.8); });
@@ -765,7 +778,7 @@ export class DemonBossStage extends BossArena {
     HP([[-14, -6], [-10, -16], [3, -19], [14, -13], [20, -2], [20, 9], [11, 17], [-4, 15], [-13, 7]], sk[1]);
     HP([[-4, -17], [3, -18], [13, -12], [17, -4], [8, -6], [-4, -10]], sk[2]);
     HP([[8, 1], [20, -1], [20, 4], [10, 6]], sk[0]);                                                // a hollow cheek
-    const lg = this.laughing, eye = mad || lg ? C.fire[3] : C.fire[2];
+    const lg = this.laughing, eye = uw > 0.5 ? C.fire[4] : mad || lg ? C.fire[3] : C.fire[2];
     HP([[2, -7], [18, -12], [17, -5], [4, -3]], C.out);                                               // brow and eye, slanted
     HP([[5, -6], [16, -9], [15, -5], [7, -3]], eye); HP([[11, -8], [12.5, -8], [12.5, -4], [11, -4]], C.out);
     if (A > 0.5) { const e = H(10, -6); g.fillStyle(eye, 0.3 * pulse); g.fillCircle(e.x, e.y, 14); }
@@ -785,8 +798,14 @@ export class DemonBossStage extends BossArena {
   }
   /** An iron shackle near the wrist (between elbow e and hand h) with two links of broken chain swinging from it. */
   shackle(g, e, h, A, cols) {
-    const m = { x: lerp(e.x, h.x, 0.72), y: lerp(e.y, h.y, 0.72) };
+    const m = { x: lerp(e.x, h.x, 0.72), y: lerp(e.y, h.y, 0.72) }, U = this.unch;
+    if (U && U.broken) {                                                               // UNCHAINED: the cuff burst open, a stub of burning chain
+      for (let i = 0; i < 5; i++) { const q = i / 5 * Math.PI * 2 + 0.4; g.fillStyle(C.out, A); g.fillCircle(m.x + Math.cos(q) * 10, m.y + Math.sin(q) * 10, 4); g.fillStyle(i % 2 ? C.fire[2] : C.iron[2], A); g.fillCircle(m.x + Math.cos(q) * 10, m.y + Math.sin(q) * 10, 2.6); }
+      g.fillStyle(C.fire[3], 0.35 * A); g.fillCircle(m.x, m.y, 12);
+      return;
+    }
     g.fillStyle(C.out, A); g.fillCircle(m.x, m.y, 13); g.fillStyle(C.iron[2], A); g.fillCircle(m.x, m.y, 11); g.fillStyle(C.iron[3], A); g.fillCircle(m.x - 3, m.y - 4, 4); g.fillStyle(cols[0], A); g.fillCircle(m.x, m.y, 5);
+    if (U && U.hot > 0) { g.fillStyle(C.fire[2], U.hot * A); g.fillCircle(m.x, m.y, 11); g.fillStyle(C.fire[4], U.hot * U.hot * A); g.fillCircle(m.x, m.y, 8); g.fillStyle(C.fire[3], 0.3 * U.hot); g.fillCircle(m.x, m.y, 22 + Math.sin(this.t * 0.5) * 3); }   // heating white-hot
     const sw = Math.sin(this.t * 0.12 + m.x * 0.01) * 0.4;
     for (let i = 1; i <= 3; i++) { const cx = m.x + Math.sin(sw) * i * 8, cy = m.y + 8 + i * 8; g.lineStyle(3, C.out, A); g.strokeEllipse(cx, cy, i % 2 ? 6 : 4, 9); g.lineStyle(1.5, C.iron[3], A); g.strokeEllipse(cx, cy, i % 2 ? 6 : 4, 9); }
     g.lineStyle(0);
@@ -810,6 +829,12 @@ export class DemonBossStage extends BossArena {
     }
     return pts;
   }
+}
+
+for (const k of Object.getOwnPropertyNames(UnchainedPhase.prototype)) {   // KARNAX UNCHAINED (demonUnchained.js)
+  if (k === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(DemonBossStage.prototype, k)) throw new Error('UnchainedPhase: ' + k + ' already exists on DemonBossStage');
+  DemonBossStage.prototype[k] = UnchainedPhase.prototype[k];
 }
 
 /** THE BURNING KEEP's miniature for the stage select screen. */
