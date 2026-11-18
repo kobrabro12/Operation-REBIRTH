@@ -5,6 +5,9 @@
 //                 SCORES table, every line of it GNA, and the beaten at the bottom
 //   GRAVEMOON     STONE COLD - GRAVEMOON BRIDGE under the full moon, mist and bats; his HOWL against the moon; then
 //                 the beaten stand on the parapet as cracked stone gargoyles, and he sits among them
+//   POP LINES     LINE DANCE - a subway platform at night, the empty black ad panels filling up with his chalk doodles;
+//                 a huge flat-colour mural with the beaten painted on it in thick black lines, energy dashes pulsing
+//                 round them; a block party in the street, the whole skyline drawn in, everyone dancing (music: outro_pop)
 //   INFECTED.EXE  ILOVEYOU - the old PC's desktop, GNASH.EXE opens; pop-ups multiply across the screen with the beaten
 //                 trapped in them; then THE RED ROOM: the crosshair picks each of them off while he grins
 import { VIEW_W, VIEW_H } from '../config.js';
@@ -21,7 +24,10 @@ export const GNASH_CUTS = {
     color: '#e6eaff', stroke: '#17143e', shots: [[0, 'bridge'], [200, 'howl'], [430, 'statues']] },
   'gnash:INFECTED.EXE': { fn: 'gn_virus', len: 720, card: 600, name: 'GNASH', sub: 'INFECTED.EXE', line: 'ILOVEYOU.', music: 'bgm_infected',
     color: '#ff7ab0', stroke: '#0a0a12', shots: [[0, 'desktop'], [200, 'popups'], [430, 'redroom']] },
+  'gnash:POP LINES': { fn: 'gn_pop', len: 720, card: 600, name: 'GNASH', sub: 'POP LINES', line: 'EVERY WALL IS MINE.', music: 'bgm_outro_pop',
+    color: '#ffd21e', stroke: '#000000', shots: [[0, 'subway'], [200, 'mural'], [430, 'party']] },
 };
+const POP = [0xe8281e, 0xffd21e, 0x1e64d8, 0x2ec850, 0xff7ab0];
 
 /** The shots (WinScene methods shot_<fn>_<name>(t, k, s)) and their scenery. */
 export class GnashShots {
@@ -239,6 +245,84 @@ export class GnashShots {
     this.label(0, 'DO YOU LIKE THE RED ROOM?', 120, 40, 12, s % 30 < 20 ? '#ffffff' : '#ff7a7a');
     for (let y = 0; y < H; y += 4) { this.over.fillStyle(0x000000, 0.18); this.over.fillRect(0, y, W, 1); }
     this.vignette(this.over, 0.6);
+  }
+
+  // ================================================================= POP LINES
+  /** Black energy dashes in a ring round (x, y): `k` 0..1 pushes them out; `n` dashes. */
+  gnDashes(g, x, y, r, k, n = 8, w = 3, col = 0x000000) {
+    g.lineStyle(w, col, 1 - k * 0.5);
+    for (let i = 0; i < n; i++) { const q = i / n * Math.PI * 2 + 0.2, r0 = r + k * 14; g.lineBetween(x + Math.cos(q) * r0, y + Math.sin(q) * r0, x + Math.cos(q) * (r0 + 10), y + Math.sin(q) * (r0 + 10)); }
+    g.lineStyle(0);
+  }
+  /** A chalk doodle (in white lines) of kind 0..3 at (x, y), drawn up to `k` 0..1: a dancing figure, a heart, an X-eyed face, a zig-zag. */
+  gnDoodle(g, kind, x, y, k, col = 0xf4f4f0) {
+    if (k <= 0) return;
+    g.lineStyle(2, col, 0.95);
+    const seg = (pts) => { const n = Math.max(1, Math.floor((pts.length - 1) * Math.min(1, k)) + 1); for (let i = 1; i < n; i++) g.lineBetween(x + pts[i - 1][0], y + pts[i - 1][1], x + pts[i][0], y + pts[i][1]); };
+    if (kind === 0) { g.strokeCircle(x, y - 22, 5 * Math.min(1, k * 3)); seg([[0, -17], [0, 2], [-8, 14]]); seg([[0, 2], [9, 13]]); seg([[-10, -14], [0, -10], [10, -16]]); }
+    else if (kind === 1) seg([[0, 8], [-10, -2], [-9, -9], [-4, -11], [0, -6], [4, -11], [9, -9], [10, -2], [0, 8]]);
+    else if (kind === 2) { g.strokeCircle(x, y - 4, 10 * Math.min(1, k * 2)); seg([[-6, -8], [-2, -4]]); seg([[-2, -8], [-6, -4]]); seg([[2, -8], [6, -4]]); seg([[6, -8], [2, -4]]); seg([[-5, 1], [-2, 3], [1, 1], [4, 3]]); }
+    else seg([[-14, 0], [-9, -6], [-4, 0], [1, -6], [6, 0], [11, -6], [16, 0]]);
+    if (k > 0.9) this.gnDashes(g, x, y - 8, 18, 0, 6, 2, col);
+    g.lineStyle(0);
+  }
+  /** [0] A subway platform at night: tiled wall, black ad panels filling up with his chalk doodles as he goes. */
+  shot_gn_pop_subway(t, k, s) {
+    const g = this.bg; this.hideLosers();
+    g.fillStyle(0xd8d4c4, 1); g.fillRect(0, 0, W, 300);
+    g.lineStyle(1, 0xb8b4a4, 1); for (let y = 0; y < 300; y += 14) g.lineBetween(0, y, W, y); for (let x = 0; x < W; x += 22) g.lineBetween(x, 0, x, 300); g.lineStyle(0);
+    g.fillStyle(0x2a6a3a, 1); g.fillRect(0, 34, W, 14);                                           // the station stripe
+    g.fillStyle(0x3a3a3a, 1); g.fillRect(0, 300, W, H - 300); g.fillStyle(0xffd21e, 1); g.fillRect(0, 300, W, 5);   // the platform edge
+    const panels = [[40, 90], [250, 90], [460, 90]];
+    panels.forEach(([px, py], i) => {
+      g.fillStyle(0x6a6a6a, 1); g.fillRect(px - 4, py - 4, 148, 108); g.fillStyle(0x0a0a0a, 1); g.fillRect(px, py, 140, 100);
+      for (let j = 0; j < 4; j++) this.gnDoodle(this.mid, (i + j) % 4, px + 22 + j * 32, py + 66 - (j % 2) * 20, (s - 20 - i * 50 - j * 12) / 16);
+    });
+    const x = 70 + ease(s / 180) * 440;
+    this.bchStrip('run', s / 6, x, 302, 2.4);
+    for (let i = 0; i < 6; i++) { const d = (s * 2 + i * 9) % 40; this.fx.fillStyle(0xf4f4f0, 0.7 * (1 - d / 40)); this.fx.fillRect(x + 20 + d * 0.4, 230 - d, 2, 2); }   // chalk dust
+    if (s % 40 === 10) sfx('dodge', 0.25, 1.6);
+    this.vignette(this.over, 0.4);
+  }
+  /** [200] The mural: a flat yellow wall, the beaten painted on it as flat colour figures in thick black lines, dashes pulsing round everyone. */
+  shot_gn_pop_mural(t, k, s) {
+    const g = this.bg, beat = (s % 27) / 27;
+    g.fillStyle(0xffd21e, 1); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 7; i++) { g.fillStyle(POP[i % 5], 1); g.fillRect(i * 96 - 20, 300, 96, 60); }   // a band of flat colour along the bottom
+    g.lineStyle(4, 0x000000, 1); g.lineBetween(0, 300, W, 300); g.lineStyle(0);
+    const xs = [110, 230, 540], cols = [0xe8281e, 0x1e64d8, 0x2ec850];
+    this.losers.forEach((l, i) => {
+      if (!l.def || xs[i] === undefined) { l.s.setVisible(false); return; }
+      const lean = Math.sin(s * 0.23 + i) * 0.15;
+      l.s.setCrop().setPosition(xs[i], 296).setScale(2).setRotation(lean).setAlpha(1).setTintMode(Phaser.TintModes.FILL).setTint(cols[i]).setVisible(true);
+      this.gnDashes(this.fx, xs[i], 240, 40, beat, 8, 4);
+    });
+    this.idle(380, 298, 2.6, s);
+    this.gnDashes(this.fx, 380, 220, 56, beat, 12, 4);
+    for (let i = 0; i < 5; i++) { const sp = this.spots[i]; this.gnDoodle(this.fx, 1, 40 + sp[0] * 560, 40 + sp[1] * 80, 1, 0x000000); }   // hearts painted up high
+    if (s === 0) { this.flash = 4; sfx('ding', 0.5, 1.2); }
+  }
+  /** [430] The block party: the skyline drawn in flat colour, the beaten dancing, him dancing out front, hearts flying. */
+  shot_gn_pop_party(t, k, s) {
+    const g = this.bg, beat = (s % 27) / 27, bop = Math.abs(Math.sin(s * Math.PI / 27));
+    g.fillStyle(0x1e64d8, 1); g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 9; i++) {                                                     // the skyline: flat blocks in thick black lines
+      const bw = 50 + (i * 37) % 40, bh = 90 + (i * 53) % 110, bx = i * 74 - 10;
+      g.fillStyle(0x000000, 1); g.fillRect(bx - 3, 270 - bh - 3, bw + 6, bh + 6); g.fillStyle(POP[(i + 1) % 5], 1); g.fillRect(bx, 270 - bh, bw, bh);
+      g.fillStyle(0x000000, 1); for (let w = 0; w < 4; w++) g.fillRect(bx + 8 + (w % 2) * (bw - 24), 270 - bh + 14 + Math.floor(w / 2) * 26, 8, 12);
+    }
+    g.fillStyle(0x000000, 1); g.fillRect(0, 270, W, H - 270); g.fillStyle(0xf4f4f0, 1); g.fillRect(0, 274, W, H - 274);
+    const xs = [100, 200, 540];
+    this.losers.forEach((l, i) => {
+      if (!l.def || xs[i] === undefined) { l.s.setVisible(false); return; }
+      l.s.setCrop().setPosition(xs[i], 330 - bop * 10 * (i % 2 ? 1 : 0.6)).setScale(1.8).setRotation(Math.sin(s * 0.12 + i * 2) * 0.2).setAlpha(1).setTintMode(Phaser.TintModes.FILL).setTint(POP[(i + 2) % 5]).setVisible(true);
+      this.gnDashes(this.fx, xs[i], 280, 30, beat, 6, 3);
+    });
+    this.fx.fillStyle(0x000000, 1); this.fx.fillRect(420, 312, 44, 24); this.fx.fillStyle(0xe8281e, 1); this.fx.fillRect(422, 314, 40, 20);   // a boombox
+    this.fx.fillStyle(0x000000, 1); this.fx.fillCircle(432, 324, 6 + bop); this.fx.fillCircle(452, 324, 6 + bop);
+    this.idle(320, 334, 2.6, s);
+    this.gnDashes(this.fx, 320, 254, 56, beat, 12, 4);
+    for (let i = 0; i < 14; i++) { const sp = this.spots[i], d = (s * 1.4 + i * 29) % 300; this.gnDoodle(this.front, 1, sp[0] * W, 300 - d, 1, POP[i % 5]); }   // hearts floating up
   }
 }
 const SUN_CSS = ['#ffe56a', '#ffc85a', '#ffa058', '#ff7a62'];

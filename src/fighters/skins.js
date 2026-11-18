@@ -1013,4 +1013,11 @@ SKINS['gnash'] = [
     lore: 'He opened the attachment. ILOVEYOU.TXT.VBS. Nobody has been able to close him since.',
     pal: { outline: 0x0a0a12, deep: 0x0a2484, mid: 0xff2a8a, light: 0xff7ab0, core: 0xffffff, shade: 0x2a0000, void: 0x0a0a12 },
     vfx: { hit: { shape: 'paper', colors: [0xfff6e8, 0xff7ab0, 0xff2a5a], n: 8 }, trail: 0xff2a8a } },
+  // POP LINES (after 80s subway pop art, in a Keith Haring-like style; gnash_draw.py 'pop'): flat bright colours inside
+  // thick black lines - red jacket, blue jeans, yellow high-tops, a white X-eyed mask, green horns, a white axe with a
+  // big red heart. He dances on the spot; energy dashes pulse off him; hits burst into flat cartoon stars
+  { name: 'POP LINES', sheetSet: 'pop', style: 'gnashPop', swatch: 0xe8281e, fx: 0xe8281e,
+    lore: 'He used to fill the empty ad boards in the subway with chalk before the trains came. Now the whole city is his wall, and every line on it is dancing.',
+    pal: { outline: 0x000000, deep: 0x1e64d8, mid: 0xe8281e, light: 0xffd21e, core: 0xffffff, shade: 0x000000, void: 0x000000 },
+    vfx: { hit: { shape: 'star', colors: [0xe8281e, 0xffd21e, 0x1e64d8], n: 9, ring: 0x000000 }, trail: 0xe8281e } },
 ];

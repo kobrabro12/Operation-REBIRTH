@@ -15,9 +15,11 @@
 //                crumbles to rubble and bats burst out - he's standing where it was
 //   virus-popup  INFECTED.EXE: a grey Windows window pops up on the spot, a progress bar fills, it glitches and tears
 //                apart in pink and cyan slices, and he steps out of the noise
+//   chalk-mural  POP LINES: a black subway ad panel stands on the spot, a white chalk figure draws itself onto it line by
+//                line, energy dashes pop out round it, then flat colour floods the panel and he steps out of the picture
 const clamp = (v) => Math.max(0, Math.min(1, v));
 const ease = (v) => { v = clamp(v); return v * v * (3 - 2 * v); };
-const KINDS = ['stormcall', 'sun-rise', 're-entry', 'insert-coin', 'gargoyle', 'virus-popup'];
+const KINDS = ['stormcall', 'sun-rise', 're-entry', 'insert-coin', 'gargoyle', 'virus-popup', 'chalk-mural'];
 
 /** One frame of a miracle costume's arrival (see the top of the file). */
 export function drawCostumeEntrance(g, e, p, t) {
@@ -30,6 +32,7 @@ export function drawCostumeEntrance(g, e, p, t) {
   if (I.kind === 'insert-coin') return insertCoin(g, x, y, p, t);
   if (I.kind === 'gargoyle') return gargoyle(g, x, y, p, t);
   if (I.kind === 'virus-popup') return virusPopup(g, x, y, p, t);
+  if (I.kind === 'chalk-mural') return chalkMural(g, x, y, p, t);
   return reEntry(g, x, y, p, t, e);
 }
 
@@ -199,4 +202,31 @@ function virusPopup(g, x, y, p, t) {
   }
   if (p > 0.55 && p < 0.9 && t % 3 === 0) { g.fillStyle(0xffffff, 0.3); g.fillRect(x - 30, y - 80 + (t * 7) % 80, 60, 1); }
   return { vis: clamp((p - 0.6) / 0.12) * (p < 0.85 && t % 5 === 0 ? 0.4 : 1), dy: 0, sc: 1 };
+}
+
+/** POP LINES: the black panel, the chalk figure drawing itself, the dashes, the flood of colour. */
+function chalkMural(g, x, y, p, t) {
+  const up = ease(p / 0.12), draw = clamp((p - 0.12) / 0.38), fill = ease((p - 0.5) / 0.15), gone = ease((p - 0.68) / 0.25);
+  const W = 70, H = 96 * up, X = x - W / 2, Y = y - H - 4, al = 1 - gone;
+  if (al <= 0) return { vis: 1, dy: 0, sc: 1 };
+  g.fillStyle(0x6a6a6a, al); g.fillRect(X - 4, Y - 4, W + 8, H + 8);
+  const cols = [0xe8281e, 0xffd21e, 0x1e64d8, 0x2ec850];
+  if (fill > 0) for (let i = 0; i < 4; i++) { g.fillStyle(cols[i], al); g.fillRect(X, Y + H * (1 - fill) + i * H / 4 * fill, W, H / 4 * fill + 1); }
+  g.fillStyle(0x0a0a0a, al * (1 - fill)); g.fillRect(X, Y, W, H);
+  if (up >= 1) {                                                                   // the chalk figure, a stroke at a time
+    const cx = x, top = Y + 14, lines = [[0, 22, 0, 52], [0, 30, -16, 22], [0, 30, 16, 20], [0, 52, -12, 76], [0, 52, 14, 76], [-10, 4, -16, -6], [10, 4, 16, -6]];
+    const col = fill > 0.5 ? 0x000000 : 0xf4f4f0, n = draw * lines.length;
+    g.lineStyle(3, col, al);
+    if (draw > 0) g.strokeCircle(cx, top + 12, 9 * Math.min(1, draw * 6));
+    for (let i = 0; i < lines.length; i++) {
+      const f = clamp(n - i - 0.8); if (f <= 0) break;
+      const [a, b, c, d] = lines[i]; g.lineBetween(cx + a, top + b, cx + a + (c - a) * f, top + b + (d - b) * f);
+    }
+    if (draw >= 1) for (let i = 0; i < 10; i++) {                                    // energy dashes popping out
+      const q = i / 10 * Math.PI * 2, r0 = 34 + (t % 12), r1 = r0 + 8;
+      g.lineBetween(cx + Math.cos(q) * r0 * 0.7, top + 40 + Math.sin(q) * r0, cx + Math.cos(q) * r1 * 0.7, top + 40 + Math.sin(q) * r1);
+    }
+    g.lineStyle(0);
+  }
+  return { vis: clamp((p - 0.62) / 0.12), dy: 0, sc: 1 };
 }

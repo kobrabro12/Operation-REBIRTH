@@ -12,7 +12,7 @@ his mic); his idle, specials, Limit and taunt are his own (below):
   taunt     - axe on his shoulder, a big shaking laugh
 
   -> public/assets/fighters/gnash/[<costume>/]{idle,run,jump,fall}_sheet.png (160x96, feet 80,90; 25 to a row) +
-     moves_sheet.png (160x168, feet 80,138, 25 to a row), icon.png; frame table src/fighters/gnMoves.js.
+     moves_sheet.png (180x168, feet 80,138, 22 to a row), icon.png; frame table src/fighters/gnMoves.js.
      The same again WITHOUT the axe (thrown, not picked up yet) -> gnash/noaxe/[<costume>/]: fists, an angry idle.
      NU's normals are animated at every 2nd tick (step 2) so the big frames fit in a 4096 px sheet.
 
@@ -32,7 +32,7 @@ import numpy as np
 # frames are bigger than everyone's so the axe (dragged behind him, swung overhead) is never cut off.
 FEET96 = (32 + gnash_draw.PAD, 58 + gnash_draw.PAD)
 SMALL_CANVAS, SMALL_FEET = (160, 96), (80, 90)     # his idle / run / jump / fall frames (everyone else: 64x64)
-BIG_CANVAS, BIG_FEET = (160, 168), (80, 138)      # his moves frames (everyone else: 112x104)
+BIG_CANVAS, BIG_FEET = (180, 168), (80, 138)      # his moves frames (everyone else: 112x104): 100 px in front of his feet - a chop swings the axe out flat
 COLS = 4096 // BIG_CANVAS[0]                       # frames to a row in his sheets
 _save_atlas = show_moves.save_atlas
 show_moves.save_atlas = lambda frames, path, cols=16: _save_atlas(frames, path, cols=COLS)
@@ -113,7 +113,18 @@ def gnash_idle():
 
 def skin_idle():
     """The idle for the costume being built: the map costumes have their own (same length - one frame table)."""
-    return {'arcade': arcade_idle, 'gravemoon': gravemoon_idle, 'infected': infected_idle}.get(gnash_draw.VARIANT, gnash_idle)()
+    return {'arcade': arcade_idle, 'gravemoon': gravemoon_idle, 'infected': infected_idle, 'pop': pop_idle}.get(gnash_draw.VARIANT, gnash_idle)()
+
+def pop_idle():
+    """POP LINES: dancing - the axe held up at his side, bouncing on the beat, a knee kicking up on alternate beats,
+    hips and head swinging the other way like a cartoon figure drawn mid-dance."""
+    keys = []
+    for i in range(0, 193, 6):
+        b = math.sin(i * math.pi / 12); side = 1 if (i // 24) % 2 else -1; up = max(0, b)
+        kick = legs(10 + 40 * up, -12 - 50 * up, -12, 12) if side > 0 else legs(10, -12, -12 - 40 * up, 12 + 50 * up)
+        keys.append(k(i, P(torso=(6 * side * up, 0, 0), head=(-10 * side * up, 0, 0), hair=(8 * side, 0, 0), fupper=(20 + 8 * up, 0, 0), ffore=(10, 0, 0), mic=(10 + 8 * up + 6 * side * up, 0, 0),
+                           root=(0, 0, -3 * up, 1 - 0.04 * up, 1 + 0.05 * up), **kick), 'linear'))
+    return keys
 
 def arcade_idle():
     """HIGH SCORE: the axe slung back across his shoulders, head-bobbing to the arcade's beat (a nod every 12
@@ -150,7 +161,7 @@ def infected_idle():
 
 def skin_moves(costume):
     """The map costumes' own SEETHE (neutral special) - the same 24 ticks, so the frame table is shared."""
-    return {'arcade': {'neutralB': SHRED}, 'gravemoon': {'neutralB': HOWL}, 'infected': {'neutralB': CORRUPT}}.get(costume, {})
+    return {'arcade': {'neutralB': SHRED}, 'gravemoon': {'neutralB': HOWL}, 'infected': {'neutralB': CORRUPT}, 'pop': {'neutralB': POPLOCK}}.get(costume, {})
 
 def noaxe_idle():
     """No axe: fists clenched, shoulders heaving, glaring about for it."""
@@ -180,11 +191,12 @@ def air_poses(on):
     """Swap nu_moves' jump / fall poses for his (axe up behind his head) while his sheets are built."""
     for nm, d in (('JUMP', -10), ('JUMP2', -16), ('FALL', 6), ('FALL2', 10)):
         base = getattr(N, '_GN_' + nm)
-        setattr(N, nm, mix(base, fupper=(-165 + d, 0, 0), ffore=(140, 0, 0), mic=(-40 + d, 0, 0)) if on and not NOAXE_BUILD else base)
+        setattr(N, nm, mix(base, fupper=(-165 + d, 0, 0), ffore=(140, 0, 0), mic=((-75 if 'FALL' in nm else -40) + d, 0, 0)) if on and not NOAXE_BUILD else base)   # (falling: laid back further, or the blade leaves the top of his frame)
 
 # ---- his big swings
 OVER = P(torso=(-14, -2, -1), head=(-12, 0, 0), fupper=(-170, 0, -2), ffore=(140, 0, 0), mic=(-30, 0, 0), bupper=(-150, 0, -1), bfore=(-30, 0, 0), root=(0, -2, -2, 0.96, 1.05), **legs(10, -4, -10, 6))
-CHOP = P(torso=(32, 5, 3), head=(6, 1, 1), fupper=(-40, 3, 2), ffore=(80, 0, 0), mic=(130, 0, 0), bupper=(-20, 0, 0), bfore=(-20, 0, 0), root=(0, 6, 1, 1.1, 0.9), **legs(30, -14, -30, 24, 0, -10))
+CHOP = P(torso=(32, 5, 3), head=(6, 1, 1), fupper=(-40, 3, 2), ffore=(80, 0, 0), mic=(85, 0, 0),   # (the blade down into the floor in front of him - any flatter and it leaves his frame)
+         bupper=(-20, 0, 0), bfore=(-20, 0, 0), root=(0, 6, 1, 1.1, 0.9), **legs(30, -14, -30, 24, 0, -10))
 LOW = P(torso=(22, 3, 2), head=(10, 0, 0), fupper=(40, 0, 0), ffore=(30, 0, 0), mic=(150, 0, 0), bupper=(30, 0, 0), bfore=(20, 0, 0), **DEEP)
 HIGH = P(torso=(-12, -1, -2), head=(-22, 0, 0), fupper=(-165, 0, -2), ffore=(165, 0, 0), mic=(10, 0, 0), bupper=(-60, 0, 0), bfore=(-20, 0, 0), root=(0, 0, -3, 0.92, 1.1), **legs(-10, 20, -16, 20, -6, -6))
 ROAR = lambda s: P(torso=(-12 + s, -1, 0), head=(-28 + 2 * s, 0, 0), hair=(-10, 0, 0), fupper=(24, 0, 0), ffore=(30, 0, 0), mic=(70, 0, 0), bupper=(34 + 2 * s, 0, 0), bfore=(40, 0, 0),
@@ -195,13 +207,17 @@ NOAXE = ('mic',)
 gmove('neutralB', 24, [k(0, ROAR(-1)), k(3, ROAR(1), 'linear'), k(6, ROAR(-1), 'linear'), k(9, ROAR(1), 'linear'), k(12, ROAR(-1), 'linear'), k(15, ROAR(1), 'linear'), k(18, ROAR(-1), 'linear'), k(21, ROAR(1), 'linear'), k(24, ROAR(-1), 'linear')], loop=True)
 # the map costumes' SEETHEs. HIGH SCORE - HEADBANG: the axe held high in both hands, banging his head down and up to the beat
 BANG = lambda s: mix(HIGH, torso=(-10 + 34 * s, 2 * s, 1), head=(-30 + 70 * s, 0, 0), hair=(30 - 50 * s, 0, 0), root=(0, 0, 2 * s, 1.04, 0.96), **legs(20, -16, -22, 20, 6, -8))
-SHRED = (24, [k(i, BANG(1 if (i // 3) % 2 else 0), 'out' if (i // 3) % 2 else 'in') for i in range(0, 25, 3)], 1, ('ffore', 'mic'), True, None)
+SHRED = (24, [k(i, BANG(1 if (i // 3) % 2 else 0), 'out' if (i // 3) % 2 else 'in') for i in range(0, 25, 3)], 1, (), True, None)
 # GRAVEMOON - HOWL: head thrown right back to the moon, the axe raised up high behind him, a slow tremble
 HWL = lambda s: mix(HIGH, torso=(-22 + 2 * s, -1, 0), head=(-50 + 3 * s, 0, 0), hair=(-16, 0, 0), mic=(30, 0, 0), root=(s * 0.4, 0, 0, 0.96, 1.06), **legs(-6, 10, -14, 14, -4, -6))
 HOWL = (24, [k(i, HWL(1 if (i // 4) % 2 else -1), 'inout') for i in range(0, 25, 4)], 1, (), True, None)
 # INFECTED.EXE - CORRUPT: snapping between broken poses every couple of frames, like a glitching sprite
 GL = [ROAR(1), mix(LOW, head=(40, 0, 0), torso=(30, 4, 2)), mix(ROAR(-1), head=(-60, 0, 0), root=(0, 3, 0, 1.12, 0.9)), mix(OVER, torso=(-30, -2, -1), head=(30, 0, 0)), mix(CHOP, head=(-20, 0, 0), root=(0, -3, 0, 0.9, 1.1)), mix(ROAR(1), torso=(4, 0, 0), head=(50, 0, 0))]
 CORRUPT = (24, [k(i, GL[(i * 5 // 3) % len(GL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
+# POP LINES - POP & LOCK: snapping from one hard dance pose to the next every few frames, axe up, knees bent
+PL = [mix(HIGH, torso=(10, 0, 0), head=(20, 0, 0), **legs(30, -40, -10, 10)), mix(HIGH, torso=(-14, 0, 0), head=(-24, 0, 0), root=(0, 0, 2, 1.08, 0.92), **legs(-6, 6, -30, 40)),
+      mix(P(fupper=(20, 0, 0), ffore=(10, 0, 0), mic=(10, 0, 0)), torso=(14, 1, 0), head=(30, 0, 0), **legs(40, -60, -20, 20)), mix(HIGH, torso=(0, 0, 0), head=(0, 0, 0), root=(0, 0, -4, 0.94, 1.08), **legs(0, 0, 0, 0))]
+POPLOCK = (24, [k(i, PL[(i // 3) % len(PL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
 # AXE THROW (side): winds it back over his shoulder, then hurls it - his hand's empty till it comes back
 gmove('sideB', 46, [k(0, P()), k(8, mix(OVER, torso=(-20, -2, -1), fupper=(-190, -1, -2), ffore=(120, 0, 0), mic=(-40, 0, 0)), 'out'),
                     k(12, P(_hide=NOAXE, torso=(26, 5, 1), head=(-10, 2, 0), fupper=(-70, 0, 0), ffore=(10, 0, 0), bupper=(40, 0, 0), root=(0, 5, 0, 1.06, 0.95), **STANCE), 'snap'),
@@ -216,18 +232,60 @@ gmove('downB2', 30, [k(0, mix(OVER, **legs(-20, 40, -30, 40, -10, -10))), k(10, 
 gmove('limit', 150, [k(0, P()), k(14, mix(LOW, mic=(170, 0, 0)), 'out'), k(26, HIGH, 'snap'), k(40, mix(OVER, **legs(-30, 60, -40, 60, -10, -10)), 'inout'),
                      k(96, mix(OVER, torso=(-22, -2, -2), fupper=(-190, 0, -2), ffore=(125, 0, 0), **legs(-30, 60, -40, 60, -10, -10)), 'inout'), k(102, CHOP, 'snap'), k(140, mix(CHOP, torso=(28, 4, 2)), 'linear'), k(150, P(), 'inout')], step=2)
 # THE TAUNT: axe up on his shoulder, then a big shaking laugh, head thrown back
-SHOULDER = P(fupper=(-200, 0, 0), ffore=(110, 0, 0), mic=(-60, 0, 0), torso=(-4, 0, 0), head=(-6, 0, 0), bupper=(-30, 0, 0), bfore=(-60, 0, 0))
+SHOULDER = P(fupper=(-200, 0, 0), ffore=(110, 0, 0), mic=(34, 0, 0),   # (the haft over his shoulder, the blade up behind him)
+             torso=(-4, 0, 0), head=(-6, 0, 0), bupper=(-30, 0, 0), bfore=(-60, 0, 0))
 LAUGH = lambda s: mix(SHOULDER, torso=(-12 + 4 * s, -1, 0), head=(-28 + 6 * s, 0, 0), hair=(-8 * s, 0, 0), root=(0, 0, s, 1 + 0.03 * s, 1 - 0.03 * s), bupper=(20, 0, 0), bfore=(90, 0, 0))
 gmove('taunt', 84, [k(0, P()), k(12, SHOULDER, 'out'), k(20, mix(SHOULDER, head=(-2, 0, 0)), 'inout')] + [k(26 + 6 * i, LAUGH(1 if i % 2 else 0), 'inout') for i in range(8)] + [k(84, P(), 'back')], step=2)
 
+# UTILT (his own - NU twirls the mic, which spun the axe through his own body): one big arc over his head, from out in
+# front, straight up, and over onto his shoulder (NU's 26 ticks, at every 2nd tick like the other normals)
+gmove('utilt', 26, [k(0, P()), k(4, mix(P(fupper=(-40, 0, 0), ffore=(-20, 0, 0), mic=(160, 0, 0), torso=(8, 0, 0)), root=(0, 0, 1, 1.04, 0.96)), 'out'),
+                    k(12, HIGH, 'snap'), k(17, mix(SHOULDER, torso=(-8, 0, -1)), 'out'), k(26, P(), 'back')], step=2)
+
+def axe_angle(p):
+    """Which way the axe points in a pose, in degrees (0 = straight up, 90 = forward, 180 = down, 270 = behind)."""
+    return sum((p.get(n) or (0,))[0] for n in ('root', 'torso', 'fupper', 'ffore', 'mic')) % 360
+
+def axe_up(pose):
+    """A pose of NU's with the arm raised: NU points his mic down at his mouth, which turns the axe upside down - flip it
+    so the blade is up over his head."""
+    if (pose.get('fupper') or (0,))[0] < -100 and 100 < axe_angle(pose) < 260:
+        m = pose.get('mic') or (0, 0, 0); pose = {**pose, 'mic': (m[0] + 180, *m[1:])}
+    return pose
+
+def aim(pose, a):
+    """The pose with the axe turned (at the wrist) to point at angle `a` (axe_angle's degrees)."""
+    m = pose.get('mic') or (0, 0, 0); return {**pose, 'mic': (m[0] + (a - axe_angle(pose) + 540) % 360 - 180, *m[1:])}
+
+AXE_UP = ('usmash', 'uair', 'throw_up')   # NU's moves that raise the arm to hit upward (axe_up)
+
+def gnash_normals():
+    """NU's normals made to fit the giant axe: no smears (the orange ghosts of the axe; his neon slash arcs are drawn in
+    the game), every raised-arm pose with the axe flipped blade-up (axe_up), and his own versions of the two that
+    can't work with it: NAIR (NU somersaults round his feet, which threw GNASH right off his frame - now the axe whirls
+    round him instead) - and UTILT is his own (GN)."""
+    out = {}
+    for n, (t, kk, st, sm, lp, c) in N.MOVES.items():
+        if n == 'nair':
+            kk = [(tt, {**{a: b for a, b in p.items() if a != 'root'}, 'root': (0, 0, -2, 0.96, 0.96) if tt < 26 else (0, 0, 0)} if tt > 0 else p, e) for tt, p, e in kk]
+            kk = [(tt, (aim(p, 90) if tt == 4 else {**p, 'mic': (70 + 360, 0, 0)} if tt == 15 else p), e) for tt, p, e in kk]; c = None
+        elif n == 'dashAttack':                                    # (NU lifts the mic; he lunges with the axe out in front)
+            kk = [(tt, (aim(p, 105) if tt in (5, 22) else p), e) for tt, p, e in kk]
+        elif n in AXE_UP:
+            kk = [(tt, axe_up(p), e) for tt, p, e in kk]
+        out[n] = (t, kk, max(2, st), (), lp, c)
+    return out
+
 def half_steps():
-    """NU's normals at every 2nd tick (his frames are big: this keeps the sheet inside 4096 px)."""
-    N.MOVES = {n: (t, kk, max(2, st), sm, lp, c) for n, (t, kk, st, sm, lp, c) in N.MOVES.items()}
+    """NU's normals at every 2nd tick (his frames are big: this keeps the sheet inside 4096 px), fitted to the axe."""
+    N.MOVES = gnash_normals()
 
 if __name__ == '__main__':
     _BUILDING = True; half_steps(); N.life = gnash_life        # every frame through the two-handed grip
+    for _n, (_t, _k, _s, _sm, _l, _c) in list(GN.items()):   # no smears (see gnash_normals); the specials at every 2nd tick (keeps the wider sheet inside 4096 px)
+        GN[_n] = (_t, _k, 2 if _n in ('sideB', 'upb', 'downB', 'downB2') else _s, (), _l, _c)
     FOLLOW = {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
-    SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected').split(',')   # (GN_SETS=arcade,... builds only those)
+    SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected,pop').split(',')   # (GN_SETS=arcade,... builds only those)
     air_poses(True)
     build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', skin_idle, SETS, (255, 120, 60), own_for=skin_moves)
     NOAXE_BUILD = True; air_poses(True)

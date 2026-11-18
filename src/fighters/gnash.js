@@ -9,7 +9,7 @@ import { GN_MOVES } from './gnMoves.js';
 
 // his ability colours: hot-pink neon on black
 export const PAL_GNASH = { outline: 0x0a0410, deep: 0xb01090, mid: 0xff3ad0, light: 0xff9ae8, core: 0xffffff, shade: 0x1a0a1e, void: 0x050208 };
-const SETS = ['bloodmoon', 'gravestone', 'arcade', 'gravemoon', 'infected'];   // (the last three: the map costumes HIGH SCORE / GRAVEMOON / INFECTED.EXE)
+const SETS = ['bloodmoon', 'gravestone', 'arcade', 'gravemoon', 'infected', 'pop'];   // (then the map costumes HIGH SCORE / GRAVEMOON / INFECTED.EXE, and POP LINES)
 // how much harder his normals hit than NU's (damage, knockback)
 const HEAVY = { dmg: 1.05, kb: 1.02 };
 
@@ -28,9 +28,9 @@ export const GNASH = {
   // his sheets WITHOUT the axe (after he's thrown it): loaded the first time a match needs them - fighterGnash.js noAxeKeys
   noAxeDir: 'assets/fighters/gnash/noaxe/',
   runCycle: [0, 8],
-  moveAnims: GN_MOVES, movesOrigin: [80 / 160, 138 / 168],   // (his frames are bigger than everyone's: the giant axe)
+  moveAnims: GN_MOVES, movesOrigin: [80 / 180, 138 / 168],   // (his frames are bigger than everyone's: the giant axe)
   originY: 90 / 96,                 // idle / run / jump / fall frames are 160x96, feet at 80,90
-  frameSizes: { strip: [160, 96], moves: [160, 168] },
+  frameSizes: { strip: [160, 96], moves: [180, 168] },
   handOffset: { x: 18, y: -44 },    // the axe's neon blade
   portrait: [62, 30, 36, 32],
   fxColor: 0xff3ad0,

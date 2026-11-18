@@ -50,6 +50,7 @@ NEONS = {   # each look's three neons: the outfit's outline, the eyes / laces / 
     'arcade': (0xff3fd0, 0x3af0ff, 0xffc85a),       # HIGH SCORE - NEON ARCADE's synthwave: hot pink, cyan, the striped sun
     'gravemoon': (0x8aa8ff, 0xff3a3a, 0xe6eaff),    # GRAVEMOON - GRAVEMOON BRIDGE: moonlit blue, the gargoyles' red eyes, the moon
     'infected': (0xff2a8a, 0xff2a2a, 0xff7ab0),     # INFECTED.EXE - the old PC: ILOVEYOU pink, THE RED ROOM's red, a love-letter heart
+    'pop': (0x000000, 0x000000, 0xe8281e),          # POP LINES - in the style of 80s subway pop art: thick black lines, flat bright colours
 }
 
 def neon_ramp(c):
@@ -86,6 +87,15 @@ VARIANTS = {
     # INFECTED.EXE: the infected desktop - a title-bar-blue jacket with grey bevelled-window lining, an ILOVEYOU heart
     # on his tee and in his axe (a grey Windows window with a title bar and a close box), THE RED ROOM's crosshair
     # eyes, glitching horns, a corrupted line through the mask
+    # POP LINES (after 80s subway pop art, Keith Haring-style): no shading at all - every part a flat bright colour
+    # inside a thick black line: a red jacket, blue jeans, yellow high-tops, a white tee scribbled with black doodles,
+    # a white mask with a black X-eyed grin, flat green horns, a yellow haft and a white blade with a big red heart
+    # and black 'energy' dashes round it
+    'pop': {'horn': 'popg', 'hornW': 4.4, 'emblem': 'pop', 'pal': {
+        'jacket': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'tee': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000), 'jeans': (0x1e64d8, 0x1e64d8, 0x1e64d8, 0x1e64d8, 0x000000), 'shoe': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'mask': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000),
+        'hair': (0x141414, 0x141414, 0x141414, 0x141414, 0x000000), 'popg': (0x2ec850, 0x2ec850, 0x2ec850, 0x2ec850, 0x000000), 'haft': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'glass': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000),
+        'neon': (0x1a1a1a, 0x000000, 0x000000, 0x000000, 0x000000), 'neon2': (0x1a1a1a, 0x000000, 0x000000, 0x000000, 0x000000),
+        'skin': (0xffd2b4, 0xffd2b4, 0xffd2b4, 0xffd2b4, 0x000000), 'stud': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000)}},
     'infected': {'horn': 'neon2', 'emblem': 'heart', 'glitch': True, 'pal': {
         'jacket': (0x2a6ad8, 0x1a4ab0, 0x0a2484, 0x061650, 0xff2a8a), 'tee': (0xfff6e8, 0xe0d0b8, 0xc0b098, 0x8a7a64, 0xff2a8a),
         'hair': (0x5af0e0, 0x2aa0a0, 0x108484, 0x0a6a6a, 0x022a2a), 'glass': (0xffffff, 0xc0c0c0, 0x9a9a9a, 0x6a6a6a, 0x0a0a12),
@@ -257,7 +267,18 @@ def emblem_heart(d, P, x, y):
         for i, c in enumerate(r):
             if c == '#': d.point((x - 4 + i, y - 4 + j), fill=hx(0xff7ab0 if (i + j) % 5 else 0xff2a5a))
     d.point([(x - 3, y - 3), (x - 2, y - 3), (x - 3, y - 2)], fill=hx(0xffffff))
-EMBLEMS = {'sun': emblem_sun, 'moon': emblem_moon, 'heart': emblem_heart}
+def emblem_pop(d, P, x, y):
+    """POP LINES: a big flat red heart in a thick black line, black dashes bursting out round it."""
+    rows = ['.###...###.', '#####.#####', '###########', '###########', '.#########.', '..#######..', '...#####...', '....###....', '.....#.....']
+    pts = [(x - 5 + i, y - 4 + j) for j, r in enumerate(rows) for i, c in enumerate(r) if c == '#']
+    for (px, py) in pts:
+        for ox, oy in ((-1, 0), (1, 0), (0, -1), (0, 1)): d.point((px + ox, py + oy), fill=hx(0x000000))
+    for (px, py) in pts: d.point((px, py), fill=hx(0xe8281e))
+    for q in range(8):                                                              # the energy dashes
+        a = q * math.pi / 4; c, si = math.cos(a), math.sin(a)
+        d.line([(x + c * 9, y + si * 9), (x + c * 12, y + si * 12)], fill=hx(0x000000), width=1)
+
+EMBLEMS = {'pop': emblem_pop, 'sun': emblem_sun, 'moon': emblem_moon, 'heart': emblem_heart}
 
 def touch_arcade(parts, P):
     """HIGH SCORE: the sun on his tee, scanlines on his mask, a joystick pin."""
@@ -304,7 +325,19 @@ def touch_infected(parts, P):
         if h[15, x, 3] and not h[15, x - 1, 3]: h[15, x] = hx(0x3af0ff)                         # ... with a cyan fringe
     put(h, [(29, 19), (30, 19), (40, 10), (41, 10)], 0x3af0ff)                                 # dead pixels
 
-TOUCH = {'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
+def touch_pop(parts, P):
+    """POP LINES: black doodles scribbled on his white tee, black stitch dashes on the jacket and jeans."""
+    t = parts['torso']
+    put(t, [(x, y) for x in range(32, 37) for y in range(22, 40)], 0xffffff)                    # (the tee white again under the print)
+    put(t, [(32, 24), (33, 25), (34, 24), (35, 25), (36, 24)], 0x000000)                       # a zig-zag ...
+    put(t, [(33, 28), (34, 28), (35, 28), (34, 29), (33, 30), (35, 30), (34, 31)], 0x000000)   # ... a little X-eyed face ...
+    put(t, [(32, 34), (33, 35), (34, 34), (35, 35), (36, 34), (32, 37), (34, 37), (36, 37)], 0x000000)   # ... and dashes
+    put(t, [(27, 26), (28, 28), (27, 31), (40, 26), (41, 28), (40, 32)], 0xffd21e)              # yellow dashes on the jacket
+    for n in ('bthigh', 'fthigh', 'bshin', 'fshin'):
+        a = parts[n]; ys, xs = np.nonzero(a[..., 3])
+        if len(xs): cx = int(xs.mean()); put(a, [(cx, y) for y in range(int(ys.min()) + 2, int(ys.max()) - 1, 3)], 0xffffff)   # white dashes down the jeans
+
+TOUCH = {'pop': lambda parts, P: touch_pop(parts, P), 'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
 
 ORDER = ['bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'mic', 'bfist', 'ffist']
 # (the joints on the big canvas: the 64x64 drawing's + PAD)

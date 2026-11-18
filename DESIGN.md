@@ -164,7 +164,7 @@ Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X 
 - **Side special**: AXE THROW. The axe flies straight ahead (14%), drops and sticks in the floor; he is UNARMED until he walks over it (fists x0.6 damage, no side or down special; off the stage it comes back after 3 s). PSYCHO THROW: twice the size and speed, cuts through everyone (18%), blows up where it lands (14%) and flies back to his hand.
 - **Up special**: SKYSPLITTER, a rising axe uppercut (8% then a 14% launcher). Helpless after. PSYCHO RISE: higher, inside a neon pillar that hits five times and launches.
 - **Down special**: GROUND SPLITTER. Chops the floor (14%) and is thrown high into the air, hangs there for a second, then plunges axe first (12%) and slams: a shockwave hits everyone on that floor within 90 px (9%), and he bounces back up - higher the further he fell. PSYCHO METEOR: thrown higher, a longer charge, a 260 px shockwave (18%) with neon pillars.
-- **Map costumes**: HIGH SCORE (NEON ARCADE), GRAVEMOON (GRAVEMOON BRIDGE) and INFECTED.EXE - each drawn after its stage, with its own idle, SEETHE animation, hit effects, arrival and win cutscene.
+- **Map costumes**: HIGH SCORE (NEON ARCADE), GRAVEMOON (GRAVEMOON BRIDGE) and INFECTED.EXE - each drawn after its stage, with its own idle, SEETHE animation, hit effects, arrival and win cutscene. And POP LINES, after 80s subway pop art (Keith Haring-style flat colours and thick black lines), the same treatment.
 - **Limit**: EXECUTIONER. Leaps, hangs over the nearest foe (a neon X), then drops: 32% and a huge launch where he lands, plus a 150 px shockwave (10%). Brings the axe back if it was thrown.
 
 ## 10. Costumes and unlocks

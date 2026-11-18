@@ -87,12 +87,12 @@ export class BootScene extends Phaser.Scene {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     }
-    // GNASH (gnash_moves.py): bigger frames than everyone's, so his giant axe fits - GNASH.frameSizes (160x96 strips, 160x168 moves);
+    // GNASH (gnash_moves.py): bigger frames than everyone's, so his giant axe fits - GNASH.frameSizes (160x96 strips, 180x168 moves);
     // his no-axe sheets (gnash/noaxe/) load in the match the first time they're needed (fighterGnash.js loadNoAxe)
     for (const [pre, dir] of [['gn_', 'gnash/'], ['gn_bloodmoon_', 'gnash/bloodmoon/'], ['gn_gravestone_', 'gnash/gravestone/'],
-      ['gn_arcade_', 'gnash/arcade/'], ['gn_gravemoon_', 'gnash/gravemoon/'], ['gn_infected_', 'gnash/infected/']]) {   // (+ the three map costumes)
+      ['gn_arcade_', 'gnash/arcade/'], ['gn_gravemoon_', 'gnash/gravemoon/'], ['gn_infected_', 'gnash/infected/'], ['gn_pop_', 'gnash/pop/']]) {   // (+ the three map costumes)
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 160, frameHeight: 96 });
-      this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: 160, frameHeight: 168 });
+      this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 168 });
     }
     this.load.spritesheet('nu_school_amp', 'assets/fighters/nu/school/amp.png', { frameWidth: 32, frameHeight: 64 });   // HOMEROOM's AMP DROP: a locker and a boombox
     // LAST SEEN (test fighter) and SEEN, what she turns into: tools/sprites/last_seen_moves.py
