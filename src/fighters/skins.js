@@ -996,4 +996,21 @@ SKINS['gnash'] = [
   ms('ALLEY KING', 2, 0x8a3aff, 'Every wall between the train line and the river has his tag on it. Nobody has seen him paint one.', GNG, { neon: { to: 272, sat: 1.1 }, neon2: { to: 300, sat: 1.0 }, black: { to: 270, sat: 3, val: 1.6 } }, 'star', [0xa86aff, 0xff9ae8, 0xffffff]),
   ms('CITY LIGHTS', 3, 0xe8f0ff, 'The whole skyline flickers when he walks under it. The power company has stopped asking why.', GNG, { black: { sat: 0.05, val: 4.5 }, neon: { to: 196, sat: 1.0 }, neon2: { to: 312, sat: 1.0 } }, 'star', [0x3af0ff, 0xffffff, 0xff3ad0], { vfx: { aura: { motes: { colors: [0x3af0ff, 0xff3ad0], rate: 6 } } } }),
   ms('NEON LEGEND', 4, 0xffd860, 'They put his mask on a sign over the city. It is the brightest thing in the sky, and it is grinning.', GNG, { black: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, neon: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, neon2: { to: 46, sat: 1.0, val: 1.2 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+  // the three MAP COSTUMES, each drawn after a stage (gnash_draw.py arcade / gravemoon / infected), with their own idle,
+  // SEETHE, effects (fighterGnash.js drawGnashSkinFx), arrival (SKIN_INTROS) and win cutscene (gnashOutros.js)
+  // HIGH SCORE (NEON ARCADE): synthwave - a striped sunset sun in his axe, sunset horns, score pops on every hit
+  { name: 'HIGH SCORE', sheetSet: 'arcade', style: 'gnashArcade', swatch: 0xff3fd0, fx: 0xff3fd0,
+    lore: 'He holds every top score in the NEON ARCADE. The machines spell his name GNA because they only take three letters. He has asked them to fix it.',
+    pal: { outline: 0x14042a, deep: 0xb01090, mid: 0xff3fd0, light: 0xffc85a, core: 0xffffff, shade: 0x1a0a2e, void: 0x06020c },
+    vfx: { hit: { shape: 'star', colors: [0xff3fd0, 0x3af0ff, 0xffc85a], n: 10, ring: 0x3af0ff }, trail: 0xff3fd0 } },
+  // GRAVEMOON (GRAVEMOON BRIDGE): a stone gargoyle - red eyes, fangs, a lantern on his belt, the moon in his axe; bats
+  { name: 'GRAVEMOON', sheetSet: 'gravemoon', style: 'gnashMoon', swatch: 0x8aa8ff, fx: 0x8aa8ff,
+    lore: 'He slept one night under GRAVEMOON BRIDGE. In the morning there was one more gargoyle on the parapet, and it was grinning.',
+    pal: { outline: 0x0a0818, deep: 0x4a4c90, mid: 0x8aa8ff, light: 0xe6eaff, core: 0xffffff, shade: 0x17143e, void: 0x0b0922 },
+    vfx: { hit: { shape: 'bat', colors: [0x17143e, 0x2c2c64, 0xff3a3a], n: 7, sparks: [0xe6eaff, 0x8aa8ff] }, aura: { spooky: true }, trail: 0x8aa8ff } },
+  // INFECTED.EXE: the infected desktop - an ILOVEYOU heart in a Windows-window axe, RED ROOM crosshair eyes, glitching
+  { name: 'INFECTED.EXE', sheetSet: 'infected', style: 'gnashVirus', swatch: 0x108484, fx: 0xff2a8a,
+    lore: 'He opened the attachment. ILOVEYOU.TXT.VBS. Nobody has been able to close him since.',
+    pal: { outline: 0x0a0a12, deep: 0x0a2484, mid: 0xff2a8a, light: 0xff7ab0, core: 0xffffff, shade: 0x2a0000, void: 0x0a0a12 },
+    vfx: { hit: { shape: 'paper', colors: [0xfff6e8, 0xff7ab0, 0xff2a5a], n: 8 }, trail: 0xff2a8a } },
 ];

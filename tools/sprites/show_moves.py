@@ -98,8 +98,9 @@ def strip(frames, path):
     for i, f in enumerate(frames): sheet.alpha_composite(Image.fromarray(f, 'RGBA'), ((i % cols) * w, (i // cols) * h))
     sheet.save(path)
 
-def build(draw, follow, own, folder, js, const, idle, sets, ghost=(200, 200, 255)):
-    """Every costume of one fighter: its own moves on top of NU's, written to folder/<costume>/ and one frame table."""
+def build(draw, follow, own, folder, js, const, idle, sets, ghost=(200, 200, 255), own_for=None):
+    """Every costume of one fighter: its own moves on top of NU's, written to folder/<costume>/ and one frame table.
+    `own_for(costume)` (optional) gives a costume its own versions of some moves - same lengths, so one table fits all."""
     moves = {n: v for n, v in N.MOVES.items() if n not in SKIP}; moves.update(own)
     table = None
     for s in sets:
@@ -113,7 +114,8 @@ def build(draw, follow, own, folder, js, const, idle, sets, ghost=(200, 200, 255
             'fall': animate(small, [k(0, N.FALL), k(12, N.FALL2), k(24, N.FALL)], 24, step=6, life=N.life),
         }
         for nm, fr in base.items(): strip(fr, os.path.join(out_dir, nm + '_sheet.png'))
-        frames = {m: animate(big, kk, t, step=st, smear=sm, smear_tint=ghost, center=c, life=N.life) for m, (t, kk, st, sm, lp, c) in moves.items()}
+        mv = {**moves, **(own_for(s) if own_for else {})}
+        frames = {m: animate(big, kk, t, step=st, smear=sm, smear_tint=ghost, center=c, life=N.life) for m, (t, kk, st, sm, lp, c) in mv.items()}
         idx = save_atlas(frames, os.path.join(out_dir, 'moves_sheet.png'), cols=36)
         table = {n: idx[n] + [moves[n][2]] + ([1] if moves[n][4] else []) for n in moves}
         if s == 'default': Image.fromarray(base['idle'][0]).crop((16, 0, 52, 19)).resize((72, 38), Image.NEAREST).save(os.path.join(out_dir, 'icon.png'))

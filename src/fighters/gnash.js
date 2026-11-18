@@ -9,7 +9,7 @@ import { GN_MOVES } from './gnMoves.js';
 
 // his ability colours: hot-pink neon on black
 export const PAL_GNASH = { outline: 0x0a0410, deep: 0xb01090, mid: 0xff3ad0, light: 0xff9ae8, core: 0xffffff, shade: 0x1a0a1e, void: 0x050208 };
-const SETS = ['bloodmoon', 'gravestone'];
+const SETS = ['bloodmoon', 'gravestone', 'arcade', 'gravemoon', 'infected'];   // (the last three: the map costumes HIGH SCORE / GRAVEMOON / INFECTED.EXE)
 // how much harder his normals hit than NU's (damage, knockback)
 const HEAVY = { dmg: 1.05, kb: 1.02 };
 
@@ -46,13 +46,13 @@ export const GNASH = {
   jumpV: -9.0, shortHopV: -6.0, doubleJumpV: -8.2,
 
   // PSYCHO (passive): a meter on his player plate, next to his damage %, fills slowly from damage he takes (x`perHurt`)
-  // and deals (x`perHit`), and faster while he SEETHES (neutral special, `seethe` a frame). Full = PSYCHO READY: the next
+  // and deals (x`perHit`), or by SEETHING (neutral special, `seethe` a frame: held, a full meter takes 10 s). Full = PSYCHO READY: the next
   // special he uses becomes its PSYCHO version - a cinematic cut-in (`cut` frames, everyone else frozen), then the special
   // buffed (`moves` below; x`dmg` / x`kb`, and nothing makes him flinch while it lasts). Then the meter starts over.
   // UNARMED (`unarmed`): after AXE THROW, until he walks over the axe and picks it back up - fists only, softer; no side
   // or down special.
   show: { kind: 'gnash',
-    psycho: { max: 100, perHurt: 0.25, perHit: 0.15, seethe: 0.4, cut: 74, dmg: 1.45, kb: 1.25,
+    psycho: { max: 100, perHurt: 0.25, perHit: 0.15, seethe: 100 / 600, cut: 74, dmg: 1.45, kb: 1.25,
       moves: {
         // PSYCHO SCREAM: one huge roar - a neon shockwave hits everyone round him
         neutralB: { name: 'PSYCHO SCREAM', blast: { r: 150, dmg: 18, angle: 60, base: 7.5, growth: 6.5, radial: true } },
@@ -75,7 +75,7 @@ export const GNASH = {
     ...Object.fromEntries(Object.entries(NU.moves).filter(([k]) => !['neutralB', 'sideB', 'upb', 'downB'].includes(k)).map(([k, m]) => [k, k === 'grab' || k === 'throws' ? m : heavy(m)])),
     // SEETHE (neutral): hold it - crouched, roaring at the sky, shaking - and his PSYCHO meter fills faster. Let go to stop.
     // A short shove of hot air hits anyone right next to him as he starts.
-    neutralB: { frames: 24, gnash: 'seethe', loopFrom: 0, maxHold: 180, hits: [{ from: 2, to: 5, box: [-26, -56, 52, 58], dmg: 4, angle: 45, base: 3.2, growth: 1.0 }] },
+    neutralB: { frames: 24, gnash: 'seethe', loopFrom: 0, maxHold: 660, hits: [{ from: 2, to: 5, box: [-26, -56, 52, 58], dmg: 4, angle: 45, base: 3.2, growth: 1.0 }] },
     // AXE THROW (side): winds back and hurls the axe straight ahead, spinning. It flies flat for `range` frames, then
     // drops and sticks in whatever floor it comes down on - and stays there until he walks over it to pick it up.
     sideB: { frames: 46, spawnAt: 12, landLag: 10, axe: { speed: 9, range: 16, grav: 0.4, hit: { dmg: 14, angle: 32, base: 4.4, growth: 5.8 } } },
@@ -88,7 +88,7 @@ export const GNASH = {
     downB: { frames: 30, gnash: 'slam', bounceAt: 16, bounceV: -12.5, hits: [{ from: 12, to: 14, box: [4, -40, 56, 44], dmg: 14, angle: 290, base: 3.6, growth: 4.4 }] },
     // ... then (downB2) he hangs at the top of the bounce for `stall` frames, axe raised, and comes back down axe first:
     // a shockwave runs out along the floor both ways
-    downB2: { frames: 30, gnash: 'drop', stall: 60, fallAt: 12, fallV: 11.5, slamLag: 18,
+    downB2: { frames: 30, gnash: 'drop', stall: 60, fallAt: 12, fallV: 11.5, slamLag: 18, bounce: { k: 0.5, minV: 3, maxV: 14 },
       hits: [{ from: 12, to: 60, box: [-10, -30, 50, 40], dmg: 12, angle: 290, base: 3.8, growth: 4.0 }],
       wave: { reach: 90, height: 26, dmg: 9, angle: 70, base: 4.2, growth: 4.6 } },
   },

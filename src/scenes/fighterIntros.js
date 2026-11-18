@@ -51,6 +51,10 @@ export const SKIN_INTROS = {
   'mr-wake:SUN PHARAOH': { kind: 'sun-rise', dur: 110, pre: ['summon', 0.4, 0.6], sfx: ['ding', 0.5, 0.6] },
   'aero:SPACEWALK': { kind: 're-entry', dur: 110, pre: ['whoosh', 0.5, 0.5], sfx: ['bighit', 0.6, 0.8] },
   'mr-wake:ABYSSAL CHOIR':{kind:'choir-tide',dur:100,shape:'bubble',color:0x123347,color2:0x8cebd4,pre:['glass',.25,.6],sfx:['ding',.35,.5]},
+  // GNASH's map costumes (costumeEntrances.js)
+  'gnash:HIGH SCORE': { kind: 'insert-coin', dur: 110, pre: ['ding', 0.4, 1.6], sfx: ['limitready', 0.5, 1.2] },
+  'gnash:GRAVEMOON': { kind: 'gargoyle', dur: 120, pre: ['rumble', 0.35, 0.6], sfx: ['bats', 0.6, 0.9] },
+  'gnash:INFECTED.EXE': { kind: 'virus-popup', dur: 110, pre: ['popup', 0.5, 1.0], sfx: ['glitch', 0.6, 0.9] },
   // the nesting-doll costumes (code PAPERSPLEASE)
   // the beach costumes NU and AERO arrived on the roster with
   'nu:SURF ROCK': { kind: 'wave', dur: 100, color: 0x2ad0d0, color2: 0xffffff, pre: ['whoosh', 0.5, 0.5], sfx: ['geyser', 0.6, 0.9] },

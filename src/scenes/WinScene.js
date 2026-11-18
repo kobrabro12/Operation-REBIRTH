@@ -25,6 +25,7 @@ import { DevotedShots } from './devotedOutros.js';
 import { LoreShots } from './devotedLoreOutros.js';
 import { BeachShots } from './beachOutros.js';
 import { CostumeShots } from './costumeOutros.js';
+import { GnashShots } from './gnashOutros.js';
 import { sfx } from '../audio/sfx.js';
 import { stopMusic, playMusic } from '../audio/music.js';
 
@@ -54,7 +55,8 @@ const HEAD = { ss_idle: [34, 11, 32, 59], wake_idle: [32, 10, 36, 62], hk_idle: 
   aero_king_idle: [32, 12, 32, 59], ls_idle: [34, 11, 32, 59], ls_wrong_idle: [47, 17, 32, 59], wow_idle: [36, 9, 32, 59], dv_idle: [37, 12, 32, 59] };
 const ALL = () => [...ROSTER, ...TEST_ROSTER];
 
-export function hasWinCutscene(id) { return !!CUTS[id]; }
+/** Whether a win by fighter `id` (wearing costume index `skin`, if given) plays a cutscene: its own, or its costume's. */
+export function hasWinCutscene(id, skin) { return !!CUTS[id] || (skin != null && !!SKIN_CUTS[id + ':' + skinInfo(id, skin).name]); }
 
 export class WinScene extends Phaser.Scene {
   constructor() { super('Win'); }
@@ -923,6 +925,7 @@ for(const n of Object.getOwnPropertyNames(ShowcaseShots.prototype))if(n!=='const
 
 // NU's and AERO's beach costumes' outros (beachOutros.js)
 for (const n of Object.getOwnPropertyNames(BeachShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = BeachShots.prototype[n];
+for (const n of Object.getOwnPropertyNames(GnashShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = GnashShots.prototype[n];
 for (const n of Object.getOwnPropertyNames(CostumeShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = CostumeShots.prototype[n];
 // THE DEVOTED's drawn costumes' outros (devotedOutros.js)
 for (const n of Object.getOwnPropertyNames(DevotedShots.prototype)) if (n !== 'constructor') WinScene.prototype[n] = DevotedShots.prototype[n];

@@ -12,7 +12,9 @@ import { skinTexture, skinInfo } from './skins.js';
 import { GnashAxe } from './showEntities.js';
 
 /** His neon colours for the costume he's wearing: [main, second]. */
-function neonOf(f) { return f.style === 'gnashBlood' ? [0xff3a2a, 0xffb02a] : f.style === 'gnashStone' ? [0x8aff2a, 0xd8ff3a] : [0xff3ad0, 0x3af0ff]; }
+const NEONS = { gnashBlood: [0xff3a2a, 0xffb02a], gnashStone: [0x8aff2a, 0xd8ff3a], gnashArcade: [0xff3fd0, 0x3af0ff], gnashMoon: [0x8aa8ff, 0xff3a3a], gnashVirus: [0xff2a8a, 0x3af0ff] };
+/** His two neon colours for the costume he's wearing (its `style`). */
+function neonOf(f) { return NEONS[f.style] || [0xff3ad0, 0x3af0ff]; }
 const css = (c) => '#' + c.toString(16).padStart(6, '0');
 const SPECIAL = { neutralB: 1, sideB: 1, downB: 1, downB2: 1 };
 const QUEUED = new Set();                 // his no-axe sheet keys already asked for (loadNoAxe)
@@ -68,6 +70,20 @@ export class FighterGnash {
     this.xMarks.push({ x: t.x, y: t.y - 30, t: 0, s: big ? 1.5 : 1, a: (Math.random() - 0.5) * 0.6 });
     for (let i = 0; i < (big ? 14 : 8); i++) { const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * (big ? 5 : 3); this.match.particles.push({ x: t.x, y: t.y - 30, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 14 + Math.random() * 8, color: [n[0], n[1], 0xffffff][i % 3], size: big ? 3 : 2, grav: 0.12 }); }
     if (big) this.match.shake(5, 6);
+    this.skinHit(t, hb, big);
+  }
+  /**
+   * A map costume's own hit effect: HIGH SCORE pops an arcade score (+100 a point of damage) and pixel squares;
+   * GRAVEMOON flashes a crescent moon over them; INFECTED.EXE throws up an error window that shakes and glitches.
+   */
+  skinHit(t, hb, big) {
+    const st = this.style, m = this.match, x = t.x, y = t.y - 30;
+    if (!this.gnSkinFx) this.gnSkinFx = [];
+    if (st === 'gnashArcade') {
+      m.popText(t, '+' + String(Math.round((hb.h.dmg || 1) * 100 * (big ? 2 : 1))).padStart(4, '0'), Math.random() < 0.5 ? '#3af0ff' : '#ffc85a');
+      for (let i = 0; i < 6; i++) this.gnSkinFx.push({ k: 'px', x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 30, vy: -0.6 - Math.random(), t: 0, c: [0xff3fd0, 0x3af0ff, 0xffc85a][i % 3] });
+    } else if (st === 'gnashMoon') this.gnSkinFx.push({ k: 'moon', x, y: y - 10, t: 0, s: big ? 1.4 : 1 });
+    else if (st === 'gnashVirus') this.gnSkinFx.push({ k: 'err', x: x + (Math.random() - 0.5) * 20, y: y - 14, t: 0, s: big ? 1.3 : 1 });
   }
   /** Nothing makes him flinch during a PSYCHO move. */
   gnashArmour(hb) { return !!(this.psychoMove && hb && hb.h); }
@@ -148,14 +164,22 @@ export class FighterGnash {
         const n = neonOf(this);
         if (this.anim % 2 === 0) { const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 30; M.particles.push({ x: this.x + Math.cos(a) * r, y: this.y - 40 + Math.sin(a) * r, vx: -Math.cos(a) * 2.5, vy: -Math.sin(a) * 2.5, life: 14, color: Math.random() < 0.5 ? n[0] : n[1], size: 2, grav: 0 }); }
         if (this.dropStall % 20 === 0) sfx('buzz', 0.25, 1 + (stall - this.dropStall) / stall);
-        if (this.dropStall === 0) { this.t = m.fallAt; sfx('whoosh', 0.8, 0.5); }
+        if (this.dropStall === 0) { this.t = m.fallAt; this.dropFrom = this.y; sfx('whoosh', 0.8, 0.5); }
         return false;
       }
       if (!this.grounded) { this.vy = m.fallV * (this.psychoMove === 'downB' ? 1.3 : 1); this.vx *= 0.9; }
       if (this.grounded && !this.dropLanded) {
         this.dropLanded = true;
         this.gnashWave(this.psychoMove === 'downB' ? PM.wave : m.wave, this.x, this.y, 'gw' + this.attackId, this.psychoMove === 'downB');
-        this.setState('land'); this.landLag = m.slamLag; return true;
+        // ... and he BOUNCES off the floor: the further he fell, the higher he goes (`bounce` = the share of the drop he gets back)
+        const fell = Math.max(0, this.y - (this.dropFrom ?? this.y)), B = m.bounce;
+        const v = Math.min(B.maxV, Math.sqrt(2 * 0.42 * fell * B.k));
+        if (v >= B.minV) {
+          this.setState('air'); this.vy = -v; this.grounded = false; this.platform = null; this.fastFalling = false;
+          sfx('djump', 0.6, 0.6 + 0.4 * (1 - v / B.maxV));
+          for (let i = 0; i < 12; i++) M.particles.push({ x: this.x + (Math.random() - 0.5) * 30, y: this.y, vx: (Math.random() - 0.5) * 3, vy: 1 + Math.random() * 3, life: 16, color: neonOf(this)[i % 2], size: 2, grav: 0 });
+        } else { this.setState('land'); this.landLag = m.slamLag; }
+        return true;
       }
       if (this.t >= m.frames && !this.grounded) this.t = m.frames - 1;                    // keep plunging until he lands (or falls off)
       return false;
@@ -302,6 +326,13 @@ export class FighterGnash {
   drawGnash(g, spr) {
     const s = this.state, n = neonOf(this), f = this.facing, m = this.match;
     if (!this.slashFx) { this.slashFx = []; this.xMarks = []; this.ringFx = []; }
+    if (this.alive && s !== 'respawn') {                       // the PSYCHO meter over his head, too (a small bar with horns)
+      const P = this.def.show.psycho, k = Math.min(1, (this.psychoMeter || 0) / P.max), w = 40, bx = this.x - w / 2, by = this.y - (this.def.tagY || 74) - 12;
+      g.fillStyle(0x000000, 0.75); g.fillRect(bx - 1, by - 1, w + 2, 6);
+      g.fillStyle(0x1a0a1e, 1); g.fillRect(bx, by, w, 4);
+      if (k > 0) { g.fillStyle(k >= 1 ? (this.anim % 10 < 5 ? 0xffffff : n[0]) : n[0], 1); g.fillRect(bx, by, w * k, 4); g.fillStyle(0xffffff, 0.4); g.fillRect(bx, by, w * k, 1); }
+      g.fillStyle(n[0], 1); g.fillTriangle(bx - 1, by - 1, bx + 3, by - 1, bx - 3, by - 6); g.fillTriangle(bx + w + 1, by - 1, bx + w - 3, by - 1, bx + w + 3, by - 6);
+    }
     if (this.alive && s !== 'respawn') {                       // his neon: a soft glow off the horns, sparks where the blade drags
       const flick = this.anim % 97 < 3 ? 0.3 : 1;
       g.fillStyle(n[0], 0.07 * flick); g.fillEllipse(this.x + f * 4, this.y - (this.def.headTop || 64) + 6, 40, 20);
@@ -313,6 +344,7 @@ export class FighterGnash {
         g.lineStyle(1.5, n[1], 0.25 + 0.3 * p); g.strokeEllipse(this.x, this.y - 32, 70 + 12 * p, 86 + 12 * p); g.lineStyle(0);
       }
     }
+    this.drawGnashSkinFx(g);
     // the neon slash trails: every active hitbox leaves an arc where the axe passed, fading over a few frames
     if (s === 'attack' && this.move && this.move.hits) for (const hb of this.activeHitboxes()) {
       const cx = this.x, cy = this.y - 30, bx = (hb.x1 + hb.x2) / 2, by = (hb.y1 + hb.y2) / 2;
@@ -377,6 +409,69 @@ export class FighterGnash {
   }
 
   /**
+   * The map costumes' own effects round him: HIGH SCORE - neon pixels drift up off him, a little sunset reflection on
+   * the floor; GRAVEMOON - pale wisps curl up round his feet, his lantern glows, a bat flits off now and then;
+   * INFECTED.EXE - glitch blocks flicker over him, the odd scanline slips sideways. Plus each one's hit effects
+   * (skinHit) playing out.
+   */
+  drawGnashSkinFx(g) {
+    const st = this.style;
+    if (!st || !NEONS[st] || st === 'gnashBlood' || st === 'gnashStone') return;
+    const a = this.anim, x = this.x, y = this.y, f = this.facing, on = this.alive && this.state !== 'respawn';
+    if (!this.gnSkinFx) this.gnSkinFx = [];
+    const FX = this.gnSkinFx;
+    if (on && st === 'gnashArcade') {
+      if (a % 7 === 0) FX.push({ k: 'px', x: x + (Math.random() - 0.5) * 34, y: y - Math.random() * 60, vy: -0.4 - Math.random() * 0.5, t: 0, c: [0xff3fd0, 0x3af0ff, 0xffc85a][a % 3] });
+      if (this.grounded) { g.fillStyle(0xff3fd0, 0.18); g.fillEllipse(x, y + 1, 54, 6); g.fillStyle(0xffc85a, 0.25); g.fillRect(x - 14, y, 28, 1); g.fillRect(x - 8, y + 2, 16, 1); }
+    }
+    if (on && st === 'gnashMoon') {
+      if (a % 9 === 0) FX.push({ k: 'wisp', x: x + (Math.random() - 0.5) * 40, y: y - 2, t: 0, ph: Math.random() * 6 });
+      if (a % 240 === 120) FX.push({ k: 'bat', x: x - f * 10, y: y - 50, vx: -f * (1.4 + Math.random()), t: 0 });
+      const lx = x - f * 9, ly = y - 44 + 6, p = 0.6 + 0.4 * Math.sin(a * 0.15);   // (round his belt: where the lantern hangs)
+      g.fillStyle(0xff6a20, 0.12 * p); g.fillCircle(lx, ly, 12); g.fillStyle(0xffc060, 0.2 * p); g.fillCircle(lx, ly, 5);
+    }
+    if (on && st === 'gnashVirus') {
+      if (a % 53 < 4 || (this.state === 'attack' && a % 11 < 2)) for (let i = 0; i < 4; i++) {   // glitch blocks over him
+        const bx = x + (Math.random() - 0.5) * 40, by = y - 10 - Math.random() * 60;
+        g.fillStyle([0xff2a8a, 0x3af0ff, 0x108484, 0xffffff][i], 0.55); g.fillRect(bx, by, 6 + Math.random() * 16, 2 + Math.random() * 3);
+      }
+      if (a % 120 < 2) { g.fillStyle(0x3af0ff, 0.35); g.fillRect(x - 24, y - 40 - (a % 30), 48, 2); }
+    }
+    for (let i = FX.length - 1; i >= 0; i--) {
+      const P = FX[i]; P.t++;
+      if (P.k === 'px') {                                        // a neon pixel square, drifting up and blinking out
+        P.y += P.vy; if (P.t > 40) { FX.splice(i, 1); continue; }
+        if (P.t < 30 || P.t % 4 < 2) { g.fillStyle(P.c, 0.9); g.fillRect(Math.round(P.x / 2) * 2, Math.round(P.y / 2) * 2, 3, 3); }
+      } else if (P.k === 'wisp') {                               // a pale wisp, curling up and fading
+        if (P.t > 50) { FX.splice(i, 1); continue; }
+        const k = P.t / 50, wx = P.x + Math.sin(P.ph + P.t * 0.12) * 5, wy = P.y - P.t * 0.7;
+        g.fillStyle(0xc8d0ff, 0.22 * (1 - k)); g.fillCircle(wx, wy, 4 + 3 * k); g.fillStyle(0xffffff, 0.25 * (1 - k)); g.fillCircle(wx, wy, 1.5);
+      } else if (P.k === 'bat') {                                // a little black bat flapping away
+        if (P.t > 70) { FX.splice(i, 1); continue; }
+        P.x += P.vx; const by = P.y - P.t * 0.5 + Math.sin(P.t * 0.4) * 3, w = P.t % 8 < 4 ? 5 : 2;
+        g.fillStyle(0x0b0922, 0.9); g.fillTriangle(P.x - w - 2, by - (w > 3 ? 2 : -1), P.x, by, P.x - 1, by + 2); g.fillTriangle(P.x + w + 2, by - (w > 3 ? 2 : -1), P.x, by, P.x + 1, by + 2); g.fillRect(P.x - 1, by - 1, 2, 3);
+        g.fillStyle(0xff3a3a, 1); g.fillRect(P.x, by, 1, 1);
+      } else if (P.k === 'moon') {                               // a crescent moon flashing over whoever he hit
+        if (P.t > 20) { FX.splice(i, 1); continue; }
+        const k = P.t / 20, r = (12 + 8 * k) * P.s;
+        g.fillStyle(0x7470d0, 0.3 * (1 - k)); g.fillCircle(P.x, P.y, r + 6);
+        g.fillStyle(0xe6eaff, 1 - k); g.fillCircle(P.x, P.y, r); g.fillStyle(0x17143e, 1 - k); g.fillCircle(P.x + r * 0.45, P.y - r * 0.2, r * 0.85);
+      } else if (P.k === 'err') {                                // a Windows error box, shaking, then glitching away
+        if (P.t > 26) { FX.splice(i, 1); continue; }
+        const s = P.s, w = 34 * s, h = 18 * s, j = P.t < 8 ? (P.t % 2 ? 2 : -2) : 0, X = P.x - w / 2 + j, Y = P.y - h / 2, al = P.t > 18 ? (P.t % 2 ? 0.3 : 0.9) : 1;
+        g.fillStyle(0x0a0a12, al); g.fillRect(X - 1, Y - 1, w + 2, h + 2);
+        g.fillStyle(0xc0c0c0, al); g.fillRect(X, Y, w, h); g.fillStyle(0xffffff, al); g.fillRect(X, Y, w, 1); g.fillRect(X, Y, 1, h);
+        g.fillStyle(0x0a2484, al); g.fillRect(X + 1, Y + 1, w - 2, 4 * s);
+        g.fillStyle(0xc0c0c0, al); g.fillRect(X + w - 5 * s, Y + 1.5, 3 * s, 3 * s);
+        g.fillStyle(0xff2a2a, al); g.fillCircle(X + 6 * s, Y + 11 * s, 3 * s); g.fillStyle(0xffffff, al); g.fillRect(X + 6 * s - 0.5, Y + 9 * s, 1, 3 * s);
+        g.fillStyle(0x2a2a2a, al); g.fillRect(X + 12 * s, Y + 9 * s, 16 * s, 1); g.fillRect(X + 12 * s, Y + 12 * s, 11 * s, 1);
+        if (P.t > 18) { g.fillStyle(0xff2a8a, 0.6); g.fillRect(X + 4, Y + (P.t % 3) * 5, w, 2); }
+      }
+    }
+    if (FX.length > 80) FX.splice(0, FX.length - 80);
+  }
+
+  /**
    * His PSYCHO meter on his player plate (from hud.js), right of the name tab, over his damage %: a slanted neon bar
    * with a little X-eyed mask; full, it flashes PSYCHO! (`x`, `y` = the plate's top left).
    */
@@ -397,43 +492,73 @@ export class FighterGnash {
   }
 
   /**
-   * The PSYCHO cut-in (from MatchScene's overlay, while it's frozen): the screen goes dark, neon slashes tear across,
-   * his mask slams in huge with its X eyes and grin blazing, the move's name, glitch bars, then a white flash.
-   * `o` = the overlay Graphics (screen space), `C` = match.psychoCut.
+   * The PSYCHO cut-in (from MatchScene's overlay, while it's frozen), drawn like an old arcade game - the NEON ARCADE's
+   * world on a CRT: a pixel-block wipe in, a synthwave sunset with a scrolling grid floor, his mask as a big chunky
+   * pixel sprite stepping in, a 1UP / HI-SCORE bar, the move's name in the pixel font with a hard drop shadow, PSYCHO!
+   * blinking, scanlines and a block wipe out. `o` = the overlay Graphics (screen space), `C` = match.psychoCut.
    */
-  drawPsychoCut(o, C) {
-    const W = 640, H = 360, t = C.t, L = C.len, inK = Math.min(1, t / 8), outK = t > L - 8 ? (L - t) / 8 : 1, a = inK * outK;
-    o.fillStyle(0x05030a, 0.82 * a); o.fillRect(0, 0, W, H);
-    o.fillStyle(0x000000, 1); o.fillRect(0, 0, W, 40 * a); o.fillRect(0, H - 40 * a, W, 40 * a);   // letterbox
-    for (let i = 0; i < 14; i++) {                                                      // speed lines rushing past
-      const yy = 40 + ((i * 53 + t * 9) % (H - 80)), len = 80 + (i * 37) % 120, xx = ((i * 97 + t * 26) % (W + 200)) - 100;
-      o.fillStyle(i % 3 ? C.color : C.color2, 0.18 * a); o.fillRect(xx, yy, len, 2);
+  drawPsychoCut(_o, C) {
+    const o = this.psychoCutText().g; o.clear();                                       // (its own layer, over the HUD and menus)
+    const W = 640, H = 360, t = C.t, L = C.len, B = 8;                                 // B: the size of one big "pixel"
+    const snap = (v) => Math.round(v / B) * B, blk = (x, y, w, h, col, a = 1) => { o.fillStyle(col, a); o.fillRect(snap(x), snap(y), Math.max(B, snap(w)), Math.max(B, snap(h))); };
+    const SKY = [0x0d0221, 0x150530, 0x1f0a40, 0x2b0f52, 0x3d1462, 0x541d6e, 0x6e2373, 0x8a2876, 0xa52d78, 0xc2357a, 0xe0407c];
+    const SUN = [0xffe56a, 0xffc85a, 0xffa058, 0xff7a62, 0xff5a72, 0xff3f86];
+    const hz = 208;                                                                     // the horizon
+    for (let i = 0; i < SKY.length; i++) { o.fillStyle(SKY[i], 1); o.fillRect(0, i * hz / SKY.length, W, hz / SKY.length + 1); }
+    for (let i = 0; i < 26; i++) { const sx = (i * 137) % W, sy = (i * 71) % (hz - 60); if ((t + i) % 9 > 1) blk(sx, sy, 4, 4, 0xf0e6ff, 0.8); }   // twinkling stars
+    const sx = 470, sr = 72;                                                            // the striped synthwave sun
+    for (let y = -sr; y < 0; y += 4) {
+      const band = Math.floor((y + sr) / (sr / SUN.length)), gap = y > -sr * 0.55 && ((y + t) & 12) === 0;
+      if (gap) continue;
+      const half = Math.sqrt(sr * sr - y * y); o.fillStyle(SUN[Math.min(SUN.length - 1, band)], 1); o.fillRect(sx - half, hz + y, half * 2, 4);
     }
-    const sx = 170 + (1 - Math.min(1, t / 10)) * -260, sy = 182, R = 92;                // his mask, slamming in from the left
-    o.fillStyle(C.color, 0.25 * a); o.fillCircle(sx, sy, R + 18 + 6 * Math.sin(t * 0.6));
-    o.fillStyle(0x000000, a); o.fillCircle(sx, sy, R + 4); o.fillStyle(0x1c1c24, a); o.fillCircle(sx, sy, R);
-    o.fillStyle(0x2e2e3a, a); o.fillEllipse(sx - 30, sy - 40, 50, 26);
-    for (const d of [-1, 1]) {                                                          // the neon horns
-      o.fillStyle(C.color, a); o.fillTriangle(sx + d * 50, sy - 70, sx + d * 78, sy - 64, sx + d * 92, sy - 150);
-      o.fillStyle(0xffffff, a); o.fillTriangle(sx + d * 62, sy - 70, sx + d * 72, sy - 68, sx + d * 88, sy - 140);
-    }
-    const blaze = t % 6 < 3 ? 0xffffff : C.color2;
-    for (const ex of [-34, 34]) {                                                       // the X eyes
-      o.lineStyle(12, C.color2, a); o.lineBetween(sx + ex - 16, sy - 36, sx + ex + 16, sy - 4); o.lineBetween(sx + ex + 16, sy - 36, sx + ex - 16, sy - 4);
-      o.lineStyle(4, blaze, a); o.lineBetween(sx + ex - 16, sy - 36, sx + ex + 16, sy - 4); o.lineBetween(sx + ex + 16, sy - 36, sx + ex - 16, sy - 4);
-    }
-    const zig = [[-62, 30], [-41, 12], [-20, 40], [0, 12], [20, 40], [41, 12], [62, 30]];   // the zig-zag grin
-    o.lineStyle(9, C.color, a); o.beginPath(); o.moveTo(sx + zig[0][0], sy + zig[0][1]); for (const [zx, zy] of zig) o.lineTo(sx + zx, sy + zy); o.strokePath();
-    o.lineStyle(3, 0xffffff, a); o.beginPath(); o.moveTo(sx + zig[0][0], sy + zig[0][1]); for (const [zx, zy] of zig) o.lineTo(sx + zx, sy + zy); o.strokePath();
+    o.fillStyle(0x14042a, 1); o.fillRect(0, hz, W, H - hz);                             // the grid floor, scrolling toward you
+    o.lineStyle(2, 0xff3fd0, 0.9);
+    for (let i = -12; i <= 12; i++) o.lineBetween(W / 2 + i * 22, hz, W / 2 + i * 150, H);
+    for (let j = 0; j < 9; j++) { const k = ((j + (t * 0.08) % 1) / 9), y = hz + (H - hz) * k * k; o.lineStyle(2, j % 2 ? 0xff3fd0 : 0x8a2aa0, 0.9); o.lineBetween(0, y, W, y); }
     o.lineStyle(0);
-    if (t >= 8) {                                                                       // two big neon slashes across the screen
-      const k = Math.min(1, (t - 8) / 6);
-      for (const [y0, y1, col] of [[60, 300, C.color], [300, 70, C.color2]]) { o.lineStyle(14 * (1 - k * 0.6), col, 0.85 * a); o.lineBetween(280, y0, 280 + 360 * k, y0 + (y1 - y0) * k); o.lineStyle(3, 0xffffff, a); o.lineBetween(280, y0, 280 + 360 * k, y0 + (y1 - y0) * k); }
-      o.lineStyle(0);
+    // his mask, a big pixel sprite, stepping in from the left a block at a time
+    const mx = snap(-120 + Math.min(1, t / 12) * 300), my = 190, n = C.color, n2 = C.color2, R = 10.5;
+    const cell = (cx, cy, col) => { o.fillStyle(col, 1); o.fillRect(mx + cx * B, my + cy * B, B, B); };
+    for (let cy = -11; cy <= 11; cy++) for (let cx = -12; cx <= 12; cx++) {
+      const d = Math.hypot(cx, cy * 1.05);
+      if (d <= R - 1) cell(cx, cy, cx < -3 && cy < -4 && d > R - 4 ? 0x3a3a4a : 0x1c1c24);
+      else if (d <= R) cell(cx, cy, 0x000000);
     }
-    for (let i = 0; i < 4; i++) if ((t + i * 7) % 11 < 2) { o.fillStyle(i % 2 ? C.color : C.color2, 0.5 * a); o.fillRect(0, 50 + ((t * 31 + i * 71) % 260), W, 3 + i); }   // glitch bars
-    if (t < 3 || t > L - 3) { o.fillStyle(0xffffff, 0.8); o.fillRect(0, 0, W, H); }   // the flashes in and out
-    const T = this.match.bigText;                                                      // the move's name
-    if (T && t >= 12) { T.setText(C.name).setFontSize(22).setAlpha(a).setPosition(460, 186).setColor(css(C.color)); T.psycho = true; }
+    for (const sgn of [-1, 1]) for (let i = 0; i < 7; i++) { cell(sgn * (7 + Math.round(i * 0.55)), -9 - i, i < 5 ? n : 0xffffff); if (i < 5) cell(sgn * (8 + Math.round(i * 0.55)), -9 - i, n); }   // the neon horns
+    const blink = t % 16 < 12 ? n2 : 0xffffff;
+    for (const ex of [-4, 4]) for (let i = -2; i <= 2; i++) { cell(ex + i, -3 + i, blink); cell(ex - i, -3 + i, blink); }   // the X eyes
+    for (let cx = -7; cx <= 7; cx++) { cell(cx, ((cx + 7) % 4 < 2) ? 3 : 5, n); if ((cx + 7) % 2 === 1) cell(cx, 4, n); }   // the zig-zag grin
+    // the CRT: scanlines, a soft glow at the edges, the odd rolling bar
+    for (let y = 0; y < H; y += 3) { o.fillStyle(0x000000, 0.22); o.fillRect(0, y, W, 1); }
+    o.fillStyle(0xffffff, 0.04); o.fillRect(0, (t * 7) % H, W, 14);
+    o.lineStyle(10, 0x000000, 0.6); o.strokeRoundedRect(4, 4, W - 8, H - 8, 26); o.lineStyle(0);
+    // the arcade text: 1UP / HI-SCORE, the move's name, PSYCHO! blinking
+    const T = this.psychoCutText();
+    T.top.setText('1UP  ' + String(Math.min(999999, 1000 * t + 4210)).padStart(6, '0') + '        HI-SCORE  999999').setVisible(true);
+    T.blink.setText(t % 20 < 12 ? 'PSYCHO!' : '').setColor(css(n2)).setVisible(true);
+    T.foot.setText('CREDIT 01   GNASH  PLAYER 1').setVisible(true);
+    const big = this.match.bigText;
+    if (big && t >= 10) { big.setText(C.name).setFontSize(20).setAlpha(1).setPosition(452, 112).setColor(css(n)).setShadow(4, 4, '#14042a', 0, true, true).setDepth(47); big.psycho = true; }
+    // the pixel-block wipes: in (blocks clearing away) and out (blocks filling in)
+    const wipe = t < 10 ? 1 - t / 10 : t > L - 10 ? (t - (L - 10)) / 10 : 0;
+    if (wipe > 0) for (let y = 0; y < H; y += 40) for (let x = 0; x < W; x += 40) { const r = ((x * 7 + y * 13) % 100) / 100; if (r < wipe) { o.fillStyle(r < wipe * 0.5 ? 0x000000 : n, 1); o.fillRect(x, y, 40, 40); } }
+  }
+  /** The cut-in's arcade lettering (made once, on the UI layer). */
+  psychoCutText() {
+    const m = this.match;
+    if (!m.psychoTexts) {
+      const mk = (x, y, size, col) => { const t = m.add.text(x, y, '', { fontFamily: FONT, fontSize: size + 'px', color: col, stroke: '#14042a', strokeThickness: 4 }).setOrigin(0.5).setDepth(46).setVisible(false); m.addUI(t); return t; };
+      const g = m.add.graphics().setDepth(44); m.addUI(g);
+      m.psychoTexts = { g, top: mk(320, 22, 8, '#ffffff'), blink: mk(452, 150, 12, '#3af0ff'), foot: mk(320, 340, 7, '#ffd23f') };
+    }
+    return m.psychoTexts;
+  }
+  /** The cut-in is over: its lettering away, the big text back as it was. */
+  endPsychoCut() {
+    const m = this.match;
+    if (m.psychoTexts) { for (const k in m.psychoTexts) if (k !== 'g') m.psychoTexts[k].setVisible(false); m.psychoTexts.g.clear(); }
+    const b = m.bigText;
+    if (b && b.psycho) { b.psycho = false; b.setText('').setFontSize(28).setAlpha(1).setColor('#ffffff').setShadow(0, 0, '#000000', 0).setPosition(320, 150).setDepth(20); }
   }
 }

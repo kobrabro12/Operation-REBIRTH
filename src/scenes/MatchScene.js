@@ -644,7 +644,7 @@ export class MatchScene extends Phaser.Scene {
     const data = { soulXP, results, rematch: this.rematchSetup, mode: this.mode, unlocks: this.unlocks, coins, total: getCoins() };
     if (this.classic) { const won = order[0].slot === 0 && !this.fighters[0].eliminated; return this.scene.start('Classic', { classic: { won } }); }   // CLASSIC MODE: back to the run
     if(this.soulBattle){const won=order[0].slot===0&&!order[0].eliminated&&this.fighters[1].eliminated;data.soulBattle=this.soulBattle;data.soulWon=won;data.soulEarned=won?awardSoul(this.soulBattle.soulId):false;return this.scene.start(data.soulEarned?'SoulReward':'Results',data);}
-    if (hasWinCutscene(results[0].fighter) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
+    if (hasWinCutscene(results[0].fighter, results[0].skin || 0) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
     this.scene.start('Results', data);
   }
 
@@ -1237,7 +1237,7 @@ export class MatchScene extends Phaser.Scene {
       this.overlay.fillStyle(0x000000, 1); this.overlay.fillRect(0, 0, VIEW_W, 34); this.overlay.fillRect(0, VIEW_H - 34, VIEW_W, 34);
     }
     if (this.psychoCut) {                              // GNASH's PSYCHO cut-in (fighterGnash.js drawPsychoCut)
-      if (this.psychoCut.t >= this.psychoCut.len || this.frozen <= 0) { this.psychoCut = null; if (this.bigText.psycho) { this.bigText.psycho = false; this.bigText.setText('').setFontSize(28).setAlpha(1).setColor('#ffffff').setPosition(VIEW_W / 2, VIEW_H / 2 - 30); } }
+      if (this.psychoCut.t >= this.psychoCut.len || this.frozen <= 0) { this.psychoCut.f.endPsychoCut(); this.psychoCut = null; }
       else this.psychoCut.f.drawPsychoCut(this.overlay, this.psychoCut);
     }
     if (this.limitBanner) {

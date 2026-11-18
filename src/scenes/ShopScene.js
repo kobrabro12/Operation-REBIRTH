@@ -282,7 +282,7 @@ export class ShopScene extends Phaser.Scene {
   previewCinema(kind) {
     const pv=this.pv;if(!pv)return;
     const skin=Math.max(0,skinsFor(pv.def.id).findIndex(s=>s.name===pv.it.skin));
-    if(kind==='outro'&&!hasWinCutscene(pv.def.id))return;
+    if(kind==='outro'&&!hasWinCutscene(pv.def.id,skin))return;
     this.clicked=null;
     this.events.once('wake',()=>{this.menu=new MenuInput(this);this.clicked=null;this.preview();});
     this.scene.sleep();

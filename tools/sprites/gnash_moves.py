@@ -111,6 +111,47 @@ def gnash_idle():
                            root=(0, 0, 0, 1 + 0.025 * br, 1 - 0.02 * br), **legs(6, -4, -8, 6)), 'linear'))
     return keys
 
+def skin_idle():
+    """The idle for the costume being built: the map costumes have their own (same length - one frame table)."""
+    return {'arcade': arcade_idle, 'gravemoon': gravemoon_idle, 'infected': infected_idle}.get(gnash_draw.VARIANT, gnash_idle)()
+
+def arcade_idle():
+    """HIGH SCORE: the axe slung back across his shoulders, head-bobbing to the arcade's beat (a nod every 12
+    ticks), knees bouncing, a big double-nod and a shoulder roll at the end of each bar."""
+    keys = []
+    for i in range(0, 193, 6):
+        beat = (i % 24) / 24; nod = math.sin(beat * 2 * math.pi); bar = math.sin((i - 144) * math.pi / 48) if 144 <= i <= 192 else 0
+        keys.append(k(i, P(torso=(-2 + 3 * nod + 6 * bar, 0, 0), head=(4 + 12 * max(0, nod) + 10 * bar, 0, 0), hair=(-6 * nod, 0, 0),
+                             fupper=(-4 * bar, 0, 0), ffore=(-40, 0, 0), mic=(-40 + 6 * bar, 0, 0), root=(0, 0, 1.5 * max(0, nod), 1 + 0.02 * nod, 1 - 0.02 * nod), **legs(8 + 6 * max(0, nod), -6 - 8 * max(0, nod), -8 - 6 * max(0, nod), 6 + 8 * max(0, nod))), 'linear'))
+    return keys
+
+def gravemoon_idle():
+    """GRAVEMOON: still as a gargoyle - the axe held up at the ready, the moon in its blade, hunched, a slow deep breath; every so often
+    he lifts his head right up to the moon and holds it there, then lowers it again."""
+    keys = []
+    for i in range(0, 193, 6):
+        br = math.sin(i * math.pi / 48); look = math.sin((i - 72) * math.pi / 96) ** 2 if 72 <= i <= 168 else 0
+        keys.append(k(i, P(torso=(8 + 2 * br - 6 * look, 0, 0), head=(14 - 44 * look, 0, 0), hair=(-4 * br, 0, 0), fupper=(20 + 6 * look, 0, 0), ffore=(10, 0, 0), mic=(10 + 2 * br, 0, 0),
+                           root=(0, 0, 0, 1 + 0.015 * br, 1 - 0.015 * br), **legs(10, -12, -12, 12)), 'linear'))
+    return keys
+
+def infected_idle():
+    """INFECTED.EXE: the axe dragging behind him, standing dead still - then the signal glitches: he snaps into a twisted
+    pose for a few frames and snaps back, at uneven gaps, like a corrupted file."""
+    base = mix(P(**DRAG), head=(-2, 0, 0), **legs(6, -4, -8, 6))
+    twitch = {36: dict(head=(38, 0, 0), torso=(16, 1, 1)), 42: dict(head=(-30, 0, 0), root=(0, 2, 0, 1, 1)), 90: dict(torso=(-8, 1, 1), fupper=(30, 0, 0), head=(20, 0, 0)),
+              132: dict(head=(-40, 0, 0), hair=(20, 0, 0)), 138: dict(head=(45, 0, 0), root=(0, -2, 0, 1, 1)), 144: dict(torso=(22, 1, 1), head=(-10, 0, 0)), 174: dict(root=(0, 0, 0, 1.08, 0.92), head=(10, 0, 0))}
+    keys = []
+    for i in range(0, 193, 6):
+        br = math.sin(i * math.pi / 24)
+        pose = mix(base, **twitch[i]) if i in twitch else mix(base, torso=(10 + br, 1, 1), root=(0, 0, 0, 1 + 0.015 * br, 1 - 0.015 * br))
+        keys.append(k(i, pose, 'snap'))
+    return keys
+
+def skin_moves(costume):
+    """The map costumes' own SEETHE (neutral special) - the same 24 ticks, so the frame table is shared."""
+    return {'arcade': {'neutralB': SHRED}, 'gravemoon': {'neutralB': HOWL}, 'infected': {'neutralB': CORRUPT}}.get(costume, {})
+
 def noaxe_idle():
     """No axe: fists clenched, shoulders heaving, glaring about for it."""
     keys = []
@@ -152,6 +193,15 @@ NOAXE = ('mic',)
 
 # SEETHE (neutral, loops while held): crouched, roaring at the sky, shaking all over
 gmove('neutralB', 24, [k(0, ROAR(-1)), k(3, ROAR(1), 'linear'), k(6, ROAR(-1), 'linear'), k(9, ROAR(1), 'linear'), k(12, ROAR(-1), 'linear'), k(15, ROAR(1), 'linear'), k(18, ROAR(-1), 'linear'), k(21, ROAR(1), 'linear'), k(24, ROAR(-1), 'linear')], loop=True)
+# the map costumes' SEETHEs. HIGH SCORE - HEADBANG: the axe held high in both hands, banging his head down and up to the beat
+BANG = lambda s: mix(HIGH, torso=(-10 + 34 * s, 2 * s, 1), head=(-30 + 70 * s, 0, 0), hair=(30 - 50 * s, 0, 0), root=(0, 0, 2 * s, 1.04, 0.96), **legs(20, -16, -22, 20, 6, -8))
+SHRED = (24, [k(i, BANG(1 if (i // 3) % 2 else 0), 'out' if (i // 3) % 2 else 'in') for i in range(0, 25, 3)], 1, ('ffore', 'mic'), True, None)
+# GRAVEMOON - HOWL: head thrown right back to the moon, the axe raised up high behind him, a slow tremble
+HWL = lambda s: mix(HIGH, torso=(-22 + 2 * s, -1, 0), head=(-50 + 3 * s, 0, 0), hair=(-16, 0, 0), mic=(30, 0, 0), root=(s * 0.4, 0, 0, 0.96, 1.06), **legs(-6, 10, -14, 14, -4, -6))
+HOWL = (24, [k(i, HWL(1 if (i // 4) % 2 else -1), 'inout') for i in range(0, 25, 4)], 1, (), True, None)
+# INFECTED.EXE - CORRUPT: snapping between broken poses every couple of frames, like a glitching sprite
+GL = [ROAR(1), mix(LOW, head=(40, 0, 0), torso=(30, 4, 2)), mix(ROAR(-1), head=(-60, 0, 0), root=(0, 3, 0, 1.12, 0.9)), mix(OVER, torso=(-30, -2, -1), head=(30, 0, 0)), mix(CHOP, head=(-20, 0, 0), root=(0, -3, 0, 0.9, 1.1)), mix(ROAR(1), torso=(4, 0, 0), head=(50, 0, 0))]
+CORRUPT = (24, [k(i, GL[(i * 5 // 3) % len(GL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
 # AXE THROW (side): winds it back over his shoulder, then hurls it - his hand's empty till it comes back
 gmove('sideB', 46, [k(0, P()), k(8, mix(OVER, torso=(-20, -2, -1), fupper=(-190, -1, -2), ffore=(120, 0, 0), mic=(-40, 0, 0)), 'out'),
                     k(12, P(_hide=NOAXE, torso=(26, 5, 1), head=(-10, 2, 0), fupper=(-70, 0, 0), ffore=(10, 0, 0), bupper=(40, 0, 0), root=(0, 5, 0, 1.06, 0.95), **STANCE), 'snap'),
@@ -177,9 +227,9 @@ def half_steps():
 if __name__ == '__main__':
     _BUILDING = True; half_steps(); N.life = gnash_life        # every frame through the two-handed grip
     FOLLOW = {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
-    SETS = ['default', 'bloodmoon', 'gravestone']
+    SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected').split(',')   # (GN_SETS=arcade,... builds only those)
     air_poses(True)
-    build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', gnash_idle, SETS, (255, 120, 60))
+    build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', skin_idle, SETS, (255, 120, 60), own_for=skin_moves)
     NOAXE_BUILD = True; air_poses(True)
     build(gnash_draw, FOLLOW, GN, 'gnash/noaxe', 'gnMoves.js', 'GN_MOVES', noaxe_idle, SETS, (255, 120, 60))
     js = os.path.join(os.path.dirname(__file__), '../../src/fighters/gnMoves.js'); t = open(js).read()
