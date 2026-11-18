@@ -158,13 +158,13 @@ Normals share NU's poses and numbers (a cleaver where NU has a mic).
 - **Limit**: FULL COURSE. A giant pot scoops up whoever's in front of him; four boils (7% each) and an eruption (17%) = 45%.
 
 ### GNASH (`gnash`, on the select grid) — heavy hitter (weight 1.2)
-Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X eyes, neon horns, and a giant black axe with a neon diamond in the blade - held in both hands, dragged along the floor behind him (and from his sketch, the zig-zag grin). Normals share NU's poses and timings (the axe where NU has a mic), 12% more damage, 6% more knockback and hitboxes 10 px wider / 8 px taller (the axe's reach). Slow on the ground and in the air.
-- **Passive — RAGE**: a meter over his name fills from damage taken (x0.5) and dealt (x0.3). Full: ENRAGED for 6 s - x1.2 damage, x1.12 knockback, hits that would knock him back 4 or less don't make him flinch, +10 Limit. Then it empties.
-- **Neutral special**: SEETHE. Hold to roar and fill RAGE fast (up to 3 s); a 4% shove as it starts.
-- **Side special**: AXE THROW, a boomerang (13% out, 7% back); one at a time.
-- **Up special**: SKYSPLITTER, a rising axe uppercut (8% then a 14% launcher at the top). Helpless after.
-- **Down special**: GROUND SPLITTER. Chops the floor (14%) and bounces up off it, then plunges down axe first (12%) and slams: a shockwave hits everyone on that floor within 90 px (9%).
-- **Limit**: EXECUTIONER. Leaps, hangs over the nearest foe (a target mark), then drops: 32% and a huge launch where he lands, plus a 150 px shockwave (10%).
+Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X eyes, neon horns, and a giant black axe (longer than he is tall, a neon diamond in the blade) held in both hands and dragged along the floor behind him (and from his sketch, the zig-zag grin). Normals share NU's poses and timings, 5% more damage, 2% more knockback and hitboxes 10 px wider / 8 px taller (the axe's reach). Slow on the ground and in the air.
+- **Passive — PSYCHO**: a meter on his player plate, beside his damage %, fills slowly from damage taken (x0.25) and dealt (x0.15). Full = PSYCHO READY: the next special he uses becomes its PSYCHO version - a cinematic cut-in (about 1.2 s, everyone frozen: his mask slams in, neon slashes, the move's name), then the special buffed (x1.45 damage, x1.25 knockback, nothing makes him flinch).
+- **Neutral special**: SEETHE. Hold to roar and fill PSYCHO faster (up to 3 s); a 4% shove as it starts. PSYCHO SCREAM: one neon shockwave round him (150 px, 18%).
+- **Side special**: AXE THROW. The axe flies straight ahead (14%), drops and sticks in the floor; he is UNARMED until he walks over it (fists x0.6 damage, no side or down special; off the stage it comes back after 3 s). PSYCHO THROW: twice the size and speed, cuts through everyone (18%), blows up where it lands (14%) and flies back to his hand.
+- **Up special**: SKYSPLITTER, a rising axe uppercut (8% then a 14% launcher). Helpless after. PSYCHO RISE: higher, inside a neon pillar that hits five times and launches.
+- **Down special**: GROUND SPLITTER. Chops the floor (14%) and is thrown high into the air, hangs there for a second, then plunges axe first (12%) and slams: a shockwave hits everyone on that floor within 90 px (9%). PSYCHO METEOR: thrown higher, a longer charge, a 260 px shockwave (18%) with neon pillars.
+- **Limit**: EXECUTIONER. Leaps, hangs over the nearest foe (a neon X), then drops: 32% and a huge launch where he lands, plus a 150 px shockwave (10%). Brings the axe back if it was thrown.
 
 ## 10. Costumes and unlocks
 

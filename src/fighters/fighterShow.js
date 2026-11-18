@@ -80,7 +80,7 @@ export class FighterShow {
       return { dmg: 1 + S.cards.perCard * n, kb: 1 + S.cards.perKb * n };
     }
     if (S.kind === 'chef' && this.wellDone > 0) return { dmg: S.orders.bonus.dmg, kb: S.orders.bonus.kb };
-    if (S.kind === 'gnash') return this.gnashBonus();
+    if (S.kind === 'gnash') return this.gnashBonus(t, hb);
     return null;
   }
   /** A hit landed: a Presto card sticks a card on them; a Roux hit with the next dish on the ticket ticks it off (the whole ticket: ORDER UP!). */

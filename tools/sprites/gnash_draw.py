@@ -23,18 +23,18 @@ from nu_draw import hx, shade5, put, limb, blank
 
 # every bit of his clothing is black, outlined in neon: shade5's outer ring is the material's last colour, so a
 # black ramp ending in a neon colour draws the whole outfit as a neon-edged silhouette
-PAD, SIZE = 16, 96          # his parts sit on a 96x96 canvas, 16 px in, so the giant axe has room: pivots are +PAD
+PAD, SIZE = 40, 144         # his parts sit on a 144x144 canvas, 40 px in, so the giant axe has room: pivots are +PAD
 
 def pad(a):
-    """A 64x64 part moved onto the 96x96 canvas."""
+    """A 64x64 part moved onto the big canvas."""
     out = np.zeros((SIZE, SIZE, 4), np.uint8); out[PAD:PAD + 64, PAD:PAD + 64] = a; return out
 
-def layer96(fn, mat):
-    """layer() on the 96x96 canvas (the axe)."""
+def layerB(fn, mat):
+    """layer() on the big canvas (the axe)."""
     P = pal(); im = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0)); fn(ImageDraw.Draw(im), hx(P[mat][2])); return shade5(im, P[mat])
 
-def put96(a, pts, col):
-    """put() on the 96x96 canvas: recolour drawn pixels only."""
+def putB(a, pts, col):
+    """put() on the big canvas: recolour drawn pixels only."""
     for (x, y) in pts:
         if 0 <= y < SIZE and 0 <= x < SIZE and a[y, x, 3]: a[y, x] = hx(col)
 
@@ -163,24 +163,24 @@ def draw_parts():
     # ---------------- the front arm and THE AXE (in the 'mic' slot): a black haft in neon tape, a giant dark-glass blade edged in neon
     parts['fupper'] = layer(lambda d, c: limb(d, (38, 24), (42, 31), 6, c), 'jacket')
     parts['ffore'] = layer(lambda d, c: limb(d, (42, 31), (44, 27), 5, c), 'jacket')
-    # THE AXE (drawn on the bigger 96x96 canvas - it doesn't fit in 64): taller than he is and held in both hands at the
+    # THE AXE (drawn on the big canvas - it doesn't fit in 64): taller than he is and held in both hands at the
     # bottom of a long black haft (his back hand under the front fist, at GRIP), a huge black crescent blade way up top
     # with a glowing neon diamond outlined in the middle of it
     O = PAD
-    hf = layer96(lambda d, c: d.line([(44 + O, 40 + O), (47 + O, -13 + O)], fill=c, width=3), 'haft')
-    for y in (-6, 10, 31): put96(hf, [(x + O, y + O) for x in range(43, 49)], P['neon2'][2])                              # neon tape bands
-    put96(hf, [(43 + O, 40 + O), (44 + O, 40 + O), (45 + O, 40 + O), (44 + O, 41 + O)], P['stud'][2])                 # the pommel
-    cx, cy = 48 + O, 6 + O
+    hf = layerB(lambda d, c: d.line([(44 + O, 41 + O), (48 + O, -33 + O)], fill=c, width=3), 'haft')
+    for y in (-26, -4, 12, 31): putB(hf, [(x + O, y + O) for x in range(43, 50)], P['neon2'][2])                              # neon tape bands
+    putB(hf, [(43 + O, 40 + O), (44 + O, 40 + O), (45 + O, 40 + O), (44 + O, 41 + O)], P['stud'][2])                 # the pommel
+    cx, cy = 49 + O, -14 + O
     spikes = []
     for i in range(17):
         q = -1.5 + i * (3.0 / 16); r = 22 if i % 2 else 16
         spikes.append((cx + math.cos(q) * r, cy + math.sin(q) * r * 0.98))
     inner = [(cx + 1 + math.cos(q) * 5, cy + math.sin(q) * 10) for q in (1.2, 0.4, -0.4, -1.2)]
-    b = layer96(lambda d, c: d.polygon(spikes + inner, fill=c), 'glass')
-    b = over(b, layer96(lambda d, c: d.polygon([(48 + O, -1 + O), (40 + O, -9 + O), (39 + O, -3 + O)], fill=c), 'glass'))   # a hooked spike off the back
+    b = layerB(lambda d, c: d.polygon(spikes + inner, fill=c), 'glass')
+    b = over(b, layerB(lambda d, c: d.polygon([(49 + O, -21 + O), (40 + O, -30 + O), (39 + O, -23 + O)], fill=c), 'glass'))   # a hooked spike off the back
     for i in range(1, 17, 2):                                                                                               # a dull sheen along the edge
-        q = -1.5 + i * (3.0 / 16); put96(b, [(round(cx + math.cos(q) * 19.5), round(cy + math.sin(q) * 19.5 * 0.98))], P['glass'][0])
-    dx0, dy0 = 60 + O, 6 + O                                                                                                # the diamond: a glowing neon outline
+        q = -1.5 + i * (3.0 / 16); putB(b, [(round(cx + math.cos(q) * 19.5), round(cy + math.sin(q) * 19.5 * 0.98))], P['glass'][0])
+    dx0, dy0 = 61 + O, -14 + O                                                                                                # the diamond: a glowing neon outline
     ring = [(dx0, dy0 - 8), (dx0 + 5, dy0), (dx0, dy0 + 8), (dx0 - 5, dy0), (dx0, dy0 - 8)]
     im = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0)); dd = ImageDraw.Draw(im); dd.polygon(ring[:-1], fill=hx(P['neon3'][4]))
     dd.line(ring, fill=hx(P['neon3'][2]), width=2); dd.line(ring, fill=hx(P['neon3'][0]), width=1)
@@ -189,19 +189,19 @@ def draw_parts():
     a = layer(lambda d, c: d.ellipse([41, 24, 48, 30], fill=c), 'skin'); put(a, [(41, 26), (42, 26), (43, 26), (44, 26), (45, 26), (46, 26), (47, 26)], P['jacket'][3])   # a fingerless glove
     put(a, [(42, 28), (43, 28), (44, 28), (45, 28)], P['skin'][3])
     parts['ffist'] = a
-    parts = {n: pad(v) for n, v in parts.items()}                         # everything onto the 96x96 canvas ...
+    parts = {n: pad(v) for n, v in parts.items()}                         # everything onto the big canvas ...
     parts['mic'] = axe                                                      # ... where the axe was drawn
     return parts
 
 ORDER = ['bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'mic', 'bfist', 'ffist']
-# (the joints in the 96x96 canvas: the 64x64 drawing's + PAD)
+# (the joints on the big canvas: the 64x64 drawing's + PAD)
 RIG = {
-    'torso': ((48, 55), None),
-    'head': ((49, 37), 'torso'), 'hair': ((49, 37), 'head'),
-    'bupper': ((49, 40), 'torso'), 'bfore': ((47, 48), 'bupper'), 'bfist': ((48, 54), 'bfore'),
-    'fupper': ((54, 40), 'torso'), 'ffore': ((58, 47), 'fupper'), 'mic': ((60, 43), 'ffore'), 'ffist': ((60, 43), 'ffore'),
-    'bthigh': ((44, 56), None), 'bshin': ((42, 64), 'bthigh'), 'bshoe': ((40, 71), 'bshin'),
-    'fthigh': ((52, 56), None), 'fshin': ((55, 64), 'fthigh'), 'fshoe': ((56, 71), 'fshin'),
+    'torso': ((32 + PAD, 39 + PAD), None),
+    'head': ((33 + PAD, 21 + PAD), 'torso'), 'hair': ((33 + PAD, 21 + PAD), 'head'),
+    'bupper': ((33 + PAD, 24 + PAD), 'torso'), 'bfore': ((31 + PAD, 32 + PAD), 'bupper'), 'bfist': ((32 + PAD, 38 + PAD), 'bfore'),
+    'fupper': ((38 + PAD, 24 + PAD), 'torso'), 'ffore': ((42 + PAD, 31 + PAD), 'fupper'), 'mic': ((44 + PAD, 27 + PAD), 'ffore'), 'ffist': ((44 + PAD, 27 + PAD), 'ffore'),
+    'bthigh': ((28 + PAD, 40 + PAD), None), 'bshin': ((26 + PAD, 48 + PAD), 'bthigh'), 'bshoe': ((24 + PAD, 55 + PAD), 'bshin'),
+    'fthigh': ((36 + PAD, 40 + PAD), None), 'fshin': ((39 + PAD, 48 + PAD), 'fthigh'), 'fshoe': ((40 + PAD, 55 + PAD), 'fshin'),
 }
 
 def composite(P, hide=()):

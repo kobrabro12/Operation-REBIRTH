@@ -78,6 +78,12 @@ export class CpuController extends Controller {
     if (!['builder','healer','aerial'].includes(this.soulStyle) && me.limit >= LIMIT_MAX && (!me.def.limit.groundOnly || me.grounded) && adx < (me.def.limit.reach || 360) && Math.abs(dy) < (me.def.limit.reach ? 70 : 40)) { this.tap('limit'); return; }
 
     const M = me.def.moves;
+    // GNASH: no axe - go and get it (unless someone's right on him)
+    if (me.unarmed && me.axeOut && me.axeOut.alive && me.axeOut.stuck && adx > 40) {
+      const sx = me.axeOut.x - me.x;
+      if (me.grounded && me.axeOut.y < me.y - 30 && Math.abs(sx) < 120) { this.x = Math.sign(sx); this.tap('jump'); return; }
+      if (Math.abs(sx) > 8) { this.x = Math.sign(sx); return; }
+    }
     // THE DEVOTED: devotion full - go back to his symbol and pray (most of the time; sometimes he keeps fighting)
     if (M.downB && M.downB.pray && me.sigil && me.sludge < 3 && me.devotion >= me.def.devoted.need[me.sludge] && Math.random() < 0.8) {
       if (me.canAscend()) { this.x = 0; this.y = 1; this.tap('special'); return; }

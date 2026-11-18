@@ -346,6 +346,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.frozen > 0) {
       // Limit cinematic: only the fighter using the Limit moves
       this.frozen--;
+      if (this.psychoCut) this.psychoCut.t++;                                   // (GNASH's PSYCHO cut-in plays in the freeze)
       for (const f of this.fighters) if (f.state === 'limit') f.step();
       this.stepEffects();
       return;
@@ -461,7 +462,7 @@ export class MatchScene extends Phaser.Scene {
     t.stats.damageTaken += dmg; if (owner) { owner.stats.damageDealt += dmg; this.challengeEvent(owner, 'hit'); }
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
-    if (t.def.show && t.def.show.kind === 'gnash') t.addRage(dmg * t.def.show.rage.perHurt);   // GNASH's RAGE fills when he's hurt
+    if (t.def.show && t.def.show.kind === 'gnash') t.addPsycho(dmg * t.def.show.psycho.perHurt);   // GNASH's PSYCHO meter fills when he's hurt
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
     if (owner && owner.def.devoted && t !== owner) { owner.addDevotion(1); if (!hb.projectile && owner.state === 'attack' && owner.move && owner.move.cut) owner.cutLanded(t); }   // (CROSS CUTS: the slash marks where it hit)   // THE DEVOTED: every hit he lands counts toward his next stage
@@ -1235,6 +1236,10 @@ export class MatchScene extends Phaser.Scene {
       this.overlay.fillStyle(0x0b0a14, 0.35); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
       this.overlay.fillStyle(0x000000, 1); this.overlay.fillRect(0, 0, VIEW_W, 34); this.overlay.fillRect(0, VIEW_H - 34, VIEW_W, 34);
     }
+    if (this.psychoCut) {                              // GNASH's PSYCHO cut-in (fighterGnash.js drawPsychoCut)
+      if (this.psychoCut.t >= this.psychoCut.len || this.frozen <= 0) { this.psychoCut = null; if (this.bigText.psycho) { this.bigText.psycho = false; this.bigText.setText('').setFontSize(28).setAlpha(1).setColor('#ffffff').setPosition(VIEW_W / 2, VIEW_H / 2 - 30); } }
+      else this.psychoCut.f.drawPsychoCut(this.overlay, this.psychoCut);
+    }
     if (this.limitBanner) {
       const b = this.limitBanner, a = b.t < 34 ? 1 : 1 - (b.t - 34) / 14;
       this.overlay.fillStyle(0x0b0a14, 0.45 * a); this.overlay.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -1270,6 +1275,7 @@ export class MatchScene extends Phaser.Scene {
     if (ic) { zoom = ic.zoom; cx = ic.x; cy = ic.y; if (ic.snap) cam.setZoom(zoom); }
     const limiter = this.fighters.find((f) => f.state === 'limit' && f.t < 34);
     if (limiter) { zoom = 1.5; cx = limiter.x; cy = limiter.y - 40; }
+    if (this.psychoCut) { zoom = 1.6; cx = this.psychoCut.f.x; cy = this.psychoCut.f.y - 40; }   // (GNASH's PSYCHO cut-in)
     if (this.cutscene && this.cutscene.ult && this.cutscene.ult.victims[0]) { const v = this.cutscene.ult.victims[0]; zoom = 1.7; cx = v.x; cy = v.y - 26; }
     cx = Phaser.Math.Clamp(cx, -320, 320); cy = Phaser.Math.Clamp(cy, -260, 120);
     cam.setZoom(cam.zoom + (zoom - cam.zoom) * 0.08);

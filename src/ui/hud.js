@@ -71,6 +71,7 @@ export class Hud {
       for (let q = 1; q < 4; q++) { g.fillStyle(0x0b0a14, 1); g.fillRect(gx + (gw * q) / 4, gy, 1, 7); }   // quarter ticks
       if (f.curse > 0) { g.fillStyle(0xb07ad0, 1); g.fillRect(p.x + PANEL_W - 14, p.y + 22, 6, 6); }
       if (f.def.devoted && f.sludge !== undefined && !f.eliminated) f.drawDevotionHud(g, p.x + 8, p.y - 2, frame);   // THE DEVOTED's OBLATION meter, standing on his plate
+      if (f.def.show && f.def.show.kind === 'gnash' && f.drawPsychoHud && !f.eliminated) f.drawPsychoHud(g, p.x, p.y, frame);   // GNASH's PSYCHO meter, next to his damage
     }
     // timer
     if (m.mode === 'time') {

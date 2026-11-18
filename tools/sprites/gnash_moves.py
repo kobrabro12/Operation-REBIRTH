@@ -11,8 +11,10 @@ his mic); his idle, specials, Limit and taunt are his own (below):
   limit     - EXECUTIONER: hauls the axe up, leaps, and brings it down
   taunt     - axe on his shoulder, a big shaking laugh
 
-  -> public/assets/fighters/gnash/[<costume>/]{idle,run,jump,fall}_sheet.png (64x64) + moves_sheet.png (112x104,
-     36 to a row, feet at 56,95), icon.png; frame table src/fighters/gnMoves.js.
+  -> public/assets/fighters/gnash/[<costume>/]{idle,run,jump,fall}_sheet.png (160x96, feet 80,90; 25 to a row) +
+     moves_sheet.png (160x168, feet 80,138, 25 to a row), icon.png; frame table src/fighters/gnMoves.js.
+     The same again WITHOUT the axe (thrown, not picked up yet) -> gnash/noaxe/[<costume>/]: fists, an angry idle.
+     NU's normals are animated at every 2nd tick (step 2) so the big frames fit in a 4096 px sheet.
 
   python3 tools/sprites/gnash_moves.py [--preview DIR]
 """
@@ -26,17 +28,18 @@ from show_moves import build
 from puppet import Rig, Part
 import numpy as np
 
-# ---- his bigger canvas: the parts are drawn 96x96 (gnash_draw.PAD = 16 px in) so the giant axe fits, and his idle /
-# run / jump / fall frames are 112x64 (not 64x64) so the axe dragging behind him isn't cut off. Feet: 56,58 in those
-# frames, 56,95 in the moves frames (like everyone's).
+# ---- his bigger canvas: the parts are drawn on gnash_draw's big canvas (PAD px in) so the giant axe fits, and his
+# frames are bigger than everyone's so the axe (dragged behind him, swung overhead) is never cut off.
 FEET96 = (32 + gnash_draw.PAD, 58 + gnash_draw.PAD)
-SMALL_CANVAS, SMALL_FEET = (112, 96), (56, 90)     # his idle / run / jump / fall frames: taller and wider than everyone's 64x64
-BIG_CANVAS, BIG_FEET = (128, 136), (64, 115)      # his moves frames: bigger than everyone's (112x104), so the axe swung overhead isn't cut off
+SMALL_CANVAS, SMALL_FEET = (160, 96), (80, 90)     # his idle / run / jump / fall frames (everyone else: 64x64)
+BIG_CANVAS, BIG_FEET = (160, 168), (80, 138)      # his moves frames (everyone else: 112x104)
+COLS = 4096 // BIG_CANVAS[0]                       # frames to a row in his sheets
 _save_atlas = show_moves.save_atlas
-show_moves.save_atlas = lambda frames, path, cols=16: _save_atlas(frames, path, cols=32)   # 32 to a row (128 px frames: 4096 px wide)
+show_moves.save_atlas = lambda frames, path, cols=16: _save_atlas(frames, path, cols=COLS)
+NOAXE_BUILD = False                                # building the no-axe sheets: the axe hidden, no two-handed grip
 
 def build_rig96(draw, follow, order=None):
-    """nu_moves.build_rig for GNASH's 96x96 drawing: (small 112x64 rig, big 112x104 rig)."""
+    """nu_moves.build_rig for GNASH's big-canvas drawing: (small rig, big rig) at his own frame sizes."""
     layers = draw.draw_parts(); base = draw.composite(layers, hide=())
     parts = [Part(n, layers[n][..., 3] > 0, draw.RIG[n][0], draw.RIG[n][1], z=z, variants=[layers[n]], drag=follow.get(n, (0, 0))[0], sway=follow.get(n, (0, 0))[1])
              for z, n in enumerate(draw.ORDER)]
@@ -49,7 +52,8 @@ N.build_rig = lambda draw, follow, order=None: build_rig96(draw, follow, order) 
 # ---- THE TWO-HANDED GRIP: after every pose is worked out, his back arm is bent (two-bone IK) so its fist lands on the
 # haft just under his front fist - wherever the axe is. Arms stretch a little lengthwise (`MAX_REACH`) rather than let go.
 GRIP = (44.6 + gnash_draw.PAD, 36.0 + gnash_draw.PAD)   # where the back hand holds the haft (in the drawing's coordinates)
-B_SHOULDER, B_ELBOW, B_HAND = (49, 40), (47, 48), (48, 55)        # the back arm's joints (96x96 canvas)
+_O = gnash_draw.PAD
+B_SHOULDER, B_ELBOW, B_HAND = (33 + _O, 24 + _O), (31 + _O, 32 + _O), (32 + _O, 39 + _O)   # the back arm's joints (on the big canvas)
 MAX_REACH = 1.45                       # how far the arm may stretch (x its length) to keep hold
 _RIG = None
 
@@ -64,6 +68,7 @@ def two_hands(pose):
     an analytic two-bone guess (elbow bent down and back), then refined on the real rig so the fist lands on the grip,
     letting the arm stretch up to MAX_REACH if it must."""
     from scipy.optimize import minimize
+    if NOAXE_BUILD: pose = dict(pose); pose['_hide'] = tuple(pose.get('_hide', ())) + ('mic',); return pose
     if 'mic' in pose.get('_hide', ()): return pose
     R = _rig(); p = dict(pose); p['bupper'] = (0, 0, 0); p['bfore'] = (0, 0, 0)
     g = (R.matrix('mic', p) @ np.array([GRIP[0], GRIP[1], 1.0]))[:2]
@@ -106,6 +111,15 @@ def gnash_idle():
                            root=(0, 0, 0, 1 + 0.025 * br, 1 - 0.02 * br), **legs(6, -4, -8, 6)), 'linear'))
     return keys
 
+def noaxe_idle():
+    """No axe: fists clenched, shoulders heaving, glaring about for it."""
+    keys = []
+    for i in range(0, 193, 6):
+        br = math.sin(i * math.pi / 24); look = math.sin(i * math.pi / 96)
+        keys.append(k(i, P(torso=(6 + 2 * br, 0, 0), head=(-6 + 8 * look, 0, 0), hair=(3 * br, 0, 0), fupper=(14 + 4 * br, 0, 0), ffore=(60, 0, 0),
+                           bupper=(-10 - 4 * br, 0, 0), bfore=(-20, 0, 0), root=(0, 0, 0, 1 + 0.025 * br, 1 - 0.02 * br), **legs(8, -6, -10, 8)), 'linear'))
+    return keys
+
 def gnash_run():
     """NU's run legs, but both hands on the axe and its blade dragging along the floor behind him (bouncing a little)."""
     out = []
@@ -115,7 +129,7 @@ def gnash_run():
         out.append((t, p, e))
     return out
 _run_keys = N.run_keys
-N.run_keys = lambda: gnash_run() if _BUILDING else _run_keys()
+N.run_keys = lambda: (_run_keys() if NOAXE_BUILD else gnash_run()) if _BUILDING else _run_keys()
 _BUILDING = False
 # in the air: the axe hauled up behind his head in both hands
 for nm in ('JUMP', 'JUMP2', 'FALL', 'FALL2'):
@@ -125,7 +139,7 @@ def air_poses(on):
     """Swap nu_moves' jump / fall poses for his (axe up behind his head) while his sheets are built."""
     for nm, d in (('JUMP', -10), ('JUMP2', -16), ('FALL', 6), ('FALL2', 10)):
         base = getattr(N, '_GN_' + nm)
-        setattr(N, nm, mix(base, fupper=(-165 + d, 0, 0), ffore=(140, 0, 0), mic=(-40 + d, 0, 0)) if on else base)
+        setattr(N, nm, mix(base, fupper=(-165 + d, 0, 0), ffore=(140, 0, 0), mic=(-40 + d, 0, 0)) if on and not NOAXE_BUILD else base)
 
 # ---- his big swings
 OVER = P(torso=(-14, -2, -1), head=(-12, 0, 0), fupper=(-170, 0, -2), ffore=(140, 0, 0), mic=(-30, 0, 0), bupper=(-150, 0, -1), bfore=(-30, 0, 0), root=(0, -2, -2, 0.96, 1.05), **legs(10, -4, -10, 6))
@@ -156,13 +170,22 @@ SHOULDER = P(fupper=(-200, 0, 0), ffore=(110, 0, 0), mic=(-60, 0, 0), torso=(-4,
 LAUGH = lambda s: mix(SHOULDER, torso=(-12 + 4 * s, -1, 0), head=(-28 + 6 * s, 0, 0), hair=(-8 * s, 0, 0), root=(0, 0, s, 1 + 0.03 * s, 1 - 0.03 * s), bupper=(20, 0, 0), bfore=(90, 0, 0))
 gmove('taunt', 84, [k(0, P()), k(12, SHOULDER, 'out'), k(20, mix(SHOULDER, head=(-2, 0, 0)), 'inout')] + [k(26 + 6 * i, LAUGH(1 if i % 2 else 0), 'inout') for i in range(8)] + [k(84, P(), 'back')], step=2)
 
+def half_steps():
+    """NU's normals at every 2nd tick (his frames are big: this keeps the sheet inside 4096 px)."""
+    N.MOVES = {n: (t, kk, max(2, st), sm, lp, c) for n, (t, kk, st, sm, lp, c) in N.MOVES.items()}
+
 if __name__ == '__main__':
-    _BUILDING = True; air_poses(True)
-    build(gnash_draw, {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', gnash_idle, ['default', 'bloodmoon', 'gravestone'], (255, 120, 60))
+    _BUILDING = True; half_steps(); N.life = gnash_life        # every frame through the two-handed grip
+    FOLLOW = {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
+    SETS = ['default', 'bloodmoon', 'gravestone']
+    air_poses(True)
+    build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', gnash_idle, SETS, (255, 120, 60))
+    NOAXE_BUILD = True; air_poses(True)
+    build(gnash_draw, FOLLOW, GN, 'gnash/noaxe', 'gnMoves.js', 'GN_MOVES', noaxe_idle, SETS, (255, 120, 60))
     js = os.path.join(os.path.dirname(__file__), '../../src/fighters/gnMoves.js'); t = open(js).read()
-    open(js, 'w').write(t.replace('Generated by tools/sprites/show_moves.py', 'Generated by tools/sprites/gnash_moves.py (via show_moves.py)').replace('(112x104 frames, 36 to a row, feet at 56,95)', '(128x136 frames, 32 to a row, feet at 64,115)'))
+    open(js, 'w').write(t.replace('Generated by tools/sprites/show_moves.py', 'Generated by tools/sprites/gnash_moves.py (via show_moves.py)').replace('(112x104 frames, 36 to a row, feet at 56,95)', '(%dx%d frames, %d to a row, feet at %d,%d)' % (*BIG_CANVAS, COLS, *BIG_FEET)))
     # his icon: the head out of the first idle frame (show_moves' crop is for 64x64 frames)
     from PIL import Image as _I
-    _I.open(os.path.join(os.path.dirname(__file__), '../../public/assets/fighters/gnash/idle_sheet.png')).crop((46, 36, 82, 55)).resize((72, 38), _I.NEAREST).save(
+    _I.open(os.path.join(os.path.dirname(__file__), '../../public/assets/fighters/gnash/idle_sheet.png')).crop((70, 36, 106, 55)).resize((72, 38), _I.NEAREST).save(
         os.path.join(os.path.dirname(__file__), '../../public/assets/fighters/gnash/icon.png'))
     print('done')
