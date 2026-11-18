@@ -974,25 +974,26 @@ SKINS['aero'].push({ name: 'SPACEWALK', sheetSet: 'starfarer', shop: 'cos-starfa
   pal: { outline: 0x0a0618, deep: 0x3a1a7a, mid: 0x7a4ae0, light: 0xc8a8ff, core: 0xffffff, shade: 0x1a0e3a, void: 0x04020c },
   vfx: { hit: { shape: 'star', colors: [0xffffff, 0xc8a8ff, 0xff8a40], n: 10, ring: 0xc8a8ff, glint: true }, trail: 0xc8a8ff, aura: { starfarer: true } } });
 
-// GNASH: from Mason's sketch; drawn costumes BLOOD MOON / GRAVESTONE (gnash_draw.py VARIANTS), then THE EXECUTIONER'S ROAD
+// GNASH: Mason's street punk kid; drawn costumes BLOOD MOON / TOXIC (gnash_draw.py VARIANTS), then THE NEON ROAD
 const GNG = {
-  cloth: { h: [228, 292], s: [0.08, 0.5], v: [0, 0.62], center: 255 },             // the vest and trousers
-  horn: { h: [0, 14], s: [0.4, 1], v: [0.12, 0.75], center: 0 },                    // the horns (and his eyes)
+  black: { s: [0, 0.3], v: [0, 0.42], center: 0 },                                  // the jacket, mask, hair and the axe's haft
+  neon: { h: [290, 340], s: [0.45, 1], v: [0.35, 1], center: 312 },                 // the pink neon: horns, the axe's edge, the grin
+  neon2: { h: [178, 200], s: [0.45, 1], v: [0.35, 1], center: 188 },                // the cyan neon: the X eyes, tape, laces, soles
 };
 SKINS['gnash'] = [
-  { name: 'DEFAULT', swatch: 0xff8a3a, vfx: { hit: { shape: 'flame', colors: [0xff8a3a, 0xffe0b0, 0xffffff], n: 8, ring: 0xff5a2a }, trail: 0xff8a3a } },
-  // BLOOD MOON: a crimson vest, black horns, a molten blade cracked with fire
-  { name: 'BLOOD MOON', sheetSet: 'bloodmoon', style: 'gnashBlood', swatch: 0xd02a3a, fx: 0xff3a2a,
-    lore: 'He only comes down off the mountain when the moon turns red. Nobody has ever asked him why.',
-    pal: { outline: 0x1a0204, deep: 0x9a1424, mid: 0xd02a3a, light: 0xff7a5a, core: 0xffe0c8, shade: 0x2a0408, void: 0x0a0002 },
-    vfx: { hit: { shape: 'flame', colors: [0xff3a2a, 0xffd060, 0xffffff, 0x9a1424], n: 10, ring: 0xd02a3a, sound: 'whoosh' }, aura: { inferno: true }, trail: 0xff3a2a } },
-  // GRAVESTONE: grey stone skin, a mossy vest, an axe carved out of a headstone
-  { name: 'GRAVESTONE', sheetSet: 'gravestone', style: 'gnashStone', swatch: 0x9098a4, fx: 0x9ac88a,
-    lore: 'The cemetery statue that got up one night, picked up its headstone and walked out the gate.',
-    pal: { outline: 0x10140c, deep: 0x4a7240, mid: 0x6a9a5a, light: 0x9ac88a, core: 0xe0ecd8, shade: 0x1a2416, void: 0x060a04 },
-    vfx: { hit: { shape: 'splat', colors: [0xb8bec8, 0x6a7280, 0x9ac88a], n: 9, ring: 0x9098a4 }, aura: { motes: { colors: [0x9ac88a, 0xb8bec8], rate: 10 } }, trail: 0x9098a4 } },
-  ms('PIT FIGHTER', 1, 0x8a4a2a, 'A hole in the ground, a ring of torches and a crowd that bet against him every night. They stopped betting.', GNG, { cloth: { to: 22, sat: 1.4, val: 1.3 } }, 'flame', [0xd87a3a, 0xffd8a0, 0xffffff]),
-  ms('WARLORD', 2, 0x7a0a14, 'A thousand followers and a banner with his grin on it. He never learned their names.', GNG, { cloth: { to: 352, sat: 2.0, val: 1.1 }, horn: { sat: 0.1, val: 0.5 } }, 'flame', [0xff3a2a, 0xffd0c0, 0xffffff]),
-  ms('BONECRUSHER', 3, 0xe8e0c8, 'He wears what is left of the last army that marched on his mountain. It fits.', GNG, { cloth: { sat: 0.1, val: 2.6 }, horn: { to: 40, sat: 0.6, val: 1.4 } }, 'star', [0xfff0d0, 0xffffff, 0xff8a3a], { vfx: { aura: { inferno: true } } }),
-  ms('THE HEADSMAN', 4, 0xffd860, 'Kings send for him when a crown has to come off. He takes the head that wore it, and keeps the crown.', GNG, { cloth: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, horn: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 } }, 'flame', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+  { name: 'DEFAULT', swatch: 0xff3ad0, vfx: { hit: { shape: 'star', colors: [0xff3ad0, 0x3af0ff, 0xffffff], n: 9, ring: 0xff3ad0 }, trail: 0xff3ad0 } },
+  // BLOOD MOON: a crimson jacket, red neon horns and edge, amber X eyes
+  { name: 'BLOOD MOON', sheetSet: 'bloodmoon', style: 'gnashBlood', swatch: 0xd02a3a, fx: 0xff4a2a,
+    lore: 'The night the sign over the arcade shorted out and burned red till morning. He thinks it looked better that way.',
+    pal: { outline: 0x1a0204, deep: 0xb01a0a, mid: 0xff4a2a, light: 0xffc0a0, core: 0xffffff, shade: 0x2a0408, void: 0x0a0002 },
+    vfx: { hit: { shape: 'star', colors: [0xff4a2a, 0xffb02a, 0xffffff], n: 10, ring: 0xff4a2a }, aura: { inferno: true }, trail: 0xff4a2a } },
+  // TOXIC (sheets in gnash/gravestone/): a grey jacket, acid-green hair and neon, black jeans
+  { name: 'TOXIC', sheetSet: 'gravestone', style: 'gnashStone', swatch: 0x8aff2a, fx: 0x8aff2a,
+    lore: 'He dyed his hair in the river behind the chemical plant. It glowed for a month. So did the river.',
+    pal: { outline: 0x103a04, deep: 0x3aa80a, mid: 0x8aff2a, light: 0xd8ffb0, core: 0xffffff, shade: 0x0a1a06, void: 0x040804 },
+    vfx: { hit: { shape: 'splat', colors: [0x8aff2a, 0xd8ff3a, 0xffffff], n: 9, ring: 0x8aff2a }, aura: { motes: { colors: [0x8aff2a, 0xd8ff3a], rate: 9 } }, trail: 0x8aff2a } },
+  ms('SKATE RAT', 1, 0xff8a2a, 'A board with three wheels, a borrowed jacket and the whole car park to himself after dark.', GNG, { neon: { to: 28, sat: 1.0 }, neon2: { to: 52, sat: 1.0 } }, 'star', [0xff8a2a, 0xffe060, 0xffffff]),
+  ms('ALLEY KING', 2, 0x8a3aff, 'Every wall between the train line and the river has his tag on it. Nobody has seen him paint one.', GNG, { neon: { to: 272, sat: 1.1 }, neon2: { to: 300, sat: 1.0 }, black: { to: 270, sat: 3, val: 1.6 } }, 'star', [0xa86aff, 0xff9ae8, 0xffffff]),
+  ms('CITY LIGHTS', 3, 0xe8f0ff, 'The whole skyline flickers when he walks under it. The power company has stopped asking why.', GNG, { black: { sat: 0.05, val: 4.5 }, neon: { to: 196, sat: 1.0 }, neon2: { to: 312, sat: 1.0 } }, 'star', [0x3af0ff, 0xffffff, 0xff3ad0], { vfx: { aura: { motes: { colors: [0x3af0ff, 0xff3ad0], rate: 6 } } } }),
+  ms('NEON LEGEND', 4, 0xffd860, 'They put his mask on a sign over the city. It is the brightest thing in the sky, and it is grinning.', GNG, { black: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, neon: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, neon2: { to: 46, sat: 1.0, val: 1.2 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 ];

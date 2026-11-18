@@ -1,4 +1,4 @@
-"""GNASH: his animations, from his drawing (gnash_draw.py) on NU's puppet rig (show_moves.build). His normals use
+"""GNASH (the street punk kid with the giant neon axe): his animations, from his drawing (gnash_draw.py) on NU's puppet rig (show_moves.build). His normals use
 NU's poses (nu_moves.MOVES - same joints and frame timings, so the hitboxes in gnash.js line up, the axe where NU has
 his mic); his idle, specials, Limit and taunt are his own (below):
 

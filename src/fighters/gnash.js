@@ -1,13 +1,13 @@
-// GNASH: a horned brute with a zig-zag grin and a giant spiky axe - from Mason's sketch ("heavy", "very hard
-// hitting"). Data only - stats, sheets and moves. Boxes are [x, y, w, h] from his feet while facing right (negative
+// GNASH: a street punk kid in a neon-X-eyed mask with neon horns, swinging a giant neon axe - Mason's design (and
+// his sketch: the zig-zag grin, "heavy", "very hard hitting"). Data only - stats, sheets and moves. Boxes are [x, y, w, h] from his feet while facing right (negative
 // y = up). Art: tools/sprites/gnash_draw.py (the drawing) and tools/sprites/gnash_moves.py (the animations - his
 // normals are NU's poses on the same rig, so they keep NU's timings, the axe where NU has his mic); his code is in
 // fighterGnash.js (RAGE, the double slam, EXECUTIONER), his thrown axe in showEntities.js (GnashAxe).
 import { NU } from './nu.js';
 import { GN_MOVES } from './gnMoves.js';
 
-// his ability colours: furnace orange on soot
-export const PAL_GNASH = { outline: 0x140806, deep: 0x8a1a0a, mid: 0xe0461a, light: 0xff8a3a, core: 0xffe0b0, shade: 0x2a0e08, void: 0x0a0302 };
+// his ability colours: hot-pink neon on black
+export const PAL_GNASH = { outline: 0x0a0410, deep: 0xb01090, mid: 0xff3ad0, light: 0xff9ae8, core: 0xffffff, shade: 0x1a0a1e, void: 0x050208 };
 const SETS = ['bloodmoon', 'gravestone'];
 // how much harder his normals hit than NU's (damage, knockback)
 const HEAVY = { dmg: 1.12, kb: 1.06 };
@@ -23,16 +23,16 @@ export const GNASH = {
   runCycle: [0, 8],
   moveAnims: GN_MOVES, movesOrigin: [56 / 112, 95 / 104],
   originY: 59 / 64,
-  handOffset: { x: 18, y: -44 },    // the axe head
+  handOffset: { x: 18, y: -44 },    // the axe's neon blade
   portrait: [16, 0, 36, 32],
-  fxColor: 0xff8a3a,
+  fxColor: 0xff3ad0,
   menuScale: 2.1,                   // (he's big: a touch smaller on the menus so his horns fit)
   swingSfx: 'swing',
   pal: PAL_GNASH,
   body: { w: 28, h: 56 },
   headTop: 64,
   tagY: 74,
-  weight: 1.2,                      // the heaviest fighter there is
+  weight: 1.2,                      // a kid, but the axe weighs more than anyone
   walkSpeed: 2.6, runAccel: 0.46, groundFriction: 0.62,
   airSpeed: 2.4, airAccel: 0.2, airFriction: 0.05,
   jumpV: -9.0, shortHopV: -6.0, doubleJumpV: -8.2,
@@ -43,7 +43,7 @@ export const GNASH = {
   show: { kind: 'gnash', rage: { max: 100, perHurt: 0.5, perHit: 0.3, seethe: 0.9, time: 360, dmg: 1.2, kb: 1.12, armor: 4, limit: 10 } },
 
   // TAUNT (1): axe up on his shoulder and a big shaking laugh
-  taunt: { name: 'BIG LAUGH', frames: 84, lines: ['HAH! HAH! HAH!', 'THAT ALL YOU GOT?', 'COME HERE.'],
+  taunt: { name: 'BIG LAUGH', frames: 84, lines: ['BORING!', 'THAT ALL YOU GOT?', 'GET WRECKED!'],
     sounds: [[12, 'clang', 0.4, 0.7], [30, 'laugh', 0.5, 0.6]] },
 
   moves: {

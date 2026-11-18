@@ -103,7 +103,7 @@ export const CLASSIC_TROPHIES = {
   'hero-knight': { name: 'LACY', line: 'THE LAST KNIGHT OF A FALLEN ORDER, WHO HAS NEVER ONCE DROPPED THE SWORD SHE THROWS. THE ORDER HAS TWO KNIGHTS NOW.' },
   nu: { name: 'NU', line: 'THE LOUDEST MAN ALIVE. THE CITY HAS PASSED THREE LAWS ABOUT HIM. HE HAS FRAMED ALL OF THEM.' },
   aero: { name: 'AERO', line: 'THE BOY IN THE FISHBOWL. THE GOLDFISH WOULD LIKE IT KNOWN THAT IT DID MOST OF THE THINKING.' },
-  gnash: { name: 'GNASH', line: 'THE GRIN ON THE MOUNTAIN. HE HAS NEVER SAID A FULL SENTENCE. HE HAS NEVER NEEDED TO.' },
+  gnash: { name: 'GNASH', line: 'A STREET PUNK KID IN A NEON MASK WITH AN AXE BIGGER THAN HE IS. NOBODY KNOWS WHAT IS UNDER THE MASK. NOBODY HAS ASKED TWICE.' },
 };
 
 // THE ENDINGS (ClassicEndingScene): eight shots of about 7.5 s each, a minute in all. Each shot: the backdrop (`bg` -
@@ -161,14 +161,14 @@ export const ENDINGS = {
     { bg: 'dawn', act: 'stand', bubbles: true, text: ['THE SCREENSAVER WOKE UP.', 'SO DID AERO.'] },
     { bg: 'home', stage: 'aero-meadow', act: 'stand', text: ['THE FISH SAYS HE IS A HERO.', 'THE FISH IS USUALLY RIGHT.'] },
   ] },
-  gnash: { music: 'bgm_trophy_hall', tint: 0xff8a3a, shots: [
+  gnash: { music: 'bgm_trophy_hall', tint: 0xff3ad0, shots: [
     { bg: 'ruin', act: 'stand', text: ['%B HAS FALLEN.', 'GNASH PULLED HIS AXE OUT OF IT.'] },
-    { bg: 'road', act: 'walk', text: ['HE DRAGGED THE AXE HOME BEHIND HIM.', 'IT LEFT A LINE IN THE ROAD FOR MILES.'] },
-    { bg: 'town', act: 'walk', quiet: true, text: ['EVERY DOOR IN TOWN WAS SHUT.', 'HE LAUGHED SO HARD THE WINDOWS RATTLED.'] },
-    { bg: 'castle', act: 'stand', ruined: true, text: ['THE OLD KING SENT FOR HIM,', 'TO THANK HIM. HE TOOK THE CROWN INSTEAD.'] },
-    { bg: 'camp', act: 'sit', night: true, fire: true, text: ['HE HUNG IT ON A HORN', 'AND SAT BY THE FIRE, GRINNING.'] },
-    { bg: 'dawn', act: 'stand', kid: true, text: ['A CHILD FROM THE TOWN FOLLOWED HIM UP.', 'SHE WAS NOT AFRAID OF THE GRIN.'] },
-    { bg: 'shrine', act: 'stand', text: ['HE GAVE HER THE CROWN.', 'HE NEVER LIKED HOW IT FIT.'] },
-    { bg: 'road', act: 'far', text: ['NOW HE GUARDS THE MOUNTAIN ROAD.', 'NOTHING EVIL GETS PAST THE GRIN.'] },
+    { bg: 'road', act: 'walk', night: true, text: ['HE DRAGGED THE AXE HOME BEHIND HIM,', 'SPARKING ALL THE WAY DOWN THE ROAD.'] },
+    { bg: 'town', act: 'walk', night: true, quiet: true, text: ['THE CITY WAS ASLEEP.', 'HE LAUGHED SO LOUD THE STREETLIGHTS FLICKERED.'] },
+    { bg: 'gig', act: 'stand', text: ['AT THE OLD ARCADE, THE KIDS', 'HAD WAITED UP ALL NIGHT FOR HIM.'] },
+    { bg: 'camp', act: 'sit', night: true, fire: true, text: ['HE TOLD THEM IT WAS EASY.', 'HIS HANDS WERE STILL SHAKING.'] },
+    { bg: 'dawn', act: 'stand', kid: true, text: ['THE SMALLEST ONE ASKED', 'IF SHE COULD HOLD THE AXE.'] },
+    { bg: 'shrine', act: 'stand', text: ['HE SAID NO.', 'THEN HE MADE HER A PAIR OF NEON HORNS.'] },
+    { bg: 'road', act: 'far', night: true, text: ['NOW THE ROOFTOPS HAVE A GUARDIAN.', 'LOOK FOR THE GRIN IN THE DARK.'] },
   ] },
 };

@@ -150,6 +150,11 @@ export class FighterGnash {
       g.fillStyle(this.enraged > 0 ? (this.anim % 8 < 4 ? 0xffd060 : 0xff3a1a) : 0xc8301a, 1); g.fillRect(x, y, w * k, 3);
       g.fillStyle(0x140806, 0.8); g.fillTriangle(x - 1, y - 1, x + 3, y - 1, x - 3, y - 6); g.fillTriangle(x + w + 1, y - 1, x + w - 3, y - 1, x + w + 3, y - 6);
     }
+    if (this.alive && s !== 'respawn') {                       // his neon: a soft glow off the horns, sparks off the axe when he swings
+      const neon = this.style === 'gnashBlood' ? 0xff4a2a : this.style === 'gnashStone' ? 0x8aff2a : 0xff3ad0, f = this.facing, flick = this.anim % 97 < 3 ? 0.3 : 1;
+      g.fillStyle(neon, 0.07 * flick); g.fillEllipse(this.x + f * 4, this.y - (this.def.headTop || 64) + 6, 40, 20);
+      if (s === 'attack' && this.anim % 2 === 0) { const h = this.def.handOffset; this.match.particles.push({ x: this.x + f * (h.x + 8) + (Math.random() - 0.5) * 24, y: this.y + h.y + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 1.5, vy: -0.5 - Math.random(), life: 12, color: Math.random() < 0.6 ? neon : 0xffffff, size: 2, grav: 0.05 }); }
+    }
     if (this.enraged > 0 && this.alive) {                      // a red heat glow round him
       g.fillStyle(0xff3a1a, 0.08 + 0.05 * Math.sin(this.anim * 0.3)); g.fillEllipse(this.x, this.y - 30, 70, 84);
       if (spr && spr.setTint) spr.setTint(this.anim % 10 < 5 ? 0xffb0a0 : 0xffffff);

@@ -61,9 +61,9 @@ export const FILES = {
     origin: 'THE KITCHEN OF A RESTAURANT WITH A TWO-YEAR WAITING LIST', moves: 'FRYING PAN - CLEAVER TOSS - FLAMBE - HOT OIL', limit: 'FULL COURSE',
     lore: 'Roux runs a fight like a dinner service: tickets on the rail, everything in order, and heaven help anyone who sends a plate back. He fights in clogs. He has fought in clogs for thirty years. Land his orders in the right order and the whole kitchen catches fire - on purpose.',
   },  gnash: {
-    no: '006', alias: 'THE GRIN ON THE MOUNTAIN', cls: 'EXECUTIONER', weapon: 'A GIANT SPIKED AXE',
-    origin: 'A CAVE ABOVE THE TREELINE, WITH A VIEW OF EVERY ROAD IN', moves: 'SEETHE - AXE THROW - SKYSPLITTER - GROUND SPLITTER', limit: 'EXECUTIONER',
-    lore: 'Nobody has heard him say a full sentence. They have heard him laugh - a huge shaking laugh that rolls down off the mountain before the axe does. He is slow. He does not need to be fast. Make him angry enough and he stops feeling the hits at all, and then the only question left is where the axe lands.',
+    no: '006', alias: 'THE KID WITH THE NEON AXE', cls: 'STREET PUNK', weapon: 'A GIANT NEON AXE (HE WILL NOT SAY WHERE HE GOT IT)',
+    origin: 'THE ROOFTOPS ABOVE THE OLD ARCADE DISTRICT', moves: 'SEETHE - AXE THROW - SKYSPLITTER - GROUND SPLITTER', limit: 'EXECUTIONER',
+    lore: 'Nobody knows his real name or what is under the mask - just two glowing X eyes, a stitched-on grin and a pair of neon horns he wired up himself. He is a kid. The axe is bigger than he is. He drags it everywhere, sparking along the pavement, and laughs when people stare. Make him angry enough and he stops feeling the hits at all, and then the only question left is where the axe lands.',
   },
 
 };
@@ -186,9 +186,9 @@ export const MILESTONE_LORE = {
     GILDED: 'Sewn with gold thread by everyone he ever helped along the way, one stitch each. There are a great many stitches.',
   },
   gnash: {
-    'PIT FIGHTER': 'A hole in the ground, a ring of torches and a crowd that bet against him every night. He fought in a rust-coloured vest because it hid the stains. The crowd stopped betting against him. Then the crowd stopped coming, because there was nobody left who would get in the pit.',
-    'WARLORD': 'A thousand followers and a banner with his grin painted on it. He never learned their names and he never asked them to follow him. The vest went red the year the banner went up. The horns went black the year it came down.',
-    'BONECRUSHER': 'He wears what is left of the last army that marched on his mountain - bleached white, rattling when he laughs. It fits. The horns turned gold in the cold that winter. Armies do not march on the mountain any more.',
-    'THE HEADSMAN': 'Kings send for him when a crown has to come off. He takes the head that wore it, and keeps the crown. There is a cave above the treeline full of them, and a cloak of black gold across his shoulders, and somewhere in there, under it all, a little round grin.',
+    'SKATE RAT': 'A board with three wheels, a borrowed jacket two sizes too big and the whole multi-storey car park to himself after dark. He wired the horns up that summer, out of a broken sign and a car battery. The neon came out orange. He liked it orange.',
+    'ALLEY KING': 'Every wall between the train line and the river has his tag on it - a grinning mask with X eyes - and nobody has ever seen him paint one. The other kids in the district started wearing purple. He never asked them to. He never told them to stop.',
+    'CITY LIGHTS': 'The whole skyline flickers when he walks under it. The power company sent three engineers. They came back with their hair standing up and would not say what they saw. His jacket went white that winter, and the neon went the colour of the sky right before a storm.',
+    'NEON LEGEND': 'They put his mask on a sign over the city - a grinning face with X eyes, forty storeys up, gold and black. It is the brightest thing in the sky. Somewhere under it a kid is sitting on a rooftop with a giant axe across his knees, grinning back.',
   },
 };
