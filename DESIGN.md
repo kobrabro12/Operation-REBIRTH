@@ -114,7 +114,7 @@ The stage grid has 12 slots, 2 across and 6 down (last = Random); 11 stages fill
 
 ## 9. Fighters
 
-The select grid has 12 slots; 3 fighters are playable. Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
+The select grid has 12 slots; 6 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
 
 ### Soul Summoner — summoner / all-rounder (weight 1.0)
 - **Neutral special**: fireball, hold to charge (full at 84 ticks), 4–16%.
@@ -156,6 +156,15 @@ Normals share NU's poses and numbers (a cleaver where NU has a mic).
 - **Down special**: HOT OIL, a 6 s puddle that slows and burns (3% every half second).
 - **Up special**: FLAMBE, a fire blast under him. Helpless after.
 - **Limit**: FULL COURSE. A giant pot scoops up whoever's in front of him; four boils (7% each) and an eruption (17%) = 45%.
+
+### GNASH (`gnash`, on the select grid) — heavy hitter (weight 1.2)
+From Mason's sketch: horns, a zig-zag grin, a giant spiked axe. Normals share NU's poses and timings (the axe where NU has a mic), 12% more damage and 6% more knockback. Slow on the ground and in the air.
+- **Passive — RAGE**: a meter over his name fills from damage taken (x0.5) and dealt (x0.3). Full: ENRAGED for 6 s - x1.2 damage, x1.12 knockback, hits that would knock him back 4 or less don't make him flinch, +10 Limit. Then it empties.
+- **Neutral special**: SEETHE. Hold to roar and fill RAGE fast (up to 3 s); a 4% shove as it starts.
+- **Side special**: AXE THROW, a boomerang (13% out, 7% back); one at a time.
+- **Up special**: SKYSPLITTER, a rising axe uppercut (8% then a 14% launcher at the top). Helpless after.
+- **Down special**: GROUND SPLITTER. Chops the floor (14%) and bounces up off it, then plunges down axe first (12%) and slams: a shockwave hits everyone on that floor within 90 px (9%).
+- **Limit**: EXECUTIONER. Leaps, hangs over the nearest foe (a target mark), then drops: 32% and a huge launch where he lands, plus a 150 px shockwave (10%).
 
 ## 10. Costumes and unlocks
 

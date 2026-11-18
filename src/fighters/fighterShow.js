@@ -20,7 +20,8 @@ export class FighterShow {
     const S = this.def.show;
     if (S.kind === 'presto') {
       for (const o of this.match.fighters) if (o.cardMarks && o.cardMarks.by === this && ++o.cardMarks.t > S.cards.keep) o.cardMarks = null;
-    } else if (S.kind === 'chef') {
+    } else if (S.kind === 'gnash') this.gnashTick();
+    else if (S.kind === 'chef') {
       if (!this.order) this.newOrder();
       if (this.wellDone > 0) {
         this.wellDone--;
@@ -79,6 +80,7 @@ export class FighterShow {
       return { dmg: 1 + S.cards.perCard * n, kb: 1 + S.cards.perKb * n };
     }
     if (S.kind === 'chef' && this.wellDone > 0) return { dmg: S.orders.bonus.dmg, kb: S.orders.bonus.kb };
+    if (S.kind === 'gnash') return this.gnashBonus();
     return null;
   }
   /** A hit landed: a Presto card sticks a card on them; a Roux hit with the next dish on the ticket ticks it off (the whole ticket: ORDER UP!). */
@@ -89,6 +91,7 @@ export class FighterShow {
       if (M.n < S.cards.max) { M.n++; M.suits.push(hb.projectile.suit); } M.t = 0;
       return;
     }
+    if (S.kind === 'gnash') { this.gnashLanded(t, hb); return; }
     if (S.kind !== 'chef' || !this.order) return;
     const P = hb.projectile, dish = P ? (P instanceof Cleaver ? 'sideB' : P instanceof HotOil ? 'downB' : null) : this.state === 'upb' ? 'upb' : this.moveName;
     const O = this.order;
@@ -156,7 +159,8 @@ export class FighterShow {
       if (s === 'counter') this.drawCabinet(g, this.x, this.y, 1, this.counterReady());
       if (s === 'upb' && this.t >= this.def.moves.upb.riseAt - 2) this.drawDoves(g);
       if (s === 'limit' && this.ult) this.drawSaw(g, this.def.limit, this.ult);
-    } else if (S.kind === 'chef') {
+    } else if (S.kind === 'gnash') this.drawGnash(g, spr);
+    else if (S.kind === 'chef') {
       if (this.order && this.alive && s !== 'respawn') this.drawTicket(g);
       if (s === 'upb' && this.t >= this.def.moves.upb.riseAt && this.t < this.def.moves.upb.riseAt + 18) this.drawFlambe(g);
       if (s === 'limit' && this.ult) this.drawPot(g, this.def.limit, this.ult);

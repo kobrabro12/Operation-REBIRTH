@@ -10,6 +10,7 @@ import { AERO } from './aero.js';
 import { DEVOTED } from './devoted.js';
 import { PRESTO } from './presto.js';
 import { CHEF } from './chef.js';
+import { GNASH } from './gnash.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -22,6 +23,8 @@ export const ROSTER = [
   // graduated from TEST FIGHTERS (each arrived with a beach costume: SURF ROCK / TIDE POOL)
   { id: 'nu', name: 'NU', def: NU, available: true },
   { id: 'aero', name: 'AERO', def: AERO, available: true },
+  // from Mason's sketch: the heavy with the giant axe
+  { id: 'gnash', name: 'GNASH', def: GNASH, available: true },
 ];
 
 // TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a

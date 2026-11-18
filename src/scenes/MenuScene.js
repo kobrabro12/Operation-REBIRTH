@@ -1,5 +1,7 @@
-// Main menu: the hub between the title screen and everything else. Four sectors on a 2x2 grid:
+// Main menu: the hub between the title screen and everything else. Five sectors, two to a row (an odd last one
+// runs the full width):
 //   FIGHT        -> battle setup (rules, CPUs), then stage and fighter select
+//   CLASSIC      -> CLASSIC MODE: a ladder of custom fights, a boss, an ending and a trophy (ClassicScene)
 //   OPTIONS      -> sound, display and touch controls
 //   OTHER        -> training, how to play, credits
 //   TRINKETS     -> extras and experiments (Character Files, for now)
@@ -15,12 +17,15 @@ import { ArcadeBg, slant, hintBar, ARC, shade } from '../ui/arcade.js';
 
 const SECTORS = [
   { id: 'fight', name: 'FIGHT', sub: 'BATTLE FRIENDS OR CPUS', color: 0xc8283c, dark: 0x3a0a14, lit: 0xff6a72, scene: 'Setup' },
-  { id: 'options', name: 'OPTIONS', sub: 'SOUND, DISPLAY & CONTROLS', color: 0x2f6fd0, dark: 0x0e1e3e, lit: 0x78a0ff, scene: 'Options' },
-  { id: 'other', name: 'OTHER', sub: 'TRAINING, HOW TO PLAY, CREDITS', color: 0x2fa070, dark: 0x0c2a1e, lit: 0x6fe3a8, scene: 'Other' },
+  { id: 'classic', name: 'CLASSIC', sub: 'SIX FIGHTS, A BOSS, AN ENDING', color: 0xd89a20, dark: 0x3a2408, lit: 0xffd060, scene: 'Classic' },
   { id: 'trinkets', name: 'TRINKETS', sub: 'CHARACTER FILES & EXTRAS', color: 0x8a3fd0, dark: 0x22103a, lit: 0xc77dff, scene: 'Trinkets' },
+  { id: 'other', name: 'OTHER', sub: 'TRAINING, HOW TO PLAY, CREDITS', color: 0x2fa070, dark: 0x0c2a1e, lit: 0x6fe3a8, scene: 'Other' },
+  { id: 'options', name: 'OPTIONS', sub: 'SOUND, DISPLAY & CONTROLS', color: 0x2f6fd0, dark: 0x0e1e3e, lit: 0x78a0ff, scene: 'Options' },
 ];
-const PAD = 22, TOP = 62, GAP = 12, SK = 16;   // tile layout; SK = how far the tiles lean
-const W = (VIEW_W - PAD * 2 - GAP) / 2, H = (VIEW_H - TOP - 30 - GAP) / 2;
+const PAD = 22, TOP = 62, GAP = 10, SK = 16;   // tile layout; SK = how far the tiles lean
+const ROWS = Math.ceil(SECTORS.length / 2), W = (VIEW_W - PAD * 2 - GAP) / 2, H = (VIEW_H - TOP - 30 - GAP * (ROWS - 1)) / ROWS;
+/** Where a tile goes: two to a row, an odd last one the full width. */
+const tileBox = (i) => { const wide = i === SECTORS.length - 1 && SECTORS.length % 2; return { x: PAD + (wide ? 0 : (i % 2) * (W + GAP)), y: TOP + Math.floor(i / 2) * (H + GAP), w: wide ? VIEW_W - PAD * 2 : W, h: H }; };
 
 export class MenuScene extends Phaser.Scene {
   constructor() { super('Menu'); }
@@ -36,17 +41,17 @@ export class MenuScene extends Phaser.Scene {
     this.letters = 'REBIRTH'.split('').map((ch, i) => this.add.text(VIEW_W / 2 - 63 + i * 18, 34, ch, { fontFamily: FONT, fontSize: '18px', color: '#ffffff', stroke: '#0b0a14', strokeThickness: 5 }).setOrigin(0.5));
     this.panelG = this.add.graphics();
     this.tiles = SECTORS.map((s, i) => {
-      const x = PAD + (i % 2) * (W + GAP), y = TOP + Math.floor(i / 2) * (H + GAP);
-      const label = this.add.text(x + W / 2 + 26, y + H / 2 - 10, s.name, { fontFamily: FONT, fontSize: s.locked ? '13px' : '20px', color: '#ffffff', stroke: '#07060e', strokeThickness: 6, shadow: { offsetX: 3, offsetY: 3, color: '#07060e', fill: true, stroke: true } }).setOrigin(0.5);
-      const sub = this.add.text(x + W / 2 + 26, y + H / 2 + 16, s.sub, { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc' }).setOrigin(0.5);
-      return { s, x, y, label, sub, pop: 0 };
+      const { x, y, w: tw, h: th } = tileBox(i);
+      const label = this.add.text(x + tw / 2 + 26, y + th / 2 - 10, s.name, { fontFamily: FONT, fontSize: s.locked ? '13px' : '20px', color: '#ffffff', stroke: '#07060e', strokeThickness: 6, shadow: { offsetX: 3, offsetY: 3, color: '#07060e', fill: true, stroke: true } }).setOrigin(0.5);
+      const sub = this.add.text(x + tw / 2 + 26, y + th / 2 + 16, s.sub, { fontFamily: FONT, fontSize: '6px', color: '#c9c4dc' }).setOrigin(0.5);
+      return { s, x, y, tw, th, label, sub, pop: 0 };
     });
     this.toast = this.add.text(VIEW_W / 2, VIEW_H - 40, '', { fontFamily: FONT, fontSize: '8px', color: '#ffd34f', backgroundColor: '#16132a', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(20).setVisible(false);
     hintBar(this, 'CLICK PICK   ARROWS MOVE   J / ENTER / A OPEN   K / ESC / B  BACK', 0xffd23f);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.clicked = false;
-    const tileAt = (px, py) => this.tiles.findIndex((t) => px >= t.x && px < t.x + W && py >= t.y && py < t.y + H);
+    const tileAt = (px, py) => this.tiles.findIndex((t) => px >= t.x && px < t.x + t.tw && py >= t.y && py < t.y + t.th);
     this.input.on('pointermove', (p) => { const i = tileAt(p.x, p.y); if (i >= 0 && i !== this.sel) { this.sel = i; sfx('menu', 0.3); } });
     this.input.on('pointerdown', (p, over) => { if (over.length) return; const i = tileAt(p.x, p.y); if (i >= 0) { this.sel = i; this.clicked = true; } });
   }
@@ -68,10 +73,11 @@ export class MenuScene extends Phaser.Scene {
   update() {
     this.t++;
     const m = this.menu.poll();
+    const n = SECTORS.length;
     if (m.left && this.sel % 2) { this.sel--; sfx('menu', 0.5); }
-    if (m.right && this.sel % 2 === 0) { this.sel++; sfx('menu', 0.5); }
-    if (m.up && this.sel >= 2) { this.sel -= 2; sfx('menu', 0.5); }
-    if (m.down && this.sel < 2) { this.sel += 2; sfx('menu', 0.5); }
+    if (m.right && this.sel % 2 === 0 && this.sel + 1 < n) { this.sel++; sfx('menu', 0.5); }
+    if (m.up && this.sel >= 2) { this.sel = this.sel === n - 1 && n % 2 ? n - 3 : this.sel - 2; sfx('menu', 0.5); }
+    if (m.down && this.sel + 2 <= n - 1 + (n % 2 ? 1 : 0) && Math.floor(this.sel / 2) < ROWS - 1) { this.sel = Math.min(n - 1, this.sel + 2); sfx('menu', 0.5); }
     if (m.ok || this.clicked || m.pads.some((p) => p.button === 'a' || p.button === 'start')) { this.clicked = false; this.choose(); return; }
     if (m.back || m.pads.some((p) => p.button === 'b')) { this.back(); return; }
     if (this.toastT && --this.toastT <= 0) this.toast.setVisible(false);
@@ -93,7 +99,7 @@ export class MenuScene extends Phaser.Scene {
       if (tile.pop > 0) tile.pop--;
       tile.k = (tile.k || 0) + ((on ? 1 : 0) - (tile.k || 0)) * 0.25;                      // eases in and out of being picked
       const k = tile.k, shake = tile.pop ? Math.round(Math.sin(tile.pop * 2) * 3) : 0, grow = Math.round(k * 4);
-      const x = tile.x - grow + shake - Math.round(k * 4), y = tile.y - grow - Math.round(k * 3), w = W + grow * 2, h = H + grow * 2;
+      const x = tile.x - grow + shake - Math.round(k * 4), y = tile.y - grow - Math.round(k * 3), w = tile.tw + grow * 2, h = tile.th + grow * 2;
       slant(p, x + 7, y + 7, w, h, 0x000000, 0.6, SK);                                       // hard shadow
       slant(p, x, y, w, h, on ? s.color : shade(s.color, 0.55), 1, SK);                      // the frame
       slant(p, x + 4, y + 4, w - 8, h - 8, s.dark, on ? 0.82 : 0.96, SK - 1);                // the body
@@ -129,6 +135,10 @@ export class MenuScene extends Phaser.Scene {
       for (let y = -4; y <= 4; y++) { px(-7, y, 6, 1, 0xf0ead8); px(1, y, 6, 1, 0xf0ead8); }
       px(-1, -5, 2, 11, col); for (let y = -3; y <= 3; y += 2) { px(-6, y, 4, 1, 0x8a87a3); px(2, y, 4, 1, 0x8a87a3); }
       px(-7, 5, 14, 1, col);
+    } else if (id === 'classic') {                     // a gold trophy cup with a star
+      px(-5, -6, 11, 1, 0xffe08a); px(-5, -5, 11, 5, col); px(-4, 0, 9, 2, col); px(-2, 2, 5, 1, col); px(-1, 3, 3, 2, col); px(-4, 5, 9, 2, 0x8a5a2c);
+      px(-7, -5, 2, 1); px(-8, -4, 1, 3); px(-7, -1, 2, 1); px(6, -5, 2, 1); px(8, -4, 1, 3); px(6, -1, 2, 1);
+      px(0, -4, 1, 3, 0xffffff); px(-1, -3, 3, 1, 0xffffff);
     } else if (id === 'trinkets') {                    // a treasure chest, a gem glinting on the lid
       px(-6, -1, 13, 7, 0x8a5a2c); px(-6, -4, 13, 3, 0xb47a3c); px(-6, -1, 13, 1, O);
       px(-6, -4, 1, 10, 0xf3c358); px(6, -4, 1, 10, 0xf3c358); px(-1, -2, 3, 3, 0xf3c358); px(0, -1, 1, 1, O);

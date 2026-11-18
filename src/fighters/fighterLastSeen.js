@@ -70,6 +70,7 @@ export class FighterLastSeen {
   }
   // THE TANK's ENTRENCH: hit while dug in - the damage gets through (less of it), the knockback doesn't
   armoured(hb) {
+    if (hb && this.gnashArmour && this.gnashArmour(hb)) return true;   // (GNASH ENRAGED: light hits don't make him flinch)
     const A = this.state === 'attack' && this.move && this.move.armor;
     return !!(A && this.t >= A.from && this.t <= A.to);
   }

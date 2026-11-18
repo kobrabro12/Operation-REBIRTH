@@ -32,6 +32,8 @@ import { MatchScene } from './scenes/MatchScene.js';
 import { ResultsScene } from './scenes/ResultsScene.js';
 import { ChallengesScene } from './scenes/ChallengesScene.js';
 import { WinScene } from './scenes/WinScene.js';
+import { ClassicScene } from './scenes/ClassicScene.js';
+import { ClassicEndingScene } from './scenes/ClassicEndingScene.js';
 
 const config = {
   type: Phaser.WEBGL,
@@ -45,7 +47,7 @@ const config = {
   audio:{disableWebAudio:PHONE_DEVICE},
   roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, TrophyHallScene, BossFightsScene, BossRewardScene, FilesScene, MilestoneScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene],
+  scene: [BootScene, TitleScene, MenuScene, OptionsScene, OtherScene, ChallengesScene, TrinketsScene, SoulBoardScene, SoulTeamScene, SoulBattleScene, SoulRewardScene, SoulEvolutionScene, SoulUpgradeScene, AchievementsScene, TrophyHallScene, BossFightsScene, BossRewardScene, FilesScene, MilestoneScene, TestFightersScene, ShopScene, SetupScene, StageSelectScene, SelectScene, MatchScene, WinScene, ResultsScene, ClassicScene, ClassicEndingScene],
 };
 
 // Wait (briefly) for the pixel font so text doesn't flash in a fallback font.

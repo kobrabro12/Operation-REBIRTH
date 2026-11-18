@@ -60,7 +60,12 @@ export const FILES = {
     no: 'T-09', alias: 'CHEF ROUX', cls: 'MASTER CHEF', weapon: 'CLEAVER AND FRYING PAN',
     origin: 'THE KITCHEN OF A RESTAURANT WITH A TWO-YEAR WAITING LIST', moves: 'FRYING PAN - CLEAVER TOSS - FLAMBE - HOT OIL', limit: 'FULL COURSE',
     lore: 'Roux runs a fight like a dinner service: tickets on the rail, everything in order, and heaven help anyone who sends a plate back. He fights in clogs. He has fought in clogs for thirty years. Land his orders in the right order and the whole kitchen catches fire - on purpose.',
+  },  gnash: {
+    no: '006', alias: 'THE GRIN ON THE MOUNTAIN', cls: 'EXECUTIONER', weapon: 'A GIANT SPIKED AXE',
+    origin: 'A CAVE ABOVE THE TREELINE, WITH A VIEW OF EVERY ROAD IN', moves: 'SEETHE - AXE THROW - SKYSPLITTER - GROUND SPLITTER', limit: 'EXECUTIONER',
+    lore: 'Nobody has heard him say a full sentence. They have heard him laugh - a huge shaking laugh that rolls down off the mountain before the axe does. He is slow. He does not need to be fast. Make him angry enough and he stops feeling the hits at all, and then the only question left is where the axe lands.',
   },
+
 };
 
 // lore for costumes that aren't milestones, by fighter id and costume name
@@ -179,5 +184,11 @@ export const MILESTONE_LORE = {
     RIVER: 'Soaked through in a river crossing that should have drowned him. When the tunic dried it had turned a deeper blue, and it has never quite been dry since.',
     EMBER: 'He walked out of a burning forest with the tunic still smoking. It never quite stopped - a faint warmth in the cloth, even in winter.',
     GILDED: 'Sewn with gold thread by everyone he ever helped along the way, one stitch each. There are a great many stitches.',
+  },
+  gnash: {
+    'PIT FIGHTER': 'A hole in the ground, a ring of torches and a crowd that bet against him every night. He fought in a rust-coloured vest because it hid the stains. The crowd stopped betting against him. Then the crowd stopped coming, because there was nobody left who would get in the pit.',
+    'WARLORD': 'A thousand followers and a banner with his grin painted on it. He never learned their names and he never asked them to follow him. The vest went red the year the banner went up. The horns went black the year it came down.',
+    'BONECRUSHER': 'He wears what is left of the last army that marched on his mountain - bleached white, rattling when he laughs. It fits. The horns turned gold in the cold that winter. Armies do not march on the mountain any more.',
+    'THE HEADSMAN': 'Kings send for him when a crown has to come off. He takes the head that wore it, and keeps the crown. There is a cave above the treeline full of them, and a cloak of black gold across his shoulders, and somewhere in there, under it all, a little round grin.',
   },
 };

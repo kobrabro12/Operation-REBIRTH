@@ -80,7 +80,7 @@ export class MatchScene extends Phaser.Scene {
   preload() {
     const data = this.sys.settings.data || {};
     const soul = data.soulBattle && soulEncounter(data.soulBattle.soulId);
-    const demo = !data.shopPreview && !soul && !data.boss && demoRequest.next;
+    const demo = !data.shopPreview && !soul && !data.boss && !data.classic && demoRequest.next;
     if (demo && !demoRequest.settings) {
       demoRequest.settings = demoSettings();
       // the title demo only wears costumes that are already loaded: it starts at once, downloads nothing,
@@ -94,7 +94,7 @@ export class MatchScene extends Phaser.Scene {
         u.add(sk); return sk;
       });
     }
-    const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
+    const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.classic?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
   }
 
@@ -102,12 +102,13 @@ export class MatchScene extends Phaser.Scene {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
     this.sys.settings.data={};
     this.bossFight = data.boss || null; this.bossOutcome = null; this.cardPainted = false; this.bossCard = null;   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
+    this.classic = data.classic || null;   // CLASSIC MODE (src/data/classic.js): { setup }; the result goes back to ClassicScene
     this.shopPreview=data.shopPreview||null;
     if(this.shopPreview)this.sys.settings.data={}; // consume preview data; later ordinary matches use player settings
     // demo: the title screen's background match (no players, no HUD, no sound of its own)
     // demoRequest.settings: a fixed all-CPU setup instead of a random one (used by tools/sim)
-    this.demo = !this.shopPreview && !this.soulBattle && !this.bossFight && demoRequest.next; demoRequest.next = false; this.demoTime = 0;
-    const S = this.soulBattle?.setup || this.bossFight?.setup || this.shopPreview?.setup || (this.demo ? (demoRequest.settings || demoSettings()) : settings); demoRequest.settings = null;
+    this.demo = !this.shopPreview && !this.soulBattle && !this.bossFight && !this.classic && demoRequest.next; demoRequest.next = false; this.demoTime = 0;
+    const S = this.soulBattle?.setup || this.bossFight?.setup || this.classic?.setup || this.shopPreview?.setup || (this.demo ? (demoRequest.settings || demoSettings()) : settings); demoRequest.settings = null;
     // DEBUG RECORDING (training button 8, or ?debug=1): starts before anything uses Math.random (src/debug/recorder.js)
     this.recorder = recordingWanted(this) ? new Recorder(this, S) : null;
     this.mode = S.mode;
@@ -300,7 +301,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.paused) {
       let quit = Phaser.Input.Keyboard.JustDown(this.qKey) || this.mouseQuit;
       for (const i of pads) { const pad = readPad(i); if (pad && pad.buttons[8] && pad.buttons[8].pressed) quit = true; }
-      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':this.bossFight ? 'BossFights' : settings.from || 'Setup'); return true; }   // back to wherever the match was started from
+      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':this.classic || this.bossFight?.classic ? 'Classic' : this.bossFight ? 'BossFights' : settings.from || 'Setup', this.classic || this.bossFight?.classic ? { classic: { won: false } } : undefined); return true; }   // back to wherever the match was started from
       this.draw();
     }
     return this.paused;
@@ -460,6 +461,7 @@ export class MatchScene extends Phaser.Scene {
     t.stats.damageTaken += dmg; if (owner) { owner.stats.damageDealt += dmg; this.challengeEvent(owner, 'hit'); }
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
+    if (t.def.show && t.def.show.kind === 'gnash') t.addRage(dmg * t.def.show.rage.perHurt);   // GNASH's RAGE fills when he's hurt
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
     if (owner && owner.def.devoted && t !== owner) { owner.addDevotion(1); if (!hb.projectile && owner.state === 'attack' && owner.move && owner.move.cut) owner.cutLanded(t); }   // (CROSS CUTS: the slash marks where it hit)   // THE DEVOTED: every hit he lands counts toward his next stage
@@ -618,6 +620,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.bossOutcome === 'lose') this.paintBossCard();
     const F = this.bossFight, f = this.fighters[0], won = this.bossOutcome === 'win', time = this.stage.boss ? this.stage.boss.time : 0;
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
+    if (F.classic) { this.scene.start('Classic', { classic: { won } }); return; }   // CLASSIC MODE's last fight: back to the run (the ending, or CONTINUE?)
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
       fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, weak: f.stats.weak || 0, limits: f.stats.limits || 0, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks }, rewards });
   }
@@ -638,6 +641,7 @@ export class MatchScene extends Phaser.Scene {
     if (!this.isTraining && !this.demo) for (const f of order) if (!f.isCpu) recordMatch({ fighter: f.baseDef ? f.baseDef.id : f.def.id, stage: this.stageId, won: f === order[0], flawless: this.mode === 'stock' && !f.falls });   // lifetime stats (achievements.js)
     const soulXP=!this.isTraining&&!this.demo&&!this.shopPreview?addSoulXP(this.fighters[0].soulTeam?.main,order[0].slot===0?100:50):null;
     const data = { soulXP, results, rematch: this.rematchSetup, mode: this.mode, unlocks: this.unlocks, coins, total: getCoins() };
+    if (this.classic) { const won = order[0].slot === 0 && !this.fighters[0].eliminated; return this.scene.start('Classic', { classic: { won } }); }   // CLASSIC MODE: back to the run
     if(this.soulBattle){const won=order[0].slot===0&&!order[0].eliminated&&this.fighters[1].eliminated;data.soulBattle=this.soulBattle;data.soulWon=won;data.soulEarned=won?awardSoul(this.soulBattle.soulId):false;return this.scene.start(data.soulEarned?'SoulReward':'Results',data);}
     if (hasWinCutscene(results[0].fighter) && !this.isTraining) return this.scene.start('Win', data);   // Soul Summoner, Mr Wake, Lacy: a win cutscene first (WinScene.js)
     this.scene.start('Results', data);

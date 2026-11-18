@@ -973,3 +973,26 @@ SKINS['aero'].push({ name: 'SPACEWALK', sheetSet: 'starfarer', shop: 'cos-starfa
   lore: 'He left the meadow in a bowl of water and came back from the edge of the sky. The fish has seen things.',
   pal: { outline: 0x0a0618, deep: 0x3a1a7a, mid: 0x7a4ae0, light: 0xc8a8ff, core: 0xffffff, shade: 0x1a0e3a, void: 0x04020c },
   vfx: { hit: { shape: 'star', colors: [0xffffff, 0xc8a8ff, 0xff8a40], n: 10, ring: 0xc8a8ff, glint: true }, trail: 0xc8a8ff, aura: { starfarer: true } } });
+
+// GNASH: from Mason's sketch; drawn costumes BLOOD MOON / GRAVESTONE (gnash_draw.py VARIANTS), then THE EXECUTIONER'S ROAD
+const GNG = {
+  cloth: { h: [228, 292], s: [0.08, 0.5], v: [0, 0.62], center: 255 },             // the vest and trousers
+  horn: { h: [0, 14], s: [0.4, 1], v: [0.12, 0.75], center: 0 },                    // the horns (and his eyes)
+};
+SKINS['gnash'] = [
+  { name: 'DEFAULT', swatch: 0xff8a3a, vfx: { hit: { shape: 'flame', colors: [0xff8a3a, 0xffe0b0, 0xffffff], n: 8, ring: 0xff5a2a }, trail: 0xff8a3a } },
+  // BLOOD MOON: a crimson vest, black horns, a molten blade cracked with fire
+  { name: 'BLOOD MOON', sheetSet: 'bloodmoon', style: 'gnashBlood', swatch: 0xd02a3a, fx: 0xff3a2a,
+    lore: 'He only comes down off the mountain when the moon turns red. Nobody has ever asked him why.',
+    pal: { outline: 0x1a0204, deep: 0x9a1424, mid: 0xd02a3a, light: 0xff7a5a, core: 0xffe0c8, shade: 0x2a0408, void: 0x0a0002 },
+    vfx: { hit: { shape: 'flame', colors: [0xff3a2a, 0xffd060, 0xffffff, 0x9a1424], n: 10, ring: 0xd02a3a, sound: 'whoosh' }, aura: { inferno: true }, trail: 0xff3a2a } },
+  // GRAVESTONE: grey stone skin, a mossy vest, an axe carved out of a headstone
+  { name: 'GRAVESTONE', sheetSet: 'gravestone', style: 'gnashStone', swatch: 0x9098a4, fx: 0x9ac88a,
+    lore: 'The cemetery statue that got up one night, picked up its headstone and walked out the gate.',
+    pal: { outline: 0x10140c, deep: 0x4a7240, mid: 0x6a9a5a, light: 0x9ac88a, core: 0xe0ecd8, shade: 0x1a2416, void: 0x060a04 },
+    vfx: { hit: { shape: 'splat', colors: [0xb8bec8, 0x6a7280, 0x9ac88a], n: 9, ring: 0x9098a4 }, aura: { motes: { colors: [0x9ac88a, 0xb8bec8], rate: 10 } }, trail: 0x9098a4 } },
+  ms('PIT FIGHTER', 1, 0x8a4a2a, 'A hole in the ground, a ring of torches and a crowd that bet against him every night. They stopped betting.', GNG, { cloth: { to: 22, sat: 1.4, val: 1.3 } }, 'flame', [0xd87a3a, 0xffd8a0, 0xffffff]),
+  ms('WARLORD', 2, 0x7a0a14, 'A thousand followers and a banner with his grin on it. He never learned their names.', GNG, { cloth: { to: 352, sat: 2.0, val: 1.1 }, horn: { sat: 0.1, val: 0.5 } }, 'flame', [0xff3a2a, 0xffd0c0, 0xffffff]),
+  ms('BONECRUSHER', 3, 0xe8e0c8, 'He wears what is left of the last army that marched on his mountain. It fits.', GNG, { cloth: { sat: 0.1, val: 2.6 }, horn: { to: 40, sat: 0.6, val: 1.4 } }, 'star', [0xfff0d0, 0xffffff, 0xff8a3a], { vfx: { aura: { inferno: true } } }),
+  ms('THE HEADSMAN', 4, 0xffd860, 'Kings send for him when a crown has to come off. He takes the head that wore it, and keeps the crown.', GNG, { cloth: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, horn: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 } }, 'flame', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+];

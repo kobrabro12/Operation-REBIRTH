@@ -82,8 +82,8 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_n64_' + k, 'assets/fighters/aero/n64/king/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('aero_king_n64_moves', 'assets/fighters/aero/n64/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    // THE GREAT PRESTO and CHEF ROUX (test fighters) and their drawn costumes: tools/sprites/show_moves.py
-    for (const [pre, dir] of [['pr_', 'presto/'], ['pr_royal_', 'presto/royal/'], ['pr_phantom_', 'presto/phantom/'], ['ch_', 'chef/'], ['ch_grill_', 'chef/grill/'], ['ch_pastry_', 'chef/pastry/']]) {
+    // THE GREAT PRESTO and CHEF ROUX (test fighters) and their drawn costumes: tools/sprites/show_moves.py; GNASH: gnash_moves.py
+    for (const [pre, dir] of [['pr_', 'presto/'], ['pr_royal_', 'presto/royal/'], ['pr_phantom_', 'presto/phantom/'], ['ch_', 'chef/'], ['ch_grill_', 'chef/grill/'], ['ch_pastry_', 'chef/pastry/'], ['gn_', 'gnash/'], ['gn_bloodmoon_', 'gnash/bloodmoon/'], ['gn_gravestone_', 'gnash/gravestone/']]) {
       for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(pre + k, 'assets/fighters/' + dir + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
       this.load.spritesheet(pre + 'moves', 'assets/fighters/' + dir + 'moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     }

@@ -138,3 +138,30 @@ export class HotOil {
     g.fillStyle(0xffd080, 0.06 * fade); g.fillRect(cx - half, this.y - 30, half * 2, 28);
   }
 }
+
+// AXE THROW: GNASH's giant spiky axe, hurled end over end - a Cleaver's flight (out, slowing, then back to his hand,
+// hitting both ways), but bigger, heavier and with a wider hitbox. Hand empty while it's out (cleaverOut).
+/** AXE THROW's axe (see above). */
+export class GnashAxe extends Cleaver {
+  constructor(match, owner, spec) { super(match, owner, spec); this.id = 'gnaxe' + nextId++; this.y = owner.y - 48; this.vy = -1.6; sfx('whoosh', 0.6, 0.6); }
+  /** A wide box round the whirling blade. */
+  hitbox() { const b = super.hitbox(); b.x1 = this.x - 20; b.x2 = this.x + 20; b.y1 = this.y - 20; b.y2 = this.y + 20; return b; }
+  /** The haft with a cord wrap and a crescent blade of spikes, whirling, a red-hot glow on its tips. */
+  render() {
+    if (!this.alive) return;
+    const g = this.g, a = this.t * 0.42 * this.dir, c = Math.cos(a), s = Math.sin(a), q = (px, py) => ({ x: this.x + px * c - py * s, y: this.y + px * s + py * c });
+    const look = this.owner.style, steel = look === 'gnashBlood' ? [0xff8a3a, 0xa8240a] : look === 'gnashStone' ? [0xa8a8a0, 0x5a5a56] : [0xd8dce4, 0x707884];
+    g.clear();
+    g.fillStyle(0xff5a2a, 0.18); g.fillCircle(this.x, this.y, 24);
+    g.lineStyle(5, 0x140806, 1); g.lineBetween(q(-22, 0).x, q(-22, 0).y, q(10, 0).x, q(10, 0).y);
+    g.lineStyle(3, 0x7a4a24, 1); g.lineBetween(q(-21, 0).x, q(-21, 0).y, q(9, 0).x, q(9, 0).y); g.lineStyle(0);
+    for (let i = -16; i < 0; i += 4) { g.fillStyle(0xc8a060, 1); const p = q(i, 0); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
+    const pts = [], pin = [];
+    for (let i = 0; i <= 10; i++) { const t = -1.3 + 2.6 * i / 10, r = i % 2 ? 11 : 17; pts.push(q(6 + Math.cos(t) * r, Math.sin(t) * r)); if (i % 2 === 0) pin.push(pts[pts.length - 1]); }
+    const blade = [q(6, -6), ...pts, q(6, 6)];
+    g.fillStyle(0x140806, 1); g.fillPoints(blade.map((p) => ({ x: p.x + (p.x - this.x) * 0.08, y: p.y + (p.y - this.y) * 0.08 })), true);
+    g.fillStyle(steel[1], 1); g.fillPoints(blade, true);
+    g.fillStyle(steel[0], 1); g.fillPoints([q(6, -4), ...pts.slice(2, 9).map((p) => ({ x: this.x + (p.x - this.x) * 0.8, y: this.y + (p.y - this.y) * 0.8 })), q(6, 4)], true);
+    for (const p of pin) { g.fillStyle(0xffa040, 0.9); g.fillCircle(p.x, p.y, 1.5); }
+  }
+}
