@@ -145,22 +145,22 @@ export class HotOil {
 export class GnashAxe extends Cleaver {
   constructor(match, owner, spec) { super(match, owner, spec); this.id = 'gnaxe' + nextId++; this.y = owner.y - 48; this.vy = -1.6; sfx('whoosh', 0.6, 0.6); }
   /** A wide box round the whirling blade. */
-  hitbox() { const b = super.hitbox(); b.x1 = this.x - 20; b.x2 = this.x + 20; b.y1 = this.y - 20; b.y2 = this.y + 20; return b; }
-  /** The black haft in neon tape and the dark-glass crescent blade edged with a lit neon tube, whirling, glowing. */
+  hitbox() { const b = super.hitbox(); b.x1 = this.x - 26; b.x2 = this.x + 26; b.y1 = this.y - 26; b.y2 = this.y + 26; return b; }
+  /** The giant black axe whirling end over end: a black haft in neon tape, a huge black spiked blade with a glowing neon diamond in it. */
   render() {
     if (!this.alive) return;
-    const g = this.g, a = this.t * 0.42 * this.dir, c = Math.cos(a), s = Math.sin(a), q = (px, py) => ({ x: this.x + px * c - py * s, y: this.y + px * s + py * c });
-    const look = this.owner.style, neon = look === 'gnashBlood' ? [0xff4a2a, 0xffb02a] : look === 'gnashStone' ? [0x8aff2a, 0xd8ff3a] : [0xff3ad0, 0x3af0ff];
+    const g = this.g, a = this.t * 0.36 * this.dir, c = Math.cos(a), s = Math.sin(a), q = (px, py) => ({ x: this.x + px * c - py * s, y: this.y + px * s + py * c });
+    const look = this.owner.style, neon = look === 'gnashBlood' ? [0xff3a2a, 0xffb02a] : look === 'gnashStone' ? [0x8aff2a, 0xd8ff3a] : [0x6aff3a, 0x3af0ff];
     g.clear();
-    g.fillStyle(neon[0], 0.14); g.fillCircle(this.x, this.y, 26); g.fillStyle(neon[0], 0.1); g.fillCircle(this.x, this.y, 18);
-    g.lineStyle(5, 0x060608, 1); g.lineBetween(q(-22, 0).x, q(-22, 0).y, q(10, 0).x, q(10, 0).y);
-    g.lineStyle(3, 0x22222a, 1); g.lineBetween(q(-21, 0).x, q(-21, 0).y, q(9, 0).x, q(9, 0).y); g.lineStyle(0);
-    for (const i of [-17, -11, -5]) { g.fillStyle(neon[1], 1); const p = q(i, 0); g.fillRect(p.x - 1, p.y - 1, 2, 2); }
+    g.lineStyle(6, 0x060608, 1); g.lineBetween(q(-34, 0).x, q(-34, 0).y, q(14, 0).x, q(14, 0).y);
+    g.lineStyle(4, 0x22222a, 1); g.lineBetween(q(-33, 0).x, q(-33, 0).y, q(13, 0).x, q(13, 0).y); g.lineStyle(0);
+    for (const i of [-26, -10]) { g.fillStyle(neon[1], 1); const p = q(i, 0); g.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }
     const pts = [];
-    for (let i = 0; i <= 10; i++) { const t = -1.3 + 2.6 * i / 10, r = i % 2 ? 11 : 17; pts.push(q(6 + Math.cos(t) * r, Math.sin(t) * r)); }
-    const blade = [q(6, -6), ...pts, q(6, 6)];
-    g.fillStyle(0x241c38, 1); g.fillPoints(blade, true);
-    g.lineStyle(3, neon[0], 0.9); g.strokePoints(pts, false);
-    g.lineStyle(1, 0xffffff, 1); g.strokePoints(pts, false); g.lineStyle(0);
+    for (let i = 0; i <= 12; i++) { const t = -1.4 + 2.8 * i / 12, r = i % 2 ? 15 : 22; pts.push(q(8 + Math.cos(t) * r, Math.sin(t) * r)); }
+    g.fillStyle(0x060608, 1); g.fillPoints([q(8, -9), ...pts, q(8, 9)].map((p) => ({ x: p.x + (p.x - this.x) * 0.06, y: p.y + (p.y - this.y) * 0.06 })), true);
+    g.fillStyle(0x1c1c24, 1); g.fillPoints([q(8, -8), ...pts, q(8, 8)], true);
+    const d = [q(22, -7), q(27, 0), q(22, 7), q(17, 0)];                                   // the neon diamond
+    g.fillStyle(neon[0], 0.25); g.fillCircle(q(22, 0).x, q(22, 0).y, 10);
+    g.lineStyle(3, neon[0], 1); g.strokePoints(d, true); g.lineStyle(1, 0xffffff, 1); g.strokePoints(d, true); g.lineStyle(0);
   }
 }

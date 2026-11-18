@@ -158,7 +158,7 @@ Normals share NU's poses and numbers (a cleaver where NU has a mic).
 - **Limit**: FULL COURSE. A giant pot scoops up whoever's in front of him; four boils (7% each) and an eruption (17%) = 45%.
 
 ### GNASH (`gnash`, on the select grid) — heavy hitter (weight 1.2)
-Mason's street punk kid: a mask with neon X eyes, neon horns, a giant neon axe (and from his sketch, the zig-zag grin). Normals share NU's poses and timings (the axe where NU has a mic), 12% more damage and 6% more knockback. Slow on the ground and in the air.
+Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X eyes, neon horns, and a giant black axe with a neon diamond in the blade - held in both hands, dragged along the floor behind him (and from his sketch, the zig-zag grin). Normals share NU's poses and timings (the axe where NU has a mic), 12% more damage, 6% more knockback and hitboxes 10 px wider / 8 px taller (the axe's reach). Slow on the ground and in the air.
 - **Passive — RAGE**: a meter over his name fills from damage taken (x0.5) and dealt (x0.3). Full: ENRAGED for 6 s - x1.2 damage, x1.12 knockback, hits that would knock him back 4 or less don't make him flinch, +10 Limit. Then it empties.
 - **Neutral special**: SEETHE. Hold to roar and fill RAGE fast (up to 3 s); a 4% shove as it starts.
 - **Side special**: AXE THROW, a boomerang (13% out, 7% back); one at a time.

@@ -13,7 +13,11 @@ const SETS = ['bloodmoon', 'gravestone'];
 const HEAVY = { dmg: 1.12, kb: 1.06 };
 
 /** NU's move, made a heavy-hitter's: every hit's damage and knockback scaled by HEAVY. */
-const heavy = (m) => (m.hits ? { ...m, hits: m.hits.map((h) => ({ ...h, dmg: Math.round(h.dmg * HEAVY.dmg), base: +(h.base * HEAVY.kb).toFixed(2), growth: +(h.growth * HEAVY.kb).toFixed(2) })) } : m);
+const heavy = (m) => (m.hits ? { ...m, hits: m.hits.map((h) => ({ ...h, box: reach(h.box), dmg: Math.round(h.dmg * HEAVY.dmg), base: +(h.base * HEAVY.kb).toFixed(2), growth: +(h.growth * HEAVY.kb).toFixed(2) })) } : m);
+// how much further his normals reach than NU's (px): the axe is much longer than a mic
+const REACH = { w: 10, h: 8 };
+/** A hitbox grown by REACH - wider on the side it faces and taller (a box behind him grows backward). */
+function reach([x, y, w, h]) { return [x < 0 && x + w <= 4 ? x - REACH.w : x, y - REACH.h / 2, w + REACH.w, h + REACH.h]; }
 
 export const GNASH = {
   id: 'gnash',
@@ -21,10 +25,10 @@ export const GNASH = {
   sheets: { idle: 'gn_idle', run: 'gn_run', jump: 'gn_jump', fall: 'gn_fall', moves: 'gn_moves' },
   costumeSheets: Object.fromEntries(SETS.map((s) => [s, Object.fromEntries(['idle', 'run', 'jump', 'fall', 'moves'].map((k) => [k, 'gn_' + s + '_' + k]))])),
   runCycle: [0, 8],
-  moveAnims: GN_MOVES, movesOrigin: [56 / 112, 95 / 104],
-  originY: 59 / 64,
+  moveAnims: GN_MOVES, movesOrigin: [64 / 128, 115 / 136],   // (his frames are bigger than everyone's: the giant axe)
+  originY: 90 / 96,                 // idle / run / jump / fall frames are 112x96, feet at 56,90
   handOffset: { x: 18, y: -44 },    // the axe's neon blade
-  portrait: [16, 0, 36, 32],
+  portrait: [46, 30, 36, 32],
   fxColor: 0xff3ad0,
   menuScale: 2.1,                   // (he's big: a touch smaller on the menus so his horns fit)
   swingSfx: 'swing',

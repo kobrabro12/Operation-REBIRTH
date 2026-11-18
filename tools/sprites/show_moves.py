@@ -92,8 +92,10 @@ chmove('taunt', 84, [k(0, REST), k(10, KISS, 'out'), k(22, mix(KISS, head=(-2, 0
 
 
 def strip(frames, path):
-    sheet = Image.new('RGBA', (64 * len(frames), 64), (0, 0, 0, 0))
-    for i, f in enumerate(frames): sheet.alpha_composite(Image.fromarray(f, 'RGBA'), (i * 64, 0))
+    """Frames side by side in one row (at their own size: 64x64 for most, bigger for GNASH)."""
+    h, w = frames[0].shape[:2]
+    sheet = Image.new('RGBA', (w * len(frames), h), (0, 0, 0, 0))
+    for i, f in enumerate(frames): sheet.alpha_composite(Image.fromarray(f, 'RGBA'), (i * w, 0))
     sheet.save(path)
 
 def build(draw, follow, own, folder, js, const, idle, sets, ghost=(200, 200, 255)):
