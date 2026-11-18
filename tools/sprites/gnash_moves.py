@@ -242,10 +242,16 @@ HOWL = (24, [k(i, HWL(1 if (i // 4) % 2 else -1), 'inout') for i in range(0, 25,
 # INFECTED.EXE - CORRUPT: snapping between broken poses every couple of frames, like a glitching sprite
 GL = [ROAR(1), mix(LOW, head=(40, 0, 0), torso=(30, 4, 2)), mix(ROAR(-1), head=(-60, 0, 0), root=(0, 3, 0, 1.12, 0.9)), mix(OVER, torso=(-30, -2, -1), head=(30, 0, 0)), mix(CHOP, head=(-20, 0, 0), root=(0, -3, 0, 0.9, 1.1)), mix(ROAR(1), torso=(4, 0, 0), head=(50, 0, 0))]
 CORRUPT = (24, [k(i, GL[(i * 5 // 3) % len(GL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
-# POP LINES - POP & LOCK: snapping from one hard dance pose to the next every few frames, axe up, knees bent
-PL = [mix(HIGH, torso=(10, 0, 0), head=(20, 0, 0), **legs(30, -40, -10, 10)), mix(HIGH, torso=(-14, 0, 0), head=(-24, 0, 0), root=(0, 0, 2, 1.08, 0.92), **legs(-6, 6, -30, 40)),
-      mix(P(fupper=(20, 0, 0), ffore=(10, 0, 0), mic=(10, 0, 0)), torso=(14, 1, 0), head=(30, 0, 0), **legs(40, -60, -20, 20)), mix(HIGH, torso=(0, 0, 0), head=(0, 0, 0), root=(0, 0, -4, 0.94, 1.08), **legs(0, 0, 0, 0))]
-POPLOCK = (24, [k(i, PL[(i // 3) % len(PL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
+# POP LINES - POP & LOCK: a smooth cartoon dance, like a figure in one of Haring's paintings - the axe held up high in
+# both hands, his body swaying side to side through one full loop, a knee kicking up on each side and his head bobbing
+# on every beat (sines on every 3rd tick, so it flows instead of snapping)
+def PL(i):
+    """POP & LOCK's pose at tick i of its 24-tick loop."""
+    a = i / 24 * 2 * math.pi; sway = math.sin(a); bob = abs(math.sin(2 * a)); kb, kf = max(0, sway), max(0, -sway)
+    return mix(HIGH, torso=(-4 + 14 * sway, 0, 0), head=(10 - 16 * sway + 10 * bob, 0, 0), hair=(-12 * sway, 0, 0),
+               fupper=(HIGH['fupper'][0] + 8 * sway, 0, 0), root=(3 * sway, 0, 3 * bob, 1 - 0.03 * bob, 1 + 0.03 * bob),
+               **legs(10 + 36 * kb, -12 - 50 * kb, -10 - 36 * kf, 12 + 50 * kf))
+POPLOCK = (24, [k(i, PL(i), 'linear') for i in range(0, 25, 3)], 1, (), True, None)
 # EXECUTIONER - THE VERDICT: the axe raised high and held there, his whole body trembling with the weight, head bowed
 VD = lambda s: mix(HIGH, torso=(4 + s, 0, 0), head=(24, 0, 0), root=(s * 0.4, 0, 0, 1.0, 1.0), **legs(16, -18, -16, 16, 4, -6))
 VERDICT = (24, [k(i, VD(1 if (i // 2) % 2 else -1), 'inout') for i in range(0, 25, 2)], 1, (), True, None)

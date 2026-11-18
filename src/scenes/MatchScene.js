@@ -101,6 +101,7 @@ export class MatchScene extends Phaser.Scene {
   create(data={}) {
     this.soulBattle=data.soulBattle&&soulEncounter(data.soulBattle.soulId)?data.soulBattle:null;this.soulEncounter=this.soulBattle?soulEncounter(this.soulBattle.soulId):null;this.resultSent=false;
     this.sys.settings.data={};
+    this.psychoCut = null; this.psychoTexts = null;   // (GNASH's PSYCHO cut-in: never carried over from the last match - its objects died with it)
     this.bossFight = data.boss || null; this.bossOutcome = null; this.cardPainted = false; this.bossCard = null;   // BOSS FIGHTS (src/data/bosses.js): { id, tier, setup }
     this.classic = data.classic || null;   // CLASSIC MODE (src/data/classic.js): { setup }; the result goes back to ClassicScene
     this.shopPreview=data.shopPreview||null;

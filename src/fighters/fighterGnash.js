@@ -592,10 +592,14 @@ export class FighterGnash {
     const wipe = t < 10 ? 1 - t / 10 : t > L - 10 ? (t - (L - 10)) / 10 : 0;
     if (wipe > 0) for (let y = 0; y < H; y += 40) for (let x = 0; x < W; x += 40) { const r = ((x * 7 + y * 13) % 100) / 100; if (r < wipe) { o.fillStyle(r < wipe * 0.5 ? 0x000000 : n, 1); o.fillRect(x, y, 40, 40); } }
   }
-  /** The cut-in's arcade lettering (made once, on the UI layer). */
+  /**
+   * The cut-in's arcade lettering and its own drawing layer (made once per match, on the UI layer). The match scene
+   * object is reused from match to match, so a set left from an earlier match (destroyed with it) is made afresh -
+   * drawing into the dead one froze the game the second time anyone used a PSYCHO move.
+   */
   psychoCutText() {
     const m = this.match;
-    if (!m.psychoTexts) {
+    if (!m.psychoTexts || !m.psychoTexts.g.scene || !m.psychoTexts.top.scene) {
       const mk = (x, y, size, col) => { const t = m.add.text(x, y, '', { fontFamily: FONT, fontSize: size + 'px', color: col, stroke: '#14042a', strokeThickness: 4 }).setOrigin(0.5).setDepth(46).setVisible(false); m.addUI(t); return t; };
       const g = m.add.graphics().setDepth(44); m.addUI(g);
       m.psychoTexts = { g, top: mk(320, 22, 8, '#ffffff'), blink: mk(452, 150, 12, '#3af0ff'), foot: mk(320, 340, 7, '#ffd23f') };
@@ -605,7 +609,7 @@ export class FighterGnash {
   /** The cut-in is over: its lettering away, the big text back as it was. */
   endPsychoCut() {
     const m = this.match;
-    if (m.psychoTexts) { for (const k in m.psychoTexts) if (k !== 'g') m.psychoTexts[k].setVisible(false); m.psychoTexts.g.clear(); }
+    if (m.psychoTexts && m.psychoTexts.g.scene) { for (const k in m.psychoTexts) if (k !== 'g') m.psychoTexts[k].setVisible(false); m.psychoTexts.g.clear(); }
     const b = m.bigText;
     if (b && b.psycho) { b.psycho = false; b.setText('').setFontSize(28).setAlpha(1).setColor('#ffffff').setShadow(0, 0, '#000000', 0).setPosition(320, 150).setDepth(20); }
   }
