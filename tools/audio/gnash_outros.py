@@ -1,5 +1,9 @@
-"""The music for GNASH's POP LINES costume's win cutscene (src/scenes/gnashOutros.js), 12 s:
+"""The music for GNASH's EXECUTIONER and POP LINES costumes' win cutscenes (src/scenes/gnashOutros.js), 12 s each:
 
+  exec  EXECUTIONER - THE VERDICT: a slow funeral march on low drums under a tolling bell and the crowd's murmur in the
+        town square [0]; a drum roll builds with a rising choir as he lifts the axe over the block [180]; silence - then
+        one huge blow (drums, bell, low brass) as it falls, the bell tolling on [360]; a cold dawn, a soft organ chord and
+        a far-off bell [480]; a last low chord under the title card [600]
   pop   POP LINES: early-80s New York electro - a boom-bap drum machine with handclaps (112 BPM), a rubbery synth bass,
         a bright square-wave hook; chalk scratches over the bare beat on the subway platform [0], the hook comes in as
         the mural fills with colour [200], the whole band with a high counter-melody for the block party [430], a
@@ -13,6 +17,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from outro_music import SR, secs, lp, hp, bp, noise, add, finish, reverb, sq, drum_kick, drum_snare, drum_hat
 from n64_stage_music import bass, crash, seq
+from outro_music import timpani, brass, adsr
+from devoted_outros import organ, choir, bell
 
 
 def clap(vel=1.0):
@@ -44,6 +50,7 @@ def electro_beat(out, t0, bars, bpm, vel=1.0, claps=True):
 
 
 def pop():
+    """POP LINES - LINE DANCE (see the top of this file)."""
     L = 12.0; out = np.zeros(secs(L)); bpm = 112; b = 60 / bpm
     bassline = [36, 36, 48, 36, 39, 41, 36, 43]                                    # C minor, rubbery
     def bass_bar(t, bar, vel):
@@ -68,6 +75,24 @@ def pop():
     finish(reverb(out, 1.6, 3.0, 0.25), 'pop', fade=1.0)
 
 
-PIECES = {'pop': pop}
+def execution():
+    """EXECUTIONER - THE VERDICT (see the top of this file)."""
+    L = 12.0; out = np.zeros(secs(L))
+    n = secs(L); add(out, lp(noise(n), 500) * 0.04 * np.minimum(1, np.arange(n) / SR / 2) * (np.arange(n) / SR < 6.0), 0)   # the crowd's murmur
+    for t in np.arange(0.0, 3.0, 0.75): add(out, timpani(38, 1.2, 0.9 if (t / 0.75) % 2 == 0 else 0.6), t)            # [0] the march
+    for t in (0.0, 1.5): add(out, bell(50, 3.5, 0.9), t)
+    add(out, organ([38, 45, 50], 3.0, 0.35), 0.0)
+    roll = timpani(38, 3.0, 1.0, roll=1.0) * np.linspace(0.2, 1.3, secs(3.0)); add(out, roll, 3.0)                  # [180] the roll ...
+    add(out, choir([50, 53, 57], 3.0, 0.9), 3.0); add(out, choir([62, 65], 3.0, 0.5, vowel=(500, 900)), 3.6)       # ... and the choir
+    hit = 6.25                                                                                                       # [360] silence, then the blow
+    for mi, v in ((26, 1.6), (38, 1.2)): add(out, timpani(mi, 2.5, v), hit)
+    add(out, brass(38, 1.8, 0.9, 0.6), hit); add(out, brass(45, 1.8, 0.6, 0.6), hit); add(out, bell(50, 4.5, 1.3), hit); add(out, crash(0.6), hit)
+    add(out, bell(50, 3.5, 0.8), hit + 1.4)
+    add(out, organ([50, 53, 57, 62], 2.0, 0.3), 8.0); add(out, bell(62, 2.5, 0.35), 8.6)                            # [480] dawn
+    add(out, organ([38, 45, 50, 53], 2.5, 0.45), 10.0); add(out, timpani(26, 2.0, 0.8), 10.0)                       # [600] the card
+    finish(reverb(out, 3.0, 2.0, 0.35), 'exec', fade=1.2)
+
+
+PIECES = {'pop': pop, 'exec': execution}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

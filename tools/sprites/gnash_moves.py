@@ -113,7 +113,17 @@ def gnash_idle():
 
 def skin_idle():
     """The idle for the costume being built: the map costumes have their own (same length - one frame table)."""
-    return {'arcade': arcade_idle, 'gravemoon': gravemoon_idle, 'infected': infected_idle, 'pop': pop_idle}.get(gnash_draw.VARIANT, gnash_idle)()
+    return {'arcade': arcade_idle, 'gravemoon': gravemoon_idle, 'infected': infected_idle, 'pop': pop_idle, 'exec': exec_idle}.get(gnash_draw.VARIANT, gnash_idle)()
+
+def exec_idle():
+    """EXECUTIONER: the headsman waiting - the axe held up at his side, a slow heavy breath, his hooded head bowed;
+    now and then he raises it, turns it slowly one way, then the other, as if picking who's next."""
+    keys = []
+    for i in range(0, 193, 6):
+        br = math.sin(i * math.pi / 48); look = math.sin((i - 96) * math.pi / 96) if 96 <= i <= 192 else 0
+        keys.append(k(i, mix(P(fupper=(20 + 2 * br, 0, 0), ffore=(10, 0, 0), mic=(-6 + 2 * br, 0, 0)), torso=(6 + 2 * br, 0, 0), head=(16 - 14 * abs(look) + 2 * br, 0, 0), hair=(-3 * br, 0, 0),
+                             root=(0, 0, 0, 1 + 0.012 * br, 1 - 0.012 * br), **legs(12, -14, -10, 12)), 'linear'))
+    return keys
 
 def pop_idle():
     """POP LINES: dancing - the axe held up at his side, bouncing on the beat, a knee kicking up on alternate beats,
@@ -159,9 +169,27 @@ def infected_idle():
         keys.append(k(i, pose, 'snap'))
     return keys
 
+THICK = ('pop',)   # costumes whose whole figure gets a second ring of black outline (POP LINES: Keith Haring's heavy lines)
+
+def thicken(folder):
+    """Every sheet in public/assets/fighters/<folder>/: each frame's silhouette grown by one pixel of black, so the
+    figure sits inside one heavy black line like a painted pop-art figure."""
+    import glob
+    from PIL import Image
+    for f in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'assets', 'fighters', folder, '*_sheet.png')):
+        fw, fh = (BIG_CANVAS if 'moves' in os.path.basename(f) else SMALL_CANVAS)
+        a = np.array(Image.open(f).convert('RGBA'))
+        for y in range(0, a.shape[0], fh):
+            for x in range(0, a.shape[1], fw):
+                c = a[y:y + fh, x:x + fw]; op = c[..., 3] > 0; g = op.copy()
+                g[1:] |= op[:-1]; g[:-1] |= op[1:]; g[:, 1:] |= op[:, :-1]; g[:, :-1] |= op[:, 1:]
+                g[0, :] = g[-1, :] = False; g[:, 0] = g[:, -1] = False   # (never onto the frame's edge)
+                c[g & ~op] = (0, 0, 0, 255)
+        Image.fromarray(a).save(f)
+
 def skin_moves(costume):
     """The map costumes' own SEETHE (neutral special) - the same 24 ticks, so the frame table is shared."""
-    return {'arcade': {'neutralB': SHRED}, 'gravemoon': {'neutralB': HOWL}, 'infected': {'neutralB': CORRUPT}, 'pop': {'neutralB': POPLOCK}}.get(costume, {})
+    return {'arcade': {'neutralB': SHRED}, 'gravemoon': {'neutralB': HOWL}, 'infected': {'neutralB': CORRUPT}, 'pop': {'neutralB': POPLOCK}, 'exec': {'neutralB': VERDICT}}.get(costume, {})
 
 def noaxe_idle():
     """No axe: fists clenched, shoulders heaving, glaring about for it."""
@@ -218,6 +246,9 @@ CORRUPT = (24, [k(i, GL[(i * 5 // 3) % len(GL)], 'snap') for i in range(0, 25, 3
 PL = [mix(HIGH, torso=(10, 0, 0), head=(20, 0, 0), **legs(30, -40, -10, 10)), mix(HIGH, torso=(-14, 0, 0), head=(-24, 0, 0), root=(0, 0, 2, 1.08, 0.92), **legs(-6, 6, -30, 40)),
       mix(P(fupper=(20, 0, 0), ffore=(10, 0, 0), mic=(10, 0, 0)), torso=(14, 1, 0), head=(30, 0, 0), **legs(40, -60, -20, 20)), mix(HIGH, torso=(0, 0, 0), head=(0, 0, 0), root=(0, 0, -4, 0.94, 1.08), **legs(0, 0, 0, 0))]
 POPLOCK = (24, [k(i, PL[(i // 3) % len(PL)], 'snap') for i in range(0, 25, 3)], 1, (), True, None)
+# EXECUTIONER - THE VERDICT: the axe raised high and held there, his whole body trembling with the weight, head bowed
+VD = lambda s: mix(HIGH, torso=(4 + s, 0, 0), head=(24, 0, 0), root=(s * 0.4, 0, 0, 1.0, 1.0), **legs(16, -18, -16, 16, 4, -6))
+VERDICT = (24, [k(i, VD(1 if (i // 2) % 2 else -1), 'inout') for i in range(0, 25, 2)], 1, (), True, None)
 # AXE THROW (side): winds it back over his shoulder, then hurls it - his hand's empty till it comes back
 gmove('sideB', 46, [k(0, P()), k(8, mix(OVER, torso=(-20, -2, -1), fupper=(-190, -1, -2), ffore=(120, 0, 0), mic=(-40, 0, 0)), 'out'),
                     k(12, P(_hide=NOAXE, torso=(26, 5, 1), head=(-10, 2, 0), fupper=(-70, 0, 0), ffore=(10, 0, 0), bupper=(40, 0, 0), root=(0, 5, 0, 1.06, 0.95), **STANCE), 'snap'),
@@ -285,11 +316,13 @@ if __name__ == '__main__':
     for _n, (_t, _k, _s, _sm, _l, _c) in list(GN.items()):   # no smears (see gnash_normals); the specials at every 2nd tick (keeps the wider sheet inside 4096 px)
         GN[_n] = (_t, _k, 2 if _n in ('sideB', 'upb', 'downB', 'downB2') else _s, (), _l, _c)
     FOLLOW = {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
-    SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected,pop').split(',')   # (GN_SETS=arcade,... builds only those)
+    SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected,pop,exec').split(',')   # (GN_SETS=arcade,... builds only those)
     air_poses(True)
     build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', skin_idle, SETS, (255, 120, 60), own_for=skin_moves)
     NOAXE_BUILD = True; air_poses(True)
     build(gnash_draw, FOLLOW, GN, 'gnash/noaxe', 'gnMoves.js', 'GN_MOVES', noaxe_idle, SETS, (255, 120, 60))
+    for c in THICK:
+        if c in SETS: thicken('gnash/' + c); thicken('gnash/noaxe/' + c)
     js = os.path.join(os.path.dirname(__file__), '../../src/fighters/gnMoves.js'); t = open(js).read()
     open(js, 'w').write(t.replace('Generated by tools/sprites/show_moves.py', 'Generated by tools/sprites/gnash_moves.py (via show_moves.py)').replace('(112x104 frames, 36 to a row, feet at 56,95)', '(%dx%d frames, %d to a row, feet at %d,%d)' % (*BIG_CANVAS, COLS, *BIG_FEET)))
     # his icon: the head out of the first idle frame (show_moves' crop is for 64x64 frames)

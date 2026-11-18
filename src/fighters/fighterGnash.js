@@ -12,7 +12,7 @@ import { skinTexture, skinInfo } from './skins.js';
 import { GnashAxe } from './showEntities.js';
 
 /** His neon colours for the costume he's wearing: [main, second]. */
-const NEONS = { gnashBlood: [0xff3a2a, 0xffb02a], gnashStone: [0x8aff2a, 0xd8ff3a], gnashArcade: [0xff3fd0, 0x3af0ff], gnashMoon: [0x8aa8ff, 0xff3a3a], gnashVirus: [0xff2a8a, 0x3af0ff], gnashPop: [0xe8281e, 0x1e64d8] };
+const NEONS = { gnashBlood: [0xff3a2a, 0xffb02a], gnashStone: [0x8aff2a, 0xd8ff3a], gnashArcade: [0xff3fd0, 0x3af0ff], gnashMoon: [0x8aa8ff, 0xff3a3a], gnashVirus: [0xff2a8a, 0x3af0ff], gnashPop: [0xe8281e, 0x1e64d8], gnashExec: [0x9a1a10, 0xff6a20] };
 /** His two neon colours for the costume he's wearing (its `style`). */
 function neonOf(f) { return NEONS[f.style] || [0xff3ad0, 0x3af0ff]; }
 const css = (c) => '#' + c.toString(16).padStart(6, '0');
@@ -75,7 +75,8 @@ export class FighterGnash {
   /**
    * A map costume's own hit effect: HIGH SCORE pops an arcade score (+100 a point of damage) and pixel squares;
    * GRAVEMOON flashes a crescent moon over them; INFECTED.EXE throws up an error window that shakes and glitches;
-   * POP LINES bursts a flat cartoon star in a thick black line, black energy dashes shooting out of it.
+   * POP LINES bursts a flat cartoon star in a thick black line, black energy dashes shooting out of it; EXECUTIONER
+   * leaves a dark red cleave mark across them with chips of stone flying, and tolls a bell on the big ones.
    */
   skinHit(t, hb, big) {
     const st = this.style, m = this.match, x = t.x, y = t.y - 30;
@@ -85,7 +86,10 @@ export class FighterGnash {
       for (let i = 0; i < 6; i++) this.gnSkinFx.push({ k: 'px', x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 30, vy: -0.6 - Math.random(), t: 0, c: [0xff3fd0, 0x3af0ff, 0xffc85a][i % 3] });
     } else if (st === 'gnashMoon') this.gnSkinFx.push({ k: 'moon', x, y: y - 10, t: 0, s: big ? 1.4 : 1 });
     else if (st === 'gnashVirus') this.gnSkinFx.push({ k: 'err', x: x + (Math.random() - 0.5) * 20, y: y - 14, t: 0, s: big ? 1.3 : 1 });
-    else if (st === 'gnashPop') this.gnSkinFx.push({ k: 'pop', x, y, t: 0, s: big ? 1.4 : 1, c: [0xffd21e, 0x2ec850, 0x1e64d8, 0xff7ab0][Math.floor(Math.random() * 4)] });
+    else if (st === 'gnashExec') {
+      this.gnSkinFx.push({ k: 'cleave', x, y: y - 6, t: 0, s: big ? 1.4 : 1, f: this.facing });
+      if (big) sfx('clang', 0.45, 0.42);                                         // the bell tolls
+    } else if (st === 'gnashPop') this.gnSkinFx.push({ k: 'pop', x, y, t: 0, s: big ? 1.4 : 1, c: [0xffd21e, 0x2ec850, 0x1e64d8, 0xff7ab0][Math.floor(Math.random() * 4)] });
   }
   /** Nothing makes him flinch during a PSYCHO move. */
   gnashArmour(hb) { return !!(this.psychoMove && hb && hb.h); }
@@ -414,7 +418,8 @@ export class FighterGnash {
    * The map costumes' own effects round him: HIGH SCORE - neon pixels drift up off him, a little sunset reflection on
    * the floor; GRAVEMOON - pale wisps curl up round his feet, his lantern glows, a bat flits off now and then;
    * INFECTED.EXE - glitch blocks flicker over him, the odd scanline slips sideways; POP LINES - black energy dashes
-   * pulse out round him on the beat (in a ring of them while he attacks). Plus each one's hit effects
+   * pulse out round him on the beat (in a ring of them while he attacks); EXECUTIONER - torch embers drift up off him,
+   * cold smoke round his boots, and now and then a crow flaps away. Plus each one's hit effects
    * (skinHit) playing out.
    */
   drawGnashSkinFx(g) {
@@ -452,6 +457,11 @@ export class FighterGnash {
         g.lineStyle(0);
       }
     }
+    if (on && st === 'gnashExec') {
+      if (a % 6 === 0) FX.push({ k: 'ember', x: x + (Math.random() - 0.5) * 30, y: y - 20 - Math.random() * 40, t: 0, ph: Math.random() * 6 });
+      if (a % 300 === 150) FX.push({ k: 'crow', x: x + this.facing * 8, y: y - 60, vx: -this.facing * (1.6 + Math.random()), t: 0 });
+      if (this.grounded) for (let i = 0; i < 3; i++) { g.fillStyle(0x2a2428, 0.18); g.fillEllipse(x + Math.sin(a * 0.03 + i * 2) * 16, y - 2, 34, 7); }
+    }
     for (let i = FX.length - 1; i >= 0; i--) {
       const P = FX[i]; P.t++;
       if (P.k === 'px') {                                        // a neon pixel square, drifting up and blinking out
@@ -471,6 +481,21 @@ export class FighterGnash {
         const k = P.t / 20, r = (12 + 8 * k) * P.s;
         g.fillStyle(0x7470d0, 0.3 * (1 - k)); g.fillCircle(P.x, P.y, r + 6);
         g.fillStyle(0xe6eaff, 1 - k); g.fillCircle(P.x, P.y, r); g.fillStyle(0x17143e, 1 - k); g.fillCircle(P.x + r * 0.45, P.y - r * 0.2, r * 0.85);
+      } else if (P.k === 'ember') {                              // a torch ember, flickering up and out
+        if (P.t > 40) { FX.splice(i, 1); continue; }
+        const ex = P.x + Math.sin(P.ph + P.t * 0.15) * 3, ey = P.y - P.t * 0.6;
+        g.fillStyle(P.t % 6 < 3 ? 0xffb050 : 0xff6a20, 1 - P.t / 40); g.fillRect(Math.round(ex), Math.round(ey), 2, 2);
+      } else if (P.k === 'crow') {                               // a crow flapping off
+        if (P.t > 80) { FX.splice(i, 1); continue; }
+        P.x += P.vx; const by = P.y - P.t * 0.45 + Math.sin(P.t * 0.35) * 3, w = P.t % 8 < 4 ? 7 : 2;
+        g.fillStyle(0x0a0808, 0.95); g.fillTriangle(P.x - w - 3, by - (w > 3 ? 3 : -1), P.x, by, P.x - 1, by + 2); g.fillTriangle(P.x + w + 3, by - (w > 3 ? 3 : -1), P.x, by, P.x + 1, by + 2);
+        g.fillEllipse(P.x, by, 6, 4); g.fillStyle(0xd0a030, 1); g.fillRect(P.x + (P.vx > 0 ? 3 : -4), by - 1, 2, 1);
+      } else if (P.k === 'cleave') {                             // a heavy dark red cleave mark across whoever he hit, stone chips flying
+        if (P.t > 22) { FX.splice(i, 1); continue; }
+        const k = P.t / 22, L = 46 * P.s, cy = P.y - 30;
+        g.lineStyle(5 * P.s * (1 - k) + 1, 0x5a0a0a, 1 - k); g.lineBetween(P.x - L / 2 * P.f, cy - L / 2, P.x + L / 2 * P.f, cy + L / 2);
+        g.lineStyle(2 * (1 - k) + 0.5, 0xff6a20, (1 - k) * 0.9); g.lineBetween(P.x - L / 2 * P.f, cy - L / 2, P.x + L / 2 * P.f, cy + L / 2); g.lineStyle(0);
+        for (let j = 0; j < 6; j++) { const q = j * 1.05 + 0.3, d = 6 + P.t * 2.2; g.fillStyle(j % 2 ? 0x6e7290 : 0x46485e, 1 - k); g.fillRect(P.x + Math.cos(q) * d, cy + Math.sin(q) * d * 0.6 + P.t * P.t * 0.05, 3, 2); }
       } else if (P.k === 'pop') {                                // a flat cartoon star burst, thick black line, dashes flying out
         if (P.t > 18) { FX.splice(i, 1); continue; }
         const k = P.t / 18, R = (14 + 10 * k) * P.s, cy = P.y - 30, pts = [];

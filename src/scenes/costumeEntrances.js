@@ -15,11 +15,14 @@
 //                crumbles to rubble and bats burst out - he's standing where it was
 //   virus-popup  INFECTED.EXE: a grey Windows window pops up on the spot, a progress bar fills, it glitches and tears
 //                apart in pink and cyan slices, and he steps out of the noise
+//   headsman     EXECUTIONER: the light dies round the spot, a chopping block stands there between two torches that
+//                flare up, a crow lands on it; a great axe falls out of the dark into the block - it splits, the crow
+//                flies, and he's standing behind it
 //   chalk-mural  POP LINES: a black subway ad panel stands on the spot, a white chalk figure draws itself onto it line by
 //                line, energy dashes pop out round it, then flat colour floods the panel and he steps out of the picture
 const clamp = (v) => Math.max(0, Math.min(1, v));
 const ease = (v) => { v = clamp(v); return v * v * (3 - 2 * v); };
-const KINDS = ['stormcall', 'sun-rise', 're-entry', 'insert-coin', 'gargoyle', 'virus-popup', 'chalk-mural'];
+const KINDS = ['stormcall', 'sun-rise', 're-entry', 'insert-coin', 'gargoyle', 'virus-popup', 'chalk-mural', 'headsman'];
 
 /** One frame of a miracle costume's arrival (see the top of the file). */
 export function drawCostumeEntrance(g, e, p, t) {
@@ -33,6 +36,7 @@ export function drawCostumeEntrance(g, e, p, t) {
   if (I.kind === 'gargoyle') return gargoyle(g, x, y, p, t);
   if (I.kind === 'virus-popup') return virusPopup(g, x, y, p, t);
   if (I.kind === 'chalk-mural') return chalkMural(g, x, y, p, t);
+  if (I.kind === 'headsman') return headsman(g, x, y, p, t);
   return reEntry(g, x, y, p, t, e);
 }
 
@@ -229,4 +233,38 @@ function chalkMural(g, x, y, p, t) {
     g.lineStyle(0);
   }
   return { vis: clamp((p - 0.62) / 0.12), dy: 0, sc: 1 };
+}
+
+/** EXECUTIONER: the dark, the block and the torches, the crow, the axe falling and the block splitting. */
+function headsman(g, x, y, p, t) {
+  const dark = ease(p / 0.15) * (1 - ease((p - 0.8) / 0.2)), torch = ease((p - 0.1) / 0.15), fall = clamp((p - 0.45) / 0.08), split = ease((p - 0.53) / 0.2);
+  if (dark > 0) { g.fillStyle(0x000000, 0.5 * dark); g.fillRect(x - 1600, y - 1200, 3200, 1600); }               // the light dies all round (the torches light the spot back up)
+  for (const sx of [-44, 44]) {                                                     // the torches
+    if (torch <= 0) break;
+    g.fillStyle(0x3a2416, 1); g.fillRect(x + sx - 2, y - 46, 4, 46);
+    const fl = 1 + 0.25 * Math.sin(t * 0.7 + sx);
+    g.fillStyle(0xff8a30, 0.12 * torch); g.fillCircle(x + sx, y - 40, 56 * fl); g.fillStyle(0xff6a20, 0.18 * torch); g.fillCircle(x + sx, y - 52, 30 * fl);
+    g.fillStyle(0xff6a20, torch); g.fillTriangle(x + sx - 5, y - 46, x + sx + 5, y - 46, x + sx + Math.sin(t * 0.5 + sx) * 2, y - 46 - 16 * fl * torch);
+    g.fillStyle(0xffd080, torch); g.fillTriangle(x + sx - 2, y - 46, x + sx + 2, y - 46, x + sx, y - 46 - 8 * fl * torch);
+  }
+  if (split < 1) {                                                                  // the chopping block (in two halves once it's split)
+    const o = split * 16, al = 1 - split, B = (dx, w) => { g.fillStyle(0x5a3a22, al); g.fillRect(x + dx, y - 22, w, 22); g.fillStyle(0x7a5232, al); g.fillRect(x + dx, y - 24, w, 4); g.fillStyle(0x3a2416, al); g.fillRect(x + dx, y - 12, w, 2); };
+    B(-16 - o, 16); B(o, 16);
+    if (p > 0.25 && p < 0.47) {                                                     // the crow on it
+      const cy = y - 26 - Math.max(0, 0.32 - p) * 300;
+      g.fillStyle(0x0a0808, 1); g.fillEllipse(x + 4, cy - 4, 12, 8); g.fillCircle(x + 9, cy - 9, 3.5); g.fillStyle(0xd0a030, 1); g.fillRect(x + 12, cy - 9, 3, 1);
+    }
+  }
+  if (p >= 0.47 && p < 0.7) {                                                      // the crow flying off
+    const q = (p - 0.47) * 400; g.fillStyle(0x0a0808, 1); const cx = x + q, cy = y - 30 - q * 0.6, w = t % 6 < 3 ? 7 : 2;
+    g.fillTriangle(cx - w - 3, cy - 3, cx, cy, cx - 1, cy + 2); g.fillTriangle(cx + w + 3, cy - 3, cx, cy, cx + 1, cy + 2);
+  }
+  if (fall > 0 && split < 0.6) {                                                    // the axe falling out of the dark
+    const ay = y - 200 + 180 * fall * fall;
+    g.fillStyle(0x6a4428, 1); g.fillRect(x - 2, ay - 70, 4, 70);
+    g.fillStyle(0x9aa4ae, 1); g.fillTriangle(x + 2, ay - 4, x + 26, ay - 20, x + 26, ay + 10); g.fillRect(x + 2, ay - 12, 12, 14);
+    g.fillStyle(0xe8eef2, 1); g.fillRect(x + 24, ay - 18, 2, 26);
+  }
+  if (p > 0.52 && p < 0.6) { g.fillStyle(0xffffff, (0.6 - p) * 6); g.fillRect(x - 400, y - 300, 800, 320); }   // the flash of the blow
+  return { vis: clamp((p - 0.55) / 0.12), dy: 0, sc: 1 };
 }

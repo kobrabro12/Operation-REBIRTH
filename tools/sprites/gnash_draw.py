@@ -50,6 +50,7 @@ NEONS = {   # each look's three neons: the outfit's outline, the eyes / laces / 
     'arcade': (0xff3fd0, 0x3af0ff, 0xffc85a),       # HIGH SCORE - NEON ARCADE's synthwave: hot pink, cyan, the striped sun
     'gravemoon': (0x8aa8ff, 0xff3a3a, 0xe6eaff),    # GRAVEMOON - GRAVEMOON BRIDGE: moonlit blue, the gargoyles' red eyes, the moon
     'infected': (0xff2a8a, 0xff2a2a, 0xff7ab0),     # INFECTED.EXE - the old PC: ILOVEYOU pink, THE RED ROOM's red, a love-letter heart
+    'exec': (0x1a0d08, 0xff6a20, 0x9a0a0a),          # EXECUTIONER - the headsman: dark leather edges, embers for eyes, old blood
     'pop': (0x000000, 0x000000, 0xe8281e),          # POP LINES - in the style of 80s subway pop art: thick black lines, flat bright colours
 }
 
@@ -91,11 +92,23 @@ VARIANTS = {
     # inside a thick black line: a red jacket, blue jeans, yellow high-tops, a white tee scribbled with black doodles,
     # a white mask with a black X-eyed grin, flat green horns, a yellow haft and a white blade with a big red heart
     # and black 'energy' dashes round it
-    'pop': {'horn': 'popg', 'hornW': 4.4, 'emblem': 'pop', 'pal': {
-        'jacket': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'tee': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000), 'jeans': (0x1e64d8, 0x1e64d8, 0x1e64d8, 0x1e64d8, 0x000000), 'shoe': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'mask': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000),
-        'hair': (0x141414, 0x141414, 0x141414, 0x141414, 0x000000), 'popg': (0x2ec850, 0x2ec850, 0x2ec850, 0x2ec850, 0x000000), 'haft': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'glass': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000),
-        'neon': (0x1a1a1a, 0x000000, 0x000000, 0x000000, 0x000000), 'neon2': (0x1a1a1a, 0x000000, 0x000000, 0x000000, 0x000000),
-        'skin': (0xffd2b4, 0xffd2b4, 0xffd2b4, 0xffd2b4, 0x000000), 'stud': (0xffffff, 0xffffff, 0xffffff, 0xffffff, 0x000000)}},
+    'pop': {'horn': 'popg', 'hornW': 4.4, 'emblem': 'pop', 'face': 'blank', 'blade': 'broad', 'pal': {
+        'jacket': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'tee': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'jeans': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'shoe': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'mask': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000),
+        'hair': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'popg': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'haft': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'glass': (0xffd21e, 0xffd21e, 0xffd21e, 0xffd21e, 0x000000), 'skin': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'stud': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000),
+        'neon': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'neon2': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000), 'tape': (0xe8281e, 0xe8281e, 0xe8281e, 0xe8281e, 0x000000)}},
+    # EXECUTIONER: the headsman - a black cloth hood with ragged eye holes (embers in them) and stubby iron horns
+    # through it, a scarred leather jerkin under a blood-spotted leather apron, a coil of rope and an iron-buckled belt,
+    # dark trousers, heavy black boots, and a real headsman's axe: a broad bearded iron blade, honed bright along the
+    # edge, old blood run down it, rivets, a hammer poll, on a long ash haft bound in leather
+    'exec': {'horn': 'iron', 'hornW': 3.2, 'face': 'hood', 'blade': 'broad', 'emblem': 'none', 'pal': {
+        'mask': (0x4a4246, 0x2e282c, 0x1e1a1c, 0x141012, 0x050404), 'hair': (0x4a4246, 0x2e282c, 0x1e1a1c, 0x141012, 0x050404),
+        'jacket': (0x9a6a44, 0x74492c, 0x52301c, 0x341e12, 0x120804), 'tee': (0x5a463c, 0x46362e, 0x342820, 0x221a14, 0x0c0806),
+        'jeans': (0x4e4038, 0x3a2e28, 0x2a201c, 0x1a1410, 0x080604), 'shoe': (0x4a4440, 0x34302e, 0x242120, 0x161414, 0x050404),
+        'haft': (0xb08050, 0x8a5e34, 0x664222, 0x442a14, 0x180c04), 'glass': (0xe8eef2, 0x9aa4ae, 0x6e7882, 0x4a525a, 0x14181c),
+        'apron': (0x7a5a42, 0x5e4230, 0x442e20, 0x2c1c12, 0x0e0806), 'iron': (0xb8c0c8, 0x7e8890, 0x58606a, 0x3a4048, 0x101214),
+        'neon': (0xa07850, 0x7a5434, 0x523420, 0x342012, 0x140a06), 'neon2': (0xffe0a0, 0xffb050, 0xff6a20, 0xa02a0a, 0x2a0a04),
+        'tape': (0x4a3020, 0x3a2416, 0x2a1a10, 0x1a1008, 0x0a0604), 'sole': (0x2a2422, 0x1a1614, 0x141010, 0x0a0808, 0x050404),
+        'lace': (0x8a6a4a, 0x6a4a30, 0x4a3020, 0x2a1a10, 0x0a0604), 'stud': (0xd0d4d8, 0x9aa0a8, 0x6a7078, 0x40464c, 0x101214)}},
     'infected': {'horn': 'neon2', 'emblem': 'heart', 'glitch': True, 'pal': {
         'jacket': (0x2a6ad8, 0x1a4ab0, 0x0a2484, 0x061650, 0xff2a8a), 'tee': (0xfff6e8, 0xe0d0b8, 0xc0b098, 0x8a7a64, 0xff2a8a),
         'hair': (0x5af0e0, 0x2aa0a0, 0x108484, 0x0a6a6a, 0x022a2a), 'glass': (0xffffff, 0xc0c0c0, 0x9a9a9a, 0x6a6a6a, 0x0a0a12),
@@ -153,8 +166,8 @@ def draw_parts():
         put(a, LK.along(knee, ank, 1, 0.3, 0.8, 3), P['neon'][3])
         parts[side + 'shin'] = a
         a = layer(lambda d, c: LK.shoe(d, ank, c, 'boot', length=9, top=ank[1] - 4), 'shoe')
-        put(a, [(x, 58) for x in range(ank[0] - 4, ank[0] + 10)], P['neon2'][2]); put(a, [(x, 57) for x in range(ank[0] - 4, ank[0] + 10)], P['shoe'][3])   # a glowing sole
-        put(a, [(ank[0] + 1, ank[1] - 3), (ank[0] + 2, ank[1] - 2), (ank[0] + 1, ank[1] - 1), (ank[0] + 2, ank[1])], P['neon2'][1])                    # neon laces
+        put(a, [(x, 58) for x in range(ank[0] - 4, ank[0] + 10)], P.get('sole', P['neon2'])[2]); put(a, [(x, 57) for x in range(ank[0] - 4, ank[0] + 10)], P['shoe'][3])   # a glowing sole
+        put(a, [(ank[0] + 1, ank[1] - 3), (ank[0] + 2, ank[1] - 2), (ank[0] + 1, ank[1] - 1), (ank[0] + 2, ank[1])], P.get('lace', P['neon2'])[1])                    # neon laces
         put(a, [(ank[0] - 3, ank[1] - 1), (ank[0] - 3, ank[1])], P['jacket'][2])
         parts[side + 'shoe'] = a
     # ---------------- the back arm: a leather sleeve, a fist in a fingerless glove
@@ -177,20 +190,34 @@ def draw_parts():
     parts['torso'] = a
     # ---------------- the head: a round black mask, neon X eyes, the neon zig-zag grin stitched across it
     a = layer(lambda d, c: d.ellipse([27, 6, 42, 22], fill=c), 'mask')
-    put(a, [(29, 9), (30, 8), (31, 8)], P['mask'][0])                                                                       # a shine
-    for cx in (33, 39):                                                                                                     # the X eyes: big, glowing
+    face = VARIANTS[VARIANT].get('face')          # (None = his mask; 'blank' = no features at all; 'hood' = an executioner's hood)
+    if face == 'hood':                                                                                                      # two ragged eye holes, embers in them
+        for cx in (33, 39):
+            put(a, [(cx - 2, 10), (cx - 1, 9), (cx, 9), (cx + 1, 9), (cx + 2, 10), (cx - 2, 11), (cx - 1, 12), (cx, 12), (cx + 1, 12), (cx + 2, 11)], 0x050303)
+            put(a, [(cx - 1, 10), (cx, 10), (cx + 1, 10), (cx - 1, 11), (cx + 1, 11)], 0x0a0505); put(a, [(cx, 11)], P['neon2'][2]); put(a, [(cx, 10)], P['neon2'][0])
+        put(a, [(30, 14), (31, 15), (33, 15), (35, 16), (37, 15), (39, 15), (40, 14)], P['mask'][3])                       # the cloth gathered at the mouth
+        put(a, [(x, 19) for x in range(29, 41)], P['mask'][3]); put(a, [(30, 20), (34, 20), (38, 20)], P['mask'][3])          # the hem and its frayed threads
+    if face is None: put(a, [(29, 9), (30, 8), (31, 8)], P['mask'][0])                                                     # a shine
+    for cx in (33, 39) if face is None else ():                                                                                                     # the X eyes: big, glowing
         put(a, [(cx - 2, 8), (cx + 2, 8), (cx - 1, 9), (cx + 1, 9), (cx - 1, 11), (cx + 1, 11), (cx - 2, 12), (cx + 2, 12)], P['neon2'][2])
         put(a, [(cx, 10)], P['neon2'][0])
-    zig = [(29, 16), (31, 14), (33, 17), (35, 14), (37, 17), (39, 14), (41, 16)]                                            # the grin
-    im = blank(); ImageDraw.Draw(im).line(zig, fill=(255, 255, 255, 255), width=1)
-    m = np.array(im)[..., 3] > 0; a[m & (a[..., 3] > 0)] = hx(P['neon'][1])
-    put(a, [(31, 14), (35, 14), (39, 14)], P['neon'][0])
-    put(a, [(x, 18) for x in range(30, 41, 2)], P['mask'][1])                                                               # the stitching under it
+    if face is None:
+        zig = [(29, 16), (31, 14), (33, 17), (35, 14), (37, 17), (39, 14), (41, 16)]                                        # the grin
+        im = blank(); ImageDraw.Draw(im).line(zig, fill=(255, 255, 255, 255), width=1)
+        m = np.array(im)[..., 3] > 0; a[m & (a[..., 3] > 0)] = hx(P['neon'][1])
+        put(a, [(31, 14), (35, 14), (39, 14)], P['neon'][0])
+        put(a, [(x, 18) for x in range(30, 41, 2)], P['mask'][1])                                                           # the stitching under it
     parts['head'] = a
     # ---------------- the 'hair' slot: a mess of dark spikes out the back, and the two NEON HORNS
-    h = layer(lambda d, c: (d.polygon([(28, 9), (24, 7), (27, 10), (23, 12), (27, 13), (24, 16), (28, 16), (29, 12)], fill=c),
-                            d.polygon([(30, 7), (29, 3), (32, 6), (33, 4), (34, 7)], fill=c)), 'hair')
-    for line in ([(30, 9), (27, 7), (25, 4), (25, 1), (26, 0)], [(38, 8), (41, 6), (43, 3), (43, 1), (42, 0)]):         # the horns: tapered neon, curling up and in
+    if VARIANTS[VARIANT].get('face') == 'hood':                                   # the hood's back: draped to his shoulders, a limp point at the top
+        h = layer(lambda d, c: (d.polygon([(29, 6), (24, 9), (21, 15), (21, 21), (25, 25), (30, 23), (30, 12)], fill=c),
+                                d.polygon([(30, 8), (27, 2), (24, -1), (29, 1), (34, 6)], fill=c)), 'mask')
+    else:
+        h = layer(lambda d, c: (d.polygon([(28, 9), (24, 7), (27, 10), (23, 12), (27, 13), (24, 16), (28, 16), (29, 12)], fill=c),
+                                d.polygon([(30, 7), (29, 3), (32, 6), (33, 4), (34, 7)], fill=c)), 'hair')
+    HL = ([(30, 9), (27, 7), (25, 4), (25, 1), (26, 0)], [(38, 8), (41, 6), (43, 3), (43, 1), (42, 0)])
+    if VARIANTS[VARIANT].get('face') == 'hood': HL = ([(31, 8), (29, 5), (28, 2)], [(37, 7), (39, 4), (40, 1)])          # (stubby iron horns through the hood)
+    for line in HL:         # the horns: tapered neon, curling up and in
         V = VARIANTS[VARIANT]
         if V.get('glitch'): h = over(h, horn([(x + 1, y) for x, y in line], 'neon2', V.get('hornW', 4.0)))   # a cyan ghost of each horn: the signal's split
         h = over(h, horn(line, V.get('horn', 'neon'), V.get('hornW', 4.0)))
@@ -203,7 +230,7 @@ def draw_parts():
     # with a glowing neon diamond outlined in the middle of it
     O = PAD
     hf = layerB(lambda d, c: d.line([(44 + O, 41 + O), (48 + O, -33 + O)], fill=c, width=3), 'haft')
-    for y in (-26, -4, 12, 31): putB(hf, [(x + O, y + O) for x in range(43, 50)], P['neon2'][2])                              # neon tape bands
+    for y in (-26, -4, 12, 31): putB(hf, [(x + O, y + O) for x in range(43, 50)], P.get('tape', P['neon2'])[2])                # neon tape bands
     putB(hf, [(43 + O, 40 + O), (44 + O, 40 + O), (45 + O, 40 + O), (44 + O, 41 + O)], P['stud'][2])                 # the pommel
     cx, cy = 49 + O, -14 + O
     spikes = []
@@ -211,15 +238,27 @@ def draw_parts():
         q = -1.5 + i * (3.0 / 16); r = 22 if i % 2 else 16
         spikes.append((cx + math.cos(q) * r, cy + math.sin(q) * r * 0.98))
     inner = [(cx + 1 + math.cos(q) * 5, cy + math.sin(q) * 10) for q in (1.2, 0.4, -0.4, -1.2)]
-    b = layerB(lambda d, c: d.polygon(spikes + inner, fill=c), 'glass')
-    b = over(b, layerB(lambda d, c: d.polygon([(49 + O, -21 + O), (40 + O, -30 + O), (39 + O, -23 + O)], fill=c), 'glass'))   # a hooked spike off the back
-    for i in range(1, 17, 2):                                                                                               # a dull sheen along the edge
-        q = -1.5 + i * (3.0 / 16); putB(b, [(round(cx + math.cos(q) * 19.5), round(cy + math.sin(q) * 19.5 * 0.98))], P['glass'][0])
+    if VARIANTS[VARIANT].get('blade') == 'broad':                                 # EXECUTIONER: a headsman's broad iron blade, bearded, with a hammer poll behind
+        edge = [(cx + 13 + math.cos(q) * 5, cy + math.sin(q) * 21) for q in [-1.45 + i * 0.29 for i in range(11)]]
+        shape = [(cx - 1, cy - 19), (cx + 8, cy - 22)] + edge + [(cx + 9, cy + 22), (cx + 4, cy + 10), (cx - 1, cy + 6)]
+        b = layerB(lambda d, c: d.polygon(shape, fill=c), 'glass')
+        b = over(b, layerB(lambda d, c: d.rectangle([cx - 9, cy - 14, cx - 1, cy - 6], fill=c), 'glass'))                   # the hammer poll
+        for (x, y) in edge: putB(b, [(round(x) - 1, round(y)), (round(x) - 2, round(y))], P['glass'][0])                   # the honed edge, bright
+        for i, (x, y) in (enumerate(edge[2:9]) if VARIANT == 'exec' else ()):                                               # old blood along the edge, run down in drips
+            putB(b, [(round(x) - 3, round(y)), (round(x) - 4, round(y) + (i % 2))], 0x5a0a0a)
+            if i % 3 == 0: putB(b, [(round(x) - 4, round(y) + k) for k in range(1, 4)], 0x4a0606)
+        for (x, y) in ((cx + 3, cy - 12), (cx + 3, cy + 2), (cx + 9, cy - 16)): putB(b, [(x, y)], P['glass'][0]); putB(b, [(x + 1, y + 1)], P['glass'][3])   # rivets
+    else:
+        b = layerB(lambda d, c: d.polygon(spikes + inner, fill=c), 'glass')
+        b = over(b, layerB(lambda d, c: d.polygon([(49 + O, -21 + O), (40 + O, -30 + O), (39 + O, -23 + O)], fill=c), 'glass'))   # a hooked spike off the back
+        for i in range(1, 17, 2):                                                                                           # a dull sheen along the edge
+            q = -1.5 + i * (3.0 / 16); putB(b, [(round(cx + math.cos(q) * 19.5), round(cy + math.sin(q) * 19.5 * 0.98))], P['glass'][0])
     dx0, dy0 = 61 + O, -14 + O                                                                                                # the diamond: a glowing neon outline
     ring = [(dx0, dy0 - 8), (dx0 + 5, dy0), (dx0, dy0 + 8), (dx0 - 5, dy0), (dx0, dy0 - 8)]
     im = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0)); dd = ImageDraw.Draw(im)
     em = VARIANTS[VARIANT].get('emblem')
-    if em: EMBLEMS[em](dd, P, dx0, dy0)                                                                                       # a map costume's own emblem instead
+    if em == 'none': pass
+    elif em: EMBLEMS[em](dd, P, dx0, dy0)                                                                                       # a map costume's own emblem instead
     else:
         dd.polygon(ring[:-1], fill=hx(P['neon3'][4])); dd.line(ring, fill=hx(P['neon3'][2]), width=2); dd.line(ring, fill=hx(P['neon3'][0]), width=1)
     dm = np.array(im); m = dm[..., 3] > 0; b[m] = dm[m]
@@ -326,18 +365,30 @@ def touch_infected(parts, P):
     put(h, [(29, 19), (30, 19), (40, 10), (41, 10)], 0x3af0ff)                                 # dead pixels
 
 def touch_pop(parts, P):
-    """POP LINES: black doodles scribbled on his white tee, black stitch dashes on the jacket and jeans."""
-    t = parts['torso']
-    put(t, [(x, y) for x in range(32, 37) for y in range(22, 40)], 0xffffff)                    # (the tee white again under the print)
-    put(t, [(32, 24), (33, 25), (34, 24), (35, 25), (36, 24)], 0x000000)                       # a zig-zag ...
-    put(t, [(33, 28), (34, 28), (35, 28), (34, 29), (33, 30), (35, 30), (34, 31)], 0x000000)   # ... a little X-eyed face ...
-    put(t, [(32, 34), (33, 35), (34, 34), (35, 35), (36, 34), (32, 37), (34, 37), (36, 37)], 0x000000)   # ... and dashes
-    put(t, [(27, 26), (28, 28), (27, 31), (40, 26), (41, 28), (40, 32)], 0xffd21e)              # yellow dashes on the jacket
-    for n in ('bthigh', 'fthigh', 'bshin', 'fshin'):
-        a = parts[n]; ys, xs = np.nonzero(a[..., 3])
-        if len(xs): cx = int(xs.mean()); put(a, [(cx, y) for y in range(int(ys.min()) + 2, int(ys.max()) - 1, 3)], 0xffffff)   # white dashes down the jeans
+    """POP LINES: nothing - his figure is one flat colour inside black lines, like a figure in one of Keith Haring's
+    paintings (gnash_moves.py then thickens the outline round the whole figure: thicken()). Black lines inside a part
+    (the belt, the jacket's edges) are filled in, so only the lines between parts are left."""
+    for n in ('torso', 'head', 'hair'):
+        a = parts[n]; op = a[..., 3] > 0
+        inner = op.copy(); inner[1:-1, 1:-1] = op[:-2, 1:-1] & op[2:, 1:-1] & op[1:-1, :-2] & op[1:-1, 2:]
+        inner[0, :] = inner[-1, :] = False; inner[:, 0] = inner[:, -1] = False
+        dark = (a[..., 0] < 40) & (a[..., 1] < 40) & (a[..., 2] < 40) & inner
+        a[dark] = hx(0xe8281e)
 
-TOUCH = {'pop': lambda parts, P: touch_pop(parts, P), 'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
+def touch_exec(parts, P):
+    """EXECUTIONER: the leather apron (spotted with old blood) over the jerkin, a strap across the chest, the iron
+    belt buckle, a coil of rope at his hip."""
+    t = parts['torso']
+    ap = layer(lambda d, c: d.polygon([(29, 25), (39, 25), (41, 33), (41, 41), (40, 48), (28, 48), (27, 41), (27, 33)], fill=c), 'apron')
+    t[:] = over(t, ap)
+    put(t, [(x, 25) for x in range(29, 40)], P['apron'][3]); put(t, [(28, 24), (40, 24), (27, 23), (41, 23)], P['apron'][3])   # its neck strap
+    put(t, [(27 + i, 22 + i) for i in range(0, 13)], P['jacket'][4])                                                          # a strap across the chest
+    put(t, [(x, 40) for x in range(27, 42)], P['jacket'][4]); put(t, [(33, 39), (34, 39), (35, 39), (33, 41), (35, 41), (33, 40), (35, 40)], P['iron'][1])   # belt + iron buckle
+    put(t, [(31, 31), (32, 32), (37, 35), (36, 36), (37, 37), (32, 44), (31, 45), (38, 46)], 0x5a0a0a)                          # old blood on the apron
+    for y0 in (36, 39): put(t, [(24, y0), (25, y0 - 1), (26, y0), (25, y0 + 1)], 0xa08a5a)                                   # a coil of rope at his hip
+    put(t, [(25, 42), (25, 43), (24, 44)], 0xa08a5a)
+
+TOUCH = {'pop': touch_pop, 'exec': touch_exec, 'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
 
 ORDER = ['bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'mic', 'bfist', 'ffist']
 # (the joints on the big canvas: the 64x64 drawing's + PAD)

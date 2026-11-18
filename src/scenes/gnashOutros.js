@@ -8,6 +8,11 @@
 //   POP LINES     LINE DANCE - a subway platform at night, the empty black ad panels filling up with his chalk doodles;
 //                 a huge flat-colour mural with the beaten painted on it in thick black lines, energy dashes pulsing
 //                 round them; a block party in the street, the whole skyline drawn in, everyone dancing (music: outro_pop)
+//   EXECUTIONER   THE VERDICT - dusk in the old town square: a crowd with torches, the bell tower, the scaffold, the
+//                 beaten kneeling on it in a row as he climbs up; his giant shadow on the wall lifting the axe over the
+//                 block while the drums roll; the axe falls - black, one slash of light, the bell swings and every crow
+//                 in the tower bursts into the sky; a cold foggy dawn, the square empty, the axe left standing in the
+//                 block with a crow on it, and him walking off into the fog (music: outro_exec)
 //   INFECTED.EXE  ILOVEYOU - the old PC's desktop, GNASH.EXE opens; pop-ups multiply across the screen with the beaten
 //                 trapped in them; then THE RED ROOM: the crosshair picks each of them off while he grins
 import { VIEW_W, VIEW_H } from '../config.js';
@@ -24,6 +29,8 @@ export const GNASH_CUTS = {
     color: '#e6eaff', stroke: '#17143e', shots: [[0, 'bridge'], [200, 'howl'], [430, 'statues']] },
   'gnash:INFECTED.EXE': { fn: 'gn_virus', len: 720, card: 600, name: 'GNASH', sub: 'INFECTED.EXE', line: 'ILOVEYOU.', music: 'bgm_infected',
     color: '#ff7ab0', stroke: '#0a0a12', shots: [[0, 'desktop'], [200, 'popups'], [430, 'redroom']] },
+  'gnash:EXECUTIONER': { fn: 'gn_exec', len: 720, card: 600, name: 'GNASH', sub: 'EXECUTIONER', line: 'THE VERDICT IS FINAL.', music: 'bgm_outro_exec',
+    color: '#ff6a20', stroke: '#1a0d08', shots: [[0, 'square'], [180, 'shadow'], [360, 'bell'], [480, 'dawn']] },
   'gnash:POP LINES': { fn: 'gn_pop', len: 720, card: 600, name: 'GNASH', sub: 'POP LINES', line: 'EVERY WALL IS MINE.', music: 'bgm_outro_pop',
     color: '#ffd21e', stroke: '#000000', shots: [[0, 'subway'], [200, 'mural'], [430, 'party']] },
 };
@@ -284,10 +291,10 @@ export class GnashShots {
     if (s % 40 === 10) sfx('dodge', 0.25, 1.6);
     this.vignette(this.over, 0.4);
   }
-  /** [200] The mural: a flat yellow wall, the beaten painted on it as flat colour figures in thick black lines, dashes pulsing round everyone. */
+  /** [200] The mural: a white wall, the beaten painted on it as flat colour figures in thick black lines, dashes pulsing round everyone. */
   shot_gn_pop_mural(t, k, s) {
     const g = this.bg, beat = (s % 27) / 27;
-    g.fillStyle(0xffd21e, 1); g.fillRect(0, 0, W, H);
+    g.fillStyle(0xf6f2e8, 1); g.fillRect(0, 0, W, H);                                 // a white wall, like his canvases
     for (let i = 0; i < 7; i++) { g.fillStyle(POP[i % 5], 1); g.fillRect(i * 96 - 20, 300, 96, 60); }   // a band of flat colour along the bottom
     g.lineStyle(4, 0x000000, 1); g.lineBetween(0, 300, W, 300); g.lineStyle(0);
     const xs = [110, 230, 540], cols = [0xe8281e, 0x1e64d8, 0x2ec850];
@@ -323,6 +330,115 @@ export class GnashShots {
     this.idle(320, 334, 2.6, s);
     this.gnDashes(this.fx, 320, 254, 56, beat, 12, 4);
     for (let i = 0; i < 14; i++) { const sp = this.spots[i], d = (s * 1.4 + i * 29) % 300; this.gnDoodle(this.front, 1, sp[0] * W, 300 - d, 1, POP[i % 5]); }   // hearts floating up
+  }
+
+  // ================================================================= EXECUTIONER
+  /** The old town's rooftops and its bell tower against the sky, in colour `col` (tower at tx). */
+  gnTown(g, col, tx = 520) {
+    g.fillStyle(col, 1);
+    for (let i = 0; i < 9; i++) { const x = i * 76 - 20, h = 70 + (i * 37) % 50; g.fillRect(x, 260 - h, 66, h + 100); g.fillTriangle(x - 6, 260 - h, x + 33, 260 - h - 30, x + 72, 260 - h); }
+    g.fillRect(tx - 22, 60, 44, 240); g.fillTriangle(tx - 30, 60, tx, 10, tx + 30, 60);                 // the bell tower
+  }
+  /** The scaffold: a wooden platform at height y between x0 and x1, steps on the left, a beam overhead. */
+  gnScaffold(g, x0, x1, y) {
+    g.fillStyle(0x3a2416, 1); g.fillRect(x0, y, x1 - x0, 10); g.fillStyle(0x5a3a22, 1); g.fillRect(x0, y, x1 - x0, 3);
+    for (let x = x0 + 8; x < x1; x += 40) { g.fillStyle(0x2a1a10, 1); g.fillRect(x, y + 10, 6, 360 - y); }
+    for (let i = 0; i < 5; i++) { g.fillStyle(0x4a2e1a, 1); g.fillRect(x0 - 20 - i * 14, y + 8 + i * 12, 16, 4); }
+  }
+  /** Torchlit crowd silhouettes along the bottom of the picture. */
+  gnCrowd(g, t, y = 330) {
+    for (let i = 0; i < 26; i++) {
+      const x = i * 26 - 10 + (i % 2) * 8, hy = y - (i % 3) * 6 + Math.sin(t * 0.05 + i) * 1.5;
+      g.fillStyle(0x0a0606, 1); g.fillCircle(x, hy - 22, 9); g.fillRect(x - 13, hy - 14, 26, 60);
+      if (i % 5 === 2) {                                                           // a torch held up
+        g.fillStyle(0x3a2416, 1); g.fillRect(x + 10, hy - 50, 3, 34);
+        const fl = 1 + 0.3 * Math.sin(t * 0.6 + i);
+        g.fillStyle(0xff6a20, 0.2); g.fillCircle(x + 11, hy - 56, 18 * fl); g.fillStyle(0xff8a30, 1); g.fillTriangle(x + 7, hy - 50, x + 15, hy - 50, x + 11, hy - 50 - 12 * fl);
+      }
+    }
+  }
+  /** Letterbox bars and film grain over the whole picture. */
+  gnFilm(g, t) {
+    g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, 26); g.fillRect(0, H - 26, W, 26);
+    for (let i = 0; i < 40; i++) { const sp = this.spots[(i + t) % 30]; g.fillStyle(i % 2 ? 0xffffff : 0x000000, 0.06); g.fillRect(((sp[0] * 997 + t * 37 + i * 61) % W), ((sp[1] * 991 + t * 53 + i * 29) % H), 2, 2); }
+  }
+  /** [0] Dusk in the town square: the crowd and their torches, the bell tower, the beaten kneeling on the scaffold, him climbing up to it. */
+  shot_gn_exec_square(t, k, s) {
+    const g = this.bg;
+    this.sky(g, 0x1a0a14, 0xc0482a, 10);
+    this.glow(g, 160, 230, 120, 0xff8a40, 0.35);                                   // the sun going down behind the roofs
+    this.gnTown(g, 0x1a1016);
+    this.gnScaffold(this.mid, 240, 600, 250);
+    this.posLosers([[440, 250, 1.4, 0, 1, true], [510, 250, 1.4, 0, 1, true], [575, 250, 1.4, 0, 1, true]], 0x1a0d08);
+    const walk = ease(s / 140), x = 120 + walk * 200, y = s < 70 ? 330 - Math.max(0, (s - 20)) * 0 : 250;
+    if (s < 140) this.bchStrip('run', s / 8, x, s < 60 ? 312 - Math.max(0, x - 180) * 0.8 : 250, 2.0);
+    else this.idle(330, 250, 2.0, s);
+    this.gnCrowd(this.front, t, 350);
+    if (s === 0) sfx('clang', 0.5, 0.45);
+    if (s === 90) sfx('clang', 0.45, 0.45);
+    this.gnFilm(this.over, t); this.vignette(this.over, 0.6);
+  }
+  /** [180] His giant shadow on the torchlit wall lifting the axe over the block; the beaten kneeling at it, head bowed. */
+  shot_gn_exec_shadow(t, k, s) {
+    const g = this.bg, fl = 0.9 + 0.1 * Math.sin(t * 0.6);
+    g.fillStyle(0x4a3226, 1); g.fillRect(0, 0, W, H);
+    for (let y = 0; y < H; y += 22) for (let x = (y / 22) % 2 ? -30 : 0; x < W; x += 60) { g.lineStyle(1, 0x2e1e16, 1); g.strokeRect(x, y, 60, 22); }   // the stone wall
+    g.lineStyle(0);
+    this.glow(g, 60, 300, 360 * fl, 0xff8a30, 0.45);                              // the torch, off to the left
+    const lift = ease(s / 150), A = this.def.moveAnims.downB;                      // the shadow: his slam's wind-up, held up high
+    this.move('downB', A ? Math.min(A[1] - 1, Math.floor(lift * 5)) : 0, 360 + Math.sin(t * 0.6) * 3, 330, 4.2 + lift * 0.4);
+    this.hero.setTintMode(Phaser.TintModes.FILL).setTint(0x0a0606).setAlpha(0.85);
+    this.mid.fillStyle(0x3a2416, 1); this.mid.fillRect(300, 300, 90, 40); this.mid.fillStyle(0x5a3a22, 1); this.mid.fillRect(300, 296, 90, 6);   // the block
+    this.posLosers([[270, 336, 2.2, 0.35, 1, true]], 0x0a0606);
+    for (let i = 0; i < 5; i++) { const cx = 470 + i * 30, cy = 60; this.fx.fillStyle(0x0a0808, 1); this.fx.fillEllipse(cx, cy, 10, 7); this.fx.fillCircle(cx + 4, cy - 5, 3); }   // crows on the ledge, watching
+    this.fx.fillStyle(0x2a1a14, 1); this.fx.fillRect(440, 66, 200, 6);
+    if (s === 20) sfx('taiko', 0.5, 0.6);
+    if (s % 30 === 0 && s > 20) sfx('taiko', 0.3 + s / 600, 0.7);
+    this.gnFilm(this.over, t); this.vignette(this.over, 0.65);
+  }
+  /** [360] The blow: black, one slash of light - then the bell swinging in its tower and every crow bursting into the sky. */
+  shot_gn_exec_bell(t, k, s) {
+    const g = this.bg;
+    this.hideLosers(); this.hero.setVisible(false);
+    if (s < 18) {
+      g.fillStyle(0x000000, 1); g.fillRect(0, 0, W, H);
+      if (s >= 8) { const w = (18 - s) / 10; this.fx.lineStyle(6 * w + 1, 0xffffff, 1); this.fx.lineBetween(-20, 40, W + 20, H - 40); this.fx.lineStyle(2, 0xff6a20, w); this.fx.lineBetween(-20, 46, W + 20, H - 34); this.fx.lineStyle(0); }
+      if (s === 8) { sfx('slash', 0.7, 0.5); sfx('bighit', 0.8, 0.5); this.cameras.main.shake(300, 0.012); }
+    } else {
+      this.sky(g, 0x2a0a10, 0x8a2a1a, 10);
+      this.gnTown(g, 0x140a0e, 320);
+      const sw = Math.sin((s - 18) * 0.12) * 0.5 * Math.max(0, 1 - (s - 18) / 120);   // the bell, swinging in the tower
+      g.fillStyle(0x0a0606, 1); g.fillRect(290, 70, 60, 70);
+      const bx = 320 + Math.sin(sw) * 18, by = 92;
+      this.mid.fillStyle(0x8a6a2a, 1); this.mid.fillTriangle(bx - 22, by + 34, bx + 22, by + 34, bx, by - 6); this.mid.fillCircle(bx, by + 2, 13); this.mid.fillRect(bx - 24, by + 32, 48, 5);
+      this.mid.fillStyle(0xd0a040, 1); this.mid.fillRect(bx - 12, by + 4, 3, 24);
+      if (s === 18) sfx('clang', 0.7, 0.4);
+      if (s === 80) sfx('clang', 0.5, 0.4);
+      for (let i = 0; i < 26; i++) {                                                // the crows bursting out
+        const sp = this.spots[i], d = (s - 18) * (1.5 + sp[0] * 2), q = -Math.PI / 2 + (sp[1] - 0.5) * 2.6, cx = 320 + Math.cos(q) * d, cy = 110 + Math.sin(q) * d * 0.7, w = (t + i) % 8 < 4 ? 7 : 2;
+        this.fx.fillStyle(0x050404, 1); this.fx.fillTriangle(cx - w - 3, cy - 3, cx, cy, cx - 1, cy + 2); this.fx.fillTriangle(cx + w + 3, cy - 3, cx, cy, cx + 1, cy + 2); this.fx.fillEllipse(cx, cy, 6, 4);
+      }
+      if (s === 20) sfx('bats', 0.6, 0.6);
+    }
+    this.gnFilm(this.over, t); this.vignette(this.over, 0.6);
+  }
+  /** [480] Cold foggy dawn: the square empty, the axe left standing in the block with a crow on its haft, him walking off into the fog. */
+  shot_gn_exec_dawn(t, k, s) {
+    const g = this.bg;
+    this.sky(g, 0x8a96a8, 0xd8dce0, 8);
+    this.gnTown(g, 0x6a7280);
+    this.gnScaffold(this.mid, 200, 560, 262);
+    this.hideLosers();
+    const bx = 300;                                                                  // the block, the axe standing in it, the crow
+    this.mid.fillStyle(0x3a2416, 1); this.mid.fillRect(bx - 18, 240, 36, 22); this.mid.fillStyle(0x5a3a22, 1); this.mid.fillRect(bx - 18, 238, 36, 4);
+    this.mid.fillStyle(0x6a4428, 1); this.mid.fillRect(bx + 4, 170, 4, 74);
+    this.mid.fillStyle(0x7e8890, 1); this.mid.fillTriangle(bx - 2, 238, bx + 22, 238, bx + 20, 224); this.mid.fillRect(bx - 4, 230, 14, 10);
+    this.mid.fillStyle(0x0a0808, 1); this.mid.fillEllipse(bx + 6, 164, 12, 8); this.mid.fillCircle(bx + 11, 159, 3.5); this.mid.fillStyle(0xd0a030, 1); this.mid.fillRect(bx + 14, 159, 3, 1);
+    const x = 400 + s * 1.3;                                                         // him, walking away into the fog
+    this.bchStrip('run', s / 9, x, 262, 2.0); this.hero.setAlpha(Math.max(0, 1 - s / 110)).setTint(0xb0b8c4);
+    this.gnMist(this.front, t, 240, 0.22); this.gnMist(this.front, t + 300, 280, 0.25);
+    if (s === 30) sfx('clang', 0.25, 0.5);
+    this.gnFilm(this.over, t); this.vignette(this.over, 0.45);
   }
 }
 const SUN_CSS = ['#ffe56a', '#ffc85a', '#ffa058', '#ff7a62'];

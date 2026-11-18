@@ -54,6 +54,7 @@ export const SKIN_INTROS = {
   // GNASH's map costumes (costumeEntrances.js)
   'gnash:HIGH SCORE': { kind: 'insert-coin', dur: 110, pre: ['ding', 0.4, 1.6], sfx: ['limitready', 0.5, 1.2] },
   'gnash:GRAVEMOON': { kind: 'gargoyle', dur: 120, pre: ['rumble', 0.35, 0.6], sfx: ['bats', 0.6, 0.9] },
+  'gnash:EXECUTIONER': { kind: 'headsman', dur: 130, pre: ['taiko', 0.5, 0.6], sfx: ['bighit', 0.7, 0.6] },
   'gnash:POP LINES': { kind: 'chalk-mural', dur: 120, pre: ['dodge', 0.4, 1.6], sfx: ['ding', 0.5, 1.2] },
   'gnash:INFECTED.EXE': { kind: 'virus-popup', dur: 110, pre: ['popup', 0.5, 1.0], sfx: ['glitch', 0.6, 0.9] },
   // the nesting-doll costumes (code PAPERSPLEASE)

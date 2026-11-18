@@ -1020,4 +1020,12 @@ SKINS['gnash'] = [
     lore: 'He used to fill the empty ad boards in the subway with chalk before the trains came. Now the whole city is his wall, and every line on it is dancing.',
     pal: { outline: 0x000000, deep: 0x1e64d8, mid: 0xe8281e, light: 0xffd21e, core: 0xffffff, shade: 0x000000, void: 0x000000 },
     vfx: { hit: { shape: 'star', colors: [0xe8281e, 0xffd21e, 0x1e64d8], n: 9, ring: 0x000000 }, trail: 0xe8281e } },
+  // EXECUTIONER (gnash_draw.py 'exec'): the headsman - black hood with embers for eyes and stubby iron horns, leather
+  // jerkin and a blood-spotted apron, a broad bearded iron headsman's axe. Idle: waiting, axe up, picking who's next;
+  // SEETHE = THE VERDICT (the axe held high, trembling). Torch embers and crows round him; hits leave a dark red cleave
+  // mark and toll a bell on the big ones. Arrival: the chopping block; outro: THE VERDICT (gnashOutros.js)
+  { name: 'EXECUTIONER', sheetSet: 'exec', style: 'gnashExec', swatch: 0x52301c, fx: 0xff6a20,
+    lore: 'Nobody in the old town remembers hiring a headsman. Nobody remembers the trial either. But every night the bell tolls, and every morning there is one fewer name on the list.',
+    pal: { outline: 0x0a0604, deep: 0x5a0a0a, mid: 0x9a1a10, light: 0xff6a20, core: 0xffe0a0, shade: 0x1a0d08, void: 0x050303 },
+    vfx: { hit: { shape: 'spark', colors: [0xff6a20, 0x9a1a10, 0x2a1a14], n: 8 }, trail: 0x9a1a10 } },
 ];

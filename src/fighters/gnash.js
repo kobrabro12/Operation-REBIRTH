@@ -9,7 +9,7 @@ import { GN_MOVES } from './gnMoves.js';
 
 // his ability colours: hot-pink neon on black
 export const PAL_GNASH = { outline: 0x0a0410, deep: 0xb01090, mid: 0xff3ad0, light: 0xff9ae8, core: 0xffffff, shade: 0x1a0a1e, void: 0x050208 };
-const SETS = ['bloodmoon', 'gravestone', 'arcade', 'gravemoon', 'infected', 'pop'];   // (then the map costumes HIGH SCORE / GRAVEMOON / INFECTED.EXE, and POP LINES)
+const SETS = ['bloodmoon', 'gravestone', 'arcade', 'gravemoon', 'infected', 'pop', 'exec'];   // (then the map costumes HIGH SCORE / GRAVEMOON / INFECTED.EXE, POP LINES and EXECUTIONER)
 // how much harder his normals hit than NU's (damage, knockback)
 const HEAVY = { dmg: 1.05, kb: 1.02 };
 
