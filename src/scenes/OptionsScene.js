@@ -9,18 +9,19 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton, toggleFullscreen } from '../ui/fullscreen.js';
-import { ArcadeBg, titleBanner, hintBar, panel, rowBar, slant, pixIcon, ARC, shade } from '../ui/arcade.js';
+import { ArcadeBg, titleBanner, hintBar, panel, rowBar, slant, pixIcon, ARC, shade, MENU_STYLES, menuStyle, setMenuStyle } from '../ui/arcade.js';
 
 const ACC = ARC.sections.options;
-const ICON = ['speaker', 'speaker', 'screen', 'crt', 'touch', 'screen', 'back'];
+const ICON = ['speaker', 'speaker', 'star', 'screen', 'crt', 'touch', 'screen', 'back'];
 
-const ROW_Y = 70, ROW_H = 34, X0 = 128, X1 = 528;
+const ROW_Y = 70, ROW_H = 32, X0 = 128, X1 = 528;
 
 export class OptionsScene extends Phaser.Scene {
   constructor() { super('Options'); }
 
-  create() {
-    this.t = 0; this.sel = 0; this.menu = new MenuInput(this);
+  /** Builds the OPTIONS screen; `data.sel` = the row to start on (kept when MENU STYLE rebuilds the screen). */
+  create(data) {
+    this.t = 0; this.sel = (data && data.sel) || 0; this.menu = new MenuInput(this);
     playMusic(this, 'bgm_title');
     this.bgFx = new ArcadeBg(this, ACC);
     const g = this.add.graphics().setDepth(-10);
@@ -51,6 +52,7 @@ export class OptionsScene extends Phaser.Scene {
     return [
       vol('musicVolume', 'MUSIC VOLUME', updateMusicVolume),
       vol('sfxVolume', 'SFX + VOICE VOLUME'),
+      { label: 'MENU STYLE', value: menuStyle().name, change: (d) => this.cycleStyle(d) },
       {label:'PERFORMANCE',value:s.performance==='auto'?'AUTO - '+(PHONE_DEVICE?'PHONE':'FULL'):s.performance.toUpperCase(),change:d=>{const a=['auto','low','full'];s.performance=a[(a.indexOf(s.performance)+d+3)%3];saveOptions();}},
       { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; saveOptions(); } },
       { label: 'TOUCH CONTROLS', value: s.touch.toUpperCase(), change: (d) => { const o = ['auto', 'on', 'off']; s.touch = o[(o.indexOf(s.touch) + d + 3) % 3]; saveOptions(); } },
@@ -60,6 +62,13 @@ export class OptionsScene extends Phaser.Scene {
   }
 
   back() { sfx('menu', 0.6); this.scene.start('Menu'); }
+
+  /** MENU STYLE: steps to the next / previous look (MENU_STYLES), saves it and rebuilds this screen in it. */
+  cycleStyle(d) {
+    const i = MENU_STYLES.indexOf(menuStyle()), n = MENU_STYLES.length;
+    setMenuStyle(MENU_STYLES[(i + d + n) % n].id); saveOptions();
+    this.restyle = true;
+  }
 
   update() {
     this.t++;
@@ -76,6 +85,7 @@ export class OptionsScene extends Phaser.Scene {
       if (r.set && x >= X1 - 150 && x < X1 - 70 && !right) { r.set(Phaser.Math.Clamp(Math.floor((x - (X1 - 150)) / 8) + 1, 0, 10)); sfx('menu', 0.5, 1.2); }
       else if (r.change) { r.change(right ? -1 : 1); sfx('menu', 0.5, 1.2); }
     }
+    if (this.restyle) { this.restyle = false; this.scene.restart({ sel: this.sel }); return; }
     // draw
     const fresh = this.items();
     this.cursor.clear(); this.bars.clear(); this.bgFx.update(this.t);

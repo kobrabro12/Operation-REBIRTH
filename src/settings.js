@@ -12,6 +12,7 @@ export const settings = {
   crt: false,
   performance:'auto', // auto detects phones; low reduces decorative effects; full keeps them all
   touch: 'auto',      // on-screen touch controls: 'auto' (touch screens) | 'on' | 'off'
+  menuStyle: 'arcade', // how the menus look: an id from MENU_STYLES in src/ui/arcade.js (OPTIONS > MENU STYLE)
   musicVolume: 0.6,
   sfxVolume: 0.8,
   // Controllers that joined on the setup screen. p1Pad = pad index that also drives player 1.
@@ -42,9 +43,10 @@ try {
   const o = JSON.parse(localStorage.getItem(OPT_KEY) || 'null');
   if (o && typeof o.crt === 'boolean') settings.crt = o.crt;
   if (o && ['auto', 'on', 'off'].includes(o.touch)) settings.touch = o.touch;
+  if (o && typeof o.menuStyle === 'string') settings.menuStyle = o.menuStyle;
 } catch (e) { /* storage unavailable: keep the defaults */ }
 export function saveOptions() {
-  try { localStorage.setItem(OPT_KEY, JSON.stringify({ crt: settings.crt, touch: settings.touch, performance:settings.performance })); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(OPT_KEY, JSON.stringify({ crt: settings.crt, touch: settings.touch, performance:settings.performance, menuStyle: settings.menuStyle })); } catch (e) { /* ignore */ }
 }
 
 export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };

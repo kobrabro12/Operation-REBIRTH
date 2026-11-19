@@ -1,6 +1,6 @@
 // Bottom-of-screen player panels: damage % (or HP), stocks, Limit gauge. Plus timer and off-screen arrows.
 import { VIEW_W, VIEW_H, FONT, PLAYER_COLORS, PLAYER_CSS, LIMIT_MAX } from '../config.js';
-import { slant } from './arcade.js';
+import { plainSlant as slant } from './arcade.js';
 
 const PANEL_W = 136, PANEL_H = 46;
 

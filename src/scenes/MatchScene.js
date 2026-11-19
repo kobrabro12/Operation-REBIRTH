@@ -11,7 +11,7 @@ import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../p
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
-import { slant, ARC } from '../ui/arcade.js';
+import { plainSlant as slant, ARC } from '../ui/arcade.js';   // (the match keeps the BOLD ARCADE shape whatever the menu style)
 import { FighterIntros } from './fighterIntros.js';
 import { recordChallenge, CHALLENGE_REWARD } from '../challenges.js';
 import { recordMatch, stat } from '../achievements.js';
