@@ -1,7 +1,8 @@
-"""The LOST room behind HANZ / $@L: a surreal dream, rendered in Blender in his style (flat colour planes, ink lines,
-grain) through the same camera as his animations (hanz_anim.CAM), as three layers the game drifts separately:
+"""The LOST room behind HANZ / $@L: a surreal dream, path-traced in Blender (Cycles) under the same lights as him
+(hanz_3d.lights: warm key, cool dusk rim, the sky's glow; the lamps really light the walls; the checker floor is glossy
+and reflects) through the same camera as his animations (hanz_anim.CAM), as three layers the game drifts separately:
 
-  sky    a dusk sky in flat bands (peach -> lilac -> violet) with slab clouds
+  sky    a smooth dusk sky (peach -> lilac -> violet) with soft lit clouds and his split moon glowing
   room   a checkerboard floor that runs off into the sky and breaks into floating tiles; two walls and no back wall;
          on the left wall a tall doorway with a staircase climbing into it (and the same stairs hanging upside down
          from nowhere on the right - impossible rooms); on the right wall a window that shows THIS room (rendered once,
@@ -32,28 +33,55 @@ WALL = 0xc89a64; WALL2 = 0xb08050; TRIM = 0x6a3c28
 TILE_A = 0x18161c; TILE_B = 0xe8dcc4
 DOOR = 0x2a1a24; DOORF = 0x8a5030; STAIR = 0xd8c8b0; STAIR2 = 0xa89880
 LAMP = 0xffe8a8; CORD = 0x1a1a1a
+LAMPS = ((-150, 300, 95), (150, 260, 88), (-40, 560, 125), (70, 420, 110))   # the lamps hanging on cords
 SHELF = 0x6a4028; TAG = 0xf0e8d8; GLASS = 0x9ab8c8
 
 
-def sky():
-    """The sky: big flat bands across the back, high to low, and a few flat slab clouds."""
-    m = H.Mesh()
+def sky_plane():
+    """The sky itself: one big sheet far behind everything, its colour running smoothly down through SKY (an unlit
+    glow - it's the light, not lit by it)."""
     top, bot = 240, -860                          # (what the room's camera sees at the sky's distance)
-    n = len(SKY)
-    for i, c in enumerate(SKY):
-        z1 = top - (top - bot) * i / n; z0 = top - (top - bot) * (i + 1) / n
-        m.box((0, 1600, (z0 + z1) / 2), (4000, 4, z1 - z0 + 0.5), c)
+    rows = 40; vs, fs, cols = [], [], []
+    for i in range(rows + 1):
+        z = top - (top - bot) * i / rows; vs += [(-2000, 1600, z), (2000, 1600, z)]
+        t = i / rows * (len(SKY) - 1); a, f = int(t), t - int(t); b = min(a + 1, len(SKY) - 1)
+        c = [((SKY[a] >> sh & 255) * (1 - f) + (SKY[b] >> sh & 255) * f) / 255 for sh in (16, 8, 0)]
+        cols.append(tuple(v ** 2.2 for v in c))
+    for i in range(rows): fs.append((2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2))
+    me = bpy.data.meshes.new('sky'); me.from_pydata(vs, [], fs); me.update()
+    at = me.color_attributes.new('Col', 'FLOAT_COLOR', 'POINT')
+    for k in range(len(vs)): at.data[k].color = cols[k // 2] + (1,)
+    me.materials.append(glow_material('skyglow', strength=1.0))
+    ob = bpy.data.objects.new('sky', me); bpy.context.scene.collection.objects.link(ob); ob['room'] = 1
+    return ob
+
+
+def glow_material(name, colour=None, strength=1.0):
+    """An unlit glowing material: a fixed colour, or the mesh's own colours ('Col') if colour is None."""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Strength'].default_value = strength
+    if colour is None:
+        ca = nt.nodes.new('ShaderNodeVertexColor'); ca.layer_name = 'Col'; nt.links.new(ca.outputs['Color'], em.inputs['Color'])
+    else: em.inputs['Color'].default_value = colour + (1,)
+    out = nt.nodes.new('ShaderNodeOutputMaterial'); nt.links.new(em.outputs[0], out.inputs['Surface'])
+    return m
+
+
+def sky():
+    """Soft lit clouds drifting in front of the sky, and his moon."""
+    m = H.Mesh()
     rng = np.random.default_rng(7)
     for i in range(9):
         cx, cz = rng.uniform(-700, 700), rng.uniform(-260, 200); w = rng.uniform(120, 260)
         pts = [(cx + w * math.cos(a) * rng.uniform(0.7, 1), 1500 - rng.uniform(0, 40), cz + w * 0.18 * math.sin(a) * rng.uniform(0.6, 1)) for a in np.linspace(0, 2 * math.pi, 10)[:-1]]
-        m.hull(pts + [(x, y - 12, z) for x, y, z in pts], CLOUD if i % 2 else CLOUD2)
+        m.hull(pts + [(x, y - 30, z) for x, y, z in pts] + [(cx, 1470, cz + w * 0.1)], CLOUD if i % 2 else CLOUD2)
     # his moon: a big disc split down the middle, grey on HANZ's side, red on $@L's
     mo = H.Mesh()
     for side, col in ((-1, 0xb8121c), (1, 0xd2d0cc)):
         pts = [(300 + side * 110 * math.sin(a), 1450, 40 + 110 * math.cos(a)) for a in np.linspace(0, math.pi, 9)] + [(300, 1450, -70), (300, 1450, 150)]
         mo.hull(pts + [(x, y - 4, z) for x, y, z in pts], col)
-    return {'sky': m, 'moon': mo}
+    return {'clouds': m, 'moon': mo}
 
 
 def room():
@@ -140,7 +168,7 @@ def room():
     parts['shelf'] = sh
     # lamps on cords running up into the sky
     lp = H.Mesh()
-    for (x, y, z) in ((-150, 300, 95), (150, 260, 88), (-40, 560, 125), (70, 420, 110)):
+    for (x, y, z) in LAMPS:
         lp.box((x, y, z + 300), (1.2, 1.2, 600), CORD)
         lp.hull([(x + 14 * math.cos(a), y + 14 * math.sin(a), z - 12) for a in np.linspace(0, 2 * math.pi, 7)[:-1]]
                 + [(x + 4 * math.cos(a), y + 4 * math.sin(a), z + 2) for a in np.linspace(0, 2 * math.pi, 5)[:-1]], LAMP)
@@ -170,13 +198,18 @@ def emit_lamps():
     em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1, 0.85, 0.5, 1)
     out = nt.nodes.new('ShaderNodeOutputMaterial'); nt.links.new(em.outputs[0], out.inputs['Surface'])
     ob.data.materials.clear(); ob.data.materials.append(m)
+    for i, (x, y, z) in enumerate(LAMPS):                                         # ... and really light the room
+        ld = bpy.data.lights.new('lamp%d' % i, 'POINT'); ld.color = (1, 0.82, 0.5); ld.energy = 2.6e5; ld.shadow_soft_size = 10
+        lo = bpy.data.objects.new('lamp%d' % i, ld); bpy.context.scene.collection.objects.link(lo); lo.location = (x, y, z - 16)
+    mo = bpy.data.objects.get('moon')                                             # the moon glows (red / grey, from its own colours)
+    if mo: mo.data.materials.clear(); mo.data.materials.append(glow_material('moonglow', strength=1.4))
 
 
 def pane_material(img_path):
     """The window pane shows a picture of the room (img_path), laid flat on the glass, a little washed out."""
     m = bpy.data.materials.new('pane'); m.use_nodes = True
     nt = m.node_tree; nt.nodes.clear(); L = nt.links
-    tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = bpy.data.images.load(img_path); tex.interpolation = 'Closest'
+    tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = bpy.data.images.load(img_path); tex.interpolation = 'Cubic'
     uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'UV'; L.new(uv.outputs['UV'], tex.inputs['Vector'])
     mix = nt.nodes.new('ShaderNodeMix'); mix.data_type = 'RGBA'; mix.inputs['Factor'].default_value = 0.18
     L.new(tex.outputs['Color'], mix.inputs[6]); mix.inputs[7].default_value = (0.75, 0.85, 0.95, 1)
@@ -185,16 +218,25 @@ def pane_material(img_path):
     return m
 
 
-def make(objs, flat):
-    """Turns the meshes into objects (tagged 'room')."""
+# what the room's colours are made of (added to hanz_3d's KINDS / LOOK): a glossy lacquered checker floor that
+# reflects, matte wallpaper, soft clouds, painted wood
+H.KINDS.update({'tile': (TILE_A, TILE_B), 'paper_wall': (WALL, WALL2, TAG), 'cloud': (CLOUD, CLOUD2), 'stairs': (STAIR, STAIR2)})
+H.LOOK.update({'tile': (0.18, 0, 0.6, 0, 0), 'paper_wall': (0.9, 0, 0, 0.2, 0), 'cloud': (0.95, 0, 0, 0.4, 0.3), 'stairs': (0.7, 0, 0, 0, 0)})
+H.SMOOTH.update({'clouds': 80})
+
+
+def make(objs, mats):
+    """Turns the meshes into objects (tagged 'room'); mats = the materials (the room's kinds are added to it)."""
+    for k in ('tile', 'paper_wall', 'cloud', 'stairs'):
+        if k not in mats: mats[k] = H.principled('m_' + k, look=k)
     for nm, m in objs.items():
-        ob = H.to_object(nm, m, [flat], face_box=None); ob['room'] = 1
+        ob = H.to_object(nm, m, mats, face_box=None); ob['room'] = 1
 
 
 def shoot(path, show, holdout=()):
     """Renders the objects named in show (others hidden; holdout ones cut a hole)."""
     for ob in bpy.data.objects:
-        if ob.type != 'MESH': continue
+        if ob.type not in ('MESH', 'META'): continue
         ob.hide_render = ob.name not in show and ob.name not in holdout
         ob.is_holdout = ob.name in holdout
     bpy.context.scene.render.filepath = path
@@ -203,30 +245,27 @@ def shoot(path, show, holdout=()):
 
 
 def save(arr, name, opaque=False):
-    """Hard alpha, packed to <= 255 colours, saved into OUT."""
+    """Saved into OUT as a palette PNG (soft edges kept - libimagequant), opaque = no see-through at all."""
     a = arr.copy()
     if opaque: a[..., 3] = 255
-    else:
-        on = a[..., 3] > 100; a[~on] = 0; a[on, 3] = 255
-    q = Image.fromarray(a[..., :3]).quantize(255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGBA')
-    out = np.array(q); out[..., 3] = a[..., 3]; out[a[..., 3] == 0] = 0
-    Image.fromarray(out).save(os.path.join(OUT, name), optimize=True)
-    return out
+    else: a[a[..., 3] <= 4] = 0
+    A.quantize(a, 256, 0.5).save(os.path.join(OUT, name), optimize=True)
+    return a
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--preview', default=''); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument('--preview', default=''); ap.add_argument('--samples', type=int, default=48); a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    cam, flat, face = A.setup()
-    sc = bpy.context.scene
-    sc.render.line_thickness = 1.0
-    for ob in list(bpy.data.objects):
-        if ob.name in ('counter', 'bell', 'till', 'watch'): ob.hide_render = True
-    make(sky(), flat); make(room(), flat); make(floaters(), flat); emit_lamps()
+    cam, mats = A.setup(a.samples)
+    sc = bpy.context.scene; sc.render.use_border = False
+    for ob in list(bpy.data.objects):                                            # (the desk isn't part of the room)
+        if ob.name in A.DESK: ob.hide_render = True
+    sky_plane(); make(sky(), mats); make(room(), mats); make(floaters(), mats); emit_lamps()
     tmp = os.path.join(bpy.app.tempdir or '/tmp', 'room_pass.png')
     room_names = ['floor', 'walls', 'door', 'stairs', 'window', 'pane', 'clock', 'shelf', 'lamps']
+    sky_names = ['sky', 'clouds', 'moon']
     # pass 1: the whole scene, so the window can show it
-    first = shoot(tmp, ['sky', 'moon'] + room_names + ['float'])
+    first = shoot(tmp, sky_names + room_names + ['float'])
     Image.fromarray(first).save(os.path.join(bpy.app.tempdir or '/tmp', 'room_first.png'))
     pane = bpy.data.objects['pane']
     me = pane.data; uvl = me.uv_layers.get('UV') or me.uv_layers.new(name='UV')
@@ -235,14 +274,15 @@ def main():
             v = me.vertices[me.loops[li].vertex_index].co
             uvl.data[li].uv = ((v.y - 310) / 100, (v.z + 52) / 124)
     pane.data.materials.clear(); pane.data.materials.append(pane_material(os.path.join(bpy.app.tempdir or '/tmp', 'room_first.png')))
-    skyl = shoot(tmp, ['sky', 'moon'])
+    for ob in pane.modifiers: pane.modifiers.remove(ob)
+    skyl = shoot(tmp, sky_names)
     rooml = shoot(tmp, room_names)
     floatl = shoot(tmp, ['float'], holdout=room_names)
     save(skyl, 'room_sky.png', opaque=True)
     save(rooml, 'room.png')
     save(floatl, 'room_float.png')
-    # the room with the lights out: everything near-black with only the ink and a faint shape
-    full = np.array(Image.fromarray(skyl)); full = full.astype(float)
+    # the room with the lights out: everything near-black, just a faint shape
+    full = skyl.astype(float)
     for lay in (floatl, rooml):
         al = lay[..., 3:4] / 255; full[..., :3] = full[..., :3] * (1 - al) + lay[..., :3] * al
     dark = (full[..., :3] * np.array([0.08, 0.07, 0.11])).clip(0, 255)
@@ -250,13 +290,6 @@ def main():
     save(dk, 'room_dark.png', opaque=True)
     if a.preview:
         comp = Image.fromarray(skyl).convert('RGBA'); comp.alpha_composite(Image.fromarray(floatl)); comp.alpha_composite(Image.fromarray(rooml))
-        c = Image.open(os.path.join(OUT, 'counter.png')).convert('RGBA')
-        import json
-        tab = json.loads(open(A.TABLE).read().split('LOST_FRAMES = ', 1)[1].rstrip().rstrip(';'))
-        comp.alpha_composite(c, tuple(tab['counter']))
-        fr = tab['anims']['idle']['frames'][0]
-        sheet = Image.open(os.path.join(OUT, 'hanz_idle.png')).convert('RGBA')
-        comp.alpha_composite(sheet.crop((fr['sx'], fr['sy'], fr['sx'] + fr['w'], fr['sy'] + fr['h'])), (fr['x'], fr['y']))
         comp.resize((1280, 720), Image.NEAREST).save(a.preview)
 
 

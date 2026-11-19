@@ -9,7 +9,9 @@
 // Then: his things float either side of him (LOST items in src/data/shop.js, paid in MEMORIES = the same coins); he
 // turns to look at whatever you're on and his pupils follow it (the game draws them: lostFrames eyes); he talks in
 // two colours, swinging his head round to whichever side is talking and arguing with himself (src/data/lostLines.js).
-// The room breathes: its layers drift and ripple, grain crawls over it, and now and then the room skips.
+// The room breathes: its layers drift and ripple, grain crawls over it, and now and then the room skips. Things on his
+// desk move on their own (lostFrames props: the lava lamp, the hourglass whose sand falls up, the candle), and when
+// he's left alone he fidgets: a horrible twitch of the head, or he takes out his clock-heart and checks the time.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
@@ -31,7 +33,9 @@ const GLYPHS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ$@', 'DEL'];
 // the keypad: keys per row, key size, gap, top of the first row (big enough to hit with a thumb on a phone)
 const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
-const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.09, skip: [900, 1800] };
+const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.05, skip: [900, 1800] };
+// left alone he fidgets every so often (frames between, the chance it's the heart rather than the twitch)
+const FIDGET = { every: [700, 1300], heart: 0.45 };
 // his things: card size and where the two columns float
 const CARD = { w: 104, h: 46, left: 12, right: 524, top: 70, gap: 54 };
 // speech: typing speed (frames per letter), how long a finished line stays up, the bubble's width
@@ -43,10 +47,26 @@ const GAZE = { sal: [1.3, 0.7], hanz: [1.6, 1.4] };
 export class LostScene extends Phaser.Scene {
   constructor() { super('Lost'); }
 
-  /** Loads the room, the counter, his pupils and every animation sheet (only here - never at boot). */
+  /** Loads the room, the counter, the desk things, his pupils and his animation sheets (only here - never at boot; the
+   *  rarely-played ones - `lazy` - load in the background once the room is up: `loadLazy`). */
   preload() {
     for (const n of ['room_sky', 'room', 'room_float', 'room_dark', 'counter', 'pupils']) if (!this.textures.exists('lost_' + n)) this.load.image('lost_' + n, DIR + n + '.png');
-    for (const a of Object.keys(LOST_FRAMES.anims)) if (!this.textures.exists('lost_hanz_' + a)) this.load.image('lost_hanz_' + a, DIR + 'hanz_' + a + '.png');
+    for (const n of Object.keys(LOST_FRAMES.props || {})) if (!this.textures.exists('lost_prop_' + n)) this.load.image('lost_prop_' + n, DIR + 'prop_' + n + '.png');
+    for (const [a, spec] of Object.entries(LOST_FRAMES.anims)) if (!spec.lazy) this.queueAnim(a);
+  }
+
+  /** Queues an animation's sheets for loading (texture keys lost_hanz_<anim>_<k>). */
+  queueAnim(a) {
+    LOST_FRAMES.anims[a].sheets.forEach((f, k) => { if (!this.textures.exists(`lost_hanz_${a}_${k}`)) this.load.image(`lost_hanz_${a}_${k}`, DIR + f); });
+  }
+
+  /** Loads the lazy animations (the twitch, the clock-heart) after the room is up; they can play once they're in. */
+  loadLazy() {
+    this.ready = new Set(Object.keys(LOST_FRAMES.anims).filter((a) => !LOST_FRAMES.anims[a].lazy));
+    const lazy = Object.keys(LOST_FRAMES.anims).filter((a) => LOST_FRAMES.anims[a].lazy);
+    lazy.forEach((a) => this.queueAnim(a));
+    this.load.once('complete', () => { if (!this.sys.isActive()) return; lazy.forEach((a) => { this.addAnimFrames(a); this.ready.add(a); }); });
+    this.load.start();
   }
 
   /** Builds the room (dark or lit), him, his things and the speech bubble. `data.tab` = the shop tab to go back to. */
@@ -64,8 +84,10 @@ export class LostScene extends Phaser.Scene {
     for (const s of this.strips) s.y = 0;
     this.dark = this.add.image(0, 0, 'lost_room_dark').setOrigin(0).setDepth(3);
     this.counter = this.add.image(LOST_FRAMES.counter[0], LOST_FRAMES.counter[1], 'lost_counter').setOrigin(0).setDepth(5);
-    this.him = this.add.image(0, 0, 'lost_hanz_idle', 0).setOrigin(0).setDepth(6);
+    this.props = Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => ({ p, s: this.add.image(p.x, p.y, 'lost_prop_' + n, '0').setOrigin(0).setDepth(5.5) }));
+    this.him = this.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setDepth(6);
     this.pupils = { sal: this.add.image(0, 0, 'lost_pupils', 'sal').setDepth(7), hanz: this.add.image(0, 0, 'lost_pupils', 'hanz').setDepth(7) };
+    this.fidgetAt = this.t + FIDGET.every[0];
     this.makeGrain();
     this.anim = { name: 'idle', f: 0, tick: 0, hold: false, rev: false, then: null };
     this.talk = null; this.lineQueue = [];
@@ -79,17 +101,27 @@ export class LostScene extends Phaser.Scene {
     this.idleAt = 600;
     if (this.lit) this.lightUp(false); else this.startDark();
     this.events.once('shutdown', () => this.cleanup());
+    this.loadLazy();
   }
 
   /** Cuts each animation sheet into its frames (lostFrames.js says where), and the pupils sheet into 'sal' / 'hanz'. */
   addFrames() {
-    for (const [a, spec] of Object.entries(LOST_FRAMES.anims)) {
-      const tex = this.textures.get('lost_hanz_' + a);
-      if (tex.has('0')) continue;
-      spec.frames.forEach((f, i) => tex.add(String(i), 0, f.sx, f.sy, f.w, f.h));
-    }
+    for (const [a, spec] of Object.entries(LOST_FRAMES.anims)) if (!spec.lazy || this.textures.exists(`lost_hanz_${a}_0`)) this.addAnimFrames(a);
     const pt = this.textures.get('lost_pupils');
     if (!pt.has('sal')) for (const [n, m] of Object.entries(LOST_FRAMES.pupils)) pt.add(n, 0, m.x, 0, m.w, m.h);
+    pt.setFilter(Phaser.Textures.FilterMode.LINEAR);                     // (drawn smaller than the sheet: smooth, not pixelated)
+    for (const [n, p] of Object.entries(LOST_FRAMES.props || {})) {
+      const tex = this.textures.get('lost_prop_' + n);
+      if (!tex.has('0')) for (let i = 0; i < p.n; i++) tex.add(String(i), 0, i * p.w, 0, p.w, p.h);
+    }
+  }
+
+  /** Cuts one animation's sheets into its frames: frame i lives on sheet k as frame name i. */
+  addAnimFrames(a) {
+    LOST_FRAMES.anims[a].frames.forEach((f, i) => {
+      const tex = this.textures.get(`lost_hanz_${a}_${f.k}`);
+      if (!tex.has(String(i))) tex.add(String(i), 0, f.sx, f.sy, f.w, f.h);
+    });
   }
 
   /** A grain texture (dark specks on clear) laid over everything and jittered every few frames. */
@@ -107,6 +139,7 @@ export class LostScene extends Phaser.Scene {
   /** The lights are out: no him, a faint counter, and whatever you type hanging in the dark. */
   startDark() {
     this.dark.setVisible(true); this.him.setVisible(false); this.counter.setTint(0x141218); this.floatL.setVisible(false);
+    for (const { s: sp } of this.props) sp.setTint(0x2a2230);                   // (the lava lamp and the candle still faintly glow)
     for (const p of Object.values(this.pupils)) p.setVisible(false);
     this.typed = ''; this.glyph = 0;
     this.typedText = this.add.text(VIEW_W / 2, 150, '', { fontFamily: FONT, fontSize: '22px', color: '#3a3644' }).setOrigin(0.5).setDepth(22);
@@ -164,6 +197,7 @@ export class LostScene extends Phaser.Scene {
     for (const o of [this.typedText, this.prompt, ...(this.glyphText || [])]) if (o) o.destroy();
     this.typedText = this.prompt = null; this.glyphText = null; this.keys = null;
     this.counter.clearTint(); this.floatL.setVisible(true);
+    for (const { s: sp } of this.props) sp.clearTint();
     this.makeCards();
     const who = code || lostKeeper();
     if (fresh) {
@@ -244,7 +278,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -268,7 +302,7 @@ export class LostScene extends Phaser.Scene {
   // ------------------------------------------------------------------ his animations
   /** Plays one of his animations; then = called when a one-shot finishes; force = even over another one-shot. */
   play(name, then = null, force = false) {
-    if (!LOST_FRAMES.anims[name]) return;
+    if (!LOST_FRAMES.anims[name] || (this.ready && !this.ready.has(name))) return;
     if (!force && this.anim.name === name && !this.anim.done) return;
     this.anim = { name, f: 0, tick: 0, done: false, then, rev: false };
   }
@@ -284,7 +318,7 @@ export class LostScene extends Phaser.Scene {
       else if (!A.done) { A.done = true; const then = A.then; A.then = null; if (then) then(); else if (!A.name.startsWith('look')) this.play('idle'); }
     }
     const cur = LOST_FRAMES.anims[this.anim.name], fr = cur.frames[Math.min(this.anim.f, cur.frames.length - 1)];
-    this.him.setTexture('lost_hanz_' + this.anim.name, String(Math.min(this.anim.f, cur.frames.length - 1))).setPosition(fr.x, fr.y);
+    this.him.setTexture(`lost_hanz_${this.anim.name}_${fr.k}`, String(Math.min(this.anim.f, cur.frames.length - 1))).setPosition(fr.x, fr.y);
     this.eyes(fr);
   }
 
@@ -297,7 +331,7 @@ export class LostScene extends Phaser.Scene {
       if (!this.him.visible || !e || e[3] < 0.3) { p.setVisible(false); continue; }
       const dx = target.x - e[0], dy = target.y - e[1], d = Math.hypot(dx, dy) || 1, [gx, gy] = GAZE[n];
       const k = Math.min(1, d / 120);
-      p.setVisible(true).setScale(e[2]).setPosition(Math.round(e[0] + dx / d * gx * k * e[2]), Math.round(e[1] + dy / d * gy * k * e[2]));
+      p.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1)).setPosition(e[0] + dx / d * gx * k * e[2], e[1] + dy / d * gy * k * e[2]);
     }
   }
 
@@ -308,6 +342,15 @@ export class LostScene extends Phaser.Scene {
     const p = this.input.activePointer;
     if (p && this.t - (this.pointerT || -999) < 120) return { x: p.x, y: p.y };
     return { x: VIEW_W / 2, y: 120 };
+  }
+
+  /** Left alone (no talking, just idling) he fidgets now and then: a horrible twitch of the head, or he takes his
+   *  clock-heart out of his chest, checks the time and puts it back - then says something about it. */
+  fidget() {
+    if (this.talk || this.anim.name !== 'idle' || this.t < this.fidgetAt) return;
+    const [a, b] = FIDGET.every; this.fidgetAt = this.t + a + Math.floor(Math.random() * (b - a));
+    const heart = Math.random() < FIDGET.heart && this.ready && this.ready.has('heart');
+    this.play(heart ? 'heart' : 'twitch', heart ? () => this.say('heart') : null);
   }
 
   /** Turns him toward the picked thing (look_l / look_r) when he isn't busy talking or reacting. */
@@ -328,6 +371,7 @@ export class LostScene extends Phaser.Scene {
     this.floatL.setPosition(Math.sin(t * 0.006) * 6, Math.sin(t * 0.011) * DREAM.floatBob);
     this.strips.forEach((s, i) => { s.x = Math.sin(i * 0.45 + t * DREAM.rippleSpeed) * DREAM.ripple; });
     if (t % 3 === 0) this.grain.setTilePosition(Math.floor(Math.random() * 320), Math.floor(Math.random() * 180));
+    for (const { p, s } of this.props) s.setFrame(String(Math.floor(t * p.fps / 60) % p.n));   // the desk things loop at their own pace
     if (this.lit && t >= this.skipAt) {
       this.skipAt = t + this.nextSkip();
       if (Math.random() < 0.5) { this.dark.setVisible(true); this.time.delayedCall(70, () => this.dark.setVisible(false)); }
@@ -395,6 +439,7 @@ export class LostScene extends Phaser.Scene {
       }
       this.lookAtPick();
       if (!this.talk && --this.idleAt <= 0) { this.idleAt = 600 + Math.floor(Math.random() * 600); this.say('idle'); }
+      this.fidget();
       this.stepTalk();
     }
     this.dream();
@@ -413,7 +458,10 @@ export class LostScene extends Phaser.Scene {
       const c = this.cards[i], y = c.y + this.bob(c);
       if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + CARD.h) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
     }
-    if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) { this.say('poke'); this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true); }
+    if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
+      this.say('poke');
+      if (!['heart', 'twitch'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+    }
   }
 
   /** Back to the shop (he says goodbye if the lights are on). */

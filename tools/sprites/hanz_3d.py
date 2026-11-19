@@ -32,11 +32,16 @@ BLEND = os.path.join(HERE, 'art', 'hanz.blend')
 SAL_SKIN = 0xb8121c; SAL_SKIN_D = 0x860a12   # $@L (LEFT of the picture): blood red
 HANZ_SKIN = 0xd2d0cc; HANZ_SKIN_D = 0xa8a6a2 # HANZ (right of the picture): pale, drained of colour
 HORN = 0x6e0810; HORN2 = 0x9a1018           # $@L's devil horn: dark blood red
-COAT = 0x2b2a33; COAT2 = 0x3a3944; COAT3 = 0x1e1d25   # the trench coat: heavy charcoal
+COAT = 0x24232b; COAT2 = 0x302f39; COAT3 = 0x18171e   # the trench coat: heavy charcoal
 BELT = 0x161519; BRASS = 0xc8a040; BRASS2 = 0x8a6a28
 HAIR = 0x101013
 WOOD = 0x6a4028; WOOD2 = 0x80502e; WOOD3 = 0x4a2c1c
 CLOCK = 0xe8e0c8; GREEN = 0x3a6a4a; INKC = 0x101012
+HEART = 0x7a0610; HEART2 = 0x9a0a18; BLOOD = 0x4a0008          # his clock-heart: wet dark red, and what drips off it
+CAVITY = 0x1a0406                                              # inside the hatch in his chest (a faint red glow)
+BOOK1 = 0x5a2a3a; BOOK2 = 0x2a4a5a; PAGES = 0xe8dcc0           # the old books under the lava lamp
+WAX = 0xf0e4c8; GLASS = 0xcfe0e8; SAND = 0xd8b070               # the candle's wax, the hourglass's glass and its sand
+CHROME = 0x8a8a96; LAVA_GLASS = 0x8a2a6a; LAVA_WAX = 0xff7a30   # the lava lamp: its metal, its liquid, its wax
 INK = (0.0, 0.0, 0.0)
 
 # ------------------------------------------------------------------ building meshes
@@ -103,33 +108,45 @@ FACE_UV = (-FACE_X, FACE_X * (64 - FACE_SPLIT) / FACE_SPLIT, FACE_Z[1] - 62 * (F
 
 def head():
     """His head, as two meshes. 'face': a big flat face plate (Mason's drawing covers its whole front, red left, grey
-    right) on a shallow head. 'hair': black hair framing it like a helmet - a cap, a heavy fringe in three big points
-    over the brow, flat side panels down to the jaw ending in points, the back, a cowlick of two shards."""
+    right) on a shallow head. 'hair': glossy black anime hair framing it like a helmet - a faceted dome, a fringe of
+    five uneven points over the brow, two locks down each side, spikes flaring off the back, a cowlick of two shards;
+    'horn': $@L's curved devil horn."""
     face, hair = Mesh(), Mesh()
     z0, z1 = FACE_Z
     front = [(-FACE_X, -11, z1), (FACE_X, -11, z1), (-FACE_X - 1.5, -11, 4), (FACE_X + 1.5, -11, 4),
              (-17, -11, -12), (17, -11, -12), (-9, -10, z0), (9, -10, z0)]
     back = [(x * 0.88, 9, z * 0.9) for x, _, z in front]
     face.hull(front + back, lambda c, n: (SAL_SKIN if c[0] < 0 else HANZ_SKIN), uvface=lambda c, n: n[1] < -0.9)
-    hair.hull([(-23, -14, 19), (23, -14, 19), (-23, 11, 18), (23, 11, 18), (-20, -13, 30), (20, -13, 30), (-19, 10, 29), (19, 10, 29)], HAIR)
-    for (x0, x1, tipx, tipz) in ((-19, -6, -14, 12), (-7, 6, 1, 14), (5, 19, 13, 11)):
-        hair.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR)
+    # the cap: a low faceted dome over the plate, then spikes - a heavy fringe of five uneven points over the brow, two
+    # locks down each side to the jaw, a flare of spikes off the back, and the cowlick
+    cap = [(24 * math.cos(a) * math.cos(e), -1 + 13 * math.sin(a) * math.cos(e), 18 + 13 * math.sin(e))
+           for a in np.linspace(0, 2 * math.pi, 11)[:-1] for e in (0, 0.45, 0.9, 1.35)]
+    hair.hull(cap, HAIR)
+    for (x, w, tipx, tipz) in ((-17, 8, -15, 9), (-9, 8, -8, 6), (-1, 8, 1, 10), (7, 8, 9, 5), (15, 8, 17, 12)):
+        hair.hull([(x - w / 2, -15, 22), (x + w / 2, -15, 22), (x - w / 2, -11, 24), (x + w / 2, -11, 24),
+                   (x, -13, 27), (tipx, -15.2, tipz), (tipx, -13, tipz)], HAIR)
     for sx in (-1, 1):
-        hair.hull([(sx * 19.5, -14, 22), (sx * 24.5, -14, 22), (sx * 19.5, 10, 22), (sx * 24.5, 10, 21),
-                   (sx * 20, -13, -2), (sx * 23.5, -11, -4), (sx * 20, 7, 0), (sx * 21, -12.5, -10)], HAIR)
-    hair.hull([(-20, 8, 26), (20, 8, 26), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
+        for (y, ztip, out) in ((-11, -8, 1.5), (-3, -12, 2.5)):
+            hair.hull([(sx * 20, y - 4, 22), (sx * 24.5, y - 4, 21), (sx * 20, y + 4, 22), (sx * 24.5, y + 4, 21),
+                       (sx * 20.5, y, 4), (sx * (21 + out), y - 1, ztip), (sx * 20.5, y + 1, ztip + 2)], HAIR)
+    for (x, tz, ty) in ((-16, 14, 16), (-6, 20, 18), (5, 18, 17), (15, 12, 16)):
+        hair.hull([(x - 6, 7, 26), (x + 6, 7, 26), (x - 6, 10, 12), (x + 6, 10, 12), (x + 2, ty, tz)], HAIR)
+    hair.hull([(-19, 6, 24), (19, 6, 24), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
     hair.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR)        # the cowlick
     hair.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR)
     # $@L's devil horn: rising out of the hair on his (left) side, curving up and out to a point (segments taper)
     horn = Mesh()
-    path = [(-14, -2, 24), (-19, -3, 31), (-23, -4, 38), (-25, -5, 45), (-24, -6, 51)]
-    rad = [4.2, 3.4, 2.5, 1.5, 0.2]
+    path = [(-14, -2, 24), (-17, -2.5, 28), (-19.5, -3, 32), (-22, -3.6, 37), (-24, -4.2, 41.5), (-25, -5, 46), (-24.6, -5.6, 49.5), (-23.6, -6, 52)]
+    rad = [4.3, 3.9, 3.4, 2.8, 2.1, 1.4, 0.8, 0.15]
     for i in range(len(path) - 1):
-        horn.limb(path[i], path[i + 1], rad[i], rad[i + 1], HORN if i % 2 == 0 else HORN2, sides=5, twist=0.3)
+        horn.limb(path[i], path[i + 1], rad[i], rad[i + 1], HORN if i < 3 else HORN2, sides=10, twist=0.3)
     return {'face': face, 'hair': hair, 'horn': horn}
 
 
-def coat(M):
+HATCH = (6.8, 12.2, 22.5, 31.5, -12.62)         # the chest hatch on the right lapel: x0, x1, z0, z1, the lapel's face (y)
+
+
+def coat(M, hatch=0.0):
     """His chest and shoulders in the thick trench coat, as meshes: 'torso' (a narrow lanky body, wide lapels, two
     rows of brass buttons, a belt and buckle, epaulettes, the skirt flaring below the belt), 'collar_l' / 'collar_r'
     (the huge popped collar: two thick walls flaring out round his head, lined red on $@L's side and grey on HANZ's),
@@ -149,8 +166,18 @@ def coat(M):
     torso.box((0, -10.8, 8.5), (6, 1.4, 6), BRASS, M); torso.box((0, -11.2, 8.5), (3, 1.2, 3), BELT, M)
     for sx in (-1, 1):
         torso.slab([(sx * 10, 45.5), (sx * 22, 41.5), (sx * 22, 39.8), (sx * 10, 43.8)], -5, 5, COAT3, M)   # epaulettes
-    neck.limb((0, 1, 40), (0, 1, 52), 5, 4.5, lambda c, n: SAL_SKIN_D if c[0] < 0 else HANZ_SKIN_D, sides=4, M=M)
+    neck.limb((0, 1, 40), (0, 1, 52), 5, 4.5, lambda c, n: SAL_SKIN_D if c[0] < 0 else HANZ_SKIN_D, sides=8, M=M)
     out = {'torso': torso, 'neck': neck}
+    # the little hatch in HANZ's side of his chest, cut into the lapel: closed it lies flush (brass hinges on its outer
+    # edge, a keyhole); hatch = how far it's swung open (degrees). Behind it, a dark hollow that glows faintly red.
+    cav, hat = Mesh(), Mesh()
+    X0, X1, Z0, Z1, YF = HATCH
+    cav.slab([(X0 + 0.5, Z0 + 0.5), (X1 - 0.5, Z0 + 0.5), (X1 - 0.5, Z1 - 0.5), (X0 + 0.5, Z1 - 0.5)], YF - 0.12, YF + 0.05, CAVITY, M)
+    Hm = M @ T(X1, YF, 0) @ T(rz=hatch) @ T(-X1, -YF, 0)                  # (swings out toward you on its hinges)
+    hat.slab([(X0, Z0), (X1, Z0), (X1, Z1), (X0, Z1)], YF - 0.9, YF - 0.15, COAT2, Hm)
+    hat.box((X0 + 1.4, YF - 1.05, (Z0 + Z1) / 2), (0.9, 0.4, 1.8), BELT, Hm)                       # the keyhole
+    for z in (Z0 + 1.6, Z1 - 1.6): hat.box((X1 + 0.1, YF - 0.6, z), (1.2, 1.3, 2.0), BRASS, M)  # hinges (they stay put)
+    out['cavity'] = cav; out['hatch'] = hat
     for sx, nm in ((-1, 'collar_l'), (1, 'collar_r')):
         lining = SAL_SKIN_D if sx < 0 else HANZ_SKIN_D
         col = Mesh()
@@ -190,6 +217,106 @@ def arm(s, shoulder, elbow, wrist, hand_dir):
     return {'sleeve': sl, 'hand': hd}
 
 
+def heart(clock=(0.0, 0.0), drips=()):
+    """His heart, wound into a clock: a wet, dark-red low-poly heart (two lobes, the apex, its vessels), a brass-rimmed
+    clock face set into its front (clock = the hour / minute hands' angles, degrees, 0 = twelve), a little gear
+    poking out of the top, and drips hanging off it (drips = [(x, z, length)] in its own space). Its own space: z up,
+    -y toward you, about 11 tall; the middle of the face at the origin."""
+    m = Mesh()
+    pts = []
+    for cx in (-2.4, 2.4):
+        pts += [(cx + 3 * math.cos(a) * math.cos(e), 2.2 * math.sin(a) * math.cos(e), 1.8 + 3 * math.sin(e))
+                for a in np.linspace(0, 2 * math.pi, 9)[:-1] for e in (-0.6, 0, 0.6, 1.2)]
+    pts += [(0.6, 0, -6.2), (0.2, -1.2, -4.8), (1.2, 1.0, -4.8)]
+    m.hull(pts, lambda c, n: HEART if n[2] > -0.4 else HEART2)
+    for (p0, p1, r0, r1) in (((0.8, 0.4, 3.5), (1.6, 0.8, 7.2), 1.4, 1.1), ((-1.6, 0.6, 3.6), (-2.6, 1.2, 6.2), 0.9, 0.7),
+                             ((2.8, 0.8, 3.2), (4.2, 1.0, 5.4), 0.8, 0.6)):
+        m.limb(p0, p1, r0, r1, HEART, sides=8)
+        m.limb(p1, tuple(np.array(p1) + (0, 0, 0.4)), r1 * 1.25, r1 * 1.25, HEART2, sides=8)   # (a cut-off rim)
+    # the clock: brass rim, cream face, hour marks, two black hands
+    R = 2.7; cy = -2.5
+    m.hull([(R * math.cos(a), cy + d, 0.4 + R * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 17)[:-1] for d in (-0.5, 0.6)], BRASS)
+    m.hull([(0.86 * R * math.cos(a), cy - 0.62 + d, 0.4 + 0.86 * R * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 17)[:-1] for d in (0, 0.15)], CLOCK)
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        m.box((0.7 * R * math.sin(a), cy - 0.82, 0.4 + 0.7 * R * math.cos(a)), (0.32, 0.12, 0.32), INKC)
+    for ang, ln, wd in ((clock[0], 1.2, 0.34), (clock[1], 1.9, 0.22)):
+        a = math.radians(ang)
+        tip = (ln * math.sin(a), cy - 0.92, 0.4 + ln * math.cos(a))
+        m.hull([(0.18 * math.cos(a) - wd / 2 * math.cos(a), cy - 0.88, 0.4 - 0.18 * math.sin(a)), tip,
+                (-wd / 2 * math.cos(a), cy - 1.0, 0.4 + wd / 2 * math.sin(a)), (wd / 2 * math.cos(a), cy - 0.88, 0.4 - wd / 2 * math.sin(a))], INKC)
+    m.box((0, cy - 0.95, 0.4), (0.4, 0.15, 0.4), BRASS)
+    # a gear poking out of the top, between the lobes
+    gear = [(0.1 + 1.6 * math.cos(a) * (1.25 if k % 2 else 1), 0.3 + d, 4.6 + 1.6 * math.sin(a) * (1.25 if k % 2 else 1))
+            for k, a in enumerate(np.linspace(0, 2 * math.pi, 17)[:-1]) for d in (-0.3, 0.3)]
+    m.hull(gear, BRASS2)
+    for (x, z, ln) in drips:                                                       # drips: a bead stretching down
+        m.hull([(x + 0.55 * math.cos(a), 0.2 + 0.55 * math.sin(a) - 0.3, z) for a in np.linspace(0, 2 * math.pi, 7)[:-1]]
+               + [(x, -0.1, z - ln), (x + 0.3, 0, z - ln * 0.7), (x - 0.3, 0, z - ln * 0.7)], BLOOD)
+    return m
+
+
+def drop(p, r=0.7, stretch=1.6):
+    """One falling drop of his blood at p (world): a little bead pulled long as it falls."""
+    m = Mesh()
+    x, y, z = p
+    m.hull([(x + r * math.cos(a) * math.cos(e), y + r * math.sin(a) * math.cos(e), z + r * math.sin(e) * (stretch if e > 0 else 1))
+            for a in np.linspace(0, 2 * math.pi, 9)[:-1] for e in (-1.2, -0.5, 0, 0.6, 1.2)], BLOOD)
+    return m
+
+
+def props():
+    """The things on his desk that move, as {name: (Mesh, (x, y) where it stands)}: built at rest here, animated by
+    hanz_anim.py. 'lava' = a lava lamp (chrome base and cap, glowing liquid in a tall tapered glass; its wax is
+    metaballs, added there) standing on two old books; 'hourglass' = a wooden hourglass whose sand falls UP (glass,
+    frame - the sand is added there); 'candle' = a fat candle melting all over a brass dish (its flame is added there)."""
+    out = {}
+    lx, ly, base = LAVA
+    m = Mesh()
+    ring = lambda r, z: [(lx + r * math.cos(a), ly + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 17)[:-1]]
+    m.hull(ring(5.2, base) + ring(3.6, base + 6.5), CHROME)                      # the base (a cone)
+    m.hull(ring(3.0, base + 6.0) + ring(4.2, base + 15) + ring(3.3, base + 25) + ring(1.9, base + 31), LAVA_GLASS)  # the glass
+    m.hull(ring(2.0, base + 30.5) + ring(1.1, base + 35), CHROME)                # the cap
+    out['lava'] = m
+    b = Mesh()
+    b.box((lx, ly, 1.75), (20, 15, 2.5), BOOK1, T(rz=4)); b.box((lx, ly - 7.6, 1.75), (19.4, 0.4, 2.1), PAGES, T(rz=4))
+    b.box((lx + 0.8, ly + 0.5, 4.6), (18, 13, 3.0), BOOK2, T(rz=-7)); b.box((lx + 0.8, ly - 6.2, 4.6), (17.4, 0.4, 2.6), PAGES, T(rz=-7))
+    out['books'] = b
+    hx_, hy = HOURGLASS
+    h = Mesh()
+    disc = lambda r, z0, z1: [(hx_ + r * math.cos(a), hy + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 13)[:-1] for z in (z0, z1)]
+    h.hull(disc(5, 0.5, 2.2), WOOD2); h.hull(disc(5, 18.8, 20.5), WOOD2)
+    for k in range(3):
+        a = 2 * math.pi * k / 3 + 0.5
+        h.limb((hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), 2.2), (hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), 18.8), 0.55, 0.55, WOOD, sides=8)
+    out['hourglass'] = h
+    g = Mesh()
+    bulb = lambda zc, flip: [(hx_ + r * math.cos(a), hy + r * math.sin(a), zc + flip * dz) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
+                             for r, dz in ((0.45, 7.6), (2.6, 5.2), (3.3, 2.6), (3.0, 0.3))]
+    g.hull(bulb(10.5, 1) + [(hx_, hy, 18.5)], GLASS); g.hull(bulb(10.5, -1) + [(hx_, hy, 2.5)], GLASS)
+    out['hourglass_glass'] = g
+    cx_, cy_ = CANDLE
+    c = Mesh()
+    c.hull([(cx_ + 6 * math.cos(a), cy_ + 6 * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 17)[:-1] for z in (0.5, 1.6)], BRASS)
+    c.hull([(cx_ + r * math.cos(a), cy_ + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 13)[:-1] for r, z in ((2.6, 1.6), (2.5, 9.5), (2.0, 11.2))], WAX)
+    rng = np.random.default_rng(5)
+    for k in range(7):                                                             # wax running down it, pooling over the dish
+        a = 2 * math.pi * k / 7 + rng.uniform(0, 0.4); z0 = rng.uniform(5, 10.5); r = 2.55
+        x, y = cx_ + r * math.cos(a), cy_ + r * math.sin(a)
+        c.limb((x, y, z0), (x, y, 1.8), 0.5, 0.7, WAX, sides=8)
+    c.hull([(cx_ + 5 * math.cos(a) + 1.5, cy_ + 3.5 * math.sin(a) - 1, z) for a in np.linspace(0, 2 * math.pi, 13)[:-1] for z in (1.6, 2.0)], WAX)
+    c.hull([(cx_ + 4.5 + 0.8 * math.cos(a), cy_ - 4 + 0.8 * math.sin(a), 1.8) for a in np.linspace(0, 2 * math.pi, 7)[:-1]]
+           + [(cx_ + 5.2, cy_ - 6.8, -3.5), (cx_ + 5.0, cy_ - 6.6, -1)], WAX)    # one drip over the dish's edge and off the counter
+    c.limb((cx_, cy_, 11), (cx_ + 0.2, cy_, 12.6), 0.18, 0.15, INKC, sides=6)   # the wick
+    out['candle'] = c
+    return out
+
+
+LAVA = (-62, 12, 6.1)          # the lava lamp: where it stands (x, y) and its base's height (on the two books)
+HOURGLASS = (47, -13)          # the hourglass, at the front between his grey hand and the candle
+CANDLE = (66, -12)             # the candle on its dish, in front of the till
+
+
 def counter():
     """His shop counter, as meshes: 'counter' (a heavy wooden top, its lip, the body with raised boards), 'bell' (brass),
     'till' (an old till) and 'watch' (a pocket watch melting over the front edge - one of the dream's melting things)."""
@@ -202,7 +329,7 @@ def counter():
     for i in range(-2, 3):                                                         # raised boards on the front
         m.box((i * 27, -19.5, -40), (23, 1.5, 58), WOOD if i % 2 else WOOD2)
     bell = Mesh()
-    bx, by = -64, 10
+    bx, by = -40, 12
     bell.hull([(bx + 6 * math.cos(a), by + 6 * math.sin(a), 0.6) for a in np.linspace(0, 2 * math.pi, 9)[:-1]]
               + [(bx + 3 * math.cos(a), by + 3 * math.sin(a), 6) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], BRASS)
     bell.box((bx, by, 7.5), (1.6, 1.6, 3), BRASS2)
@@ -235,70 +362,137 @@ def counter():
 INKC = 0x101012
 
 
-# ------------------------------------------------------------------ Blender scene
-def material(face_img=None):
-    """Flat colour per face lit in three hard steps from one key light (no smooth shading anywhere), with film grain
-    in the two darker steps. With face_img: the colour comes from Mason's face drawing over the split teal / rust
-    skin instead (closest-pixel sampling, so it stays crisp pixel art on the 3D head)."""
-    mt = bpy.data.materials.new('face' if face_img else 'flat'); mt.use_nodes = True
+# ------------------------------------------------------------------ Blender scene: a real lit render
+# what each colour is made of (its material): the colour stays the face's own colour, the material says how light
+# treats it - matte heavy cloth, soft skin, glossy hair and horn, polished brass, varnished wood...
+KINDS = {
+    'skin': (SAL_SKIN, SAL_SKIN_D, HANZ_SKIN, HANZ_SKIN_D),
+    'cloth': (COAT, COAT2, COAT3),
+    'leather': (BELT,),
+    'metal': (BRASS, BRASS2),
+    'hair': (HAIR,),
+    'horn': (HORN, HORN2),
+    'wood': (WOOD, WOOD2, WOOD3),
+    'ceramic': (CLOCK,),
+    'paint': (GREEN,),
+    'wet': (HEART, HEART2, BLOOD),
+    'cavity': (CAVITY,),
+    'book': (BOOK1, BOOK2),
+    'paper': (PAGES,),
+    'wax': (WAX,),
+    'glass': (GLASS,),
+    'sand': (SAND,),
+    'chrome': (CHROME,),
+    'lavaglass': (LAVA_GLASS,),
+    'lavawax': (LAVA_WAX,),
+}
+# how each material catches the light: roughness, metallic, clearcoat, sheen, subsurface
+LOOK = {'skin': (0.48, 0, 0.0, 0, 0.12), 'cloth': (0.86, 0, 0, 0.35, 0), 'leather': (0.38, 0, 0.2, 0, 0),
+        'metal': (0.28, 1, 0, 0, 0), 'hair': (0.3, 0, 0.25, 0, 0), 'horn': (0.22, 0, 0.6, 0, 0),
+        'wood': (0.42, 0, 0.35, 0, 0), 'ceramic': (0.22, 0, 0.3, 0, 0), 'paint': (0.32, 0.25, 0.2, 0, 0),
+        'wet': (0.12, 0, 1.0, 0, 0.2), 'cavity': (0.6, 0, 0, 0, 0), 'book': (0.62, 0, 0.1, 0.2, 0),
+        'paper': (0.8, 0, 0, 0, 0), 'wax': (0.35, 0, 0, 0, 0.5), 'glass': (0.02, 0, 0, 0, 0), 'sand': (0.9, 0, 0, 0, 0),
+        'chrome': (0.15, 1, 0, 0, 0), 'lavaglass': (0.05, 0, 0.5, 0, 0), 'lavawax': (0.3, 0, 0, 0, 0),
+        'plain': (0.55, 0, 0, 0, 0)}
+# what glows, and how bright: the hatch's insides, the lava lamp's liquid and wax
+GLOW = {'cavity': ((1.0, 0.08, 0.06), 1.6), 'lavaglass': ((0.85, 0.2, 0.6), 0.25), 'lavawax': ((1.0, 0.42, 0.1), 9.0)}
+# which parts are smooth-shaded (skin, horn) and which keep crisp folds; the angle (degrees) above which an edge stays sharp
+SMOOTH = {'hand': 70, 'neck': 70, 'horn': 70, 'heart': 70, 'drop': 80, 'lava': 80, 'candle': 80, 'hourglass': 80, 'sand': 80}
+SHARP_ANGLE = 32
+
+
+def kind_of(rgb):
+    """Which material a colour is (KINDS), 'plain' if none."""
+    for k, cols in KINDS.items():
+        if rgb in cols: return k
+    return 'plain'
+
+
+def principled(name, base=None, look='plain'):
+    """A real surface: Principled BSDF lit by the scene's lights. base = a colour socket (else the mesh's own per-face
+    colour 'Col'); look = a LOOK entry. Wood gets a grain, cloth a faint weave in its bump."""
+    rough, metal, coat, sheen, sss = LOOK[look]
+    mt = bpy.data.materials.new(name); mt.use_nodes = True
     nt = mt.node_tree; nt.nodes.clear(); L = nt.links
-    if face_img:
-        tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = face_img; tex.interpolation = 'Closest'
-        uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'UV'; L.new(uv.outputs['UV'], tex.inputs['Vector'])
-        base = tex.outputs['Color']
-    else:
+    bs = nt.nodes.new('ShaderNodeBsdfPrincipled')
+    out = nt.nodes.new('ShaderNodeOutputMaterial'); L.new(bs.outputs[0], out.inputs['Surface'])
+    if base is None:
         ca = nt.nodes.new('ShaderNodeVertexColor'); ca.layer_name = 'Col'; base = ca.outputs['Color']
-    geo = nt.nodes.new('ShaderNodeNewGeometry')
-    dot = nt.nodes.new('ShaderNodeVectorMath'); dot.operation = 'DOT_PRODUCT'
-    l = np.array((-0.45, -0.7, 0.55)); dot.inputs[1].default_value = tuple(l / np.linalg.norm(l))
-    L.new(geo.outputs['Normal'], dot.inputs[0])
-    ramp = nt.nodes.new('ShaderNodeValToRGB'); ramp.color_ramp.interpolation = 'CONSTANT'
-    els = ramp.color_ramp.elements
-    els[0].position = 0.0; els[0].color = (0.6, 0.6, 0.64, 1)                    # shadow
-    els[1].position = 0.5; els[1].color = (1.0, 1.0, 1.0, 1)                     # lit
-    remap = nt.nodes.new('ShaderNodeMapRange'); remap.inputs['From Min'].default_value = -1; L.new(dot.outputs['Value'], remap.inputs['Value'])
-    L.new(remap.outputs['Result'], ramp.inputs['Fac'])
-    # grain: sparse dark speckles everywhere, denser where it's in shadow (threshold 0.98 lit / 0.82 shadow)
-    tc = nt.nodes.new('ShaderNodeTexCoord')
-    nz = nt.nodes.new('ShaderNodeTexWhiteNoise'); nz.noise_dimensions = '3D'
-    sc = nt.nodes.new('ShaderNodeVectorMath'); sc.operation = 'SCALE'; sc.inputs['Scale'].default_value = 1.6
-    L.new(tc.outputs['Object'], sc.inputs[0]); L.new(sc.outputs['Vector'], nz.inputs['Vector'])
-    lvl = nt.nodes.new('ShaderNodeMath'); lvl.operation = 'MULTIPLY_ADD'; lvl.inputs[1].default_value = 0.4; lvl.inputs[2].default_value = 0.58
-    sep = nt.nodes.new('ShaderNodeSeparateColor'); L.new(ramp.outputs['Color'], sep.inputs['Color'])
-    L.new(sep.outputs[0], lvl.inputs[0])                                          # (0.6 -> 0.7, 1.0 -> 0.9)
-    th = nt.nodes.new('ShaderNodeMath'); th.operation = 'GREATER_THAN'
-    L.new(nz.outputs['Value'], th.inputs[0]); L.new(lvl.outputs['Value'], th.inputs[1])
-    gr = nt.nodes.new('ShaderNodeMath'); gr.operation = 'MULTIPLY_ADD'; gr.inputs[1].default_value = -0.35; gr.inputs[2].default_value = 1.0
-    L.new(th.outputs['Value'], gr.inputs[0])
-    m1 = nt.nodes.new('ShaderNodeMix'); m1.data_type = 'RGBA'; m1.blend_type = 'MULTIPLY'; m1.inputs['Factor'].default_value = 1
-    L.new(base, m1.inputs[6]); L.new(ramp.outputs['Color'], m1.inputs[7])
-    m2 = nt.nodes.new('ShaderNodeVectorMath'); m2.operation = 'SCALE'
-    L.new(m1.outputs[2], m2.inputs[0]); L.new(gr.outputs['Value'], m2.inputs['Scale'])
-    em = nt.nodes.new('ShaderNodeEmission'); L.new(m2.outputs['Vector'], em.inputs['Color'])
-    out = nt.nodes.new('ShaderNodeOutputMaterial'); L.new(em.outputs[0], out.inputs['Surface'])
+    if look == 'wood':                                                            # long grain along x, darker streaks
+        tc = nt.nodes.new('ShaderNodeTexCoord'); wv = nt.nodes.new('ShaderNodeTexWave')
+        wv.wave_type = 'BANDS'; wv.bands_direction = 'Z'; wv.inputs['Scale'].default_value = 0.08
+        wv.inputs['Distortion'].default_value = 6; wv.inputs['Detail'].default_value = 3
+        mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (0.15, 1, 1)
+        L.new(tc.outputs['Object'], mp.inputs['Vector']); L.new(mp.outputs['Vector'], wv.inputs['Vector'])
+        mr = nt.nodes.new('ShaderNodeMapRange'); mr.inputs['To Min'].default_value = 0.72
+        L.new(wv.outputs['Fac'], mr.inputs['Value'])
+        mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1
+        L.new(base, mx.inputs[6]); L.new(mr.outputs['Result'], mx.inputs[7]); base = mx.outputs[2]
+        bump = nt.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.08
+        L.new(wv.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], bs.inputs['Normal'])
+    if look == 'cloth':                                                           # a faint woollen weave
+        tc = nt.nodes.new('ShaderNodeTexCoord'); nz = nt.nodes.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 1.4
+        L.new(tc.outputs['Object'], nz.inputs['Vector'])
+        bump = nt.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.12
+        L.new(nz.outputs['Fac'], bump.inputs['Height']); L.new(bump.outputs['Normal'], bs.inputs['Normal'])
+    L.new(base, bs.inputs['Base Color'])
+    if look in GLOW:
+        col, st = GLOW[look]; bs.inputs['Emission Color'].default_value = col + (1,); bs.inputs['Emission Strength'].default_value = st
+    if look in ('glass', 'lavaglass'):                                            # see-through (the lava lamp's liquid tinted)
+        bs.inputs['Transmission Weight'].default_value = 1.0 if look == 'glass' else 0.85; bs.inputs['IOR'].default_value = 1.45 if look == 'glass' else 1.33
+    bs.inputs['Roughness'].default_value = rough; bs.inputs['Metallic'].default_value = metal
+    bs.inputs['Coat Weight'].default_value = coat; bs.inputs['Sheen Weight'].default_value = sheen
+    if sss:
+        bs.inputs['Subsurface Weight'].default_value = sss; bs.inputs['Subsurface Scale'].default_value = 0.6
     return mt
 
 
-def face_image():
-    """Mason's face drawing over the split skin: $@L's red left of FACE_SPLIT, HANZ's grey right of it, his black lines on top."""
-    src = np.array(Image.open(FACE).convert('RGBA'))
+def materials(face_img=None):
+    """All the materials, by name: one per LOOK, plus 'face' (Mason's drawing on the face plate, as skin) if face_img."""
+    mats = {k: principled('m_' + k, look=k) for k in LOOK}
+    if face_img:
+        mt = principled('m_face', look='skin'); nt = mt.node_tree
+        tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = face_img; tex.interpolation = 'Cubic'
+        uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'UV'; nt.links.new(uv.outputs['UV'], tex.inputs['Vector'])
+        bs = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
+        nt.links.new(tex.outputs['Color'], bs.inputs['Base Color'])
+        mats['face'] = mt
+    return mats
+
+
+def smooth_up(mask, k=16, blur=None, cut=0.5):
+    """A pixel-art mask (bool array) scaled up k times with its stair-steps rounded off: each pixel becomes a k x k
+    block, then the edges are blurred and cut at half - so Mason's lines come out as clean smooth strokes."""
+    from scipy.ndimage import gaussian_filter
+    big = np.kron(mask.astype(float), np.ones((k, k)))
+    return gaussian_filter(big, blur or k * 0.5) > cut
+
+
+def face_image(src=None, k=16):
+    """Mason's face drawing over the split skin, as a smooth hi-res texture (k x the drawing): $@L's red left of
+    FACE_SPLIT, HANZ's grey right of it, his black lines on top with their pixel steps rounded off. src = the drawing
+    (RGBA array), FACE if None."""
+    if src is None: src = np.array(Image.open(FACE).convert('RGBA'))
     H, W = src.shape[:2]
-    img = np.zeros((H, W, 4), np.uint8); img[..., 3] = 255
+    img = np.zeros((H * k, W * k, 4), np.uint8); img[..., 3] = 255
     t = [SAL_SKIN >> 16 & 255, SAL_SKIN >> 8 & 255, SAL_SKIN & 255]; r = [HANZ_SKIN >> 16 & 255, HANZ_SKIN >> 8 & 255, HANZ_SKIN & 255]
-    img[:, :FACE_SPLIT, :3] = t; img[:, FACE_SPLIT:, :3] = r
-    ink = src[..., 3] > 0
-    img[ink, :3] = (16, 14, 18)
-    path = os.path.join(bpy.app.tempdir or '/tmp', 'hanz_face_tex.png'); Image.fromarray(img).save(path)
+    img[:, :FACE_SPLIT * k, :3] = t; img[:, FACE_SPLIT * k:, :3] = r
+    img[smooth_up(src[..., 3] > 0, k, cut=0.36), :3] = (16, 14, 18)
+    path = os.path.join(bpy.app.tempdir or '/tmp', 'hanz_face_tex_%d.png' % id(src)); Image.fromarray(img).save(path)
     im = bpy.data.images.load(path); im.colorspace_settings.name = 'sRGB'
     return im
 
 
-def to_object(name, m, mats, face_box=None):
-    """Turns a Mesh into a Blender object: flat-shaded, a colour per polygon, and for the head the face texture's
-    UVs (a straight projection from the front over face_box = (x0, x1, z0, z1))."""
+def to_object(name, m, mats, face_box=None, bevel=True):
+    """Turns a Mesh into a Blender object: a colour per polygon, the material its colour is made of (KINDS), smooth
+    shading with crisp creases (SMOOTH / SHARP_ANGLE), a small bevel on the hard edges so they catch the light, and
+    for the head the face texture's UVs (a straight projection from the front over face_box = (x0, x1, z0, z1)).
+    mats = materials() (a dict)."""
     me = bpy.data.meshes.new(name); me.from_pydata(m.v, [], m.f); me.update()
     attr = me.color_attributes.new('Col', 'BYTE_COLOR', 'CORNER')
     uvl = me.uv_layers.new(name='UV')
+    order = list(mats.keys())
+    for mt in mats.values(): me.materials.append(mt)
     for poly, rgb in zip(me.polygons, m.c):
         c = tuple(((rgb >> s & 255) / 255) ** 2.2 for s in (16, 8, 0)) + (1.0,)
         for li in poly.loop_indices:
@@ -307,11 +501,45 @@ def to_object(name, m, mats, face_box=None):
                 x, _, z = m.v[me.loops[li].vertex_index]
                 x0, x1, z0, z1 = face_box
                 uvl.data[li].uv = ((x - x0) / (x1 - x0), (z - z0) / (z1 - z0))
-        poly.use_smooth = False
-        poly.material_index = 1 if (face_box and m.uv.get(poly.index)) else 0
-    for mt in mats: me.materials.append(mt)
+        poly.use_smooth = True
+        k = 'face' if (face_box and m.uv.get(poly.index) and 'face' in mats) else kind_of(rgb)
+        poly.material_index = order.index(k)
+    ang = next((a for key, a in SMOOTH.items() if key in name), SHARP_ANGLE)
+    me.set_sharp_from_angle(angle=math.radians(ang))
     ob = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(ob)
+    if bevel and ang == SHARP_ANGLE:
+        bv = ob.modifiers.new('bevel', 'BEVEL'); bv.width = 0.45; bv.segments = 2; bv.limit_method = 'ANGLE'
+        bv.angle_limit = math.radians(SHARP_ANGLE); bv.harden_normals = False
     return ob
+
+
+def lights():
+    """The light in his room: a warm lamp-light key from high on the left, a cool dusk rim from behind on the right
+    (it outlines his collar and horn), a soft lilac fill from the sky, and the room's peach-and-violet glow all round."""
+    sc = bpy.context.scene
+    w = bpy.data.worlds.new('dusk'); sc.world = w; w.use_nodes = True
+    bg = w.node_tree.nodes['Background']; bg.inputs['Color'].default_value = (0.42, 0.30, 0.42, 1); bg.inputs['Strength'].default_value = 0.35
+    for nm, rot, col, en, ang in (('key', (52, 0, -32), (1.0, 0.82, 0.62), 3.4, 14),
+                                  ('rim', (-62, 0, 145), (0.62, 0.66, 1.0), 4.0, 6),
+                                  ('fill', (70, 0, 20), (0.85, 0.72, 0.95), 0.9, 30)):
+        ld = bpy.data.lights.new(nm, 'SUN'); ld.color = col; ld.energy = en; ld.angle = math.radians(ang)
+        ob = bpy.data.objects.new(nm, ld); sc.collection.objects.link(ob)
+        ob.rotation_euler = tuple(math.radians(v) for v in rot)
+
+
+def render_settings(samples=40):
+    """Cycles, path traced: soft shadows, bounce light, denoised; transparent film so the game lays it over the room."""
+    sc = bpy.context.scene
+    sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = samples
+    sc.cycles.use_adaptive_sampling = True; sc.cycles.adaptive_threshold = 0.03
+    sc.cycles.use_denoising = True
+    try: sc.cycles.denoiser = 'OPENIMAGEDENOISE'
+    except Exception: pass
+    sc.cycles.max_bounces = 4; sc.cycles.diffuse_bounces = 2; sc.cycles.glossy_bounces = 2; sc.cycles.transparent_max_bounces = 4
+    sc.cycles.caustics_reflective = False; sc.cycles.caustics_refractive = False
+    sc.render.film_transparent = True; sc.render.use_freestyle = False
+    sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Punchy'
+    sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
 
 
 def T(x=0, y=0, z=0, rx=0, ry=0, rz=0):
@@ -325,26 +553,15 @@ def build(pose='lean'):
     looking at you; 'stand' = upright, arms down on the counter top."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
-    sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 1; sc.cycles.use_denoising = False
-    sc.cycles.pixel_filter_type = 'BOX'; sc.cycles.filter_width = 0.01; sc.cycles.max_bounces = 0
-    sc.render.film_transparent = True; sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'
-    sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
-    # ink lines: Freestyle on the silhouette, creases and borders
-    sc.render.use_freestyle = True; sc.render.line_thickness_mode = 'ABSOLUTE'; sc.render.line_thickness = 1.3
-    vl = sc.view_layers[0]; fs = vl.freestyle_settings; fs.crease_angle = math.radians(140)
-    ls = fs.linesets[0] if fs.linesets else fs.linesets.new('ink')
-    ls.select_by_visibility = True; ls.select_silhouette = True; ls.select_crease = True; ls.select_border = True
-    ls.select_contour = True; ls.select_external_contour = True
-    if ls.linestyle is None: ls.linestyle = bpy.data.linestyles.new('ink')
-    ls.linestyle.color = INK; ls.linestyle.thickness = 1.3
-    flat = material(); facem = material(face_image())
+    render_settings(); lights()
+    mats = materials(face_image())
     lean = pose == 'lean'
     body = T(0, 42, -4, rx=38 if lean else 4)                                   # hips behind the counter, hunched over it toward you
     neck_top = body @ Vector((0, 1, 50))
     head_M = T(*neck_top) @ T(0, -4, 15, rx=4 if lean else 0, ry=-7) @ Matrix.Scale(HEAD_SCALE, 4)   # (perfectly calm, head tilted a little - just slightly off)
-    for nm, m in coat(body).items(): to_object(nm, m, [flat])
+    for nm, m in coat(body).items(): to_object(nm, m, mats)
     for nm, m in head().items():                                                  # (built at rest, so the face UVs are a straight front projection)
-        ob = to_object(nm, m, [flat, facem], face_box=FACE_UV if nm == 'face' else None); ob.matrix_world = head_M
+        ob = to_object(nm, m, mats, face_box=FACE_UV if nm == 'face' else None); ob.matrix_world = head_M
     for s_ in (-1, 1):
         sh = body @ Vector((s_ * 24, 0, 41))
         if lean:
@@ -352,10 +569,11 @@ def build(pose='lean'):
         else:
             el = body @ Vector((s_ * 31, 2, 14)); wr = Vector((s_ * 30, -8, 2.9)); hdir = (0, -1, 0)
         for nm, m in arm(s_, tuple(sh), tuple(el), tuple(wr), hdir).items():
-            to_object(nm + ('_sal' if s_ < 0 else '_hanz'), m, [flat])
-    for nm, m in counter().items(): to_object(nm, m, [flat])
+            to_object(nm + ('_sal' if s_ < 0 else '_hanz'), m, mats)
+    for nm, m in counter().items(): to_object(nm, m, mats)
     cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
     cam.data.lens = 50; cam.data.clip_end = 5000
+    sc['mats'] = 1; build.mats = mats
     return cam, head_M
 
 

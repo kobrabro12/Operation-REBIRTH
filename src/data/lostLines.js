@@ -64,6 +64,13 @@ export const LOST_LINES = {
     [['s', 'WHO TOOK THE STAIRS?'], ['h', ' THE STAIRS TOOK THEMSELVES.']],
     [['h', '...'], ['s', ' SAY SOMETHING!'], ['h', ' ...'], ['s', ' UGH!']],
   ],
+  // after he's checked the time on his clock-heart
+  heart: [
+    [['h', '...STILL TICKING.']],
+    [['s', 'RIGHT ON TIME!'], ['h', ' FOR WHAT?'], ['s', ' ...SHUT UP.']],
+    [['h', 'IT\'S LATER THAN IT WAS.']],
+    [['s', 'WHO WOUND THIS THING?!'], ['h', ' YOU DID.']],
+  ],
   // leaving
   bye: [
     [['s', 'COME BACK! OR DON\'T! I\'LL KNOW!'], ['h', ' ...MIND THE STAIRS.']],
