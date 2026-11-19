@@ -159,6 +159,14 @@ Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X 
 - **Milestones**: every 25 KOs by a human with a fighter (25/50/75/100) unlocks one of four milestone costumes,
   saved in the browser. CPU, training and self-destruct KOs don't count. `?kos=N` in the URL sets the count for testing.
 - Copies of the same fighter are told apart by costume, not tint.
+- **LOST** (the shop's last tab): the TRUE SHOPKEEPER, HANZ / $@L - one man split down the middle: $@L the left half
+  (blood red, one devil horn: sneaky, quick to anger, foolish) and HANZ the right (pale grey: tired, sad, smart). A 3D
+  low-poly figure (rendered in Blender) leaning over a counter in a dark, dreamlike surrealist room. The room is dark
+  until you type HANZ or $@L (the name decides who greets you first); after that he's unlocked for good. He sells, in
+  MEMORIES (the same coins): SLEEPWALKER (Soul Summoner), MELTED HOUR (Lacy), ROOM IN A BOWL (AERO), TWO-FACED (GNASH),
+  2500 each; the stage theme THE WAITING DREAM (1200); the extras SECOND OPINION (his head pops up after KOs with a
+  comment) and DOOR TO NOWHERE (two doors on the stage that teleport you), 800 each. His things are never on the other
+  shelves or in the gacha machines.
 
 ## 11. CPU
 
