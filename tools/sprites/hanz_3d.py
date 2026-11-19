@@ -92,132 +92,132 @@ def side(col_h, col_s, cut=0.0):
 
 
 # ------------------------------------------------------------------ him
-FACE_X, FACE_Z = 18, (-21, 20)                    # the face plate: half its width, and its bottom / top
+FACE_X, FACE_Z = 18, (-23, 20)                    # the face plate: half its width, and its bottom / top
 HEAD_SCALE = 0.8                                  # the head's size on his body
 FACE_SPLIT = 31                                   # the drawing's column between his two eyes = where grey turns red
 # the face texture's straight front projection (x0, x1, z0, z1 = where u / v run 0..1): column FACE_SPLIT lands on
-# x = 0, the plate's edges on the drawing's edges, its top / bottom on rows 2 / 52
+# x = 0, the plate's edges on the drawing's edges, its top / bottom on rows 2 / 52 (so the whole grin fits on it)
 FACE_UV = (-FACE_X, FACE_X * (64 - FACE_SPLIT) / FACE_SPLIT, FACE_Z[1] - 62 * (FACE_Z[1] - FACE_Z[0]) / 50, FACE_Z[1] + 2 * (FACE_Z[1] - FACE_Z[0]) / 50)
 
 
-def head(M):
-    """His head: a big flat face plate (the face texture covers its whole front - grey left, red right) on a shallow
-    head, framed by black hair like a helmet: a heavy fringe in three big points over the brow, long flat side panels
-    down past the jaw that end in points, a cowlick of two shards on top."""
-    m = Mesh()
+def head():
+    """His head, as two meshes. 'face': a big flat face plate (Mason's drawing covers its whole front, grey left, red
+    right) on a shallow head. 'hair': black hair framing it like a helmet - a cap, a heavy fringe in three big points
+    over the brow, flat side panels down to the jaw ending in points, the back, a cowlick of two shards."""
+    face, hair = Mesh(), Mesh()
     z0, z1 = FACE_Z
-    front = [(-FACE_X, -11, z1), (FACE_X, -11, z1), (-FACE_X - 1, -11, 3), (FACE_X + 1, -11, 3),
-             (-13, -10, -15), (13, -10, -15), (-5, -9, z0), (5, -9, z0)]
-    back = [(x * 0.88, 10, z * 0.92) for x, _, z in front]
-    is_front = lambda c, n: n[1] < -0.9
-    m.hull(front + back, lambda c, n: (GREY if c[0] < 0 else RED), M, uvface=is_front)
-    # hair: top block, a fringe of three big points, the side panels, the back
-    m.hull([(-23, -14, 19), (23, -14, 19), (-23, 12, 18), (23, 12, 18), (-20, -13, 30), (20, -13, 30), (-19, 11, 29), (19, 11, 29)], HAIR, M)
+    front = [(-FACE_X, -11, z1), (FACE_X, -11, z1), (-FACE_X - 1.5, -11, 4), (FACE_X + 1.5, -11, 4),
+             (-17, -11, -12), (17, -11, -12), (-9, -10, z0), (9, -10, z0)]
+    back = [(x * 0.88, 9, z * 0.9) for x, _, z in front]
+    face.hull(front + back, lambda c, n: (GREY if c[0] < 0 else RED), uvface=lambda c, n: n[1] < -0.9)
+    hair.hull([(-23, -14, 19), (23, -14, 19), (-23, 11, 18), (23, 11, 18), (-20, -13, 30), (20, -13, 30), (-19, 10, 29), (19, 10, 29)], HAIR)
     for (x0, x1, tipx, tipz) in ((-19, -6, -14, 12), (-7, 6, 1, 14), (5, 19, 13, 11)):
-        m.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR, M)
+        hair.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR)
     for sx in (-1, 1):
-        m.hull([(sx * 18.5, -14, 22), (sx * 25, -14, 22), (sx * 18.5, 11, 22), (sx * 25, 11, 21),
-                (sx * 18.5, -13, -12), (sx * 23, -11, -14), (sx * 19, 8, -10), (sx * 20, -12, -24)], HAIR, M)
-    m.hull([(-20, 9, 26), (20, 9, 26), (-19, 13, -6), (19, 13, -6), (-16, 12, 18), (16, 12, 18)], HAIR, M)
-    m.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR, M)          # the cowlick
-    m.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR, M)
-    return m
+        hair.hull([(sx * 19.5, -14, 22), (sx * 24.5, -14, 22), (sx * 19.5, 10, 22), (sx * 24.5, 10, 21),
+                   (sx * 20, -13, -6), (sx * 23.5, -11, -8), (sx * 20, 7, -4), (sx * 21, -12.5, -15)], HAIR)
+    hair.hull([(-20, 8, 26), (20, 8, 26), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
+    hair.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR)        # the cowlick
+    hair.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR)
+    return {'face': face, 'hair': hair}
 
 
 def coat(M):
-    """His chest and shoulders in the thick trench coat: a narrow lanky torso, a huge popped collar rising round his
-    head (lined grey on HANZ's side, red on $@L's), wide lapels, two rows of brass buttons, a belt and buckle,
-    epaulettes, and the coat's skirt flaring below the belt."""
-    m = Mesh()
+    """His chest and shoulders in the thick trench coat, as meshes: 'torso' (a narrow lanky body, wide lapels, two
+    rows of brass buttons, a belt and buckle, epaulettes, the skirt flaring below the belt), 'collar_l' / 'collar_r'
+    (the huge popped collar: two thick walls flaring out round his head, lined grey on HANZ's side and red on $@L's),
+    'neck'."""
+    torso, neck = Mesh(), Mesh()
     pts = []
-    for z, w, d in ((-30, 21, 12), (0, 15, 9), (14, 14, 9), (32, 18, 10), (42, 25, 10), (47, 21, 8)):
+    for z, w, d in ((-30, 19, 11), (0, 14, 8.5), (14, 13, 8.5), (32, 17, 9.5), (40, 22, 9.5), (45, 18, 8)):
         pts += [(x, y, z) for x in (-w, w) for y in (-d, d)]
-    m.hull(pts, lambda c, n: COAT2 if n[1] < -0.5 else COAT, M)
-    # the popped collar: two thick flared walls; faces turned inward show the lining
+    torso.hull(pts, lambda c, n: COAT2 if n[1] < -0.5 else COAT, M)
+    torso.slab([(-3, 40), (-16, 39), (-11, 21), (2, 11)], -11.5, -9.6, COAT2, M)       # lapels, crossing for the double breast
+    torso.slab([(3, 40), (16, 39), (11, 21), (-1, 11)], -12.6, -10.7, COAT2, M)
+    torso.slab([(-4, 39.5), (4, 39.5), (2, 32), (-2, 32)], -10.9, -9.4, COAT3, M)        # the dark opening at the throat
+    for bx in (-5.5, 5.5):
+        for bz in (27, 20):
+            torso.box((bx, -12.7, bz), (2.2, 1.0, 2.2), BRASS, M)
+    torso.hull([(x, y, z) for x in (-15, 15) for y in (-10, 10) for z in (6, 11)], BELT, M)
+    torso.box((0, -10.8, 8.5), (6, 1.4, 6), BRASS, M); torso.box((0, -11.2, 8.5), (3, 1.2, 3), BELT, M)
     for sx in (-1, 1):
+        torso.slab([(sx * 10, 45.5), (sx * 22, 41.5), (sx * 22, 39.8), (sx * 10, 43.8)], -5, 5, COAT3, M)   # epaulettes
+    neck.limb((0, 1, 40), (0, 1, 52), 5, 4.5, lambda c, n: GREY_D if c[0] < 0 else RED_D, sides=4, M=M)
+    out = {'torso': torso, 'neck': neck}
+    for sx, nm in ((-1, 'collar_l'), (1, 'collar_r')):
         lining = GREY_D if sx < 0 else RED_D
-        m.hull([(sx * 5, -9, 42), (sx * 5, 7, 44), (sx * 20, -7, 45), (sx * 20, 7, 45),
-                (sx * 13, -12, 68), (sx * 24, -8, 70), (sx * 23, 7, 68), (sx * 9, 2, 70),
-                (sx * 16, -11, 69), (sx * 21, 4, 69)],
-               lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.35 or n[1] > 0.6 else COAT, M)
-    # wide lapels over the chest, crossing for the double breast
-    m.slab([(-3, 42), (-17, 41), (-12, 22), (2, 12)], -11.5, -9.5, COAT2, M)
-    m.slab([(3, 42), (17, 41), (12, 22), (-1, 12)], -12.5, -10.5, COAT2, M)
-    m.slab([(-4, 41), (4, 41), (2, 33), (-2, 33)], -10.8, -9.2, COAT3, M)            # dark collar opening
-    for bx in (-6, 6):
-        for bz in (28, 21):
-            m.box((bx, -12.6, bz), (2.4, 1.2, 2.4), BRASS, M)
-    # belt + buckle, epaulettes
-    m.hull([(x, y, z) for x in (-16, 16) for y in (-10.5, 10.5) for z in (6, 11)], BELT, M)
-    m.box((0, -11.2, 8.5), (6, 1.4, 6), BRASS, M); m.box((0, -11.6, 8.5), (3, 1.2, 3), BELT, M)
-    for sx in (-1, 1):
-        m.slab([(sx * 12, 46.5), (sx * 25, 44.5), (sx * 25, 42.5), (sx * 12, 44.5)], -5, 5, COAT3, M)
-    # the neck (mostly hidden in the collar)
-    m.limb((0, 1, 44), (0, 1, 55), 5, 4.5, lambda c, n: GREY_D if c[0] < 0 else RED_D, sides=4, M=M)
-    return m
+        col = Mesh()
+        col.hull([(sx * 7, -8, 40), (sx * 7, 7, 42), (sx * 14, -7, 42), (sx * 14, 7, 42),
+                  (sx * 22, -6, 62), (sx * 29, -9, 64), (sx * 28, 7, 63), (sx * 21, 6, 63)],
+                 lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.3 else COAT, M)
+        out[nm] = col
+    return out
 
 
-def arm(M, s, shoulder, elbow, wrist, hand_dir):
-    """One long arm in a wide trench sleeve (a big flat shoulder, a sleeve that flares at the cuff, a strap round the
-    cuff) and a long-fingered hand: grey for HANZ (s = -1), red for $@L (s = +1)."""
-    m = Mesh()
+def arm(s, shoulder, elbow, wrist, hand_dir):
+    """One long arm, as meshes: 'sleeve' (a sloped shoulder, a wide trench sleeve flaring at the cuff, a strap round
+    the cuff) and 'hand' (a big long-fingered hand lying flat, grey for HANZ (s = -1), red for $@L (s = +1))."""
+    sl, hd = Mesh(), Mesh()
     skin, skin_d = (GREY, GREY_D) if s < 0 else (RED, RED_D)
-    m.hull([(shoulder[0] + dx * 7, shoulder[1] + dy * 9, shoulder[2] + dz * 6) for dx in (-1, 1) for dy in (-1, 1) for dz in (-1, 1)], COAT, M)
-    m.limb(shoulder, elbow, 7.5, 6.5, COAT, sides=4, twist=0.4, M=M)
+    x, y, z = shoulder
+    sl.hull([(x - s * 4, y - 8, z + 4), (x - s * 4, y + 8, z + 4), (x + s * 8, y - 8, z - 3), (x + s * 8, y + 8, z - 3),
+             (x - s * 4, y - 7, z - 6), (x - s * 4, y + 7, z - 6), (x + s * 7, y - 7, z - 9), (x + s * 7, y + 7, z - 9)], COAT)
+    sl.limb(shoulder, elbow, 7, 6.5, COAT, sides=5, twist=0.4)
     e, w = np.array(elbow, float), np.array(wrist, float)
-    cuff = e + (w - e) * 0.86
-    m.limb(elbow, tuple(cuff), 6.5, 8, COAT2, sides=4, twist=0.2, M=M)
-    m.limb(tuple(e + (w - e) * 0.7), tuple(e + (w - e) * 0.78), 8.2, 8.4, BELT, sides=4, twist=0.2, M=M)   # the cuff strap
-    m.limb(tuple(cuff), wrist, 3.4, 3.4, skin_d, sides=4, M=M)
+    cuff = e + (w - e) * 0.84
+    sl.limb(elbow, tuple(cuff), 6.5, 8, COAT2, sides=5, twist=0.2)
+    sl.limb(tuple(e + (w - e) * 0.68), tuple(e + (w - e) * 0.76), 8.0, 8.2, BELT, sides=5, twist=0.2)   # the cuff strap
+    hd.limb(tuple(cuff), wrist, 3.4, 3.4, skin_d, sides=4)
     d = np.array(hand_dir, float); d /= np.linalg.norm(d)
     u = np.cross(d, (0, 0, 1)); u /= np.linalg.norm(u)
-    palm_end = w + d * 10
-    m.hull([tuple(p + u * a + np.array((0, 0, z))) for p in (w, palm_end) for a in (-5, 5) for z in (-1.8, 1.8)], skin, M)
-    for i, a in enumerate((-3.9, -1.3, 1.3, 3.9)):                                   # long fingers flat on the wood
+    palm_end = w + d * 12
+    hd.hull([tuple(p + u * a + np.array((0, 0, zz))) for p in (w, palm_end) for a in (-6, 6) for zz in (-1.8, 1.8)], skin)
+    for i, a in enumerate((-4.6, -1.5, 1.5, 4.6)):                                   # long fingers lying flat on the wood
         base = palm_end + u * a
-        tip = base + d * (10 + (2 if i in (1, 2) else 0)) + u * a * 0.3 + np.array((0, 0, -1.2))
-        m.limb(tuple(base), tuple(tip), 1.5, 1.2, skin, sides=4, M=M)
-    m.limb(tuple(w + u * 5 * -s + d * 2), tuple(w + u * 11 * -s + d * 6 + np.array((0, 0, -1))), 1.8, 1.4, skin_d, sides=4, M=M)
-    return m
+        tip = base + d * (12 + (2 if i in (1, 2) else 0)) + u * a * 0.3 + np.array((0, 0, -0.6))
+        hd.limb(tuple(base), tuple(tip), 1.7, 1.4, skin, sides=4)
+    hd.limb(tuple(w + u * 6 * -s + d * 2), tuple(w + u * 12 * -s + d * 7 + np.array((0, 0, -0.5))), 2.0, 1.6, skin_d, sides=4)
+    return {'sleeve': sl, 'hand': hd}
 
 
 def counter():
-    """His shop counter: a heavy wooden top with a front panel of raised boards, a brass bell, an old till, and a
-    pocket watch melting over the front edge (one of the dream's melting things)."""
+    """His shop counter, as meshes: 'counter' (a heavy wooden top, its lip, the body with raised boards), 'bell' (brass),
+    'till' (an old till) and 'watch' (a pocket watch melting over the front edge - one of the dream's melting things)."""
     m = Mesh()
-    m.box((0, 0, -2), (150, 44, 5), WOOD2)                                       # the top
+    m.box((0, 0, -2), (150, 44, 5), WOOD2)                                       # the top (its surface at z = 0.5)
     m.box((0, -20, -6), (154, 6, 4), WOOD)                                        # its front lip
     m.box((0, 0, -40), (144, 38, 70), WOOD3)                                      # the body
     for i in range(-2, 3):                                                         # raised boards on the front
         m.box((i * 27, -19.5, -40), (23, 1.5, 58), WOOD if i % 2 else WOOD2)
-    # the bell
-    m.hull([(-58 + 6 * math.cos(a), -6 + 6 * math.sin(a), 0.5) for a in np.linspace(0, 2 * math.pi, 9)[:-1]]
-           + [(-58 + 3 * math.cos(a), -6 + 3 * math.sin(a), 6) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], BRASS, None)
-    m.box((-58, -6, 7.5), (1.6, 1.6, 3), BRASS2)
-    # the till
-    m.hull([(46, -6, 0.5), (70, -6, 0.5), (46, 16, 0.5), (70, 16, 0.5), (48, 2, 24), (68, 2, 24), (48, 16, 28), (68, 16, 28)], GREEN)
+    bell = Mesh()
+    bx, by = -64, 10
+    bell.hull([(bx + 6 * math.cos(a), by + 6 * math.sin(a), 0.6) for a in np.linspace(0, 2 * math.pi, 9)[:-1]]
+              + [(bx + 3 * math.cos(a), by + 3 * math.sin(a), 6) for a in np.linspace(0, 2 * math.pi, 7)[:-1]], BRASS)
+    bell.box((bx, by, 7.5), (1.6, 1.6, 3), BRASS2)
+    till = Mesh()
+    till.hull([(56, 0, 0.6), (74, 0, 0.6), (56, 20, 0.6), (74, 20, 0.6), (58, 7, 22), (72, 7, 22), (58, 20, 26), (72, 20, 26)], GREEN)
     for i in range(3):
         for j in range(3):
-            m.box((51 + i * 7, -2 + j * 3, 6 + j * 4), (4, 2.5, 1.6), CLOCK)
-    m.slab([(51, 28), (65, 28), (65, 35), (51, 35)], 12, 13.5, CLOCK)
-    # the melting watch: a disc on the counter that sags over the edge and drips down the front
+            till.box((60 + i * 5, 3 + j * 3, 6 + j * 4), (3.4, 2.5, 1.6), CLOCK)
+    till.slab([(59, 26), (71, 26), (71, 32), (59, 32)], 15, 16.5, CLOCK)
+    watch = Mesh()
+    WX = -52
     rim = []
     for k in range(10):
         a = 2 * math.pi * k / 10
-        x, y = 14 * math.cos(a), 9 * math.sin(a) - 12
-        z = 0.6
-        if y < -17: z = 0.6 - (abs(y) - 17) * 3; y = -21.5                       # (the part past the edge hangs down)
-        rim.append((x - 34, y, z))
-    m.hull(rim + [(p[0] * 0.85 - 6.6, p[1], p[2] + 1.6) for p in rim], CLOCK)
-    m.hull([(-40, -22.5, -6), (-30, -22.5, -6), (-36, -23.5, -20), (-35, -22.0, -26), (-34, -23, -14)], CLOCK)   # the drip
-    m.hull([(p[0], p[1], p[2] - 0.4) for p in rim] + [(p[0] * 1.08 + 2.7, p[1] * 1.05 - (0.6 if p[1] > -20 else 0), p[2] + 0.6) for p in rim], BRASS)   # its gold case (under the face)
+        x, y = 13 * math.cos(a), 9 * math.sin(a) - 12
+        z = 1.2
+        if y < -17: z = 1.2 - (abs(y) - 17) * 3; y = -23.6                       # (the part past the edge hangs down the lip)
+        rim.append((x + WX, y, z))
+    watch.hull(rim + [(p[0], p[1] - (0.8 if p[1] < -20 else 0), p[2] + 1.4) for p in rim], CLOCK)
+    watch.hull([(WX - 6, -24.6, -6), (WX + 4, -24.6, -6), (WX - 2, -25.2, -20), (WX - 1, -24.4, -26), (WX, -25, -14)], CLOCK)   # the drip
     for k in range(12):                                                             # hour marks (the ones past the edge slide down with it)
-        a = 2 * math.pi * k / 12; x, y = -34 + 11 * math.cos(a), 8 * math.sin(a) - 12
-        z = 2.4
-        if y < -17: z = 2.4 - (abs(y) - 17) * 3; y = -22.2
-        m.box((x, y, z), (1.4, 1.4, 0.6), INKC)
-    m.box((-31, -12, 2.6), (7, 1, 0.6), INKC); m.box((-34.5, -9.5, 2.6), (1, 5, 0.6), INKC)                         # its hands
-    return m
+        a = 2 * math.pi * k / 12; x, y = WX + 10 * math.cos(a), 7 * math.sin(a) - 12
+        zz = 2.9
+        if y < -17: zz = 2.9 - (abs(y) - 17) * 3; y = -25.2
+        watch.box((x, y, zz), (1.4, 1.4, 0.6), INKC)
+    watch.box((WX + 3, -12, 3.1), (7, 1, 0.6), INKC); watch.box((WX - 0.5, -9.5, 3.1), (1, 5, 0.6), INKC)   # its hands
+    return {'counter': m, 'bell': bell, 'till': till, 'watch': watch}
 
 
 INKC = 0x101012
@@ -327,24 +327,52 @@ def build(pose='lean'):
     ls.linestyle.color = INK; ls.linestyle.thickness = 1.3
     flat = material(); facem = material(face_image())
     lean = pose == 'lean'
-    body = T(0, 30, -15, rx=32 if lean else 4)                                   # hips behind the counter, chest tipped over it toward you
-    neck_top = body @ Vector((0, 1, 54))
-    head_M = T(*neck_top) @ T(0, -4, 14, rx=6 if lean else 0, ry=-7) @ Matrix.Scale(HEAD_SCALE, 4)   # (perfectly calm, head tilted a little - just slightly off)
-    to_object('coat', coat(body), [flat])
-    hm = head(Matrix.Identity(4))                                                 # (built at rest so the face UVs are a straight front projection)
-    ob = to_object('head', hm, [flat, facem], face_box=FACE_UV)
-    ob.matrix_world = head_M
-    for s in (-1, 1):
-        sh = body @ Vector((s * 23, 0, 42))
+    body = T(0, 42, -4, rx=38 if lean else 4)                                   # hips behind the counter, hunched over it toward you
+    neck_top = body @ Vector((0, 1, 50))
+    head_M = T(*neck_top) @ T(0, -4, 15, rx=4 if lean else 0, ry=-7) @ Matrix.Scale(HEAD_SCALE, 4)   # (perfectly calm, head tilted a little - just slightly off)
+    for nm, m in coat(body).items(): to_object(nm, m, [flat])
+    for nm, m in head().items():                                                  # (built at rest, so the face UVs are a straight front projection)
+        ob = to_object(nm, m, [flat, facem], face_box=FACE_UV if nm == 'face' else None); ob.matrix_world = head_M
+    for s_ in (-1, 1):
+        sh = body @ Vector((s_ * 24, 0, 41))
         if lean:
-            el = Vector((s * 42, -2, 16)); wr = Vector((s * 27, -10, 2.5)); hdir = (-s * 0.2, -1, 0)   # hands planted wide and flat, elbows out: leaning over the counter at you
+            el = Vector((s_ * 45, 2, 22)); wr = Vector((s_ * 28, -11, 2.9)); hdir = (-s_ * 0.18, -1, 0)   # hands flat and wide on the counter, elbows out
         else:
-            el = body @ Vector((s * 31, 2, 14)); wr = Vector((s * 30, -8, 2.5)); hdir = (0, -1, 0)
-        to_object('arm_' + ('hanz' if s < 0 else 'sal'), arm(None, s, tuple(sh), tuple(el), tuple(wr), hdir), [flat])
-    to_object('counter', counter(), [flat])
+            el = body @ Vector((s_ * 31, 2, 14)); wr = Vector((s_ * 30, -8, 2.9)); hdir = (0, -1, 0)
+        for nm, m in arm(s_, tuple(sh), tuple(el), tuple(wr), hdir).items():
+            to_object(nm + ('_hanz' if s_ < 0 else '_sal'), m, [flat])
+    for nm, m in counter().items(): to_object(nm, m, [flat])
     cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
     cam.data.lens = 50; cam.data.clip_end = 5000
     return cam, head_M
+
+
+# pairs of pieces that must never pass through each other (the shoulder joins and the hair on the head are meant to
+# overlap, so they're not listed)
+NO_CLIP = [('hair', 'collar_l'), ('hair', 'collar_r'), ('face', 'collar_l'), ('face', 'collar_r'), ('hair', 'torso'),
+           ('face', 'torso'), ('face', 'neck_x'), ('sleeve_hanz', 'counter'), ('sleeve_sal', 'counter'),
+           ('hand_hanz', 'counter'), ('hand_sal', 'counter'), ('hand_hanz', 'watch'), ('hand_hanz', 'bell'),
+           ('hand_sal', 'till'), ('sleeve_sal', 'till'), ('sleeve_hanz', 'collar_l'), ('sleeve_sal', 'collar_r'),
+           ('sleeve_hanz', 'hair'), ('sleeve_sal', 'hair'), ('torso', 'counter'), ('collar_l', 'collar_r'),
+           ('hand_hanz', 'sleeve_sal'), ('sleeve_hanz', 'sleeve_sal')]
+
+
+def clip_check():
+    """Lists every NO_CLIP pair whose meshes pass through each other (Blender BVH overlap). Returns the bad pairs."""
+    from mathutils.bvhtree import BVHTree
+    dg = bpy.context.evaluated_depsgraph_get(); trees = {}
+    def tree(n):
+        if n not in trees:
+            ob = bpy.data.objects.get(n)
+            if not ob: return None
+            me = ob.evaluated_get(dg).to_mesh(); mw = ob.matrix_world
+            trees[n] = BVHTree.FromPolygons([mw @ v.co for v in me.vertices], [list(p.vertices) for p in me.polygons])
+        return trees[n]
+    bad = []
+    for a_, b_ in NO_CLIP:
+        ta, tb = tree(a_), tree(b_)
+        if ta and tb and ta.overlap(tb): bad.append((a_, b_, len(ta.overlap(tb))))
+    return bad
 
 
 def shot(cam, path, w, h, loc, target, lens=50):
@@ -359,6 +387,7 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--pose', default='lean')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     cam, hm = build(a.pose)
+    print('CLIPPING:', clip_check() or 'none')
     face = hm @ Vector((0, 0, 0))
     shot(cam, os.path.join(a.out, 'front.png'), 480, 480, (0, -240, 70), (0, 0, 22), 50)
     shot(cam, os.path.join(a.out, 'close.png'), 400, 400, (0, -120, face.z + 8), tuple(face), 60)
