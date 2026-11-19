@@ -1,19 +1,20 @@
 """HANZ / $@L, THE TRUE SHOPKEEPER, as a real low-poly 3D model in Blender (`pip install bpy`, Blender 5.x).
 
-The look: angular, flat-shaded polygons (every part is the convex hull of a few points, so it's all hard facets),
-thick black ink lines on the silhouette and on every sharp crease (Blender's Freestyle), flat colour per face lit in
-three hard steps, and film grain in the shadows.
+The look: a few big flat angular planes (every part is the convex hull of a handful of points), thin black ink lines
+on the silhouette and the sharp creases (Blender's Freestyle), bold flat colour per face lit in two hard steps, and
+a speckled grain over everything (denser in the shadow).
 
-Him: one man, two halves split straight down the middle. HANZ (the LEFT of the picture) is tired, sad and smart - faded TEAL skin, a neat dark suit, combed hair. $@L (the right of the
-picture) is sneaky, quick to anger and foolish - rust RED skin, the same suit torn and stained, hair in spikes. His
-face is Mason's drawing (tools/sprites/art/hanz_face.png, 64x64, black lines) laid on the front of the head as a
-pixel texture: HANZ's heavy drooping eye, $@L's beady eye in spiral rings, a crooked grin across both.
+Him: one lanky man split straight down the middle. HANZ (the LEFT of the picture) is tired, sad and smart: pale GREY.
+$@L (the right) is sneaky, quick to anger and foolish: blood RED. The split runs through his face, his hands and the
+lining of his coat. His face is a big flat plate framed by black hair like a helmet, and on it is Mason's drawing
+(tools/sprites/art/hanz_face.png, 64x64, black lines) as a pixel texture: HANZ's heavy drooping eye, $@L's beady eye
+in spiral rings, a crooked grin across both. He wears a thick, heavy anime trench coat: a huge popped collar round
+his head (lined grey on HANZ's side, red on $@L's), wide lapels, double-breasted buttons, a belt, epaulettes, wide
+cuffs with straps. He's too calm: perfectly still, head a little tilted, leaning over a heavy old shop counter on
+long arms with his hands flat on the wood.
 
-He stands behind a heavy old shop counter and leans on it on his elbows. The counter carries a bell, a till and a
-clock melting over its front edge.
-
-Run:  python3 tools/sprites/hanz_3d.py [--out DIR] [--shots front,hanz,sal,lean,wide]
-      -> renders preview shots to DIR (default the scratch folder you pass) and saves the scene as
+Run:  python3 tools/sprites/hanz_3d.py --out DIR [--pose lean|stand]
+      -> preview shots in DIR (game.png = framed like the LOST room, 640x360) and the scene saved as
          tools/sprites/art/hanz.blend for opening in Blender.
 """
 import os, sys, math, argparse
@@ -27,18 +28,15 @@ HERE = os.path.dirname(__file__)
 FACE = os.path.join(HERE, 'art', 'hanz_face.png')
 BLEND = os.path.join(HERE, 'art', 'hanz.blend')
 
-# ------------------------------------------------------------------ colours (flat, picked per face)
-TEAL = 0x5f9a96; TEAL_D = 0x41706e            # HANZ's skin: a faded, washed-out teal
-RUST = 0xc0472a; RUST_D = 0x8a2e18            # $@L's skin: a hot rust red
-SUIT_H = 0x2e3a40; SUIT_H2 = 0x3c4a52         # HANZ's half of the suit: neat, dark slate
-SUIT_S = 0x4a2a22; SUIT_S2 = 0x5e3428         # $@L's half: the same suit gone brown, torn
-SHIRT = 0xe6dcc4; SHIRT_D = 0xc8bca0          # an old cream shirt
-TIE_H = 0x2a5a58; TIE_S = 0x9a2a1a            # the tie, half and half
-HAIR = 0x15151a
-WOOD = 0x6a4028; WOOD2 = 0x80502e; WOOD3 = 0x4a2c1c; BRASS = 0xc8a040; BRASS2 = 0x8a6a28
-CLOCK = 0xe8e0c8; GREEN = 0x3a6a4a
-INK = (0.03, 0.03, 0.04)
-
+# ------------------------------------------------------------------ colours (bold and flat, one per face)
+GREY = 0xd2d0cc; GREY_D = 0xa8a6a2           # HANZ: pale, drained of colour
+RED = 0xb8121c; RED_D = 0x860a12             # $@L: blood red
+COAT = 0x2b2a33; COAT2 = 0x3a3944; COAT3 = 0x1e1d25   # the trench coat: heavy charcoal
+BELT = 0x161519; BRASS = 0xc8a040; BRASS2 = 0x8a6a28
+HAIR = 0x101013
+WOOD = 0x6a4028; WOOD2 = 0x80502e; WOOD3 = 0x4a2c1c
+CLOCK = 0xe8e0c8; GREEN = 0x3a6a4a; INKC = 0x101012
+INK = (0.0, 0.0, 0.0)
 
 # ------------------------------------------------------------------ building meshes
 class Mesh:
@@ -94,82 +92,92 @@ def side(col_h, col_s, cut=0.0):
 
 
 # ------------------------------------------------------------------ him
+FACE_X, FACE_Z = 18, (-21, 20)                    # the face plate: half its width, and its bottom / top
+HEAD_SCALE = 0.8                                  # the head's size on his body
+FACE_SPLIT = 31                                   # the drawing's column between his two eyes = where grey turns red
+# the face texture's straight front projection (x0, x1, z0, z1 = where u / v run 0..1): column FACE_SPLIT lands on
+# x = 0, the plate's edges on the drawing's edges, its top / bottom on rows 2 / 52
+FACE_UV = (-FACE_X, FACE_X * (64 - FACE_SPLIT) / FACE_SPLIT, FACE_Z[1] - 62 * (FACE_Z[1] - FACE_Z[0]) / 50, FACE_Z[1] + 2 * (FACE_Z[1] - FACE_Z[0]) / 50)
+
+
 def head(M):
-    """His head: an angular hull - a flat brow, high cheekbones, a narrow pointed jaw - its front a slight wedge
-    down the middle, split teal / rust. The front faces carry the face texture. Hair: HANZ's side combed flat and
-    neat, $@L's side a mess of spikes."""
+    """His head: a big flat face plate (the face texture covers its whole front - grey left, red right) on a shallow
+    head, framed by black hair like a helmet: a heavy fringe in three big points over the brow, long flat side panels
+    down past the jaw that end in points, a cowlick of two shards on top."""
     m = Mesh()
-    pts = []
-    for z, w, fy, by in ((17, 12, -9, 10), (12, 15, -12, 12), (2, 15, -13, 12), (-7, 13, -12, 10), (-14, 8, -10, 6), (-18, 3, -8, 3)):
-        for x in (-w, -w * 0.5, 0, w * 0.5, w):
-            front = fy - (1.6 if x == 0 else 0) + abs(x) / max(w, 1) * 2.5
-            pts += [(x, front, z), (x * 0.92, by, z)]
-    front_face = lambda c, n: n[1] < -0.55 and -16 < c[2] < 15
-    m.hull(pts, lambda c, n: (TEAL if c[0] < 0 else RUST), M, uvface=front_face)
-    # ears
-    m.hull([(-15.5, -1, 5), (-18, 2, 3), (-15.5, 4, 6), (-15.5, 1, -4), (-17, 2, -2)], TEAL_D, M)
-    m.hull([(15.5, -1, 5), (18.5, 2, 2), (15.5, 4, 6), (15.5, 1, -4), (18, 2, -3)], RUST_D, M)
-    # HANZ's hair: a smooth combed wedge lying flat over the left of his skull
-    m.hull([(-16, -10, 13), (-1, -11, 18), (-1, 12, 17), (-16, 12, 10), (-14, -6, 21), (-1, -7, 22), (-1, 9, 21), (-14, 9, 17)], HAIR, M)
-    # $@L's hair: jagged spikes going every way
-    for (bx, bz, tx, ty, tz) in ((2, 20, 6, -14, 31), (6, 19, 16, -4, 30), (9, 16, 22, 2, 23), (4, 18, 3, 10, 32), (11, 14, 20, 12, 18), (1, 19, 10, 0, 34)):
-        m.hull([(bx - 3, -8, bz), (bx + 4, -8, bz - 2), (bx + 3, 10, bz - 1), (bx - 2, 10, bz + 1), (bx, 0, bz + 3), (tx, ty, tz)], HAIR, M)
-    m.hull([(0, -11, 17), (14, -9, 14), (15, 11, 12), (0, 12, 17), (1, -8, 22), (12, 0, 20)], HAIR, M)
+    z0, z1 = FACE_Z
+    front = [(-FACE_X, -11, z1), (FACE_X, -11, z1), (-FACE_X - 1, -11, 3), (FACE_X + 1, -11, 3),
+             (-13, -10, -15), (13, -10, -15), (-5, -9, z0), (5, -9, z0)]
+    back = [(x * 0.88, 10, z * 0.92) for x, _, z in front]
+    is_front = lambda c, n: n[1] < -0.9
+    m.hull(front + back, lambda c, n: (GREY if c[0] < 0 else RED), M, uvface=is_front)
+    # hair: top block, a fringe of three big points, the side panels, the back
+    m.hull([(-23, -14, 19), (23, -14, 19), (-23, 12, 18), (23, 12, 18), (-20, -13, 30), (20, -13, 30), (-19, 11, 29), (19, 11, 29)], HAIR, M)
+    for (x0, x1, tipx, tipz) in ((-19, -6, -14, 12), (-7, 6, 1, 14), (5, 19, 13, 11)):
+        m.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR, M)
+    for sx in (-1, 1):
+        m.hull([(sx * 18.5, -14, 22), (sx * 25, -14, 22), (sx * 18.5, 11, 22), (sx * 25, 11, 21),
+                (sx * 18.5, -13, -12), (sx * 23, -11, -14), (sx * 19, 8, -10), (sx * 20, -12, -24)], HAIR, M)
+    m.hull([(-20, 9, 26), (20, 9, 26), (-19, 13, -6), (19, 13, -6), (-16, 12, 18), (16, 12, 18)], HAIR, M)
+    m.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR, M)          # the cowlick
+    m.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR, M)
     return m
 
 
-def torso(M):
-    """Chest and shoulders in the crooked split suit (HANZ's half neat slate, $@L's half rust-brown with a torn
-    lapel), cream shirt V, a tie half and half, knotted crooked."""
+def coat(M):
+    """His chest and shoulders in the thick trench coat: a narrow lanky torso, a huge popped collar rising round his
+    head (lined grey on HANZ's side, red on $@L's), wide lapels, two rows of brass buttons, a belt and buckle,
+    epaulettes, and the coat's skirt flaring below the belt."""
     m = Mesh()
     pts = []
-    for z, w, d in ((0, 23, 13), (22, 27, 15), (40, 30, 13), (46, 22, 10), (-20, 20, 11)):
-        for x in (-w, -w * 0.4, 0, w * 0.4, w):
-            pts += [(x, -d + abs(x) / w * 3, z), (x, d, z)]
-    m.hull(pts, side(SUIT_H, SUIT_S), M)
-    # lapels (HANZ's crisp, $@L's ragged and flipped up)
-    m.slab([(-1, 36), (-14, 44), (-12, 14), (-3, 4)], -15.5, -13, SUIT_H2, M)
-    m.slab([(1, 36), (15, 47), (19, 40), (12, 20), (14, 15), (4, 4)], -15.5, -13, SUIT_S2, M)
-    # shirt V and collar points
-    m.slab([(-8, 44), (8, 44), (0, 18)], -16.5, -15.5, SHIRT, M)
-    m.slab([(-9, 45), (-1, 40), (-5, 35)], -17.5, -16.5, SHIRT_D, M)
-    m.slab([(1, 40), (11, 47), (9, 36)], -17.5, -16.5, SHIRT_D, M)
-    # tie: knot, then a blade that's half teal half red, swinging to $@L's side
-    m.slab([(-2.5, 41), (2.5, 41), (2, 37), (-2, 37)], -18.5, -16.5, TIE_S, M)
-    m.slab([(-2, 37), (0, 37), (1, 22), (-3, 24)], -18, -16.8, TIE_H, M)
-    m.slab([(0, 37), (2, 37), (6, 23), (1, 22)], -18, -16.8, TIE_S, M)
-    # a torn flap and a patch on $@L's half
-    m.slab([(18, 6), (26, 10), (25, 0), (21, 3)], -14.5, -12, SUIT_S2, M)
-    m.slab([(-22, 18), (-15, 18), (-15, 12), (-22, 12)], -15.2, -13.6, SUIT_H2, M)   # HANZ's pocket square pocket
-    m.slab([(-21, 21), (-18, 25), (-16, 21)], -15.6, -14.8, SHIRT, M)
-    # neck
-    m.limb((0, 0, 44), (0, 1, 53), 6, 5.5, side(TEAL_D, RUST_D), sides=5, M=M)
+    for z, w, d in ((-30, 21, 12), (0, 15, 9), (14, 14, 9), (32, 18, 10), (42, 25, 10), (47, 21, 8)):
+        pts += [(x, y, z) for x in (-w, w) for y in (-d, d)]
+    m.hull(pts, lambda c, n: COAT2 if n[1] < -0.5 else COAT, M)
+    # the popped collar: two thick flared walls; faces turned inward show the lining
+    for sx in (-1, 1):
+        lining = GREY_D if sx < 0 else RED_D
+        m.hull([(sx * 5, -9, 42), (sx * 5, 7, 44), (sx * 20, -7, 45), (sx * 20, 7, 45),
+                (sx * 13, -12, 68), (sx * 24, -8, 70), (sx * 23, 7, 68), (sx * 9, 2, 70),
+                (sx * 16, -11, 69), (sx * 21, 4, 69)],
+               lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.35 or n[1] > 0.6 else COAT, M)
+    # wide lapels over the chest, crossing for the double breast
+    m.slab([(-3, 42), (-17, 41), (-12, 22), (2, 12)], -11.5, -9.5, COAT2, M)
+    m.slab([(3, 42), (17, 41), (12, 22), (-1, 12)], -12.5, -10.5, COAT2, M)
+    m.slab([(-4, 41), (4, 41), (2, 33), (-2, 33)], -10.8, -9.2, COAT3, M)            # dark collar opening
+    for bx in (-6, 6):
+        for bz in (28, 21):
+            m.box((bx, -12.6, bz), (2.4, 1.2, 2.4), BRASS, M)
+    # belt + buckle, epaulettes
+    m.hull([(x, y, z) for x in (-16, 16) for y in (-10.5, 10.5) for z in (6, 11)], BELT, M)
+    m.box((0, -11.2, 8.5), (6, 1.4, 6), BRASS, M); m.box((0, -11.6, 8.5), (3, 1.2, 3), BELT, M)
+    for sx in (-1, 1):
+        m.slab([(sx * 12, 46.5), (sx * 25, 44.5), (sx * 25, 42.5), (sx * 12, 44.5)], -5, 5, COAT3, M)
+    # the neck (mostly hidden in the collar)
+    m.limb((0, 1, 44), (0, 1, 55), 5, 4.5, lambda c, n: GREY_D if c[0] < 0 else RED_D, sides=4, M=M)
     return m
 
 
 def arm(M, s, shoulder, elbow, wrist, hand_dir):
-    """One arm: an angular sleeve (shoulder pad, upper arm, forearm), a cuff, and a blocky hand with four fingers
-    and a thumb. s = -1 HANZ's arm, +1 $@L's."""
+    """One long arm in a wide trench sleeve (a big flat shoulder, a sleeve that flares at the cuff, a strap round the
+    cuff) and a long-fingered hand: grey for HANZ (s = -1), red for $@L (s = +1)."""
     m = Mesh()
-    suit, suit2 = (SUIT_H, SUIT_H2) if s < 0 else (SUIT_S, SUIT_S2)
-    skin, skin_d = (TEAL, TEAL_D) if s < 0 else (RUST, RUST_D)
-    m.hull([(shoulder[0] + dx * 7, shoulder[1] + dy * 8, shoulder[2] + dz * 6) for dx in (-1, 1) for dy in (-1, 1) for dz in (-1, 1)], suit2, M)
-    m.limb(shoulder, elbow, 7.5, 6, suit, sides=4, twist=0.3, M=M)
-    m.limb(elbow, wrist, 6, 5, suit, sides=4, twist=0.1, M=M)
-    if s > 0:                                                                    # $@L's sleeve is torn short at the wrist
-        e, w = np.array(elbow), np.array(wrist); t = e + (w - e) * 0.72
-        m.limb(tuple(t), wrist, 4.6, 4.2, skin, sides=5, M=M)
-    m.limb(tuple(np.array(wrist) - (np.array(wrist) - np.array(elbow)) * 0.08), wrist, 5.6, 5.6, SHIRT, sides=4, M=M)
-    # the hand: a palm block pointing along hand_dir, fingers spread a little
-    w = np.array(wrist, float); d = np.array(hand_dir, float); d /= np.linalg.norm(d)
+    skin, skin_d = (GREY, GREY_D) if s < 0 else (RED, RED_D)
+    m.hull([(shoulder[0] + dx * 7, shoulder[1] + dy * 9, shoulder[2] + dz * 6) for dx in (-1, 1) for dy in (-1, 1) for dz in (-1, 1)], COAT, M)
+    m.limb(shoulder, elbow, 7.5, 6.5, COAT, sides=4, twist=0.4, M=M)
+    e, w = np.array(elbow, float), np.array(wrist, float)
+    cuff = e + (w - e) * 0.86
+    m.limb(elbow, tuple(cuff), 6.5, 8, COAT2, sides=4, twist=0.2, M=M)
+    m.limb(tuple(e + (w - e) * 0.7), tuple(e + (w - e) * 0.78), 8.2, 8.4, BELT, sides=4, twist=0.2, M=M)   # the cuff strap
+    m.limb(tuple(cuff), wrist, 3.4, 3.4, skin_d, sides=4, M=M)
+    d = np.array(hand_dir, float); d /= np.linalg.norm(d)
     u = np.cross(d, (0, 0, 1)); u /= np.linalg.norm(u)
-    palm_end = w + d * 9
-    m.hull([tuple(p + u * a + np.array((0, 0, z))) for p in (w, palm_end) for a in (-5.5, 5.5) for z in (-2.2, 2.2)], skin, M)
-    for i, a in enumerate((-4.2, -1.4, 1.4, 4.2)):                              # fingers spread flat on the wood
+    palm_end = w + d * 10
+    m.hull([tuple(p + u * a + np.array((0, 0, z))) for p in (w, palm_end) for a in (-5, 5) for z in (-1.8, 1.8)], skin, M)
+    for i, a in enumerate((-3.9, -1.3, 1.3, 3.9)):                                   # long fingers flat on the wood
         base = palm_end + u * a
-        tip = base + d * (7 + (1.5 if i in (1, 2) else 0)) + u * a * 0.35 + np.array((0, 0, -1.2))
-        m.limb(tuple(base), tuple(tip), 1.7, 1.4, skin, sides=4, M=M)
-    m.limb(tuple(w + u * 5 * -s + d * 2), tuple(w + u * 10 * -s + d * 5 + np.array((0, 0, -1))), 2.0, 1.6, skin_d, sides=4, M=M)
+        tip = base + d * (10 + (2 if i in (1, 2) else 0)) + u * a * 0.3 + np.array((0, 0, -1.2))
+        m.limb(tuple(base), tuple(tip), 1.5, 1.2, skin, sides=4, M=M)
+    m.limb(tuple(w + u * 5 * -s + d * 2), tuple(w + u * 11 * -s + d * 6 + np.array((0, 0, -1))), 1.8, 1.4, skin_d, sides=4, M=M)
     return m
 
 
@@ -234,23 +242,22 @@ def material(face_img=None):
     L.new(geo.outputs['Normal'], dot.inputs[0])
     ramp = nt.nodes.new('ShaderNodeValToRGB'); ramp.color_ramp.interpolation = 'CONSTANT'
     els = ramp.color_ramp.elements
-    els[0].position = 0.0; els[0].color = (0.42, 0.42, 0.46, 1)
-    els[1].position = 0.45; els[1].color = (0.72, 0.72, 0.74, 1)
-    e3 = els.new(0.78); e3.color = (1.0, 1.0, 1.0, 1)
+    els[0].position = 0.0; els[0].color = (0.6, 0.6, 0.64, 1)                    # shadow
+    els[1].position = 0.5; els[1].color = (1.0, 1.0, 1.0, 1)                     # lit
     remap = nt.nodes.new('ShaderNodeMapRange'); remap.inputs['From Min'].default_value = -1; L.new(dot.outputs['Value'], remap.inputs['Value'])
     L.new(remap.outputs['Result'], ramp.inputs['Fac'])
-    # grain: fine noise, only where it's not fully lit
+    # grain: sparse dark speckles everywhere, denser where it's in shadow (threshold 0.98 lit / 0.82 shadow)
     tc = nt.nodes.new('ShaderNodeTexCoord')
     nz = nt.nodes.new('ShaderNodeTexWhiteNoise'); nz.noise_dimensions = '3D'
-    sc = nt.nodes.new('ShaderNodeVectorMath'); sc.operation = 'SCALE'; sc.inputs['Scale'].default_value = 1.4
+    sc = nt.nodes.new('ShaderNodeVectorMath'); sc.operation = 'SCALE'; sc.inputs['Scale'].default_value = 1.6
     L.new(tc.outputs['Object'], sc.inputs[0]); L.new(sc.outputs['Vector'], nz.inputs['Vector'])
-    shadow = nt.nodes.new('ShaderNodeMath'); shadow.operation = 'LESS_THAN'; shadow.inputs[1].default_value = 0.85
-    L.new(ramp.outputs['Color'], shadow.inputs[0])
-    gr = nt.nodes.new('ShaderNodeMath'); gr.operation = 'MULTIPLY_ADD'; gr.inputs[1].default_value = -0.28; gr.inputs[2].default_value = 1.0
-    gm = nt.nodes.new('ShaderNodeMath'); gm.operation = 'MULTIPLY'
-    L.new(nz.outputs['Value'], gm.inputs[0]); L.new(shadow.outputs['Value'], gm.inputs[1])
-    th = nt.nodes.new('ShaderNodeMath'); th.operation = 'GREATER_THAN'; th.inputs[1].default_value = 0.62
-    L.new(gm.outputs['Value'], th.inputs[0]); L.new(th.outputs['Value'], gr.inputs[0])
+    lvl = nt.nodes.new('ShaderNodeMath'); lvl.operation = 'MULTIPLY_ADD'; lvl.inputs[1].default_value = 0.4; lvl.inputs[2].default_value = 0.58
+    sep = nt.nodes.new('ShaderNodeSeparateColor'); L.new(ramp.outputs['Color'], sep.inputs['Color'])
+    L.new(sep.outputs[0], lvl.inputs[0])                                          # (0.6 -> 0.7, 1.0 -> 0.9)
+    th = nt.nodes.new('ShaderNodeMath'); th.operation = 'GREATER_THAN'
+    L.new(nz.outputs['Value'], th.inputs[0]); L.new(lvl.outputs['Value'], th.inputs[1])
+    gr = nt.nodes.new('ShaderNodeMath'); gr.operation = 'MULTIPLY_ADD'; gr.inputs[1].default_value = -0.35; gr.inputs[2].default_value = 1.0
+    L.new(th.outputs['Value'], gr.inputs[0])
     m1 = nt.nodes.new('ShaderNodeMix'); m1.data_type = 'RGBA'; m1.blend_type = 'MULTIPLY'; m1.inputs['Factor'].default_value = 1
     L.new(base, m1.inputs[6]); L.new(ramp.outputs['Color'], m1.inputs[7])
     m2 = nt.nodes.new('ShaderNodeVectorMath'); m2.operation = 'SCALE'
@@ -261,12 +268,12 @@ def material(face_img=None):
 
 
 def face_image():
-    """Mason's face drawing over the split skin: left half teal, right half rust, his black lines on top."""
+    """Mason's face drawing over the split skin: grey left of FACE_SPLIT, red right of it, his black lines on top."""
     src = np.array(Image.open(FACE).convert('RGBA'))
     H, W = src.shape[:2]
     img = np.zeros((H, W, 4), np.uint8); img[..., 3] = 255
-    t = [TEAL >> 16 & 255, TEAL >> 8 & 255, TEAL & 255]; r = [RUST >> 16 & 255, RUST >> 8 & 255, RUST & 255]
-    img[:, :W // 2, :3] = t; img[:, W // 2:, :3] = r
+    t = [GREY >> 16 & 255, GREY >> 8 & 255, GREY & 255]; r = [RED >> 16 & 255, RED >> 8 & 255, RED & 255]
+    img[:, :FACE_SPLIT, :3] = t; img[:, FACE_SPLIT:, :3] = r
     ink = src[..., 3] > 0
     img[ink, :3] = (16, 14, 18)
     path = os.path.join(bpy.app.tempdir or '/tmp', 'hanz_face_tex.png'); Image.fromarray(img).save(path)
@@ -311,26 +318,26 @@ def build(pose='lean'):
     sc.render.film_transparent = True; sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'
     sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
     # ink lines: Freestyle on the silhouette, creases and borders
-    sc.render.use_freestyle = True; sc.render.line_thickness_mode = 'ABSOLUTE'; sc.render.line_thickness = 2.2
-    vl = sc.view_layers[0]; fs = vl.freestyle_settings; fs.crease_angle = math.radians(150)
+    sc.render.use_freestyle = True; sc.render.line_thickness_mode = 'ABSOLUTE'; sc.render.line_thickness = 1.3
+    vl = sc.view_layers[0]; fs = vl.freestyle_settings; fs.crease_angle = math.radians(140)
     ls = fs.linesets[0] if fs.linesets else fs.linesets.new('ink')
     ls.select_by_visibility = True; ls.select_silhouette = True; ls.select_crease = True; ls.select_border = True
     ls.select_contour = True; ls.select_external_contour = True
     if ls.linestyle is None: ls.linestyle = bpy.data.linestyles.new('ink')
-    ls.linestyle.color = INK; ls.linestyle.thickness = 2.2
+    ls.linestyle.color = INK; ls.linestyle.thickness = 1.3
     flat = material(); facem = material(face_image())
     lean = pose == 'lean'
     body = T(0, 30, -15, rx=32 if lean else 4)                                   # hips behind the counter, chest tipped over it toward you
-    neck_top = body @ Vector((0, 1, 52))
-    head_M = T(*neck_top) @ T(0, -3, 13, rx=12 if lean else 0)                   # (head tipped a little down: looking at what's on the counter)
-    to_object('torso', torso(body), [flat])
+    neck_top = body @ Vector((0, 1, 54))
+    head_M = T(*neck_top) @ T(0, -4, 14, rx=6 if lean else 0, ry=-7) @ Matrix.Scale(HEAD_SCALE, 4)   # (perfectly calm, head tilted a little - just slightly off)
+    to_object('coat', coat(body), [flat])
     hm = head(Matrix.Identity(4))                                                 # (built at rest so the face UVs are a straight front projection)
-    ob = to_object('head', hm, [flat, facem], face_box=(-15.5, 15.5, -17, 15))
+    ob = to_object('head', hm, [flat, facem], face_box=FACE_UV)
     ob.matrix_world = head_M
     for s in (-1, 1):
-        sh = body @ Vector((s * 27, 0, 40))
+        sh = body @ Vector((s * 23, 0, 42))
         if lean:
-            el = Vector((s * 40, 0, 14)); wr = Vector((s * 25, -11, 3)); hdir = (-s * 0.25, -1, 0)   # hands planted wide and flat, elbows out: leaning over the counter at you
+            el = Vector((s * 42, -2, 16)); wr = Vector((s * 27, -10, 2.5)); hdir = (-s * 0.2, -1, 0)   # hands planted wide and flat, elbows out: leaning over the counter at you
         else:
             el = body @ Vector((s * 31, 2, 14)); wr = Vector((s * 30, -8, 2.5)); hdir = (0, -1, 0)
         to_object('arm_' + ('hanz' if s < 0 else 'sal'), arm(None, s, tuple(sh), tuple(el), tuple(wr), hdir), [flat])
@@ -358,5 +365,5 @@ if __name__ == '__main__':
     shot(cam, os.path.join(a.out, 'hanz.png'), 400, 400, (-95, -95, face.z + 10), tuple(face), 60)
     shot(cam, os.path.join(a.out, 'sal.png'), 400, 400, (95, -95, face.z + 10), tuple(face), 60)
     shot(cam, os.path.join(a.out, 'wide.png'), 640, 360, (-120, -300, 120), (0, 0, 20), 45)
-    shot(cam, os.path.join(a.out, 'game.png'), 640, 360, (0, -165, 62), (0, 0, 24), 38)        # (how the LOST room frames him)
+    shot(cam, os.path.join(a.out, 'game.png'), 640, 360, (0, -190, 64), (0, 0, 26), 38)        # (how the LOST room frames him)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(BLEND))
