@@ -7,7 +7,7 @@ import {particleBudget} from '../performance.js';
 // The fight itself: runs the fixed 60 Hz simulation, resolves hits, KOs, the Limit cinematic,
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { hasWinCutscene } from './WinScene.js';
-import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns } from '../progress.js';
+import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns, extraOn } from '../progress.js';
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
 import { MatchExtras } from './matchExtras.js';
@@ -96,6 +96,7 @@ export class MatchScene extends Phaser.Scene {
     }
     const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.classic?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
+    if (!demo && extraOn('ext-opinion') && !this.textures.exists('lost_heads')) this.load.spritesheet('lost_heads', 'assets/shop/lost/heads.png', { frameWidth: 124, frameHeight: 124 });   // (SECOND OPINION's heads)
   }
 
   create(data={}) {

@@ -7,7 +7,8 @@
 //   grade     a colour wash multiplied over the whole picture (world and background, under the HUD)
 // The weather itself (rain, snow, petals...) is drawn by matchExtras.js.
 // Themes: NIGHTFALL, THUNDERSTORM, BLIZZARD, CHERRY BLOSSOM, FIREFLIES, BLOOD MOON, SANDSTORM, AURORA, NEON CITY,
-// CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE, TAIGA and WHITE NIGHTS (from the nesting dolls, code PAPERSPLEASE).
+// CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE, TAIGA and WHITE NIGHTS (from the nesting dolls, code PAPERSPLEASE),
+// THE WAITING DREAM (sold by HANZ / $@L in LOST).
 import { VIEW_W, VIEW_H } from '../config.js';
 
 const W = VIEW_W, H = VIEW_H;
@@ -483,6 +484,54 @@ const THEMES = {
   },
   // WHITE NIGHTS (nesting dolls; no weather): a northern summer night that never gets dark - a pale pink and lilac sky over a
   // canal city, palace fronts in mint and yellow, a gold spire, a drawbridge raised; the platforms get lamp posts and railings
+  // THE WAITING DREAM (LOST, HANZ / $@L's room): his peach dusk, his split moon, slab clouds, his upside-down stairs and a
+  // door standing on nothing far off; on the platforms a strip of checker tiles, clocks melting off the ends, lamps on
+  // cords, price tags dripping underneath
+  'fx-dream': {
+    grade: 0xfff0f0,
+    backdrop(g, mid) {
+      bands(g, [0xf4c29a, 0xeeb09a, 0xe0a6a8, 0xd8a0b0, 0xc898bc, 0xb890c0, 0x9a84bc]);
+      for (const [x, y, w] of [[90, 60, 110], [300, 34, 80], [470, 120, 130], [190, 170, 70]]) {      // flat slab clouds
+        g.fillStyle(0xf8e4d0, 1); g.fillPoints([{ x: x - w, y }, { x: x - w * 0.4, y: y - 9 }, { x: x + w * 0.6, y: y - 7 }, { x: x + w, y: y + 2 }, { x: x + w * 0.3, y: y + 8 }, { x: x - w * 0.7, y: y + 6 }], true);
+        g.lineStyle(1, 0x2a1a24, 0.8); g.strokePoints([{ x: x - w, y }, { x: x - w * 0.4, y: y - 9 }, { x: x + w * 0.6, y: y - 7 }, { x: x + w, y: y + 2 }, { x: x + w * 0.3, y: y + 8 }, { x: x - w * 0.7, y: y + 6 }], true);
+      }
+      const mx = 520, my = 92, r = 38;                                                          // his moon: red half ($@L), grey half (HANZ)
+      g.fillStyle(0xb8121c, 1); g.slice(mx, my, r, Math.PI / 2, Math.PI * 1.5, false); g.fillPath();
+      g.fillStyle(0xd2d0cc, 1); g.slice(mx, my, r, -Math.PI / 2, Math.PI / 2, false); g.fillPath();
+      g.lineStyle(1.5, 0x101012, 1); g.strokeCircle(mx, my, r); g.lineBetween(mx, my - r, mx, my + r);
+      g.fillStyle(0x101012, 1); g.fillRect(mx + 10, my - 4, 12, 2);
+      // far off: a door standing on nothing, and the stairs hanging upside down
+      mid.fillStyle(0x5a2a2a, 1); mid.fillRect(110, 200, 22, 46); mid.lineStyle(1, 0x101012, 1); mid.strokeRect(110, 200, 22, 46); mid.fillStyle(0xd8b040, 1); mid.fillRect(127, 224, 2, 2);
+      for (let k = 0; k < 8; k++) {
+        const x = 390 - k * 3, y = 150 + k * 9;
+        mid.fillStyle(k % 2 ? 0xd8c8b0 : 0xa89880, 1); mid.fillRect(x, y, 26, 8); mid.lineStyle(1, 0x101012, 0.8); mid.strokeRect(x, y, 26, 8);
+      }
+      for (let i = 0; i < 10; i++) { mid.fillStyle(i % 2 ? 0x18161c : 0xe8dcc4, 1); mid.fillRect(40 + (i * 61) % 560, 250 + (i * 37) % 40, 8, 4); }   // loose floor tiles drifting
+    },
+    props(g, P, t) {
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        for (let x = p.x1, k = 0; x < p.x2; x += 6, k++) { g.fillStyle(k % 2 ? 0x18161c : 0xe8dcc4, 1); g.fillRect(x, p.y - 2, Math.min(6, p.x2 - x), 2); }   // checker tiles along the top
+        if (!p.solid) continue;
+        for (const [ex, sx] of [[p.x1, -1], [p.x2, 1]]) {                                       // a clock melting off each end
+          const sag = 10 + Math.sin(t * 0.01 + ex) * 3;
+          g.fillStyle(0xe8e0c8, 1); g.fillEllipse(ex - sx * 6, p.y - 3, 18, 7);
+          g.fillPoints([{ x: ex, y: p.y - 3 }, { x: ex + sx * 3, y: p.y + 2 }, { x: ex + sx * 2, y: p.y + sag }, { x: ex - sx * 3, y: p.y + sag + 4 }, { x: ex - sx * 6, y: p.y + 2 }], true);
+          g.lineStyle(1, 0x101012, 1); g.strokeEllipse(ex - sx * 6, p.y - 3, 18, 7);
+          g.fillStyle(0x101012, 1); g.fillRect(ex - sx * 6, p.y - 4, 1, 3); g.fillRect(ex - sx * 6, p.y - 4, sx * 4, 1);
+        }
+        for (let i = 0; i < Math.floor(w / 70); i++) {                                          // price tags dripping underneath
+          const x = p.x1 + 30 + i * 70, d = 6 + ((i * 7) % 5) + Math.sin(t * 0.02 + i) * 2;
+          g.fillStyle(0xf0e8d8, 1); g.fillPoints([{ x: x - 4, y: p.y + 2 }, { x: x + 4, y: p.y + 2 }, { x: x + 3, y: p.y + 8 + d }, { x: x - 3, y: p.y + 6 + d }], true);
+          g.lineStyle(1, 0x101012, 0.8); g.strokePoints([{ x: x - 4, y: p.y + 2 }, { x: x + 4, y: p.y + 2 }, { x: x + 3, y: p.y + 8 + d }, { x: x - 3, y: p.y + 6 + d }], true);
+        }
+        const lx = (p.x1 + p.x2) / 2 + Math.sin(t * 0.008) * 3;                                   // a lamp on a cord over the middle
+        g.lineStyle(1, 0x1a1a1a, 1); g.lineBetween(lx, p.y - 220, lx, p.y - 70);
+        g.fillStyle(0xffe8a8, 0.12); g.fillCircle(lx, p.y - 64, 22);
+        g.fillStyle(0xffe8a8, 1); g.fillTriangle(lx - 9, p.y - 62, lx + 9, p.y - 62, lx, p.y - 72); g.lineStyle(1, 0x101012, 1); g.strokeTriangle(lx - 9, p.y - 62, lx + 9, p.y - 62, lx, p.y - 72);
+      }
+    },
+  },
   'fx-whitenights': {
     grade: 0xf4e8f0,
     backdrop(g, mid) {

@@ -6,7 +6,8 @@
 //  - EXTRAS (any number): DAMAGE NUMBERS, CONFETTI KOS, FINAL KO CAM (slow motion on the match-winning KO), PARTY HATS,
 //    MOON GRAVITY, AIRHORN KOS, RAINBOW TRAILS, IMPACT FRAMES, COMIC HITS (POW! BAM! bursts), COMBO COUNTER,
 //    GHOST TRAILS (afterimages in the costume's colour), DISCO FLOOR (light-up platforms, a mirror ball, spotlights),
-//    NEWSREEL (hidden until RIPHOOD: sepia, film grain and scratches - the match as a 1940s newsreel).
+//    NEWSREEL (hidden until RIPHOOD: sepia, film grain and scratches - the match as a 1940s newsreel); from LOST:
+//    SECOND OPINION (HANZ / $@L pops up after KOs) and DOOR TO NOWHERE (two doors: walk in one, out the other).
 // MatchScene calls: onHit (every hit), onKO (every KO), onFinalKO, step (every tick), draw (every frame), timeScale
 // (slow motion), cleanup. Not used in the title demo. Effects are visual only, except MOON GRAVITY.
 import { VIEW_W, VIEW_H, FONT, PHYS } from '../config.js';
@@ -14,6 +15,7 @@ import { sfx } from '../audio/sfx.js';
 import { equippedStageFx, extraOn } from '../progress.js';
 import { makeTheme } from './stageThemes.js';
 import { skinInfo } from '../fighters/skins.js';
+import { SECOND_OPINION, LOST_COLORS } from '../data/lostLines.js';
 
 const W = VIEW_W, H = VIEW_H;
 const RAINBOW = [0xff4a4a, 0xff9a3a, 0xffe04a, 0x5aff6a, 0x4ac8ff, 0x8a6aff, 0xff6ad8];
@@ -38,6 +40,12 @@ const FRONT = { flash: 240, rumbleDelay: 40 };
 const FIREBIRD = { per: 2, speed: 3, colors: [0xff3a1a, 0xff8a1a, 0xffd040, 0xfff4b0] };
 // DANCING BEAR: how fast the cub strolls, how far in from the platform's ends it turns round, how long it cheers after a KO
 const BEAR = { speed: 0.35, margin: 30, cheer: 90 };
+// SECOND OPINION (LOST): after a KO, HANZ or $@L pops up at that side of the screen (his head, heads.png frame 0 / 1,
+// shown at `scale`) and says something: how long he stays (ticks), how fast he slides in
+const OPINION = { life: 150, slide: 10, scale: 0.62 };
+// DOOR TO NOWHERE (LOST): two doors on the stage - walk into one, step out of the other. How close counts (px), how long
+// before the same fighter can use a door again, how often the doors move somewhere else (ticks) and how long they fade
+const DOORS = { reach: 12, again: 70, move: 1200, fade: 30, w: 20, h: 34 };
 const DISCO = { tile: 12, beat: 30, colors: [0xff3ad8, 0x3ad8ff, 0xffe03a, 0x7aff5a, 0xb05aff, 0xff7a3a] };
 
 export class MatchExtras {
@@ -48,7 +56,8 @@ export class MatchExtras {
     this.on = { numbers: on('ext-numbers'), confetti: on('ext-confetti'), finalcam: on('ext-finalcam'), hats: on('ext-hats'),
       moon: on('ext-moon'), airhorn: on('ext-airhorn'), rainbow: on('ext-rainbow'), impact: on('ext-impact'),
       comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel'), ushanka: on('ext-ushanka'),
-      firebird: on('ext-firebird'), bear: on('ext-bear') };
+      firebird: on('ext-firebird'), bear: on('ext-bear'), opinion: on('ext-opinion') && m.textures.exists('lost_heads'), doors: on('ext-doors') };
+    this.ops = []; this.doors = null;
     this.comics = []; this.combos = new Map(); this.ghosts = [];
     this.floor = this.on.disco ? m.add.graphics() : null; if (this.floor) m.addWorld(this.floor);   // (made before the fighters: under them)
     this.slow = 0; this.impact = 0; this.flash = 0; this.bolt = null;
@@ -69,7 +78,7 @@ export class MatchExtras {
     this.flashes = [];
     if (this.on.moon) { this.saved = { g: PHYS.gravity, f: PHYS.maxFall, ff: PHYS.fastFall }; PHYS.gravity *= MOON.gravity; PHYS.maxFall *= MOON.fall; PHYS.fastFall *= MOON.fall; }
   }
-  cleanup() { for (const g of this.ghosts) g.img.destroy(); this.ghosts = []; for (const c of this.comics) c.txt.destroy(); this.comics = [];
+  cleanup() { for (const o of this.ops) { o.img.destroy(); o.txt.destroy(); } this.ops = []; for (const g of this.ghosts) g.img.destroy(); this.ghosts = []; for (const c of this.comics) c.txt.destroy(); this.comics = [];
     if (this.saved) { PHYS.gravity = this.saved.g; PHYS.maxFall = this.saved.f; PHYS.fastFall = this.saved.ff; this.saved = null; } }
 
   // how fast the match runs right now (FINAL KO CAM's slow motion)
@@ -109,12 +118,66 @@ export class MatchExtras {
     }
     if (this.on.airhorn) { sfx('airhorn', 0.9); }
     if (this.on.bear && this.bear) this.bear.cheer = BEAR.cheer;      // the bear claps for every KO
+    if (this.on.opinion) this.opinion(x);
+  }
+
+  /** SECOND OPINION: HANZ (grey, sad) or $@L (red, rude) slides in at the side of the screen the KO happened on and says
+   *  his piece. x = where the KO burst was (world). */
+  opinion(x) {
+    for (const o of this.ops) { o.img.destroy(); o.txt.destroy(); } this.ops = [];
+    const v = this.m.worldCam.worldView, left = x < v.centerX, who = Math.random() < 0.5 ? 'h' : 's';
+    const L = SECOND_OPINION[who], line = L[Math.floor(Math.random() * L.length)];
+    const home = left ? 52 : W - 52, from = left ? -60 : W + 60;
+    const img = this.m.add.image(from, 196, 'lost_heads', who === 'h' ? 0 : 1).setScale(OPINION.scale).setDepth(8);
+    const txt = this.m.add.text(home, 238, line, { fontFamily: FONT, fontSize: '7px', color: LOST_COLORS[who], stroke: '#000000', strokeThickness: 3, align: 'center', wordWrap: { width: 120 } }).setOrigin(0.5, 0).setDepth(8).setAlpha(0);
+    this.m.addUI(img, txt); this.ops.push({ img, txt, home, from, life: OPINION.life });
+    sfx('glitch', 0.25, who === 'h' ? 0.6 : 1.3);
+  }
+
+  /** DOOR TO NOWHERE: puts the two doors on the stage - on two different solid platforms if it can (else both ends of
+   *  one), away from the edges. */
+  placeDoors() {
+    const P = (this.m.stage.platforms || []).filter((p) => p.x2 - p.x1 > 70);
+    if (!P.length) { this.doors = null; return; }
+    const pick = () => P[Math.floor(Math.random() * P.length)];
+    const a = pick(); let b = pick(); for (let k = 0; k < 6 && b === a && P.length > 1; k++) b = pick();
+    const spot = (p, part) => ({ p, dx: p === a && p === b ? (part ? 0.78 : 0.22) * (p.x2 - p.x1) : 30 + Math.random() * (p.x2 - p.x1 - 60) });
+    this.doors = { list: [spot(a, 0), spot(b, 1)], t: 0, cd: new Map() };
+  }
+
+  /** DOOR TO NOWHERE, every tick: a door's spot rides its platform; anyone who walks into one comes out of the other
+   *  (keeping their speed, a step past it so they don't go straight back); now and then the doors fade and move. */
+  stepDoors() {
+    if (!this.doors) { this.placeDoors(); if (!this.doors) return; }
+    const D = this.doors; D.t++;
+    if (D.t >= DOORS.move) { this.placeDoors(); return; }
+    const open = D.t > DOORS.fade && D.t < DOORS.move - DOORS.fade;
+    for (const d of D.list) { d.x = d.p.x1 + d.dx; d.y = d.p.y; }
+    if (!open) return;
+    for (const f of this.m.fighters) {
+      if (!f.alive || (D.cd.get(f) || 0) > this.t) continue;
+      for (let i = 0; i < 2; i++) {
+        const d = D.list[i], o = D.list[1 - i];
+        if (Math.abs(f.x - d.x) > DOORS.reach || f.y > d.y + 4 || f.y < d.y - DOORS.h) continue;
+        const dir = f.vx >= 0 ? 1 : -1;
+        f.x = o.x + dir * (DOORS.reach + 4); f.y = o.y - Math.max(0, d.y - f.y);
+        D.cd.set(f, this.t + DOORS.again); sfx('whoosh', 0.4, 0.6); d.slam = 10; o.slam = 10;
+        break;
+      }
+    }
   }
   onFinalKO() { if (this.on.finalcam) { this.slow = FINAL.ticks; this.flash = 6; } }
 
   step() {
     this.t++;
     if (this.slow > 0) this.slow--;
+    if (this.on.doors) this.stepDoors();
+    if (this.ops.length) this.ops = this.ops.filter((o) => {                                  // SECOND OPINION: slide in, talk, slide out
+      o.life--; const age = OPINION.life - o.life;
+      const k = age < OPINION.slide ? age / OPINION.slide : o.life < OPINION.slide ? o.life / OPINION.slide : 1;
+      o.img.x = o.from + (o.home - o.from) * k; o.txt.setAlpha(age > OPINION.slide && o.life > OPINION.slide ? 1 : 0);
+      if (o.life > 0) return true; o.img.destroy(); o.txt.destroy(); return false;
+    });
     if (this.on.rainbow) for (const f of this.m.fighters) {        // RAINBOW TRAILS: launched fighters leave a rainbow
       if (!f.alive || f.state !== 'hitstun') continue;
       const sp = Math.hypot(f.lx || 0, f.ly || 0) + Math.hypot(f.vx || 0, f.vy || 0);
@@ -167,6 +230,16 @@ export class MatchExtras {
     const t = this.t, sk = this.sky, w = this.weather, wd = this.world;
     sk.clear(); w.clear(); wd.clear();
     if (this.theme) this.theme.draw(t);
+    if (this.doors) for (const d of this.doors.list) {                                         // DOOR TO NOWHERE: a door standing on nothing
+      if (d.x == null) continue;
+      const D = this.doors, a = Math.min(1, Math.min(D.t, DOORS.move - D.t) / DOORS.fade), sw = d.slam > 0 ? d.slam-- / 10 : 0;
+      const x = d.x - DOORS.w / 2, y = d.y - DOORS.h;
+      wd.fillStyle(0x000000, 0.9 * a); wd.fillRect(x, y, DOORS.w, DOORS.h);                  // the dark inside
+      wd.fillStyle(0x5a2a2a, a); wd.fillRect(x, y, DOORS.w * (1 - sw * 0.7), DOORS.h);       // the door, swinging open when used
+      wd.lineStyle(1.5, 0x101012, a); wd.strokeRect(x, y, DOORS.w, DOORS.h);
+      wd.fillStyle(0xd8b040, a); wd.fillRect(x + DOORS.w * (1 - sw * 0.7) - 5, y + DOORS.h / 2, 2, 2);
+      wd.fillStyle(0xe8e0c8, a * (0.5 + 0.5 * Math.sin(t * 0.05))); wd.fillRect(x + 2, y + 3, DOORS.w - 4, 1);
+    }
     const spot = (i) => this.spots[i % this.spots.length];
     switch (this.fx) {
       case 'fx-night':                                            // NIGHTFALL: deep blue, stars, a crescent moon

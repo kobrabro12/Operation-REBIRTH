@@ -184,7 +184,7 @@ export class LostScene extends Phaser.Scene {
     }
     if (!buyItem(it.id, it.price)) { this.play('slam', null, true); this.say('broke'); sfx('menu', 0.5, 0.4); return; }
     if (it.kind !== 'costume') toggleEquip(it.kind, it.id);
-    sfx('confirm', 0.7); this.play('sold'); this.say('bought');
+    sfx('ding', 0.7, 0.8); this.play('sold'); this.say('bought');
   }
 
   /** True while an important reaction is still on screen (so mashing BUY doesn't stack them up). */

@@ -141,7 +141,11 @@ export const SHOP = [
   ] },
   // LOST: not a shelf - its tab opens HANZ / $@L's room (src/scenes/LostScene.js), dark until you type his name. His
   // things are hidden: 'lost' (never in the other shelves or the gacha machines) and are sold in his room, in MEMORIES
-  { name: 'LOST', lost: true, items: [] },
+  { name: 'LOST', lost: true, items: [
+    { id: 'fx-dream', kind: 'fx', hidden: 'lost', name: 'THE WAITING DREAM', price: 1200, info: 'RE-THEMES ANY STAGE AS HIS ROOM: A PEACH DUSK, A SPLIT MOON, STAIRS HANGING FROM NOTHING, CLOCKS MELTING OFF THE EDGES.', color: 0xf4c29a },
+    { id: 'ext-opinion', kind: 'extra', hidden: 'lost', name: 'SECOND OPINION', price: 800, info: 'AFTER EVERY KO HE POPS UP AT THE EDGE OF THE SCREEN AND SAYS WHAT HE THINKS. ONE OF HIM, ANYWAY.', color: 0xb8121c },
+    { id: 'ext-doors', kind: 'extra', hidden: 'lost', name: 'DOOR TO NOWHERE', price: 800, info: 'TWO DOORS STAND ON THE STAGE. WALK INTO ONE, COME OUT OF THE OTHER. THEY MOVE WHEN YOU AREN\'T LOOKING.', color: 0x5a2a2a },
+  ] },
 ];
 
 // a prize you already own pays back this share of its shop price

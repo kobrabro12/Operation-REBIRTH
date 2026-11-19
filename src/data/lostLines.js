@@ -73,5 +73,11 @@ export const LOST_LINES = {
   empty: [[['h', 'THE SHELVES ARE BARE. EVERYTHING IS STILL... LOST.'], ['s', ' WE\'LL FIND IT! OR STEAL IT!']]],
 };
 
+// SECOND OPINION (an extra he sells): after a KO his head pops up at the edge of the screen with one of these
+export const SECOND_OPINION = {
+  h: ['THEY\'LL BE BACK. THEY ALWAYS COME BACK.', '...THAT LOOKED LIKE IT HURT.', 'ANOTHER ONE FOR THE LOST PILE.', 'I\'LL KEEP A LIGHT ON FOR THEM.', 'NOBODY WINS. SOME JUST LOSE LATER.'],
+  s: ['HA! GET LOST!', 'SHOULDA BOUGHT SOMETHING!', 'NO REFUNDS!', 'WHAT A WASTE OF A PERFECTLY GOOD FIGHTER!', 'I BET ON THAT ONE! ...I LOST!'],
+};
+
 // Mason's recordings: line id -> true when public/assets/audio/voice/lost/<id>.ogg exists (none yet)
 export const LOST_VOICE = {};
