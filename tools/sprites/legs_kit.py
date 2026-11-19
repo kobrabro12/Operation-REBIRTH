@@ -1,4 +1,4 @@
-"""Shaped legs for the puppet-rig fighters (PRESTO, CHEF, THE DEVOTED, WHAT ONCE WAS, ROSEMARY).
+"""Shaped legs for the puppet-rig fighters (THE DEVOTED, WHAT ONCE WAS, ROSEMARY).
 
 The old legs were two straight `limb` tubes per leg, drawn a pixel or two off the rig's joints - the knees popped
 apart when the rig bent them and the shins read as sticks. Everything here is drawn ON the joints the rig turns

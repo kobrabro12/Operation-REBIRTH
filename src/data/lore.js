@@ -51,16 +51,7 @@ export const FILES = {
     origin: 'A CHAPEL NOBODY ELSE CAN FIND', moves: 'DEMONS - CROSS CUTS - SLUDGE GEYSER - PRAY', limit: 'FEED THE DARK',
     lore: 'Every hit is an offering. When the oblation is full she kneels at her dying tree and prays - and the sludge takes a little more of her each time, until she drowns in it and grows wings.',
   },
-  presto: {
-    no: 'T-08', alias: 'THE GREAT PRESTO', cls: 'STAGE MAGICIAN', weapon: 'A WAND, A DECK, A CAPE',
-    origin: 'THE GRAND THEATRE (TWICE NIGHTLY)', moves: 'CARD TRICK - VANISHING ACT - DOVE LIFT - THE CABINET', limit: 'THE GRAND ILLUSION',
-    lore: 'He has never once broken character - not on stage, not in a fight, not, according to his landlady, in his sleep. Pick a card. Any card. It is now stuck to you, and the man in the top hat is suddenly standing behind you. Was this your card? It was. It always is.',
-  },
-  chef: {
-    no: 'T-09', alias: 'CHEF ROUX', cls: 'MASTER CHEF', weapon: 'CLEAVER AND FRYING PAN',
-    origin: 'THE KITCHEN OF A RESTAURANT WITH A TWO-YEAR WAITING LIST', moves: 'FRYING PAN - CLEAVER TOSS - FLAMBE - HOT OIL', limit: 'FULL COURSE',
-    lore: 'Roux runs a fight like a dinner service: tickets on the rail, everything in order, and heaven help anyone who sends a plate back. He fights in clogs. He has fought in clogs for thirty years. Land his orders in the right order and the whole kitchen catches fire - on purpose.',
-  },  gnash: {
+  gnash: {
     no: '006', alias: 'THE KID WITH THE NEON AXE', cls: 'STREET PUNK', weapon: 'A GIANT NEON AXE (HE WILL NOT SAY WHERE HE GOT IT)',
     origin: 'THE ROOFTOPS ABOVE THE OLD ARCADE DISTRICT', moves: 'SEETHE - AXE THROW - SKYSPLITTER - GROUND SPLITTER', limit: 'EXECUTIONER',
     lore: 'Nobody knows his real name or what is under the mask - just two glowing X eyes, a stitched-on grin and a pair of neon horns he wired up himself. He is a kid. The axe is bigger than he is. He drags it everywhere, sparking along the pavement, and laughs when people stare. Make him angry enough and he stops feeling the hits at all, and then the only question left is where the axe lands.',
@@ -160,18 +151,6 @@ export const MILESTONE_LORE = {
     HEARTWOOD: 'Every place she knelt, the little dead tree came back. One night she knelt too long. Now the tree grows from her - bark up her arms, branches from her shoulders, sap that glows where it splits. Where her mouth was there is only the knot, weeping. She does not pray at the tree any more. She is the tree, and things kneel to her.',
     FORGEBOUND: 'Every one of the faithful carries a karambit, and every karambit came off her anvil. She works a forge nobody else can find, fed with stains scraped off the floors, and she quenches each blade in the sludge until it stops screaming. She has never once lost a fight to anyone holding one of her blades. She made them. She knows exactly where they break.',
     'THE LAST KEEPER': 'She kept the light on the rocks at the end of the world, and she was the one who saw the black tide come in - no wind, no moon, just the sea turning to sludge and climbing the cliffs. Everyone else ran. She stayed, and kept the lamp lit, because someone had to. The lantern at her hip is the last of that light. The tide took the lighthouse. It could not take the lamp.',
-  },
-  presto: {
-    'STREET CONJURER': 'A cardboard box on a street corner, a borrowed hat and a crowd of three. He made a pigeon disappear. It came back, and brought friends - the start of the dove act, and of a lifelong feud with pigeons.',
-    'HEADLINE ACT': 'Twice nightly at the Grand, a midnight-blue tailcoat and his name in lights. They had to put chairs in the aisles. Nobody ever saw how the cabinet trick worked, including, it is rumoured, the woman sawn in half.',
-    'MASTER ILLUSIONIST': 'He made the moon go out for one full minute. Ships at sea still argue about it. The emerald coat was a gift from a king who asked to be shown how it was done and was very politely told no.',
-    'THE IMPOSSIBLE': 'For his final trick he reached into his hat and pulled out the night sky. It never went back in. He wears it now: a coat of deep stars, gold where the lining used to be. Ladies and gentlemen - nothing up his sleeve but the universe.',
-  },
-  chef: {
-    'LINE COOK': 'Sixteen hours a day at the fryer in a blue jacket, burns up both arms, shouting YES CHEF until his voice went. He loved every minute. He learned to cook fast, and then he learned to cook angry.',
-    'SOUS CHEF': 'Black jacket, sharp knives, a voice that could stop a whole kitchen dead. He ran the pass like a general. The head chef was technically in charge. Nobody told Roux.',
-    'EXECUTIVE CHEF': 'His own restaurant at last: burgundy jacket, his name on the door, a waiting list two years long. He sends out every plate himself and personally glares at anyone who asks for ketchup.',
-    'THE GOLDEN TOQUE': 'The critics came in a group, ate in total silence, and gave him every star they had left. The jacket turned to gold the next morning. He still says the soup could have used more salt.',
   },
   fists: {
     AMATEUR: 'A borrowed pair of gloves, a gym that smelled like old pennies, and a coach who never once said well done. He kept coming back every morning anyway, before the lights were on.',

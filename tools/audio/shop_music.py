@@ -414,7 +414,7 @@ def brass(m, dur, vel=1.0, mute=False):
     return y * adsr(n, 0.02, 0.08, 0.8, min(0.08, dur * 0.4)) * vel * 0.45
 
 def showtime():
-    """SHOWSTOPPER: a big-band swing number with a horn section, for THE GREAT PRESTO's kind of night."""
+    """SHOWSTOPPER: a big-band swing number with a horn section, for a big night out."""
     bpm, bars = 168, 32; b = 60 / bpm; L = bars * 4 * b; N = secs(L); buf = np.zeros(N); F = 50
     prog = [(0, [4, 7, 9, 14]), (9, [13, 16, 19, 22]), (2, [5, 9, 12, 16]), (7, [11, 14, 17, 21])]   # I6 VI7 ii7 V7 - the rhythm changes
     sw = lambda k: (k // 2) * b + (k % 2) * b * 0.66

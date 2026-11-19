@@ -139,24 +139,6 @@ Only the jab and specials are fully designed; tilts and aerials have their own a
 - **Up special**: Cyclone Slash. In the air she rises spinning, with four dragging hits then a launcher (helpless after). On the ground, hold to charge (up to 1 s) and release for one big spin all around her (9–16%).
 - **Limit**: Thousand Cuts (`blade` cutscene).
 
-### THE GREAT PRESTO (`presto`, test fighter) — trickster (weight 0.92)
-Normals share NU's poses and numbers (a wand where NU has a mic).
-- **Passive — PICK A CARD**: cards that hit stick on the foe (up to 3, 10 s).
-- **Neutral special**: CARD TRICK, a fan of three cards (3% each, they stick).
-- **Side special**: VANISHING ACT. Vanishes (intangible) and reappears behind a marked foe in range, or 120 px ahead; the TA-DA stab (7%) cashes in their cards, x1.55 damage per card (3 cards = 19%). Once per jump.
-- **Down special**: THE CABINET, a counter (ticks 5–28, 1.3×, min 8%).
-- **Up special**: DOVE LIFT, carried up by doves; two hits above him. Helpless after.
-- **Limit**: THE GRAND ILLUSION. A cabinet drops round whoever's in front of him; four saw cuts (7% each) and a launching TA-DA (16%) = 44%.
-
-### CHEF ROUX (`chef`, test fighter) — heavy bruiser (weight 1.08)
-Normals share NU's poses and numbers (a cleaver where NU has a mic).
-- **Passive — ORDER UP**: a ticket of three moves; land them in order for WELL DONE (8 s of x1.3 damage, x1.15 knockback, +20 Limit), then a new ticket.
-- **Neutral special**: FRYING PAN, an overhead pan smash (12%) that bats projectiles back.
-- **Side special**: CLEAVER TOSS, a boomerang (8% out, 5% back); one at a time.
-- **Down special**: HOT OIL, a 6 s puddle that slows and burns (3% every half second).
-- **Up special**: FLAMBE, a fire blast under him. Helpless after.
-- **Limit**: FULL COURSE. A giant pot scoops up whoever's in front of him; four boils (7% each) and an eruption (17%) = 45%.
-
 ### GNASH (`gnash`, on the select grid) — heavy hitter (weight 1.2)
 Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X eyes, neon horns, and a giant black axe (longer than he is tall, a neon diamond in the blade) held in both hands and dragged along the floor behind him (and from his sketch, the zig-zag grin). Normals share NU's poses and timings, 5% more damage, 2% more knockback and hitboxes 10 px wider / 8 px taller (the axe's reach). Slow on the ground and in the air.
 - **Passive — PSYCHO**: a meter on his player plate, beside his damage %, fills slowly from damage taken (x0.25) and dealt (x0.15), or by SEETHING (10 s from empty); it also shows over his head. Full = PSYCHO READY: the next special he uses becomes its PSYCHO version - a cinematic cut-in (about 1.2 s, everyone frozen, drawn like an old arcade game: a synthwave sunset and grid, his mask as a chunky pixel sprite, 1UP / HI-SCORE, PSYCHO! blinking, the move's name), then the special buffed (x1.45 damage, x1.25 knockback, nothing makes him flinch).

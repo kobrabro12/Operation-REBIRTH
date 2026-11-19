@@ -449,7 +449,7 @@ export class MatchScene extends Phaser.Scene {
     const h = hb.h, owner = hb.owner;
     const beat = owner && owner.def.beat ? owner.beatBonus(hb) : null;        // NU: an attack started on the beat
     if (t.def.beat) t.dropStreak();
-    const show = owner && owner.def.show && t !== owner ? owner.showBonus(t, hb) : null;   // PRESTO's cards cashed in / ROUX's WELL DONE
+    const show = owner && owner.def.show && t !== owner ? owner.showBonus(t, hb) : null;   // GNASH's PSYCHO moves
     const dmg = Math.max(1, Math.round((h.dmg || 0) * (owner ? owner.dmgMult : 1) * t.dmgTakenMult * (beat ? beat.dmg : 1) * (show ? show.dmg : 1) * soulDamageMultiplier(hb) * soulIncomingMultiplier(t,hb)));
     if (beat) owner.beatLanded(t, hb);
     if (owner && owner.def.show && t !== owner) owner.showLanded(t, hb);

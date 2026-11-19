@@ -135,7 +135,7 @@ export class Fighter {
     if (this.possessImmune > 0) this.possessImmune--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
     if (this.worn) this.updateWorn();
-    if (this.def.show && this.alive) this.showTick();         // THE GREAT PRESTO / CHEF ROUX (fighterShow.js)
+    if (this.def.show && this.alive) this.showTick();         // GNASH (fighterShow.js forwards to fighterGnash.js)
     if (this.def.devoted && this.alive) this.devotedTick();   // THE DEVOTED: his symbol, sludge stages and stains
     if (this.possessed > 0) c = this.possessedInput(c);
     // remember presses so they fire as soon as the fighter can act
@@ -402,10 +402,6 @@ export class Fighter {
     }
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
-    if (m.cards && this.t === m.spawnAt) this.throwCards(m.cards);        // PRESTO's CARD TRICK
-    if (m.vanish) this.vanishStep(m);                                    // PRESTO's VANISHING ACT
-    if (m.cleaver && this.t === m.spawnAt) this.tossCleaver(m.cleaver);   // ROUX's CLEAVER TOSS
-    if (m.oil && this.t === m.spawnAt) this.pourOil(m.oil);               // ROUX's HOT OIL
     if (m.axe && this.t === m.spawnAt) this.throwAxe(m.axe);              // GNASH's AXE THROW
     if (m.gnash && this.gnashStep(m, c)) return;                          // GNASH: SEETHE, the double slam (fighterGnash.js)
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);

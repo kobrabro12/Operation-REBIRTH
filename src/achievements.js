@@ -39,7 +39,7 @@ export function recordBoss(id, tier) { stats.bosses = stats.bosses || {}; stats.
 const bossTier = (s, id) => (s.bosses && s.bosses[id]) || 0;
 
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
-const TESTS = ['young-link', 'what-once-was', 'last-seen', 'presto', 'chef'];
+const TESTS = ['young-link', 'what-once-was', 'last-seen'];
 // every boss in BOSS FIGHTS (src/data/bosses.js - listed here because bosses.js imports this file)
 const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro', 'stareater'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
@@ -72,8 +72,6 @@ export const ACHIEVEMENTS = [
   { id: 'hk-50', group: 'ROSTER', name: "KNIGHT'S HONOR", info: 'SCORE 50 KOS AS LACY.', goal: 50, have: () => getKOs('hero-knight'), coins: 120 },
   { id: 'all-round', group: 'ROSTER', name: 'ALL-ROUNDER', info: 'WIN A MATCH WITH SOUL SUMMONER, MR WAKE AND LACY.', goal: 3, have: (s) => MAIN.filter((id) => s.won[id]).length, coins: 150 },
   { id: 'lab-rat', group: 'ROSTER', name: 'LAB RAT', info: 'PLAY A MATCH AS A TEST FIGHTER.', goal: 1, have: (s) => TESTS.filter((id) => s.played[id]).length, coins: 40 },
-  { id: 'your-card', group: 'ROSTER', name: 'IS THIS YOUR CARD?', info: 'AS THE GREAT PRESTO, CASH IN THREE CARDS WITH ONE TA-DA.', goal: 1, have: (s) => s.cards3 || 0, coins: 150 },
-  { id: 'order-up', group: 'ROSTER', name: 'ORDER UP!', info: 'AS CHEF ROUX, COMPLETE 10 ORDER TICKETS.', goal: 10, have: (s) => s.orders || 0, coins: 200 },
   { id: 'lab-all', group: 'ROSTER', name: 'HEAD SCIENTIST', info: 'PLAY A MATCH AS EVERY TEST FIGHTER.', goal: TESTS.length, have: (s) => TESTS.filter((id) => s.played[id]).length, coins: 150 },
   // ---- WORLD
   { id: 'sightseer', group: 'WORLD', name: 'SIGHTSEER', info: 'FIGHT ON EVERY STAGE.', goal: stageCount(), have: (s) => s.stages.length, coins: 200 },

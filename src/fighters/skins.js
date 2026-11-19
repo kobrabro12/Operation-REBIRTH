@@ -506,34 +506,6 @@ export const SKINS = {
       vfx: { hit: { shape: 'drop', colors: [0xb8743a, 0xf4f0e8, 0xd8203a], n: 10, ring: 0xf4f0e8 },
              aura: { motes: { colors: [0xf4f0e8, 0xd8dce8], rate: 7 } }, trail: 0xd8203a } },
   ],
-  // THE GREAT PRESTO (test fighter): his hits burst into stars; drawn costumes ROYAL FLUSH / THE PHANTOM (presto_draw.py VARIANTS)
-  'presto': [
-    { name: 'SHOWTIME', swatch: 0xb070f0, vfx: { hit: { shape: 'star', colors: [0xb070f0, 0xffffff, 0xe02a48], n: 8, glint: true }, trail: 0xb070f0 } },
-    // ROYAL FLUSH: an ivory tailcoat with gold trim, a red cape scattered with card suits, a white hat with a card in its band, a gold wand
-    { name: 'ROYAL FLUSH', sheetSet: 'royal', swatch: 0xffd860, fx: 0xffd860,
-      lore: 'He played the casino circuit for ten years and never once lost a hand. Nobody ever worked out how.',
-      pal: { outline: 0x3a2206, deep: 0xa06a18, mid: 0xe0a830, light: 0xffd860, core: 0xfff8e0, shade: 0x4a2a06, void: 0x140a02 },
-      vfx: { hit: { shape: 'star', colors: [0xffd860, 0xffffff, 0xe8202a], n: 9, ring: 0xffd860, glint: true }, aura: { motes: { colors: [0xffd860, 0xffffff], rate: 8 } }, trail: 0xffd860 } },
-    // THE PHANTOM: a ghost of the stage - pale blue-grey skin, a white half-mask, glowing teal eyes, a ragged teal-lined cape
-    { name: 'THE PHANTOM', sheetSet: 'phantom', swatch: 0x3ae0c0, fx: 0x3ae0c0,
-      lore: 'The theatre burned down during his final act. Every night since, at curtain-up, the lights flicker on.',
-      pal: { outline: 0x022a24, deep: 0x0a6a5a, mid: 0x1aa890, light: 0x3ae0c0, core: 0xd0fff4, shade: 0x062a24, void: 0x020c0a },
-      vfx: { hit: { shape: 'star', colors: [0x3ae0c0, 0xd0fff4, 0xffffff], n: 8, ring: 0x3ae0c0 }, aura: { spooky: true }, trail: 0x3ae0c0 } },
-  ],
-  // CHEF ROUX (test fighter): his hits spray sparks off the grill; drawn costumes GRILL MASTER / PATISSIER (chef_draw.py VARIANTS)
-  'chef': [
-    { name: 'HEAD CHEF', swatch: 0xffa040, vfx: { hit: { shape: 'star', colors: [0xffa040, 0xfff0c8, 0xffffff], n: 7 }, trail: 0xffa040 } },
-    // GRILL MASTER: a black jacket and toque, a ginger moustache, a flame-licked apron, a red-hot cleaver
-    { name: 'GRILL MASTER', sheetSet: 'grill', style: 'chefGrill', swatch: 0xff6a1a, fx: 0xff6a1a,
-      lore: 'Thirty summers at the same smokehouse. He lights the coals with a glare.',
-      pal: { outline: 0x1a0604, deep: 0xb8320a, mid: 0xff6a1a, light: 0xffd060, core: 0xfff6c8, shade: 0x2a0a06, void: 0x0a0202 },
-      vfx: { hit: { shape: 'flame', colors: [0xffd060, 0xff6a1a, 0xff3a1a, 0xfff6c8], n: 9, ring: 0xff6a1a, sound: 'whoosh' }, aura: { inferno: true }, trail: 0xff6a1a } },
-    // PATISSIER: a pastel pink jacket, a mint apron with a cherry, a cream toque, a big whisk
-    { name: 'PATISSIER', sheetSet: 'pastry', style: 'chefPastry', swatch: 0xffc4dc, fx: 0xffc4dc,
-      lore: 'His croissants have forty-nine layers. He will tell you about every single one.',
-      pal: { outline: 0x6a2a48, deep: 0xd88aa8, mid: 0xffc4dc, light: 0xffe4f0, core: 0xffffff, shade: 0x5a2a40, void: 0x2a0e1c },
-      vfx: { hit: { shape: 'splat', colors: [0xffc4dc, 0xffffff, 0xa0e0c4, 0xe0203a], n: 8 }, aura: { motes: { colors: [0xffc4dc, 0xffffff], rate: 8 } }, trail: 0xffc4dc } },
-  ],
 };
 
 // Appended so existing saves and costume indices remain stable. This is a palette swap, not a redraw.
@@ -845,18 +817,7 @@ SKINS['devoted'] = [
 // FILES). Soul Summoner, Mr Wake and Lacy have theirs above; these are everyone else's: recolours of their own
 // sprites (colour groups + rules, like every recolour here) whose effects grow with the tier (`mvfx`).
 
-// THE GREAT PRESTO / CHEF ROUX / FISTS colour groups
-const PRG = {
-  lining: { h: [330, 360], s: [0.45, 1], v: [0.2, 1], center: 350 },               // the cape's lining, the hat band
-  tie: { h: [262, 300], s: [0.35, 1], v: [0.3, 1], center: 278 },                  // the bow tie, his eyes
-  cloth: { h: [220, 262], s: [0.08, 0.75], v: [0.02, 0.65], center: 245 },          // the tailcoat, hat, cape, trousers
-  gold: { h: [30, 56], s: [0.4, 1], v: [0.4, 1], center: 42 },
-};
-const CHG = {
-  white: { s: [0, 0.09], v: [0.66, 1], center: 0 },                                 // the jacket, apron and toque
-  red: { h: [340, 360], s: [0.5, 1], v: [0.3, 1], center: 355 },                    // the neckerchief
-  pants: { h: [215, 260], s: [0.08, 0.45], v: [0.1, 0.55], center: 240 },           // the houndstooth trousers
-};
+// FISTS colour groups
 const FIG = {
   red: { h: [330, 360], s: [0.5, 1], v: [0.2, 1], center: 345 },
   green: { h: [85, 130], s: [0.25, 1], v: [0.2, 1], center: 105 },
@@ -920,20 +881,6 @@ SKINS['devoted'].push(
   ms('ACOLYTE', 2, 0x7a1a2a, 'Wine-red, like the candles in the chapel nobody else can find.', DVG, { shirt: { to: 350, sat: 1.1, val: 0.7 }, wing: { to: 352, sat: 1.2, val: 1.3 }, hair: { to: 20, sat: 0.6, val: 0.6 } }, 'spark', [0xc8203a, 0xffc0c8, 0xffffff]),
   ms('MARTYR', 3, 0xf4f0e4, 'White as a sheet, and calmer than he has any right to be.', DVG, { shirt: { sat: 0.08, val: 1.25 }, hair: { sat: 0.1, val: 1.2 }, wing: { to: 48, sat: 0.8, val: 1.6 } }, 'spark', [0xffe08a, 0xfff6dc, 0xffffff], { vfx: { aura: { halo: 0xffe08a } } }),
   ms('SAINT OF THE SLUDGE', 4, 0x2a1a0a, 'They built him a shrine out of the stains. It moves when nobody is looking. So does he.', DVG, { shirt: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.7 }, pants: { ramp: KING_CAPE_RAMP, lo: 0.05, hi: 0.5 }, hair: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, wing: { ramp: GOLD_RAMP, lo: 0.2, hi: 0.9 } }, 'spark', [0xffd860, 0x9a4aff, 0xffffff], { outline: 0x6a4a10 }),
-);
-// THE GREAT PRESTO: THE GREATEST SHOW - a street corner, a headline act, a master, the impossible
-SKINS['presto'].push(
-  ms('STREET CONJURER', 1, 0x6a5a3a, 'A cardboard box, a borrowed hat and a crowd of three. He made a pigeon disappear. It came back.', PRG, { cloth: { to: 30, sat: 0.6, val: 1.4 }, lining: { to: 96, sat: 0.6, val: 0.8 }, tie: { to: 100, sat: 0.6 } }, 'star', [0xc8a868, 0xf0e0b8, 0xffffff]),
-  ms('HEADLINE ACT', 2, 0x3a6ad8, 'Twice nightly at the Grand. They had to add chairs in the aisles.', PRG, { cloth: { to: 222, sat: 1.2, val: 1.4 }, lining: { sat: 0.05, val: 1.6 }, tie: { to: 210, sat: 1.0 } }, 'star', [0x6aa8ff, 0xd8e8ff, 0xffffff]),
-  ms('MASTER ILLUSIONIST', 3, 0x1a8a5a, 'He made the moon go out for a minute. Ships at sea still argue about it.', PRG, { cloth: { to: 150, sat: 1.2, val: 1.2 }, lining: { to: 46, sat: 1.0, val: 1.2 }, tie: { to: 160, sat: 1.0, val: 1.2 } }, 'star', [0x3ae0a0, 0xd8ffe8, 0xffd860]),
-  ms('THE IMPOSSIBLE', 4, 0x1a0a4a, 'For his last trick he pulled the night sky out of his hat. It never went back in - he wears it.', PRG, { cloth: { to: 252, sat: 1.4, val: 0.8 }, lining: { ramp: GOLD_RAMP, lo: 0.3, hi: 1 }, tie: { to: 44, sat: 0.9, val: 1.3 }, gold: { val: 1.3 } }, 'star', [0xb070ff, 0xffd860, 0xffffff], { outline: 0x6a4a10 }),
-);
-// CHEF ROUX: THE STARRED ROAD - line cook to the golden toque
-SKINS['chef'].push(
-  ms('LINE COOK', 1, 0x4a6ab8, 'Sixteen hours a day at the fryer, burns up both arms, and he loved every minute.', CHG, { white: { ramp: [0x1a2a5a, 0x2a4a8a, 0x4a72c0, 0x7aa0e0, 0xb8d0f8, 0xe0ecff], lo: 0, hi: 1 }, red: { to: 40, sat: 0.9 } }, 'star', [0x6a8ad8, 0xd8e4ff, 0xffffff]),
-  ms('SOUS CHEF', 2, 0x2a2a34, 'Black jacket, sharp knives, a voice that could stop a kitchen dead.', CHG, { white: { ramp: [0x06060a, 0x101018, 0x1c1c28, 0x2c2c3c, 0x44445a, 0x60607a], lo: 0, hi: 1 }, red: { to: 0, sat: 1.1, val: 1.1 }, pants: { sat: 0.2, val: 1.3 } }, 'flame', [0xff6a2a, 0xffd060, 0xffffff]),
-  ms('EXECUTIVE CHEF', 3, 0x7a1a2a, 'His own restaurant. Burgundy jacket, a waiting list two years long.', CHG, { white: { ramp: [0x2a060c, 0x4a0c18, 0x6e1424, 0x9a2236, 0xc84a5a, 0xf08a96], lo: 0, hi: 1 }, red: { to: 44, sat: 1.0, val: 1.2 } }, 'flame', [0xff4a3a, 0xffd860, 0xffffff]),
-  ms('THE GOLDEN TOQUE', 4, 0xffd860, 'The critics came, ate in silence, and gave him every star they had left.', CHG, { white: { ramp: RADIANT_RAMP, lo: 0.35, hi: 1 }, red: { to: 4, sat: 1.1 }, pants: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 );
 // FISTS: TITLE ROAD - a gym, a contender, the champion, undisputed
 SKINS['fists'] = [{ name: 'DEFAULT', swatch: 0xd84a5a },
