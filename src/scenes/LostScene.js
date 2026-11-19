@@ -36,6 +36,7 @@ const TALK = { per: 2, hold: 130, w: 470, y: 10 };
 // how far his pupils can slide toward what he's watching (in texels of the face drawing)
 const GAZE = { sal: [1.3, 0.7], hanz: [1.6, 1.4] };
 
+/** The LOST room: HANZ / $@L behind his counter in the dream (see the top of this file). */
 export class LostScene extends Phaser.Scene {
   constructor() { super('Lost'); }
 
@@ -201,7 +202,8 @@ export class LostScene extends Phaser.Scene {
     for (const wd of words) {
       const t = this.add.text(0, 0, wd.w, { fontFamily: FONT, fontSize: '8px', color: LOST_COLORS[wd.who], stroke: '#000000', strokeThickness: 3 }).setDepth(22);
       if (x + t.width > TALK.w && x > 0) { x = 0; y += 13; lines.push([]); }
-      t.setPosition(x, y); t.full = wd.w; t.who = wd.who; t.setText(''); x += t.width || this.measure(wd.w); lines[lines.length - 1].push(t); this.words.push(t);
+      const tw = t.width;                                                       // (measured before it's blanked for typing)
+      t.setPosition(x, y); t.full = wd.w; t.who = wd.who; t.setText(''); x += tw; lines[lines.length - 1].push(t); this.words.push(t);
     }
     // centre each row
     for (const row of lines) { const w = row.reduce((a, t) => a + this.measure(t.full), 0); let xx = (VIEW_W - w) / 2; for (const t of row) { t.x = xx; t.y += TALK.y + 8; xx += this.measure(t.full); } }

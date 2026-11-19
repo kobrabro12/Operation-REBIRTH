@@ -38,7 +38,7 @@ try {
 } catch (e) { /* no URL */ }
 
 export function getCoins() { return shop.coins; }
-// LOST (the shop's last tab): who you let in by typing his name - 'HANZ' or '$@L' - saved for good; null = the room is still dark
+/** LOST (the shop's last tab): the name you typed to let him in - 'HANZ' or '$@L', saved for good; null = the room is still dark. */
 export function lostKeeper() { return shop.lost || null; }
 /** Unlocks LOST for good with the name you typed ('HANZ' or '$@L': that side greets you first). */
 export function setLostKeeper(code) { if (!shop.lost) { shop.lost = code; saveShop(); } }

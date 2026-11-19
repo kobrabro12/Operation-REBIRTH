@@ -38,21 +38,20 @@ SHELF = 0x6a4028; TAG = 0xf0e8d8; GLASS = 0x9ab8c8
 def sky():
     """The sky: big flat bands across the back, high to low, and a few flat slab clouds."""
     m = H.Mesh()
-    top, bot = 700, -300
+    top, bot = 240, -860                          # (what the room's camera sees at the sky's distance)
     n = len(SKY)
     for i, c in enumerate(SKY):
         z1 = top - (top - bot) * i / n; z0 = top - (top - bot) * (i + 1) / n
         m.box((0, 1600, (z0 + z1) / 2), (4000, 4, z1 - z0 + 0.5), c)
     rng = np.random.default_rng(7)
     for i in range(9):
-        cx, cz = rng.uniform(-700, 700), rng.uniform(80, 420); w = rng.uniform(120, 260)
+        cx, cz = rng.uniform(-700, 700), rng.uniform(-260, 200); w = rng.uniform(120, 260)
         pts = [(cx + w * math.cos(a) * rng.uniform(0.7, 1), 1500 - rng.uniform(0, 40), cz + w * 0.18 * math.sin(a) * rng.uniform(0.6, 1)) for a in np.linspace(0, 2 * math.pi, 10)[:-1]]
         m.hull(pts + [(x, y - 12, z) for x, y, z in pts], CLOUD if i % 2 else CLOUD2)
     # his moon: a big disc split down the middle, grey on HANZ's side, red on $@L's
     mo = H.Mesh()
     for side, col in ((-1, 0xb8121c), (1, 0xd2d0cc)):
-        pts = [(220 + side * abs(90 * math.sin(a)) * (1 if side > 0 else 1), 1450, 330 + 90 * math.cos(a)) for a in np.linspace(0, math.pi, 9)]
-        pts = [(220 + side * 90 * math.sin(a), 1450, 330 + 90 * math.cos(a)) for a in np.linspace(0, math.pi, 9)] + [(220, 1450, 240), (220, 1450, 420)]
+        pts = [(300 + side * 110 * math.sin(a), 1450, 40 + 110 * math.cos(a)) for a in np.linspace(0, math.pi, 9)] + [(300, 1450, -70), (300, 1450, 150)]
         mo.hull(pts + [(x, y - 4, z) for x, y, z in pts], col)
     return {'sky': m, 'moon': mo}
 
@@ -96,51 +95,52 @@ def room():
         st.box((x, y + 4, z + 6.5), (44, 26, 1.5), STAIR)                            # tread
     # its twin hanging upside down from the sky, climbing the wrong way
     for k in range(10):
-        x, y, z = 150 - k * 6, 560 + k * 10, 420 - k * 14
+        x, y, z = 130 - k * 6, 560 + k * 10, 150 - k * 13
         st.box((x, y, z), (44, 22, 12), STAIR2); st.box((x, y + 4, z - 6.5), (44, 26, 1.5), STAIR)
     parts['door'] = d; parts['stairs'] = st
     # the window on the right wall, nearer and bigger (its pane shows this room: second pass)
     win = H.Mesh()
-    WY, WZ, HW, HH = 150, 120, 56, 70
+    WY, WZ, HW, HH = 360, 10, 50, 62
     for k in (-1, 1):
-        win.box((236, WY + k * HW, WZ), (8, 8, HH * 2 + 8), DOORF)
-        win.box((236, WY, WZ + k * HH), (8, HW * 2 + 8, 8), DOORF)
-    win.box((236, WY, WZ), (4, 2, HH * 2), DOORF)
+        win.box((252, WY + k * HW, WZ), (8, 8, HH * 2 + 8), DOORF)
+        win.box((252, WY, WZ + k * HH), (8, HW * 2 + 8, 8), DOORF)
+    win.box((252, WY, WZ), (4, 2, HH * 2), DOORF)
     parts['window'] = win
     pane = H.Mesh()
-    pane.hull([(x, y, z) for x in (233, 234) for y in (WY - HW, WY + HW) for z in (WZ - HH, WZ + HH)], GLASS)
+    pane.hull([(x, y, z) for x in (249, 250) for y in (WY - HW, WY + HW) for z in (WZ - HH, WZ + HH)], GLASS)
     parts['pane'] = pane
     # a big clock melting off a shelf on the left wall, near the front
     cl = H.Mesh()
-    CY, CZ, R = 40, 150, 34
-    cl.box((-228, CY, CZ - R - 4), (30, 90, 6), SHELF)
+    CY, CZ, R = 350, 40, 34
+    WX = -246                                         # (the wall's face at that height)
+    cl.box((WX + 14, CY, CZ - R - 4), (30, 90, 6), SHELF)
     rim, face = [], []
     for k in range(16):
         a = 2 * math.pi * k / 16
         y, z = CY + R * math.cos(a), CZ + R * math.sin(a)
-        x = -222
+        x = WX + 6
         if z < CZ - R * 0.4:                                                          # the bottom slumps over the shelf edge
-            sag = (CZ - R * 0.4 - z); x = -222 + sag * 0.9; z = CZ - R - 2 - sag * 0.15
+            sag = (CZ - R * 0.4 - z); x = WX + 6 + sag * 0.9; z = CZ - R - 2 - sag * 0.15
         rim.append((x, y, z))
     cl.hull(rim + [(x + 4, y, z) for x, y, z in rim], TAG)
-    cl.hull([(-196, CY - 14, CZ - R - 1), (-196, CY + 10, CZ - R - 1), (-190, CY - 4, CZ - R - 50), (-192, CY + 2, CZ - R - 70), (-189, CY - 2, CZ - R - 30)], TAG)   # the long drip
+    cl.hull([(WX + 32, CY - 14, CZ - R - 1), (WX + 32, CY + 10, CZ - R - 1), (WX + 38, CY - 4, CZ - R - 50), (WX + 36, CY + 2, CZ - R - 70), (WX + 39, CY - 2, CZ - R - 30)], TAG)   # the long drip
     for k in range(12):
         a = 2 * math.pi * k / 12
-        cl.box((-217, CY + 27 * math.cos(a), CZ + 27 * math.sin(a)), (1, 4, 4), H.INKC)
-    cl.box((-217, CY + 10, CZ + 2), (1, 22, 3), H.INKC); cl.box((-217, CY - 1, CZ + 12), (1, 3, 22), H.INKC)
+        cl.box((WX + 11, CY + 27 * math.cos(a), CZ + 27 * math.sin(a)), (1, 4, 4), H.INKC)
+    cl.box((WX + 11, CY + 10, CZ + 2), (1, 22, 3), H.INKC); cl.box((WX + 11, CY - 1, CZ + 12), (1, 3, 22), H.INKC)
     parts['clock'] = cl
     # a sagging shelf of price tags on the right wall, near the front
     sh = H.Mesh()
     for k in range(7):
-        y = -40 + k * 18; sag = math.sin(k / 6 * math.pi) * 16
-        sh.box((228, y, 40 - sag), (30, 18, 4), SHELF)
+        y = 470 + k * 18; sag = math.sin(k / 6 * math.pi) * 16
+        sh.box((236, y, -10 - sag), (30, 18, 4), SHELF)
         drip = 16 + k % 3 * 6
-        sh.hull([(222, y - 5, 34 - sag), (222, y + 5, 34 - sag), (222, y + 4, 34 - sag - drip), (222, y - 4, 34 - sag - drip * 0.7),
-                 (224, y - 5, 34 - sag), (224, y + 5, 34 - sag), (224, y + 4, 34 - sag - drip), (224, y - 4, 34 - sag - drip * 0.7)], TAG)
+        sh.hull([(230, y - 5, -16 - sag), (230, y + 5, -16 - sag), (230, y + 4, -16 - sag - drip), (230, y - 4, -16 - sag - drip * 0.7),
+                 (232, y - 5, -16 - sag), (232, y + 5, -16 - sag), (232, y + 4, -16 - sag - drip), (232, y - 4, -16 - sag - drip * 0.7)], TAG)
     parts['shelf'] = sh
     # lamps on cords running up into the sky
     lp = H.Mesh()
-    for (x, y, z) in ((-160, 60, 175), (165, 90, 205), (-60, 380, 260), (90, 300, 250)):
+    for (x, y, z) in ((-150, 300, 95), (150, 260, 88), (-40, 560, 125), (70, 420, 110)):
         lp.box((x, y, z + 300), (1.2, 1.2, 600), CORD)
         lp.hull([(x + 14 * math.cos(a), y + 14 * math.sin(a), z - 12) for a in np.linspace(0, 2 * math.pi, 7)[:-1]]
                 + [(x + 4 * math.cos(a), y + 4 * math.sin(a), z + 2) for a in np.linspace(0, 2 * math.pi, 5)[:-1]], LAMP)
@@ -151,8 +151,8 @@ def room():
 def floaters():
     """Things drifting in the open sky behind the room: a door standing on nothing, loose floor tiles."""
     f = H.Mesh()
-    f.box((60, 900, 160), (70, 6, 150), DOOR); f.box((60, 897, 160), (78, 4, 158), DOORF)
-    f.box((84, 896, 150), (6, 2, 6), 0xd8b040)
+    f.box((-110, 900, 30), (70, 6, 150), DOOR); f.box((-110, 897, 30), (78, 4, 158), DOORF)
+    f.box((-86, 896, 20), (6, 2, 6), 0xd8b040)
     rng = np.random.default_rng(3)
     for i in range(12):
         x, y, z = rng.uniform(-420, 420), rng.uniform(750, 1300), rng.uniform(-200, 120)
@@ -233,7 +233,7 @@ def main():
     for poly in me.polygons:                                                      # (the picture laid across the pane)
         for li in poly.loop_indices:
             v = me.vertices[me.loops[li].vertex_index].co
-            uvl.data[li].uv = ((v.y - 94) / 112, (v.z - 50) / 140)
+            uvl.data[li].uv = ((v.y - 310) / 100, (v.z + 52) / 124)
     pane.data.materials.clear(); pane.data.materials.append(pane_material(os.path.join(bpy.app.tempdir or '/tmp', 'room_first.png')))
     skyl = shoot(tmp, ['sky', 'moon'])
     rooml = shoot(tmp, room_names)
