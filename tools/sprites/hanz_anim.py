@@ -183,15 +183,32 @@ def drum(i, n):
     return tuple(curls)
 
 
+def deep_breath(frames, breaths=2, rise=2.4, straighten=3.2, chin=2.5):
+    """A slow, clearly visible breath for the idle, `breaths` times over the loop: a long inhale (he rises `rise`,
+    straightens `straighten` degrees off his hunch, chin lifts `chin` degrees), a beat held at the top, a quicker
+    sinking exhale, a rest at the bottom. The hands stay planted on the counter, so his elbows bend with it."""
+    n = len(frames); out = []
+    for i, p in enumerate(frames):
+        t = (i * breaths / n) % 1.0
+        if t < 0.45: k = 0.5 - 0.5 * math.cos(math.pi * t / 0.45)            # in, slow
+        elif t < 0.55: k = 1.0                                                # held
+        elif t < 0.85: k = 0.5 + 0.5 * math.cos(math.pi * (t - 0.55) / 0.3)  # out, quicker
+        else: k = 0.0                                                         # rest
+        x, y, z, rx, rz = p['body']; yaw, pitch, roll = p['head']
+        q = dict(p); q['body'] = (x, y, z + rise * k, rx - straighten * k, rz)
+        q['head'] = (yaw, pitch - chin * k, roll); out.append(q)
+    return out
+
+
 def idle():
-    """The idle: too calm. Barely moving, breathing; his head drifts into a crooked tilt and back; HANZ's grey fingers
-    drum the counter now and then."""
-    n = 60
-    fr = frames_of([(0, P()), (1.4, P(head=(3, 6, -11))), (2.6, P(head=(-2, 4, -5))), (4, P())], loop=True)
+    """The idle: too calm. Two slow, deep breaths a loop (his shoulders rise and fall); his head drifts into a crooked
+    tilt and back; HANZ's grey fingers drum the counter now and then."""
+    n = 90
+    fr = frames_of([(0, P()), (2.1, P(head=(3, 6, -11))), (3.9, P(head=(-2, 4, -5))), (6, P())], loop=True)
     out = []
     for i, p in enumerate(fr):
         q = dict(p); r = dict(q['r']); r['curl'] = drum(i, n) if i < n * 0.55 else r['curl']; q['r'] = r; out.append(q)
-    return breathe(follow(out, loop=True), 1.0)
+    return deep_breath(follow(out, loop=True))
 
 
 def twitch():
@@ -587,7 +604,44 @@ def render_pose(cam, mats, pose, path, drops=()):
         if not any(c[:2] == ('torso', 'counter') for c in clips): break
     obs = place(parts, mats, cam)
     desk('cut'); border(cam, obs)
-    return clean(shoot(path)), mask_M, bot, clips
+    img = clean(shoot(path))
+    return sharp_face(img, obs, path), mask_M, bot, clips
+
+
+FACE_SS = 2                                      # the face is rendered this many times finer, then folded back down
+FACE_INK = 70                                    # a face pixel this dark (brightest channel) is one of his drawn lines
+
+
+def sharp_face(img, obs, path):
+    """Makes his face read clearly. At 320x180 the 64x64 drawing lands on ~34 pixels, so nearest sampling skipped half
+    its lines. The face alone is rendered FACE_SS times finer (everything else a holdout, so his hands still cover it),
+    then folded back to the 320 grid keeping the lines: a pixel is ink if any of its sub-pixels is, else the skin's
+    average, in 15-bit colour without the dither (the dither smeared his thin lines). Same wobbly geometry, so the
+    face stays put on the head. Returns the frame with its face pixels replaced."""
+    faces = [ob for ob in obs if ob.name.startswith('face')]
+    if not faces: return img
+    sc = bpy.context.scene
+    for ob in obs: ob.is_holdout = ob not in faces
+    sc.render.resolution_percentage = 100 * FACE_SS
+    try:
+        sc.render.filepath = path; bpy.ops.render.render(write_still=True)
+        hi = np.array(Image.open(path).convert('RGBA')).astype(float)
+    finally:
+        sc.render.resolution_percentage = 100
+        for ob in obs: ob.is_holdout = False
+    h, w = img.shape[:2]; s = FACE_SS
+    blk = hi[:h * s, :w * s].reshape(h, s, w, s, 4).transpose(0, 2, 1, 3, 4).reshape(h, w, s * s, 4)
+    a = blk[..., 3] > 127
+    cover = a.mean(axis=2)
+    ink = a & (blk[..., :3].max(axis=3) < FACE_INK)
+    n_ink = ink.sum(axis=2); n_skin = (a & ~ink).sum(axis=2)
+    inkc = (blk[..., :3] * ink[..., None]).sum(axis=2) / np.maximum(n_ink, 1)[..., None]
+    skin = (blk[..., :3] * (a & ~ink)[..., None]).sum(axis=2) / np.maximum(n_skin, 1)[..., None]
+    rgb = np.where((n_ink > 0)[..., None], inkc, skin)
+    rgb = np.clip(np.floor(rgb / 8) * 8 + 4, 0, 255)
+    out = img.copy(); m = cover >= 0.5
+    out[m, :3] = rgb[m].astype(np.uint8); out[m, 3] = 255
+    return out
 
 
 def clean(img):
