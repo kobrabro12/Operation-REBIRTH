@@ -4,7 +4,7 @@
 // tools/sprites/hanz_3d.py (the model), hanz_anim.py (his animations -> lostFrames.js + assets/shop/lost/hanz_<anim>.png),
 // hanz_room.py (the room's three layers).
 //
-// Until you know his name the room is dark: type HANZ or $@L (keyboard, or the glyphs along the bottom with a pad /
+// Until you know his name the room is dark: type HANZ or $@L (keyboard, or the on-screen keypad - tap it / use a pad /
 // touch) and the lights come on - saved for good (progress.js lostKeeper); the side you named greets you first.
 // Then: his things float either side of him (LOST items in src/data/shop.js, paid in MEMORIES = the same coins); he
 // turns to look at whatever you're on and his pupils follow it (the game draws them: lostFrames eyes); he talks in
@@ -25,10 +25,11 @@ import { LOST_LINES, LOST_COLORS, LOST_VOICE } from '../data/lostLines.js';
 
 const DIR = 'assets/shop/lost/';
 const TICKS = Math.round(60 / LOST_FRAMES.fps);        // game frames per animation frame
-// the codes that let you in, and the glyphs you can pick them from without a keyboard (the strip along the bottom)
+// the codes that let you in, and the keypad you can type them on without a keyboard (phones, pads, mouse)
 const CODES = ['HANZ', '$@L'];
 const GLYPHS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ$@', 'DEL'];
-const TYPE = { y: 316, size: 10 };
+// the keypad: keys per row, key size, gap, top of the first row (big enough to hit with a thumb on a phone)
+const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
 const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.09, skip: [900, 1800] };
 // his things: card size and where the two columns float
@@ -110,8 +111,9 @@ export class LostScene extends Phaser.Scene {
     this.typed = ''; this.glyph = 0;
     this.typedText = this.add.text(VIEW_W / 2, 150, '', { fontFamily: FONT, fontSize: '22px', color: '#3a3644' }).setOrigin(0.5).setDepth(22);
     this.prompt = this.add.text(VIEW_W / 2, 196, '...', { fontFamily: FONT, fontSize: '7px', color: '#2c2834' }).setOrigin(0.5).setDepth(22);
-    this.glyphText = GLYPHS.map((g, i) => this.add.text(24 + i * 21, TYPE.y, g, { fontFamily: FONT, fontSize: g === 'DEL' ? '6px' : '9px', color: '#2a2632' })
-      .setOrigin(0.5).setDepth(22).setInteractive({ useHandCursor: true }).on('pointerdown', () => { this.glyph = i; this.typeGlyph(g); }));
+    this.keys = GLYPHS.map((g, i) => this.keyRect(i));
+    this.glyphText = GLYPHS.map((g, i) => this.add.text(this.keys[i].x + this.keys[i].w / 2, this.keys[i].y + PAD.h / 2, g, { fontFamily: FONT, fontSize: g === 'DEL' ? '7px' : '10px', color: '#4a4652' })
+      .setOrigin(0.5).setDepth(22));
     this.input.keyboard.enabled = false; this.input.keyboard.disableGlobalCapture();   // (the game's keys step aside while you type)
     this.onKey = (e) => {
       if (e.key === 'Escape') { this.leave(); return; }
@@ -121,9 +123,30 @@ export class LostScene extends Phaser.Scene {
     window.addEventListener('keydown', this.onKey);
   }
 
+  /** Where key i of the keypad sits: rows of PAD.cols centred on the screen; DEL is twice as wide. Returns {x, y, w}. */
+  keyRect(i) {
+    const row = Math.floor(i / PAD.cols), inRow = Math.min(PAD.cols, GLYPHS.length - row * PAD.cols);
+    const wide = (k) => (GLYPHS[k] === 'DEL' ? 2 : 1), step = PAD.w + PAD.gap;
+    let rowW = -PAD.gap; for (let k = row * PAD.cols; k < row * PAD.cols + inRow; k++) rowW += wide(k) * PAD.w + (wide(k) - 1) * PAD.gap + PAD.gap;
+    let x = (VIEW_W - rowW) / 2; for (let k = row * PAD.cols; k < i; k++) x += wide(k) * step;
+    return { x, y: PAD.y + row * (PAD.h + PAD.gap), w: wide(i) * PAD.w + (wide(i) - 1) * PAD.gap };
+  }
+
+  /** The keypad in the dark: faint keys, the picked one (pad / last tapped) lit, each pressed key flashing red. */
+  drawKeys() {
+    const g = this.ui;
+    this.keys.forEach((k, i) => {
+      const on = i === this.glyph, flash = this.keyFlash && this.keyFlash.i === i && this.t - this.keyFlash.t < 8;
+      g.fillStyle(flash ? 0x5a1418 : 0x0e0c12, 0.9); g.fillRect(k.x, k.y, k.w, PAD.h);
+      g.lineStyle(1, on ? 0x8a8692 : 0x2e2a36, 1); g.strokeRect(k.x + 0.5, k.y + 0.5, k.w - 1, PAD.h - 1);
+      this.glyphText[i].setColor(flash ? '#ff4a4a' : on ? '#b8b4c0' : '#5a5662');
+    });
+  }
+
   /** One letter typed in the dark: the last letters are checked against HANZ / $@L; too many wrong ones crumble away. */
   typeGlyph(g) {
     if (this.lit) return;
+    const ki = GLYPHS.indexOf(g); if (ki >= 0) this.keyFlash = { i: ki, t: this.t };
     if (g === 'DEL') this.typed = this.typed.slice(0, -1);
     else this.typed = (this.typed + g).slice(-6);
     sfx('menu', 0.25, 0.5 + Math.random() * 0.3);
@@ -139,7 +162,7 @@ export class LostScene extends Phaser.Scene {
     if (this.onKey) { window.removeEventListener('keydown', this.onKey); this.onKey = null; }
     try { this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture(); } catch (e) { /* plugin gone */ }
     for (const o of [this.typedText, this.prompt, ...(this.glyphText || [])]) if (o) o.destroy();
-    this.typedText = this.prompt = null; this.glyphText = null;
+    this.typedText = this.prompt = null; this.glyphText = null; this.keys = null;
     this.counter.clearTint(); this.floatL.setVisible(true);
     this.makeCards();
     const who = code || lostKeeper();
@@ -321,7 +344,7 @@ export class LostScene extends Phaser.Scene {
   /** Draws his floating cards and the picked one's details (name, info, price in MEMORIES, BUY). */
   drawUI() {
     const g = this.ui; g.clear();
-    if (!this.lit) return;
+    if (!this.lit) { if (this.keys && this.glyphText) this.drawKeys(); return; }
     this.cards.forEach((c, i) => {
       const on = i === this.sel, y = c.y + this.bob(c), own = owns(c.it.id);
       g.fillStyle(0x000000, 0.45); g.fillRect(c.x + 3, y + 3, CARD.w, CARD.h);
@@ -353,10 +376,12 @@ export class LostScene extends Phaser.Scene {
     if (p && (p.x !== this.px || p.y !== this.py)) { this.px = p.x; this.py = p.y; this.pointerT = this.t; }
     if (m.back || m.pads.some((q) => q.button === 'b')) { this.leave(); return; }
     if (!this.lit) {
-      if (m.left) this.glyph = (this.glyph + GLYPHS.length - 1) % GLYPHS.length;
-      if (m.right) this.glyph = (this.glyph + 1) % GLYPHS.length;
+      const n = GLYPHS.length;
+      if (m.left) this.glyph = (this.glyph + n - 1) % n;
+      if (m.right) this.glyph = (this.glyph + 1) % n;
+      if (m.up) this.glyph = Math.max(0, this.glyph - PAD.cols);
+      if (m.down) this.glyph = Math.min(n - 1, this.glyph + PAD.cols);
       if (m.pads.some((q) => q.button === 'a')) this.typeGlyph(GLYPHS[this.glyph]);
-      (this.glyphText || []).forEach((t, i) => t.setColor(i === this.glyph ? '#6a6672' : '#2a2632'));
       if (this.prompt) this.prompt.setAlpha(0.4 + 0.6 * Math.abs(Math.sin(this.t * 0.02)));
     } else {
       const n = this.cards.length;
@@ -377,9 +402,13 @@ export class LostScene extends Phaser.Scene {
     this.drawUI();
   }
 
-  /** Clicking: a card picks it (again = buy), clicking him pokes him. */
+  /** Clicking / tapping: in the dark, a key of the keypad; lit, a card picks it (again = buy), and tapping him pokes him. */
   pointerDown(p) {
-    if (!this.lit) return;
+    if (!this.lit) {                                                                   // a key of the keypad (the gaps count as the nearest key)
+      const k = (this.keys || []).findIndex((r) => p.x >= r.x - 3 && p.x <= r.x + r.w + 3 && p.y >= r.y - 3 && p.y <= r.y + PAD.h + 3);
+      if (k >= 0) { this.glyph = k; this.typeGlyph(GLYPHS[k]); }
+      return;
+    }
     for (let i = 0; i < this.cards.length; i++) {
       const c = this.cards[i], y = c.y + this.bob(c);
       if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + CARD.h) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
