@@ -71,6 +71,13 @@ export const LOST_LINES = {
     [['h', 'IT\'S LATER THAN IT WAS.']],
     [['s', 'WHO WOUND THIS THING?!'], ['h', ' YOU DID.']],
   ],
+  // after he's taken his face off and put it back
+  unmask: [
+    [['s', 'YOU DIDN\'T SEE ANYTHING.']],
+    [['h', '...SORRY. IT ITCHES.']],
+    [['s', 'WHAT? EVERYONE\'S GOT ONE.'], ['h', ' NOT EVERYONE.']],
+    [['h', 'THERE USED TO BE SOMEONE UNDER THERE.'], ['s', ' THERE STILL IS! ...ISN\'T THERE?']],
+  ],
   // leaving
   bye: [
     [['s', 'COME BACK! OR DON\'T! I\'LL KNOW!'], ['h', ' ...MIND THE STAIRS.']],

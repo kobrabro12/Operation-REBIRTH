@@ -1,6 +1,7 @@
-"""The LOST room behind HANZ / $@L: a surreal dream, path-traced in Blender (Cycles) under the same lights as him
-(hanz_3d.lights: warm key, cool dusk rim, the sky's glow; the lamps really light the walls; the checker floor is glossy
-and reflects) through the same camera as his animations (hanz_anim.CAM), as three layers the game drifts separately:
+"""The LOST room behind HANZ / $@L: a surreal dream, rendered PS1-style in Blender like him (light baked into the
+vertices - hanz_3d.light_up - distance fog toward the dusk, wobbly snapped vertices, 320x180 with the PS1's 15-bit
+dithered colour, saved at 2x) through the same camera as his animations (hanz_anim.CAM), as three layers the game
+drifts separately:
 
   sky    a smooth dusk sky (peach -> lilac -> violet) with soft lit clouds and his split moon glowing
   room   a checkerboard floor that runs off into the sky and breaks into floating tiles; two walls and no back wall;
@@ -195,16 +196,13 @@ def emit_lamps():
     if not ob: return
     m = bpy.data.materials.new('glow'); m.use_nodes = True
     nt = m.node_tree; nt.nodes.clear()
-    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1, 0.85, 0.5, 1); em.inputs['Strength'].default_value = 4
+    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1, 0.85, 0.5, 1); em.inputs['Strength'].default_value = 1.15
     out = nt.nodes.new('ShaderNodeOutputMaterial'); nt.links.new(em.outputs[0], out.inputs['Surface'])
     ob.data.materials.clear(); ob.data.materials.append(m)
     for p in ob.data.polygons: p.material_index = 0
-    for i, (x, y, z) in enumerate(LAMPS):                                         # ... and really light the room
-        ld = bpy.data.lights.new('lamp%d' % i, 'POINT'); ld.color = (1, 0.82, 0.5); ld.energy = 2.6e5; ld.shadow_soft_size = 10
-        lo = bpy.data.objects.new('lamp%d' % i, ld); bpy.context.scene.collection.objects.link(lo); lo.location = (x, y, z - 16)
     mo = bpy.data.objects.get('moon')                                             # the moon glows (red / grey, from its own colours)
     if mo:
-        mo.data.materials.clear(); mo.data.materials.append(glow_material('moonglow', strength=1.4))
+        mo.data.materials.clear(); mo.data.materials.append(glow_material('moonglow', strength=1.0))
         for p in mo.data.polygons: p.material_index = 0
 
 
@@ -224,16 +222,15 @@ def pane_material(img_path):
 # what the room's colours are made of (added to hanz_3d's KINDS / LOOK): a glossy lacquered checker floor that
 # reflects, matte wallpaper, soft clouds, painted wood
 H.KINDS.update({'tile': (TILE_A, TILE_B), 'paper_wall': (WALL, WALL2, TAG), 'cloud': (CLOUD, CLOUD2), 'stairs': (STAIR, STAIR2)})
-H.LOOK.update({'tile': (0.18, 0, 0.6, 0, 0), 'paper_wall': (0.9, 0, 0, 0.2, 0), 'cloud': (0.95, 0, 0, 0.4, 0.3), 'stairs': (0.7, 0, 0, 0, 0)})
+H.LOOK.update({'tile': (0.35, 0, 1)})
 H.SMOOTH.update({'clouds': 80})
 
 
 def make(objs, mats):
     """Turns the meshes into objects (tagged 'room'); mats = the materials (the room's kinds are added to it)."""
-    for k in ('tile', 'paper_wall', 'cloud', 'stairs'):
-        if k not in mats: mats[k] = H.principled('m_' + k, look=k)
     for nm, m in objs.items():
         ob = H.to_object(nm, m, mats, face_box=None); ob['room'] = 1
+        bpy.context.view_layer.update(); H.light_up(ob, bpy.data.objects['cam'], snap=True)
 
 
 def shoot(path, show, holdout=()):
@@ -244,7 +241,8 @@ def shoot(path, show, holdout=()):
         ob.is_holdout = ob.name in holdout
     bpy.context.scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
-    return np.array(Image.open(path).convert('RGBA'))
+    im = H.ps1_post(np.array(Image.open(path).convert('RGBA')))
+    return np.array(Image.fromarray(im).resize((im.shape[1] * A.SCALE, im.shape[0] * A.SCALE), Image.NEAREST))   # (saved at the game's size)
 
 
 def save(arr, name, opaque=False):
@@ -252,14 +250,14 @@ def save(arr, name, opaque=False):
     a = arr.copy()
     if opaque: a[..., 3] = 255
     else: a[a[..., 3] <= 4] = 0
-    A.quantize(a, 256, 0.5).save(os.path.join(OUT, name), optimize=True)
+    A.quantize(a, 256).save(os.path.join(OUT, name), optimize=True)
     return a
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--preview', default=''); ap.add_argument('--samples', type=int, default=48); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument('--preview', default=''); a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    cam, mats = A.setup(a.samples)
+    cam, mats = A.setup()
     sc = bpy.context.scene; sc.render.use_border = False
     for ob in list(bpy.data.objects):                                            # (the desk isn't part of the room)
         if ob.name in A.DESK: ob.hide_render = True
