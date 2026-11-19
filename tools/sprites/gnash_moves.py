@@ -91,8 +91,11 @@ def two_hands(pose):
 
 _life = N.life
 def gnash_life(pose, t):
-    """NU's breathing, then both hands on the axe."""
-    return two_hands(_life(pose, t))
+    """NU's breathing, then both hands on the axe. His horns ride in NU's `hair` slot, and NU's poses (and his breathing)
+    swing that hair on its own - on GNASH that slid the horns across his mask and through his head - so the slot never
+    turns or shifts by itself: the horns stay fixed to his skull."""
+    p = {k_: v for k_, v in _life(pose, t).items() if k_ != 'hair'}
+    return two_hands(p)
 
 GN = {}
 def gmove(name, ticks, keys, step=1, smear=(), loop=False): GN[name] = (ticks, keys, step, smear, loop, None)
@@ -321,7 +324,8 @@ if __name__ == '__main__':
     _BUILDING = True; half_steps(); N.life = gnash_life        # every frame through the two-handed grip
     for _n, (_t, _k, _s, _sm, _l, _c) in list(GN.items()):   # no smears (see gnash_normals); the specials at every 2nd tick (keeps the wider sheet inside 4096 px)
         GN[_n] = (_t, _k, 2 if _n in ('sideB', 'upb', 'downB', 'downB2') else _s, (), _l, _c)
-    FOLLOW = {**N.FOLLOW, 'hair': (0.25, 0.5), 'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
+    FOLLOW = {**N.FOLLOW, 'hair': (0, 0),   # (no follow-through lag either: the horns are solid, not hair)
+              'mic': (0, 0), 'bfore': (0, 0), 'ffore': (0, 0)}
     SETS = os.environ.get('GN_SETS', 'default,bloodmoon,gravestone,arcade,gravemoon,infected,pop,exec').split(',')   # (GN_SETS=arcade,... builds only those)
     air_poses(True)
     build(gnash_draw, FOLLOW, GN, 'gnash', 'gnMoves.js', 'GN_MOVES', skin_idle, SETS, (255, 120, 60), own_for=skin_moves)
