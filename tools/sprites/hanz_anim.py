@@ -97,8 +97,8 @@ FIST_UP = lambda s: {'w': (s * 22, -14, 30), 'pole': (s, 0.4, -0.2), 'dir': (0, 
 FIST_DOWN = lambda s: {'w': (s * 22, -12, 7.5), 'pole': (s, 0.4, 0.9), 'dir': (0, -1, 0), 'nrm': (0, 0, 1), 'grip': 'fist'}
 OPEN_WIDE = lambda s: {'w': (s * 52, -16, 26), 'pole': (s, 0.6, -0.6), 'dir': (s * 0.6, -0.5, 0.6), 'nrm': (0, -0.4, -1), 'grip': 'open'}
 PALM_UP = lambda s: {'w': (s * 32, -20, 14), 'pole': (s, 0.4, -0.3), 'dir': (s * 0.3, -1, 0.2), 'nrm': (0, 0, -1), 'grip': 'open'}
-RUB = lambda dx: ({'w': (-12 + dx, -31, 8), 'pole': (-1, 0.5, 0.2), 'dir': (1, -0.3, 0.1), 'nrm': (0, -1, 0), 'grip': 'flat'},
-                  {'w': (12 + dx, -31, 9), 'pole': (1, 0.5, 0.2), 'dir': (-1, -0.3, 0.1), 'nrm': (0, 1, 0), 'grip': 'flat'})
+RUB = lambda dx: ({'w': (-12 + dx, -37, 8), 'pole': (-1, 0.3, -0.5), 'dir': (1, -0.3, 0.1), 'nrm': (0, -1, 0), 'grip': 'flat'},
+                  {'w': (12 + dx, -37, 9), 'pole': (1, 0.3, -0.5), 'dir': (-1, -0.3, 0.1), 'nrm': (0, 1, 0), 'grip': 'flat'})
 HANZ_HEAD = (-26, 14, -6)                         # HANZ forward: face turned to the left, drooping
 SAL_HEAD = (26, -4, 8)                             # $@L forward: face turned to the right, chin up
 
@@ -142,7 +142,7 @@ ANIMS = {
     # sold! $@L rubs his hands together, leaning in
     'sold': {'loop': True, 'frames': lambda: frames_of([
         (0, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1])),
-        (3, P(body=(0, 41, -3, 42, 0), head=(16, -2, 8), l=RUB(3)[0], r=RUB(-3)[1])),
+        (3, P(body=(0, 41, -3, 42, 0), head=(16, -2, 8), l=RUB(1)[0], r=RUB(-3)[1])),   # (his left hand only slides in a little: further, its sleeve met the collar)
         (6, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1])),
         (9, P(body=(0, 41, -3, 42, 0), head=(12, 2, 4), l=RUB(-3)[0], r=RUB(3)[1])),
         (12, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1]))])[:12]},

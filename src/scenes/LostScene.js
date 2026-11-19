@@ -18,6 +18,8 @@ import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { lostKeeper, setLostKeeper, getCoins, buyItem, owns, toggleEquip, isEquipped } from '../progress.js';
 import { SHOP } from '../data/shop.js';
+import { fighterById, showFighter } from '../fighters/roster.js';
+import { skinsFor } from '../fighters/skins.js';
 import { LOST_FRAMES } from './lostFrames.js';
 import { LOST_LINES, LOST_COLORS, LOST_VOICE } from '../data/lostLines.js';
 
@@ -163,12 +165,14 @@ export class LostScene extends Phaser.Scene {
 
   /** Lays his things out as cards floating either side of him (first column left, then right). */
   makeCards() {
-    this.cards.forEach((c) => c.t.destroy()); this.cards = [];
+    this.cards.forEach((c) => { c.t.destroy(); if (c.spr) c.spr.destroy(); }); this.cards = [];
     this.items().forEach((it, i) => {
       const left = i < Math.ceil(this.items().length / 2), k = left ? i : i - Math.ceil(this.items().length / 2);
       const x = left ? CARD.left : CARD.right, y = CARD.top + k * CARD.gap;
-      const t = this.add.text(x + CARD.w / 2, y + 8, it.name, { fontFamily: FONT, fontSize: '6px', color: '#f0e8d8', align: 'center', wordWrap: { width: CARD.w - 10 } }).setOrigin(0.5, 0).setDepth(22);
-      this.cards.push({ it, x, y, t, left });
+      const fd = it.kind === 'costume' ? fighterById(it.fighter) : null, cos = !!(fd && fd.def);   // a costume card shows its fighter wearing it
+      const t = this.add.text(cos ? x + 6 : x + CARD.w / 2, y + 8, it.name, { fontFamily: FONT, fontSize: '6px', color: '#f0e8d8', align: cos ? 'left' : 'center', wordWrap: { width: cos ? CARD.w - 50 : CARD.w - 10 } }).setOrigin(cos ? 0 : 0.5, 0).setDepth(22);
+      const spr = cos ? this.add.sprite(0, 0, '__DEFAULT').setDepth(22) : null;
+      this.cards.push({ it, x, y, t, left, spr, def: cos ? fd.def : null, skin: cos ? Math.max(0, skinsFor(fd.def.id).findIndex((k) => k.name === it.skin)) : 0 });
     });
   }
 
@@ -325,6 +329,10 @@ export class LostScene extends Phaser.Scene {
       g.lineStyle(1, on ? 0xff4a4a : 0x6a6670, 1); g.strokeRect(c.x + 0.5, y + 0.5, CARD.w - 1, CARD.h - 1);
       if (on) { g.lineStyle(1, 0xdedcd8, 0.7); g.strokeRect(c.x - 2.5, y - 2.5, CARD.w + 4, CARD.h + 4); }
       c.t.setY(y + 8);
+      if (c.spr) {                                                                     // the fighter, idling, in the card's right end
+        showFighter(c.spr, c.def, Math.floor((this.t + i * 7) / 6), c.skin);
+        c.spr.setScale(Math.min(1, 40 / c.spr.frame.realHeight, 44 / c.spr.frame.realWidth * 1.4)).setPosition(c.x + CARD.w - 24, y + CARD.h - 3);
+      }
       g.fillStyle(own ? 0x6a6670 : 0xff4a4a, 1); g.fillRect(c.x + 8, y + CARD.h - 11, 4, 4);
     });
     const it = this.cur();

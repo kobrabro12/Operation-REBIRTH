@@ -51,7 +51,8 @@ NEONS = {   # each look's three neons: the outfit's outline, the eyes / laces / 
     'gravemoon': (0x8aa8ff, 0xff3a3a, 0xe6eaff),    # GRAVEMOON - GRAVEMOON BRIDGE: moonlit blue, the gargoyles' red eyes, the moon
     'infected': (0xff2a8a, 0xff2a2a, 0xff7ab0),     # INFECTED.EXE - the old PC: ILOVEYOU pink, THE RED ROOM's red, a love-letter heart
     'exec': (0x1a0d08, 0xff6a20, 0x9a0a0a),          # EXECUTIONER - the headsman: dark leather edges, embers for eyes, old blood
-    'pop': (0x000000, 0x000000, 0xe8281e),          # POP LINES - in the style of 80s subway pop art: thick black lines, flat bright colours
+    'pop': (0x000000, 0x000000, 0xe8281e),
+    'twoface': (0xe8202c, 0xf4f2ee, 0xe8202c),        # TWO-FACED (LOST) - HANZ / $@L: blood red down his left, pale grey down his right          # POP LINES - in the style of 80s subway pop art: thick black lines, flat bright colours
 }
 
 def neon_ramp(c):
@@ -109,6 +110,12 @@ VARIANTS = {
         'neon': (0xa07850, 0x7a5434, 0x523420, 0x342012, 0x140a06), 'neon2': (0xffe0a0, 0xffb050, 0xff6a20, 0xa02a0a, 0x2a0a04),
         'tape': (0x4a3020, 0x3a2416, 0x2a1a10, 0x1a1008, 0x0a0604), 'sole': (0x2a2422, 0x1a1614, 0x141010, 0x0a0808, 0x050404),
         'lace': (0x8a6a4a, 0x6a4a30, 0x4a3020, 0x2a1a10, 0x0a0604), 'stud': (0xd0d4d8, 0x9aa0a8, 0x6a7078, 0x40464c, 0x101214)}},
+    # TWO-FACED (sold in LOST): split down the middle like the shopkeeper - the left (back) half blood red with ONE devil
+    # horn, the right (front) half pale grey and hornless; outlines red down the back limbs, grey down the front ones;
+    # an axe half red, half grey
+    'twoface': {'horn': 'redh', 'hornW': 4.8, 'oneHorn': True, 'emblem': 'split', 'pal': {
+        'mask': (0xe8e6e2, 0xd2d0cc, 0xa8a6a2, 0x6a6864, 0x1a1818), 'redh': (0xff8a8a, 0xe8202c, 0xb8121c, 0x6e0810, 0x1a0204),
+        'hair': (0x5a5658, 0x3a3638, 0x262224, 0x161214, 0x060404)}},
     'infected': {'horn': 'neon2', 'emblem': 'heart', 'glitch': True, 'pal': {
         'jacket': (0x2a6ad8, 0x1a4ab0, 0x0a2484, 0x061650, 0xff2a8a), 'tee': (0xfff6e8, 0xe0d0b8, 0xc0b098, 0x8a7a64, 0xff2a8a),
         'hair': (0x5af0e0, 0x2aa0a0, 0x108484, 0x0a6a6a, 0x022a2a), 'glass': (0xffffff, 0xc0c0c0, 0x9a9a9a, 0x6a6a6a, 0x0a0a12),
@@ -217,6 +224,7 @@ def draw_parts():
                                 d.polygon([(30, 7), (29, 3), (32, 6), (33, 4), (34, 7)], fill=c)), 'hair')
     HL = ([(30, 9), (27, 7), (25, 4), (25, 1), (26, 0)], [(38, 8), (41, 6), (43, 3), (43, 1), (42, 0)])
     if VARIANTS[VARIANT].get('face') == 'hood': HL = ([(31, 8), (29, 5), (28, 2)], [(37, 7), (39, 4), (40, 1)])          # (stubby iron horns through the hood)
+    if VARIANTS[VARIANT].get('oneHorn'): HL = HL[:1]                             # TWO-FACED: only his red side has a horn
     for line in HL:         # the horns: tapered neon, curling up and in
         V = VARIANTS[VARIANT]
         if V.get('glitch'): h = over(h, horn([(x + 1, y) for x, y in line], 'neon2', V.get('hornW', 4.0)))   # a cyan ghost of each horn: the signal's split
@@ -262,6 +270,12 @@ def draw_parts():
     else:
         dd.polygon(ring[:-1], fill=hx(P['neon3'][4])); dd.line(ring, fill=hx(P['neon3'][2]), width=2); dd.line(ring, fill=hx(P['neon3'][0]), width=1)
     dm = np.array(im); m = dm[..., 3] > 0; b[m] = dm[m]
+    if VARIANT == 'twoface':                                                                                                  # the blade: red behind the diamond, grey in front
+        bx = np.nonzero(b[..., 3].any(0))[0]; mid = (bx.min() + bx.max()) // 2 + 4      # (the blade's middle, the haft side counted red)
+        for y, x in zip(*np.nonzero(b[..., 3] > 0)):
+            v = max(int(c) for c in b[y, x, :3]) / 255
+            ramp = (0x2a0204, 0x6e0810, 0xb8121c, 0xe8202c, 0xff8a8a) if x < mid else (0x1a1818, 0x6a6864, 0xa8a6a2, 0xd2d0cc, 0xf4f2ee)
+            b[y, x] = hx(ramp[min(4, int(v * 5.5) + (x >= mid))])                                 # (grey a step lighter, so it reads as grey, not black)
     if VARIANT == 'infected':                                                                                                 # the blade as a Windows window
         for y in range(cy - 19, cy - 14):
             putB(b, [(x, y) for x in range(cx - 4, cx + 22)], 0x0a2484 if y > cy - 19 else 0x2a6ad8)                      # its title bar
@@ -317,7 +331,12 @@ def emblem_pop(d, P, x, y):
         a = q * math.pi / 4; c, si = math.cos(a), math.sin(a)
         d.line([(x + c * 9, y + si * 9), (x + c * 12, y + si * 12)], fill=hx(0x000000), width=1)
 
-EMBLEMS = {'pop': emblem_pop, 'sun': emblem_sun, 'moon': emblem_moon, 'heart': emblem_heart}
+def emblem_split(d, P, x, y):
+    """TWO-FACED: the diamond outline, its back half red and its front half grey, a dark seam between."""
+    d.polygon([(x, y - 8), (x - 5, y), (x, y + 8)], fill=hx(0x2a0204)); d.polygon([(x, y - 8), (x + 5, y), (x, y + 8)], fill=hx(0x1a1818))
+    d.line([(x, y - 8), (x - 5, y), (x, y + 8)], fill=hx(0xe8202c), width=2); d.line([(x, y - 8), (x + 5, y), (x, y + 8)], fill=hx(0xf4f2ee), width=2)
+
+EMBLEMS = {'split': emblem_split, 'pop': emblem_pop, 'sun': emblem_sun, 'moon': emblem_moon, 'heart': emblem_heart}
 
 def touch_arcade(parts, P):
     """HIGH SCORE: the sun on his tee, scanlines on his mask, a joystick pin."""
@@ -388,7 +407,29 @@ def touch_exec(parts, P):
     for y0 in (36, 39): put(t, [(24, y0), (25, y0 - 1), (26, y0), (25, y0 + 1)], 0xa08a5a)                                   # a coil of rope at his hip
     put(t, [(25, 42), (25, 43), (24, 44)], 0xa08a5a)
 
-TOUCH = {'pop': touch_pop, 'exec': touch_exec, 'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
+def touch_twoface(parts, P):
+    """TWO-FACED: the mask split down the nose - the back half blood red, the front half pale grey - with one red X eye
+    and one tired grey slit; the tee split the same way; the front limbs outlined in grey instead of red."""
+    RED = (0xff8a8a, 0xe8202c, 0xb8121c, 0x6e0810, 0x1a0204)
+    h = parts['head']
+    to_red = {hx(g)[:3]: hx(r) for g, r in zip(P['mask'][:4], RED[:4])}
+    for y, x in zip(*np.nonzero(h[..., 3] > 0)):
+        if x < 34 and tuple(h[y, x, :3]) in to_red: h[y, x] = to_red[tuple(h[y, x, :3])]
+    put(h, [(34, y) for y in range(7, 21)], 0x1a0204)                                                          # the seam
+    put(h, [(x, y) for x in range(37, 42) for y in range(8, 13)], P['mask'][2])                                # (the grey eye: no X ...)
+    put(h, [(37, 10), (38, 11), (39, 11), (40, 11), (41, 10)], 0x1a1818); put(h, [(38, 9), (39, 9), (40, 9)], P['mask'][3])   # ... a tired, heavy-lidded slit
+    put(h, [(31, 10), (32, 10), (33, 10)], 0xffffff)
+    t = parts['torso']; tee = [hx(c)[:3] for c in P['tee']]
+    for y, x in zip(*np.nonzero(t[..., 3] > 0)):
+        if 32 <= x <= 36 and 22 <= y <= 39 and tuple(t[y, x, :3]) not in tee[3:]:
+            t[y, x] = hx((0xb8121c if x < 34 else 0xd2d0cc) if (y % 3) else (0x6e0810 if x < 34 else 0xa8a6a2))   # a split print down the tee
+    red = [hx(c)[:3] for c in neon_ramp(0xe8202c)]
+    for n in ('fupper', 'ffore', 'fthigh', 'fshin'):
+        a = parts[n]
+        for y, x in zip(*np.nonzero(a[..., 3] > 0)):
+            if tuple(a[y, x, :3]) in red: a[y, x] = hx((0xf4f2ee, 0xe8e6e2, 0xd2d0cc, 0x8a8884, 0x2a2828)[red.index(tuple(a[y, x, :3]))])
+
+TOUCH = {'twoface': touch_twoface, 'pop': touch_pop, 'exec': touch_exec, 'arcade': touch_arcade, 'gravemoon': touch_gravemoon, 'infected': touch_infected}
 
 ORDER = ['bupper', 'bfore', 'bthigh', 'bshin', 'bshoe', 'torso', 'fthigh', 'fshin', 'fshoe', 'head', 'hair', 'fupper', 'ffore', 'mic', 'bfist', 'ffist']
 # (the joints on the big canvas: the 64x64 drawing's + PAD)

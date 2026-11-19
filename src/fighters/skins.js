@@ -1000,3 +1000,9 @@ SKINS['aero'].push({ name: 'ROOM IN A BOWL', sheetSet: 'roombowl', shop: 'cos-ro
   pal: { outline: 0x0a080c, deep: 0x860a12, mid: 0xb8121c, light: 0xf4c29a, core: 0xfff4e8, shade: 0x2b2a33, void: 0x050406 },
   vfx: { hit: { shape: 'dust', colors: [0xf4c29a, 0xb8121c, 0xd2d0cc], n: 10, ring: 0xf4c29a }, trail: 0xd8a0b0,
     aura: { motes: { colors: [0xf4c29a, 0xd2d0cc], rate: 8 } } } });
+// TWO-FACED (gnash_draw.py 'twoface'): split down the middle like the shopkeeper - blood red with one devil horn down his
+// back half, pale grey and hornless down the front; a red X eye and a tired grey one; an axe half red, half grey
+SKINS['gnash'].push({ name: 'TWO-FACED', sheetSet: 'twoface', swatch: 0xb8121c, fx: 0xe8202c, shop: 'cos-twoface',
+  lore: 'He stared at the man behind the counter too long, and the man stared back with both of his faces. GNASH walked out with one of each.',
+  pal: { outline: 0x1a0204, deep: 0x6e0810, mid: 0xe8202c, light: 0xd2d0cc, core: 0xf4f2ee, shade: 0x2a2828, void: 0x060404 },
+  vfx: { hit: { shape: 'spark', colors: [0xe8202c, 0xd2d0cc, 0xf4f2ee], n: 9, ring: 0xd2d0cc }, trail: 0xe8202c } });

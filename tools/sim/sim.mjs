@@ -3,7 +3,7 @@
 // also check that a refactor didn't change how the game plays (compare --json output before/after).
 //
 //   npm run sim                                   4 random fighters, random stage, seed 1
-//   npm run sim -- --fighters soul-summoner,mr-wake --stage sky-sanctum --matches 5
+//   npm run sim -- --fighters soul-summoner,mr-wake --stage sky-sanctum --matches 5   (a fighter can name a costume: gnash:12)
 //   npm run sim -- --smoke                        every stage, every fighter, every costume: short matches (and each boss)
 //   npm run sim -- --boss dragon:2 [--fighters a,b]   boss fights (id[:difficulty 0-2] or 'all'): one CPU per fighter against it
 //                                                    (a fighter can be id:costume-number, e.g. devoted:6 = CARTRIDGE)
@@ -149,9 +149,10 @@ if (O.smoke) {
   for (const b of list) for (const f of O.fighters ? O.fighters.split(',') : info.fighters) for (let i = 0; i < O.matches; i++) { const [fid, sk] = f.split(':'); specs.push({ ...base, boss: { id: b.id, tier: +(tier || 0) }, stage: b.stage, fighters: [fid], skins: [+(sk || 0)], seed: s++, frames: O.frames }); }   // (a fighter can name a costume: devoted:6)
 } else {
   for (let i = 0; i < O.matches; i++) {
-    const fighters = O.fighters ? O.fighters.split(',') : [0, 1, 2, 3].map(() => pick(info.fighters));
+    const picks = O.fighters ? O.fighters.split(',') : [0, 1, 2, 3].map(() => pick(info.fighters));
+    const fighters = picks.map((f) => f.split(':')[0]), skins = picks.some((f) => f.includes(':')) ? picks.map((f) => +(f.split(':')[1] || 0)) : undefined;   // (a fighter can name a costume: gnash:12)
     const stage = O.stage === 'random' ? pick(info.stages) : O.stage;
-    specs.push({ ...base, stage, fighters, seed: O.seed + i, frames: O.frames });
+    specs.push({ ...base, stage, fighters, skins, seed: O.seed + i, frames: O.frames });
   }
 }
 for (const sp of specs) {
