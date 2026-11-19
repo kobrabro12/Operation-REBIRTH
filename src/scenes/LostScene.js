@@ -112,7 +112,8 @@ export class LostScene extends Phaser.Scene {
     pt.setFilter(Phaser.Textures.FilterMode.LINEAR);                     // (drawn smaller than the sheet: smooth, not pixelated)
     for (const [n, p] of Object.entries(LOST_FRAMES.props || {})) {
       const tex = this.textures.get('lost_prop_' + n);
-      if (!tex.has('0')) for (let i = 0; i < p.n; i++) tex.add(String(i), 0, i * p.w, 0, p.w, p.h);
+      const cols = p.cols || p.n;
+      if (!tex.has('0')) for (let i = 0; i < p.n; i++) tex.add(String(i), 0, (i % cols) * p.w, Math.floor(i / cols) * p.h, p.w, p.h);
     }
   }
 

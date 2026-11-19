@@ -153,8 +153,8 @@ def breathe(frames, amt=1.0, period=None):
 
 # arm poses used by the animations (l = $@L's red arm, picture left; r = HANZ's grey arm)
 CHIN = arm((14, -6, 40), pole=(1, -0.6, -1), dir=(-0.3, -0.2, 1), nrm=(0, -1, 0), grip='fist')
-POINT = arm((-17, -34, 20), pole=(-1, -0.2, -1), dir=(0.1, -1, 0.15), grip='point')
-POINT2 = arm((-14, -40, 17), pole=(-1, -0.2, -1), dir=(0.1, -1, 0.02), grip='point')
+POINT = arm((-19, -34, 19), pole=(-1, 0, -0.5), dir=(0.1, -1, 0.15), grip='point')
+POINT2 = arm((-16, -40, 16), pole=(-1, 0, -0.5), dir=(0.1, -1, 0.02), grip='point')
 FIST_UP = lambda s: arm((s * 22, -14, 33), pole=(s, 0.4, -0.2), dir=(0, -0.2, 1), nrm=(0, -1, 0), grip='fist')
 FIST_HI = lambda s: arm((s * 25, -11, 43), pole=(s, 0.6, -0.2), dir=(0, 0.1, 1), nrm=(0, -1, 0), grip='fist')
 FIST_DOWN = lambda s: arm((s * 25, -12, 11), pole=(s, 0.5, 0.9), dir=(0, -1, 0), grip='fist')
@@ -288,7 +288,7 @@ ANIMS = {
     # sold! $@L rubs his hands together, leaning in, head bobbing with it
     'sold': {'loop': True, 'frames': lambda: follow(frames_of([
         (0, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1])),
-        (0.4, P(body=(0, 41, -3.4, 43, 0), head=(17, -3, 9), l=RUB(1)[0], r=RUB(-3)[1])),   # (his left hand only slides in a little: further, its sleeve met the collar)
+        (0.4, P(body=(0, 41, -3.4, 43, 0), head=(17, -3, 9), l=RUB(1)[0], r=RUB(-1)[1])),   # (the hands only slide in a little: further, the sleeves meet the collar)
         (0.8, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1])),
         (1.2, P(body=(0, 41, -3.4, 43, 0), head=(11, 3, 3), l=RUB(-3)[0], r=RUB(3)[1])),
         (1.6, P(body=(0, 41, -3, 42, 0), head=(14, 0, 6), l=RUB(0)[0], r=RUB(0)[1]))], loop=True), 0.7, loop=True)},
@@ -757,10 +757,13 @@ def render_props(cam, mats, tmp, table):
         a = np.max([fr[..., 3] for fr in frames], 0)
         ys, xs = np.nonzero(a > 6)
         x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
-        strip = np.concatenate([fr[y0:y1, x0:x1] for fr in frames], 1)
+        cols = min(n, 4096 // (x1 - x0)); rows = -(-n // cols)                      # (a grid: no side over 4096 px)
+        strip = np.zeros((rows * (y1 - y0), cols * (x1 - x0), 4), np.uint8)
+        for i, fr in enumerate(frames):
+            r, c = divmod(i, cols); strip[r * (y1 - y0):(r + 1) * (y1 - y0), c * (x1 - x0):(c + 1) * (x1 - x0)] = fr[y0:y1, x0:x1]
         strip[strip[..., 3] <= 6] = 0
         quantize(strip, 200).save(os.path.join(OUT, f'prop_{name}.png'), optimize=True)
-        table['props'][name] = {'x': int(x0), 'y': int(y0), 'w': int(x1 - x0), 'h': int(y1 - y0), 'n': n, 'fps': fps}
+        table['props'][name] = {'x': int(x0), 'y': int(y0), 'w': int(x1 - x0), 'h': int(y1 - y0), 'n': n, 'fps': fps, 'cols': cols}
         print(f'prop {name}: {n} frames {x1 - x0}x{y1 - y0}, {os.path.getsize(os.path.join(OUT, f"prop_{name}.png")) // 1024} KB')
     for ob in list(bpy.data.objects):
         if ob.get('prop'): bpy.data.objects.remove(ob)
@@ -873,7 +876,7 @@ def main():
         fh.write('// anims[name].frames[i]: x, y = where the frame goes on the 640x360 view; k = which of anims[name].sheets\n')
         fh.write('// (public/assets/shop/lost/) it is on, sx, sy, w, h = where on it; eyes.sal / eyes.hanz = [screen x, screen y, px per\n')
         fh.write('// texel, facing] for the pupils (pupils.png, laid out in `pupils`, drawn pupilK px per texel); lazy = loaded after\n')
-        fh.write('// the room opens; counter = where counter.png goes; props = the moving desk things (prop_<name>.png strips).\n')
+        fh.write('// the room opens; counter = where counter.png goes; props = the moving desk things (prop_<name>.png grids, cols to a row).\n')
         fh.write('export const LOST_FRAMES = ' + json.dumps(table, separators=(',', ':')) + ';\n')
 
 

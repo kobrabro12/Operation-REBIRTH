@@ -195,14 +195,17 @@ def emit_lamps():
     if not ob: return
     m = bpy.data.materials.new('glow'); m.use_nodes = True
     nt = m.node_tree; nt.nodes.clear()
-    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1, 0.85, 0.5, 1)
+    em = nt.nodes.new('ShaderNodeEmission'); em.inputs['Color'].default_value = (1, 0.85, 0.5, 1); em.inputs['Strength'].default_value = 4
     out = nt.nodes.new('ShaderNodeOutputMaterial'); nt.links.new(em.outputs[0], out.inputs['Surface'])
     ob.data.materials.clear(); ob.data.materials.append(m)
+    for p in ob.data.polygons: p.material_index = 0
     for i, (x, y, z) in enumerate(LAMPS):                                         # ... and really light the room
         ld = bpy.data.lights.new('lamp%d' % i, 'POINT'); ld.color = (1, 0.82, 0.5); ld.energy = 2.6e5; ld.shadow_soft_size = 10
         lo = bpy.data.objects.new('lamp%d' % i, ld); bpy.context.scene.collection.objects.link(lo); lo.location = (x, y, z - 16)
     mo = bpy.data.objects.get('moon')                                             # the moon glows (red / grey, from its own colours)
-    if mo: mo.data.materials.clear(); mo.data.materials.append(glow_material('moonglow', strength=1.4))
+    if mo:
+        mo.data.materials.clear(); mo.data.materials.append(glow_material('moonglow', strength=1.4))
+        for p in mo.data.polygons: p.material_index = 0
 
 
 def pane_material(img_path):
@@ -274,6 +277,7 @@ def main():
             v = me.vertices[me.loops[li].vertex_index].co
             uvl.data[li].uv = ((v.y - 310) / 100, (v.z + 52) / 124)
     pane.data.materials.clear(); pane.data.materials.append(pane_material(os.path.join(bpy.app.tempdir or '/tmp', 'room_first.png')))
+    for p in pane.data.polygons: p.material_index = 0
     for ob in pane.modifiers: pane.modifiers.remove(ob)
     skyl = shoot(tmp, sky_names)
     rooml = shoot(tmp, room_names)
