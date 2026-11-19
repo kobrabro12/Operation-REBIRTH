@@ -128,6 +128,8 @@ export class BootScene extends Phaser.Scene {
       ['nu_glam_', 'nu/glam/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['nu_frost_', 'nu/frost/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_holo_', 'aero/holo/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['nu_surf_', 'nu/surf/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_tide_', 'aero/tide/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_n64_', 'aero/n64/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_midnight_', 'aero/midnight/', ['idle', 'run', 'jump', 'fall'], 112, 104],
       // the miracle costumes STORMCALLER / SUN PHARAOH / SPACEWALK
       ['ss_storm_', 'soul-summoner/storm/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_pharaoh_', 'mr-wake/pharaoh/', ['idle', 'run', 'jump', 'fall'], 176, 120], ['aero_starfarer_', 'aero/starfarer/', ['idle', 'run', 'jump', 'fall'], 112, 104],
+      // HANZ's LOST costumes (sold in his room, src/scenes/LostScene.js)
+      ['ss_sleep_', 'soul-summoner/sleep/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['aero_roombowl_', 'aero/roombowl/', ['idle', 'run', 'jump', 'fall'], 112, 104],
       // the nesting-doll costumes (code PAPERSPLEASE)
       ['ss_tricolore_', 'soul-summoner/tricolore/', ['idle', 'juggle', 'run', 'jump', 'fall'], 112, 104], ['wake_teatime_', 'mr-wake/teatime/', ['idle', 'run', 'jump', 'fall'], 176, 120],
       ['nu_luckyred_', 'nu/luckyred/', ['idle', 'run', 'jump', 'fall'], 112, 104], ['aero_amber_', 'aero/amber/', ['idle', 'run', 'jump', 'fall'], 112, 104]]) {
@@ -146,9 +148,9 @@ export class BootScene extends Phaser.Scene {
       for (const w of [1, 2, 3]) this.load.spritesheet('hk_w' + w + '_' + k, 'assets/fighters/hero-knight/worn' + w + '/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Battle-Worn stages
       this.load.spritesheet('hk_aka_' + k, 'assets/fighters/hero-knight/akatsuki/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Akatsuki costume
       this.load.spritesheet('hk_sam_' + k, 'assets/fighters/hero-knight/samurai/' + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // Samurai costume
-      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
+      for (const [p, dir] of [['hk_obs_', 'obsidian/'], ['hk_cyb_', 'cyber/'], ['hk_ver_', 'verdant/'], ['hk_lib_', 'liberty/'], ['hk_prism_', 'prism/'], ['hk_mel_', 'melted/']]) this.load.spritesheet(p + k, 'assets/fighters/hero-knight/' + dir + k + '_sheet.png', { frameWidth: 150, frameHeight: 90 });   // shop costumes
     }
-    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/']]) {
+    for (const [key, dir] of [['hk_moves', ''], ['hk_w1_moves', 'worn1/'], ['hk_w2_moves', 'worn2/'], ['hk_w3_moves', 'worn3/'], ['hk_sam_moves', 'samurai/'], ['hk_aka_moves', 'akatsuki/'], ['hk_obs_moves', 'obsidian/'], ['hk_cyb_moves', 'cyber/'], ['hk_ver_moves', 'verdant/'], ['hk_lib_moves', 'liberty/'], ['hk_prism_moves', 'prism/'], ['hk_mel_moves', 'melted/']]) {
       this.load.spritesheet(key, 'assets/fighters/hero-knight/' + dir + 'moves_sheet.png', { frameWidth: 180, frameHeight: 140 });   // tools/sprites/hero_knight_moves.py
     }
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons

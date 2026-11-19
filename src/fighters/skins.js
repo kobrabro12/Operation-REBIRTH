@@ -976,3 +976,27 @@ SKINS['gnash'] = [
     pal: { outline: 0x0a0604, deep: 0x5a0a0a, mid: 0x9a1a10, light: 0xff6a20, core: 0xffe0a0, shade: 0x1a0d08, void: 0x050303 },
     vfx: { hit: { shape: 'spark', colors: [0xff6a20, 0x9a1a10, 0x2a1a14], n: 8 }, trail: 0x9a1a10 } },
 ];
+
+// ---- LOST (sold by HANZ / $@L in his room, src/scenes/LostScene.js): things people lost in dreams. Drawn by
+// tools/sprites/shop_costumes.py (sleep / melted ...). Appended last so saved costume indices never move.
+// SLEEPWALKER: ivory wax armour, a crown of melting candles, a crimson cape dripping wax; his souls drip wax too
+SKINS['soul-summoner'].push({ name: 'SLEEPWALKER', sheetSet: 'sleep', shop: 'cos-sleep', swatch: 0xe8dcc0, fx: 0xffb850,
+  lore: 'He fell asleep in the room with the melting clock. His body still walks the stages. Nobody has told it.',
+  pal: { outline: 0x1a0c06, deep: 0x7a1a14, mid: 0xd8a860, light: 0xffe0a0, core: 0xfff8e8, shade: 0x3a1a10, void: 0x0a0402 },
+  vfx: { hit: { shape: 'dust', colors: [0xfff0d0, 0xffb850, 0xb8121c], n: 10, ring: 0xffd890 }, trail: 0xffd890,
+    aura: { motes: { colors: [0xffb850, 0xfff0d0], rate: 7 } },
+    minion: { flame: { to: 36, sat: 0.5, val: 1.5 }, eyes: { to: 20 } } } });
+// MELTED HOUR: gold pocket-watch armour dripping off her, a clock-face scarf, a little melted dial on her helmet and a
+// clock hand for a sword
+SKINS['hero-knight'].push({ name: 'MELTED HOUR', sheetSet: 'melted', shop: 'cos-melted', swatch: 0xd29e32, fx: 0xffd678, groups: HK, rules: {},
+  lore: 'She was always on time. Then she waited in his room for an hour that never came, and the hour melted.',
+  pal: { outline: 0x1a0e04, deep: 0x5a380c, mid: 0xd29e32, light: 0xf6ce64, core: 0xfff0b4, shade: 0x2a1a08, void: 0x080402 },
+  vfx: { hit: { shape: 'star', colors: [0xf6ce64, 0xfff0b4, 0x2a1a08], n: 10, ring: 0xf6ce64, glint: true }, trail: 0xf6ce64,
+    aura: { motes: { colors: [0xf6ce64, 0xfff0b4], rate: 6 } } } });
+// ROOM IN A BOWL: his dome holds HANZ's room, shrunk - the dusk, the red and grey walls, the melting clock, the door to
+// nowhere, the checker floor - with the goldfish lost inside; a charcoal trench-coat suit with brass buttons
+SKINS['aero'].push({ name: 'ROOM IN A BOWL', sheetSet: 'roombowl', shop: 'cos-roombowl', swatch: 0xf4c29a, fx: 0xb8121c,
+  lore: 'The goldfish swam into the shop one night and could not find the way out. AERO carries the whole room around now, so it is never alone in there.',
+  pal: { outline: 0x0a080c, deep: 0x860a12, mid: 0xb8121c, light: 0xf4c29a, core: 0xfff4e8, shade: 0x2b2a33, void: 0x050406 },
+  vfx: { hit: { shape: 'dust', colors: [0xf4c29a, 0xb8121c, 0xd2d0cc], n: 10, ring: 0xf4c29a }, trail: 0xd8a0b0,
+    aura: { motes: { colors: [0xf4c29a, 0xd2d0cc], rate: 8 } } } });

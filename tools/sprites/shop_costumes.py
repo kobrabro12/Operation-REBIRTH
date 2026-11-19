@@ -228,7 +228,39 @@ def tricolore_paint(cape, mask=None):
         ramp = [[0x0e1a5a, 0x1a2e8a, 0x2a4ab8, 0x4a6ad8], [0x9098b0, 0xc8ccdc, 0xecedf4, 0xffffff], [0x6a0a12, 0xa8141e, 0xe0303a, 0xff6a6a]][min(2, band)]
         cape[y, x, :3] = K.hexrgb(K.ramp_pick(ramp, v, 0.0, 0.42))
 
+def ss_sleep(N, L):
+    """SLEEPWALKER (LOST): armour gone soft as candle wax, a deep crimson wax cape running in drips, a crown of three lit
+    candles, wax dripping off his shoulders, a candle-flame soul."""
+    K.stamp(N['head'], 27, 0, ["..f...f...f..",
+                               "..y...y...y..",
+                               "..o...o...o..",
+                               ".wd..wd..wd..",
+                               ".wd..wd..wd..",
+                               ".w...wd..w..."], {'f': 0xff8a1a, 'y': 0xfff0a0, 'o': 0x2a1a10, 'w': 0xf4ead0, 'd': 0xc8b890}, only_empty=True)
+    cape = N['cape']                                                             # the cape's hem drips
+    for x, y in cape_bottoms(cape).items():
+        if y < 40 or x % 3: continue
+        n = 2 + (x * 7) % 5
+        for d in range(1, n + 1):
+            if y + d <= 63: K.put(cape, x, y + d, 0x7a0a14 if d < n else 0x5a0810)
+    for n in ('bupper', 'fupper', 'torso'):                                      # wax runs off his shoulders and chest
+        lay = N.get(n)
+        if lay is None: continue
+        for x, y in cape_bottoms(lay).items():
+            if (x * 5) % 7: continue
+            for d in range(1, 3 + x % 3):
+                if y + d <= 63 and lay[y + d, x, 3] == 0: K.put(lay, x, y + d, 0xf4ead0 if d < 2 else 0xc8b890)
+    for n in N: wax_paint(N[n], mask=ss_cape_mask(L[n]))
+    return [], set(), lambda orig, out: wax_paint(out, mask=ss_cape_mask(orig))
+
+def wax_paint(cape, mask=None):
+    """streaks of melted wax running down the cape: lighter runs every few columns"""
+    ys, xs = np.nonzero(mask if mask is not None else cape[..., 3] > 0)
+    for x, y in zip(xs, ys):
+        if x % 5 == 1 and (y + x * 3) % 11 < 5: cape[y, x, :3] = K.hexrgb(0xb0182a)
+
 SS_LOOKS = {
+    'sleep': (ss_sleep, {'armor': {'to': 42, 'satAdd': 0.1, 'val': 3.1}, 'cape': {'to': 352, 'sat': 1.1, 'val': 1.0}, 'gold': {'to': 30, 'sat': 0.7, 'val': 0.62}, 'flame': {'to': 38, 'sat': 0.9, 'val': 1.35}, 'eyes': {'to': 30, 'sat': 0.5, 'val': 0.9}}, (255, 214, 140)),
     'tricolore': (ss_tricolore, {'armor': {'sat': 0.08, 'val': 1.55}, 'gold': {'to': 44, 'sat': 1.0, 'val': 1.15}, 'flame': {'to': 356, 'sat': 1.1, 'val': 1.2}, 'eyes': {'to': 220, 'sat': 0.9, 'val': 1.3}}, (232, 64, 72)),
     'olive': (ss_olive, {'armor': {'hue': 70, 'satAdd': 0.2, 'val': 0.85}, 'cape': {'to': 42, 'sat': 0.95, 'val': 1.75}, 'gold': {'to': 40, 'sat': 0.55, 'val': 0.9}, 'flame': {'to': 32, 'sat': 1.0, 'val': 1.2}, 'eyes': {'to': 18, 'sat': 1.0, 'val': 1.2}}, (200, 186, 120)),
     'eclipse': (ss_eclipse, {'armor': {'sat': 0.2, 'val': 0.32}, 'cape': {'sat': 0.15, 'val': 0.35}, 'gold': {'to': 44, 'sat': 1.1, 'val': 1.25}, 'flame': {'to': 46, 'sat': 0.35, 'val': 1.35}, 'eyes': {'to': 48, 'sat': 0.3, 'val': 1.3}}, (255, 220, 128)),
@@ -529,6 +561,7 @@ def hk_look(frame, H, look, fallback=None):
                 X, Y = x + dx, y + dy
                 if 0 <= X < FW and 0 <= Y < FH and src[X, Y][3] == 0 and px[X, Y][3] == 0: px[X, Y] = look['glow']
     if helm_pts and look.get('crown'): look['crown'](px, src, helm_pts, FW, FH)
+    if look.get('post'): look['post'](px, src, FW, FH, is_plate)
     return out
 
 def horns(px, src, pts, FW, FH):
@@ -610,7 +643,47 @@ def liberty_blade(p, v):
     x, y = p
     return (255, 252, 220) if v > 0.8 or (x + y) % 6 == 0 else (240, 196, 70)
 
+def melted_plate(dx, dy, v, inside):
+    """MELTED HOUR: gold pocket-watch armour with dark hour marks scattered over it"""
+    gold = [(90, 56, 14), (150, 100, 24), (210, 158, 50), (246, 206, 100), (255, 240, 180)]
+    if inside and (dx * 4 + dy * 7) % 23 == 0: return (40, 26, 12)
+    return gold[min(4, int(max(0, v - 0.2) / 0.55 * 5))]
+
+def melted_scarf(dx, dy, v):
+    """a clock face: cream cloth with black tick marks"""
+    if dy % 4 == 0 and dx % 3 == 0: return (30, 24, 20)
+    return (240, 232, 206) if v > 0.6 else (198, 186, 150)
+
+def melted_blade(p, v):
+    """a clock hand: black iron, gold along its edges"""
+    x, y = p
+    return (246, 206, 100) if v > 0.82 else (40, 36, 44) if (x + y) % 5 else (90, 80, 96)
+
+def melted_dial(px, src, pts, FW, FH):
+    """a little melted clock dial on top of her helmet, its lower edge sagging"""
+    top = min(y for x, y in pts); xs = [x for x, y in pts if y <= top + 1]
+    if not xs: return
+    cx = (min(xs) + max(xs)) // 2
+    rows = [".ooo.", "ocpco", "occco", ".occo.", "..oo"]
+    pal = {'o': (30, 24, 20), 'c': (240, 232, 206), 'p': (150, 20, 20)}
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            X, Y = cx - 2 + c, top - 5 + r
+            if ch in pal and 0 <= X < FW and 0 <= Y < FH and src[X, Y][3] < 255: px[X, Y] = pal[ch] + (255,)
+
+def melted_drips(px, src, FW, FH, is_plate):
+    """gold dripping off the bottom edge of her armour plates"""
+    for x in range(FW):
+        for y in range(FH - 1, -1, -1):
+            if is_plate(src[x, y]) and (x * 7) % 4 == 0:
+                for d in range(1, 2 + (x * 3) % 3):
+                    if y + d < FH and src[x, y + d][3] == 0 and px[x, y + d][3] == 0: px[x, y + d] = ((210, 158, 50) if d < 2 else (150, 100, 24)) + (255,)
+                break
+
 HK_LOOKS = {
+    'melted': dict(plate=melted_plate, cloth=[(30, 18, 10), (56, 34, 18)], scarf=[(198, 186, 150), (240, 232, 206), (255, 250, 236)], scarf_fn=melted_scarf,
+                   helm=[(90, 56, 14), (150, 100, 24), (210, 158, 50), (246, 206, 100)], glove=[(60, 40, 14), (110, 76, 24), (160, 116, 40), (200, 156, 70)],
+                   blade=melted_blade, swipe=(255, 214, 120), crown=melted_dial, hair=lambda v: (int(236 * v), int(222 * v), int(196 * v)), glow=(255, 200, 90, 100), post=melted_drips),
     'liberty': dict(plate=liberty_plate, cloth=[(8, 12, 34), (18, 26, 64)], scarf=[(150, 20, 32), (220, 36, 48), (255, 140, 140)], scarf_fn=liberty_scarf,
                     helm=[(10, 16, 48), (20, 32, 86), (40, 62, 140), (80, 110, 196)], glove=[(120, 90, 30), (180, 140, 50), (232, 190, 80), (255, 230, 150)],
                     blade=liberty_blade, swipe=(255, 230, 140), crown=ray_crown, hair=lambda v: (int(250 * v), int(226 * v), int(170 * v)), glow=(255, 210, 90, 110)),
@@ -1000,7 +1073,50 @@ def aero_holo(N):
         bot = ys.max()
         y2k_paint(lay, lambda x, y, hh, ss, vv: (0xb88aff if y >= bot - 2 else 0xffffff if vv > 0.6 else 0xd8d0e8) if n != 'ffist' else (0xffffff if vv > 0.6 else 0xd8c8f0))
 
+def aero_roombowl(N):
+    """ROOM IN A BOWL (LOST): his dome holds HANZ's room itself, shrunk - the peach dusk, the leaning walls, the
+    melting clock, the door to nowhere, his red and grey walls, the checker floor; the goldfish is lost inside it; a charcoal trench-coat suit with brass buttons, a scarf split red / grey."""
+    hd = N['head']; yy = np.arange(64)[:, None] + np.zeros((1, 64), int)
+    glass = (hd[..., 3] > 0) & (hd[..., :3].max(-1) > 80) & ~np.all(hd[..., :3] >= 240, -1) & (yy >= 3) & (yy <= 20)
+    ys, xs = np.nonzero(glass)
+    if len(ys):
+        x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+        w, h = x1 - x0, y1 - y0
+        SKY = [0xf4c29a, 0xeeb09a, 0xd8a0b0, 0xb890c0, 0x8a78b8]              # his room's dusk (hanz_room.py SKY)
+        for y, x in zip(ys, xs):
+            u, k = (x - x0) / w, (y - y0) / h
+            if k > 0.74: c = 0x1a1820 if ((x // 2) + (y // 2)) % 2 else 0xe8e0cc         # the checker floor
+            elif u < 0.2 + 0.08 * k: c = 0xb8121c if x % 2 else 0x860a12                    # $@L's wall, leaning in
+            elif u > 0.8 - 0.08 * k: c = 0xd2d0cc if x % 2 else 0xa8a6a2                    # HANZ's wall
+            else: c = SKY[min(4, int(k / 0.74 * 5))]
+            hd[y, x, :3] = K.hexrgb(c)
+        cx, cy = x0 + w // 2 - 2, y0 + 2                                       # the melting clock, a drip off its bottom
+        K.stamp(hd, cx, cy, [".cc.", "cbbc", "cbcc", ".cc.", "..c.", "..c."], {'c': 0xf4ecd0, 'b': 0x1a1820}, only_full=True)
+        K.stamp(hd, x0 + int(w * 0.66), y0 + int(h * 0.42), ["dd", "dd", "dd", "dd"], {'d': 0x2a1418}, only_full=True)   # a door to nowhere
+        for y, x in zip(ys, xs):                                               # a glint on the glass
+            if (x - x0) - (y - y0) in (2, 3) and y - y0 < h // 2: hd[y, x, :3] = (255, 250, 240)
+    f = N['fish']; ys, xs = np.nonzero(f[..., 3] > 0)                          # the goldfish, bright so he shows up lost in there
+    if len(xs):
+        mid = (xs.min() + xs.max()) / 2
+        for x, y in zip(xs, ys):
+            vv = K.shade_of(f[y, x])
+            if vv < 0.2: continue
+            f[y, x, :3] = K.hexrgb(K.ramp_pick([0xc85a08, 0xff8a1a, 0xffc04a], vv, 0.3, 1.0))
+    COAT = [0x1e1d25, 0x2b2a33, 0x3a3944, 0x55546a]
+    for n in ('torso', 'bupper', 'fupper', 'bfore', 'ffore', 'bthigh', 'fthigh', 'bshin', 'fshin'):
+        y2k_paint(N.get(n), lambda x, y, hh, ss, vv: K.ramp_pick(COAT, vv, 0.2, 1.0))
+    K.stamp(N['torso'], 31, 24, ["b", ".", "b", ".", "b"], {'b': 0xc8a040}, only_full=True)   # brass buttons
+    for n in ('bshoe', 'fshoe', 'ffist'): y2k_paint(N.get(n), lambda x, y, hh, ss, vv: K.ramp_pick([0x161519, 0x2a2830, 0x46444e], vv, 0.2, 1.0))
+    sc = N['scarf']; ys, xs = np.nonzero(sc[..., 3] > 0)
+    if len(xs):
+        mid = (xs.min() + xs.max()) / 2
+        for x, y in zip(xs, ys):
+            vv = K.shade_of(sc[y, x])
+            if vv < 0.15: continue
+            sc[y, x, :3] = K.hexrgb(K.ramp_pick([0x860a12, 0xb8121c, 0xe8404a] if x < mid else [0x8a8884, 0xd2d0cc, 0xf4f2ee], vv, 0.3, 1.0))
+
 PART_LOOKS = {
+    'roombowl': ('aero', 'aero_draw', AEG, {'aqua': {'to': 42, 'sat': 0.7, 'val': 0.85}}, aero_roombowl, (184, 18, 28)),
     'luckyred': ('nu', 'nu_draw', NUG, {'acid': {'to': 44, 'sat': 1.2, 'val': 1.1}, 'hair': {'sat': 0.2, 'val': 0.3}, 'cloth': {'to': 356, 'sat': 3.2, 'val': 1.7}}, nu_luckyred, (255, 64, 56)),
     'amber': ('aero', 'aero_draw', AEG, {'aqua': {'to': 30, 'sat': 0.9, 'val': 1.0}, 'lime': {'to': 44, 'sat': 0.8, 'val': 1.1}, 'fish': {'to': 46, 'sat': 1.1, 'val': 1.2}}, aero_amber, (255, 176, 70)),
     'vapor': ('nu', 'nu_draw', NUG, {'acid': {'to': 318, 'sat': 0.8, 'val': 1.1}, 'hair': {'hue': 184, 'sat': 0.9, 'val': 1.05}, 'cloth': {'to': 270, 'sat': 1.6, 'val': 1.3}}, nu_vapor, (255, 122, 208)),
@@ -1043,11 +1159,11 @@ def build_parts(name):
     small, big = A.N.build_rig(look, A.FOLLOW)
     A.N.GHOST = ghost
     res = A.N.build_all(small, big, A.MOVES, out, os.devnull, 'AERO_MOVES', 'aero_moves.py', life_fn=A.life, idle=A.idle_keys)
-    if name in ('tide', 'holo', 'starfarer'): retile(os.path.join(out, 'moves_sheet.png'))
+    if name in ('tide', 'holo', 'starfarer', 'roombowl'): retile(os.path.join(out, 'moves_sheet.png'))
     return res
 
 # ====================================================================== run
-LOOKS = {'artist': build_mw, 'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
+LOOKS = {'roombowl': build_parts, 'melted': build_hk, 'sleep': build_ss, 'artist': build_mw, 'tricolore': build_ss, 'teatime': build_mw, 'liberty': build_hk, 'luckyred': build_parts, 'amber': build_parts, 'olive': build_ss, 'eclipse': build_ss, 'aurora': build_ss, 'celestial': build_ss, 'vampire': build_mw, 'sakura': build_mw, 'plague': build_mw,
          'obsidian': build_hk, 'cyber': build_hk, 'verdant': build_hk, 'vapor': build_parts, 'glam': build_parts, 'sunset': build_parts, 'midnight': build_parts, 'surf': build_parts, 'tide': build_parts, 'frost': build_parts, 'holo': build_parts, 'storm': build_ss, 'pharaoh': build_mw, 'starfarer': build_parts}
 
 if __name__ == '__main__':
