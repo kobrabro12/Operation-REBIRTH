@@ -116,7 +116,7 @@ def head():
         hair.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR)
     for sx in (-1, 1):
         hair.hull([(sx * 19.5, -14, 22), (sx * 24.5, -14, 22), (sx * 19.5, 10, 22), (sx * 24.5, 10, 21),
-                   (sx * 20, -13, -6), (sx * 23.5, -11, -8), (sx * 20, 7, -4), (sx * 21, -12.5, -15)], HAIR)
+                   (sx * 20, -13, -2), (sx * 23.5, -11, -4), (sx * 20, 7, 0), (sx * 21, -12.5, -10)], HAIR)
     hair.hull([(-20, 8, 26), (20, 8, 26), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
     hair.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR)        # the cowlick
     hair.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR)
@@ -154,9 +154,12 @@ def coat(M):
     for sx, nm in ((-1, 'collar_l'), (1, 'collar_r')):
         lining = SAL_SKIN_D if sx < 0 else HANZ_SKIN_D
         col = Mesh()
-        col.hull([(sx * 7, -8, 40), (sx * 7, 7, 42), (sx * 14, -7, 42), (sx * 14, 7, 42),
-                  (sx * 22, -6, 62), (sx * 29, -9, 64), (sx * 28, 7, 63), (sx * 21, 6, 63)],
-                 lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.3 else COAT, M)
+        fn = lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.3 else COAT
+        # a narrow band standing up round the neck (clear of the shoulders), then the big flared top above shoulder height
+        col.hull([(sx * 8, -8, 40), (sx * 8, 7, 42), (sx * 14, -7, 42), (sx * 14, 7, 42),
+                  (sx * 15.5, -8, 51), (sx * 15.5, 7, 52), (sx * 19.5, -8, 51), (sx * 19.5, 7, 52)], fn, M)
+        col.hull([(sx * 15.5, -8, 50.5), (sx * 15.5, 7, 51.5), (sx * 19.5, -8, 50.5), (sx * 19.5, 7, 51.5),
+                  (sx * 28, -6, 62), (sx * 35, -9, 64), (sx * 34, 7, 63), (sx * 27, 6, 63)], fn, M)
         out[nm] = col
     return out
 
@@ -194,6 +197,8 @@ def counter():
     m.box((0, 0, -2), (150, 44, 5), WOOD2)                                       # the top (its surface at z = 0.5)
     m.box((0, -20, -6), (154, 6, 4), WOOD)                                        # its front lip
     m.box((0, 0, -40), (144, 38, 70), WOOD3)                                      # the body
+    m.box((0, 21, 4), (150, 3, 8), WOOD)                                           # a raised rail along the back edge (he's behind it)
+    m.box((0, 21, 8.5), (152, 4, 1.5), WOOD2)
     for i in range(-2, 3):                                                         # raised boards on the front
         m.box((i * 27, -19.5, -40), (23, 1.5, 58), WOOD if i % 2 else WOOD2)
     bell = Mesh()

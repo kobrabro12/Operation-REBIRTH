@@ -139,6 +139,9 @@ export const SHOP = [
     { id: 'gacha-doll5', hidden: 'papers', name: 'GOLDEN DOLL', price: 3500, info: 'FIVE DOLLS DEEP, AND NEVER A PRIZE YOU OWN ALREADY.', img: 'shop_dolls', imgFrame: 6, gacha: { machine: 'doll', paint: 2, pool: 'doll', pulls: 5, fresh: true }, color: 0xffc83a },
     { id: 'gacha-golden', name: 'GOLDEN CAPSULE', price: 1100, info: 'ONE PRIZE FROM ANY SHELF - ALWAYS ONE YOU DO NOT OWN YET.', gacha: { machine: 'golden', pool: 'ANY', pulls: 1, fresh: true }, color: 0xf3c358 },
   ] },
+  // LOST: not a shelf - its tab opens HANZ / $@L's room (src/scenes/LostScene.js), dark until you type his name. His
+  // things are hidden: 'lost' (never in the other shelves or the gacha machines) and are sold in his room, in MEMORIES
+  { name: 'LOST', lost: true, items: [] },
 ];
 
 // a prize you already own pays back this share of its shop price

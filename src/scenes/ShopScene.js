@@ -48,7 +48,7 @@ const C = { bg: 0x0b0a14, panel: 0x2a1640, panel2: 0x1c0f2c, line: 0xc77dff, gol
 const GRID = { x: 16, y: 84, cols: 4, rows: 2, w: 94, h: 108, gap: 6 };   // the item cards
 const SIDE = { x: 424, y: 210, w: 200, h: 102 };                          // the details panel, under the shopkeeper's counter
 const KP = { x: 524, y: 126 };                                            // the middle of the shopkeeper's TV (on his desk)
-const TAB = { x: 16, y: 56, w: 77, h: 20, gap: 4 };
+const TAB = { x: 16, y: 56, w: 64, h: 20, gap: 4 };   // (6 tabs: the last, LOST, leads to his room)
 const PER = GRID.cols * GRID.rows;
 // the bell on his desk (click it): 3 rings within BELL.window frames opens the code screen
 const BELL = { x: KP.x + 58, y: 168, r: 11, rings: 3, window: 120 };
@@ -129,13 +129,14 @@ const SHOW = [['jab', 'JAB'], ['ftilt', 'FORWARD TILT'], ['fsmash', 'FORWARD SMA
 export class ShopScene extends Phaser.Scene {
   constructor() { super('Shop'); }
 
-  create() {
+  /** Builds the shop. data.tab = the tab to open on (coming back from LOST). */
+  create(data = {}) {
     this.noliTapUntil=0;this.noliTapIndex=0;
     this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
     this.riphood = this.soviet = false; this.mode = null; unreveal('riphood'); unreveal('papers');   // ...and so do RIPHOOD and PAPERSPLEASE
     this.call = 0; this.callKind = null;
     this.acc = ACC; this.pal = PAL; this.banner2 = null;
-    this.t = 0; this.tab = 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
+    this.t = 0; this.tab = SHOP[data.tab] && !SHOP[data.tab].lost ? data.tab : 0; this.sel = 0; this.page = 0; this.menu = new MenuInput(this); this.clicked = null;
     this.qKey = this.input.keyboard.addKey('Q'); this.eKey = this.input.keyboard.addKey('E'); this.pKey = this.input.keyboard.addKey('P'); this.introKey=this.input.keyboard.addKey('I'); this.outroKey=this.input.keyboard.addKey('O');
     playMusic(this, 'bgm_title');
     this.bgFx = new ArcadeBg(this, ACC, { second: ARC.sections.trinkets });
@@ -221,7 +222,14 @@ export class ShopScene extends Phaser.Scene {
   // what the money is called right now (RUBLES in the PEOPLE'S STORE)
   cur() { return (this.mode && TAKEOVERS[this.mode].currency) || CURRENCY.name; }
   cardAt(i) { const c = i % GRID.cols, r = Math.floor(i / GRID.cols); return [GRID.x + c * (GRID.w + GRID.gap), GRID.y + r * (GRID.h + GRID.gap)]; }
-  setTab(i) { if (i !== this.tab) { this.tab = i; this.sel = 0; this.page = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
+  setTab(i) { if (SHOP[i] && SHOP[i].lost) { this.enterLost(); return; } if (i !== this.tab) { this.tab = i; this.sel = 0; this.page = 0; this.lastSel = 0; this.preview(); sfx('menu', 0.5, 1.2); if (SHOP[i].name === 'GAMBLING') this.react('money', 'gamble'); else this.react('happy', 'tab'); this.static = 8; } }
+  /** The LOST tab: the lights go out on the shop and you step into his room (LostScene). */
+  enterLost() {
+    if (this.goingLost) return; this.goingLost = true;
+    sfx('menu', 0.4, 0.4);
+    this.cameras.main.fadeOut(420, 0, 0, 0);
+    this.time.delayedCall(440, () => this.scene.start('Lost', { tab: this.tab }));
+  }
   item() { return shelfItems(SHOP[this.tab])[this.page * PER + this.sel] || null; }
   // a shelf with more than 8 things has pages: left/right off the end of a page turns it
   pages() { return Math.max(1, Math.ceil(shelfItems(SHOP[this.tab]).length / PER)); }
@@ -1251,6 +1259,11 @@ export class ShopScene extends Phaser.Scene {
     SHOP.forEach((tb, i) => {
       const x = TAB.x + i * (TAB.w + TAB.gap), on = i === this.tab;
       const lucky = tb.name === 'GAMBLING';                                              // the gambling tab: trimmed in gold, flashing
+      if (tb.lost) {                                                                      // LOST: a dark tab, its letters flickering grey / red
+        slant(g, x + 3, TAB.y + 3, TAB.w, TAB.h, 0x000000, 0.5, 6); slant(g, x, TAB.y, TAB.w, TAB.h, 0x0a080c, 1, 6);
+        if ((t >> 3) % 9 === 0) slant(g, x + 4, TAB.y + 3 + (t % 13), TAB.w - 8, 1, 0xb8121c, 0.8, 1);
+        this.tabT[i].setColor((t >> 5) % 3 === 0 ? '#b8121c' : (t >> 2) % 23 === 0 ? '#ffffff' : '#6a6670'); return;
+      }
       slant(g, x + 3, TAB.y + 3, TAB.w, TAB.h, 0x000000, 0.5, 6);
       slant(g, x, TAB.y - (on ? 2 : 0), TAB.w, TAB.h + (on ? 2 : 0), on ? this.acc : this.pal.tabOff, 1, 6);
       if (on) slant(g, x, TAB.y - 2, TAB.w, 7, 0xffffff, 0.25, 2);
