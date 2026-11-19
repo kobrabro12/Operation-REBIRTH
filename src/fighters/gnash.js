@@ -88,7 +88,9 @@ export const GNASH = {
     downB: { frames: 30, gnash: 'slam', bounceAt: 16, bounceV: -12.5, hits: [{ from: 12, to: 14, box: [4, -40, 56, 44], dmg: 14, angle: 290, base: 3.6, growth: 4.4 }] },
     // ... then (downB2) he hangs at the top of the bounce for `stall` frames, axe raised, and comes back down axe first:
     // a shockwave runs out along the floor both ways
-    downB2: { frames: 30, gnash: 'drop', stall: 60, fallAt: 12, fallV: 11.5, slamLag: 18, bounce: { k: 0.5, minV: 3, maxV: 14 },
+    // (used in the air - or if he slides off a ledge mid-swing - there's no floor for the first slam: he skips it and the
+    // bounce, hangs just `airStall` frames with the axe up, and plunges)
+    downB2: { frames: 30, gnash: 'drop', stall: 60, airStall: 16, fallAt: 12, fallV: 11.5, slamLag: 18, bounce: { k: 0.5, minV: 3, maxV: 14 },
       hits: [{ from: 12, to: 60, box: [-10, -30, 50, 40], dmg: 12, angle: 290, base: 3.8, growth: 4.0 }],
       wave: { reach: 90, height: 26, dmg: 9, angle: 70, base: 4.2, growth: 4.6 } },
   },

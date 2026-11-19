@@ -148,6 +148,11 @@ export class FighterGnash {
       return false;
     }
     if (m.gnash === 'slam') {
+      if (!this.grounded) {                                                              // in the air: no floor to slam - straight to the plunge
+        const psycho = this.psychoMove === 'downB';
+        this.vy = 0; this.airDrop = true;
+        this.startAttack('downB2'); if (psycho) this.psychoMove = 'downB'; return true;
+      }
       if (this.t === 12) { sfx('bighit', 0.7, 0.7); M.shake(6, 8); if (this.grounded) this.splinters(this.x + this.facing * 40, this.y, 10); }
       if (this.t === m.bounceAt) {
         const psycho = this.psychoMove === 'downB';
@@ -158,11 +163,11 @@ export class FighterGnash {
       return false;
     }
     if (m.gnash === 'drop') {
-      if (this.t === 1) { this.dropLanded = false; this.dropStall = -1; }
-      const stall = this.psychoMove === 'downB' ? PM.stall : m.stall;
+      if (this.t === 1) { this.dropLanded = false; this.dropStall = -1; this.dropAir = !!this.airDrop; this.airDrop = false; }
+      const stall = this.dropAir ? m.airStall : this.psychoMove === 'downB' ? PM.stall : m.stall;
       if (this.dropStall < 0) {                                                          // still rising: hold the overhead
         if (this.t > 6) this.t = 6;
-        if (this.vy >= 0 || this.grounded) { this.dropStall = stall; this.stallY = this.y; sfx('buzz', 0.4, 1.4); }
+        if (this.vy >= 0 || this.grounded) { this.dropStall = this.dropStallMax = stall; this.stallY = this.y; sfx('buzz', 0.4, 1.4); }
         return false;
       }
       if (this.dropStall > 0) {                                                          // hanging at the top, axe raised, crackling
@@ -396,7 +401,7 @@ export class FighterGnash {
       if (W.t >= 18) this.waveFx = null;
     }
     if (s === 'attack' && this.moveName === 'downB2' && this.dropStall > 0) {   // hanging before the drop: neon gathering on the axe
-      const k = 1 - this.dropStall / (this.psychoMove === 'downB' ? this.def.show.psycho.moves.downB.stall : this.move.stall);
+      const k = 1 - this.dropStall / (this.dropStallMax || this.move.stall);
       g.fillStyle(n[0], 0.15 + 0.25 * k); g.fillCircle(this.x, this.y - 60, 14 + 22 * k);
       g.lineStyle(2, n[1], 0.6); g.strokeCircle(this.x, this.y - 60, 40 * (1 - k) + 10); g.lineStyle(0);
     }
