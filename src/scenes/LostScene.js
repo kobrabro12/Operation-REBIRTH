@@ -11,7 +11,9 @@
 // two colours, swinging his head round to whichever side is talking and arguing with himself (src/data/lostLines.js).
 // The room breathes: its layers drift and ripple, grain crawls over it, and now and then the room skips. Things on his
 // desk move on their own (lostFrames props: the lava lamp, the hourglass whose sand falls up, the candle), and when
-// he's left alone he fidgets: a horrible twitch of the head, or he takes out his clock-heart and checks the time.
+// he's left alone he fidgets: a horrible twitch of the head, he takes out his clock-heart and checks the time, or he
+// takes his face off (it's a mask - nothing behind it but two pinprick eyes) and puts it back. Everything is rendered
+// PS1-style (320x180, wobbly vertices, 15-bit dithered colour) and drawn at 2x (LOST_FRAMES.scale).
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
@@ -34,8 +36,10 @@ const GLYPHS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ$@', 'DEL'];
 const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
 const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.05, skip: [900, 1800] };
-// left alone he fidgets every so often (frames between, the chance it's the heart rather than the twitch)
-const FIDGET = { every: [700, 1300], heart: 0.45 };
+// left alone he fidgets every so often (frames between, the chance it's the heart / the mask rather than the twitch)
+const FIDGET = { every: [700, 1300], heart: 0.35, unmask: 0.3 };
+// after a sale: the chance $@L cackles instead of rubbing his hands
+const LAUGH = 0.4;
 // his things: card size and where the two columns float
 const CARD = { w: 104, h: 46, left: 12, right: 524, top: 70, gap: 54 };
 // speech: typing speed (frames per letter), how long a finished line stays up, the bubble's width
@@ -83,9 +87,10 @@ export class LostScene extends Phaser.Scene {
     for (let y = 0; y < VIEW_H; y += DREAM.strip) this.strips.push(this.add.image(0, y, 'lost_room').setOrigin(0).setCrop(0, y, VIEW_W, DREAM.strip).setDepth(2));
     for (const s of this.strips) s.y = 0;
     this.dark = this.add.image(0, 0, 'lost_room_dark').setOrigin(0).setDepth(3);
-    this.counter = this.add.image(LOST_FRAMES.counter[0], LOST_FRAMES.counter[1], 'lost_counter').setOrigin(0).setDepth(5);
-    this.props = Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => ({ p, s: this.add.image(p.x, p.y, 'lost_prop_' + n, '0').setOrigin(0).setDepth(5.5) }));
-    this.him = this.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setDepth(6);
+    const S = LOST_FRAMES.scale || 1;                                            // (everything is rendered PS1-small and drawn at this size)
+    this.counter = this.add.image(LOST_FRAMES.counter[0], LOST_FRAMES.counter[1], 'lost_counter').setOrigin(0).setDepth(5).setScale(S);
+    this.props = Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => ({ p, s: this.add.image(p.x, p.y, 'lost_prop_' + n, '0').setOrigin(0).setDepth(5.5).setScale(S) }));
+    this.him = this.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setDepth(6).setScale(S);
     this.pupils = { sal: this.add.image(0, 0, 'lost_pupils', 'sal').setDepth(7), hanz: this.add.image(0, 0, 'lost_pupils', 'hanz').setDepth(7) };
     this.fidgetAt = this.t + FIDGET.every[0];
     this.makeGrain();
@@ -109,7 +114,6 @@ export class LostScene extends Phaser.Scene {
     for (const [a, spec] of Object.entries(LOST_FRAMES.anims)) if (!spec.lazy || this.textures.exists(`lost_hanz_${a}_0`)) this.addAnimFrames(a);
     const pt = this.textures.get('lost_pupils');
     if (!pt.has('sal')) for (const [n, m] of Object.entries(LOST_FRAMES.pupils)) pt.add(n, 0, m.x, 0, m.w, m.h);
-    pt.setFilter(Phaser.Textures.FilterMode.LINEAR);                     // (drawn smaller than the sheet: smooth, not pixelated)
     for (const [n, p] of Object.entries(LOST_FRAMES.props || {})) {
       const tex = this.textures.get('lost_prop_' + n);
       const cols = p.cols || p.n;
@@ -246,7 +250,7 @@ export class LostScene extends Phaser.Scene {
     }
     if (!buyItem(it.id, it.price)) { this.play('slam', null, true); this.say('broke'); sfx('menu', 0.5, 0.4); return; }
     if (it.kind !== 'costume') toggleEquip(it.kind, it.id);
-    sfx('ding', 0.7, 0.8); this.play('sold'); this.say('bought');
+    sfx('ding', 0.7, 0.8); this.play(Math.random() < LAUGH && this.ready && this.ready.has('laugh') ? 'laugh' : 'sold'); this.say('bought');
   }
 
   /** True while an important reaction is still on screen (so mashing BUY doesn't stack them up). */
@@ -279,7 +283,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -332,7 +336,7 @@ export class LostScene extends Phaser.Scene {
       if (!this.him.visible || !e || e[3] < 0.3) { p.setVisible(false); continue; }
       const dx = target.x - e[0], dy = target.y - e[1], d = Math.hypot(dx, dy) || 1, [gx, gy] = GAZE[n];
       const k = Math.min(1, d / 120);
-      p.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1)).setPosition(e[0] + dx / d * gx * k * e[2], e[1] + dy / d * gy * k * e[2]);
+      p.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1)).setPosition(Math.round(e[0] + dx / d * gx * k * e[2]), Math.round(e[1] + dy / d * gy * k * e[2]));
     }
   }
 
@@ -345,13 +349,15 @@ export class LostScene extends Phaser.Scene {
     return { x: VIEW_W / 2, y: 120 };
   }
 
-  /** Left alone (no talking, just idling) he fidgets now and then: a horrible twitch of the head, or he takes his
-   *  clock-heart out of his chest, checks the time and puts it back - then says something about it. */
+  /** Left alone (no talking, just idling) he fidgets now and then: a horrible twitch of the head, his clock-heart (out of
+   *  his chest, checks the time, back), or THE MASK (takes his face off, shows you nothing, puts it back) - the last two
+   *  followed by a line about it. */
   fidget() {
     if (this.talk || this.anim.name !== 'idle' || this.t < this.fidgetAt) return;
     const [a, b] = FIDGET.every; this.fidgetAt = this.t + a + Math.floor(Math.random() * (b - a));
-    const heart = Math.random() < FIDGET.heart && this.ready && this.ready.has('heart');
-    this.play(heart ? 'heart' : 'twitch', heart ? () => this.say('heart') : null);
+    const r = Math.random(), has = (a) => this.ready && this.ready.has(a);
+    const pick = r < FIDGET.heart && has('heart') ? 'heart' : r < FIDGET.heart + FIDGET.unmask && has('unmask') ? 'unmask' : 'twitch';
+    this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the heart and the mask get a line after)
   }
 
   /** Turns him toward the picked thing (look_l / look_r) when he isn't busy talking or reacting. */
@@ -461,7 +467,7 @@ export class LostScene extends Phaser.Scene {
     }
     if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
       this.say('poke');
-      if (!['heart', 'twitch'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+      if (!['heart', 'twitch', 'unmask'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
   }
 
