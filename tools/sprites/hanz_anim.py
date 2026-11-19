@@ -700,12 +700,12 @@ def sand_frame(f, n, base):
     m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
             for r, z in ((2.9, 2.8), (2.6, 4.6), (1.2, 6.2))] + [(hx_, hy, hz + 6.9)], H.SAND)     # the heap at the bottom
     m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
-            for r, z in ((2.7, 18.2), (2.2, 16.6), (0.9, 15.3))] + [(hx_, hy, hz + 14.4)], H.SAND)   # ... and hanging from the top
+            for r, z in ((3.0, 18.3), (2.6, 16.4), (1.3, 14.4))] + [(hx_, hy, hz + 13.0)], H.SAND)   # ... and hanging from the top
     rng = np.random.default_rng(11)
-    for g in range(16):                                                           # the grains rising up the neck
-        ph = (g / 16 + f / n * 2) % 1.0
+    for g in range(9):                                                            # the grains rising up the neck
+        ph = (g / 9 + f / n * 2) % 1.0
         z = hz + 6.9 + ph * 7.6; x = hx_ + rng.uniform(-0.25, 0.25); y = hy + rng.uniform(-0.25, 0.25)
-        m.box((x, y, z), (0.32, 0.32, 0.5), H.SAND)
+        m.box((x, y, z), (0.75, 0.75, 1.0), H.SAND)
     ob = H.to_object('sand', m, base, bevel=False); ob['prop'] = 1
     return [ob]
 

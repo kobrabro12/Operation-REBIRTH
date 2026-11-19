@@ -40,7 +40,7 @@ CLOCK = 0xe8e0c8; GREEN = 0x3a6a4a; INKC = 0x101012
 HEART = 0x7a0610; HEART2 = 0x9a0a18; BLOOD = 0x4a0008          # his clock-heart: wet dark red, and what drips off it
 CAVITY = 0x1a0406                                              # inside the hatch in his chest (a faint red glow)
 BOOK1 = 0x5a2a3a; BOOK2 = 0x2a4a5a; PAGES = 0xe8dcc0           # the old books under the lava lamp
-WAX = 0xf0e4c8; GLASS = 0xcfe0e8; SAND = 0xd8b070               # the candle's wax, the hourglass's glass and its sand
+WAX = 0xf0e4c8; GLASS = 0xcfe0e8; SAND = 0xf0c060               # the candle's wax, the hourglass's glass and its sand
 CHROME = 0x8a8a96; LAVA_GLASS = 0x8a2a6a; LAVA_WAX = 0xff7a30   # the lava lamp: its metal, its liquid, its wax
 INK = (0.0, 0.0, 0.0)
 
