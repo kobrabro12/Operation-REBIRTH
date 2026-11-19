@@ -119,18 +119,18 @@ def head():
     face.hull(front + back, lambda c, n: (SAL_SKIN if c[0] < 0 else HANZ_SKIN), uvface=lambda c, n: n[1] < -0.9)
     # the cap: a low faceted dome over the plate, then spikes - a heavy fringe of five uneven points over the brow, two
     # locks down each side to the jaw, a flare of spikes off the back, and the cowlick
-    cap = [(24 * math.cos(a) * math.cos(e), -1 + 13 * math.sin(a) * math.cos(e), 18 + 13 * math.sin(e))
+    cap = [(23 * math.cos(a) * math.cos(e), -1.5 + 12.5 * math.sin(a) * math.cos(e), 18 + 13 * math.sin(e))
            for a in np.linspace(0, 2 * math.pi, 11)[:-1] for e in (0, 0.45, 0.9, 1.35)]
     hair.hull(cap, HAIR)
     for (x, w, tipx, tipz) in ((-17, 8, -15, 9), (-9, 8, -8, 6), (-1, 8, 1, 10), (7, 8, 9, 5), (15, 8, 17, 12)):
         hair.hull([(x - w / 2, -15, 22), (x + w / 2, -15, 22), (x - w / 2, -11, 24), (x + w / 2, -11, 24),
                    (x, -13, 27), (tipx, -15.2, tipz), (tipx, -13, tipz)], HAIR)
     for sx in (-1, 1):
-        for (y, ztip, out) in ((-11, -8, 1.5), (-3, -12, 2.5)):
+        for (y, ztip, out) in ((-11, -8, 0.5), (-3, -1, -0.5)):
             hair.hull([(sx * 20, y - 4, 22), (sx * 24.5, y - 4, 21), (sx * 20, y + 4, 22), (sx * 24.5, y + 4, 21),
                        (sx * 20.5, y, 4), (sx * (21 + out), y - 1, ztip), (sx * 20.5, y + 1, ztip + 2)], HAIR)
-    for (x, tz, ty) in ((-16, 14, 16), (-6, 20, 18), (5, 18, 17), (15, 12, 16)):
-        hair.hull([(x - 6, 7, 26), (x + 6, 7, 26), (x - 6, 10, 12), (x + 6, 10, 12), (x + 2, ty, tz)], HAIR)
+    for (x, tz, ty) in ((-14, 14, 13), (-5, 20, 14), (5, 18, 13.5), (14, 12, 13)):
+        hair.hull([(x - 5, 7, 26), (x + 5, 7, 26), (x - 5, 10, 12), (x + 5, 10, 12), (x + 2, ty, tz)], HAIR)
     hair.hull([(-19, 6, 24), (19, 6, 24), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
     hair.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR)        # the cowlick
     hair.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR)
@@ -282,18 +282,19 @@ def props():
     b.box((lx, ly, 1.75), (20, 15, 2.5), BOOK1, T(rz=4)); b.box((lx, ly - 7.6, 1.75), (19.4, 0.4, 2.1), PAGES, T(rz=4))
     b.box((lx + 0.8, ly + 0.5, 4.6), (18, 13, 3.0), BOOK2, T(rz=-7)); b.box((lx + 0.8, ly - 6.2, 4.6), (17.4, 0.4, 2.6), PAGES, T(rz=-7))
     out['books'] = b
-    hx_, hy = HOURGLASS
+    hx_, hy, hz = HOURGLASS
     h = Mesh()
-    disc = lambda r, z0, z1: [(hx_ + r * math.cos(a), hy + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 13)[:-1] for z in (z0, z1)]
+    disc = lambda r, z0, z1: [(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + z) for a in np.linspace(0, 2 * math.pi, 13)[:-1] for z in (z0, z1)]
+    h.box((hx_, hy, hz - 1.8), (11, 11, 4.6), WOOD3)                              # (a little block levelling it on the till's slope)
     h.hull(disc(5, 0.5, 2.2), WOOD2); h.hull(disc(5, 18.8, 20.5), WOOD2)
     for k in range(3):
         a = 2 * math.pi * k / 3 + 0.5
-        h.limb((hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), 2.2), (hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), 18.8), 0.55, 0.55, WOOD, sides=8)
+        h.limb((hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), hz + 2.2), (hx_ + 4.1 * math.cos(a), hy + 4.1 * math.sin(a), hz + 18.8), 0.55, 0.55, WOOD, sides=8)
     out['hourglass'] = h
     g = Mesh()
-    bulb = lambda zc, flip: [(hx_ + r * math.cos(a), hy + r * math.sin(a), zc + flip * dz) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
+    bulb = lambda zc, flip: [(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + zc + flip * dz) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
                              for r, dz in ((0.45, 7.6), (2.6, 5.2), (3.3, 2.6), (3.0, 0.3))]
-    g.hull(bulb(10.5, 1) + [(hx_, hy, 18.5)], GLASS); g.hull(bulb(10.5, -1) + [(hx_, hy, 2.5)], GLASS)
+    g.hull(bulb(10.5, 1) + [(hx_, hy, hz + 18.5)], GLASS); g.hull(bulb(10.5, -1) + [(hx_, hy, hz + 2.5)], GLASS)
     out['hourglass_glass'] = g
     cx_, cy_ = CANDLE
     c = Mesh()
@@ -313,7 +314,7 @@ def props():
 
 
 LAVA = (-62, 12, 6.1)          # the lava lamp: where it stands (x, y) and its base's height (on the two books)
-HOURGLASS = (47, -13)          # the hourglass, at the front between his grey hand and the candle
+HOURGLASS = (65, 14, 26)       # the hourglass, standing on top of the old till (x, y, the height it stands at)
 CANDLE = (66, -12)             # the candle on its dish, in front of the till
 
 

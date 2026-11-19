@@ -46,7 +46,7 @@ UPPER, FORE = 27, 29                             # arm bone lengths (upper arm, 
 CLEAR = 23.5                                     # the counter's back edge (y) - his coat stays behind it below the top
 FPS = 15                                         # frames are rendered at 15 a second (the game holds each 4 ticks)
 SAMPLES = 24                                     # path-tracing samples per pixel (then denoised)
-HEART_SCALE = 1.35                               # his heart's size in his hand
+HEART_SCALE = 1.7                               # his heart's size in his hand
 LAG = 0.5                                        # how fast his head catches up with where it's going each frame (1 = no lag)
 SHADOW_MIN, SHADOW_MAX, SHADOW_AREA = 30, 140, 160   # his shadow on the desk: fainter is dropped, darker capped, smaller patches dropped
 PUPIL_K = 6                                      # pupils.png is drawn this many pixels per texel of the face drawing
@@ -85,6 +85,13 @@ def P(body=None, head=None, l=None, r=None, **kw):
         if v is None: continue
         if 'curl' in v and 'spread' in v: p[k] = v
         else: q = dict(BASE[k]); q.update(v); p[k] = q
+    if 'body' in BASE and BASE.get('l'):                                          # (each wrist in both spaces, so a hand going
+        bm = body_matrix(p); inv = bm.inverted()                                  #  from the room to his body moves straight)
+        for k in ('l', 'r'):
+            q = dict(p[k])
+            if q['b'] >= 0.5: q['w'] = tuple(bm @ Vector(q['wb']))
+            else: q['wb'] = tuple(inv @ Vector(q['w']))
+            p[k] = q
     return p
 
 
@@ -98,8 +105,8 @@ def lerp(a, b, t):
 
 def ease(t, kind='io'):
     """How a move gets from one key to the next: io = slow in and out, out = fast then settling, in = speeding up,
-    back = overshoots a little and settles back, snap = jumps."""
-    if kind == 'snap': return 1.0
+    back = overshoots a little and settles back, snap = holds still, then cuts straight to the key."""
+    if kind == 'snap': return 0.0
     if kind == 'in': return t * t * t
     if kind == 'out': return 1 - (1 - t) ** 3
     if kind == 'back':
@@ -149,10 +156,12 @@ CHIN = arm((14, -6, 40), pole=(1, -0.6, -1), dir=(-0.3, -0.2, 1), nrm=(0, -1, 0)
 POINT = arm((-17, -34, 20), pole=(-1, -0.2, -1), dir=(0.1, -1, 0.15), grip='point')
 POINT2 = arm((-14, -40, 17), pole=(-1, -0.2, -1), dir=(0.1, -1, 0.02), grip='point')
 FIST_UP = lambda s: arm((s * 22, -14, 33), pole=(s, 0.4, -0.2), dir=(0, -0.2, 1), nrm=(0, -1, 0), grip='fist')
-FIST_HI = lambda s: arm((s * 20, -8, 44), pole=(s, 0.5, -0.4), dir=(0, 0.1, 1), nrm=(0, -1, 0), grip='fist')
-FIST_DOWN = lambda s: arm((s * 22, -12, 7.5), pole=(s, 0.4, 0.9), dir=(0, -1, 0), grip='fist')
+FIST_HI = lambda s: arm((s * 25, -11, 43), pole=(s, 0.6, -0.2), dir=(0, 0.1, 1), nrm=(0, -1, 0), grip='fist')
+FIST_DOWN = lambda s: arm((s * 25, -12, 11), pole=(s, 0.5, 0.9), dir=(0, -1, 0), grip='fist')
 OPEN_WIDE = lambda s: arm((s * 52, -16, 26), pole=(s, 0.6, -0.6), dir=(s * 0.6, -0.5, 0.6), nrm=(0, -0.4, -1), grip='open')
 OPEN_WIDER = lambda s: arm((s * 54, -18, 30), pole=(s, 0.6, -0.6), dir=(s * 0.7, -0.4, 0.7), nrm=(0, -0.4, -1), grip='open', spread=0.8)
+LIFT = lambda s: arm((s * 27, -12, 9), pole=(s, 0.3, 0.6), dir=(-s * 0.15, -1, 0.3), grip='open')      # (hands up off the wood first,
+RAISE = lambda s: arm((s * 33, -17, 25), pole=(s, 0.5, -0.2), dir=(s * 0.3, -0.7, 0.6), nrm=(0, -0.5, -0.8), grip='open')   #  then up past the desk things)
 PALM_UP = lambda s: arm((s * 32, -20, 14), pole=(s, 0.4, -0.3), dir=(s * 0.3, -1, 0.2), nrm=(0, 0, -1), grip='open')
 RUB = lambda dx: (arm((-12 + dx, -37, 8), pole=(-1, 0.3, -0.5), dir=(1, -0.3, 0.1), nrm=(0, -1, 0), grip='rub'),
                   arm((12 + dx, -37, 9), pole=(1, 0.3, -0.5), dir=(-1, -0.3, 0.1), nrm=(0, 1, 0), grip='rub'))
@@ -184,9 +193,9 @@ def idle():
 
 def twitch():
     """Something's off: his head snaps over to a horrible crooked angle, hangs there, then cranks back in little jerks."""
-    snap = P(body=(0, 42, -4, 39, 3), head=(14, -6, -32))
-    keys = [(0, P()), (0.13, snap, 'snap'), (0.8, P(body=(0, 42, -4, 39, 3), head=(15, -5, -34))),
-            (0.93, P(head=(10, -2, -24)), 'snap'), (1.13, P(head=(6, 1, -17)), 'snap'), (1.33, P(head=(3, 3, -11)), 'snap'),
+    snap = P(body=(0, 42, -4, 39, 3), head=(16, 2, -22))
+    keys = [(0, P()), (0.13, snap, 'snap'), (0.8, P(body=(0, 42, -4, 39, 3), head=(17, 3, -23))),
+            (0.93, P(head=(12, 3, -18)), 'snap'), (1.13, P(head=(7, 4, -13)), 'snap'), (1.33, P(head=(3, 4, -9)), 'snap'),
             (1.73, P(), 'io')]
     return breathe(frames_of(keys), 0.6)
 
@@ -195,15 +204,17 @@ def heart():
     """The clock-heart (an idle now and then): HANZ's grey hand rises to the hatch in his chest, it swings open (a red
     glow inside), he reaches in and draws out his heart - dark, wet, dripping, a pocket watch wound into it - lifts it
     beside his face, peers at it while its hands spin round and stop, sighs, puts it back and shuts the hatch."""
-    lean = (2, 44, -3, 26, -6)                      # sitting back off the counter a little, turned to show the chest
-    look = (-6, 18, -9)                              # head down to his chest
-    reach = arm(wb=(9.5, -21, 27), b=1, pole=(1, -0.4, -0.6), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='reach')
-    inside = arm(wb=(9.5, -16.5, 27), b=1, pole=(1, -0.4, -0.6), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='cup')
-    out_ = arm(wb=(10, -24, 26), b=1, pole=(1, -0.4, -0.6), dir=(0, 1, 0.3), nrm=(0, 0, 1), grip='cup')
-    hold = arm((24, -36, 38), pole=(1, 0.1, -0.8), dir=(-0.45, -0.6, 0.15), nrm=(0, 0.1, -1), grip='cup')
-    hold2 = arm((25, -38, 39.5), pole=(1, 0.1, -0.8), dir=(-0.45, -0.6, 0.2), nrm=(0, 0.1, -1), grip='cup')
-    peer = (20, 10, -14); sigh = (16, 16, -8)
+    lean = (2, 47, 5, 14, -6)                       # sitting up off the counter, turned a little to show the chest
+    look = (-4, 9, -8)                               # head down to his chest
+    reach = arm(wb=(9.5, -21, 27), b=1, pole=(1, 0, 0.7), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='reach')
+    inside = arm(wb=(9.5, -16.5, 27), b=1, pole=(1, 0, 0.7), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='cup')
+    out_ = arm(wb=(11, -26, 27), b=1, pole=(1, 0, 0.7), dir=(-0.1, 0.6, 0.6), nrm=(0, -0.6, -0.8), grip='cup')
+    hold = arm((22, -16, 38), pole=(1, 0.2, -0.6), dir=(-0.3, 0.55, 0.6), nrm=(0, -0.6, -0.5), grip='cup')
+    hold2 = arm((23, -18, 40), pole=(1, 0.2, -0.6), dir=(-0.3, 0.55, 0.65), nrm=(0, -0.6, -0.5), grip='cup')
+    peer = (18, 4, -14); sigh = (14, 10, -8)
+    lift = arm((26, -12, 15), pole=(1, 0.2, 0.6), dir=(-0.2, -1, 0.3), grip='open')        # (the hand comes up off the wood first)
     k = [(0.0, P()),
+         (0.25, P(body=(1, 43, -1, 28, -3), head=(-2, 6, -8), r=lift), 'io'),
          (0.6, P(body=lean, head=look, r=reach), 'io'),
          (0.95, P(body=lean, head=look, r=reach, hatch=105), 'back'),
          (1.3, P(body=lean, head=look, r=inside, hatch=105), 'io'),
@@ -212,12 +223,13 @@ def heart():
          (2.5, P(body=lean, head=peer, r=hold, hatch=105, heart=1, clock=(300, 60)), 'io'),
          (3.0, P(body=lean, head=(18, 4, -16), r=hold2, hatch=105, heart=1, clock=(300, 60)), 'io'),
          (4.0, P(body=lean, head=(18, 4, -16), r=hold2, hatch=105, heart=1, clock=(330, 60 + 720)), 'out'),
-         (4.6, P(body=(2, 44, -4, 28, -6), head=sigh, r=hold, hatch=105, heart=1, clock=(330, 780)), 'io'),
+         (4.6, P(body=(2, 47, 4, 16, -6), head=sigh, r=hold, hatch=105, heart=1, clock=(330, 780)), 'io'),
          (5.2, P(body=lean, head=look, r=out_, hatch=105, heart=1, clock=(330, 780)), 'io'),
          (5.55, P(body=lean, head=look, r=inside, hatch=105, heart=1, clock=(330, 780)), 'io'),
          (5.62, P(body=lean, head=look, r=inside, hatch=105, heart=0, clock=(330, 780)), 'snap'),
          (5.95, P(body=lean, head=look, r=reach, hatch=105), 'io'),
          (6.25, P(body=lean, head=look, r=reach, hatch=0), 'in'),
+         (6.6, P(body=(1, 43, -1, 28, -3), head=(-2, 6, -8), r=lift), 'io'),
          (7.0, P(), 'io')]
     fr = frames_of(k)
     for p in fr: p['clock'] = (p['clock'][0] % 360, p['clock'][1] % 360)
@@ -263,13 +275,14 @@ ANIMS = {
     'slam': {'frames': lambda: follow(frames_of([
         (0, P()), (0.35, P(body=(0, 45, 1, 24, 0), head=(18, -14, 6), l=FIST_HI(-1), r=FIST_HI(1)), 'out'),
         (0.47, P(body=(0, 45, 1.5, 22, 0), head=(20, -16, 6), l=FIST_HI(-1), r=FIST_HI(1))),
-        (0.6, P(body=(0, 40, -7, 48, 0), head=(20, 10, 4), l=FIST_DOWN(-1), r=FIST_DOWN(1)), 'in'),
+        (0.6, P(body=(0, 40, -6, 45, 0), head=(20, 10, 4), l=FIST_DOWN(-1), r=FIST_DOWN(1)), 'in'),
         (0.75, P(body=(0, 41, -5, 43, 0), head=(18, 4, 2), l=FIST_DOWN(-1), r=FIST_DOWN(1)), 'out'),
         (1.2, P(body=(0, 41, -5.5, 44, 0), head=(16, 6, 0), l=FIST_DOWN(-1), r=FIST_DOWN(1)))]), 0.65)},
     # welcome: dips, then rises off the counter and throws his arms wide, palms open, head tipped - and sinks back
     'greet': {'frames': lambda: breathe(follow(frames_of([
-        (0, P()), (0.25, P(body=(0, 41, -6, 42, 0), head=(0, 10, -4)), 'io'),
-        (0.75, P(body=(0, 44, 1, 20, 0), head=(0, -8, -16), l=OPEN_WIDER(-1), r=OPEN_WIDER(1)), 'back'),
+        (0, P()), (0.25, P(body=(0, 41, -6, 42, 0), head=(0, 10, -4), l=LIFT(-1), r=LIFT(1)), 'io'),
+        (0.5, P(body=(0, 43, -2, 30, 0), head=(0, 0, -10), l=RAISE(-1), r=RAISE(1)), 'io'),
+        (0.85, P(body=(0, 44, 1, 20, 0), head=(0, -8, -16), l=OPEN_WIDER(-1), r=OPEN_WIDER(1)), 'back'),
         (1.4, P(body=(0, 44, 1.5, 19, 0), head=(5, -9, -18), l=OPEN_WIDE(-1), r=OPEN_WIDE(1))),
         (2.0, P(), 'io')])), 0.6)},
     # sold! $@L rubs his hands together, leaning in, head bobbing with it
@@ -467,6 +480,7 @@ def border(cam, obs, pad=(36, 14, 36, 40)):
     sc.render.border_min_y = 1 - y1 / VH; sc.render.border_max_y = 1 - y0 / VH
 
 
+DESK_MASK = None                                 # where his shadow may fall: the counter's wood, not the things on it (desk_mask)
 FAST = False                                     # --fast: half size, few samples, previews only (to check the motion)
 
 
@@ -535,9 +549,25 @@ def clean(img):
         sizes = np.bincount(lab.ravel()); sizes[0] = 0
         out[(lab > 0) & (sizes[lab] < 60)] = 0; body &= ~((lab > 0) & (sizes[lab] < 60)); solid &= body; edge &= body
     out[~solid & ~edge] = 0
+    if DESK_MASK is not None: keep &= DESK_MASK                                   # (only on the counter's own wood)
     out[keep & ~solid & ~edge, :3] = (8, 4, 12)
     out[keep & ~solid & ~edge, 3] = np.minimum(sm[keep & ~solid & ~edge] * 1.1, SHADOW_MAX).astype(np.uint8)
     return out
+
+
+def desk_mask(tmp):
+    """Where on screen his shadow may show: the counter itself, minus everything standing on it (the catcher puts odd
+    ghosts of the bell / hourglass / lamp in otherwise)."""
+    global DESK_MASK
+    from scipy.ndimage import binary_dilation
+    for ob in list(bpy.data.objects):
+        if ob.get('hanz'): bpy.data.objects.remove(ob)
+    bpy.context.scene.render.use_border = False
+    desk('hide'); bpy.data.objects['counter'].hide_render = False; bpy.data.objects['counter'].is_shadow_catcher = False
+    wood = shoot(tmp)[..., 3] > 128
+    desk('show'); bpy.data.objects['counter'].hide_render = True
+    things = binary_dilation(shoot(tmp)[..., 3] > 8, iterations=3)
+    DESK_MASK = wood & ~things
 
 
 def trim(img, cut=6):
@@ -665,16 +695,16 @@ def lava_frame(f, n, base):
 def sand_frame(f, n, base):
     """The hourglass at frame f of n: the bottom bulb's sand stays heaped, the top bulb's clings to its ceiling like a
     stalactite, and a thin stream of grains runs UP through the neck between them, forever."""
-    hx_, hy = H.HOURGLASS
+    hx_, hy, hz = H.HOURGLASS
     m = H.Mesh()
-    m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
-            for r, z in ((2.9, 2.8), (2.6, 4.6), (1.2, 6.2))] + [(hx_, hy, 6.9)], H.SAND)     # the heap at the bottom
-    m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
-            for r, z in ((2.7, 18.2), (2.2, 16.6), (0.9, 15.3))] + [(hx_, hy, 14.4)], H.SAND)   # ... and hanging from the top
+    m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
+            for r, z in ((2.9, 2.8), (2.6, 4.6), (1.2, 6.2))] + [(hx_, hy, hz + 6.9)], H.SAND)     # the heap at the bottom
+    m.hull([(hx_ + r * math.cos(a), hy + r * math.sin(a), hz + z) for a in np.linspace(0, 2 * math.pi, 13)[:-1]
+            for r, z in ((2.7, 18.2), (2.2, 16.6), (0.9, 15.3))] + [(hx_, hy, hz + 14.4)], H.SAND)   # ... and hanging from the top
     rng = np.random.default_rng(11)
     for g in range(16):                                                           # the grains rising up the neck
         ph = (g / 16 + f / n * 2) % 1.0
-        z = 6.9 + ph * 7.6; x = hx_ + rng.uniform(-0.25, 0.25); y = hy + rng.uniform(-0.25, 0.25)
+        z = hz + 6.9 + ph * 7.6; x = hx_ + rng.uniform(-0.25, 0.25); y = hy + rng.uniform(-0.25, 0.25)
         m.box((x, y, z), (0.32, 0.32, 0.5), H.SAND)
     ob = H.to_object('sand', m, base, bevel=False); ob['prop'] = 1
     return [ob]
@@ -771,6 +801,7 @@ def drops_for(poses):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--only', default=''); ap.add_argument('--preview', default='')
     ap.add_argument('--samples', type=int, default=SAMPLES); ap.add_argument('--fast', action='store_true')
+    ap.add_argument('--clips', action='store_true')
     a = ap.parse_args()
     global FAST, OUT, TABLE
     if a.fast:                                                                    # (previews only: nothing in the game changes)
@@ -780,6 +811,17 @@ def main():
     tmp = os.path.join(bpy.app.tempdir or '/tmp', 'hanz_frame.png')
     cam, mats = setup(a.samples)
     if FAST: bpy.context.scene.render.resolution_percentage = 50
+    if a.clips:                                                                   # --clips: no rendering, just list every clipping frame
+        for name, spec in ANIMS.items():
+            if only and name not in only: continue
+            for i, pose in enumerate(spec['frames']()):
+                for back in np.arange(0, 30, 0.75):
+                    parts, head_M, bot = figure(pose, back); place(parts, mats)
+                    if not any(c[:2] == ('torso', 'counter') for c in clip_check()): break
+                c = clip_check()
+                if c: print(f'{name} {i}: {c}', flush=True)
+            print(f'{name} checked', flush=True)
+        return
     psheet, pmeta = pupil_sheet(); psheet.save(os.path.join(OUT, 'pupils.png'))
     table = {'pupils': pmeta, 'pupilK': PUPIL_K, 'fps': FPS, 'anims': {}, 'props': {}}
     if os.path.exists(TABLE) and only:
@@ -797,6 +839,8 @@ def main():
         quantize(ccrop).save(os.path.join(OUT, 'counter.png'), optimize=True)
         table['counter'] = [cx, cy]
     if not only or 'props' in only: render_props(cam, mats, tmp, table)
+    smp = bpy.context.scene.cycles.samples; bpy.context.scene.cycles.samples = 4      # (just the shapes)
+    desk_mask(tmp); bpy.context.scene.cycles.samples = smp
     for name, spec in ANIMS.items():
         if only and name not in only: continue
         poses = spec['frames']()
