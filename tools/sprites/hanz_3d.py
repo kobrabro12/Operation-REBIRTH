@@ -4,12 +4,12 @@ The look: a few big flat angular planes (every part is the convex hull of a hand
 on the silhouette and the sharp creases (Blender's Freestyle), bold flat colour per face lit in two hard steps, and
 a speckled grain over everything (denser in the shadow).
 
-Him: one lanky man split straight down the middle. HANZ (the LEFT of the picture) is tired, sad and smart: blood
-RED. $@L (the right) is sneaky, quick to anger and foolish: pale GREY, with one curved devil horn. The split runs
+Him: one lanky man split straight down the middle. $@L (the LEFT of the picture) is sneaky, quick to anger and
+foolish: blood RED, with one curved devil horn. HANZ (the right) is tired, sad and smart: pale GREY. The split runs
 through his face, his hands and the lining of his coat. His face is a big flat plate framed by black hair like a helmet, and on it is Mason's drawing
-(tools/sprites/art/hanz_face.png, 64x64, black lines) as a pixel texture: HANZ's heavy drooping eye, $@L's beady eye
+(tools/sprites/art/hanz_face.png, 64x64, black lines) as a pixel texture: $@L's heavy drooping eye, HANZ's beady eye
 in spiral rings, a crooked grin across both. He wears a thick, heavy anime trench coat: a huge popped collar round
-his head (lined red on HANZ's side, grey on $@L's), wide lapels, double-breasted buttons, a belt, epaulettes, wide
+his head (lined red on $@L's side, grey on HANZ's), wide lapels, double-breasted buttons, a belt, epaulettes, wide
 cuffs with straps. He's too calm: perfectly still, head a little tilted, leaning over a heavy old shop counter on
 long arms with his hands flat on the wood.
 
@@ -29,8 +29,8 @@ FACE = os.path.join(HERE, 'art', 'hanz_face.png')
 BLEND = os.path.join(HERE, 'art', 'hanz.blend')
 
 # ------------------------------------------------------------------ colours (bold and flat, one per face)
-H_SKIN = 0xb8121c; H_SKIN_D = 0x860a12       # HANZ (left of the picture): blood red
-S_SKIN = 0xd2d0cc; S_SKIN_D = 0xa8a6a2       # $@L (right of the picture): pale, drained of colour
+SAL_SKIN = 0xb8121c; SAL_SKIN_D = 0x860a12   # $@L (LEFT of the picture): blood red
+HANZ_SKIN = 0xd2d0cc; HANZ_SKIN_D = 0xa8a6a2 # HANZ (right of the picture): pale, drained of colour
 HORN = 0x6e0810; HORN2 = 0x9a1018           # $@L's devil horn: dark blood red
 COAT = 0x2b2a33; COAT2 = 0x3a3944; COAT3 = 0x1e1d25   # the trench coat: heavy charcoal
 BELT = 0x161519; BRASS = 0xc8a040; BRASS2 = 0x8a6a28
@@ -88,7 +88,7 @@ class Mesh:
 
 
 def side(col_h, col_s, cut=0.0):
-    """A colour function: HANZ's colour left of x=cut, $@L's right of it."""
+    """A colour function: $@L's colour left of x=cut, HANZ's right of it."""
     return lambda c, n: col_h if c[0] < cut else col_s
 
 
@@ -110,7 +110,7 @@ def head():
     front = [(-FACE_X, -11, z1), (FACE_X, -11, z1), (-FACE_X - 1.5, -11, 4), (FACE_X + 1.5, -11, 4),
              (-17, -11, -12), (17, -11, -12), (-9, -10, z0), (9, -10, z0)]
     back = [(x * 0.88, 9, z * 0.9) for x, _, z in front]
-    face.hull(front + back, lambda c, n: (H_SKIN if c[0] < 0 else S_SKIN), uvface=lambda c, n: n[1] < -0.9)
+    face.hull(front + back, lambda c, n: (SAL_SKIN if c[0] < 0 else HANZ_SKIN), uvface=lambda c, n: n[1] < -0.9)
     hair.hull([(-23, -14, 19), (23, -14, 19), (-23, 11, 18), (23, 11, 18), (-20, -13, 30), (20, -13, 30), (-19, 10, 29), (19, 10, 29)], HAIR)
     for (x0, x1, tipx, tipz) in ((-19, -6, -14, 12), (-7, 6, 1, 14), (5, 19, 13, 11)):
         hair.hull([(x0, -15, 21), (x1, -15, 21), (x0, -12, 21), (x1, -12, 21), (tipx, -14.5, tipz), (tipx, -12.5, tipz)], HAIR)
@@ -120,9 +120,9 @@ def head():
     hair.hull([(-20, 8, 26), (20, 8, 26), (-17, 11, -2), (17, 11, -2), (-17, 12, 18), (17, 12, 18)], HAIR)
     hair.hull([(2, -6, 29), (8, -4, 29), (5, 4, 29), (11, -9, 39)], HAIR)        # the cowlick
     hair.hull([(6, -3, 29), (11, -1, 29), (8, 6, 29), (16, -2, 35)], HAIR)
-    # $@L's devil horn: rising out of the hair on his side, curving up and out to a point (segments taper)
+    # $@L's devil horn: rising out of the hair on his (left) side, curving up and out to a point (segments taper)
     horn = Mesh()
-    path = [(14, -2, 24), (19, -3, 31), (23, -4, 38), (25, -5, 45), (24, -6, 51)]
+    path = [(-14, -2, 24), (-19, -3, 31), (-23, -4, 38), (-25, -5, 45), (-24, -6, 51)]
     rad = [4.2, 3.4, 2.5, 1.5, 0.2]
     for i in range(len(path) - 1):
         horn.limb(path[i], path[i + 1], rad[i], rad[i + 1], HORN if i % 2 == 0 else HORN2, sides=5, twist=0.3)
@@ -132,7 +132,7 @@ def head():
 def coat(M):
     """His chest and shoulders in the thick trench coat, as meshes: 'torso' (a narrow lanky body, wide lapels, two
     rows of brass buttons, a belt and buckle, epaulettes, the skirt flaring below the belt), 'collar_l' / 'collar_r'
-    (the huge popped collar: two thick walls flaring out round his head, lined red on HANZ's side and grey on $@L's),
+    (the huge popped collar: two thick walls flaring out round his head, lined red on $@L's side and grey on HANZ's),
     'neck'."""
     torso, neck = Mesh(), Mesh()
     pts = []
@@ -149,10 +149,10 @@ def coat(M):
     torso.box((0, -10.8, 8.5), (6, 1.4, 6), BRASS, M); torso.box((0, -11.2, 8.5), (3, 1.2, 3), BELT, M)
     for sx in (-1, 1):
         torso.slab([(sx * 10, 45.5), (sx * 22, 41.5), (sx * 22, 39.8), (sx * 10, 43.8)], -5, 5, COAT3, M)   # epaulettes
-    neck.limb((0, 1, 40), (0, 1, 52), 5, 4.5, lambda c, n: H_SKIN_D if c[0] < 0 else S_SKIN_D, sides=4, M=M)
+    neck.limb((0, 1, 40), (0, 1, 52), 5, 4.5, lambda c, n: SAL_SKIN_D if c[0] < 0 else HANZ_SKIN_D, sides=4, M=M)
     out = {'torso': torso, 'neck': neck}
     for sx, nm in ((-1, 'collar_l'), (1, 'collar_r')):
-        lining = H_SKIN_D if sx < 0 else S_SKIN_D
+        lining = SAL_SKIN_D if sx < 0 else HANZ_SKIN_D
         col = Mesh()
         col.hull([(sx * 7, -8, 40), (sx * 7, 7, 42), (sx * 14, -7, 42), (sx * 14, 7, 42),
                   (sx * 22, -6, 62), (sx * 29, -9, 64), (sx * 28, 7, 63), (sx * 21, 6, 63)],
@@ -163,9 +163,9 @@ def coat(M):
 
 def arm(s, shoulder, elbow, wrist, hand_dir):
     """One long arm, as meshes: 'sleeve' (a sloped shoulder, a wide trench sleeve flaring at the cuff, a strap round
-    the cuff) and 'hand' (a big long-fingered hand lying flat, red for HANZ (s = -1), grey for $@L (s = +1))."""
+    the cuff) and 'hand' (a big long-fingered hand lying flat, red for $@L (s = -1), grey for HANZ (s = +1))."""
     sl, hd = Mesh(), Mesh()
-    skin, skin_d = (H_SKIN, H_SKIN_D) if s < 0 else (S_SKIN, S_SKIN_D)
+    skin, skin_d = (SAL_SKIN, SAL_SKIN_D) if s < 0 else (HANZ_SKIN, HANZ_SKIN_D)
     x, y, z = shoulder
     sl.hull([(x - s * 4, y - 8, z + 4), (x - s * 4, y + 8, z + 4), (x + s * 8, y - 8, z - 3), (x + s * 8, y + 8, z - 3),
              (x - s * 4, y - 7, z - 6), (x - s * 4, y + 7, z - 6), (x + s * 7, y - 7, z - 9), (x + s * 7, y + 7, z - 9)], COAT)
@@ -275,11 +275,11 @@ def material(face_img=None):
 
 
 def face_image():
-    """Mason's face drawing over the split skin: HANZ's red left of FACE_SPLIT, $@L's grey right of it, his black lines on top."""
+    """Mason's face drawing over the split skin: $@L's red left of FACE_SPLIT, HANZ's grey right of it, his black lines on top."""
     src = np.array(Image.open(FACE).convert('RGBA'))
     H, W = src.shape[:2]
     img = np.zeros((H, W, 4), np.uint8); img[..., 3] = 255
-    t = [H_SKIN >> 16 & 255, H_SKIN >> 8 & 255, H_SKIN & 255]; r = [S_SKIN >> 16 & 255, S_SKIN >> 8 & 255, S_SKIN & 255]
+    t = [SAL_SKIN >> 16 & 255, SAL_SKIN >> 8 & 255, SAL_SKIN & 255]; r = [HANZ_SKIN >> 16 & 255, HANZ_SKIN >> 8 & 255, HANZ_SKIN & 255]
     img[:, :FACE_SPLIT, :3] = t; img[:, FACE_SPLIT:, :3] = r
     ink = src[..., 3] > 0
     img[ink, :3] = (16, 14, 18)
@@ -347,7 +347,7 @@ def build(pose='lean'):
         else:
             el = body @ Vector((s_ * 31, 2, 14)); wr = Vector((s_ * 30, -8, 2.9)); hdir = (0, -1, 0)
         for nm, m in arm(s_, tuple(sh), tuple(el), tuple(wr), hdir).items():
-            to_object(nm + ('_hanz' if s_ < 0 else '_sal'), m, [flat])
+            to_object(nm + ('_sal' if s_ < 0 else '_hanz'), m, [flat])
     for nm, m in counter().items(): to_object(nm, m, [flat])
     cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
     cam.data.lens = 50; cam.data.clip_end = 5000
@@ -357,11 +357,11 @@ def build(pose='lean'):
 # pairs of pieces that must never pass through each other (the shoulder joins and the hair on the head are meant to
 # overlap, so they're not listed)
 NO_CLIP = [('horn', 'collar_r'), ('horn', 'collar_l'), ('horn', 'face'), ('hair', 'collar_l'), ('hair', 'collar_r'), ('face', 'collar_l'), ('face', 'collar_r'), ('hair', 'torso'),
-           ('face', 'torso'), ('face', 'neck_x'), ('sleeve_hanz', 'counter'), ('sleeve_sal', 'counter'),
-           ('hand_hanz', 'counter'), ('hand_sal', 'counter'), ('hand_hanz', 'watch'), ('hand_hanz', 'bell'),
-           ('hand_sal', 'till'), ('sleeve_sal', 'till'), ('sleeve_hanz', 'collar_l'), ('sleeve_sal', 'collar_r'),
-           ('sleeve_hanz', 'hair'), ('sleeve_sal', 'hair'), ('torso', 'counter'), ('collar_l', 'collar_r'),
-           ('hand_hanz', 'sleeve_sal'), ('sleeve_hanz', 'sleeve_sal')]
+           ('face', 'torso'), ('face', 'neck_x'), ('sleeve_sal', 'counter'), ('sleeve_hanz', 'counter'),
+           ('hand_sal', 'counter'), ('hand_hanz', 'counter'), ('hand_sal', 'watch'), ('hand_sal', 'bell'),
+           ('hand_hanz', 'till'), ('sleeve_hanz', 'till'), ('sleeve_sal', 'collar_l'), ('sleeve_hanz', 'collar_r'),
+           ('sleeve_sal', 'hair'), ('sleeve_hanz', 'hair'), ('torso', 'counter'), ('collar_l', 'collar_r'),
+           ('hand_sal', 'sleeve_hanz'), ('sleeve_sal', 'sleeve_hanz')]
 
 
 def clip_check():
