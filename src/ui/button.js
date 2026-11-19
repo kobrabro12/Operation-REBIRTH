@@ -1,27 +1,29 @@
-// A small clickable button used by the menus: pixel text on a slanted plate (the arcade look, src/ui/arcade.js).
+// A small clickable button used by the menus: pixel text on a face drawn in the menu style (buttonFace in src/ui/arcade.js).
 // Returns the Text (callers move it, change its text, hide it); the plate behind follows it every frame.
 import { FONT } from '../config.js';
-import { slant, ARC } from './arcade.js';
+import { buttonFace, menuStyle } from './arcade.js';
 
 const toNum = (c) => (typeof c === 'string' ? parseInt(c.replace('#', ''), 16) : c);
 
+/**
+ * A menu button: pixel text on a face drawn in the menu style (arcade.js buttonFace). `opts.bg` / `opts.hover` pick
+ * its colours (otherwise the style's own), also size, color, pad, originX/Y, depth. Returns the Text.
+ */
 export function makeButton(scene, x, y, label, onClick, opts = {}) {
+  const st = menuStyle().btn;
   const t = scene.add.text(x, y, label, {
-    fontFamily: FONT, fontSize: opts.size || '7px', color: opts.color || '#ffffff', padding: opts.pad || { x: 9, y: 5 },
-    stroke: '#07060e', strokeThickness: 2,
+    fontFamily: FONT, fontSize: opts.size || '7px', color: opts.color || st.color || '#ffffff', padding: opts.pad || { x: 9, y: 5 },
+    stroke: st.stroke, strokeThickness: 2,
   }).setOrigin(opts.originX ?? 0, opts.originY ?? 0).setInteractive({ useHandCursor: true });
-  const base = toNum(opts.bg || '#2e246c'), lit = toNum(opts.hover || '#5a46d8');
+  const base = opts.bg ? toNum(opts.bg) : st.base, lit = opts.hover ? toNum(opts.hover) : st.lit;
   const plate = scene.add.graphics();
-  let hover = false, press = 0;
+  let hover = false, press = 0, tick = 0;
   const draw = () => {
     plate.clear();
     if (!t.active || !t.visible || t.text === '') { plate.setVisible(false); return; }
     plate.setVisible(true).setDepth(t.depth - 0.01).setAlpha(t.alpha).setScrollFactor(t.scrollFactorX, t.scrollFactorY);
-    const b = t.getBounds(), p = press > 0 ? 1 : 0;
-    slant(plate, b.x + 3, b.y + 3, b.width, b.height, 0x000000, 0.6, 5);
-    slant(plate, b.x + p, b.y + p, b.width, b.height, hover ? lit : base, 1, 5);
-    slant(plate, b.x + p, b.y + p, b.width, Math.floor(b.height / 2), 0xffffff, hover ? 0.18 : 0.08, 3);
-    plate.fillStyle(hover ? ARC.gold : ARC.edge, hover ? 1 : 0.35); plate.fillRect(b.x + p, b.y + b.height - 1 + p, b.width - 5, 1);
+    const b = t.getBounds();
+    buttonFace(plate, b.x, b.y, b.width, b.height, base, lit, hover, press > 0, tick++);
     if (press > 0) press--;
   };
   t.on('pointerover', () => { hover = true; });

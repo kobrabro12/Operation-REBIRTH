@@ -13,7 +13,7 @@ import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { ArcadeBg, slant, hintBar, ARC, shade } from '../ui/arcade.js';
+import { ArcadeBg, slant, hintBar, ARC, shade, tileDeco } from '../ui/arcade.js';
 
 const SECTORS = [
   { id: 'fight', name: 'FIGHT', sub: 'BATTLE FRIENDS OR CPUS', color: 0xc8283c, dark: 0x3a0a14, lit: 0xff6a72, scene: 'Setup' },
@@ -108,6 +108,7 @@ export class MenuScene extends Phaser.Scene {
         if (bx > x - 30 && bx < x + w - 10) slant(p, Math.max(x + 6, bx), y + 4, Math.min(16, x + w - 12 - bx), h - 8, s.color, on ? 0.2 : 0.07, SK - 1);
       }
       slant(p, x + 4, y + 4, w - 8, (h - 8) * 0.42, 0xffffff, on ? 0.07 : 0.03, (SK - 1) * 0.42);   // a sheen on the top half
+      tileDeco(p, x, y, w, h, s.color, on, t);                                                // the menu style's own dressing
       if (on) {                                                                               // picked: a white flash edge and corner slashes
         const fl = t % 30 < 15 ? ARC.white : ARC.gold;
         p.fillStyle(fl, 1); p.fillRect(x + SK + 2, y, w - SK - 4, 2); p.fillRect(x + 2, y + h - 2, w - SK - 4, 2);

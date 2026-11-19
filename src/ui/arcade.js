@@ -60,22 +60,22 @@ const hash = (a, b) => { let n = (Math.round(a) * 73856093) ^ (Math.round(b) * 1
 // THE MENU STYLES (OPTIONS > MENU STYLE, saved as settings.menuStyle): the kit's colours, its basic shape and the
 // look of its backdrop, panels, title plate and buttons. The match itself (HUD, banners) always stays BOLD ARCADE.
 export const MENU_STYLES = [
-  { id: 'arcade', name: 'BOLD ARCADE', shape: 'slant',
+  { id: 'arcade', btn: { base: 0x2e246c, lit: 0x5a46d8, stroke: '#07060e' },  name: 'BOLD ARCADE', shape: 'slant',
     pal: { ink: 0x07060e, deep: 0x0d0b1a, panel: 0x14112a, panel2: 0x1c1838, line: 0x2c2650, edge: 0xe8e4ff, dim: 0x8a87a3 } },
   // 80s VHS: a striped synthwave sun over a neon grid, scanlines, a tracking band, chrome plates
-  { id: 'retro', name: 'RETRO REWIND', shape: 'slant', titleColor: '#fff0ff', titleStroke: '#2a0050', titleShadow: '#3be0ff',
+  { id: 'retro', btn: { base: 0x4a0c6a, lit: 0xff3bd0, stroke: '#2a0050' },  name: 'RETRO REWIND', shape: 'slant', titleColor: '#fff0ff', titleStroke: '#2a0050', titleShadow: '#3be0ff',
     pal: { ink: 0x0c0420, deep: 0x1a0838, panel: 0x1a0a36, panel2: 0x2a1050, line: 0x4a2080, edge: 0xffe0ff, dim: 0xa080c0 } },
   // candy bubbles rising through a deep blue sea, round glossy pills
-  { id: 'bubble', name: 'BUBBLE BLAST', shape: 'round', titleColor: '#ffffff', titleStroke: '#0a2a6a', titleShadow: '#ff6ad5',
+  { id: 'bubble', btn: { base: 0x2a6ad8, lit: 0x5ad0ff, stroke: '#0a2a6a' },  name: 'BUBBLE BLAST', shape: 'round', titleColor: '#ffffff', titleStroke: '#0a2a6a', titleShadow: '#ff6ad5',
     pal: { ink: 0x081838, deep: 0x0e2654, panel: 0x14306a, panel2: 0x1c3c80, line: 0x3a5aa8, edge: 0xe8f6ff, dim: 0x9ab8e0 } },
   // a brick wall under a street light: sprayed tags and drips, wobbly hand-sprayed shapes, tape on the panels
-  { id: 'graffiti', name: 'GRAFFITI', shape: 'spray', titleColor: '#ffffff', titleStroke: '#000000', titleShadow: '#ff3b4e',
+  { id: 'graffiti', btn: { base: 0x3a3a3a, lit: 0xff3b4e, stroke: '#000000' },  name: 'GRAFFITI', shape: 'spray', titleColor: '#ffffff', titleStroke: '#000000', titleShadow: '#ff3b4e',
     pal: { ink: 0x140c0a, deep: 0x22160f, panel: 0x1c1616, panel2: 0x2c2222, line: 0x4a3a34, edge: 0xfff4e0, dim: 0xa89a8a } },
   // clean and modern: near-black, long lean, thin lines, no heavy shadows
-  { id: 'slick', name: 'SLICK!', shape: 'sleek', titleColor: '#ffffff', titleStroke: '#05070c', titleShadow: '#05070c',
+  { id: 'slick', btn: { base: 0x141c2e, lit: 0x3b8bff, stroke: '#05070c' },  name: 'SLICK!', shape: 'sleek', titleColor: '#ffffff', titleStroke: '#05070c', titleShadow: '#05070c',
     pal: { ink: 0x05070c, deep: 0x0a0e18, panel: 0x0c1220, panel2: 0x141c2e, line: 0x24304a, edge: 0xffffff, dim: 0x7c8aa8 } },
   // a broken terminal: green code rain, torn scan lines, red/cyan ghosts, blocks with slipped slices
-  { id: 'corrupt', name: 'CORRUPTED CODE', shape: 'glitch', titleColor: '#7aff9a', titleStroke: '#000000', titleShadow: '#002a10',
+  { id: 'corrupt', btn: { base: 0x021008, lit: 0x0a5a24, stroke: '#000000', color: '#7aff9a' },  name: 'CORRUPTED CODE', shape: 'glitch', titleColor: '#7aff9a', titleStroke: '#000000', titleShadow: '#002a10',
     pal: { ink: 0x000000, deep: 0x020a04, panel: 0x031008, panel2: 0x082014, line: 0x0a3a1a, edge: 0xc8ffd8, dim: 0x5aa070 } },
 ];
 let STYLE = MENU_STYLES[0];
@@ -146,14 +146,135 @@ export function tab(g, x, y, w, accent, on = true) {
   slant(g, x, y, w, 14, on ? accent : shade(accent, 0.45), 1, 6);
 }
 
-// the highlight behind the picked row: a colour bar that grows in, with a chevron sliding at its left
+/**
+ * The highlight behind the picked row, in the menu style: a colour bar that grows in (`grow` 0..1) with a pointer
+ * at its left - a white chevron (BOLD ARCADE), a cyan chevron over chrome stripes (RETRO REWIND), a bobbing bubble
+ * (BUBBLE BLAST), a sprayed bar with drips and a marker arrow (GRAFFITI), a thin underlined strip (SLICK!), a
+ * flickering bar with a blinking block cursor (CORRUPTED CODE).
+ */
 export function rowBar(g, x, y, w, h, accent, t, grow = 1) {
-  const ww = Math.max(10, w * Math.min(1, grow));
-  slant(g, x + 3, y + 3, ww, h, 0x000000, 0.45, 6);
+  const ww = Math.max(10, w * Math.min(1, grow)), id = STYLE.id;
+  if (id === 'slick') {
+    g.fillStyle(accent, 0.22); g.fillRect(x, y, ww, h);
+    g.fillStyle(accent, 1); g.fillRect(x, y, 3, h); g.fillRect(x, y + h - 1, ww, 1);
+    g.fillStyle(0xffffff, 0.9); g.fillRect(x - 10 + Math.round(Math.sin(t * 0.2) * 2), y + h / 2, 6, 1);
+    return;
+  }
+  if (id === 'corrupt') {
+    const n = hash(Math.floor(t / 3), y), jit = (t % 50) < 4 ? (n % 7) - 3 : 0;
+    g.fillStyle(0xff2a4a, 0.5); g.fillRect(x - 2 + jit, y, ww, h); g.fillStyle(0x2ae0ff, 0.5); g.fillRect(x + 2 - jit, y, ww, h);
+    slant(g, x, y, ww, h, accent, 1, 6);
+    g.fillStyle(0x000000, 0.25); for (let yy = y + 1; yy < y + h; yy += 2) g.fillRect(x, yy, ww, 1);
+    if ((t >> 4) % 2) { g.fillStyle(0x7aff9a, 1); g.fillRect(x - 10, y + 2, 5, h - 4); }
+    return;
+  }
+  slant(g, x + 3, y + 3, ww, h, id === 'retro' ? 0xff3bd0 : 0x000000, id === 'retro' ? 0.5 : 0.45, 6);
   slant(g, x, y, ww, h, accent, 1, 6);
+  if (id === 'bubble') {
+    g.fillStyle(0xffffff, 0.3); g.fillRoundedRect(x + 4, y + 2, Math.max(4, ww - 12), Math.max(2, Math.floor(h / 3)), Math.min(4, h / 6));
+    const by = y + h / 2 + Math.round(Math.sin(t * 0.18) * 2);
+    g.fillStyle(0xffffff, 0.9); g.fillCircle(x - 8, by, 4); g.fillStyle(accent, 1); g.fillCircle(x - 8, by, 2.5); g.fillStyle(0xffffff, 1); g.fillCircle(x - 9, by - 1, 1);
+    return;
+  }
   slant(g, x, y, ww, Math.floor(h / 2), 0xffffff, 0.14, 3);
+  if (id === 'retro') for (let i = 0; i < 3; i++) slant(g, x + 2, y + h - 6 + i * 2, ww - 4, 1, [0xffd23f, 0xff7a3b, 0xff3b9e][i], 0.8, 1);
+  if (id === 'graffiti') {
+    for (let i = 0; i < 4; i++) { const n = hash(i * 17 + x, y), dx = x + 6 + (n % Math.max(1, ww - 14)), len = 3 + (n >> 6) % 7; g.fillStyle(accent, 1); g.fillRect(dx, y + h - 1, 2, len); }
+    const cx = x - 12 + Math.round(Math.sin(t * 0.25) * 2), cy = y + h / 2;
+    g.lineStyle(2, 0xffffff, 1); g.lineBetween(cx, cy, cx + 7, cy); g.lineBetween(cx + 3, cy - 3, cx + 7, cy); g.lineBetween(cx + 3, cy + 3, cx + 7, cy);
+    return;
+  }
   const cx = x - 9 + Math.round(Math.sin(t * 0.25) * 2);
-  g.fillStyle(ARC.white, 1); g.fillTriangle(cx, y + 2, cx, y + h - 2, cx + 5, y + h / 2);
+  g.fillStyle(id === 'retro' ? 0x3be0ff : ARC.white, 1); g.fillTriangle(cx, y + 2, cx, y + h - 2, cx + 5, y + h / 2);
+}
+
+/**
+ * A button's face in the menu style (makeButton draws every small button with it: BACK, FULL SCREEN, BUY ...).
+ * (x, y, w, h) = the button, `base` / `lit` = its colours idle / hovered, `hover`, `press` (pushed in), `t` = a frame
+ * count for the moving bits.
+ */
+export function buttonFace(g, x, y, w, h, base, lit, hover, press, t = 0) {
+  const id = STYLE.id, p = press ? 1 : 0, c = hover ? lit : base;
+  x += p; y += p;
+  if (id === 'retro') {             // chrome: a sunset fade across the bottom, a neon edge, a magenta shadow
+    slant(g, x + 3 - p, y + 3 - p, w, h, 0xff3bd0, 0.55, 5);
+    slant(g, x, y, w, h, c, 1, 5);
+    slant(g, x, y, w, Math.floor(h * 0.45), 0xffffff, hover ? 0.3 : 0.16, 3);
+    for (let i = 0; i < 3; i++) slant(g, x + 1, y + h - 4 + i, w - 2, 1, [0xffd23f, 0xff7a3b, 0xff3b9e][i], 0.7, 1);
+    g.fillStyle(hover ? 0x3be0ff : 0xffe0ff, hover ? 1 : 0.5); g.fillRect(x + 5, y, w - 5, 1);
+    return;
+  }
+  if (id === 'bubble') {            // a fat glossy pill that swells a little under the pointer
+    const s = hover ? 1 : 0, r = Math.min(9, (h + s * 2) / 2 - 0.5);
+    g.fillStyle(0x000000, 0.35); g.fillRoundedRect(x - s, y - s + 3, w + s * 2, h + s * 2, r);
+    g.fillStyle(shade(c, 0.6), 1); g.fillRoundedRect(x - s, y - s, w + s * 2, h + s * 2, r);
+    g.fillStyle(c, 1); g.fillRoundedRect(x - s, y - s, w + s * 2, h + s * 2 - 2, r);
+    g.fillStyle(0xffffff, hover ? 0.45 : 0.3); g.fillRoundedRect(x - s + 4, y - s + 2, Math.max(4, w * 0.6), Math.max(2, h * 0.3), Math.min(3, h * 0.15));
+    g.fillStyle(0xffffff, 0.8); g.fillCircle(x + w - 6, y + 4, 1.5);
+    return;
+  }
+  if (id === 'graffiti') {          // a sprayed blob with a fat marker outline and a drip or two
+    slant(g, x + 3, y + 3, w, h, 0x000000, 0.7, 5);
+    slant(g, x - 1, y - 1, w + 2, h + 2, 0x000000, 1, 5);
+    slant(g, x, y, w, h, c, 1, 5);
+    for (let i = 0; i < 2 + (hover ? 2 : 0); i++) { const n = hash(i * 11 + w, h), dx = x + 4 + (n % Math.max(1, w - 8)), len = 2 + (n >> 5) % 5 + (hover ? (t >> 2) % 3 : 0); g.fillStyle(c, 1); g.fillRect(dx, y + h, 2, len); }
+    g.fillStyle(0xffffff, hover ? 0.6 : 0.3); g.fillRect(x + 5, y + 2, Math.min(10, w / 4), 1);
+    return;
+  }
+  if (id === 'slick') {             // flat and thin: a dark plate with a hairline frame; a bar of colour slides in under the pointer
+    g.fillStyle(ARC.panel, 0.92); g.fillRect(x, y, w, h);
+    g.lineStyle(1, hover ? 0xffffff : ARC.line, 1); g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    g.fillStyle(lit, 1); g.fillRect(x, y + h - 2, hover ? w : 6, 2);
+    if (hover) { g.fillStyle(lit, 0.2); g.fillRect(x + 1, y + 1, w - 2, h - 3); }
+    return;
+  }
+  if (id === 'corrupt') {           // a terminal box: green frame, red / cyan ghosts, it tears while hovered
+    const jit = hover && (t % 20) < 3 ? (hash(t, w) % 5) - 2 : 0;
+    g.fillStyle(0x000000, 0.9); g.fillRect(x, y, w, h);
+    if (hover) { g.fillStyle(0x2aff6a, 0.22); g.fillRect(x, y, w, h); }
+    g.lineStyle(1, 0xff2a4a, 0.6); g.strokeRect(x - 1.5 + jit, y + 0.5, w, h - 1);
+    g.lineStyle(1, 0x2ae0ff, 0.6); g.strokeRect(x + 1.5 - jit, y + 0.5, w, h - 1);
+    g.lineStyle(1, hover ? 0x7aff9a : c === base ? 0x2aff6a : c, 1); g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    if (hover && (t >> 3) % 2) { g.fillStyle(0x7aff9a, 1); g.fillRect(x + w - 4, y + 3, 2, h - 6); }
+    return;
+  }
+  slant(g, x + 3 - p, y + 3 - p, w, h, 0x000000, 0.6, 5);
+  slant(g, x, y, w, h, c, 1, 5);
+  slant(g, x, y, w, Math.floor(h / 2), 0xffffff, hover ? 0.18 : 0.08, 3);
+  g.fillStyle(hover ? ARC.gold : ARC.edge, hover ? 1 : 0.35); g.fillRect(x, y + h - 1, w - 5, 1);
+}
+
+/**
+ * The main menu's big tiles, dressed in the menu style: drawn over a tile's body (MenuScene). `color` = its section
+ * colour, `on` = picked, `t` = frame count.
+ */
+export function tileDeco(g, x, y, w, h, color, on, t) {
+  const id = STYLE.id;
+  if (id === 'retro') {
+    for (let i = 0; i < 4; i++) slant(g, x + 6, y + h - 14 + i * 3, w - 12, 2, [0xffd23f, 0xff7a3b, 0xff3b9e, 0xb45cff][i], on ? 0.55 : 0.25, 6);
+    g.fillStyle(on ? 0x3be0ff : 0xffe0ff, on ? 1 : 0.4); g.fillRect(x + 18, y + 4, w - 22, 1);
+    g.fillStyle(color, 0.08); for (let gx = x + 24; gx < x + w - 12; gx += 14) g.fillRect(gx, y + 8, 1, h - 24);
+  } else if (id === 'bubble') {
+    g.fillStyle(0xffffff, on ? 0.3 : 0.15); g.fillRoundedRect(x + 14, y + 6, w * 0.3, 4, 2); g.fillCircle(x + 14 + w * 0.3 + 6, y + 8, 2);
+    for (let i = 0; i < 6; i++) {
+      const n = hash(i * 7 + x, y), bx = x + 20 + (n % Math.max(1, w - 40)), by = y + h - 8 - ((n >> 6) % 40 + t * (on ? 0.6 : 0.2)) % (h - 12), r = 2 + (n % 4);
+      g.lineStyle(1, 0xffffff, 0.35); g.strokeCircle(bx, by, r); g.fillStyle(0xffffff, 0.5); g.fillCircle(bx - r * 0.4, by - r * 0.4, 0.8);
+    }
+  } else if (id === 'graffiti') {
+    for (let i = 0; i < 8; i++) { const n = hash(i * 23 + x, y + h), dx = x + 12 + (n % Math.max(1, w - 30)), len = 4 + (n >> 6) % (on ? 18 : 10); g.fillStyle(color, 1); g.fillRect(dx, y + h - 2, 3, len); g.fillCircle(dx + 1.5, y + h - 2 + len, 2); }
+    g.fillStyle(0xe8dcb0, 0.8); g.fillRect(x + 22, y - 4, 26, 8); g.fillRect(x + w - 44, y + h - 5, 26, 8);   // tape
+    g.lineStyle(2, 0xffffff, on ? 0.6 : 0.2); g.strokeEllipse(x + 50, y + h / 2, 52, 40);   // a sprayed ring round the icon
+  } else if (id === 'slick') {
+    g.fillStyle(ARC.ink, 0.55); g.fillRect(x + 4, y + 4, w - 8, h - 8);
+    g.fillStyle(color, 1); g.fillRect(x + 4, y + 4, 3, h - 8); g.fillRect(x + 4, y + h - 5, on ? w - 8 : 30, 1);
+  } else if (id === 'corrupt') {
+    const n = hash(Math.floor(t / 4), x), tear = on && (t % 60) < 5;
+    g.lineStyle(1, 0xff2a4a, 0.6); g.strokeRect(x - 1.5 + (tear ? n % 5 : 0), y + 0.5, w, h);
+    g.lineStyle(1, 0x2ae0ff, 0.6); g.strokeRect(x + 2.5, y - 0.5, w, h);
+    g.fillStyle(0x000000, 0.3); for (let yy = y + 2; yy < y + h; yy += 2) g.fillRect(x + 2, yy, w - 4, 1);
+    if (tear) { g.fillStyle(color, 0.6); g.fillRect(x + (n % 20) - 10, y + (n >> 5) % (h - 6), w, 3); }
+    g.fillStyle(0x2aff6a, on && (t >> 4) % 2 ? 1 : 0.3); g.fillRect(x + w - 16, y + h - 12, 6, 8);
+  }
 }
 
 /** The moving menu backdrop in the screen's colour, drawn in the menu style. Call `.update(t)` every frame. */

@@ -39,7 +39,7 @@ import { premiumAnimationFor } from '../fighters/premiumAnimations.js';
 import { hasWinCutscene } from './WinScene.js';
 import { stat, addSecret, checkAchievements, isUnlocked } from '../achievements.js';
 import { achievementToasts } from '../ui/toast.js';
-import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
+import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade, buttonFace } from '../ui/arcade.js';
 
 const ACC = ARC.sections.shop;
 
@@ -1298,12 +1298,10 @@ export class ShopScene extends Phaser.Scene {
     this.buyT.setText(lab === 'BUY' || lab === 'SPIN' ? lab + '  ' + it.price : lab);
     const can = it && (mine ? it.kind !== 'costume' && it.kind !== 'unlock' : getCoins() >= it.price);
     const cos = it && it.kind === 'costume', bx = SIDE.x + 20 + (cos ? BTN.prevW + 4 : 0), bw = SIDE.w - 40 - (cos ? BTN.prevW + 4 : 0);
-    slant(g, bx + 3, BTN.y + 3, bw, BTN.h, 0x000000, 0.5, 8);
-    slant(g, bx, BTN.y, bw, BTN.h, can ? 0x2fae4a : 0x2c2650, 1, 8);
-    slant(g, bx, BTN.y, bw, 10, 0xffffff, can ? 0.2 + 0.08 * Math.sin(t * 0.15) : 0.05, 3);
+    buttonFace(g, bx, BTN.y, bw, BTN.h, can ? 0x2fae4a : 0x2c2650, can ? 0x4ad86a : 0x2c2650, can && Math.sin(t * 0.08) > 0.3, false, t);   // (in the menu style; pulses while you can afford it)
     this.buyT.setColor(can ? '#ffffff' : '#8a87a3').setX(bx + bw / 2).setFontSize(cos ? 8 : 9);
     this.prevT.setVisible(!!cos);
-    if (cos) { slant(g, SIDE.x + 23, BTN.y + 3, BTN.prevW, BTN.h, 0x000000, 0.5, 8); slant(g, SIDE.x + 20, BTN.y, BTN.prevW, BTN.h, 0x3b6bd8, 1, 8); slant(g, SIDE.x + 20, BTN.y, BTN.prevW, 10, 0xffffff, 0.15, 3); }
+    if (cos) buttonFace(g, SIDE.x + 20, BTN.y, BTN.prevW, BTN.h, 0x3b6bd8, 0x5a8aff, false, false, t);
     this.coin(g, W - 22 - this.coinT.width, 34, t);                                   // the money, with its little spinning coin
   }
 }
