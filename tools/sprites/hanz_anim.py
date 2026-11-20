@@ -673,7 +673,9 @@ def shoot(path):
 def place(parts, mats, cam=None):
     """Puts his parts in the scene (tagged 'hanz', replacing the last frame's), lit and snapped (if cam)."""
     for ob in list(bpy.data.objects):
-        if ob.get('hanz'): bpy.data.objects.remove(ob)
+        if ob.get('hanz'):
+            me = ob.data; bpy.data.objects.remove(ob)
+            if me is not None and me.users == 0: bpy.data.meshes.remove(me)   # (or every frame's meshes pile up: 6 GB and killed)
     obs = []
     for nm, (m, M) in parts.items():
         ob = H.to_object(nm, m, mats, face_box=H.FACE_UV if nm == 'face' else None)
