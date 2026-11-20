@@ -73,6 +73,18 @@ export const LOST_LINES = {
     [['s', 'I COUNTED THE STAIRS. THERE WERE MORE GOING DOWN THAN UP.'], ['h', ' THAT\'S HOW STAIRS WORK HERE.']],
     [['h', 'DOES IT EVER FEEL LIKE SOMEONE IS WATCHING YOU SHOP?'], ['s', ' THAT\'S ME! I\'M WATCHING!']],
     [['s', 'A SPY COAT! NOBODY CAN SEE ME IN IT!'], ['h', ' EVERYONE CAN SEE YOU.'], ['s', ' THEY\'RE PRETENDING NOT TO.']],
+    [['h', 'I USED TO SLEEP. I MISS IT.'], ['s', ' I DON\'T! SLEEP IS FOR PEOPLE WITH ONE HEAD!']],
+    [['s', 'I CAN HEAR THE MOON HUMMING.'], ['h', ' ...THAT\'S ME. SORRY.']],
+    [['h', 'SOMETIMES I FLICKER. LIKE A BAD SIGNAL.'], ['s', ' DON\'T TELL THEM THAT!']],
+    [['s', 'DO YOU THINK THE FISH IN THE BOWL KNOWS IT\'S IN A BOWL?'], ['h', ' ...DO YOU?']],
+    [['h', 'THE CANDLE HAS BURNED FOR A HUNDRED YEARS. IT\'S STILL THE SAME LENGTH.'], ['s', ' CHEAP WAX!']],
+  ],
+  // THE GLITCH: he's just come apart and pulled himself back together (then sighed)
+  glitch: [
+    [['h', '...SORRY. LOST THE SIGNAL FOR A SECOND.']],
+    [['s', 'WHO DID THAT?! WAS IT YOU?!'], ['h', ' IT WAS US.']],
+    [['h', 'EVERY TIME I THINK I\'M IN ONE PIECE...']],
+    [['s', 'I\'M FINE! I\'M FINE! I\'M F- I\'M FINE!']],
   ],
   // THE LORE: now and then (in order, so you hear them all) he lets slip how things really are
   lore: [

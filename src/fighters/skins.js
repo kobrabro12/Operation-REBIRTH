@@ -130,6 +130,8 @@ export const SKINS = {
     { name: 'KNIGHT', swatch: 0x667980 },
     { name: 'CRIMSON', swatch: 0x8a2a32, fx: 0xe07070, groups: HK, rules: { suit: { to: 352, sat: 2.2 }, sash: { to: 45, sat: 1.2, val: 1.4 }, white: { hue: 0, satAdd: 0.12 } } },
     { name: 'GILDED', swatch: 0xd9a63c, fx: 0xf3c358, groups: HK, rules: { steel: { hue: 40, satAdd: 0.42 }, suit: { to: 28, sat: 1.6 }, white: { hue: 46, satAdd: 0.22 } } },
+    // NOIR (sold in LOST, HANZ / $@L's room): a black suit, his blood-red sash, gunmetal steel - like his spy coat
+    { name: 'NOIR', shop: 'cos-hknoir', swatch: 0x16161c, fx: 0xb8121c, groups: HK, rules: { suit: { sat: 0.15, val: 0.32 }, sash: { to: 356, sat: 1.3, val: 0.85 }, steel: { val: 0.62 } } },
     { name: 'VERDANT', swatch: 0x3f8f4c, fx: 0x9be36a, groups: HK, rules: { suit: { to: 135, sat: 2 }, sash: { to: 40 }, white: { hue: 110, satAdd: 0.18 } } },
     { name: 'SHADOW', swatch: 0x4a3a6a, fx: 0xb07ad0, groups: HK, rules: { suit: { to: 270, val: 0.65 }, steel: { val: 0.5 }, white: { hue: 275, satAdd: 0.4, val: 0.9 }, sash: { to: 280 } } },
     { name: 'AZURE', swatch: 0x2f6fd0, fx: 0x78a0c6, groups: HK, rules: { suit: { to: 220, sat: 2.6, val: 1.1 }, sash: { to: 45, val: 1.4 }, white: { hue: 205, satAdd: 0.2 } } },
@@ -447,6 +449,8 @@ export const SKINS = {
     { name: 'TIDE', swatch: 0x1b8a8a, fx: 0x3ad0b0, groups: MW, rules: { robe: { to: 182 }, magic: { to: 160 } } },
     { name: 'GILDED', swatch: 0xb8862b, fx: 0xf0a040, groups: MW, rules: { robe: { to: 38 }, magic: { to: 28 } } },
     { name: 'GHOST', swatch: 0xc9c4dc, fx: 0x9ad8f0, groups: MW, rules: { robe: { sat: 0.12, val: 2.4 }, cloth: { sat: 0.4, val: 1.6 }, magic: { to: 190 } } },
+    // THIRTEEN (sold in LOST): his colours - a blood-red robe, pale grey magic, a cloak gone dark as the hour
+    { name: 'THIRTEEN', shop: 'cos-thirteen', swatch: 0x8a0e18, fx: 0xd2d0cc, groups: MW, rules: { robe: { to: 356, sat: 1.15, val: 0.8 }, magic: { sat: 0.06, val: 1.5 }, cloth: { sat: 0.1, val: 0.7 } } },
     { name: 'VENOM', swatch: 0x3f9a2a, fx: 0x9be564, groups: MW, rules: { robe: { to: 112 }, magic: { to: 84 } } },
     // overgrown with roses, and his staff is a giant tulip (pre-drawn sheet, see mrWake.costumeSheets)
     { name: 'ROSEBUD', swatch: 0xd6336c, fx: 0xff7aa8, sheetSet: 'roses', style: 'rose',

@@ -77,7 +77,7 @@ def arm(w=None, wb=None, pole=(1, 0.2, 0.9), dir=(0, -1, 0), nrm=(0, 0, 1), grip
 L_FLAT = arm((-28, -11, 3.1), pole=(-1, 0.2, 0.9), dir=(0.18, -1, 0))
 R_FLAT = arm((28, -11, 3.1), pole=(1, 0.2, 0.9), dir=(-0.18, -1, 0))
 BASE = {'body': (0, 42, -4, 38, 0), 'head': (0, 4, -7), 'l': L_FLAT, 'r': R_FLAT, 'hatch': 0.0, 'heart': 0.0, 'clock': (300.0, 60.0),
-        'mask': (0.0, 0.0, 0.0, 0.0), 'collar': 0.0, 'feet': 0.0, 'tap': 0.0}
+        'mask': (0.0, 0.0, 0.0, 0.0), 'collar': 0.0, 'feet': 0.0, 'tap': 0.0, 'glitch': 0.0}
 
 
 def P(body=None, head=None, l=None, r=None, **kw):
@@ -206,15 +206,27 @@ def deep_breath(frames, breaths=2, rise=2.4, straighten=3.2, chin=2.5):
     return out
 
 
+def sway(frames, body=(0.6, 1.4), head=(1.6, 1.2)):
+    """A slow, never-quite-still drift over a loop (so he's never frozen, even between breaths): his body rocks a
+    little side to side and turns, his head wanders - all whole sine waves over the loop, so it joins up seamlessly."""
+    n = len(frames); out = []
+    for i, p in enumerate(frames):
+        a = 2 * math.pi * i / n
+        x, y, z, rx, rz = p['body']; yaw, pitch, roll = p['head']
+        q = dict(p); q['body'] = (x + body[0] * math.sin(a), y, z, rx, rz + body[1] * math.sin(a + 0.7))
+        q['head'] = (yaw + head[0] * math.sin(2 * a + 1.1), pitch, roll + head[1] * math.sin(a + 2.3)); out.append(q)
+    return out
+
+
 def idle():
     """The idle: too calm. Two slow, deep breaths a loop (his shoulders rise and fall); his head drifts into a crooked
-    tilt and back; HANZ's grey fingers drum the counter now and then."""
+    tilt and back; HANZ's grey fingers drum the counter now and then; and under it all a slow sway, so he's never still."""
     n = 90
     fr = frames_of([(0, P()), (2.1, P(head=(3, 6, -11))), (3.9, P(head=(-2, 4, -5))), (6, P())], loop=True)
     out = []
     for i, p in enumerate(fr):
         q = dict(p); r = dict(q['r']); r['curl'] = drum(i, n) if i < n * 0.55 else r['curl']; q['r'] = r; out.append(q)
-    return deep_breath(follow(out, loop=True))
+    return sway(deep_breath(follow(out, loop=True)))
 
 
 def twitch():
@@ -288,11 +300,81 @@ def snap():
 SNAP_T = 1.1                                     # the moment of the snap (s): the frame LostScene throws its sparks on
 
 
+def look_pose(side):
+    """Where he ends up looking along the counter (side -1 = his left / picture left, +1 = right, 0 = down)."""
+    return {-1: P(body=(-6, 42, -4, 40, 9), head=(-15, 10, -4)), 1: P(body=(6, 42, -4, 40, -9), head=(15, 10, -10)),
+            0: P(body=(0, 40, -6, 46, 0), head=(0, 22, -5))}[side]
+
+
 def look(side):
-    """Turning to look along the counter at the cards (side -1 = his left / picture left, +1 = right, 0 = down)."""
-    tgt = {-1: P(body=(-6, 42, -4, 40, 9), head=(-15, 10, -4)), 1: P(body=(6, 42, -4, 40, -9), head=(15, 10, -10)),
-           0: P(body=(0, 40, -6, 46, 0), head=(0, 22, -5))}[side]
-    return follow(frames_of([(0, P()), (0.53, tgt, 'out')]), 0.6)
+    """Turning to look along the counter at the cards."""
+    return follow(frames_of([(0, P()), (0.53, look_pose(side), 'out')]), 0.6)
+
+
+def hold(side):
+    """Still looking at the card you picked - but breathing and swaying, so he never freezes (loops; it starts
+    exactly where look_l / look_r ends)."""
+    return sway(deep_breath([look_pose(side)] * 66, breaths=1), body=(0.5, 1.0), head=(1.4, 1.0))
+
+
+def glitch():
+    """THE GLITCH (now and then, left alone): he flickers, then his whole body breaks up - every piece of him jumping
+    about on its own, the picture tearing into shifted strips and split colours (pose 'glitch': `glitch_parts`,
+    `glitch_2d`) - then it all snaps back together, and he sighs: shoulders drop, head sinks, and he comes back up."""
+    k = [(0.0, P()), (0.25, P()),
+         (0.3, P(glitch=0.15), 'snap'), (0.4, P(), 'snap'), (0.55, P(glitch=0.3, head=(4, 4, -10)), 'snap'), (0.65, P(glitch=0.05), 'snap'),
+         (0.95, P(body=(0, 43, -3, 36, 2), head=(6, 2, -14), glitch=0.6), 'io'),
+         (1.5, P(body=(0, 43, -2, 34, -3), head=(-8, 0, 10), glitch=1.0), 'io'),
+         (2.3, P(body=(0, 43, -3, 37, 3), head=(10, 4, -18), glitch=1.0), 'io'),
+         (2.6, P(body=(0, 42, -4, 38, 0), head=(2, 4, -8), glitch=0.35), 'out'),
+         (2.75, P(glitch=0.0), 'back'),                                            # (snaps back together)
+         (3.25, P(body=(0, 41, -7, 43, 0), head=(0, 17, -4)), 'io'),               # ...and sighs: everything drops
+         (3.8, P(body=(0, 41, -7, 43, 0), head=(-1, 18, -6)), 'io'),
+         (4.5, P(), 'io')]
+    return breathe(follow(frames_of(k), 0.6), 0.7)
+
+
+GLITCH_SPREAD = 11                               # how far (units) a piece of him can jump at full glitch
+GLITCH_TURN = 16                                 # ...and turn (degrees)
+
+
+def glitch_parts(out, pose, mask_M):
+    """Breaks him up for a glitching frame: each piece jumps by its own random offset and turn, scaled by pose 'glitch'
+    (fresh every frame - seeded by the frame - so it jitters). Returns the mask's matrix, moved with the face."""
+    g = pose.get('glitch', 0)
+    if g <= 0.01: return mask_M
+    rng = np.random.default_rng(int(round(pose.get('_t', 0) * FPS)) * 7919 + 13)
+    for name in sorted(out):
+        m, M = out[name]
+        off = rng.normal(0, 1, 3) * g * GLITCH_SPREAD * (2.2 if rng.random() < 0.15 else 1)
+        rot = rng.normal(0, 1) * g * GLITCH_TURN
+        if M is None:
+            v = np.array(m.v, float); c = v.mean(axis=0); a = math.radians(rot)
+            R = np.array(((math.cos(a), -math.sin(a), 0), (math.sin(a), math.cos(a), 0), (0, 0, 1)))
+            m.v = [tuple(p) for p in (v - c) @ R.T + c + off]
+        else:
+            T = Matrix.Translation(Vector(off)) @ M
+            if name == 'face': mask_M = T
+            out[name] = (m, T)
+    return mask_M
+
+
+def glitch_2d(img, g, seed):
+    """The picture tears when he glitches (g 0..1): strips of rows slide sideways, the red and blue split apart, blocks
+    drop out or repeat. Returns the torn RGBA frame."""
+    if g <= 0.01: return img
+    rng = np.random.default_rng(seed); out = img.copy(); h, w = img.shape[:2]
+    y = 0
+    while y < h:
+        bh = int(rng.integers(2, 12)); sh = int(rng.normal(0, 1) * g * 14) if rng.random() < 0.55 else 0
+        out[y:y + bh] = np.roll(img[y:y + bh], sh, axis=1); y += bh
+    k = max(1, int(round(g * 3)))
+    out[..., 0] = np.roll(out[..., 0], k, axis=1); out[..., 2] = np.roll(out[..., 2], -k, axis=1)
+    for _ in range(int(g * 8)):
+        bx, by, bw, bh = int(rng.integers(0, w - 20)), int(rng.integers(0, h - 8)), int(rng.integers(6, 30)), int(rng.integers(2, 8))
+        if rng.random() < 0.5: out[by:by + bh, bx:bx + bw, 3] = 0                                     # (a block drops out)
+        else: out[by:by + bh, bx:bx + bw] = out[max(0, by - bh):by, bx:bx + bw][:bh] if by >= bh else out[by:by + bh, bx:bx + bw]   # (or repeats)
+    return out
 
 
 def mask_local(m):
@@ -388,6 +470,9 @@ ANIMS = {
     'snap': {'frames': snap, 'lazy': True},
     'look_l': {'frames': lambda: look(-1)},
     'look_r': {'frames': lambda: look(1)},
+    'hold_l': {'loop': True, 'frames': lambda: hold(-1), 'lazy': True},
+    'hold_r': {'loop': True, 'frames': lambda: hold(1), 'lazy': True},
+    'glitch': {'frames': glitch, 'lazy': True},
     'look_d': {'frames': lambda: look(0)},
     # HANZ talking: turns his grey side to you, slumps, props his chin on his grey fist, sighs and nods slowly
     'hanz_talk': {'loop': True, 'frames': lambda: breathe(follow(frames_of([
@@ -563,6 +648,7 @@ def figure(pose, back=0.0):
             out['heart'] = (H.heart(pose.get('clock', (0, 0)), drips), M)
             bot = M @ Vector((0.6, -0.1, -6.8))
     if pose.get('feet', 0) > 0.01: out.update(legs(pose, body))
+    mask_M = glitch_parts(out, pose, mask_M)
     return out, mask_M, bot
 
 
@@ -596,6 +682,7 @@ def settle_collar(poses, mats, loop=False):
     smoothed, so it folds down and stands back up gently. Returns new poses (never less slumped than they asked)."""
     need = []
     for pose in poses:
+        if pose.get('glitch', 0) > 0.01: need.append(pose.get('collar', 0)); continue      # (in pieces anyway)
         best, back = 1.0, None
         for c in COLLAR_STEPS:
             if c < pose.get('collar', 0): continue
@@ -738,7 +825,9 @@ def render_pose(cam, mats, pose, path, drops=()):
     obs = place(parts, mats, cam)
     desk('cut'); border(cam, obs)
     img = clean(shoot(path))
-    return sharp_face(img, obs, path), mask_M, bot, clips
+    g = pose.get('glitch', 0)
+    if g > 0.01: clips = []                                                        # (glitching: he's meant to be in pieces)
+    return glitch_2d(sharp_face(img, obs, path), g, int(round(pose.get('_t', 0) * FPS)) * 31 + 7), mask_M, bot, clips
 
 
 FACE_SS = 2                                      # the face is rendered this many times finer, then folded back down
@@ -1062,7 +1151,9 @@ def main():
             drops = [((p[0], p[1], p[2] - v), v + 0.55) for p, v in drops]
             if i in born and bot is not None: drops.append(((bot.x, bot.y, bot.z), 0.3))
             crop, x, y = trim(img)
-            crops.append(crop); info.append({'x': x * SCALE, 'y': y * SCALE, 'eyes': eyes(cam, mask_M, pmeta)})
+            ey = eyes(cam, mask_M, pmeta)
+            if pose.get('glitch', 0) > 0.2: ey = {k: v[:3] + [0] for k, v in ey.items()} if isinstance(ey, dict) else ey   # (pupils off while he's in pieces)
+            crops.append(crop); info.append({'x': x * SCALE, 'y': y * SCALE, 'eyes': ey})
             if name == 'snap' and i == math.ceil(SNAP_T * FPS): spark = [round(v) for v in to_screen(cam, Vector(TIPS['sal']))]
             print(f'  {name} {i + 1}/{len(poses)}', flush=True)
         files = pack(crops, name, info)

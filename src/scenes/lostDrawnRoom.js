@@ -19,15 +19,41 @@ const POP = { first: 260, gap: 170 };
 // the fish swims across the sky (px a frame) and the eye blinks every so often (frames between, blink length)
 const DRIFT = { fish: 0.18, blink: [160, 420], shut: 7 };
 
+/** Queues the drawn room's pictures on a scene's loader (texture keys lost_<name>). `desk` = his counter too (only
+ *  LOST needs it; THE DRAWN ROOM theme and THE EYE in matches don't). */
+export function queueDrawn(scene, desk = true) {
+  const want = ['drawn_wash', 'drawn_things'];
+  for (let i = 0; i < LOST_DRAWN.boil; i++) want.push('drawn_ink_' + i);
+  if (desk) { want.push('drawn_desk'); for (let i = 0; i < LOST_DRAWN.boil; i++) want.push('drawn_desk_ink_' + i); }
+  for (const n of want) if (!scene.textures.exists('lost_' + n)) scene.load.image('lost_' + n, DIR + n + '.png');
+}
+
+/** Cuts drawn_things.png into its frames (`<thing>_<i>`), once. */
+export function addThingFrames(textures) {
+  const tex = textures.get('lost_drawn_things');
+  for (const [n, t] of Object.entries(LOST_DRAWN.things)) for (let i = 0; i < t.n; i++) if (!tex.has(`${n}_${i}`)) tex.add(`${n}_${i}`, 0, i * t.w, t.sy, t.w, t.h);
+}
+
+/** Which boil drawing is up at frame t. */
+export function boilAt(t) { return Math.floor(t / BOIL_EVERY) % LOST_DRAWN.boil; }
+
+/** Moves the drawn things for frame t (each `{ n, t: its table entry, s: its image }`): the ink boils, the fish swims
+ *  across, the teacup and the eye bob; `shut` > 0 shows the eye's blink. */
+export function stepThings(things, t, shut = 0) {
+  const b = boilAt(t);
+  for (const th of things) {
+    const { n, t: d } = th;
+    th.s.setFrame(`${n}_${n === 'eye' && shut > 0 && d.n > LOST_DRAWN.boil ? LOST_DRAWN.boil : b}`);
+    if (n === 'fish') th.s.x = -d.w / 2 + ((d.x + d.w + t * DRIFT.fish) % (VIEW_W + d.w));
+    if (n === 'teacup') th.s.y = d.y + d.h / 2 + Math.sin(t * 0.03) * 3;
+    if (n === 'eye') th.s.y = d.y + d.h / 2 + Math.sin(t * 0.017) * 2;
+  }
+}
+
 /** The hand-drawn version of the LOST room, kept by LostScene (`this.drawn`). */
 export class DrawnRoom {
   /** Queues the drawn room's pictures (called from LostScene.loadLazy, so they come in after the room is up). */
-  static queue(scene) {
-    const L = scene.load, tx = scene.textures;
-    const want = ['drawn_wash', 'drawn_desk', 'drawn_things'];
-    for (let i = 0; i < LOST_DRAWN.boil; i++) want.push('drawn_ink_' + i, 'drawn_desk_ink_' + i);
-    for (const n of want) if (!tx.exists('lost_' + n)) L.image('lost_' + n, DIR + n + '.png');
-  }
+  static queue(scene) { queueDrawn(scene, true); }
 
   /** True once every picture it needs has loaded. */
   static loaded(scene) { return scene.textures.exists('lost_drawn_things') && scene.textures.exists('lost_drawn_desk_ink_' + (LOST_DRAWN.boil - 1)); }
@@ -36,8 +62,7 @@ export class DrawnRoom {
    *  frames are already cut out where the desk is in front of him, so the drawn desk shows there). */
   constructor(scene) {
     this.scene = scene; this.on = false; this.blinkAt = 200; this.shut = 0;
-    const tex = scene.textures.get('lost_drawn_things');
-    for (const [n, t] of Object.entries(LOST_DRAWN.things)) for (let i = 0; i < t.n; i++) if (!tex.has(`${n}_${i}`)) tex.add(`${n}_${i}`, 0, i * t.w, t.sy, t.w, t.h);
+    addThingFrames(scene.textures);
     this.wash = scene.add.image(0, 0, 'lost_drawn_wash').setOrigin(0).setDepth(3.5);
     this.ink = scene.add.image(0, 0, 'lost_drawn_ink_0').setOrigin(0).setDepth(3.6);
     this.things = Object.entries(LOST_DRAWN.things).map(([n, t], i) => ({
@@ -93,17 +118,11 @@ export class DrawnRoom {
   step(t) {
     this.drawSparks();
     if (!this.on) return;
-    const b = Math.floor(t / BOIL_EVERY) % LOST_DRAWN.boil;
+    const b = boilAt(t);
     this.ink.setTexture('lost_drawn_ink_' + b); this.deskInk.setTexture('lost_drawn_desk_ink_' + b);
     if (--this.blinkAt <= 0) { this.shut = DRIFT.shut; this.blinkAt = DRIFT.blink[0] + Math.floor(Math.random() * (DRIFT.blink[1] - DRIFT.blink[0])); }
     if (this.shut > 0) this.shut--;
-    for (const th of this.things) {
-      const { n, t: d } = th;
-      th.s.setFrame(`${n}_${n === 'eye' && this.shut > 0 && d.n > LOST_DRAWN.boil ? LOST_DRAWN.boil : b}`);
-      if (n === 'fish') th.s.x = -d.w / 2 + ((d.x + d.w / 2 + d.w / 2 + t * DRIFT.fish) % (VIEW_W + d.w));
-      if (n === 'teacup') th.s.y = d.y + d.h / 2 + Math.sin(t * 0.03) * 3;
-      if (n === 'eye') th.s.y = d.y + d.h / 2 + Math.sin(t * 0.017) * 2;
-    }
+    stepThings(this.things, t, this.shut);
   }
 
   /** The snap's fire: sparks that arc up and fall, shrinking, and a quick puff of flame at his fingertips. */

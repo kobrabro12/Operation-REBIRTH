@@ -41,7 +41,9 @@ const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
 const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.05, skip: [900, 1800] };
 // left alone he fidgets every so often (frames between, the chance it's the mask / feet up on the desk, else the twitch)
-const FIDGET = { every: [700, 1300], unmask: 0.25, feet: 0.3, snap: 0.25 };
+const FIDGET = { every: [700, 1300], unmask: 0.2, feet: 0.25, snap: 0.2, glitch: 0.2 };
+// THE GLITCH: when its static crackles (seconds into it) and how loud
+const GLITCH_SFX = { at: [0.3, 0.55, 0.95, 1.5, 2.0, 2.4], vol: 0.35 };
 // THE SNAP: once the room has been drawn this long (frames), his next fidget is far more likely to snap it back
 const DRAWN_STAY = { frames: 2400, snap: 0.65 };
 // the chance his idle chatter is one of his deep LORE lines instead (each in turn: `lore` in LOST_LINES)
@@ -60,7 +62,8 @@ const CANDLE = { clicks: 3, within: 90, out: 600, dark: 45 };
 // after a sale: the chance $@L cackles instead of rubbing his hands
 const LAUGH = 0.4;
 // his things: card size and where the two columns float
-const CARD = { w: 104, h: 46, left: 12, right: 524, top: 70, gap: 54 };
+const CARD = { w: 104, h: 46, left: 12, right: 524, top: 70, gap: 54, bottom: 310, tightTop: 60 };
+// (with more than 4 a column the cards squeeze to fit above `bottom`, starting higher at `tightTop` - `layoutCards`)
 // speech: typing speed (frames per letter), how long a finished line stays up, the bubble's width
 const TALK = { per: 2, hold: 130, w: 470, y: 10 };
 // how far his pupils can slide toward what he's watching (in texels of the face drawing)
@@ -252,13 +255,21 @@ export class LostScene extends Phaser.Scene {
   items() { const tb = SHOP.find((x) => x.lost); return tb ? tb.items : []; }
 
   /** Lays his things out as cards floating either side of him (first column left, then right). */
+  /** How his cards fit: rows a column, the gap between them and their height (they squeeze when he has a lot). */
+  layoutCards(n) {
+    const rows = Math.max(1, Math.ceil(n / 2)), top = rows > 4 ? CARD.tightTop : CARD.top;
+    const gap = Math.min(CARD.gap, Math.floor((CARD.bottom - top) / rows));
+    this.cardTop = top; this.cardGap = gap; this.cardH = Math.min(CARD.h, gap - 6);
+  }
+
   makeCards() {
     this.cards.forEach((c) => { c.t.destroy(); if (c.spr) c.spr.destroy(); }); this.cards = [];
+    this.layoutCards(this.items().length);
     this.items().forEach((it, i) => {
       const left = i < Math.ceil(this.items().length / 2), k = left ? i : i - Math.ceil(this.items().length / 2);
-      const x = left ? CARD.left : CARD.right, y = CARD.top + k * CARD.gap;
+      const x = left ? CARD.left : CARD.right, y = this.cardTop + k * this.cardGap;
       const fd = it.kind === 'costume' ? fighterById(it.fighter) : null, cos = !!(fd && fd.def);   // a costume card shows its fighter wearing it
-      const t = this.add.text(cos ? x + 6 : x + CARD.w / 2, y + 8, it.name, { fontFamily: FONT, fontSize: '6px', color: '#f0e8d8', align: cos ? 'left' : 'center', wordWrap: { width: cos ? CARD.w - 50 : CARD.w - 10 } }).setOrigin(cos ? 0 : 0.5, 0).setDepth(22);
+      const t = this.add.text(cos ? x + 6 : x + CARD.w / 2, y + 6, it.name, { fontFamily: FONT, fontSize: '6px', color: '#f0e8d8', align: cos ? 'left' : 'center', wordWrap: { width: cos ? CARD.w - 50 : CARD.w - 10 } }).setOrigin(cos ? 0 : 0.5, 0).setDepth(22);
       const spr = cos ? this.add.sprite(0, 0, '__DEFAULT').setDepth(22) : null;
       this.cards.push({ it, x, y, t, left, spr, def: cos ? fd.def : null, skin: cos ? Math.max(0, skinsFor(fd.def.id).findIndex((k) => k.name === it.skin)) : 0 });
     });
@@ -311,7 +322,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet', 'snap'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet', 'snap', 'glitch'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -348,7 +359,12 @@ export class LostScene extends Phaser.Scene {
       if (A.rev) { if (A.f > 0) A.f--; else { A.done = true; this.play('idle'); } }
       else if (A.f < n - 1) { A.f++; if (spec.spark && A.f === spec.spark.f && this.drawn) this.drawn.snap(spec.spark.x, spec.spark.y); }
       else if (spec.loop) A.f = 0;
-      else if (!A.done) { A.done = true; const then = A.then; A.then = null; if (then) then(); else if (!A.name.startsWith('look')) this.play('idle'); }
+      else if (!A.done) {
+        A.done = true; const then = A.then; A.then = null;
+        if (then) then();
+        else if (!A.name.startsWith('look')) this.play('idle');
+        else if (!A.rev && A.name !== 'look_d' && this.ready && this.ready.has(A.name.replace('look_', 'hold_'))) this.play(A.name.replace('look_', 'hold_'));   // (he keeps breathing while he looks)
+      }
     }
     const cur = LOST_FRAMES.anims[this.anim.name], fr = cur.frames[Math.min(this.anim.f, cur.frames.length - 1)];
     this.him.setTexture(`lost_hanz_${this.anim.name}_${fr.k}`, String(Math.min(this.anim.f, cur.frames.length - 1))).setPosition(fr.x, fr.y);
@@ -372,7 +388,7 @@ export class LostScene extends Phaser.Scene {
   gazeTarget() {
     if (this.gazeAt && this.t < this.gazeAt.until) return this.gazeAt;
     const c = this.cards[this.sel];
-    if (c && this.lit) return { x: c.x + CARD.w / 2, y: c.y + CARD.h / 2 + this.bob(c) };
+    if (c && this.lit) return { x: c.x + CARD.w / 2, y: c.y + this.cardH / 2 + this.bob(c) };
     const p = this.input.activePointer;
     if (p && this.t - (this.pointerT || -999) < 120) return { x: p.x, y: p.y };
     return { x: VIEW_W / 2, y: 120 };
@@ -389,8 +405,9 @@ export class LostScene extends Phaser.Scene {
     if (canSnap && this.drawn.on && this.t - this.drawnT > DRAWN_STAY.frames && Math.random() < DRAWN_STAY.snap) { this.snapNow(); return; }
     const F = FIDGET;
     const pick = r < F.unmask && has('unmask') ? 'unmask' : r < F.unmask + F.feet && has('feet') ? 'feet'
-      : r < F.unmask + F.feet + F.snap && canSnap ? 'snap' : 'twitch';
+      : r < F.unmask + F.feet + F.snap && canSnap ? 'snap' : r < F.unmask + F.feet + F.snap + F.glitch && has('glitch') ? 'glitch' : 'twitch';
     if (pick === 'snap') { this.snapNow(); return; }
+    if (pick === 'glitch') { this.glitchNow(); return; }
     this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the mask and the feet get a line after)
   }
 
@@ -398,6 +415,13 @@ export class LostScene extends Phaser.Scene {
    *  turns hand-drawn, or back (lostDrawnRoom.js) - then says something about it. */
   snapNow() {
     this.play('snap', () => this.say(this.drawn && this.drawn.on ? 'snap_in' : 'snap_out'), true);
+  }
+
+  /** THE GLITCH: his whole body breaks up into jumping pieces and torn strips (static crackling), snaps back
+   *  together, and he sighs - then a `glitch` line. */
+  glitchNow() {
+    this.play('glitch', () => this.say('glitch'), true);
+    for (const t of GLITCH_SFX.at) this.time.delayedCall(t * 1000, () => { if (this.anim.name === 'glitch') sfx('glitch', GLITCH_SFX.vol, 0.8 + Math.random() * 0.5); });
   }
 
   /** Hides (or brings back) the 3D room, his counter and the desk things - the drawn room covers them while it's up. */
@@ -409,7 +433,7 @@ export class LostScene extends Phaser.Scene {
 
   /** True while he's just standing there - idling, or holding a look at the card you picked (he rests in look_l /
    *  look_r while a card is picked, so fidgets have to start from those too). */
-  resting() { return ['idle', 'look_l', 'look_r'].includes(this.anim.name); }
+  resting() { return ['idle', 'look_l', 'look_r', 'hold_l', 'hold_r'].includes(this.anim.name); }
 
   /** You've done nothing for WAIT frames (30 s): he takes his clock-heart out, checks how long, and says so. Then the
    *  wait starts again. */
@@ -478,12 +502,18 @@ export class LostScene extends Phaser.Scene {
     }
   }
 
-  /** Turns him toward the picked thing (look_l / look_r) when he isn't busy talking or reacting. */
+  /** Turns him toward the picked thing (look_l / look_r - then he holds it, breathing: hold_l / hold_r) when he isn't
+   *  busy talking or reacting. */
   lookAtPick() {
-    if (this.talk || !['idle', 'look_l', 'look_r'].includes(this.anim.name)) return;
+    const cur = this.anim.name.replace('hold_', 'look_');                       // (holding a look counts as that look)
+    if (this.talk || !['idle', 'look_l', 'look_r'].includes(cur)) return;
     const c = this.cards[this.sel]; const want = !c ? 'idle' : c.left ? 'look_l' : 'look_r';
-    if (want === this.anim.name) return;
-    if (want === 'idle' && this.anim.name.startsWith('look')) { this.anim.rev = true; return; }
+    if (want === cur) return;
+    if (want === 'idle' && cur.startsWith('look')) {                            // turn back: the look, in reverse
+      if (this.anim.name.startsWith('hold')) this.anim = { name: cur, f: LOST_FRAMES.anims[cur].frames.length - 1, tick: 0, done: false, then: null, rev: true };
+      else this.anim.rev = true;
+      return;
+    }
     this.play(want);
   }
 
@@ -517,16 +547,16 @@ export class LostScene extends Phaser.Scene {
     if (!this.lit) { if (this.keys && this.glyphText) this.drawKeys(); return; }
     this.cards.forEach((c, i) => {
       const on = i === this.sel, y = c.y + this.bob(c), own = owns(c.it.id);
-      g.fillStyle(0x000000, 0.45); g.fillRect(c.x + 3, y + 3, CARD.w, CARD.h);
-      g.fillStyle(on ? 0x2a1418 : 0x16141c, 0.92); g.fillRect(c.x, y, CARD.w, CARD.h);
-      g.lineStyle(1, on ? 0xff4a4a : 0x6a6670, 1); g.strokeRect(c.x + 0.5, y + 0.5, CARD.w - 1, CARD.h - 1);
-      if (on) { g.lineStyle(1, 0xdedcd8, 0.7); g.strokeRect(c.x - 2.5, y - 2.5, CARD.w + 4, CARD.h + 4); }
-      c.t.setY(y + 8);
+      g.fillStyle(0x000000, 0.45); g.fillRect(c.x + 3, y + 3, CARD.w, this.cardH);
+      g.fillStyle(on ? 0x2a1418 : 0x16141c, 0.92); g.fillRect(c.x, y, CARD.w, this.cardH);
+      g.lineStyle(1, on ? 0xff4a4a : 0x6a6670, 1); g.strokeRect(c.x + 0.5, y + 0.5, CARD.w - 1, this.cardH - 1);
+      if (on) { g.lineStyle(1, 0xdedcd8, 0.7); g.strokeRect(c.x - 2.5, y - 2.5, CARD.w + 4, this.cardH + 4); }
+      c.t.setY(y + 6);
       if (c.spr) {                                                                     // the fighter, idling, in the card's right end
         showFighter(c.spr, c.def, Math.floor((this.t + i * 7) / 6), c.skin);
-        c.spr.setScale(Math.min(1, 40 / c.spr.frame.realHeight, 44 / c.spr.frame.realWidth * 1.4)).setPosition(c.x + CARD.w - 24, y + CARD.h - 3);
+        c.spr.setScale(Math.min(1, (this.cardH - 6) / c.spr.frame.realHeight, 44 / c.spr.frame.realWidth * 1.4)).setPosition(c.x + CARD.w - 24, y + this.cardH - 3);
       }
-      g.fillStyle(own ? 0x6a6670 : 0xff4a4a, 1); g.fillRect(c.x + 8, y + CARD.h - 11, 4, 4);
+      g.fillStyle(own ? 0x6a6670 : 0xff4a4a, 1); g.fillRect(c.x + 8, y + this.cardH - 9, 4, 4);
     });
     this.drawDeskHover(g);
     const it = this.cur();
@@ -589,11 +619,11 @@ export class LostScene extends Phaser.Scene {
     if (dk) { this.touchDesk(dk); return; }
     for (let i = 0; i < this.cards.length; i++) {
       const c = this.cards[i], y = c.y + this.bob(c);
-      if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + CARD.h) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
+      if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + this.cardH) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
     }
     if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
       this.say('poke');
-      if (!['heart', 'twitch', 'unmask', 'feet', 'snap'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+      if (!['heart', 'twitch', 'unmask', 'feet', 'snap', 'glitch'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
   }
 
