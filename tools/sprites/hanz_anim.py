@@ -42,7 +42,7 @@ VW, VH = 640, 360
 UPPER, FORE = 27, 29                             # arm bone lengths (upper arm, forearm)
 THIGH, SHIN = 31, 30                             # leg bone lengths (he's lanky)
 HIP = (8, 1, -6)                                 # his hip joints on his body (x either side)
-FEET_DESK = (11, -5, 9.0)                         # his ankles when his feet are up on the desk (x either side)
+FEET_DESK = (11, -5, 11.0)                        # his ankles when his feet are up on the desk (x either side)
 FEET_DOWN = (9, 46, -58)                         # ...and when they're down, behind the counter
 FEET_ARC = 22                                    # how high above the desk his feet swing over its back rail
 CLEAR = 23.5                                     # the counter's back edge (y) - his coat stays behind it below the top
@@ -329,9 +329,9 @@ def laugh():
 
 def feet_up():
     """FEET UP (a fidget when he's left alone): pushes off the counter, leans way back in his chair and swings both feet
-    up onto the desk - soles to you, one red shoe, one grey - lacing his hands behind his head. He lolls there a
+    up onto the desk - soles to you, one red shoe, one grey - folding his hands on his stomach. He lolls there a
     while (HANZ's foot taps, his head rolls lazily, he breathes), then swings them down and leans back in."""
-    nape = lambda s: arm(wh=(s * 12, 15, 15), h=1, pole=(s, 0.4, 0.4), dir=(-s, 0.2, 0.1), nrm=(0, -1, 0), grip='flat')
+    nape = lambda s: arm(wb=(s * 5, -19, 8), b=1, pole=(s, 0.2, -0.7), dir=(-s, -0.1, -0.2), nrm=(0, 1, 0), grip='cup')   # (hands folded on his stomach)
     back = (0, 50, 7, -9, 0)
     k = [(0.0, P()),
          (0.45, P(body=(0, 45, -2, 26, 0), head=(0, -2, 0), l=LIFT(-1), r=LIFT(1)), 'io'),
@@ -549,7 +549,7 @@ def legs(pose, body):
         else:                                                                      # ...then over the rail and down onto it
             g = (f - 0.5) / 0.5; a = np.array((lo[0] + (hi[0] - lo[0]) * g, lo[1] + (hi[1] - lo[1]) * g, hi[2] + FEET_ARC * math.cos(g * math.pi / 2)))
         knee, ankle = ik(hip, a, (s * 0.15, -0.25, 1), THIGH, SHIN)
-        tap = pose.get('tap', 0) if s > 0 else 0
+        tap = 0.5 * pose.get('tap', 0) if s > 0 else 0
         toe = np.array((s * 0.12, -0.25 - 0.6 * tap, 1.0)) * f + np.array((0, -1, -0.2)) * (1 - f)
         up = np.array((0, 1, 0.25 - 0.6 * tap)) * f + np.array((0, -0.2, 1)) * (1 - f)
         out['leg_' + tag] = (H.leg(s, tuple(hip), tuple(knee), tuple(ankle), tuple(toe), tuple(up)), None)

@@ -219,7 +219,7 @@ def coat(M, hatch=0.0, collar=0.0):
 SHOE = 1.5                                      # his shoes' size (big, so their soles read when his feet are up)
 RING_SEGS = 7                                    # segments in each half of the collar ring
 RING_Z = (38.5, 44, 58)                          # the collar ring: its bottom, its top at the throat, its top at the back
-RING_FOLD = (41, 45, (16, 13.5))                 # collar = 1 (his arms up at his face): it slumps down tight round his neck -
+RING_FOLD = (40, 42, (13.5, 11.5))                # collar = 1 (his arms up at his face): it slumps down tight round his neck -
                                                  # its top at the throat, at the back, and its top radius
 RING_R = ((15.5, 12.5), (23, 18.5))            # its inner radius (x, y) at the bottom and at the top (it flares out)
 RING_T = 2.4                                     # its thickness
