@@ -566,14 +566,17 @@ def settle_collar(poses, mats, loop=False):
     smoothed, so it folds down and stands back up gently. Returns new poses (never less slumped than they asked)."""
     need = []
     for pose in poses:
-        best = 1.0
+        best, back = 1.0, None
         for c in COLLAR_STEPS:
             if c < pose.get('collar', 0): continue
             q = dict(pose); q['collar'] = c
-            for back in np.arange(0, 30, 0.75):
-                parts, mm, bot = figure(q, back); place(parts, mats)
-                clips = clip_check()
-                if not any(x[:2] == ('torso', 'counter') for x in clips): break
+            if back is None:                                                       # (how far back he stands doesn't depend on the collar)
+                for back in np.arange(0, 30, 0.75):
+                    parts, mm, bot = figure(q, back); place(parts, mats)
+                    clips = clip_check()
+                    if not any(x[:2] == ('torso', 'counter') for x in clips): break
+            else:
+                parts, mm, bot = figure(q, back); place(parts, mats); clips = clip_check()
             if not any('collar' in x[0] or 'collar' in x[1] for x in clips): best = c; break
         need.append(best)
     n = len(need); E = COLLAR_EASE
