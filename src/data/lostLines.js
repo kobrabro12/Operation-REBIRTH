@@ -83,6 +83,9 @@ export const LOST_LINES = {
     [['h', 'THE CANDLE HAS BURNED FOR A HUNDRED YEARS. IT\'S STILL THE SAME LENGTH.'], ['s', ' CHEAP WAX!']],
     [['h', 'WHAT\'S THE PLAN?'], ['s', ' "DO I REALLY LOOK LIKE A GUY WITH A PLAN?"']],
     [['h', 'THE TV NEXT DOOR...'], ['h', ' "EVERYONE CREATES THE THING THEY DREAD."']],
+    [['s', 'PARDON ME, ESTEEMED CLIENTELE! MAY I INTEREST YOU IN-'], ['h', ' NO.'], ['s', ' -IN NO! A BARGAIN!']],
+    [['h', 'I FEEL LIKE A HALF-EATEN SANDWICH.'], ['s', ' DELICIOUS!'], ['h', ' ...THAT WASN\'T THE POINT.']],
+    [['s', 'I LOVE THIS JOB! I LOVE THIS JOB! I LO-'], ['h', ' ...HE DOESN\'T GET PAID.']],
   ],
   // THE GLITCH: he's just come apart and pulled himself back together (then sighed)
   glitch: [
@@ -209,6 +212,17 @@ export const LOST_LINES = {
 
 // things he says AND does while left alone (now and then instead of a plain idle line): his animation + one line
 export const LOST_ACTS = [
+  // his MOOD SWINGS: THE SWITCH (manic $@L, head spins round, lands on miserable HANZ), THE PITCH (a showman's sales
+  // pitch and a bow) and THE COLLAPSE (sobbing into his hands, then suddenly fine) - each said as he does it
+  { anim: 'switch', line: [['s', 'WHAT A SPLENDID, MARVELLOUS, FINANCIALLY SOUND DAY!'], ['h', ' ...I WANT TO LIE DOWN.']] },
+  { anim: 'switch', line: [['s', 'EVERYTHING IS FOR SALE! EVEN THE AIR! ESPECIALLY THE AIR!'], ['h', ' ...SORRY. HE GETS LIKE THIS.']] },
+  { anim: 'switch', line: [['s', 'I AM HAVING THE BEST DAY OF MY ENTIRE EXISTENCE!'], ['h', ' IT\'S THE SAME DAY. IT\'S ALWAYS THE SAME DAY.']] },
+  { anim: 'pitch', line: [['s', 'LADIES! GENTLEMEN! ASSORTED SHAPES! BEHOLD: MERCHANDISE!']] },
+  { anim: 'pitch', line: [['s', 'STEP RIGHT UP! STEP RIGHT DOWN! STEP SIDEWAYS IF YOU MUST!'], ['h', ' PLEASE DON\'T STEP ANYWHERE.']] },
+  { anim: 'pitch', line: [['s', 'A ONE-TIME OFFER! AVAILABLE EVERY TIME!'], ['h', ' THAT\'S NOT HOW TIME WORKS.'], ['s', ' IT IS HERE!']] },
+  { anim: 'sob', line: [['h', 'I\'M SORRY. I\'M SO SORRY. I\'M SORRY I SAID SORRY.'], ['s', ' AND WE\'RE BACK! HOW MAY I HELP YOU?']] },
+  { anim: 'sob', line: [['h', 'NOBODY EVER BUYS THE SAD THINGS...'], ['s', ' CUSTOMER! HI! HELLO! WELCOME!']] },
+  { anim: 'sob', line: [['h', 'IT\'S FINE. EVERYTHING IS FINE. IT\'S-'], ['s', ' FABULOUS! IT\'S FABULOUS!']] },
   { anim: 'shrug', line: [['h', 'WHAT DO I KNOW.'], ['s', ' NOTHING!'], ['h', ' ...EXACTLY.']] },
   { anim: 'shrug', line: [['s', 'WHO CARES!'], ['h', ' I DO. A LITTLE.']] },
   { anim: 'slam', line: [['s', 'I\'M BORED!!'], ['h', ' ...WE KNOW.']] },

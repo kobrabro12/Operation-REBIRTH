@@ -53,7 +53,7 @@ const RARE = 0.04;
 // do nothing for this long (frames: 30 s) and he takes his clock-heart out to check how long you've been standing there
 const WAIT = 1800;
 // the chance his idle chatter comes with something he does (LOST_ACTS) instead of just a line
-const ACT = 0.35;
+const ACT = 0.4;
 // THE DESK: what you can click on his counter (hit boxes come from lostFrames 'hits'; checked in this order, small
 // things first), the sound each makes, MEMORIES the till gives the first time, and the candle: clicks that blow it
 // out, within how many frames, and how long it stays out / the room stays dark
@@ -324,7 +324,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet', 'snap', 'glitch'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet', 'snap', 'glitch', 'switch', 'pitch', 'sob'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -626,7 +626,7 @@ export class LostScene extends Phaser.Scene {
     }
     if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
       this.say('poke');
-      if (!['heart', 'twitch', 'unmask', 'feet', 'snap', 'glitch'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+      if (!['heart', 'twitch', 'unmask', 'feet', 'snap', 'glitch', 'switch', 'pitch', 'sob'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
   }
 
