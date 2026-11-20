@@ -74,8 +74,24 @@ export const BOSSES = [
     tip: 'YOUR HITS CAN\'T TOUCH HIM. HIT THE FALLEN STARS - THEY FLY INTO HIS HEART. AT HALF HIS HEAD FALLS: JUMP INTO ITS MOUTH. INSIDE, HIT THE HEART\'S BIG EYE AND JUMP ITS FLATLINE SPIKES. CROWNED, HIT HIS CHEST WOUND - HARDEST WHILE HE POWERS UP.',
     hazards: 'METEOR SHOWERS / SOLAR FLARES' },
 ];
-/** The boss with this id (a BOSSES entry). */
-export const bossById = (id) => BOSSES.find((b) => b.id === id);
+// SECRET BOSSES: never on the BOSS FIGHTS screen, in BOSS RUSH, CLASSIC or MONSTER HUNTER - you find them.
+// HANZ & $@L: poke him enough in the LOST shop (LostScene.settle) and he fights you on his own desk
+// (src/stage/hanzBossStage.js + hanzCinema.js); `from` = the scene a win or a quit goes back to.
+export const SECRET_BOSSES = [
+  { id: 'hanz', name: 'HANZ & $@L, THE TRUE SHOPKEEPER', short: 'HANZ & $@L', title: 'THE TRUE SHOPKEEPER', stage: 'hanz-desk', arena: 'HIS DESK', hp: 720, coins: 1000, color: 0xff3a46, secret: true, from: 'Lost',
+    blurb: 'ONE MAN, TWO HALVES, NO FACE. HE FIGHTS\nYOU ON HIS OWN DESK, IN THREE WORLDS:\nPOLYGONS, INK, AND NOTHING AT ALL.',
+    taunts: ['HAHAHA! THANK YOU, COME AGAIN!', 'NO REFUNDS. NO RETURNS. NO YOU.', 'THE SHOP ALWAYS WINS.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the world he beat you in, and the act marks on the progress line
+    card: { marks: [[0.34, 'THE DRAWN ROOM'], [0.67, 'NOTHING UNDER THE MASK']], quotes: {
+      poly: 'BEHOLD! FEWER POLYGONS, MORE STYLE. ...AND ONE LESS CUSTOMER.',
+      drawn: 'I DREW YOU A LITTLE SMALLER. THEN I RUBBED YOU OUT.',
+      void: 'YOU SAW WHAT\'S UNDER THE MASK. NOW YOU\'RE PART OF IT.' } },
+    tip: 'HIT HIS HEAD - JUMP FROM THE TILL OR THE SLAB. JUMP HIS SLAM\'S SHOCKWAVES; GET ON A LEDGE WHEN THE WHALE COMES. EACH CLOCK RING HAS ONE GAP. WHEN HIS HALVES ERUPT, CROSS OR CLIMB.',
+    hazards: 'NONE - JUST HIM' },
+];
+
+/** The boss with this id (a BOSSES or SECRET_BOSSES entry). */
+export const bossById = (id) => BOSSES.find((b) => b.id === id) || SECRET_BOSSES.find((b) => b.id === id);
 
 // what you've beaten, saved in this browser: { [bossId]: { won: [n, n, n] (wins per difficulty), best: [frames...] } }
 const KEY = 'rebirth.bosses';

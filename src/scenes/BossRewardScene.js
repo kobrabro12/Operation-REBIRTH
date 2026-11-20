@@ -133,8 +133,8 @@ export class BossRewardScene extends Phaser.Scene {
       const setup = { ...R.setup, stage: nx.stage, stocks: cont ? R.lives : TIERS[R.tier].stocks + RUSH.extraLives, skins: [this.skin] };
       this.scene.start('Match', { boss: { id: nx.id, tier: R.tier, setup, rush: { i: cont ? R.rush.i + 1 : 0, time: cont ? R.rush.time + R.time : 0 } } }); return;
     }
-    if (i === 0 && this.R.setup) this.scene.start('Match', { boss: { id: this.R.id, tier: this.R.tier, setup: { ...this.R.setup, skins: [this.skin] } } });
-    else this.scene.start('BossFights');
+    if (i === 0 && this.R.setup) this.scene.start('Match', { boss: { id: this.R.id, tier: this.R.tier, setup: { ...this.R.setup, skins: [this.skin] }, from: this.R.from || undefined } });
+    else this.scene.start(this.R.from || 'BossFights');   // (a secret boss goes back where you found him: HANZ to LOST)
   }
 
 /** Brings the reward lines in one by one, counts the total up, confetti on a win; the two buttons. */

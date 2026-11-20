@@ -86,6 +86,7 @@ export const ACHIEVEMENTS = [
   { id: 'noli', group: 'SECRETS', secret: true, name: 'NOLI', info: 'CHANGED THE SHOPKEEPER FOR GOOD.', hint: 'SOME CODES CAN\'T BE UNDONE.', goal: 1, have: (s) => +s.secrets.includes('NOLI'), coins: 200 },
   // OUR VICTORY: the shopkeeper's code PAPERSPLEASE. Its reward (besides the coins) is a poster - shown on its card, and
   // hung on the wall of the PEOPLE'S STORE (ShopScene.sovietNook)
+  { id: 'settled', group: 'SECRETS', secret: true, name: 'SETTLED', info: 'BEAT HANZ & $@L ON HIS OWN DESK.', hint: 'SOME SHOPKEEPERS DON\'T LIKE BEING POKED.', goal: 1, have: (s) => +!!bossTier(s, 'hanz'), coins: 1000 },
   { id: 'our-victory', group: 'SECRETS', secret: true, name: 'OUR VICTORY', info: 'TYPED PAPERSPLEASE. YOUR REWARD: THE WORKERS\' POSTER.', hint: 'YOUR PAPERS, PLEASE.', goal: 1, have: (s) => +s.secrets.includes('PAPERSPLEASE'), coins: 300, poster: 'shop_poster' },
   { id: 'thirteen', group: 'SECRETS', secret: true, name: 'DON\'T ANSWER IT', info: 'TYPED 13. 13 WILLOW LANE IS OPEN.', hint: 'WHAT NUMBER IS THE HOUSE?', goal: 1, have: (s) => +s.secrets.includes('13'), coins: 130 },
   { id: 'heisenberg', group: 'SECRETS', secret: true, name: 'ROAD TRIP', info: 'TYPED HEISENBERG. DUST RUNNER IS OPEN.', hint: 'A NAME FROM PHYSICS. UNCERTAIN, BUT ALWAYS MOVING.', goal: 1, have: (s) => +s.secrets.includes('HEISENBERG'), coins: 200 },

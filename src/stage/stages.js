@@ -28,6 +28,7 @@ import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
 import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
 import { StarBossStage, drawObservatoryPreview } from './starBossStage.js';
 import { UndergroundStage, drawUndergroundPreview } from './undergroundStage.js';
+import { HanzBossStage, drawHanzPreview } from './hanzBossStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -178,6 +179,9 @@ export const STAGES = [
   { id: 'star-observatory', music: 'bgm_boss_stareater', name: 'THE LAST OBSERVATORY', available: true, bossArena: 'stareater', make: (scene) => new StarBossStage(scene),
     blurb: ['A ruined observatory adrift in deep space,', 'a sleeping titan filling the sky behind it.'],
     hazard: 'METEOR SHOWER: METEORS CRASH DOWN ON THE MARKS.\nSOLAR FLARE: A BEAM OF SUNLIGHT SWEEPS THE GLOWING BAND.', preview: drawObservatoryPreview },
+  // a SECRET boss's arena (src/data/bosses.js SECRET_BOSSES): opens for VS once HANZ & $@L is beaten on HARD or NIGHTMARE
+  { id: 'hanz-desk', music: 'bgm_boss_hanz', name: 'HIS DESK', available: true, bossArena: 'hanz', make: (scene) => new HanzBossStage(scene),
+    blurb: ['His counter in his polygon world - you, shrunk', 'to the size of his things. He watches.'], hazard: 'NO HAZARDS.\nHE JUST WATCHES.', preview: drawHanzPreview },
 ];
 
 // a stage you have to buy something in the shop to play (stage.shop) and haven't yet

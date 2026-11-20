@@ -26,7 +26,9 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { lostKeeper, setLostKeeper, getCoins, buyItem, owns, toggleEquip, isEquipped, addCoins, lostFound, markLostFound } from '../progress.js';
 import { SHOP } from '../data/shop.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
-import { skinsFor } from '../fighters/skins.js';
+import { skinsFor, skinUnlocked } from '../fighters/skins.js';
+import { settings } from '../settings.js';
+import { TIERS } from '../data/bosses.js';
 import { LOST_FRAMES } from './lostFrames.js';
 import { LOST_LINES, LOST_COLORS, LOST_VOICE, LOST_ACTS } from '../data/lostLines.js';
 import { PolyRoom } from './lostPolyRoom.js';
@@ -71,6 +73,9 @@ const CARD = { w: 104, h: 46, left: 12, right: 524, top: 70, gap: 54, bottom: 31
 const TALK = { per: 2, hold: 130, w: 470, y: 10 };
 // how far his pupils can slide toward what he's watching (in texels of the face drawing)
 const GAZE = { sal: [1.3, 0.7], hanz: [1.6, 1.4] };
+// LET'S SETTLE THIS: poke him this many times, each within `within` frames of the last, and he fights you (a boss fight
+// on his own desk - src/stage/hanzBossStage.js); his warnings come at the `warn` pokes; the fight's difficulty (TIERS)
+const SETTLE = { pokes: 8, within: 300, warn: [4, 6], tier: 1 };
 
 /** The LOST room: HANZ / $@L behind his counter in the dream (see the top of this file). */
 export class LostScene extends Phaser.Scene {
@@ -136,6 +141,7 @@ export class LostScene extends Phaser.Scene {
     this.backBtn = makeButton(this, 8, 6, 'BACK', () => this.leave(), { size: '7px', depth: 23 });
     addFullscreenButton(this);
     this.drawn = null; this.poly = null; this.drawnT = 0; this.loreN = 0;
+    this.settling = false; this.leaving = false; this.pokeN = 0; this.pokeT = -9999;
     this.idleAt = 600; this.quiet = 0; this.deskN = {}; this.candleT = []; this.candleOut = 0; this.gazeAt = null;
     if (this.lit) this.lightUp(false); else this.startDark();
     this.events.once('shutdown', () => this.cleanup());
@@ -435,7 +441,7 @@ export class LostScene extends Phaser.Scene {
    *  the two worlds is up at a time: switching to one quietly takes the other away first. */
   spark(name, at) {
     if (name === 'snap' && this.drawn) { if (this.poly && this.poly.on) this.poly.forceOff(); this.drawn.snap(at.x, at.y); }
-    if (name === 'clap' && this.poly) { if (this.drawn && this.drawn.on) this.drawn.forceOff(); this.poly.clap(at.x, at.y); }
+    if (name === 'clap' && this.poly) { if (this.settling && this.poly.on) { this.poly.burst(at.x, at.y); return; } if (this.drawn && this.drawn.on) this.drawn.forceOff(); this.poly.clap(at.x, at.y); }
   }
 
   /** True while the room is the drawn one or the polygon one (not the 3D one). */
@@ -647,10 +653,33 @@ export class LostScene extends Phaser.Scene {
       const c = this.cards[i], y = c.y + this.bob(c);
       if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + this.cardH) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
     }
-    if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
-      this.say('poke');
+    if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock() && !this.settling) {
+      this.pokeN = this.t - (this.pokeT ?? -9999) < SETTLE.within ? (this.pokeN || 0) + 1 : 1; this.pokeT = this.t;
+      if (this.pokeN >= SETTLE.pokes) { this.settle(); return; }
+      const warn = SETTLE.warn.indexOf(this.pokeN);
+      if (warn >= 0) this.say('poke_warn', warn); else this.say('poke');
       if (!['heart', 'twitch', 'unmask', 'feet', 'snap', 'clap', 'glitch', 'switch', 'pitch', 'sob'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
+  }
+
+  /** LET'S SETTLE THIS: poked once too often, he slams the counter - FINE. ...LET'S SETTLE THIS. - claps the room into
+   *  his polygon world, and the camera falls into his desk: the boss fight (HANZ & $@L, SECRET_BOSSES in bosses.js),
+   *  with the fighter you last picked. Winning or quitting brings you back here. */
+  settle() {
+    this.settling = true; this.pokeN = 0;
+    this.say('settle', 0); this.play('slam', null, true);
+    this.time.delayedCall(560, () => { sfx('bighit', 1, 0.55); this.cameras.main.shake(260, 0.012); });
+    this.time.delayedCall(1700, () => { if (this.ready && this.ready.has('clap') && this.poly) this.play('clap', null, true); });   // (into his polygon world - or, if it's up already, a clap for emphasis)
+    this.time.delayedCall(3900, () => {
+      sfx('whoosh', 0.9, 0.5); this.cameras.main.zoomTo(4, 900, 'Cubic.easeIn'); this.cameras.main.fadeOut(900, 255, 255, 255);
+      this.time.delayedCall(950, () => {
+        const id = fighterById(settings.picks && settings.picks[0]).id;
+        const s0 = settings.skins && settings.skins[0], sk = Number.isInteger(s0) && s0 < skinsFor(id).length && skinUnlocked(id, s0) ? s0 : 0, T = TIERS[SETTLE.tier];
+        const setup = { mode: 'stock', stocks: T.stocks, hp: 150, minutes: 3, items: false, hazards: true, crt: settings.crt, stage: 'hanz-desk', track: 'auto', picks: [id], skins: [sk],
+          cpuCount: 0, difficulty: 1, cpuLevels: [], p1Pad: settings.p1Pad, extraPads: [], from: 'Lost' };
+        this.scene.start('Match', { boss: { id: 'hanz', tier: SETTLE.tier, setup, from: 'Lost' } });
+      });
+    });
   }
 
   /** Back to the shop (he says goodbye if the lights are on). */

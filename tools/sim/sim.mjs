@@ -64,8 +64,8 @@ const info = await page.evaluate(async () => {
   const { STAGES } = await import('/src/stage/stages.js');
   const { skinsFor } = await import('/src/fighters/skins.js');
   const fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER].map((f) => f.id);   // test fighters too (Trinkets > TEST FIGHTERS)
-  const { BOSSES } = await import('/src/data/bosses.js');
-  return { bosses: BOSSES.map((b) => ({ id: b.id, stage: b.stage })), fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
+  const { BOSSES, SECRET_BOSSES } = await import('/src/data/bosses.js');
+  return { bosses: [...BOSSES, ...SECRET_BOSSES].map((b) => ({ id: b.id, stage: b.stage })), fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
 });
 
 // ---------------------------------------------------------------- one match, run inside the page

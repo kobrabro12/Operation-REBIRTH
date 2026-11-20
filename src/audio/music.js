@@ -17,6 +17,8 @@ export const TRACKS = [
   'fractured', 'infected', 'endless_castle', 'construct', 'underground', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
   // the 3D stages (tools/audio/n64_stage_music.py)
   'castle_court', 'jungle_falls', 'starlight_fountain',
+  // HANZ & $@L's secret boss theme (tools/audio/hanz_boss_music.py)
+  'boss_hanz',
   // the BOSS FIGHTS themes (tools/audio/boss_music.py)
   'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_smudge', 'boss_maestro', 'boss_stareater',
   // LEGENDARY KING POLYGON's theme: Mason's pixelated_audio 22
