@@ -300,6 +300,32 @@ def snap():
 SNAP_T = 1.1                                     # the moment of the snap (s): the frame LostScene throws its sparks on
 
 
+def clap():
+    """THE CLAP (now and then, when he's left alone): he sits up, lifts both hands in front of his chest, palms facing,
+    holds them apart a beat - and CLAPS. A shockwave of polygons bursts off his hands (LostScene draws it, at `spark`)
+    and the whole room turns into a low-poly world of flat-shaded facets (or back again); he keeps his hands pressed
+    together a moment, rubs them, pleased, and lays them back on the counter."""
+    apart = lambda s, dx=0, dz=0: arm((s * (21 + dx), -36, 21 + dz), pole=(s, 0.3, -0.5), dir=(-s * 0.3, -0.75, 0.6), nrm=(s, -0.1, 0.1),
+                                       grip='open', spread=0.35, curl=(0.06, 0.05, 0.06, 0.08), thumb=0.15)
+    shut = lambda s, dz=0: arm((s * 3.6, -39, 22 + dz), pole=(s, 0.3, -0.5), dir=(-s * 0.05, -0.75, 0.65), nrm=(s, 0, 0.05),
+                               grip='flat', spread=0.05, curl=(0.02, 0.02, 0.02, 0.03), thumb=0.05)
+    sit = (0, 43, 0, 28, 0)
+    k = [(0.0, P()),
+         (0.35, P(body=(0, 43, -2, 32, 0), head=(0, -2, -4), l=LIFT(-1), r=LIFT(1)), 'io'),
+         (0.75, P(body=sit, head=(4, -8, 4), l=apart(-1), r=apart(1)), 'out'),
+         (0.98, P(body=sit, head=(6, -10, 6), l=apart(-1, 4, 1), r=apart(1, 4, 1)), 'io'),        # (the wind-up)
+         (CLAP_T, P(body=(0, 43, 0.5, 29, 0), head=(2, -6, 2), l=shut(-1), r=shut(1)), 'snap'),     # CLAP
+         (1.55, P(body=sit, head=(-6, -12, 8), l=shut(-1, 1), r=shut(1, 1)), 'out'),
+         (1.85, P(body=sit, head=(-4, -12, 6), l=shut(-1, 0.5), r=shut(1, 1.5)), 'io'),             # (rubs them, pleased)
+         (2.15, P(body=sit, head=(-6, -12, 8), l=shut(-1, 1.5), r=shut(1, 0.5)), 'io'),
+         (2.7, P(body=(0, 43, -2, 32, 0), head=(0, 0, -2), l=LIFT(-1), r=LIFT(1)), 'io'),
+         (3.2, P(), 'io')]
+    return breathe(follow(frames_of(k), 0.6), 0.6)
+
+
+CLAP_T = 1.18                                    # the moment of the clap (s): the frame LostScene bursts the polygons on
+
+
 def look_pose(side):
     """Where he ends up looking along the counter (side -1 = his left / picture left, +1 = right, 0 = down)."""
     return {-1: P(body=(-6, 42, -4, 40, 9), head=(-15, 10, -4)), 1: P(body=(6, 42, -4, 40, -9), head=(15, 10, -10)),
@@ -529,6 +555,7 @@ ANIMS = {
     'twitch': {'frames': twitch, 'lazy': True},
     'heart': {'frames': heart, 'lazy': True},
     'snap': {'frames': snap, 'lazy': True},
+    'clap': {'frames': clap, 'lazy': True},
     'look_l': {'frames': lambda: look(-1)},
     'look_r': {'frames': lambda: look(1)},
     'hold_l': {'loop': True, 'frames': lambda: hold(-1), 'lazy': True},
@@ -1219,10 +1246,12 @@ def main():
             if pose.get('glitch', 0) > 0.2: ey = {k: v[:3] + [0] for k, v in ey.items()} if isinstance(ey, dict) else ey   # (pupils off while he's in pieces)
             crops.append(crop); info.append({'x': x * SCALE, 'y': y * SCALE, 'eyes': ey})
             if name == 'snap' and i == math.ceil(SNAP_T * FPS): spark = [round(v) for v in to_screen(cam, Vector(TIPS['sal']))]
+            if name == 'clap' and i == math.ceil(CLAP_T * FPS): spark = [round(v) for v in to_screen(cam, Vector((TIPS['sal'] + TIPS['hanz']) / 2))]
             print(f'  {name} {i + 1}/{len(poses)}', flush=True)
         files = pack(crops, name, info)
         table['anims'][name] = {'loop': bool(spec.get('loop')), 'lazy': bool(spec.get('lazy')), 'sheets': files, 'frames': info}
         if name == 'snap': table['anims'][name]['spark'] = {'f': math.ceil(SNAP_T * FPS), 'x': spark[0], 'y': spark[1]}
+        if name == 'clap': table['anims'][name]['spark'] = {'f': math.ceil(CLAP_T * FPS), 'x': spark[0], 'y': spark[1]}
         print(f'{name}: {len(crops)} frames, sheets {files}, {sum(os.path.getsize(os.path.join(OUT, f)) for f in files) // 1024} KB', flush=True)
         if a.preview:
             os.makedirs(a.preview, exist_ok=True)

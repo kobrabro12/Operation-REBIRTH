@@ -29,6 +29,10 @@ LINES = {
     'gravemoon-bridge': 'Gravemoon Bridge!',
     'neon-arcade': 'Neon Arcade!',
     'elderwood-hollow': 'Elderwood Hollow!',
+    'underground': 'The Underground!',
+    # THE UNDERGROUND's opening: the announcer welcomes the crowd, then hypes the act
+    'ug-welcome': 'Ladies and gentlemen... welcome... to the Underground!',
+    'ug-noise': "Make some noise... for tonight's headliner!",
 }
 ONLY = sys.argv[3:]                       # optional: just these ids
 FILTER = ','.join([

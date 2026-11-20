@@ -80,6 +80,9 @@ export class DrawnRoom {
     for (const th of this.things) th.s.setVisible(v);
   }
 
+  /** Turns it off at once with no snap (THE CLAP is turning the room into polygons instead). */
+  forceOff() { this.on = false; this.setVisible(false); }
+
   /** THE SNAP: sparks of fire off his fingertips (at x, y), a flash of bare paper, and the room switches - into the
    *  drawn one (the things popping in one by one) or back to 3D. Returns whether it's now drawn. */
   snap(x, y) {

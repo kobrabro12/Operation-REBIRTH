@@ -156,7 +156,7 @@ export class BootScene extends Phaser.Scene {
     for (const id of ['soul-summoner', 'mr-wake', 'hero-knight']) this.load.image('icon_' + id, 'assets/fighters/' + id + '/icon.png');   // select-screen icons
     this.load.spritesheet('ss_taunt', 'assets/fighters/soul-summoner/taunt_sheet.png', { frameWidth: 64, frameHeight: 64 });   // his taunt: Mason's drawing (16 frames)
     this.load.spritesheet('ss_juggle', 'assets/fighters/soul-summoner/juggle_sheet.png', { frameWidth: 64, frameHeight: 64 });
-    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero', 'new-challenger', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow']) if(CHARACTER_NAME_CALLS||!FIGHTER_ANNOUNCER_IDS.has(id))this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
+    for (const id of ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero', 'new-challenger', 'random', 'unlock', 'sky-sanctum', 'verdant-spires', 'gravemoon-bridge', 'neon-arcade', 'elderwood-hollow', 'underground']) if(CHARACTER_NAME_CALLS||!FIGHTER_ANNOUNCER_IDS.has(id))this.load.audio('voice_' + id, ['assets/audio/voice/' + id + '.ogg', 'assets/audio/voice/' + id + '.mp3']);   // announcer
     // Music (bgm_*) isn't loaded here: each track streams when it's played - its name goes in TRACKS in src/audio/music.js
     loadVoiceLines(this.load);   // Mason's voice lines (VOICE STUDIO -> src/data/voiceLines.js)
     this.load.image('shop_fragment', 'assets/shop/fragment.png');

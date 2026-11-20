@@ -27,6 +27,7 @@ import { MachineBossStage, drawDesktopPreview } from './machineBossStage.js';
 import { SmudgeBossStage, drawBlankCanvasPreview } from './smudgeBossStage.js';
 import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
 import { StarBossStage, drawObservatoryPreview } from './starBossStage.js';
+import { UndergroundStage, drawUndergroundPreview } from './undergroundStage.js';
 import { owns } from '../progress.js';
 
 export const STAGES = [
@@ -144,6 +145,12 @@ export const STAGES = [
     blurb: ['A code-rain rooftop inside a living simulation.', 'The system rewrites its floating platforms.'],
     hazard: 'MOVING LEDGES AND ARENA REWRITES.\nMARKED LANES WARN BEFORE SCAN BEAMS FIRE.',
     preview: drawMatrixPreview,
+  },
+  {
+    id: 'underground', music: 'bgm_underground', name: 'THE UNDERGROUND', available: true, make: (scene) => new UndergroundStage(scene),
+    blurb: ['A rap and rock show 300 feet under the city:', 'a floating stage over the pit, the crowd all round.'],
+    hazard: 'NO STAGE HAZARDS.\nTONIGHT: BLACKTOP OR COFFIN NAILS LIVE.',
+    preview: drawUndergroundPreview,
   },
   // BOSS ARENAS (Trinkets > BOSS FIGHTS, src/data/bosses.js): `bossArena` = locked until that boss is beaten on HARD
   // or NIGHTMARE (then playable in VS with just its hazards); never RANDOM while locked.

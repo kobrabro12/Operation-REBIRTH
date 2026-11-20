@@ -14,7 +14,7 @@ import { settings } from '../settings.js';
 // browser can't play Vorbis). Add a new track's name here (tools/audio/*.py write the files).
 export const TRACKS = [
   'title', 'select', 'arcade', 'sky', 'spires', 'forest', 'gravemoon', 'backrooms', 'aero', 'desert', 'slasher',
-  'fractured', 'infected', 'endless_castle', 'construct', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
+  'fractured', 'infected', 'endless_castle', 'construct', 'underground', 'baseplate_4', 'baseplate_5', 'baseplate_6', 'baseplate_10',
   // the 3D stages (tools/audio/n64_stage_music.py)
   'castle_court', 'jungle_falls', 'starlight_fountain',
   // the BOSS FIGHTS themes (tools/audio/boss_music.py)
