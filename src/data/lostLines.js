@@ -117,6 +117,19 @@ export const LOST_LINES = {
     [['s', 'BORING! ...OKAY IT WAS GETTING SMUDGY.']],
     [['h', 'THE EYE WAS STARING AT ME.'], ['s', ' THE EYE STARES AT EVERYONE!']],
   ],
+  // THE CLAP: he's just clapped the room into the polygon world (clap_in), or back to how it was (clap_out)
+  clap_in: [
+    [['s', 'BEHOLD! FEWER POLYGONS, MORE STYLE!']],
+    [['h', 'EVERYTHING HAS CORNERS HERE. EVEN THE SKY.']],
+    [['s', 'THE WHALE IS FREE. DON\'T ASK ME WHERE HE GOES.'], ['h', ' NOWHERE. IT LOOPS.']],
+    [['h', 'THE GEM WATCHES THE DESK SO I DON\'T HAVE TO.']],
+    [['s', 'TA-DA! LOW BUDGET, HIGH DREAM.']],
+  ],
+  clap_out: [
+    [['h', 'TOO SHINY. MY EYES HAVE EDGES NOW.']],
+    [['s', 'AWW. I LIKED THE WHALE.'], ['h', ' THE WHALE WILL BE BACK.']],
+    [['h', 'BACK TO THE DUSK. IT DOESN\'T HURT TO LOOK AT.']],
+  ],
   // RARE: once in a long while (`RARE` in LostScene), instead of his usual chatter
   rare: [
     [['s', 'THAT STUPID TV REPLACED ME...']],

@@ -98,6 +98,8 @@ export class MatchScene extends Phaser.Scene {
     const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.classic?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
     if (!demo && extraOn('ext-opinion') && !this.textures.exists('lost_heads')) this.load.spritesheet('lost_heads', 'assets/shop/lost/heads.png', { frameWidth: 124, frameHeight: 124 });   // (SECOND OPINION's heads)
+    if (!demo && S.stage === 'underground') for (const [k, f] of [['ug_door', 'sfx/ug_door'], ['ug_crowd', 'sfx/ug_crowd'], ['voice_ug-welcome', 'voice/ug-welcome'], ['voice_ug-noise', 'voice/ug-noise']])   // (THE UNDERGROUND's opening)
+      if (!this.cache.audio.exists(k)) this.load.audio(k, ['assets/audio/' + f + '.ogg', 'assets/audio/' + f + '.mp3']);
     if (!demo && (equippedStageFx() === 'fx-drawn' || extraOn('ext-eye'))) queueDrawn(this, false);   // (THE DRAWN ROOM / THE EYE's pictures)
   }
 
@@ -143,11 +145,9 @@ export class MatchScene extends Phaser.Scene {
     this.aeroStage = { k: 0, on: false, t: 0 };
     // stage music (stages without a track of their own play silence for now)
     if (this.demo) setSfxMuted(true);
-    else if (this.soulEncounter?.music) playMusic(this,this.soulEncounter.music,0.55);
-    else if (this.bossFight) playMusic(this, this.stage.music, 0.55);   // a boss always fights to its own theme
-    else if (this.pickedTrack()) { const tr = this.pickedTrack(); if (tr.musicList) playPlaylist(this, tr.musicList, 0.55); else playMusic(this, tr.music, 0.55); }   // picked on the stage select screen
-    else if (equippedMusic()) playMusic(this, 'bgm_shop_' + equippedMusic().slice(4), 0.55);   // a track bought in the shop and switched on
-    else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
+    // a stage with its own opening (THE UNDERGROUND) starts its music when the opening reaches the act (startMusic)
+    this.stageIntro = !this.bossFight && !!this.stage.startIntro && !this.demo && !this.recorder && !this.shopPreview && S.mode !== 'training';
+    if (!this.demo && !(this.stageIntro && this.stage.holdMusic)) this.startMusic(); else if (!this.demo) stopMusic();
     this.fxG = this.add.graphics().setDepth(5); this.addWorld(this.fxG);
     this.extras = new MatchExtras(this);              // stage effects and extras bought in the shop (matchExtras.js)
 
@@ -198,6 +198,11 @@ export class MatchScene extends Phaser.Scene {
         this.input.on('pointerdown', () => { if (this.skipReady) this.skipClick = true; });
       }
     }
+    if (this.stageIntro) {                               // the stage's own opening (THE UNDERGROUND), before the countdown
+      this.stage.startIntro(this);
+      this.skipKeys = ['ENTER', 'J', 'SPACE'].map((k) => this.input.keyboard.addKey(k));
+      this.input.on('pointerdown', () => { if (this.skipReady) this.skipClick = true; });
+    }
 
     // overlays (UI camera)
     this.overlay = this.add.graphics().setDepth(5); this.addUI(this.overlay);
@@ -239,6 +244,15 @@ export class MatchScene extends Phaser.Scene {
   }
 
   // ---- camera bookkeeping: every object belongs to exactly one camera
+  /** Starts this match's music: a soul battle's or boss's own theme, the track picked on stage select, a shop track, or the stage's. */
+  startMusic() {
+    if (this.soulEncounter?.music) playMusic(this,this.soulEncounter.music,0.55);
+    else if (this.bossFight) playMusic(this, this.stage.music, 0.55);   // a boss always fights to its own theme
+    else if (this.pickedTrack()) { const tr = this.pickedTrack(); if (tr.musicList) playPlaylist(this, tr.musicList, 0.55); else playMusic(this, tr.music, 0.55); }   // picked on the stage select screen
+    else if (equippedMusic()) playMusic(this, 'bgm_shop_' + equippedMusic().slice(4), 0.55);   // a track bought in the shop and switched on
+    else if (this.stage.musicList) playPlaylist(this, this.stage.musicList, 0.55); else if (this.stage.music) playMusic(this, this.stage.music, 0.55); else stopMusic();
+  }
+
   addBg(...objs) { for (const o of objs) { this.worldCam.ignore(o); this.uiCam.ignore(o); this.bgList.push(o); } }
   addWorld(...objs) { for (const o of objs) { this.bgCam.ignore(o); this.uiCam.ignore(o); } }
   addUI(...objs) { for (const o of objs) { this.uiList.push(o); if(o.plate)this.uiList.push(o.plate); this.bgCam.ignore(o); this.worldCam.ignore(o); if (o.plate) { this.bgCam.ignore(o.plate); this.worldCam.ignore(o.plate); } } }   // (a button's plate goes with it)
