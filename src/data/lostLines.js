@@ -34,12 +34,14 @@ export const LOST_LINES = {
     [['s', 'SOLD! NO REFUNDS! NO MEMORIES BACK!']],
     [['h', 'TAKE CARE OF IT. PLEASE.'], ['s', ' OR DON\'T! WE GOT PAID!']],
     [['s', 'PLEASURE DOING BUSINESS!'], ['h', ' IT WASN\'T.']],
+    [['s', '"LET\'S PUT A SMILE ON THAT FACE!"']],
   ],
   // you can't afford it
   broke: [
     [['s', 'NOT ENOUGH MEMORIES?! FORGET SOMETHING ELSE AND COME BACK!']],
     [['h', 'COME BACK WHEN YOU\'VE LIVED A LITTLE MORE.']],
     [['s', 'YOU\'RE WASTING MY TIME!'], ['h', ' WE HAVE NOTHING BUT TIME.'], ['s', ' AND I\'M WASTING IT!']],
+    [['s', '"IF YOU\'RE GOOD AT SOMETHING, NEVER DO IT FOR FREE."'], ['h', ' ...HE\'S RIGHT, FOR ONCE.']],
   ],
   // you already have it
   owned: [
@@ -54,6 +56,7 @@ export const LOST_LINES = {
     [['s', 'HANDS OFF THE MERCHANDISE!'], ['h', ' WE ARE NOT THE MERCHANDISE.'], ['s', ' EVERYTHING\'S THE MERCHANDISE!']],
     [['h', 'PLEASE DON\'T.']],
     [['s', 'DO THAT AGAIN. I DARE YOU.']],
+    [['h', '...'], ['s', ' "WHY SO SERIOUS?"']],
   ],
   // talking to himself when nothing's happening
   idle: [
@@ -78,6 +81,8 @@ export const LOST_LINES = {
     [['h', 'SOMETIMES I FLICKER. LIKE A BAD SIGNAL.'], ['s', ' DON\'T TELL THEM THAT!']],
     [['s', 'DO YOU THINK THE FISH IN THE BOWL KNOWS IT\'S IN A BOWL?'], ['h', ' ...DO YOU?']],
     [['h', 'THE CANDLE HAS BURNED FOR A HUNDRED YEARS. IT\'S STILL THE SAME LENGTH.'], ['s', ' CHEAP WAX!']],
+    [['h', 'WHAT\'S THE PLAN?'], ['s', ' "DO I REALLY LOOK LIKE A GUY WITH A PLAN?"']],
+    [['h', 'THE TV NEXT DOOR...'], ['h', ' "EVERYONE CREATES THE THING THEY DREAD."']],
   ],
   // THE GLITCH: he's just come apart and pulled himself back together (then sighed)
   glitch: [
@@ -85,6 +90,8 @@ export const LOST_LINES = {
     [['s', 'WHO DID THAT?! WAS IT YOU?!'], ['h', ' IT WAS US.']],
     [['h', 'EVERY TIME I THINK I\'M IN ONE PIECE...']],
     [['s', 'I\'M FINE! I\'M FINE! I\'M F- I\'M FINE!']],
+    [['s', '"I\'M AN AGENT OF CHAOS!"'], ['h', ' ...YOU\'RE AN AGENT OF A BAD SIGNAL.']],
+    [['h', '...THERE.'], ['h', ' "THERE ARE NO STRINGS ON ME."']],
   ],
   // THE LORE: now and then (in order, so you hear them all) he lets slip how things really are
   lore: [
@@ -100,11 +107,16 @@ export const LOST_LINES = {
     [['s', 'TA-DA! I DREW IT MYSELF!'], ['h', ' YOU CAN\'T DRAW.'], ['s', ' AND YET!']],
     [['h', 'THIS IS HOW I REMEMBER IT. BEFORE.']],
     [['s', 'DON\'T TOUCH ANYTHING. THE INK\'S STILL WET.']],
+    [['s', '"I\'M GOING TO SHOW YOU SOMETHING BEAUTIFUL."'], ['h', ' ...HE ALREADY DID IT.']],
   ],
   snap_out: [
     [['h', 'TOO FLAT. I MISSED MY CORNERS.']],
     [['s', 'BORING! ...OKAY IT WAS GETTING SMUDGY.']],
     [['h', 'THE EYE WAS STARING AT ME.'], ['s', ' THE EYE STARES AT EVERYONE!']],
+  ],
+  // RARE: once in a long while (`RARE` in LostScene), instead of his usual chatter
+  rare: [
+    [['s', 'THAT STUPID TV REPLACED ME...']],
   ],
   // he puts his feet up on the desk and leans back (a fidget), then says one of these
   feet: [
@@ -184,6 +196,7 @@ export const LOST_LINES = {
     [['h', '...SORRY. IT ITCHES.']],
     [['s', 'WHAT? EVERYONE\'S GOT ONE.'], ['h', ' NOT EVERYONE.']],
     [['h', 'THERE USED TO BE SOMEONE UNDER THERE.'], ['s', ' THERE STILL IS! ...ISN\'T THERE?']],
+    [['s', '"LET\'S PUT A SMILE ON THAT FACE."'], ['h', ' IT\'S BACK ON. IT\'S ON.']],
   ],
   // leaving
   bye: [
