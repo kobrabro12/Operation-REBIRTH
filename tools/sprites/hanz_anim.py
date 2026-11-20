@@ -40,6 +40,11 @@ TABLE = os.path.join(ROOT, 'src/scenes/lostFrames.js')
 CAM = ((0, -215, 78), (0, 0, 36), 36)            # the LOST room's camera: where it is, what it looks at, its lens (mm)
 VW, VH = 640, 360
 UPPER, FORE = 27, 29                             # arm bone lengths (upper arm, forearm)
+THIGH, SHIN = 31, 30                             # leg bone lengths (he's lanky)
+HIP = (8, 1, -6)                                 # his hip joints on his body (x either side)
+FEET_DESK = (11, -5, 9.0)                         # his ankles when his feet are up on the desk (x either side)
+FEET_DOWN = (9, 46, -58)                         # ...and when they're down, behind the counter
+FEET_ARC = 22                                    # how high above the desk his feet swing over its back rail
 CLEAR = 23.5                                     # the counter's back edge (y) - his coat stays behind it below the top
 FPS = 15                                         # frames are rendered at 15 a second (the game holds each 4 ticks)
 HEART_SCALE = 1.7                               # his heart's size in his hand
@@ -71,7 +76,7 @@ def arm(w=None, wb=None, pole=(1, 0.2, 0.9), dir=(0, -1, 0), nrm=(0, 0, 1), grip
 L_FLAT = arm((-28, -11, 3.1), pole=(-1, 0.2, 0.9), dir=(0.18, -1, 0))
 R_FLAT = arm((28, -11, 3.1), pole=(1, 0.2, 0.9), dir=(-0.18, -1, 0))
 BASE = {'body': (0, 42, -4, 38, 0), 'head': (0, 4, -7), 'l': L_FLAT, 'r': R_FLAT, 'hatch': 0.0, 'heart': 0.0, 'clock': (300.0, 60.0),
-        'mask': (0.0, 0.0, 0.0, 0.0), 'collar': 0.0}
+        'mask': (0.0, 0.0, 0.0, 0.0), 'collar': 0.0, 'feet': 0.0, 'tap': 0.0}
 
 
 def P(body=None, head=None, l=None, r=None, **kw):
@@ -322,10 +327,34 @@ def laugh():
     return follow(frames_of(k), 0.7)
 
 
+def feet_up():
+    """FEET UP (a fidget when he's left alone): pushes off the counter, leans way back in his chair and swings both feet
+    up onto the desk - soles to you, one red shoe, one grey - lacing his hands behind his head. He lolls there a
+    while (HANZ's foot taps, his head rolls lazily, he breathes), then swings them down and leans back in."""
+    nape = lambda s: arm(wh=(s * 12, 15, 15), h=1, pole=(s, 0.4, 0.4), dir=(-s, 0.2, 0.1), nrm=(0, -1, 0), grip='flat')
+    back = (0, 50, 7, -9, 0)
+    k = [(0.0, P()),
+         (0.45, P(body=(0, 45, -2, 26, 0), head=(0, -2, 0), l=LIFT(-1), r=LIFT(1)), 'io'),
+         (1.05, P(body=(0, 49, 0, -2, 0), head=(0, -8, 3), l=RAISE(-1), r=RAISE(1), feet=0.55, collar=1), 'io'),
+         (1.5, P(body=back, head=(0, -6, 5), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'out'),
+         (1.75, P(body=back, head=(2, -5, 6), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'io')]
+    t = 1.75
+    for i, (hd, tap) in enumerate((((6, -4, 9), 1), ((6, -4, 9), 0), ((6, -4, 9), 1), ((0, -7, 2), 0), ((-7, -3, -5), 1),
+                                   ((-7, -3, -5), 0), ((-7, -3, -5), 1), ((-2, -5, 3), 0))):
+        t += 0.45 if tap else 0.3
+        k.append((t, P(body=back, head=hd, l=nape(-1), r=nape(1), feet=1.0, tap=tap, collar=1), 'out' if tap else 'in'))
+    k += [(t + 0.5, P(body=back, head=(0, -4, 2), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'io'),
+          (t + 1.05, P(body=(0, 49, 0, -2, 0), head=(0, -2, 0), l=RAISE(-1), r=RAISE(1), feet=0.5, collar=1), 'io'),
+          (t + 1.55, P(body=(0, 45, -2, 26, 0), head=(0, 2, -2), l=LIFT(-1), r=LIFT(1), feet=0.0), 'in'),
+          (t + 2.05, P(), 'back')]
+    return breathe(follow(frames_of(k), 0.6), 0.8)
+
+
 ANIMS = {
     'idle': {'loop': True, 'frames': idle},
     'unmask': {'frames': unmask, 'lazy': True},
     'laugh': {'frames': laugh, 'lazy': True},
+    'feet': {'frames': feet_up, 'lazy': True},
     'twitch': {'frames': twitch, 'lazy': True},
     'heart': {'frames': heart, 'lazy': True},
     'look_l': {'frames': lambda: look(-1)},
@@ -383,16 +412,16 @@ ANIMS = {
 # ------------------------------------------------------------------ building him from a pose
 NO_CLIP = H.NO_CLIP + [(a, b) for a in ('hand_sal', 'hand_hanz', 'sleeve_sal', 'sleeve_hanz')
                        for b in ('books', 'lava', 'hourglass', 'hourglass_glass', 'candle', 'bell', 'till', 'watch')
-                       if (a, b) not in H.NO_CLIP] + [('heart', 'face'), ('heart', 'hair'), ('heart', 'collar_r'), ('heart', 'counter')]
+                       if (a, b) not in H.NO_CLIP] + [(a, b) for a in ('leg_sal', 'leg_hanz') for b in ('books', 'lava', 'bell', 'watch', 'candle', 'till')] + [('heart', 'face'), ('heart', 'hair'), ('heart', 'collar_r'), ('heart', 'counter')]
 
 
-def ik(S, W, pole):
-    """Two-bone IK: the elbow for a shoulder S and wrist W (bones UPPER, FORE), bent toward pole. Returns (elbow, wrist)
-    - the wrist pulled in if it was out of reach."""
+def ik(S, W, pole, upper=UPPER, fore=FORE):
+    """Two-bone IK: the elbow for a shoulder S and wrist W (bones upper, fore - the arm's by default, or the leg's),
+    bent toward pole. Returns (elbow, wrist) - the wrist pulled in if it was out of reach."""
     S, W, pole = np.array(S, float), np.array(W, float), np.array(pole, float)
     d = W - S; L = np.linalg.norm(d); n = d / L
-    L = min(L, UPPER + FORE - 0.5); W = S + n * L
-    x = (UPPER ** 2 - FORE ** 2 + L ** 2) / (2 * L); h = math.sqrt(max(UPPER ** 2 - x ** 2, 0))
+    L = min(L, upper + fore - 0.5); W = S + n * L
+    x = (upper ** 2 - fore ** 2 + L ** 2) / (2 * L); h = math.sqrt(max(upper ** 2 - x ** 2, 0))
     p = pole - np.dot(pole, n) * n; p /= np.linalg.norm(p)
     return tuple(S + n * x + p * h), tuple(W)
 
@@ -503,7 +532,59 @@ def figure(pose, back=0.0):
             drips = [(-2.6, -0.8, 1.2 + 0.5 * math.sin(t * 2.1)), (0.6, -5.6, 1.5 + 0.8 * abs(math.sin(t * 1.3))), (2.9, -0.4, 0.8 + 0.4 * math.sin(t * 3.0 + 1))]
             out['heart'] = (H.heart(pose.get('clock', (0, 0)), drips), M)
             bot = M @ Vector((0.6, -0.1, -6.8))
+    if pose.get('feet', 0) > 0.01: out.update(legs(pose, body))
     return out, mask_M, bot
+
+
+def legs(pose, body):
+    """His legs, only built while they show (pose 'feet' > 0): 0 = down behind the counter, 1 = both feet up on the
+    desk, soles to you, ankles at FEET_DESK; in between they swing up in an arc (FEET_ARC) over the back rail. 'tap' =
+    HANZ's grey foot tapping (its toe tips toward you). Returns {'leg_sal': ..., 'leg_hanz': ...}."""
+    f = pose['feet']; out = {}
+    for s, tag in ((-1, 'sal'), (1, 'hanz')):
+        hip = np.array(body @ Vector((s * HIP[0], HIP[1], HIP[2])))
+        lo = np.array((s * FEET_DOWN[0], FEET_DOWN[1], FEET_DOWN[2])); hi = np.array((s * FEET_DESK[0], FEET_DESK[1], FEET_DESK[2]))
+        if f < 0.5:                                                                # up behind the counter...
+            g = f / 0.5; a = lo + np.array((0, 0, (hi[2] + FEET_ARC - lo[2]) * g))
+        else:                                                                      # ...then over the rail and down onto it
+            g = (f - 0.5) / 0.5; a = np.array((lo[0] + (hi[0] - lo[0]) * g, lo[1] + (hi[1] - lo[1]) * g, hi[2] + FEET_ARC * math.cos(g * math.pi / 2)))
+        knee, ankle = ik(hip, a, (s * 0.15, -0.25, 1), THIGH, SHIN)
+        tap = pose.get('tap', 0) if s > 0 else 0
+        toe = np.array((s * 0.12, -0.25 - 0.6 * tap, 1.0)) * f + np.array((0, -1, -0.2)) * (1 - f)
+        up = np.array((0, 1, 0.25 - 0.6 * tap)) * f + np.array((0, -0.2, 1)) * (1 - f)
+        out['leg_' + tag] = (H.leg(s, tuple(hip), tuple(knee), tuple(ankle), tuple(toe), tuple(up)), None)
+    return out
+
+
+COLLAR_STEPS = (0.0, 0.25, 0.5, 0.75, 1.0)       # how far the collar may slump, tried in turn (collar = 0..1)
+COLLAR_EASE = 3                                  # frames either side a slump is held and eased over (so it never pops)
+
+
+def settle_collar(poses, mats, loop=False):
+    """His ring collar gives way to whatever presses into it: for each frame, the least slump (pose 'collar', see
+    hanz_3d.coat) that keeps his head, hair and sleeves out of it; then held COLLAR_EASE frames either side and
+    smoothed, so it folds down and stands back up gently. Returns new poses (never less slumped than they asked)."""
+    need = []
+    for pose in poses:
+        best = 1.0
+        for c in COLLAR_STEPS:
+            if c < pose.get('collar', 0): continue
+            q = dict(pose); q['collar'] = c
+            for back in np.arange(0, 30, 0.75):
+                parts, mm, bot = figure(q, back); place(parts, mats)
+                clips = clip_check()
+                if not any(x[:2] == ('torso', 'counter') for x in clips): break
+            if not any('collar' in x[0] or 'collar' in x[1] for x in clips): best = c; break
+        need.append(best)
+    n = len(need); E = COLLAR_EASE
+    at = lambda i: need[i % n] if loop else need[min(max(i, 0), n - 1)]
+    held = [max(at(j) for j in range(i - E, i + E + 1)) for i in range(n)]
+    hat = lambda i: held[i % n] if loop else held[min(max(i, 0), n - 1)]
+    out = []
+    for i, pose in enumerate(poses):
+        q = dict(pose); q['collar'] = max(pose.get('collar', 0), need[i], sum(hat(j) for j in range(i - E, i + E + 1)) / (2 * E + 1))
+        out.append(q)
+    return out
 
 
 # ------------------------------------------------------------------ rendering (PS1 style)
@@ -532,6 +613,23 @@ def setup():
     for nm in DESK: H.light_up(bpy.data.objects[nm], cam, snap=True)
     sc = bpy.context.scene; sc.render.resolution_x, sc.render.resolution_y = H.RES; sc.render.resolution_percentage = 100
     return cam, mats
+
+
+def desk_hits(cam, pad=3):
+    """Where each thing on his desk is on the game's 640x360 screen (x, y, w, h, padded a little) - LostScene lets you
+    click them (THE DESK). The hourglass is its frame and glass together."""
+    groups = {'bell': ['bell'], 'watch': ['watch'], 'till': ['till'], 'books': ['books'], 'lava': ['lava'],
+              'hourglass': ['hourglass', 'hourglass_glass'], 'candle': ['candle']}
+    out = {}
+    for name, obs in groups.items():
+        xs, ys = [], []
+        for nm in obs:
+            ob = bpy.data.objects.get(nm)
+            if not ob: continue
+            for v in ob.data.vertices:
+                x, y = to_screen(cam, ob.matrix_world @ v.co); xs.append(x); ys.append(y)
+        if xs: out[name] = [round(min(xs)) - pad, round(min(ys)) - pad, round(max(xs) - min(xs)) + 2 * pad, round(max(ys) - min(ys)) + 2 * pad]
+    return out
 
 
 def desk(mode):
@@ -890,7 +988,7 @@ def main():
     if a.clips:                                                                   # --clips: no rendering, just list every clipping frame
         for name, spec in ANIMS.items():
             if only and name not in only: continue
-            for i, pose in enumerate(spec['frames']()):
+            for i, pose in enumerate(settle_collar(spec['frames'](), mats, spec.get('loop'))):
                 for back in np.arange(0, 30, 0.75):
                     parts, mm, bot = figure(pose, back); place(parts, mats)
                     c = clip_check()
@@ -904,6 +1002,7 @@ def main():
         old = json.loads(open(TABLE).read().split('LOST_FRAMES = ', 1)[1].rstrip().rstrip(';'))
         table['anims'] = old.get('anims', {}); table['props'] = old.get('props', {})
         if 'counter' in old: table['counter'] = old['counter']
+        if 'hits' in old: table['hits'] = old['hits']
     if not only or 'counter' in only:                                             # the counter and what stands on it still
         for ob in list(bpy.data.objects):
             if ob.get('hanz'): bpy.data.objects.remove(ob)
@@ -913,10 +1012,11 @@ def main():
         ccrop, cx, cy = trim(shoot(tmp))
         quantize(ccrop).save(os.path.join(OUT, 'counter.png'), optimize=True)
         table['counter'] = [cx * SCALE, cy * SCALE]
+        table['hits'] = desk_hits(cam)
     if not only or 'props' in only: render_props(cam, mats, tmp, table)
     for name, spec in ANIMS.items():
         if only and name not in only: continue
-        poses = spec['frames']()
+        poses = settle_collar(spec['frames'](), mats, spec.get('loop'))
         crops, info, drops, born = [], [], [], set(drops_for(poses))
         for i, pose in enumerate(poses):
             pose = dict(pose); pose['_t'] = i / FPS
