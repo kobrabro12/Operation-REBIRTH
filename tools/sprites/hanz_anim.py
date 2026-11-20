@@ -334,6 +334,67 @@ def glitch():
     return breathe(follow(frames_of(k), 0.6), 0.7)
 
 
+def switch():
+    """THE SWITCH (a mood swing, with a line): $@L at full blast - up off the counter, jazz hands, bouncing - then a
+    glitch, his head spins all the way round, and it lands on HANZ: slumped, arms dropped, miserable. (Ends a full turn
+    round, which is where it started.)"""
+    jh = lambda s: arm((s * 38, -20, 28), pole=(s, 0.3, -0.4), dir=(s * 0.3, -0.2, 1), nrm=(0, -1, 0), grip='open', spread=0.9)
+    jazz = (jh(-1), jh(1))                            # (jazz hands: up at his chest, palms to you, fingers spread)
+    up = (0, 43, 0, 30, 0)
+    k = [(0.0, P()),
+         (0.3, P(body=up, head=(-20, -8, 10), l=jazz[0], r=jazz[1]), 'out'),
+         (0.55, P(body=(0, 43, 2.5, 28, 2), head=(-24, -10, 14), l=jazz[0], r=jazz[1]), 'out'),
+         (0.8, P(body=up, head=(-18, -6, 8), l=jazz[0], r=jazz[1]), 'in'),
+         (1.0, P(body=(0, 43, 2.5, 28, -2), head=(-22, -10, 12), l=jazz[0], r=jazz[1]), 'out'),
+         (1.1, P(body=up, head=(-20, -8, 10), l=jazz[0], r=jazz[1], glitch=0.35), 'snap'),
+         (1.6, P(body=(0, 42, -2, 36, 0), head=(380, 6, -6), glitch=0.2), 'io'),           # (the head spins right round)
+         (1.75, P(body=(0, 42, -3, 38, 0), head=(380, 10, -8)), 'snap'),
+         (2.3, P(body=(0, 41, -7, 45, 0), head=(382, 20, -14)), 'out'),                     # ...HANZ. slumped.
+         (3.0, P(body=(0, 41, -7, 45, 0), head=(379, 21, -12)), 'io'),
+         (3.6, P(head=(360, 4, -7)), 'io')]
+    return breathe(follow(frames_of(k), 0.5), 0.6)
+
+
+def pitch():
+    """THE PITCH (with a line): a showman's sales pitch - $@L flings both arms wide and up, chin high, wiggles his fingers
+    at you (jazz hands), then folds into a deep theatrical bow, arms out, and snaps back upright."""
+    wide = lambda s, dz=0, sp=0.8, c=(0.1, 0.08, 0.1, 0.14): arm((s * 44, -14, 40 + dz), pole=(s, 0.3, -0.4), dir=(s * 0.6, -0.3, 0.7), nrm=(s * 0.2, -1, 0.1), grip='open', spread=sp, curl=c)
+    low = lambda s: arm((s * 40, -20, 14), pole=(s, 0.3, -0.2), dir=(s * 0.7, -0.4, -0.1), nrm=(0, -1, 0.3), grip='open', spread=0.6)
+    tall = (0, 43, 1, 27, 0)
+    k = [(0.0, P()),
+         (0.4, P(body=(0, 43, -2, 32, 0), head=(0, 0, -4), l=LIFT(-1), r=LIFT(1)), 'io'),
+         (0.9, P(body=tall, head=(0, -12, 6), l=wide(-1), r=wide(1)), 'back')]
+    t = 0.9
+    for i in range(5):                                                                          # (jazz hands: fingers wiggling)
+        t += 0.18
+        c = (0.35, 0.05, 0.35, 0.05) if i % 2 else (0.05, 0.35, 0.05, 0.35)
+        k.append((t, P(body=tall, head=(4 if i % 2 else -4, -12, 6 if i % 2 else 2), l=wide(-1, 3 if i % 2 else 0, 0.9, c), r=wide(1, 0 if i % 2 else 3, 0.9, c)), 'io'))
+    k += [(t + 0.5, P(body=(0, 46, -6, 54, 0), head=(0, 26, -2), l=low(-1), r=low(1)), 'io'),      # the bow...
+          (t + 1.1, P(body=(0, 46, -6, 55, 0), head=(0, 27, -2), l=low(-1), r=low(1)), 'io'),
+          (t + 1.35, P(body=tall, head=(-6, -6, 8), l=LIFT(-1), r=LIFT(1)), 'back'),           # ...and back up, ta-da
+          (t + 1.9, P(), 'io')]
+    return breathe(follow(frames_of(k), 0.5), 0.5)
+
+
+def sob():
+    """THE COLLAPSE (with a line): out of nowhere HANZ crumples - face in both hands, slumped over the counter, shoulders
+    shaking as he sobs - and then, just as suddenly, he snaps upright, all smiles, as if nothing happened."""
+    m0 = (0, 0, 0, 0)
+    face = lambda: (grip_mask(-1, m0, 0.2), grip_mask(1, m0, 0.2))
+    l, r = face()
+    k = [(0.0, P()),
+         (0.35, P(body=(0, 42, -8, 50, 0), head=(0, 24, -6), l=l, r=r, collar=1), 'out')]
+    t = 0.35
+    for i in range(12):                                                                         # (sobbing: little shudders)
+        t += 0.17
+        k.append((t, P(body=(0, 42, -8 + (1.3 if i % 2 else -0.4), 50 + (-1.8 if i % 2 else 0.6), 0), head=(0, 24 + (2 if i % 2 else 0), -6), l=l, r=r, collar=1), 'out' if i % 2 else 'in'))
+    k += [(t + 0.25, P(body=(0, 42, -8, 50, 0), head=(0, 24, -6), l=l, r=r, collar=1), 'io'),
+          (t + 0.32, P(body=(0, 43, 1, 30, 0), head=(-10, -6, 8), l=LIFT(-1), r=LIFT(1)), 'snap'),  # ...and he's FINE!
+          (t + 1.0, P(body=(0, 43, 0, 32, 0), head=(-8, -4, 6), l=LIFT(-1), r=LIFT(1)), 'io'),
+          (t + 1.5, P(), 'io')]
+    return breathe(follow(frames_of(k), 0.4), 0.4)
+
+
 GLITCH_SPREAD = 11                               # how far (units) a piece of him can jump at full glitch
 GLITCH_TURN = 16                                 # ...and turn (degrees)
 
@@ -473,6 +534,9 @@ ANIMS = {
     'hold_l': {'loop': True, 'frames': lambda: hold(-1), 'lazy': True},
     'hold_r': {'loop': True, 'frames': lambda: hold(1), 'lazy': True},
     'glitch': {'frames': glitch, 'lazy': True},
+    'switch': {'frames': switch, 'lazy': True},
+    'pitch': {'frames': pitch, 'lazy': True},
+    'sob': {'frames': sob, 'lazy': True},
     'look_d': {'frames': lambda: look(0)},
     # HANZ talking: turns his grey side to you, slumps, props his chin on his grey fist, sighs and nods slowly
     'hanz_talk': {'loop': True, 'frames': lambda: breathe(follow(frames_of([
