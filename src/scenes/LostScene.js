@@ -370,17 +370,21 @@ export class LostScene extends Phaser.Scene {
    *  face off, shows you nothing, puts it back) or FEET UP (kicks his feet up on the desk and leans back) - the last two
    *  followed by a line about it. (The clock-heart is for when YOU do nothing: `waitCheck`.) */
   fidget() {
-    if (this.talk || this.anim.name !== 'idle' || this.t < this.fidgetAt) return;
+    if (this.talk || !this.resting() || this.t < this.fidgetAt) return;
     const [a, b] = FIDGET.every; this.fidgetAt = this.t + a + Math.floor(Math.random() * (b - a));
     const r = Math.random(), has = (a) => this.ready && this.ready.has(a);
     const pick = r < FIDGET.unmask && has('unmask') ? 'unmask' : r < FIDGET.unmask + FIDGET.feet && has('feet') ? 'feet' : 'twitch';
     this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the mask and the feet get a line after)
   }
 
+  /** True while he's just standing there - idling, or holding a look at the card you picked (he rests in look_l /
+   *  look_r while a card is picked, so fidgets have to start from those too). */
+  resting() { return ['idle', 'look_l', 'look_r'].includes(this.anim.name); }
+
   /** You've done nothing for WAIT frames (30 s): he takes his clock-heart out, checks how long, and says so. Then the
    *  wait starts again. */
   waitCheck() {
-    if (this.quiet < WAIT || this.talk || this.anim.name !== 'idle' || !(this.ready && this.ready.has('heart'))) return;
+    if (this.quiet < WAIT || this.talk || !this.resting() || !(this.ready && this.ready.has('heart'))) return;
     this.quiet = 0; this.fidgetAt = Math.max(this.fidgetAt, this.t + FIDGET.every[0]);
     this.play('heart', () => this.say('wait'));
   }
