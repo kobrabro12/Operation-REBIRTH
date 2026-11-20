@@ -63,7 +63,82 @@ export const LOST_LINES = {
     [['h', 'HAVE YOU EVER WOKEN UP SOMEWHERE AND FORGOTTEN THE WAY IN?'], ['s', ' THAT\'S CALLED SHOPPING.']],
     [['s', 'WHO TOOK THE STAIRS?'], ['h', ' THE STAIRS TOOK THEMSELVES.']],
     [['h', '...'], ['s', ' SAY SOMETHING!'], ['h', ' ...'], ['s', ' UGH!']],
+    [['s', 'ONE DAY I\'M GONNA OPEN A SHOP OF MY OWN.'], ['h', ' YOU\'RE STANDING IN IT.'], ['s', ' A BETTER ONE!']],
+    [['h', 'THE MOON IS HALF RED TODAY.'], ['s', ' IT\'S ALWAYS HALF RED.'], ['h', ' ...SO ARE WE.']],
+    [['s', 'NOBODY BUYS ANYTHING ON A THURSDAY.'], ['h', ' IT\'S NEVER THURSDAY HERE.'], ['s', ' EXACTLY!']],
+    [['h', 'I HAD A DREAM I WAS AWAKE.'], ['s', ' NIGHTMARE.']],
+    [['s', 'THE OTHER SHOPKEEPER IS A TELEVISION.'], ['h', ' HE\'S A GOOD LISTENER.'], ['s', ' HE\'S A TELEVISION!']],
+    [['h', 'IF YOU FIND SOMETHING OF MINE OUT THERE... KEEP IT.']],
+    [['s', 'TOUCH THE THINGS ON THE DESK. GO ON.'], ['h', ' THEY KNOW THINGS.']],
+    [['s', 'I COUNTED THE STAIRS. THERE WERE MORE GOING DOWN THAN UP.'], ['h', ' THAT\'S HOW STAIRS WORK HERE.']],
+    [['h', 'DOES IT EVER FEEL LIKE SOMEONE IS WATCHING YOU SHOP?'], ['s', ' THAT\'S ME! I\'M WATCHING!']],
+    [['s', 'A SPY COAT! NOBODY CAN SEE ME IN IT!'], ['h', ' EVERYONE CAN SEE YOU.'], ['s', ' THEY\'RE PRETENDING NOT TO.']],
   ],
+  // he puts his feet up on the desk and leans back (a fidget), then says one of these
+  feet: [
+    [['s', 'AHH. THIS IS THE LIFE.'], ['h', ' THIS ISN\'T A LIFE.']],
+    [['s', 'CUSTOMERS COME TO ME.'], ['h', ' ...NOBODY COMES.']],
+    [['h', 'MY FEET ARE TIRED. I DON\'T KNOW FROM WHAT.']],
+    [['s', 'BOSS\'S ORDERS: RELAX!'], ['h', ' WE\'RE THE BOSS.'], ['s', ' AND I SAID RELAX!']],
+    [['s', 'NICE SHOES, RIGHT? ONE OF EACH.'], ['h', ' ...WE COULDN\'T AGREE.']],
+  ],
+  // you've done nothing for half a minute: he takes his clock-heart out and checks how long, then says one of these
+  wait: [
+    [['h', 'THIRTY SECONDS.'], ['s', ' FEELS LIKE THIRTY YEARS!']],
+    [['s', 'TICK TOCK! THE CLOCK SAYS YOU\'RE DAWDLING!']],
+    [['h', 'TAKE YOUR TIME. IT\'S NOT MINE ANYMORE.']],
+    [['s', 'ARE YOU ASLEEP?'], ['h', ' MAYBE WE ARE.']],
+    [['h', 'STILL HERE? ...GOOD. IT GETS QUIET.']],
+    [['s', 'BUY SOMETHING OR GET LOST!'], ['h', ' THEY ARE LOST.'], ['s', ' THEN BUY SOMETHING!']],
+  ],
+  // THE DESK: click (or tap) the things on his counter. Each answers in turn, going down its list, and some of them
+  // let slip the secret codes for the TV shopkeeper next door (ring his bell 3 times, then type them in).
+  desk_bell: [
+    [['s', 'DING! SERVICE! ...OH WAIT, THAT\'S ME.']],
+    [['h', 'THE OTHER SHOP HAS A BELL TOO. RING IT THREE TIMES.'], ['s', ' AND HE\'LL LISTEN! HE\'S A TV, HE HAS TO!']],
+    [['s', 'STOP RINGING IT!'], ['h', ' ...HE LIKES IT REALLY.']],
+    [['h', 'RING... RING... SOMEONE ONCE CALLED AT THIRTEEN.'], ['s', ' DON\'T ANSWER IT! DON\'T TYPE IT EITHER!']],
+  ],
+  desk_watch: [
+    [['h', 'IT MELTED THE DAY I STOPPED LOOKING AT IT.']],
+    [['s', 'IT ONLY GOES UP TO THIRTEEN!'], ['h', ' THE LAST HOUR IS THE BAD ONE.']],
+    [['h', 'DO YOU REMEMBER THAT DAY?'], ['s', ' WHICH DAY?'], ['h', ' THE TV DOES. TELL HIM: R. T. D.']],
+    [['s', 'IT\'S STILL RIGHT TWICE A DAY!'], ['h', ' IT\'S NOT A DAY.']],
+  ],
+  desk_hourglass: [
+    [['s', 'THE SAND FALLS UP! HA! TAKE THAT, GRAVITY!']],
+    [['h', 'EVERYTHING ON THIS DESK IS A STILL LIFE.'], ['s', ' THE TV LOVES THAT ONE. ONE WORD! STILLLIFE!']],
+    [['h', 'YOU TURNED IT OVER. NOW IT FALLS DOWN.'], ['s', ' ...THAT\'S WORSE! TURN IT BACK!']],
+  ],
+  desk_lava: [
+    [['s', 'GROOVY!']],
+    [['h', 'THE PURPLE HAZE IN HERE... IT REMINDS ME OF A KING.'], ['s', ' THE MASKED ONE! HE HATES HIS NAME!']],
+    [['s', 'FOUR LETTERS. N... O... L... I! DON\'T TELL HIM I TOLD YOU!'], ['h', ' TELL THE TELEVISION.']],
+    [['h', 'IT\'S BEEN WARMING UP FOR A HUNDRED YEARS.'], ['s', ' ANY MINUTE NOW!']],
+  ],
+  desk_books: [
+    [['h', 'MY OLD BOOKS. THE PAGES ARE ALL THE SAME PAGE.']],
+    [['s', 'A CHEMISTRY BOOK. SOMEONE SIGNED IT: HEISENBERG.'], ['h', ' SAY HIS NAME TO THE TV. HE\'LL TAKE YOU FOR A DRIVE.']],
+    [['s', 'THIS ONE\'S A PASSPORT! PAPERS, PLEASE!'], ['h', ' THE TV TAKES IT AS ONE WORD. PAPERSPLEASE.']],
+    [['h', 'THERE\'S A BOOKMARK. I NEVER GOT TO THAT PART.']],
+  ],
+  desk_candle: [
+    [['h', 'DON\'T BLOW IT OUT.'], ['s', ' BLOW IT OUT!']],
+    [['s', 'IN THE TRENCHES THEY SANG FOR A FALLEN HOOD.'], ['h', ' R. I. P. ...HOOD. THE TV KNOWS THE SONG.']],
+    [['h', 'IT\'S BEEN BURNING SINCE BEFORE I GOT HERE.']],
+  ],
+  // you blew the candle out (click it three times quickly): it's dark for a moment and he takes his face off
+  candle_out: [
+    [['h', '...YOU SAW THAT.'], ['s', ' NO HE DIDN\'T!']],
+    [['s', 'WHO TURNED OFF THE LIGHTS?!'], ['h', ' THEY DID. IT WAS THEM.']],
+  ],
+  desk_till: [
+    [['s', 'HANDS OFF THE TILL!']],
+    [['h', 'IT\'S EMPTY. IT WAS ALWAYS EMPTY.'], ['s', ' THEN WHY DO I GUARD IT?!']],
+    [['s', 'NO! THAT\'S MY RAINY DAY FUND!'], ['h', ' IT NEVER RAINS HERE.']],
+  ],
+  // the first time you open the till: there IS something in it (a one-time gift of MEMORIES - DESK_GIFT in LostScene)
+  till_gift: [[['h', 'OH. THERE WAS SOMETHING IN THERE.'], ['h', ' TAKE IT.'], ['s', ' NO!! THOSE ARE MINE!']]],
   // after he's checked the time on his clock-heart
   heart: [
     [['h', '...STILL TICKING.']],
@@ -86,6 +161,17 @@ export const LOST_LINES = {
   // the shelves are still bare (stage 1: his things are still being found)
   empty: [[['h', 'THE SHELVES ARE BARE. EVERYTHING IS STILL... LOST.'], ['s', ' WE\'LL FIND IT! OR STEAL IT!']]],
 };
+
+// things he says AND does while left alone (now and then instead of a plain idle line): his animation + one line
+export const LOST_ACTS = [
+  { anim: 'shrug', line: [['h', 'WHAT DO I KNOW.'], ['s', ' NOTHING!'], ['h', ' ...EXACTLY.']] },
+  { anim: 'shrug', line: [['s', 'WHO CARES!'], ['h', ' I DO. A LITTLE.']] },
+  { anim: 'slam', line: [['s', 'I\'M BORED!!'], ['h', ' ...WE KNOW.']] },
+  { anim: 'slam', line: [['s', 'SERVICE IS SLOW TODAY!'], ['h', ' WE ARE THE SERVICE.']] },
+  { anim: 'twitch', line: [['h', '...DID YOU HEAR THAT?']] },
+  { anim: 'laugh', line: [['s', 'I JUST REMEMBERED SOMETHING FUNNY!'], ['h', ' PLEASE DON\'T SHARE IT.']] },
+  { anim: 'greet', line: [['s', 'WELCOME! WELCOME! ...STILL WELCOME!']] },
+];
 
 // SECOND OPINION (an extra he sells): after a KO his head pops up at the edge of the screen with one of these
 export const SECOND_OPINION = {

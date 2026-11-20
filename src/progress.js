@@ -29,7 +29,7 @@ export function addKO(id) {
 // ---- the SHOP: coins, what you own, what you have switched on. Remembered in this browser.
 // Testing: ?coins=5000 sets the coin count.
 const SHOP_KEY = 'rebirth.shop';
-const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [], lost: null };
+const shop = { coins: 0, owned: [], music: null, stageFx: null, extras: [], lost: null, lostFound: [] };
 try { Object.assign(shop, JSON.parse(localStorage.getItem(SHOP_KEY) || '{}') || {}); } catch (e) { /* keep the defaults */ }
 function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) { /* storage unavailable */ } }
 try {
@@ -42,6 +42,10 @@ export function getCoins() { return shop.coins; }
 export function lostKeeper() { return shop.lost || null; }
 /** Unlocks LOST for good with the name you typed ('HANZ' or '$@L': that side greets you first). */
 export function setLostKeeper(code) { if (!shop.lost) { shop.lost = code; saveShop(); } }
+/** True once a LOST desk secret (e.g. 'till' - the MEMORIES in his till) has been found in this browser. */
+export function lostFound(id) { return (shop.lostFound || []).includes(id); }
+/** Remembers that a LOST desk secret was found (so a one-time gift is only ever given once). */
+export function markLostFound(id) { if (!lostFound(id)) { shop.lostFound = [...(shop.lostFound || []), id]; saveShop(); } }
 // hidden shop items (shop.js `hidden: <tag>`) show up while their tag is revealed - e.g. 'noli' by the shopkeeper's code.
 // Not saved: it only lasts until you leave the shop (ShopScene hides it again on the way out)
 const shown = new Set();

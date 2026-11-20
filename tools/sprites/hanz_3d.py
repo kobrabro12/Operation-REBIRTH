@@ -32,7 +32,10 @@ BLEND = os.path.join(HERE, 'art', 'hanz.blend')
 SAL_SKIN = 0xb8121c; SAL_SKIN_D = 0x860a12   # $@L (LEFT of the picture): blood red
 HANZ_SKIN = 0xd2d0cc; HANZ_SKIN_D = 0xa8a6a2 # HANZ (right of the picture): pale, drained of colour
 HORN = 0x6e0810; HORN2 = 0x9a1018           # $@L's devil horn: dark blood red
-COAT = 0x24232b; COAT2 = 0x302f39; COAT3 = 0x18171e   # the trench coat: heavy charcoal
+COAT = 0x1a1a23; COAT2 = 0x292935; COAT3 = 0x0f0f15   # the trench coat: noir - near-black with a cold blue tint
+TROUSER = 0x34343e                                     # his trousers (only seen when his feet are up)
+SHOE_SAL = 0x7a0a12; SHOE_HANZ = 0xb4b2ae; SOLE = 0x8a6a4a   # his shoes: one red, one grey (like the rest of him), worn tan leather soles
+BUTTON = 0x2e2a2a                                      # its dark horn buttons (a spy's coat: nothing that glints)
 BELT = 0x161519; BRASS = 0xc8a040; BRASS2 = 0x8a6a28
 HAIR = 0x101013
 WOOD = 0x6a4028; WOOD2 = 0x80502e; WOOD3 = 0x4a2c1c
@@ -168,7 +171,7 @@ def coat(M, hatch=0.0, collar=0.0):
     torso.slab([(-4, 39.5), (4, 39.5), (2, 32), (-2, 32)], -10.9, -9.4, COAT3, M)        # the dark opening at the throat
     for bx in (-5.5, 5.5):
         for bz in (27, 20):
-            torso.box((bx, -12.7, bz), (2.2, 1.0, 2.2), BRASS, M)
+            torso.box((bx, -12.7, bz), (2.2, 1.0, 2.2), BUTTON, M)
     torso.hull([(x, y, z) for x in (-15, 15) for y in (-10, 10) for z in (6, 11)], BELT, M)
     torso.box((0, -10.8, 8.5), (6, 1.4, 6), BRASS, M); torso.box((0, -11.2, 8.5), (3, 1.2, 3), BELT, M)
     for sx in (-1, 1):
@@ -185,18 +188,42 @@ def coat(M, hatch=0.0, collar=0.0):
     hat.box((X0 + 1.4, YF - 1.05, (Z0 + Z1) / 2), (0.9, 0.4, 1.8), BELT, Hm)                       # the keyhole
     for z in (Z0 + 1.6, Z1 - 1.6): hat.box((X1 + 0.1, YF - 0.6, z), (1.2, 1.3, 2.0), BRASS, M)  # hinges (they stay put)
     out['cavity'] = cav; out['hatch'] = hat
+    # the collar: a tall funnel RING standing up all round his neck, like a spy's turned-up trench collar - flaring
+    # out toward the top, low at the front (under his chin) and high at the back; lined red on $@L's side and grey
+    # on HANZ's. Two halves (collar_l / collar_r) meeting at the back, a thin gap at the throat. Built of short
+    # convex segments (a ring isn't convex). collar > 0 pushes its top out and down so his arms can reach his face.
     for sx, nm in ((-1, 'collar_l'), (1, 'collar_r')):
         lining = SAL_SKIN_D if sx < 0 else HANZ_SKIN_D
         col = Mesh()
-        fn = lambda c, n, sx=sx, lining=lining: lining if n[0] * sx < -0.3 else COAT
-        # a narrow band standing up round the neck (clear of the shoulders), then the big flared top above shoulder height
-        col.hull([(sx * 8, -8, 40), (sx * 8, 7, 42), (sx * 14, -7, 42), (sx * 14, 7, 42),
-                  (sx * 15.5, -8, 51), (sx * 15.5, 7, 52), (sx * 19.5, -8, 51), (sx * 19.5, 7, 52)], fn, M)
-        push = lambda pts: [(x + sx * collar * 3 * (z - 50) / 14, y + collar * 11 * (z - 50) / 14, z - collar * 2 * (z - 50) / 14) for x, y, z in pts]
-        col.hull(push([(sx * 15.5, -8, 50.5), (sx * 15.5, 7, 51.5), (sx * 19.5, -8, 50.5), (sx * 19.5, 7, 51.5),
-                       (sx * 28, -6, 62), (sx * 35, -9, 64), (sx * 34, 7, 63), (sx * 27, 6, 63)]), fn, M)   # (collar > 0: its flares pushed back - his arms are up)
+        th = np.linspace(0.16, math.pi - 0.05, RING_SEGS + 1)
+        for a0, a1 in zip(th[:-1], th[1:]):
+            pts = []
+            for a in (a0, a1):
+                k = math.sqrt((1 - math.cos(a)) / 2)                             # (0 at the throat, ~0.7 at the sides, 1 at the back)
+                lo, hi_ = RING_Z[1] + (RING_FOLD[0] - RING_Z[1]) * collar, RING_Z[2] + (RING_FOLD[1] - RING_Z[2]) * collar
+                top = lo + (hi_ - lo) * k
+                rt = tuple(r + (f - r) * collar for r, f in zip(RING_R[1], RING_FOLD[2]))
+                for z, (rx, ry) in ((RING_Z[0], RING_R[0]), (top, rt)):
+                    for t in (0, RING_T):
+                        pts.append((sx * (rx + t) * math.sin(a), RING_Y - (ry + t) * math.cos(a), z))
+            mid = (a0 + a1) / 2
+            rad = np.array((sx * math.sin(mid), -math.cos(mid), 0))          # (this segment's outward direction)
+            fn = lambda c, n, rad=rad, lining=lining: COAT3 if n[2] > 0.7 else (lining if np.dot(n, rad) < -0.2 else COAT2 if n[2] < -0.7 else COAT)
+            o = len(col.v)
+            col.hull(pts, fn)
+            col.v[o:] = [tuple(M @ Vector(v)) for v in col.v[o:]]
         out[nm] = col
     return out
+
+
+SHOE = 1.5                                      # his shoes' size (big, so their soles read when his feet are up)
+RING_SEGS = 7                                    # segments in each half of the collar ring
+RING_Z = (38.5, 44, 58)                          # the collar ring: its bottom, its top at the throat, its top at the back
+RING_FOLD = (40, 42, (13.5, 11.5))                # collar = 1 (his arms up at his face): it slumps down tight round his neck -
+                                                 # its top at the throat, at the back, and its top radius
+RING_R = ((15.5, 12.5), (23, 18.5))            # its inner radius (x, y) at the bottom and at the top (it flares out)
+RING_T = 2.4                                     # its thickness
+RING_Y = 1.0                                     # its centre (y) - round his neck
 
 
 def arm(s, shoulder, elbow, wrist, hand_dir):
@@ -223,6 +250,30 @@ def arm(s, shoulder, elbow, wrist, hand_dir):
         hd.limb(tuple(base), tuple(tip), 1.7, 1.4, skin, sides=4)
     hd.limb(tuple(w + u * 6 * -s + d * 2), tuple(w + u * 12 * -s + d * 7 + np.array((0, 0, -0.5))), 2.0, 1.6, skin_d, sides=4)
     return {'sleeve': sl, 'hand': hd}
+
+
+def leg(s, hip, knee, ankle, toe, up):
+    """One long leg in noir trousers ending in a polished shoe (red for $@L, s = -1; grey for HANZ, s = +1): thigh
+    hip -> knee, shin knee -> ankle with a narrow cuff, then the shoe - toe = the way the foot points, up = the top
+    of the foot (the sole faces away from it). Returns a Mesh in world space."""
+    m = Mesh()
+    m.limb(hip, knee, 6.0, 5.2, TROUSER, sides=7, twist=0.3)
+    m.hull([tuple(np.array(knee) + 5.3 * np.array((math.cos(a) * math.cos(e), math.sin(a) * math.cos(e), math.sin(e))))
+            for a in np.linspace(0, 2 * math.pi, 8)[:-1] for e in (-0.8, 0, 0.8)], TROUSER)        # the knee, rounded
+    m.limb(knee, ankle, 5.2, 4.2, TROUSER, sides=7, twist=0.2)
+    t = np.array(toe, float); t /= np.linalg.norm(t)
+    u = np.array(up, float); u -= np.dot(u, t) * t; u /= np.linalg.norm(u)
+    w = np.cross(t, u)
+    a = np.array(ankle, float)
+    shoe = SHOE_SAL if s < 0 else SHOE_HANZ
+    pt = lambda f, sd, h: tuple(a + (t * f + w * sd + u * h) * SHOE)
+    # the shoe: heel block under the ankle, the upper over the foot, a rounded toe; then the sole + heel
+    m.hull([pt(f, sd, h) for f in (-3.5, 3) for sd in (-3.2, 3.2) for h in (-2.5, 2.5)], shoe)
+    m.hull([pt(f, sd * k, h) for f, k in ((2, 1), (10, 0.95), (13, 0.6)) for sd in (-3.4, 3.4) for h in (-2.6, 1.2 if f > 9 else 2)], shoe)
+    m.hull([pt(f, sd * k, -3.3) for f, k in ((-4, 1), (13.4, 0.62)) for sd in (-3.5, 3.5)] +
+           [pt(f, sd * k, -2.5) for f, k in ((-4, 1), (13.4, 0.62)) for sd in (-3.5, 3.5)], SOLE)
+    m.hull([pt(f, sd, h) for f in (-4, 0.5) for sd in (-3.3, 3.3) for h in (-5.6, -3.2)], BELT)        # the heel (dark)
+    return m
 
 
 def heart(clock=(0.0, 0.0), drips=()):
@@ -375,8 +426,9 @@ INKC = 0x101012
 # what each colour is made of: it decides how the PS1-style lighting treats it
 KINDS = {
     'skin': (SAL_SKIN, SAL_SKIN_D, HANZ_SKIN, HANZ_SKIN_D),
-    'cloth': (COAT, COAT2, COAT3),
-    'leather': (BELT,),
+    'cloth': (COAT, COAT2, COAT3, TROUSER),
+    'leather': (BELT, BUTTON),
+    'shoe': (SHOE_SAL, SHOE_HANZ, SOLE),
     'metal': (BRASS, BRASS2),
     'hair': (HAIR,),
     'horn': (HORN, HORN2),
@@ -398,7 +450,7 @@ KINDS = {
 }
 # per material: shine (a fake hard highlight, like a PS1 game's cheap env-map look), glow (it lights itself: 0 = lit
 # by the lamps, 1+ = glows at that brightness), see-through (1 = solid, 0.5 = the PS1's half-transparent blend)
-LOOK = {'hair': (0.18, 0, 1), 'horn': (0.4, 0, 1), 'metal': (0.6, 0, 1), 'chrome': (0.7, 0, 1), 'wet': (0.7, 0, 1),
+LOOK = {'shoe': (0.55, 0, 1), 'hair': (0.18, 0, 1), 'horn': (0.4, 0, 1), 'metal': (0.6, 0, 1), 'chrome': (0.7, 0, 1), 'wet': (0.7, 0, 1),
         'ceramic': (0.25, 0, 1), 'paint': (0.2, 0, 1), 'leather': (0.25, 0, 1), 'wood': (0.12, 0, 1),
         'cavity': (0, 1.0, 1), 'lavawax': (0, 1.25, 1), 'lavaglass': (0.4, 0.55, 0.5), 'glass': (0.6, 0.35, 0.5),
         'voideye': (0, 1.3, 1)}
@@ -620,7 +672,7 @@ def build(pose='lean'):
 
 # pairs of pieces that must never pass through each other (the shoulder joins and the hair on the head are meant to
 # overlap, so they're not listed)
-NO_CLIP = [('skull', 'collar_l'), ('skull', 'collar_r'), ('skull', 'torso'), ('horn', 'collar_r'), ('horn', 'collar_l'), ('horn', 'face'), ('hair', 'collar_l'), ('hair', 'collar_r'), ('face', 'collar_l'), ('face', 'collar_r'), ('hair', 'torso'),
+NO_CLIP = [('leg_sal', 'counter'), ('leg_hanz', 'counter'), ('leg_sal', 'leg_hanz'), ('skull', 'collar_l'), ('skull', 'collar_r'), ('skull', 'torso'), ('horn', 'collar_r'), ('horn', 'collar_l'), ('horn', 'face'), ('hair', 'collar_l'), ('hair', 'collar_r'), ('face', 'collar_l'), ('face', 'collar_r'), ('hair', 'torso'),
            ('face', 'torso'), ('face', 'neck_x'), ('sleeve_sal', 'counter'), ('sleeve_hanz', 'counter'),
            ('hand_sal', 'counter'), ('hand_hanz', 'counter'), ('hand_sal', 'watch'), ('hand_sal', 'bell'),
            ('hand_hanz', 'till'), ('sleeve_hanz', 'till'), ('sleeve_sal', 'collar_l'), ('sleeve_hanz', 'collar_r'),

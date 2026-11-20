@@ -162,9 +162,11 @@ Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X 
 - **LOST** (the shop's last tab): the TRUE SHOPKEEPER, HANZ / $@L - one man split down the middle: $@L the left half
   (blood red, one devil horn: sneaky, quick to anger, foolish) and HANZ the right (pale grey: tired, sad, smart). A 3D
   low-poly figure (rendered in Blender in a PS1 look: low resolution, wobbly vertices, baked light, dithered colour)
-  leaning over a counter in a dark, dreamlike surrealist room. Left alone he fidgets: twitches, checks the clock in his
-  dripping heart, or takes his mask off (a black void with two pinprick eyes) and puts it back; after a sale he may
-  cackle into his palm. The room is dark
+  leaning over a counter in a dark, dreamlike surrealist room, in a noir spy trench with a ring collar. Left alone he
+  fidgets: twitches, kicks his feet up on the desk, or takes his mask off (a black void with two pinprick eyes); stand
+  there 30 s doing nothing and he checks the clock in his dripping heart. After a sale he may cackle into his palm.
+  Everything on his desk can be clicked: each thing has its own lines, several hint at the TV shopkeeper's secret
+  codes, the till pays out once, the candle can be blown out. The room is dark
   until you type HANZ or $@L (the name decides who greets you first); after that he's unlocked for good. He sells, in
   MEMORIES (the same coins): SLEEPWALKER (Soul Summoner), MELTED HOUR (Lacy), ROOM IN A BOWL (AERO), TWO-FACED (GNASH),
   2500 each; the stage theme THE WAITING DREAM (1200); the extras SECOND OPINION (his head pops up after KOs with a

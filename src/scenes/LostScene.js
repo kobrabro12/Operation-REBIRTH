@@ -11,8 +11,11 @@
 // two colours, swinging his head round to whichever side is talking and arguing with himself (src/data/lostLines.js).
 // The room breathes: its layers drift and ripple, grain crawls over it, and now and then the room skips. Things on his
 // desk move on their own (lostFrames props: the lava lamp, the hourglass whose sand falls up, the candle), and when
-// he's left alone he fidgets: a horrible twitch of the head, he takes out his clock-heart and checks the time, or he
-// takes his face off (it's a mask - nothing behind it but two pinprick eyes) and puts it back. Everything is rendered
+// he's left alone he fidgets: a horrible twitch of the head, he kicks his feet up on the desk and leans back, or he
+// takes his face off (it's a mask - nothing behind it but two pinprick eyes) and puts it back; do nothing for 30 s and
+// he takes out his clock-heart to check how long you've been standing there. The things on his desk can be clicked
+// (THE DESK: each answers with its own lines - some give away the TV shopkeeper's codes; the till pays out once, the
+// candle blows out, the hourglass turns over). Everything is rendered
 // PS1-style (320x180, wobbly vertices, 15-bit dithered colour) and drawn at 2x (LOST_FRAMES.scale).
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { MenuInput } from './menuInput.js';
@@ -20,12 +23,12 @@ import { sfx } from '../audio/sfx.js';
 import { stopMusic } from '../audio/music.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
-import { lostKeeper, setLostKeeper, getCoins, buyItem, owns, toggleEquip, isEquipped } from '../progress.js';
+import { lostKeeper, setLostKeeper, getCoins, buyItem, owns, toggleEquip, isEquipped, addCoins, lostFound, markLostFound } from '../progress.js';
 import { SHOP } from '../data/shop.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
 import { LOST_FRAMES } from './lostFrames.js';
-import { LOST_LINES, LOST_COLORS, LOST_VOICE } from '../data/lostLines.js';
+import { LOST_LINES, LOST_COLORS, LOST_VOICE, LOST_ACTS } from '../data/lostLines.js';
 
 const DIR = 'assets/shop/lost/';
 const TICKS = Math.round(60 / LOST_FRAMES.fps);        // game frames per animation frame
@@ -36,8 +39,19 @@ const GLYPHS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ$@', 'DEL'];
 const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
 const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.05, skip: [900, 1800] };
-// left alone he fidgets every so often (frames between, the chance it's the heart / the mask rather than the twitch)
-const FIDGET = { every: [700, 1300], heart: 0.35, unmask: 0.3 };
+// left alone he fidgets every so often (frames between, the chance it's the mask / feet up on the desk, else the twitch)
+const FIDGET = { every: [700, 1300], unmask: 0.3, feet: 0.4 };
+// do nothing for this long (frames: 30 s) and he takes his clock-heart out to check how long you've been standing there
+const WAIT = 1800;
+// the chance his idle chatter comes with something he does (LOST_ACTS) instead of just a line
+const ACT = 0.35;
+// THE DESK: what you can click on his counter (hit boxes come from lostFrames 'hits'; checked in this order, small
+// things first), the sound each makes, MEMORIES the till gives the first time, and the candle: clicks that blow it
+// out, within how many frames, and how long it stays out / the room stays dark
+const DESK = ['bell', 'watch', 'candle', 'hourglass', 'lava', 'books', 'till'];
+const DESK_SFX = { bell: ['ding', 0.6, 1.0], watch: ['clocktick', 0.8, 1], candle: ['flame', 0.25, 1.4], hourglass: ['glass', 0.3, 1.3], lava: ['geyser', 0.2, 1.8], books: ['whoosh', 0.25, 0.7], till: ['clang', 0.35, 1.5] };
+const DESK_GIFT = 300;
+const CANDLE = { clicks: 3, within: 90, out: 600, dark: 45 };
 // after a sale: the chance $@L cackles instead of rubbing his hands
 const LAUGH = 0.4;
 // his things: card size and where the two columns float
@@ -89,7 +103,7 @@ export class LostScene extends Phaser.Scene {
     this.dark = this.add.image(0, 0, 'lost_room_dark').setOrigin(0).setDepth(3);
     const S = LOST_FRAMES.scale || 1;                                            // (everything is rendered PS1-small and drawn at this size)
     this.counter = this.add.image(LOST_FRAMES.counter[0], LOST_FRAMES.counter[1], 'lost_counter').setOrigin(0).setDepth(5).setScale(S);
-    this.props = Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => ({ p, s: this.add.image(p.x, p.y, 'lost_prop_' + n, '0').setOrigin(0).setDepth(5.5).setScale(S) }));
+    this.props = Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => ({ name: n, p, s: this.add.image(p.x, p.y, 'lost_prop_' + n, '0').setOrigin(0).setDepth(5.5).setScale(S) }));
     this.him = this.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setDepth(6).setScale(S);
     this.pupils = { sal: this.add.image(0, 0, 'lost_pupils', 'sal').setDepth(7), hanz: this.add.image(0, 0, 'lost_pupils', 'hanz').setDepth(7) };
     this.fidgetAt = this.t + FIDGET.every[0];
@@ -103,7 +117,7 @@ export class LostScene extends Phaser.Scene {
     this.info = this.add.text(VIEW_W / 2, 322, '', { fontFamily: FONT, fontSize: '6px', color: '#e8e0d0', align: 'center', stroke: '#000000', strokeThickness: 3, wordWrap: { width: 420 } }).setOrigin(0.5, 0).setDepth(22);
     this.backBtn = makeButton(this, 8, 6, 'BACK', () => this.leave(), { size: '7px', depth: 23 });
     addFullscreenButton(this);
-    this.idleAt = 600;
+    this.idleAt = 600; this.quiet = 0; this.deskN = {}; this.candleT = []; this.candleOut = 0; this.gazeAt = null;
     if (this.lit) this.lightUp(false); else this.startDark();
     this.events.once('shutdown', () => this.cleanup());
     this.loadLazy();
@@ -257,10 +271,12 @@ export class LostScene extends Phaser.Scene {
   talkLock() { return this.talk && this.talk.lock && !this.talk.done; }
 
   // ------------------------------------------------------------------ talking
-  /** Starts one of his lines (a random one under key in LOST_LINES): the pieces type out in his two colours. */
-  say(key) {
-    const set = LOST_LINES[key]; if (!set) return;
-    const i = Math.floor(Math.random() * set.length), line = set[i], id = key + '_' + i;
+  /** Starts one of his lines: under key in LOST_LINES, number idx (random if not given) - or `line` itself (pieces,
+   *  for LOST_ACTS). The pieces type out in his two colours. */
+  say(key, idx = null, line = null) {
+    const set = line ? [line] : LOST_LINES[key]; if (!set) return;
+    const i = line ? 0 : idx == null ? Math.floor(Math.random() * set.length) : idx % set.length; line = set[i];
+    const id = key + '_' + i;
     this.words.forEach((w) => w.destroy()); this.words = [];
     // lay the words out (wrapping), each in its speaker's colour, all hidden to start
     const words = []; for (const [who, txt] of line) for (const w of txt.split(/(?<= )/)) if (w) words.push({ who, w });
@@ -283,7 +299,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -340,8 +356,9 @@ export class LostScene extends Phaser.Scene {
     }
   }
 
-  /** What he's looking at: the thing you're on, else the pointer if it's moving, else you (the middle of the screen). */
+  /** What he's looking at: a desk thing you just touched, the thing you're on, else the pointer if it's moving, else you (the middle of the screen). */
   gazeTarget() {
+    if (this.gazeAt && this.t < this.gazeAt.until) return this.gazeAt;
     const c = this.cards[this.sel];
     if (c && this.lit) return { x: c.x + CARD.w / 2, y: c.y + CARD.h / 2 + this.bob(c) };
     const p = this.input.activePointer;
@@ -349,15 +366,84 @@ export class LostScene extends Phaser.Scene {
     return { x: VIEW_W / 2, y: 120 };
   }
 
-  /** Left alone (no talking, just idling) he fidgets now and then: a horrible twitch of the head, his clock-heart (out of
-   *  his chest, checks the time, back), or THE MASK (takes his face off, shows you nothing, puts it back) - the last two
-   *  followed by a line about it. */
+  /** Left alone (no talking, just idling) he fidgets now and then: a horrible twitch of the head, THE MASK (takes his
+   *  face off, shows you nothing, puts it back) or FEET UP (kicks his feet up on the desk and leans back) - the last two
+   *  followed by a line about it. (The clock-heart is for when YOU do nothing: `waitCheck`.) */
   fidget() {
-    if (this.talk || this.anim.name !== 'idle' || this.t < this.fidgetAt) return;
+    if (this.talk || !this.resting() || this.t < this.fidgetAt) return;
     const [a, b] = FIDGET.every; this.fidgetAt = this.t + a + Math.floor(Math.random() * (b - a));
     const r = Math.random(), has = (a) => this.ready && this.ready.has(a);
-    const pick = r < FIDGET.heart && has('heart') ? 'heart' : r < FIDGET.heart + FIDGET.unmask && has('unmask') ? 'unmask' : 'twitch';
-    this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the heart and the mask get a line after)
+    const pick = r < FIDGET.unmask && has('unmask') ? 'unmask' : r < FIDGET.unmask + FIDGET.feet && has('feet') ? 'feet' : 'twitch';
+    this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the mask and the feet get a line after)
+  }
+
+  /** True while he's just standing there - idling, or holding a look at the card you picked (he rests in look_l /
+   *  look_r while a card is picked, so fidgets have to start from those too). */
+  resting() { return ['idle', 'look_l', 'look_r'].includes(this.anim.name); }
+
+  /** You've done nothing for WAIT frames (30 s): he takes his clock-heart out, checks how long, and says so. Then the
+   *  wait starts again. */
+  waitCheck() {
+    if (this.quiet < WAIT || this.talk || !this.resting() || !(this.ready && this.ready.has('heart'))) return;
+    this.quiet = 0; this.fidgetAt = Math.max(this.fidgetAt, this.t + FIDGET.every[0]);
+    this.play('heart', () => this.say('wait'));
+  }
+
+  /** His chatter when nothing's happening: usually a line, sometimes a line with something he does (LOST_ACTS). */
+  chatter() {
+    if (Math.random() < ACT) {
+      const a = LOST_ACTS[Math.floor(Math.random() * LOST_ACTS.length)];
+      if (this.ready && this.ready.has(a.anim)) { this.play(a.anim, null, true); this.say('act', null, a.line); return; }
+    }
+    this.say('idle');
+  }
+
+  // ------------------------------------------------------------------ the desk
+  /** The desk thing under a point (a name from DESK), or null. */
+  deskAt(x, y) {
+    const H = LOST_FRAMES.hits || {};
+    return DESK.find((n) => { const r = H[n]; if (!r || (n === 'candle' && this.candleOut > 0)) return false; return x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3]; }) || null;
+  }
+
+  /** You touched something on his desk: its sound, he looks at it and answers - each thing's lines in turn (some
+   *  give away the TV shopkeeper's codes). The till pays out once; the candle blows out if you click it 3 times fast;
+   *  the hourglass turns over. */
+  touchDesk(n) {
+    const [snd, v, rate] = DESK_SFX[n]; sfx(snd, v, rate);
+    const r = LOST_FRAMES.hits[n]; this.gazeAt = { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2, until: this.t + 150 };
+    this.quiet = 0;
+    if (n === 'hourglass') { const pr = this.props.find((q) => q.name === 'hourglass'); if (pr) pr.s.setFlipY(!pr.s.flipY); }
+    if (n === 'candle') {
+      this.candleT = this.candleT.filter((t) => this.t - t < CANDLE.within).concat(this.t);
+      if (this.candleT.length >= CANDLE.clicks) { this.blowCandle(); return; }
+    }
+    if (this.talkLock()) return;
+    if (n === 'till' && !lostFound('till')) {
+      markLostFound('till'); addCoins(DESK_GIFT); sfx('ding', 0.8, 1.6);
+      this.play('slam', null, true); this.say('till_gift'); this.talk.lock = true; return;
+    }
+    const k = 'desk_' + n, i = this.deskN[k] || 0; this.deskN[k] = i + 1;
+    this.say(k, i);
+  }
+
+  /** The candle goes out: the room goes dark for a moment, and when the light comes back he's taking his face off. */
+  blowCandle() {
+    this.candleT = []; this.candleOut = CANDLE.out; sfx('smoke', 0.5, 1.2);
+    const pr = this.props.find((q) => q.name === 'candle'); if (pr) pr.s.setVisible(false);
+    this.dark.setVisible(true); this.time.delayedCall(CANDLE.dark * 1000 / 60, () => this.dark.setVisible(false));
+    if (this.ready && this.ready.has('unmask')) this.play('unmask', () => this.say('candle_out'), true); else this.say('candle_out');
+  }
+
+  /** Brackets round the desk thing under the pointer (so you know you can touch it). */
+  drawDeskHover(g) {
+    const p = this.input.activePointer; if (!p || this.t - (this.pointerT || -999) > 240) return;
+    const n = this.deskAt(p.x, p.y); this.game.canvas.style.cursor = n ? 'pointer' : '';
+    if (!n) return;
+    const [x, y, w, h] = LOST_FRAMES.hits[n], k = 5, a = 0.5 + 0.4 * Math.abs(Math.sin(this.t * 0.08));
+    g.lineStyle(1, 0xdedcd8, a);
+    for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]]) {
+      g.beginPath(); g.moveTo(cx, cy + sy * k); g.lineTo(cx, cy); g.lineTo(cx + sx * k, cy); g.strokePath();
+    }
   }
 
   /** Turns him toward the picked thing (look_l / look_r) when he isn't busy talking or reacting. */
@@ -409,6 +495,7 @@ export class LostScene extends Phaser.Scene {
       }
       g.fillStyle(own ? 0x6a6670 : 0xff4a4a, 1); g.fillRect(c.x + 8, y + CARD.h - 11, 4, 4);
     });
+    this.drawDeskHover(g);
     const it = this.cur();
     g.fillStyle(0x000000, 0.7); g.fillRect(0, VIEW_H - 46, VIEW_W, 46);
     g.fillStyle(0xff4a4a, 1); g.fillRect(0, VIEW_H - 46, VIEW_W / 2, 1); g.fillStyle(0xdedcd8, 1); g.fillRect(VIEW_W / 2, VIEW_H - 46, VIEW_W / 2, 1);
@@ -424,7 +511,9 @@ export class LostScene extends Phaser.Scene {
     this.t++;
     const m = this.menu.poll();
     const p = this.input.activePointer;
-    if (p && (p.x !== this.px || p.y !== this.py)) { this.px = p.x; this.py = p.y; this.pointerT = this.t; }
+    if (p && (p.x !== this.px || p.y !== this.py)) { this.px = p.x; this.py = p.y; this.pointerT = this.t; this.quiet = 0; }
+    if (m.up || m.down || m.left || m.right || m.ok || m.pads.length) this.quiet = 0; else this.quiet++;
+    if (this.candleOut > 0 && --this.candleOut === 0) { const pr = this.props.find((q) => q.name === 'candle'); if (pr) pr.s.setVisible(true); }
     if (m.back || m.pads.some((q) => q.button === 'b')) { this.leave(); return; }
     if (!this.lit) {
       const n = GLYPHS.length;
@@ -445,7 +534,8 @@ export class LostScene extends Phaser.Scene {
         if (m.ok || m.pads.some((q) => q.button === 'a')) this.buy();
       }
       this.lookAtPick();
-      if (!this.talk && --this.idleAt <= 0) { this.idleAt = 600 + Math.floor(Math.random() * 600); this.say('idle'); }
+      if (!this.talk && --this.idleAt <= 0) { this.idleAt = 600 + Math.floor(Math.random() * 600); this.chatter(); }
+      this.waitCheck();
       this.fidget();
       this.stepTalk();
     }
@@ -461,13 +551,16 @@ export class LostScene extends Phaser.Scene {
       if (k >= 0) { this.glyph = k; this.typeGlyph(GLYPHS[k]); }
       return;
     }
+    this.quiet = 0;
+    const dk = this.deskAt(p.x, p.y);
+    if (dk) { this.touchDesk(dk); return; }
     for (let i = 0; i < this.cards.length; i++) {
       const c = this.cards[i], y = c.y + this.bob(c);
       if (p.x >= c.x && p.x <= c.x + CARD.w && p.y >= y && p.y <= y + CARD.h) { if (this.sel === i) this.buy(); else { this.sel = i; sfx('menu', 0.3, 1.1); } return; }
     }
     if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
       this.say('poke');
-      if (!['heart', 'twitch', 'unmask'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+      if (!['heart', 'twitch', 'unmask', 'feet'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
   }
 
@@ -481,6 +574,7 @@ export class LostScene extends Phaser.Scene {
   /** Puts the keyboard back and drops the typing listener. */
   cleanup() {
     if (this.onKey) window.removeEventListener('keydown', this.onKey);
+    if (this.game && this.game.canvas) this.game.canvas.style.cursor = '';
     try { this.input.keyboard.enabled = true; this.input.keyboard.enableGlobalCapture(); } catch (e) { /* plugin gone */ }
   }
 
