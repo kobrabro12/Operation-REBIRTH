@@ -47,6 +47,7 @@ FEET_DOWN = (9, 46, -58)                         # ...and when they're down, beh
 FEET_ARC = 22                                    # how high above the desk his feet swing over its back rail
 CLEAR = 23.5                                     # the counter's back edge (y) - his coat stays behind it below the top
 FPS = 15                                         # frames are rendered at 15 a second (the game holds each 4 ticks)
+TIPS = {}                                        # each hand's fingertips last frame (figure() fills it)
 HEART_SCALE = 1.7                               # his heart's size in his hand
 LAG = 0.5                                        # how fast his head catches up with where it's going each frame (1 = no lag)
 SHEET_MAX = 1_800_000                            # a sheet bigger than this (bytes) is split in two
@@ -226,18 +227,20 @@ def twitch():
 
 
 def heart():
-    """The clock-heart (an idle now and then): HANZ's grey hand rises to the hatch in his chest, it swings open (a red
-    glow inside), he reaches in and draws out his heart - dark, wet, dripping, a pocket watch wound into it - lifts it
-    beside his face, peers at it while its hands spin round and stop, sighs, puts it back and shuts the hatch."""
+    """The clock-heart (when you've done nothing for half a minute): HANZ's grey hand rises to the hatch in his chest, it
+    swings open (a red glow inside), he reaches in and draws out his heart - dark, wet, dripping, a pocket watch wound
+    into it - and holds it out in front of him over the counter. He leans in and stares at it for a long while as its
+    hands spin round and stop, tilts his head, sighs, then puts it back and shuts the hatch."""
     lean = (2, 47, 5, 14, -6)                       # sitting up off the counter, turned a little to show the chest
+    over = (2, 42, 2, 28, -4)                        # ...then leaning in over the heart held out in front of him
     look = (-4, 9, -8)                               # head down to his chest
     reach = arm(wb=(9.5, -21, 27), b=1, pole=(1, 0, 0.7), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='reach')
     inside = arm(wb=(9.5, -16.5, 27), b=1, pole=(1, 0, 0.7), dir=(0, 1, 0.1), nrm=(0, 0, 1), grip='cup')
     out_ = arm(wb=(11, -26, 27), b=1, pole=(1, 0, 0.7), dir=(-0.1, 0.6, 0.6), nrm=(0, -0.6, -0.8), grip='cup')
-    hold = arm((22, -16, 38), pole=(1, 0.2, -0.6), dir=(-0.3, 0.55, 0.6), nrm=(0, -0.6, -0.5), grip='cup')
-    hold2 = arm((23, -18, 40), pole=(1, 0.2, -0.6), dir=(-0.3, 0.55, 0.65), nrm=(0, -0.6, -0.5), grip='cup')
-    peer = (18, 4, -14); sigh = (14, 10, -8)
+    held = lambda x, y, z: arm((x, y, z), pole=(1, 0.3, -0.8), dir=(-0.3, 0.55, 0.6), nrm=(0, -0.6, -0.5), grip='cup')
+    hold, hold2, hold3 = held(5, -20, 28), held(4, -24, 30), held(3, -23, 29)   # (held out in front of his chest)
     lift = arm((26, -12, 15), pole=(1, 0.2, 0.6), dir=(-0.2, -1, 0.3), grip='open')        # (the hand comes up off the wood first)
+    c0, c1 = (300, 60), (330, 60 + 720)
     k = [(0.0, P()),
          (0.25, P(body=(1, 43, -1, 28, -3), head=(-2, 6, -8), r=lift), 'io'),
          (0.6, P(body=lean, head=look, r=reach), 'io'),
@@ -245,20 +248,44 @@ def heart():
          (1.3, P(body=lean, head=look, r=inside, hatch=105), 'io'),
          (1.45, P(body=lean, head=look, r=inside, hatch=105, heart=1), 'snap'),
          (1.85, P(body=lean, head=(4, 12, -10), r=out_, hatch=105, heart=1), 'out'),
-         (2.5, P(body=lean, head=peer, r=hold, hatch=105, heart=1, clock=(300, 60)), 'io'),
-         (3.0, P(body=lean, head=(18, 4, -16), r=hold2, hatch=105, heart=1, clock=(300, 60)), 'io'),
-         (4.0, P(body=lean, head=(18, 4, -16), r=hold2, hatch=105, heart=1, clock=(330, 60 + 720)), 'out'),
-         (4.6, P(body=(2, 47, 4, 16, -6), head=sigh, r=hold, hatch=105, heart=1, clock=(330, 780)), 'io'),
-         (5.2, P(body=lean, head=look, r=out_, hatch=105, heart=1, clock=(330, 780)), 'io'),
-         (5.55, P(body=lean, head=look, r=inside, hatch=105, heart=1, clock=(330, 780)), 'io'),
-         (5.62, P(body=lean, head=look, r=inside, hatch=105, heart=0, clock=(330, 780)), 'snap'),
-         (5.95, P(body=lean, head=look, r=reach, hatch=105), 'io'),
-         (6.25, P(body=lean, head=look, r=reach, hatch=0), 'in'),
-         (6.6, P(body=(1, 43, -1, 28, -3), head=(-2, 6, -8), r=lift), 'io'),
-         (7.0, P(), 'io')]
+         (2.6, P(body=over, head=(6, 12, -8), r=hold, hatch=105, heart=1, clock=c0), 'io'),          # held out
+         (3.3, P(body=over, head=(5, 20, -12), r=hold2, hatch=105, heart=1, clock=c0), 'io'),         # leans in to look
+         (5.0, P(body=over, head=(3, 21, -6), r=hold2, hatch=105, heart=1, clock=c1), 'io'),          # the hands spin...
+         (6.2, P(body=over, head=(6, 22, -16), r=hold3, hatch=105, heart=1, clock=c1), 'io'),         # ...stop; he stares
+         (7.3, P(body=over, head=(6, 22, -15), r=hold3, hatch=105, heart=1, clock=c1), 'io'),
+         (7.9, P(body=(2, 46, 4, 18, -5), head=(6, 8, -6), r=hold, hatch=105, heart=1, clock=c1), 'io'),   # sighs
+         (8.5, P(body=lean, head=look, r=out_, hatch=105, heart=1, clock=c1), 'io'),
+         (8.85, P(body=lean, head=look, r=inside, hatch=105, heart=1, clock=c1), 'io'),
+         (8.92, P(body=lean, head=look, r=inside, hatch=105, heart=0, clock=c1), 'snap'),
+         (9.25, P(body=lean, head=look, r=reach, hatch=105), 'io'),
+         (9.55, P(body=lean, head=look, r=reach, hatch=0), 'in'),
+         (9.9, P(body=(1, 43, -1, 28, -3), head=(-2, 6, -8), r=lift), 'io'),
+         (10.3, P(), 'io')]
     fr = frames_of(k)
     for p in fr: p['clock'] = (p['clock'][0] % 360, p['clock'][1] % 360)
     return breathe(follow(fr), 0.8)
+
+
+def snap():
+    """THE SNAP (now and then, when he's left alone): $@L lifts his red hand beside his face, presses thumb to middle
+    finger, grins - and SNAPS. Sparks of fire fly off his fingers (LostScene draws them, at `spark`) and the whole room
+    changes into a hand-drawn one (or back again); he holds the pose a beat, pleased with himself, and lowers it."""
+    up = lambda curl, thumb, dz=0: arm((-34, -14, 56 + dz), pole=(-1, 0.3, -0.5), dir=(0.15, -0.2, 1), nrm=(-0.6, -0.6, 0),
+                                        grip='open', curl=curl, thumb=thumb, spread=0.05)
+    press, snapped = (0.35, 0.25, 0.9, 0.95), (0.4, 1.0, 0.95, 1.0)
+    k = [(0.0, P()),
+         (0.35, P(body=(0, 43, -2, 32, 0), head=(-6, 4, 2), l=LIFT(-1)), 'io'),
+         (0.8, P(body=(0, 44, -1, 30, 0), head=(-14, 2, 6), l=up(press, 0.7)), 'out'),
+         (1.0, P(body=(0, 44, -1, 30, 0), head=(-15, 1, 8), l=up(press, 0.75, 1.5)), 'io'),          # (the tension)
+         (SNAP_T, P(body=(0, 44, -1.5, 31, 0), head=(-12, 3, 5), l=up(snapped, 0.0, -2.5)), 'snap'),  # SNAP
+         (1.75, P(body=(0, 44, -1, 30, 0), head=(-4, -4, 9), l=up((0.3, 0.6, 0.8, 0.85), 0.1)), 'out'),  # pleased with himself
+         (2.4, P(body=(0, 44, -1, 30, 0), head=(0, -5, 10), l=up((0.3, 0.6, 0.8, 0.85), 0.1, -1)), 'io'),
+         (2.85, P(body=(0, 43, -2, 32, 0), head=(0, 2, -2), l=LIFT(-1)), 'io'),
+         (3.3, P(), 'io')]
+    return breathe(follow(frames_of(k), 0.6), 0.6)
+
+
+SNAP_T = 1.1                                     # the moment of the snap (s): the frame LostScene throws its sparks on
 
 
 def look(side):
@@ -339,8 +366,9 @@ def feet_up():
          (1.5, P(body=back, head=(0, -6, 5), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'out'),
          (1.75, P(body=back, head=(2, -5, 6), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'io')]
     t = 1.75
-    for i, (hd, tap) in enumerate((((6, -4, 9), 1), ((6, -4, 9), 0), ((6, -4, 9), 1), ((0, -7, 2), 0), ((-7, -3, -5), 1),
-                                   ((-7, -3, -5), 0), ((-7, -3, -5), 1), ((-2, -5, 3), 0))):
+    loll = (((6, -4, 9), 1), ((6, -4, 9), 0), ((6, -4, 9), 1), ((0, -7, 2), 0), ((-7, -3, -5), 1),
+            ((-7, -3, -5), 0), ((-7, -3, -5), 1), ((-2, -5, 3), 0))
+    for i, (hd, tap) in enumerate(loll + ((((0, -9, 4), 0),) * 3) + loll[::-1]):     # (he lolls there a good long while)
         t += 0.45 if tap else 0.3
         k.append((t, P(body=back, head=hd, l=nape(-1), r=nape(1), feet=1.0, tap=tap, collar=1), 'out' if tap else 'in'))
     k += [(t + 0.5, P(body=back, head=(0, -4, 2), l=nape(-1), r=nape(1), feet=1.0, collar=1), 'io'),
@@ -357,6 +385,7 @@ ANIMS = {
     'feet': {'frames': feet_up, 'lazy': True},
     'twitch': {'frames': twitch, 'lazy': True},
     'heart': {'frames': heart, 'lazy': True},
+    'snap': {'frames': snap, 'lazy': True},
     'look_l': {'frames': lambda: look(-1)},
     'look_r': {'frames': lambda: look(1)},
     'look_d': {'frames': lambda: look(0)},
@@ -523,6 +552,7 @@ def figure(pose, back=0.0):
         out['sleeve_' + tag] = (sleeve(s, S, E, W, body), None)
         hm, palm, up = hand(s, W, np.array(a['dir'], float), np.array(a['nrm'], float), a['curl'], a['spread'], a['thumb'])
         out['hand_' + tag] = (hm, None)
+        d = np.array(a['dir'], float); TIPS[tag] = np.array(W) + d / np.linalg.norm(d) * 15     # (his fingertips: where the snap's sparks fly from)
         if tag == 'hanz' and pose.get('heart', 0) > 0.5:                         # his heart, cupped in HANZ's palm
             c = palm + up * 5.6 * HEART_SCALE
             fwd = np.array(CAM[0]) - c; fwd[2] = 0; fwd /= np.linalg.norm(fwd)     # (its clock turned toward you)
@@ -1023,6 +1053,7 @@ def main():
         if only and name not in only: continue
         poses = settle_collar(spec['frames'](), mats, spec.get('loop'))
         crops, info, drops, born = [], [], [], set(drops_for(poses))
+        spark = [0, 0]
         for i, pose in enumerate(poses):
             pose = dict(pose); pose['_t'] = i / FPS
             drops = [(p, v) for p, v in drops if p[2] > 1.2]                       # (a drop reaching the counter is gone)
@@ -1032,9 +1063,11 @@ def main():
             if i in born and bot is not None: drops.append(((bot.x, bot.y, bot.z), 0.3))
             crop, x, y = trim(img)
             crops.append(crop); info.append({'x': x * SCALE, 'y': y * SCALE, 'eyes': eyes(cam, mask_M, pmeta)})
+            if name == 'snap' and i == math.ceil(SNAP_T * FPS): spark = [round(v) for v in to_screen(cam, Vector(TIPS['sal']))]
             print(f'  {name} {i + 1}/{len(poses)}', flush=True)
         files = pack(crops, name, info)
         table['anims'][name] = {'loop': bool(spec.get('loop')), 'lazy': bool(spec.get('lazy')), 'sheets': files, 'frames': info}
+        if name == 'snap': table['anims'][name]['spark'] = {'f': math.ceil(SNAP_T * FPS), 'x': spark[0], 'y': spark[1]}
         print(f'{name}: {len(crops)} frames, sheets {files}, {sum(os.path.getsize(os.path.join(OUT, f)) for f in files) // 1024} KB', flush=True)
         if a.preview:
             os.makedirs(a.preview, exist_ok=True)

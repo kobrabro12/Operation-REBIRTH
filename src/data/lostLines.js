@@ -74,6 +74,26 @@ export const LOST_LINES = {
     [['h', 'DOES IT EVER FEEL LIKE SOMEONE IS WATCHING YOU SHOP?'], ['s', ' THAT\'S ME! I\'M WATCHING!']],
     [['s', 'A SPY COAT! NOBODY CAN SEE ME IN IT!'], ['h', ' EVERYONE CAN SEE YOU.'], ['s', ' THEY\'RE PRETENDING NOT TO.']],
   ],
+  // THE LORE: now and then (in order, so you hear them all) he lets slip how things really are
+  lore: [
+    [['h', 'DO YOU KNOW WHAT YOU PAY WITH HERE? MEMORIES. REAL ONES.'], ['s', ' EVERY COIN YOU WIN OUT THERE IS SOMETHING SOMEBODY FORGOT!'], ['h', ' ...I KEEP THEM ALL.']],
+    [['h', 'WE WERE ONE MAN ONCE. THE NIGHT THE PURPLE STAR FELL INTO THE WATER UNDER GRAVEMOON BRIDGE, IT SPLIT EVERYTHING IT TOUCHED IN TWO.'], ['s', ' THE WATER GOT A GENTLEMAN OUT OF IT. WE GOT EACH OTHER.']],
+    [['h', 'MY HEART STOPPED AT THIRTEEN O\'CLOCK. THAT\'S WHEN THE DREAM STARTED.'], ['s', ' EVERY FIGHT YOU\'VE EVER WON HAPPENED IN HERE!'], ['h', ' ...THEY\'RE ALL ASLEEP SOMEWHERE. ALL OF THEM.']],
+    [['s', 'THE MASKED KING\'S CROWN HAS TWO FACES. ONE LAUGHS, ONE WEEPS.'], ['h', ' THEY WERE OURS. WE TRADED THEM FOR THIS SHOP.'], ['s', ' THAT\'S WHY THERE\'S NOTHING UNDER THE MASK!']],
+    [['h', 'THE STAR-EATER ISN\'T HUNGRY. HE\'S SCARED. HE SWALLOWS THE SKY SO NOBODY CAN FIND THE WAY OUT.'], ['s', ' BEAT HIM AND THE STARS COME BACK. AND THEN EVERYBODY WAKES UP!'], ['h', ' ...I DON\'T KNOW IF I WANT TO.']],
+  ],
+  // THE SNAP: he's just snapped the room into a hand-drawn one (snap_in), or back to how it was (snap_out)
+  snap_in: [
+    [['s', 'THERE. MUCH BETTER.'], ['h', ' ...IT\'S ONLY INK.']],
+    [['s', 'TA-DA! I DREW IT MYSELF!'], ['h', ' YOU CAN\'T DRAW.'], ['s', ' AND YET!']],
+    [['h', 'THIS IS HOW I REMEMBER IT. BEFORE.']],
+    [['s', 'DON\'T TOUCH ANYTHING. THE INK\'S STILL WET.']],
+  ],
+  snap_out: [
+    [['h', 'TOO FLAT. I MISSED MY CORNERS.']],
+    [['s', 'BORING! ...OKAY IT WAS GETTING SMUDGY.']],
+    [['h', 'THE EYE WAS STARING AT ME.'], ['s', ' THE EYE STARES AT EVERYONE!']],
+  ],
   // he puts his feet up on the desk and leans back (a fidget), then says one of these
   feet: [
     [['s', 'AHH. THIS IS THE LIFE.'], ['h', ' THIS ISN\'T A LIFE.']],
