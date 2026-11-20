@@ -48,6 +48,8 @@ const GLITCH_SFX = { at: [0.3, 0.55, 0.95, 1.5, 2.0, 2.4], vol: 0.35 };
 const DRAWN_STAY = { frames: 2400, snap: 0.65 };
 // the chance his idle chatter is one of his deep LORE lines instead (each in turn: `lore` in LOST_LINES)
 const LORE = 0.15;
+// the chance (each time he'd chatter) of his RARE line instead: that stupid TV...
+const RARE = 0.04;
 // do nothing for this long (frames: 30 s) and he takes his clock-heart out to check how long you've been standing there
 const WAIT = 1800;
 // the chance his idle chatter comes with something he does (LOST_ACTS) instead of just a line
@@ -446,6 +448,7 @@ export class LostScene extends Phaser.Scene {
   /** His chatter when nothing's happening: usually a line, sometimes a line with something he does (LOST_ACTS), now
    *  and then one of his LORE lines (in order, so you hear them all). */
   chatter() {
+    if (Math.random() < RARE) { this.say('rare'); return; }                    // (once in a long while)
     if (Math.random() < LORE) { this.say('lore', this.loreN++); return; }      // (his deep lore, each in turn)
     if (Math.random() < ACT) {
       const a = LOST_ACTS[Math.floor(Math.random() * LOST_ACTS.length)];
