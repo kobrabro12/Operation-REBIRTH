@@ -29,6 +29,7 @@ import { fighterById, showFighter } from '../fighters/roster.js';
 import { skinsFor } from '../fighters/skins.js';
 import { LOST_FRAMES } from './lostFrames.js';
 import { LOST_LINES, LOST_COLORS, LOST_VOICE, LOST_ACTS } from '../data/lostLines.js';
+import { DrawnRoom } from './lostDrawnRoom.js';
 
 const DIR = 'assets/shop/lost/';
 const TICKS = Math.round(60 / LOST_FRAMES.fps);        // game frames per animation frame
@@ -40,7 +41,11 @@ const PAD = { cols: 10, w: 40, h: 26, gap: 5, y: 236 };
 // the room: how far its layers drift / ripple, the ripple's strips, grain strength, and how often it "skips" (frames)
 const DREAM = { strip: 6, ripple: 1.6, rippleSpeed: 0.03, floatBob: 4, skyDrift: 2, grain: 0.05, skip: [900, 1800] };
 // left alone he fidgets every so often (frames between, the chance it's the mask / feet up on the desk, else the twitch)
-const FIDGET = { every: [700, 1300], unmask: 0.3, feet: 0.4 };
+const FIDGET = { every: [700, 1300], unmask: 0.25, feet: 0.3, snap: 0.25 };
+// THE SNAP: once the room has been drawn this long (frames), his next fidget is far more likely to snap it back
+const DRAWN_STAY = { frames: 2400, snap: 0.65 };
+// the chance his idle chatter is one of his deep LORE lines instead (each in turn: `lore` in LOST_LINES)
+const LORE = 0.15;
 // do nothing for this long (frames: 30 s) and he takes his clock-heart out to check how long you've been standing there
 const WAIT = 1800;
 // the chance his idle chatter comes with something he does (LOST_ACTS) instead of just a line
@@ -78,12 +83,18 @@ export class LostScene extends Phaser.Scene {
     LOST_FRAMES.anims[a].sheets.forEach((f, k) => { if (!this.textures.exists(`lost_hanz_${a}_${k}`)) this.load.image(`lost_hanz_${a}_${k}`, DIR + f); });
   }
 
-  /** Loads the lazy animations (the twitch, the clock-heart) after the room is up; they can play once they're in. */
+  /** Loads the lazy animations (the twitch, the clock-heart, the snap...) and the drawn room after the room is up;
+   *  they can play once they're in. */
   loadLazy() {
     this.ready = new Set(Object.keys(LOST_FRAMES.anims).filter((a) => !LOST_FRAMES.anims[a].lazy));
     const lazy = Object.keys(LOST_FRAMES.anims).filter((a) => LOST_FRAMES.anims[a].lazy);
     lazy.forEach((a) => this.queueAnim(a));
-    this.load.once('complete', () => { if (!this.sys.isActive()) return; lazy.forEach((a) => { this.addAnimFrames(a); this.ready.add(a); }); });
+    DrawnRoom.queue(this);
+    this.load.once('complete', () => {
+      if (!this.sys.isActive()) return;
+      lazy.forEach((a) => { this.addAnimFrames(a); this.ready.add(a); });
+      if (DrawnRoom.loaded(this)) this.drawn = new DrawnRoom(this);       // (THE DRAWN ROOM, for when he snaps)
+    });
     this.load.start();
   }
 
@@ -117,6 +128,7 @@ export class LostScene extends Phaser.Scene {
     this.info = this.add.text(VIEW_W / 2, 322, '', { fontFamily: FONT, fontSize: '6px', color: '#e8e0d0', align: 'center', stroke: '#000000', strokeThickness: 3, wordWrap: { width: 420 } }).setOrigin(0.5, 0).setDepth(22);
     this.backBtn = makeButton(this, 8, 6, 'BACK', () => this.leave(), { size: '7px', depth: 23 });
     addFullscreenButton(this);
+    this.drawn = null; this.drawnT = 0; this.loreN = 0;
     this.idleAt = 600; this.quiet = 0; this.deskN = {}; this.candleT = []; this.candleOut = 0; this.gazeAt = null;
     if (this.lit) this.lightUp(false); else this.startDark();
     this.events.once('shutdown', () => this.cleanup());
@@ -299,7 +311,7 @@ export class LostScene extends Phaser.Scene {
 
   /** Whoever's talking turns to you: HANZ's talk or $@L's - or he argues with himself if the line flips back and forth. */
   setTalkAnim(who) {
-    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
+    if (['slam', 'sold', 'greet', 'shrug', 'heart', 'twitch', 'unmask', 'laugh', 'feet', 'snap'].includes(this.anim.name) && !this.anim.done) { this.anim.then = () => this.setTalkAnim(this.talk && !this.talk.done ? this.talk.who : null); return; }
     if (!who) { this.play('idle'); return; }
     const name = this.talk && this.talk.switches >= 2 ? 'argue' : who === 'h' ? 'hanz_talk' : 'sal_talk';
     if (this.anim.name !== name) this.play(name);
@@ -334,7 +346,7 @@ export class LostScene extends Phaser.Scene {
     if (++A.tick >= TICKS) {
       A.tick = 0;
       if (A.rev) { if (A.f > 0) A.f--; else { A.done = true; this.play('idle'); } }
-      else if (A.f < n - 1) A.f++;
+      else if (A.f < n - 1) { A.f++; if (spec.spark && A.f === spec.spark.f && this.drawn) this.drawn.snap(spec.spark.x, spec.spark.y); }
       else if (spec.loop) A.f = 0;
       else if (!A.done) { A.done = true; const then = A.then; A.then = null; if (then) then(); else if (!A.name.startsWith('look')) this.play('idle'); }
     }
@@ -373,8 +385,26 @@ export class LostScene extends Phaser.Scene {
     if (this.talk || !this.resting() || this.t < this.fidgetAt) return;
     const [a, b] = FIDGET.every; this.fidgetAt = this.t + a + Math.floor(Math.random() * (b - a));
     const r = Math.random(), has = (a) => this.ready && this.ready.has(a);
-    const pick = r < FIDGET.unmask && has('unmask') ? 'unmask' : r < FIDGET.unmask + FIDGET.feet && has('feet') ? 'feet' : 'twitch';
+    const canSnap = has('snap') && this.drawn;
+    if (canSnap && this.drawn.on && this.t - this.drawnT > DRAWN_STAY.frames && Math.random() < DRAWN_STAY.snap) { this.snapNow(); return; }
+    const F = FIDGET;
+    const pick = r < F.unmask && has('unmask') ? 'unmask' : r < F.unmask + F.feet && has('feet') ? 'feet'
+      : r < F.unmask + F.feet + F.snap && canSnap ? 'snap' : 'twitch';
+    if (pick === 'snap') { this.snapNow(); return; }
     this.play(pick, pick === 'twitch' ? null : () => this.say(pick));        // (the mask and the feet get a line after)
+  }
+
+  /** THE SNAP: he snaps his fingers - at the snap (the frame `spark` in lostFrames) fire flies off them and the room
+   *  turns hand-drawn, or back (lostDrawnRoom.js) - then says something about it. */
+  snapNow() {
+    this.play('snap', () => this.say(this.drawn && this.drawn.on ? 'snap_in' : 'snap_out'), true);
+  }
+
+  /** Hides (or brings back) the 3D room, his counter and the desk things - the drawn room covers them while it's up. */
+  set3DRoom(v) {
+    for (const o of [this.sky, this.floatL, this.counter, ...this.strips]) o.setVisible(v);
+    for (const { name, s: sp } of this.props) sp.setVisible(v && !(name === 'candle' && this.candleOut > 0));
+    if (!v) this.drawnT = this.t;
   }
 
   /** True while he's just standing there - idling, or holding a look at the card you picked (he rests in look_l /
@@ -389,8 +419,10 @@ export class LostScene extends Phaser.Scene {
     this.play('heart', () => this.say('wait'));
   }
 
-  /** His chatter when nothing's happening: usually a line, sometimes a line with something he does (LOST_ACTS). */
+  /** His chatter when nothing's happening: usually a line, sometimes a line with something he does (LOST_ACTS), now
+   *  and then one of his LORE lines (in order, so you hear them all). */
   chatter() {
+    if (Math.random() < LORE) { this.say('lore', this.loreN++); return; }      // (his deep lore, each in turn)
     if (Math.random() < ACT) {
       const a = LOST_ACTS[Math.floor(Math.random() * LOST_ACTS.length)];
       if (this.ready && this.ready.has(a.anim)) { this.play(a.anim, null, true); this.say('act', null, a.line); return; }
@@ -465,9 +497,10 @@ export class LostScene extends Phaser.Scene {
     this.strips.forEach((s, i) => { s.x = Math.sin(i * 0.45 + t * DREAM.rippleSpeed) * DREAM.ripple; });
     if (t % 3 === 0) this.grain.setTilePosition(Math.floor(Math.random() * 320), Math.floor(Math.random() * 180));
     for (const { p, s } of this.props) s.setFrame(String(Math.floor(t * p.fps / 60) % p.n));   // the desk things loop at their own pace
+    if (this.drawn) this.drawn.step(t);                                          // (the drawn room, if he's snapped it in)
     if (this.lit && t >= this.skipAt) {
       this.skipAt = t + this.nextSkip();
-      if (Math.random() < 0.5) { this.dark.setVisible(true); this.time.delayedCall(70, () => this.dark.setVisible(false)); }
+      if (Math.random() < 0.5 && !(this.drawn && this.drawn.on)) { this.dark.setVisible(true); this.time.delayedCall(70, () => this.dark.setVisible(false)); }
       else { this.cameras.main.setScroll(Math.random() < 0.5 ? -26 : 26, 0); this.frozen = 24; this.time.delayedCall(80, () => this.cameras.main.setScroll(0, 0)); }   // the room jolts sideways and he stops dead for a moment
     }
   }
@@ -513,7 +546,7 @@ export class LostScene extends Phaser.Scene {
     const p = this.input.activePointer;
     if (p && (p.x !== this.px || p.y !== this.py)) { this.px = p.x; this.py = p.y; this.pointerT = this.t; this.quiet = 0; }
     if (m.up || m.down || m.left || m.right || m.ok || m.pads.length) this.quiet = 0; else this.quiet++;
-    if (this.candleOut > 0 && --this.candleOut === 0) { const pr = this.props.find((q) => q.name === 'candle'); if (pr) pr.s.setVisible(true); }
+    if (this.candleOut > 0 && --this.candleOut === 0) { const pr = this.props.find((q) => q.name === 'candle'); if (pr) pr.s.setVisible(!(this.drawn && this.drawn.on)); }
     if (m.back || m.pads.some((q) => q.button === 'b')) { this.leave(); return; }
     if (!this.lit) {
       const n = GLYPHS.length;
@@ -560,7 +593,7 @@ export class LostScene extends Phaser.Scene {
     }
     if (this.him.getBounds().contains(p.x, p.y) && !this.talkLock()) {
       this.say('poke');
-      if (!['heart', 'twitch', 'unmask', 'feet'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
+      if (!['heart', 'twitch', 'unmask', 'feet', 'snap'].includes(this.anim.name) || this.anim.done) this.play(Math.random() < 0.5 ? 'slam' : 'shrug', null, true);   // (not while his heart's out)
     }
   }
 
