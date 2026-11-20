@@ -16,6 +16,7 @@ import { equippedStageFx, extraOn } from '../progress.js';
 import { makeTheme } from './stageThemes.js';
 import { skinInfo } from '../fighters/skins.js';
 import { SECOND_OPINION, LOST_COLORS } from '../data/lostLines.js';
+import { addThingFrames, boilAt } from './lostDrawnRoom.js';
 
 const W = VIEW_W, H = VIEW_H;
 const RAINBOW = [0xff4a4a, 0xff9a3a, 0xffe04a, 0x5aff6a, 0x4ac8ff, 0x8a6aff, 0xff6ad8];
@@ -46,6 +47,9 @@ const OPINION = { life: 150, slide: 10, scale: 0.62 };
 // DOOR TO NOWHERE (LOST): two doors on the stage - walk into one, step out of the other. How close counts (px), how long
 // before the same fighter can use a door again, how often the doors move somewhere else (ticks) and how long they fade
 const DOORS = { reach: 12, again: 70, move: 1200, fade: 30, w: 20, h: 34 };
+// THE EYE (LOST): where his drawn eye hangs in the sky (x, y, size), how far its pupil can roll (px), how fast it follows,
+// and how long it squeezes shut when someone is KO'd (frames)
+const EYE = { x: 320, y: 48, scale: 0.9, roll: [7, 4], follow: 0.08, wince: 26 };
 const DISCO = { tile: 12, beat: 30, colors: [0xff3ad8, 0x3ad8ff, 0xffe03a, 0x7aff5a, 0xb05aff, 0xff7a3a] };
 
 export class MatchExtras {
@@ -56,7 +60,8 @@ export class MatchExtras {
     this.on = { numbers: on('ext-numbers'), confetti: on('ext-confetti'), finalcam: on('ext-finalcam'), hats: on('ext-hats'),
       moon: on('ext-moon'), airhorn: on('ext-airhorn'), rainbow: on('ext-rainbow'), impact: on('ext-impact'),
       comic: on('ext-comic'), combo: on('ext-combo'), ghosts: on('ext-ghosts'), disco: on('ext-disco'), newsreel: on('ext-newsreel'), ushanka: on('ext-ushanka'),
-      firebird: on('ext-firebird'), bear: on('ext-bear'), opinion: on('ext-opinion') && m.textures.exists('lost_heads'), doors: on('ext-doors') };
+      firebird: on('ext-firebird'), bear: on('ext-bear'), opinion: on('ext-opinion') && m.textures.exists('lost_heads'), doors: on('ext-doors'),
+      eye: on('ext-eye') && m.textures.exists('lost_drawn_things') };
     this.ops = []; this.doors = null;
     this.comics = []; this.combos = new Map(); this.ghosts = [];
     this.floor = this.on.disco ? m.add.graphics() : null; if (this.floor) m.addWorld(this.floor);   // (made before the fighters: under them)
@@ -76,6 +81,11 @@ export class MatchExtras {
       this.scratches = [];
     }
     this.flashes = [];
+    if (this.on.eye) {                                             // THE EYE: his drawn eye-moon hangs in the sky and watches
+      addThingFrames(m.textures);
+      this.eye = { img: m.add.image(EYE.x, EYE.y, 'lost_drawn_things', 'eye_0').setScrollFactor(0).setDepth(48.25).setScale(EYE.scale), g: m.add.graphics().setScrollFactor(0).setDepth(48.26), look: null, px: 0, py: 0, shut: 0, next: 200 };
+      m.addBg(this.eye.img, this.eye.g);
+    }
     if (this.on.moon) { this.saved = { g: PHYS.gravity, f: PHYS.maxFall, ff: PHYS.fastFall }; PHYS.gravity *= MOON.gravity; PHYS.maxFall *= MOON.fall; PHYS.fastFall *= MOON.fall; }
   }
   cleanup() { for (const o of this.ops) { o.img.destroy(); o.txt.destroy(); } this.ops = []; for (const g of this.ghosts) g.img.destroy(); this.ghosts = []; for (const c of this.comics) c.txt.destroy(); this.comics = [];
@@ -86,6 +96,7 @@ export class MatchExtras {
 
   onHit(t, dmg, kb, owner) {
     const c = t.center();
+    if (this.eye) this.eye.look = t;                               // THE EYE turns to whoever just got hit
     if (this.on.comic && kb > COMIC.kb) {                           // COMIC HITS: a word in a starburst, like a comic book panel
       const big = kb > COMIC.bigKb, L = big ? COMIC.big : COMIC.words, word = L[Math.floor(Math.random() * L.length)];
       const x = c.x + (Math.random() - 0.5) * 20, y = c.y - 24 - Math.random() * 10;
@@ -112,6 +123,7 @@ export class MatchExtras {
   }
 
   onKO(f, x, y) {
+    if (this.eye) this.eye.shut = EYE.wince;                       // THE EYE winces at a KO
     if (this.on.confetti) for (let i = 0; i < 60; i++) {        // confetti: paper bits that flutter down
       const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
       this.m.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, life: 60 + Math.random() * 50, color: RAINBOW[i % RAINBOW.length], size: 3, grav: 0.06, drag: 0.97, sway: i * 7 });
@@ -226,10 +238,33 @@ export class MatchExtras {
     this.comics = this.comics.filter((c) => { c.life--; c.txt.setScale(c.life > COMIC.life - 5 ? 1.4 - (COMIC.life - c.life) * 0.08 : 1).setAlpha(Math.min(1, c.life / 10)); if (c.life > 0) return true; c.txt.destroy(); return false; });
   }
 
+  /** THE EYE: boiling ink, a blink now and then (and a wince at every KO), and its own iris drawn over the painted one,
+   *  rolled toward whoever was hit last (or the middle of the fight). */
+  drawEye(t) {
+    const E = this.eye, m = this.m, g = E.g; g.clear();
+    if (--E.next <= 0) { E.shut = Math.max(E.shut, 7); E.next = 160 + Math.floor(Math.random() * 360); }
+    if (E.shut > 0) E.shut--;
+    const y = EYE.y + Math.sin(t * 0.017) * 2; E.img.y = y;
+    E.img.setFrame(E.shut > 0 ? 'eye_3' : 'eye_' + boilAt(t));
+    if (E.shut > 0) return;
+    let tx = W / 2, ty = H / 2;
+    const f = E.look && E.look.alive ? E.look : (m.fighters || []).find((q) => q.alive);
+    if (f && m.worldCam) { const c = f.center(), v = m.worldCam.worldView, z = m.worldCam.zoom; tx = (c.x - v.x) * z; ty = (c.y - v.y) * z; }
+    const dx = tx - EYE.x, dy = ty - y, d = Math.hypot(dx, dy) || 1;
+    E.px += (dx / d * EYE.roll[0] - E.px) * EYE.follow; E.py += (dy / d * EYE.roll[1] - E.py) * EYE.follow;
+    const s = EYE.scale, cx = EYE.x, cy = y + 4 * s;
+    g.fillStyle(0xfaf6ec, 1); g.fillCircle(cx, cy, 18 * s);                                    // (cover the painted iris)
+    g.fillStyle(0x3c8c8c, 1); g.fillCircle(cx + E.px, cy + E.py, 15 * s);
+    g.lineStyle(1.2, 0x26181a, 1); g.strokeCircle(cx + E.px, cy + E.py, 15 * s);
+    g.fillStyle(0x141012, 1); g.fillCircle(cx + E.px * 1.15, cy + E.py * 1.15, 7 * s);
+    g.fillStyle(0xffffff, 0.9); g.fillCircle(cx + E.px * 1.15 - 3 * s, cy + E.py * 1.15 - 3 * s, 2 * s);
+  }
+
   draw() {
     const t = this.t, sk = this.sky, w = this.weather, wd = this.world;
     sk.clear(); w.clear(); wd.clear();
     if (this.theme) this.theme.draw(t);
+    if (this.eye) this.drawEye(t);
     if (this.doors) for (const d of this.doors.list) {                                         // DOOR TO NOWHERE: a door standing on nothing
       if (d.x == null) continue;
       const D = this.doors, a = Math.min(1, Math.min(D.t, DOORS.move - D.t) / DOORS.fade), sw = d.slam > 0 ? d.slam-- / 10 : 0;

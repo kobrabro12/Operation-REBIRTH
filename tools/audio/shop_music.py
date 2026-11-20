@@ -17,11 +17,13 @@ match instead of the stage's own music. All original, all synthesised; each one 
   balalaika   BALALAIKA     an original Cossack-style stomp dance: tremolo balalaika, accordion, claps, shouts of HEY
   troika      TROIKA        an original sleigh ride at a gallop: sleigh bells, a galloping bass, balalaika and accordion
   showtime    SHOWSTOPPER   big-band swing: a brass section that swells and stabs, a muted trumpet lead, walking bass, a ride cymbal
+  thirteen    THIRTEEN O'CLOCK  (LOST - HANZ / $@L's room) a woozy waltz: a drunk upright piano, a music box going out of
+                            tune, a clock ticking every beat, glass bells; the last bar strikes thirteen
 
 Run:  python3 tools/audio/shop_music.py [names...]
 Writes public/assets/audio/music/shop_<name>.ogg and .mp3. Loaded in BootScene as bgm_shop_<name>.
 """
-import os, sys, subprocess, tempfile, wave
+import math, os, sys, subprocess, tempfile, wave
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from outro_music import (SR, hz, secs, bp, lp, hp, noise, add, adsr, reverb, shakuhachi, koto, bowl, musicbox, pad,
@@ -443,6 +445,38 @@ def showtime():
             for i in range(6): add(buf, drum_snare(0.4 + i * 0.08), t0 + 2 * b + i * b / 3)
     return write(wrap_reverb(buf, 1.4, 2.2, 0.2), 'showtime')
 
-PIECES = {'showtime': showtime, 'troika': troika, 'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
+def tick(vel=1.0, tone=3000):
+    """A clock's tick: a tiny bright click."""
+    n = secs(0.05); t = np.arange(n) / SR
+    return hp(noise(n), tone) * np.exp(-t * 160) * vel * 0.5
+
+
+def thirteen():
+    """THIRTEEN O'CLOCK: a waltz from his room. Oom-pah-pah on a slightly drunk upright (every note a hair late or
+    early), a music box singing over it that drifts flat and sharp, the clock ticking every beat, a glass bell every
+    four bars - and in the last bar the bell strikes thirteen, fast, before it all loops."""
+    bpm, bars = 84, 16; b = 60 / bpm; L = bars * 3 * b; N = secs(L); buf = np.zeros(N); G = 50
+    chords = [[0, 3, 7], [-2, 2, 5], [-4, 0, 3], [-5, -1, 2]]
+    tune = [7, 10, 12, 10, 7, 5, 3, 5, 7, 3, 2, -2, 0, 3, 7, 12, 10, 7, 5, 3, 2, 3, 5, 7]
+    r = np.random.default_rng(13)
+    for bar in range(bars):
+        ch = chords[(bar // 2) % 4]; t0 = bar * 3 * b
+        add(buf, pad([G + 12 + c for c in ch], 3 * b + 0.4, 0.22, 0.12), t0)
+        add(buf, piano(G - 12 + ch[0], 1.4, 0.75), t0 + r.normal(0, 0.012))                       # oom
+        for k in (1, 2):                                                                          # pah pah
+            for c in ch: add(buf, piano(G + c, 0.8, 0.32), t0 + k * b + r.normal(0, 0.015))
+        for k in range(3):                                                                        # the clock
+            add(buf, tick(0.5 if k else 0.8, 3600 if (bar * 3 + k) % 2 else 2400), t0 + k * b)
+        if bar < bars - 1:                                                                        # the music box, going out of tune
+            for k in range(3):
+                m = G + 24 + tune[(bar * 3 + k) % len(tune)] + 0.18 * math.sin(bar * 1.3 + k)
+                add(buf, musicbox(m, 1.6, 0.42), t0 + k * b + 0.02)
+        if bar % 4 == 0: add(buf, glass(G + 31 + ch[2], 2.6, 0.22, wobble=0.25), t0 + b)
+    t0 = (bars - 1) * 3 * b                                                                       # it strikes thirteen
+    for i in range(13): add(buf, bell(G + 26, 0.5, 0.9 - i * 0.03), t0 + i * (3 * b / 13))
+    return write(wrap_reverb(buf, 2.4, 1.3, 0.38), 'thirteen')
+
+
+PIECES = {'thirteen': thirteen, 'showtime': showtime, 'troika': troika, 'korobeiniki': korobeiniki, 'balalaika': balalaika, 'neon': neon, 'lofi': lofi, 'chip': chip, 'organ': organ_piece, 'surf': surf, 'jazz': jazz, 'taiko': taiko_piece, 'dream': dream, 'boss': boss, 'rain': rain, 'sugar': sugar, 'disco': disco}
 if __name__ == '__main__':
     for nm in (sys.argv[1:] or PIECES): PIECES[nm]()

@@ -10,6 +10,8 @@
 // CANDY LAND, SUNKEN RUINS, HARVEST MOON, THE FRONT (code RIPHOOD), RED SQUARE, TAIGA and WHITE NIGHTS (from the nesting dolls, code PAPERSPLEASE),
 // THE WAITING DREAM (sold by HANZ / $@L in LOST).
 import { VIEW_W, VIEW_H } from '../config.js';
+import { LOST_DRAWN } from './lostDrawn.js';
+import { addThingFrames, stepThings, boilAt } from './lostDrawnRoom.js';
 
 const W = VIEW_W, H = VIEW_H;
 
@@ -532,6 +534,43 @@ const THEMES = {
       }
     },
   },
+  // THE DRAWN ROOM (LOST, from his snap): the stage's sky becomes his hand-drawn room - a watercolour dusk over a
+  // checkerboard plain in boiling ink, with the eye-moon, the fish with a house on its back, the stairs into a cloud, the
+  // upside-down teacup, the lone window and the tree of hands (hanz_drawn.py's pictures, loaded by MatchScene when it's
+  // on); the platforms get inked: a paper strip along the top, a wobbling ink line, hatching underneath
+  'fx-drawn': {
+    grade: 0xfff4e6,
+    backdrop(g) { g.fillStyle(0xf1e8d4, 1); g.fillRect(0, 0, W, H); },            // (bare paper, if the pictures aren't in)
+    make(m) {
+      if (!m.textures.exists('lost_drawn_things') || !m.textures.exists('lost_drawn_wash')) return null;
+      addThingFrames(m.textures);
+      const add = (o, d) => { o.setScrollFactor(0).setDepth(d); m.addBg(o); return o; };
+      add(m.add.image(0, 0, 'lost_drawn_wash').setOrigin(0), 48.1);
+      const ink = add(m.add.image(0, 0, 'lost_drawn_ink_0').setOrigin(0), 48.12);
+      const things = Object.entries(LOST_DRAWN.things).map(([n, t], i) => ({ n, t, s: add(m.add.image(t.x + t.w / 2, t.y + t.h / 2, 'lost_drawn_things', n + '_0'), 48.14 + i * 0.001) }));
+      let shut = 0, next = 240;
+      return (t) => {
+        ink.setTexture('lost_drawn_ink_' + boilAt(t));
+        if (--next <= 0) { shut = 7; next = 180 + Math.floor(Math.random() * 300); }
+        if (shut > 0) shut--;
+        stepThings(things, t, shut);
+      };
+    },
+    props(g, P, t) {
+      const b = boilAt(t);
+      for (const p of P) {
+        const w = p.x2 - p.x1;
+        g.fillStyle(0xf1e8d4, 1); g.fillRect(p.x1, p.y - 3, w, 3);                         // a strip of paper along the top...
+        g.lineStyle(1.5, 0x26181a, 1); g.beginPath();                                         // ...inked, the line wobbling a little
+        for (let x = p.x1; x <= p.x2; x += 4) { const y = p.y - 3 + Math.sin(x * 0.21 + b * 1.7) * 0.7; if (x === p.x1) g.moveTo(x, y); else g.lineTo(x, y); }
+        g.strokePath();
+        g.lineStyle(1, 0x26181a, 0.9); g.lineBetween(p.x1, p.y, p.x2, p.y);
+        if (!p.solid) continue;
+        g.lineStyle(1, 0x26181a, 0.55);                                                       // hatching underneath
+        for (let x = p.x1 + 3; x < p.x2 - 6; x += 5) g.lineBetween(x, p.y + 2, x + 6, p.y + 9 + ((x * 7 + b * 3) % 4));
+      }
+    },
+  },
   'fx-whitenights': {
     grade: 0xf4e8f0,
     backdrop(g, mid) {
@@ -577,7 +616,8 @@ export function makeTheme(m, fx) {
   const props = m.add.graphics(); m.addWorld(props);                                  // (made before the fighters: drawn under them)
   const grade = m.add.graphics().setScrollFactor(0).setDepth(3).setBlendMode(Phaser.BlendModes.MULTIPLY); m.addUI(grade);
   grade.fillStyle(T.grade, 1); grade.fillRect(0, 0, W, H);
+  const more = T.make ? T.make(m) : null;                                            // (a theme can add pictures of its own)
   return {
-    draw(t) { props.clear(); T.props(props, m.stage.platforms || [], t); },
+    draw(t) { props.clear(); T.props(props, m.stage.platforms || [], t); if (more) more(t); },
   };
 }

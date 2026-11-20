@@ -149,6 +149,11 @@ export const SHOP = [
     { id: 'fx-dream', kind: 'fx', hidden: 'lost', name: 'THE WAITING DREAM', price: 1200, info: 'RE-THEMES ANY STAGE AS HIS ROOM: A PEACH DUSK, A SPLIT MOON, STAIRS HANGING FROM NOTHING, CLOCKS MELTING OFF THE EDGES.', color: 0xf4c29a },
     { id: 'ext-opinion', kind: 'extra', hidden: 'lost', name: 'SECOND OPINION', price: 800, info: 'AFTER EVERY KO HE POPS UP AT THE EDGE OF THE SCREEN AND SAYS WHAT HE THINKS. ONE OF HIM, ANYWAY.', color: 0xb8121c },
     { id: 'ext-doors', kind: 'extra', hidden: 'lost', name: 'DOOR TO NOWHERE', price: 800, info: 'TWO DOORS STAND ON THE STAGE. WALK INTO ONE, COME OUT OF THE OTHER. THEY MOVE WHEN YOU AREN\'T LOOKING.', color: 0x5a2a2a },
+    { id: 'cos-thirteen', kind: 'costume', rarity: 'rare', hidden: 'lost', fighter: 'mr-wake', skin: 'THIRTEEN', name: 'THIRTEEN', price: 900, info: 'MR WAKE IN HIS COLOURS: A BLOOD-RED ROBE AND PALE GREY MAGIC. THE HOUR THAT ISN\'T ON ANY CLOCK.' },
+    { id: 'cos-hknoir', kind: 'costume', rarity: 'rare', hidden: 'lost', fighter: 'hero-knight', skin: 'NOIR', name: 'NOIR', price: 900, info: 'LACY IN A SPY\'S COLOURS: A BLACK SUIT, A BLOOD-RED SASH, GUNMETAL STEEL. NOBODY SAW HER COME IN.' },
+    { id: 'fx-drawn', kind: 'fx', hidden: 'lost', name: 'THE DRAWN ROOM', price: 1500, info: 'THE WORLD HE SNAPS HIS FINGERS INTO: INK AND WATERCOLOUR, AN EYE FOR A MOON, A FISH WITH A HOUSE ON ITS BACK. THE PLATFORMS GET INKED TOO.', color: 0xe8c890 },
+    { id: 'mus-thirteen', kind: 'music', hidden: 'lost', name: 'THIRTEEN O\'CLOCK', price: 700, info: 'A WOOZY WALTZ FROM HIS ROOM: A DRUNK PIANO, A MUSIC BOX GOING OUT OF TUNE, A CLOCK THAT STRIKES THIRTEEN.', color: 0x8a6a4a },
+    { id: 'ext-eye', kind: 'extra', hidden: 'lost', name: 'THE EYE', price: 900, info: 'HIS DRAWN EYE HANGS IN THE SKY OVER EVERY FIGHT. IT WATCHES WHOEVER GOT HIT. IT FLINCHES AT KOS.', color: 0x3c8c8c },
   ] },
 ];
 

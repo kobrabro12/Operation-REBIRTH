@@ -167,7 +167,10 @@ Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X 
   there 30 s doing nothing and he holds out his dripping clock-heart and stares at it. Now and then $@L snaps his
   fingers: fire sparks off them and the whole room turns hand-drawn (ink and watercolour, an eye for a moon, a fish
   with a house on its back, stairs into a cloud) while he stays 3D - snap again and it's back. He lets slip the deep
-  lore now and then (what MEMORIES are, the star that split him, the dream, the crown's two faces, the Star-Eater). After a sale he may cackle into his palm.
+  lore now and then (what MEMORIES are, the star that split him, the dream, the crown's two faces, the Star-Eater).
+  Sometimes his whole body glitches apart and pulls itself back together, and he sighs. He never stands perfectly still.
+  His shelf: 4 drawn costumes, 2 recolours (THIRTEEN, NOIR), THE WAITING DREAM and THE DRAWN ROOM themes, the
+  THIRTEEN O'CLOCK track, and the extras SECOND OPINION, DOOR TO NOWHERE and THE EYE. After a sale he may cackle into his palm.
   Everything on his desk can be clicked: each thing has its own lines, several hint at the TV shopkeeper's secret
   codes, the till pays out once, the candle can be blown out. The room is dark
   until you type HANZ or $@L (the name decides who greets you first); after that he's unlocked for good. He sells, in

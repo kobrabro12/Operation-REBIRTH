@@ -24,7 +24,7 @@ export const TRACKS = [
   // the miracle costumes' outros (tools/audio/costume_outros.py)
   'outro_storm', 'outro_pharaoh', 'outro_starfarer',
   // battle music sold in the shop (tools/audio/shop_music.py; 'mason' = Mason's own pixelated_audio 12)
-  ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'showtime', 'mason',
+  ...['neon', 'lofi', 'chip', 'organ', 'surf', 'jazz', 'taiko', 'dream', 'boss', 'rain', 'sugar', 'disco', 'showtime', 'thirteen', 'mason',
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
   // the TROPHY HALL (tools/audio/trophy_hall_music.py)
   'trophy_hall',
