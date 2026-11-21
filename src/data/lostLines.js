@@ -117,6 +117,14 @@ export const LOST_LINES = {
     [['s', 'BORING! ...OKAY IT WAS GETTING SMUDGY.']],
     [['h', 'THE EYE WAS STARING AT ME.'], ['s', ' THE EYE STARES AT EVERYONE!']],
   ],
+  // LET'S SETTLE THIS: you keep poking him (SETTLE in LostScene) - two warnings, then the fight
+  poke_warn: [
+    [['h', 'PLEASE STOP THAT.'], ['s', ' OR DON\'T. I DARE YOU.']],
+    [['s', 'ONE MORE. ONE MORE AND WE SETTLE THIS.'], ['h', ' ...HE MEANS IT.']],
+  ],
+  settle: [
+    [['s', 'FINE.'], ['h', ' ...LET\'S SETTLE THIS.']],
+  ],
   // THE CLAP: he's just clapped the room into the polygon world (clap_in), or back to how it was (clap_out)
   clap_in: [
     [['s', 'BEHOLD! FEWER POLYGONS, MORE STYLE!']],

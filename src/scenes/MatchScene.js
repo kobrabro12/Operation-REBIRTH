@@ -8,6 +8,7 @@ import {particleBudget} from '../performance.js';
 // match rules (Stock / Timed Battle / Stamina), camera and effects.
 import { hasWinCutscene } from './WinScene.js';
 import { addKO, matchCoins, addCoins, getCoins, equippedMusic, owns, extraOn, equippedStageFx } from '../progress.js';
+import { queueHanz } from '../stage/hanzBossStage.js';
 import { queueDrawn } from './lostDrawnRoom.js';
 import { SHOP } from '../data/shop.js';
 const SHOP_MUSIC = SHOP.find((t) => t.name === 'MUSIC').items;
@@ -98,6 +99,7 @@ export class MatchScene extends Phaser.Scene {
     const S = (soul && data.soulBattle.setup) || data.boss?.setup || data.classic?.setup || data.shopPreview?.setup || (demo ? demoRequest.settings : settings);
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
     if (!demo && extraOn('ext-opinion') && !this.textures.exists('lost_heads')) this.load.spritesheet('lost_heads', 'assets/shop/lost/heads.png', { frameWidth: 124, frameHeight: 124 });   // (SECOND OPINION's heads)
+    if (data.boss?.id === 'hanz' || S.stage === 'hanz-desk') queueHanz(this, data.boss?.id === 'hanz');   // (HANZ & $@L: his animations and all three of his worlds)
     if (!demo && S.stage === 'underground') for (const [k, f] of [['ug_door', 'sfx/ug_door'], ['ug_crowd', 'sfx/ug_crowd'], ['voice_ug-welcome', 'voice/ug-welcome'], ['voice_ug-noise', 'voice/ug-noise']])   // (THE UNDERGROUND's opening)
       if (!this.cache.audio.exists(k)) this.load.audio(k, ['assets/audio/' + f + '.ogg', 'assets/audio/' + f + '.mp3']);
     if (!demo && (equippedStageFx() === 'fx-drawn' || extraOn('ext-eye'))) queueDrawn(this, false);   // (THE DRAWN ROOM / THE EYE's pictures)
@@ -319,7 +321,7 @@ export class MatchScene extends Phaser.Scene {
     if (this.paused) {
       let quit = Phaser.Input.Keyboard.JustDown(this.qKey) || this.mouseQuit;
       for (const i of pads) { const pad = readPad(i); if (pad && pad.buttons[8] && pad.buttons[8].pressed) quit = true; }
-      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':this.classic || this.bossFight?.classic ? 'Classic' : this.bossFight ? 'BossFights' : settings.from || 'Setup', this.classic || this.bossFight?.classic ? { classic: { won: false } } : undefined); return true; }   // back to wherever the match was started from
+      if (quit) { this.scene.start(this.soulBattle?'SoulBoard':this.classic || this.bossFight?.classic ? 'Classic' : this.bossFight ? (this.bossFight.from || 'BossFights') : settings.from || 'Setup', this.classic || this.bossFight?.classic ? { classic: { won: false } } : undefined); return true; }   // back to wherever the match was started from
       this.draw();
     }
     return this.paused;
@@ -641,7 +643,7 @@ export class MatchScene extends Phaser.Scene {
     const rewards = won ? claimBossRewards(F.id, F.tier, time) : [];
     if (F.classic) { this.scene.start('Classic', { classic: { won } }); return; }   // CLASSIC MODE's last fight: back to the run (the ending, or CONTINUE?)
     this.scene.start('BossReward', { boss: { id: F.id, tier: F.tier, won, time, hp: this.stage.boss ? this.stage.boss.hp / this.stage.boss.max : 0,
-      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, weak: f.stats.weak || 0, limits: f.stats.limits || 0, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks }, rewards });
+      fighter: (f.baseDef || f.def).id, skin: f.skin, falls: f.falls, weak: f.stats.weak || 0, limits: f.stats.limits || 0, dealt: Math.round(f.stats.damageDealt), taken: Math.round(f.stats.damageTaken), setup: F.setup, taunt: this.bossTauntLine || null, card: this.bossCard || null, rush: F.rush || null, lives: f.stocks, from: F.from || null }, rewards });
   }
 
   toResults() {
@@ -1310,6 +1312,7 @@ export class MatchScene extends Phaser.Scene {
   cleanup() {
     for (const f of this.fighters || []) f.stopChargeSound();
     if (this.extras) this.extras.cleanup(); if (this.intros) this.intros.cleanup();              // (MOON GRAVITY puts gravity back)
+    if (this.stage && this.stage.dispose) this.stage.dispose(this);                              // (a stage letting go of its big pictures: HIS DESK)
     if (this.demo) { setSfxMuted(false); return; }    // the title screen keeps its music playing
     this.sound.stopAll(); stopMusic();
   }

@@ -558,6 +558,9 @@ export class UndergroundStage {
     }
   }
 
+  /** The match is over (MatchScene's shutdown): the baked crowd textures are let go (~8 MB; they're rebaked next time). */
+  dispose(match) { for (const key of match.textures.getTextureKeys()) if (key.startsWith('ug_crowd_')) match.textures.remove(key); }
+
   // ---------------------------------------------------------------- the match
   /** Every frame: the crowd, the lights, the speakers and the act move. No hazards. */
   step() { this.t++; this.animate(); return null; }

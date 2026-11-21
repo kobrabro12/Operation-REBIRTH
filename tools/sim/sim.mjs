@@ -56,6 +56,7 @@ await page.route('**/*', (r) => {
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('ERR_FAILED')) consoleErrors.push(m.text()); });   // ERR_FAILED = a blocked font request
 page.on('pageerror', (e) => consoleErrors.push(String(e)));
+page.on('crash', () => { console.error('\nThe browser page crashed (usually out of memory) - the results so far are above.'); process.exit(4); });   // (rather than hang forever)
 
 await page.goto(url);
 await page.waitForFunction(() => window.game && window.game.scene.isActive('Title'), null, { timeout: 60000 });
@@ -64,8 +65,8 @@ const info = await page.evaluate(async () => {
   const { STAGES } = await import('/src/stage/stages.js');
   const { skinsFor } = await import('/src/fighters/skins.js');
   const fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER].map((f) => f.id);   // test fighters too (Trinkets > TEST FIGHTERS)
-  const { BOSSES } = await import('/src/data/bosses.js');
-  return { bosses: BOSSES.map((b) => ({ id: b.id, stage: b.stage })), fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
+  const { BOSSES, SECRET_BOSSES } = await import('/src/data/bosses.js');
+  return { bosses: [...BOSSES, ...SECRET_BOSSES].map((b) => ({ id: b.id, stage: b.stage })), fighters, stages: STAGES.filter((s) => s.available).map((s) => s.id), skins: Object.fromEntries(fighters.map((id) => [id, skinsFor(id).length])) };
 });
 
 // ---------------------------------------------------------------- one match, run inside the page

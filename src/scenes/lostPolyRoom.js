@@ -49,17 +49,22 @@ export class PolyRoom {
    *  polygon world (its things popping in) or back. Returns whether it's now on. */
   clap(x, y) {
     const sc = this.scene;
+    this.burst(x, y);
+    this.on = !this.on;
+    sc.tweens.killTweensOf(this.flash); this.flash.setAlpha(0);
+    sc.tweens.add({ targets: this.flash, alpha: 0.9, duration: BURST.swap, ease: 'Quad.easeIn',
+      onComplete: () => { this.apply(); sc.tweens.add({ targets: this.flash, alpha: 0, duration: BURST.fade, ease: 'Quad.easeOut' }); } });
+    return this.on;
+  }
+
+  /** The clap's burst on its own (shards, a shockwave, the sound) - with no change of room. */
+  burst(x, y) {
     sfx('bighit', 0.7, 1.7); sfx('glass', 0.45, 1.3);
     for (let i = 0; i < BURST.n; i++) {
       const a = Math.random() * Math.PI * 2, v = 1.2 + Math.random() * 3.4;
       this.shards.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, r: 2 + Math.random() * 4, life: 0, max: 26 + Math.floor(Math.random() * 24), c: BURST.colors[i % BURST.colors.length] });
     }
     this.wave = { x, y, t: 0 };
-    this.on = !this.on;
-    sc.tweens.killTweensOf(this.flash); this.flash.setAlpha(0);
-    sc.tweens.add({ targets: this.flash, alpha: 0.9, duration: BURST.swap, ease: 'Quad.easeIn',
-      onComplete: () => { this.apply(); sc.tweens.add({ targets: this.flash, alpha: 0, duration: BURST.fade, ease: 'Quad.easeOut' }); } });
-    return this.on;
   }
 
   /** Switches the layers over (under the flash). */
