@@ -41,12 +41,12 @@ export class HanzCinema {
   introStep(match) { this.t++; this.introFloat(); this.stepAnim(); this.ambient(); this.stepSay(); if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.04); return BossArena.prototype.introStep.call(this, match); }
   /** Where he floats during the entrance: down out of the sky, bobbing; down onto the desk for the slam and back up. */
   introFloat() {
-    const t = this.introPhase ? this.introPhase().f : 0, hover = -50 + Math.sin(this.t * 0.04) * 5;
+    const t = this.introPhase ? this.introPhase().f : 0, hover = this.hoverY() + Math.sin(this.t * 0.04) * 5, land = this.landY();
     let y = hover;
     if (t < DESCEND.n) { const k = t / DESCEND.n; y = lerp(DESCEND.from, hover, 1 - (1 - k) ** 3); }
-    else if (t >= INTRO.slam + 14 && t < INTRO.slam + 36) y = lerp(-170, -10, (t - INTRO.slam - 14) / 22);
+    else if (t >= INTRO.slam + 14 && t < INTRO.slam + 36) y = lerp(-170, land, (t - INTRO.slam - 14) / 22);
     else if (t >= INTRO.slam && t < INTRO.slam + 14) y = lerp(hover, -170, (t - INTRO.slam) / 14);
-    else if (t >= INTRO.slam + 36 && t < INTRO.slam + 76) y = lerp(-10, hover, (t - INTRO.slam - 36) / 40);
+    else if (t >= INTRO.slam + 36 && t < INTRO.slam + 76) y = lerp(land, hover, (t - INTRO.slam - 36) / 40);
     this.hy = y; this.hx = 0;
   }
   /** The entrance, beat by beat: FINE. / LET'S SETTLE THIS. / the slam / WELCOME TO MY WORLD / the clap. */
@@ -63,7 +63,7 @@ export class HanzCinema {
   /** The intro's camera: on his face as he talks, wide for the slam, his hands for the clap. */
   introShot() {
     const t = this.introPhase().f, h = this.headAt();
-    if (t < DESCEND.n) return { x: 0, y: Math.max(-300, this.hy - 80), zoom: 1.4 };
+    if (t < DESCEND.n) return { x: 0, y: Math.max(-300, this.hy - 40), zoom: 1.3 };
     if (t < INTRO.slam) return { x: h.x, y: h.y + 14, zoom: 3.0 };
     if (t < INTRO.pitch) return { x: 0, y: -110, zoom: 1.1 };
     if (t < INTRO.clap) return { x: h.x, y: h.y + 50, zoom: 2.0 };
@@ -105,7 +105,7 @@ export class HanzCinema {
     const C = this.cut, t = ++C.t, once = (k, at, fn) => { if (t >= at && !C.once.has(k)) { C.once.add(k); fn(); } };
     this.t++; this.stepAnim(); this.ambient(); this.stepSay(); this.stepFx(match, null);
     if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.04);
-    this.hx = lerp(this.hx, 0, 0.06); this.hy = lerp(this.hy, -50 + Math.sin(this.t * 0.04) * 5, 0.08);   // he drifts back to the middle
+    this.hx = lerp(this.hx, 0, 0.06); this.hy = lerp(this.hy, this.hoverY() + Math.sin(this.t * 0.04) * 5, 0.08);   // he drifts back to the middle
     const h = this.headAt();
     if (C.kind === 'drawn') {
       C.shot = t < DRAWN.swap ? { x: h.x, y: h.y + 20, zoom: t < DRAWN.snap ? 3.0 : 2.6 } : { x: 0, y: -120, zoom: 1.05 };
