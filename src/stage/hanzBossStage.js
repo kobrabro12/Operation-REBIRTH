@@ -1,7 +1,11 @@
 // HIS DESK (`hanz-desk`): the secret boss fight against HANZ & $@L, THE TRUE SHOPKEEPER. Poke him enough in the LOST
 // shop and he snaps - FINE. LET'S SETTLE THIS. - claps you into his polygon world and you fight him there, shrunk down
 // to the size of the things on his counter: his counter is the floor, the old till and a floating slab are the ledges,
-// and he looms behind it all - the same PS1 renders as in the shop (src/scenes/lostFrames.js), drawn 2.3x.
+// and HE IS ON IT WITH YOU - floating, a head taller than anyone (the same PS1 renders as in the shop,
+// src/scenes/lostFrames.js), his body trailing off into smoke below the waist. He drifts, dives, dashes and blinks
+// round the desk, and HOW HE FEELS decides how he fights (`MOODS`): SMUG $@L shows off from a distance, FURIOUS $@L
+// hunts you down and hits hard, GLOOMY HANZ hangs back and makes the room do the work, and when they're LAUGHING
+// it's chaos. His mood shifts every few attacks with how the fight is going (`pickMood`).
 //
 // THREE ACTS, a world each (`setWorld`):
 //   I   THE POLYGON ROOM (100-66%): the low-poly world from his clap (tools/sprites/hanz_poly.py). DESK SLAM, POLYGON
@@ -16,7 +20,7 @@
 // The cutscenes, the intro, his death and the dialogue live in hanzCinema.js (methods copied onto this class).
 import { BossArena } from './bossBase.js';
 import { sfx } from '../audio/sfx.js';
-import { VIEW_W, VIEW_H } from '../config.js';
+import { FONT, VIEW_W, VIEW_H } from '../config.js';
 import { LOST_FRAMES } from '../scenes/lostFrames.js';
 import { LOST_DRAWN } from '../scenes/lostDrawn.js';
 import { LOST_POLY } from '../scenes/lostPoly.js';
@@ -33,6 +37,37 @@ const TICKS = Math.round(60 / LOST_FRAMES.fps);              // game frames per 
 const HIT = { dmg: 1.15, base: 1.1, growth: 1.15 };
 // where he can be hurt: head / body multipliers (the head once his face is gone)
 const HURT = { head: 1.25, void: 1.45, body: 0.55 };
+// HIM ON THE STAGE: how big he's drawn (x his LOST picture), the line across his waist on that picture (his frames end
+// about there - below it he trails off into smoke), how high his waist floats, how far he bobs, how fast he drifts
+// (px a frame) and how far toward the desk's ends he goes
+const BODY = { sc: 0.46, waist: 262, hover: -50, bob: 5, drift: 2.4, edge: 215 };
+// HIS MOODS: who's in charge (s = $@L, h = HANZ, b = both), the banner, the colour of his aura, the animation he rests
+// in, the one he snaps into it with, how he moves (chase / keep his distance / flee / blink about), how quick his
+// wind-ups are, and what he says when it takes him
+export const MOODS = {
+  smug: { who: 's', label: '$@L IS SMUG', color: 0xffd447, css: '#ffd447', rest: 'sal_talk', enter: 'pitch', move: 'keep', speed: 1.0,
+    say: ['TOO EASY. LIKE TAKING CANDY FROM A CUSTOMER.', 'WATCH AND LEARN, SHOPPER.', 'EVERYTHING HAS A PRICE. YOURS IS LOW.'] },
+  furious: { who: 's', label: '$@L IS FURIOUS', color: 0xff2a3a, css: '#ff3a46', rest: 'argue', enter: 'slam', move: 'chase', speed: 1.25,
+    say: ['STOP. HITTING. ME.', 'THAT\'S IT. NO MORE MR NICE HALF.', 'YOU BREAK IT, YOU BUY IT!'] },
+  gloomy: { who: 'h', label: 'HANZ IS GLOOMY', color: 0x7a9ad8, css: '#9ab4e8', rest: 'hanz_talk', enter: 'twitch', move: 'flee', speed: 0.85,
+    say: ['...WHY DO WE EVEN TRY.', 'LEAVE US ALONE. PLEASE.', 'IT\'S ALWAYS THIRTEEN O\'CLOCK IN HERE.'] },
+  manic: { who: 'b', label: 'THEY\'RE LAUGHING', color: 0xa04ae6, css: '#c07aff', rest: 'idle', enter: 'laugh', move: 'blink', speed: 1.15,
+    say: ['HAHAHA! EVERYTHING MUST GO!', 'HEHEHE - HAHAHAHA!', 'CLOSING TIME! CLOSING TIME!'] },
+};
+// what each mood throws at you, by world
+const MOVES = {
+  smug: { poly: ['storm', 'coins', 'gem'], drawn: ['storm', 'ink', 'coins'], void: ['storm', 'firerain', 'tear'] },
+  furious: { poly: ['slam', 'dash', 'cubes'], drawn: ['slam', 'dash', 'ink'], void: ['slam', 'dash', 'firerain', 'swing'] },
+  gloomy: { poly: ['cubes', 'gem', 'storm'], drawn: ['eye', 'tea', 'ink'], void: ['thirteen', 'eye', 'tear'] },
+  manic: { poly: ['whale', 'storm', 'coins'], drawn: ['fish', 'storm', 'tea'], void: ['tear', 'swing', 'storm', 'fish'] },
+};
+// what tips his mood: attacks between rolls, damage taken lately per point toward FURIOUS, his hits on you toward SMUG,
+// low health toward GLOOMY / LAUGHING, how much he likes staying as he is
+const MOOD = { every: [2, 3], hurt: 22, hit: 1.6, low: 1.4, keep: 0.35 };
+// DIVE SLAM: how high he rises, frames rising / hanging over you, plunge speed, where his waist lands, frames slumped on the desk
+const DIVE = { top: -255, rise: 34, hang: 16, v: 15, land: -10, slump: 34, body: [15, [80, 6.6, 1.0]] };
+// THE CHARGE: frames winding back, speed, the hit; how many runs (furious in the void: there and back)
+const DASH = { wind: 34, v: 12.5, hit: [14, [35, 7, 1.0]] };
 // the acts: where II and III start (fractions of his health), LAST CALL, and how short his pauses get then (frames)
 export const ACTS = { drawn: 0.66, void: 0.33, low: 0.12, lowWait: 34 };
 // DESK SLAM: the frame of the slam animation his fists land on, the fists' hit, the shockwaves (speed, hit)
@@ -110,6 +145,8 @@ export class HanzBossStage extends BossArena {
     this.t = 0; this.world = 'poly'; this.an = { name: 'idle', f: 0, tick: 0, hold: false };
     this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.sparks = [];
     this.flashK = 0; this.flashC = 0xffffff; this.voidFace = false; this.clockK = 0;
+    this.hx = 0; this.hy = BODY.hover; this.pin = false; this.blinkX = null;
+    this.mood = 'smug'; this.moodN = 0; this.moodAt = MOOD.every[0]; this.hurtLately = 0; this.hitsLately = 0; this.prevPct = new Map(); this.trail = [];
   }
 
   // ------------------------------------------------------------------ building
@@ -129,13 +166,9 @@ export class HanzBossStage extends BossArena {
     this.bgSets.drawn.push(...this.drawnThings.map((d) => d.s));
     this.voidG = s.add.graphics().setScrollFactor(0); bg.push(this.voidG); this.bgSets.void.push(this.voidG);
     this.skyG = s.add.graphics().setScrollFactor(0); bg.push(this.skyG);                 // (screen-wide washes and flashes behind him)
-    // the world: effects behind him, him (and two ghost copies for his glitches), his pupils / the void face, the desks
-    this.backG = s.add.graphics(); world.push(this.backG);
-    const S = (LOST_FRAMES.scale || 2) * K;
-    this.ghosts = [0, 1].map(() => { const g = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(S).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
-    this.him = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(S); world.push(this.him);
-    this.pupils = ['sal', 'hanz'].map((n) => { const p = s.add.image(0, 0, 'lost_pupils', n); world.push(p); return { n, p }; });
-    this.faceG = s.add.graphics(); world.push(this.faceG);
+    // the world: the desks (his counter is the floor), then him floating on it - his aura and tail behind him, effects
+    // behind him (the clock), afterimages, two ghost copies for his glitches, him, his pupils / the void face
+    const S = (LOST_FRAMES.scale || 2) * K, HS = (LOST_FRAMES.scale || 2) * BODY.sc;
     const o = W2(0, 0), c = W2(...LOST_FRAMES.counter);
     this.deskSets = {
       poly: [s.add.image(o.x, o.y, 'lost_poly_desk').setOrigin(0).setScale(K)],
@@ -144,6 +177,13 @@ export class HanzBossStage extends BossArena {
         ...Object.entries(LOST_FRAMES.props || {}).map(([n, p]) => { const q = W2(p.x, p.y), im = s.add.image(q.x, q.y, 'lost_prop_' + n, '0').setOrigin(0).setScale(S); im.prop = p; return im; })],
     };
     for (const L of Object.values(this.deskSets)) world.push(...L);
+    this.backG = s.add.graphics(); world.push(this.backG);
+    this.tailG = s.add.graphics(); world.push(this.tailG);
+    this.after = [0, 1, 2].map(() => { const g = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
+    this.ghosts = [0, 1].map(() => { const g = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
+    this.him = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS); world.push(this.him);
+    this.pupils = ['sal', 'hanz'].map((n) => { const p = s.add.image(0, 0, 'lost_pupils', n); world.push(p); return { n, p }; });
+    this.faceG = s.add.graphics(); world.push(this.faceG);
     this.slabG = s.add.graphics(); world.push(this.slabG);
     this.midG = s.add.graphics(); world.push(this.midG);                                // effects on the desk, behind the fighters
     this.setWorld('poly');
@@ -162,7 +202,13 @@ export class HanzBossStage extends BossArena {
   }
 
   /** The boss's own state when the fight starts (bossBase.startBoss). */
-  makeBoss(match) { this.makeTop(match); this.match = match; }
+  /** His fight starts: the top layers, and his MOOD under the health bar. */
+  makeBoss(match) {
+    this.makeTop(match); this.match = match;
+    const M = MOODS[this.mood];
+    this.moodT = match.add.text(VIEW_W / 2, this.barTier.y + 22, M.label, { fontFamily: FONT, fontSize: '7px', color: M.css, stroke: '#0b0a14', strokeThickness: 3 }).setOrigin(0.5).setDepth(31).setLetterSpacing(2);
+    match.addUI(this.moodT);
+  }
 
   /** Switches the world: 'poly' (his clap), 'drawn' (his snap) or 'void' (nothing under the mask). */
   setWorld(w) {
@@ -210,15 +256,18 @@ export class HanzBossStage extends BossArena {
   static at(f) { return f * TICKS; }
   /** His current frame's table entry. */
   frame() { const spec = LOST_FRAMES.anims[this.an.name]; return spec.frames[Math.min(this.an.f, spec.frames.length - 1)]; }
+  /** A point on his LOST picture (640x360, him behind the counter) -> the world, where he floats now. */
+  L(sx, sy) { return { x: this.hx + (sx - 320) * BODY.sc, y: this.hy + (sy - BODY.waist) * BODY.sc }; }
   /** The middle of his face (between his eyes), in the world. */
-  headAt() { const e = this.frame().eyes; const a = e.sal, b = e.hanz; return W2((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
+  headAt() { const e = this.frame().eyes; const a = e.sal, b = e.hanz; return this.L((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
   /** A frame's `spark` point (snap / clap) in the world. */
-  sparkAt(anim) { const sp = LOST_FRAMES.anims[anim].spark; return sp ? W2(sp.x, sp.y) : this.headAt(); }
+  sparkAt(anim) { const sp = LOST_FRAMES.anims[anim].spark; return sp ? this.L(sp.x, sp.y) : this.headAt(); }
 
-  /** Puts his frame up (flashing white when hit, ghosts split off while glitching), his pupils or the void face. */
+  /** Puts his frame up where he floats (flashing white when hit, afterimages while he dashes, ghosts split off while he
+   *  glitches), his aura and smoke tail, his pupils or the void face. */
   renderHim() {
-    const fr = this.frame(), p = W2(fr.x, fr.y), key = `lost_hanz_${this.an.name}_${fr.k}`, f = String(Math.min(this.an.f, LOST_FRAMES.anims[this.an.name].frames.length - 1));
-    const B = this.boss, dying = B && B.dying ? this.deathK() : 0;
+    const fr = this.frame(), p = this.L(fr.x, fr.y), key = `lost_hanz_${this.an.name}_${fr.k}`, f = String(Math.min(this.an.f, LOST_FRAMES.anims[this.an.name].frames.length - 1));
+    const B = this.boss, SC = BODY.sc;
     this.him.setTexture(key, f).setPosition(p.x, p.y).setVisible(!this.gone);
     if (B && B.flash) this.him.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); else this.him.setTintMode(Phaser.TintModes.MULTIPLY).setTint(this.tintHim || 0xffffff);
     const split = this.splitK || 0;
@@ -226,27 +275,53 @@ export class HanzBossStage extends BossArena {
       g.setVisible(split > 0 && !this.gone).setTexture(key, f).setTint(i ? 0x30e0ff : 0xff2a40).setAlpha(0.55 * split);
       g.setPosition(p.x + (i ? 1 : -1) * split * (4 + Math.sin(this.t * 0.9 + i) * 3), p.y + (Math.random() - 0.5) * split * 3);
     });
-    this.him.setAlpha(this.gone ? 0 : 1 - dying * 0);
+    this.after.forEach((g, i) => {                                                     // afterimages along his recent path
+      const q = this.trail[this.trail.length - 1 - (i + 1) * 3];
+      g.setVisible(!!q && this.dashing && !this.gone); if (!q) return;
+      g.setTexture(key, f).setPosition(p.x + (q.x - this.hx), p.y + (q.y - this.hy)).setTint(MOODS[this.mood].color).setAlpha(0.45 - i * 0.12);
+    });
+    this.drawTail();
     // pupils (looking at the nearest fighter) - or, with no face, a void with two pinpricks
     const tgt = this.lookAt || this.nearestPos();
     const g = this.faceG; g.clear();
     for (const { n, p: im } of this.pupils) {
       const e = fr.eyes[n];
       if (!e || e[3] < 0.3 || this.voidFace || this.gone) { im.setVisible(false); continue; }
-      const q = W2(e[0], e[1]), dx = tgt.x - q.x, dy = tgt.y - q.y, d = Math.hypot(dx, dy) || 1, gz = n === 'sal' ? [1.3, 0.7] : [1.6, 1.4], kk = Math.min(1, d / 140) * e[2] * K;
-      im.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1) * K).setPosition(Math.round(q.x + dx / d * gz[0] * kk), Math.round(q.y + dy / d * gz[1] * kk));
+      const q = this.L(e[0], e[1]), dx = tgt.x - q.x, dy = tgt.y - q.y, d = Math.hypot(dx, dy) || 1, gz = n === 'sal' ? [1.3, 0.7] : [1.6, 1.4], kk = Math.min(1, d / 140) * e[2] * SC;
+      im.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1) * SC).setPosition(q.x + dx / d * gz[0] * kk, q.y + dy / d * gz[1] * kk);
     }
     if (this.voidFace && !this.gone) {
-      const a = fr.eyes.sal, b = fr.eyes.hanz, sc = ((a[2] + b[2]) / 2) / 1.33, c = W2((a[0] + b[0]) / 2 + 2, (a[1] + b[1]) / 2 + 14);
-      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y, 76 * K * sc, 100 * K * sc);
-      g.fillStyle(0x2a0a30, 0.5); g.fillEllipse(c.x, c.y - 4, 60 * K * sc, 80 * K * sc);
-      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y + 2, 54 * K * sc, 76 * K * sc);
+      const a = fr.eyes.sal, b = fr.eyes.hanz, sc = ((a[2] + b[2]) / 2) / 1.33, c = this.L((a[0] + b[0]) / 2 + 2, (a[1] + b[1]) / 2 + 14);
+      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y, 76 * SC * sc, 100 * SC * sc);
+      g.fillStyle(0x2a0a30, 0.5); g.fillEllipse(c.x, c.y - 2, 60 * SC * sc, 80 * SC * sc);
+      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y + 1, 54 * SC * sc, 76 * SC * sc);
       for (const e of [a, b]) {
-        const q = W2(e[0], e[1] + 4), dx = Math.sign(tgt.x - q.x) * 1.5;
-        g.fillStyle(0xfff4e0, 0.18 + 0.1 * Math.sin(this.t * 0.2)); g.fillCircle(q.x + dx, q.y, 6);
-        g.fillStyle(0xfff4e0, 1); g.fillRect(Math.round(q.x + dx) - 1, Math.round(q.y) - 1, 3, 3);
+        const q = this.L(e[0], e[1] + 4), dx = Math.sign(tgt.x - q.x);
+        g.fillStyle(0xfff4e0, 0.18 + 0.1 * Math.sin(this.t * 0.2)); g.fillCircle(q.x + dx, q.y, 4);
+        g.fillStyle(0xfff4e0, 1); g.fillRect(Math.round(q.x + dx) - 1, Math.round(q.y) - 1, 2, 2);
       }
     }
+  }
+
+  /** Below his waist he trails off into smoke - ribbons of his coat, $@L's red edging on the left and HANZ's grey on
+   *  the right, swaying as he drifts - and round him glows the colour of his mood. */
+  drawTail() {
+    const g = this.tailG; g.clear(); if (this.gone) return;
+    const t = this.t, x0 = this.hx, y0 = this.hy - 6, Z = BODY.sc / 0.56, M = MOODS[this.mood], lean = Math.max(-1, Math.min(1, (this.vx || 0) / 6));
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.08);
+    g.fillStyle(M.color, 0.10 + 0.06 * pulse); g.fillEllipse(x0, y0 - 60 * Z, 190 * Z, 230 * Z);
+    g.fillStyle(M.color, 0.08); g.fillEllipse(x0, y0 - 60 * Z, 140 * Z, 180 * Z);
+    for (let i = 0; i < 7; i++) {
+      const u = i / 6 - 0.5, side = u < 0 ? 0xb8121c : 0xd2d0cc, L = (46 + 12 * Math.sin(t * 0.05 + i * 1.7)) * Z, w0 = (13 - Math.abs(u) * 6) * Z;
+      const pts = [], back = [];
+      for (let k = 0; k <= 8; k++) {
+        const v = k / 8, x = x0 + u * 74 * Z * (1 - v * 0.6) - lean * v * v * 26 + Math.sin(t * 0.09 + i + v * 4) * 5 * v, y = y0 + v * L, w = w0 * (1 - v);
+        pts.push({ x: x - w, y }); back.unshift({ x: x + w, y });
+      }
+      g.fillStyle(0x15151c, 0.95); g.fillPoints(pts.concat(back), true);
+      g.lineStyle(1, side, 0.7); g.strokePoints(pts.slice(0, 6), false);
+    }
+    for (let i = 0; i < 6; i++) { const q = (t * 0.6 + i * 23) % 60; g.fillStyle(i % 2 ? 0xb8121c : 0xd2d0cc, 0.5 * (1 - q / 60)); g.fillCircle(x0 + Math.sin(i * 2.1 + t * 0.03) * 34, y0 + 30 + q, 2.5 - q / 30); }
   }
 
   /** The nearest living fighter's chest (what his eyes follow), or the middle of the desk. */
@@ -256,22 +331,20 @@ export class HanzBossStage extends BossArena {
   /** His hits: the difficulty, then this fight's punch (`HIT`). */
   bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
   /** Where the camera and the CPU look: his chest. */
-  core() { const h = this.headAt(); return { x: h.x * 0.5, y: h.y + 95 }; }
-  /** Keep his head, the floor and both ledges in shot. */
-  camPoints() { return [{ x: 0, y: -280 }, { x: -250, y: 10 }, { x: 250, y: 10 }]; }
+  core() { return { x: this.hx, y: this.hy - 34 }; }
+  /** Keep him (all of him, wherever he floats), the floor and both ledges in shot. */
+  camPoints() { return [{ x: this.hx, y: this.hy - 160 }, { x: -250, y: 10 }, { x: 250, y: 10 }]; }
   /** His head (more with no face) and his body; nothing during a cutscene or his death. */
   hurt() {
     if (!this.boss || this.cut || this.boss.dying) return [];
     const h = this.headAt();
-    return [{ x1: h.x - 58, x2: h.x + 58, y1: h.y - 92, y2: h.y + 60, mult: this.voidFace ? HURT.void : HURT.head, head: true },
-      { x1: h.x * 0.5 - 112, x2: h.x * 0.5 + 112, y1: h.y + 60, y2: -12, mult: HURT.body }];
+    return [{ x1: h.x - 27, x2: h.x + 27, y1: h.y - 42, y2: h.y + 26, mult: this.voidFace ? HURT.void : HURT.head, head: true },
+      { x1: this.hx - 52, x2: this.hx + 52, y1: h.y + 26, y2: this.hy + 8, mult: HURT.body }];
   }
   /** His attacks by world (and LAST CALL quickens the void). */
-  pattern() {
-    if (this.world === 'void') return ['tear', 'thirteen', 'swing', 'firerain', 'storm', 'slam', 'ink', 'tear', 'swing'];
-    if (this.world === 'drawn') return ['ink', 'eye', 'tea', 'fish', 'slam', 'storm'];
-    return ['slam', 'storm', 'whale', 'coins', 'gem', 'cubes'];
-  }
+  pattern() { return MOVES[this.mood][this.world]; }
+  /** Wind-ups: the difficulty's speed and his mood's (FURIOUS is quick, GLOOMY slow). */
+  sp(n) { return Math.max(1, Math.round(n / ((this.boss ? this.boss.cfg.T.speed : 1) * MOODS[this.mood].speed))); }
   /** What the death card quotes: the world he beat you in. */
   cardForm() { return this.world; }
   /** The death card's portrait: him. */
@@ -285,9 +358,15 @@ export class HanzBossStage extends BossArena {
   step(match) {
     this.t++; this.stepAnim(); this.ambient();
     const out = [];
-    if (!this.boss) return out;
-    const B = this.boss;
+    if (!this.boss) { this.float(match); return out; }
+    const B = this.boss, had = !!B.atk;
     this.bossStep(match, out);
+    if (had && !B.atk) { this.pin = false; this.dashing = false; if (++this.moodN >= this.moodAt && !B.dying && !match.over) this.pickMood(match); }
+    if (!B.dying && !this.pin) this.float(match);
+    if (this.blinkT > 0 && --this.blinkT === 0) this.splitK = 0;
+    this.trail.push({ x: this.hx, y: this.hy }); if (this.trail.length > 14) this.trail.shift();
+    if (!B.atk && !B.dying && this.an.name === 'idle' && this.an.f === 0 && MOODS[this.mood].rest !== 'idle') this.play(MOODS[this.mood].rest);
+    this.watchHits(match);
     if (!B.dying && !match.over) {
       if (this.world === 'drawn' && B.hp <= B.max * ACTS.void && !this.cut && !B.atk) this.startVoid(match);
       if (this.world === 'void' && !this.low && B.hp <= B.max * ACTS.low) { this.low = true; this.rageText.setText('LAST CALL!'); B.rage = 90; sfx('ding', 1, 0.4); }
@@ -315,22 +394,110 @@ export class HanzBossStage extends BossArena {
   }
 
   // ------------------------------------------------------------------ attacks: the polygon room
-  /** DESK SLAM: both fists come down on the counter; shockwaves run out along it (in later acts he slams twice, and in the void they run both ways). */
-  start_slam(match, a) { this.play('slam'); a.n = this.world === 'poly' ? 1 : 2; a.next = TICKS * SLAM.at; }
-  /** SLAM, frame by frame: the fists landing, their hits, the second slam. Returns true when it's over. */
+  /** How he moves between attacks, by mood: FURIOUS closes in on you, SMUG keeps a showman's distance, GLOOMY drifts
+   *  away to the far end, LAUGHING blinks about the desk in bursts of glitch. Always bobbing. */
+  float(match) {
+    const M = MOODS[this.mood], f = this.boss ? this.nearest(match, this.hx) : null, sp = BODY.drift * M.speed;
+    let tx = this.hx;
+    if (f) {
+      const side = Math.sign(this.hx - f.x) || (this.hx > 0 ? 1 : -1);
+      if (M.move === 'chase') tx = f.x + side * 46;
+      else if (M.move === 'keep') tx = f.x + side * 150;
+      else if (M.move === 'flee') tx = f.x + side * 240;
+      else if (this.t % 100 === 0 && this.boss && !this.boss.atk) this.blink(match, -BODY.edge + Math.random() * BODY.edge * 2);
+    } else tx = Math.sin(this.t * 0.006) * 60;
+    tx = Math.max(-BODY.edge, Math.min(BODY.edge, tx));
+    const old = this.hx; this.hx += Math.max(-sp, Math.min(sp, (tx - this.hx) * 0.05)); this.vx = this.hx - old;
+    this.hy += (BODY.hover + Math.sin(this.t * 0.04) * BODY.bob - this.hy) * 0.08;
+  }
+  /** LAUGHING's blink: a burst of glitch, and he's somewhere else. */
+  blink(match, x) {
+    const a = this.core(); this.burst(match, a.x, a.y, 10, COL.void);
+    this.hx = x; this.splitK = 1; this.blinkT = 8; sfx('glitch', 0.6, 0.8 + Math.random() * 0.4);
+    const b = this.core(); this.burst(match, b.x, b.y, 10, COL.void);
+  }
+  /** His hits on you count toward SMUG (each fighter's % going up while he's attacking). */
+  watchHits(match) {
+    for (const f of match.fighters) { const p = this.prevPct.get(f) ?? f.percent; if (f.percent > p + 4 && this.boss && this.boss.atk) this.hitsLately += 1; this.prevPct.set(f, f.percent); }
+    this.hurtLately *= 0.996; this.hitsLately *= 0.997;
+  }
+  /** Damage you do to him counts toward FURIOUS. */
+  onHurt(match, r, d) { this.hurtLately += d; }
+  /**
+   * A MOOD SWING (every few attacks): weighs how the fight is going - damage he's taken lately (FURIOUS), hits he's
+   * landed (SMUG), his health (GLOOMY, LAUGHING) - and maybe changes: the banner, his aura, a line, the animation he
+   * snaps into it with. Returns the mood.
+   */
+  pickMood(match) {
+    const B = this.boss, hp = B.hp / B.max;
+    this.moodN = 0; this.moodAt = MOOD.every[0] + Math.floor(Math.random() * (MOOD.every[1] - MOOD.every[0] + 1));
+    const w = { smug: 1 + this.hitsLately * MOOD.hit, furious: 0.8 + this.hurtLately / MOOD.hurt, gloomy: 0.6 + (hp < 0.5 ? MOOD.low : 0) + (this.world === 'drawn' ? 0.6 : 0), manic: 0.6 + (hp < 0.3 ? MOOD.low : 0) + (this.world === 'void' ? 0.8 : 0) };
+    w[this.mood] *= MOOD.keep;
+    let r = Math.random() * Object.values(w).reduce((a, b) => a + b, 0), next = 'smug';
+    for (const [k, v] of Object.entries(w)) { r -= v; if (r <= 0) { next = k; break; } }
+    this.hurtLately *= 0.4; this.hitsLately *= 0.4;
+    if (next === this.mood) return next;
+    this.setMood(match, next);
+    return next;
+  }
+  /** Changes his mood now: banner, flash of its colour, his line, the animation he snaps into it with. */
+  setMood(match, m) {
+    const M = MOODS[m], h = this.headAt();
+    this.mood = m; this.play(M.enter); this.boss.wait = Math.max(this.boss.wait, this.sp(70));
+    match.popText({ x: h.x, y: h.y + 10 }, M.label + '!', M.css);
+    this.say(M.who === 'b' ? (Math.random() < 0.5 ? 's' : 'h') : M.who, M.say[Math.floor(Math.random() * M.say.length)], 70);
+    this.flash(M.color, 0.25); this.burst(match, h.x, h.y + 40, 18, [M.color, 0xffffff]);
+    sfx(m === 'furious' ? 'roar' : m === 'gloomy' ? 'clocktick' : m === 'manic' ? 'laugh' : 'ding', 0.6, m === 'gloomy' ? 0.6 : 0.9);
+    if (this.moodT) this.moodT.setText(M.label).setColor(M.css);
+  }
+
+  /** DIVE SLAM (FURIOUS): he rises over you, hangs there, and plunges fists-first into the desk - shockwaves out both ways
+   *  from where he lands - then slumps there a moment, head low (hit it!), before floating back up. Twice in later acts. */
+  start_slam(match, a) { this.pin = true; a.n = this.world === 'poly' ? 1 : 2; a.ph = 'rise'; a.t0 = 0; this.play('look_d'); sfx('whoosh', 0.7, 0.6); }
+  /** One frame of the DIVE SLAM: rise, hang, plunge, slump, back up (true when done). */
   atk_slam(match, a, out) {
-    if (a.t === a.next) {
-      a.hit = a.t; const fx = [W2(236.5, 282.6).x, W2(403.5, 282.6).x];
-      for (const [i, x] of fx.entries()) {
-        const d = i ? 1 : -1;
-        this.waves.push({ x, dir: d, v: SLAM.waveV, id: this.nid('w') });
-        if (this.world === 'void') this.waves.push({ x, dir: -d, v: SLAM.waveV * 0.8, id: this.nid('w') });
-        this.impact(match, x, 0, 1);
+    const t = a.t - a.t0, f = this.nearest(match, this.hx);
+    if (a.ph === 'rise') {
+      if (f) this.hx += (Math.max(-BODY.edge, Math.min(BODY.edge, f.x)) - this.hx) * 0.12;
+      this.hy += (DIVE.top - this.hy) * 0.12;
+      if (t > this.sp(DIVE.rise)) { a.ph = 'hang'; a.t0 = a.t; this.play('slam'); sfx('warn', 0.6, 1.2); }
+    } else if (a.ph === 'hang') {
+      this.marks.push({ x: this.hx, y: 0, k: t / DIVE.hang, kind: 'fire', life: 1 }); this.hy += Math.sin(t) * 0.5;
+      if (t > DIVE.hang) { a.ph = 'fall'; a.t0 = a.t; a.id2 = this.nid('dv'); }
+    } else if (a.ph === 'fall') {
+      this.hy = Math.min(DIVE.land, this.hy + DIVE.v); this.dashing = true;
+      out.push(this.bhit(a.id2, this.hx - 50, this.hy - 125, this.hx + 50, this.hy + 14, ...DIVE.body, { radial: true }));
+      if (this.hy >= DIVE.land) {
+        a.ph = 'slump'; a.t0 = a.t; this.dashing = false;
+        this.waves.push({ x: this.hx - 30, dir: -1, v: SLAM.waveV, id: this.nid('w') }, { x: this.hx + 30, dir: 1, v: SLAM.waveV, id: this.nid('w') });
+        this.impact(match, this.hx, 0, 1.6); sfx('bighit', 1, 0.55); sfx('clang', 0.6, 0.5); match.shake(16, 18); this.flash(0xffffff, 0.35);
+        out.push(this.bhit(a.id2 + 'x', this.hx - 70, -50, this.hx + 70, 4, ...SLAM.fist, { radial: true }));
       }
-      sfx('bighit', 1, 0.6); sfx('clang', 0.6, 0.5); match.shake(14, 16); this.flash(0xffffff, 0.35);
+    } else if (a.ph === 'slump') {
+      if (t > DIVE.slump) { if (--a.n > 0) { a.ph = 'rise'; a.t0 = a.t; this.play('look_d'); } else { a.ph = 'back'; a.t0 = a.t; } }
+    } else { this.hy += (BODY.hover - this.hy) * 0.1; if (Math.abs(this.hy - BODY.hover) < 3) return true; }
+    return false;
+  }
+
+  /** THE CHARGE (FURIOUS): he draws back, red streaks pull at the air, then he tears across the desk the whole way
+   *  through you, leaving afterimages; in the void he turns and comes back. */
+  start_dash(match, a) { this.pin = true; const f = this.nearest(match, this.hx); a.dir = f ? (Math.sign(f.x - this.hx) || 1) : 1; a.n = this.world === 'void' ? 2 : 1; a.ph = 'wind'; a.t0 = 0; this.play('argue'); sfx('roar', 0.5, 1.1); }
+  /** One frame of THE CHARGE: winding back, then across the desk (true when done). */
+  atk_dash(match, a, out) {
+    const t = a.t - a.t0;
+    if (a.ph === 'wind') {
+      this.hx -= a.dir * 1.1; this.hy += (BODY.hover + 18 - this.hy) * 0.1;
+      if (t % 4 === 0) for (let i = 0; i < 3; i++) match.particles.push({ x: this.hx + a.dir * (80 + Math.random() * 140), y: this.hy - 20 - Math.random() * 100, vx: -a.dir * 7, vy: 0, life: 14, color: 0xff2a3a, size: 2 });
+      if (t > this.sp(DASH.wind)) { a.ph = 'go'; a.t0 = a.t; a.id2 = this.nid('ds'); sfx('whoosh', 1, 0.5); this.dashing = true; }
+    } else if (a.ph === 'go') {
+      this.hx += a.dir * DASH.v;
+      out.push(this.bhit(a.id2, this.hx - 48, this.hy - 118, this.hx + 48, this.hy + 14, ...DASH.hit, { dirX: a.dir }));
+      if (t % 2 === 0) match.particles.push({ x: this.hx - a.dir * 50, y: this.hy - Math.random() * 120, vx: -a.dir * 3, vy: 0, life: 18, color: MOODS[this.mood].color, size: 3 });
+      if (Math.abs(this.hx) > 250) {
+        this.hx = Math.sign(this.hx) * 250; this.dashing = false; match.shake(6, 8); sfx('clang', 0.5, 0.7);
+        if (--a.n > 0) { a.dir = -a.dir; a.ph = 'wind'; a.t0 = a.t; } else return true;
+      }
     }
-    if (a.hit && a.t - a.hit < 6) for (const [i, x] of [W2(236.5, 0).x, W2(403.5, 0).x].entries()) out.push(this.bhit('slf' + a.id + i + a.n, x - 38, -52, x + 38, 4, ...SLAM.fist, { dirX: i ? 1 : -1 }));
-    if (a.hit && a.t - a.hit === 40) { if (--a.n > 0) { this.play('slam'); a.next = a.t + TICKS * SLAM.at; a.hit = 0; } else return true; }
     return false;
   }
 
@@ -374,9 +541,9 @@ export class HanzBossStage extends BossArena {
   atk_coins(match, a) {
     const k = (a.t - 30) / COINS.every;
     if (a.t >= 30 && k === Math.floor(k) && k < COINS.volleys) {
-      const at = W2(497, 205);
+      const at = this.L(400, 230);
       sfx('ding', 0.9, 1.2 + k * 0.1); sfx('clang', 0.5, 1.6); match.shake(4, 6);
-      for (let i = 0; i < COINS.n; i++) this.shots.push({ kind: 'coin', x: at.x, y: at.y, vx: -(1.6 + Math.random() * 6.4) * (Math.random() < 0.15 ? -0.4 : 1), vy: -5 - Math.random() * 4.5, grav: 0.28, bounce: 1, r: COINS.r, spin: Math.random() * 6, id: this.nid('cn'), hit: COINS.hit, life: 260 });
+      for (let i = 0; i < COINS.n; i++) this.shots.push({ kind: 'coin', x: at.x, y: at.y, vx: (this.nearestPos().x < at.x ? -1 : 1) * (1.6 + Math.random() * 6.4) * (Math.random() < 0.15 ? -0.4 : 1), vy: -5 - Math.random() * 4.5, grav: 0.28, bounce: 1, r: COINS.r, spin: Math.random() * 6, id: this.nid('cn'), hit: COINS.hit, life: 260 });
       this.burst(match, at.x, at.y, 10, [0xffd447, 0xfff3dc, 0x2fd6c6]);
     }
     return a.t > 30 + COINS.volleys * COINS.every + 120;
@@ -384,13 +551,13 @@ export class HanzBossStage extends BossArena {
 
   /** THE WATCHER: the gem on his desk rises and its eye locks on - a line, then a prism laser down through you. */
   start_gem(match, a) {
-    this.play('look_d'); const t = LOST_POLY.things.gem, g = W2(t.x + t.w / 2, t.y + t.h / 2);
+    this.play('look_d'); const g = this.L(320, 215);
     a.from = g; a.shots = GEM.shots[this.low ? 1 : 0]; a.k = 0; a.aim = null; sfx('ding', 0.6, 0.6);
     this.gem.setTexture('lost_poly_things', 'gem_0').setPosition(g.x, g.y).setScale(1).setVisible(true);
   }
   /** GEM, frame by frame: the gem rising, then lock-on / fire for each shot. Returns true when it's over. */
   atk_gem(match, a, out) {
-    const up = Math.min(1, a.t / 40), gx = lerp(a.from.x, -150, up), gy = lerp(a.from.y, -250, up);
+    const up = Math.min(1, a.t / 40), gx = lerp(a.from.x, this.hx + (this.hx > 0 ? -70 : 70), up), gy = lerp(a.from.y, -270, up);
     this.gem.setPosition(gx, gy + Math.sin(a.t * 0.08) * 4).setScale(1 + up * 1.4).setFrame('gem_' + (Math.floor(a.t / 4) % LOST_POLY.things.gem.n));
     if (a.t < 40) return false;
     const q = (a.t - 40) % (GEM.lock + GEM.fire + 16), shot = Math.floor((a.t - 40) / (GEM.lock + GEM.fire + 16));
@@ -448,7 +615,7 @@ export class HanzBossStage extends BossArena {
   }
 
   /** THE EYE OPENS: the eye-moon swells over the room, watches you, and paints columns of watercolour down on you. */
-  start_eye(match, a) { a.side = Math.random() < 0.5 ? -1 : 1; this.play(a.side < 0 ? 'look_l' : 'look_r'); a.k = 0; this.eye.setTexture('lost_drawn_things', 'eye_0').setPosition(a.side * 185, -245).setScale(0).setVisible(true); sfx('petal', 0.8, 0.5); }
+  start_eye(match, a) { a.side = this.hx > 0 ? -1 : 1; this.play(a.side < 0 ? 'look_l' : 'look_r'); a.k = 0; this.eye.setTexture('lost_drawn_things', 'eye_0').setPosition(a.side * 185, -245).setScale(0).setVisible(true); sfx('petal', 0.8, 0.5); }
   /** EYE, frame by frame: the eye swells, aims a column at you per shot, then shrinks away. Returns true when it's over. */
   atk_eye(match, a) {
     const per = EYE.warn + EYE.live + 20, sc = Math.min(1.5, a.t / 20 * 1.5);
@@ -501,7 +668,7 @@ export class HanzBossStage extends BossArena {
   atk_thirteen(match, a) {
     this.clockK = Math.min(1, this.clockK + 0.03);
     if (a.t > CLOCK.start && (a.t - CLOCK.start) % CLOCK.every === 0 && a.k < 13) {
-      a.k++; const c = W2(340, 182), last = a.k === 13;
+      a.k++; const c = this.L(340, 182), last = a.k === 13;
       this.rings.push({ x: c.x, y: c.y, r: 16, v: CLOCK.v * (last ? 1.25 : 1) * (a.k % 2 ? 1 : 0.85), gap: Math.random() * Math.PI * 2, gw: last ? CLOCK.gap * 1.2 : CLOCK.gap, id: this.nid('rg'), n: a.k });
       sfx('ding', 1, 0.42 + (last ? -0.1 : 0)); sfx('clocktick', 0.8, 0.7); match.shake(last ? 12 : 4, 8);
       this.flash(0xff2a3a, last ? 0.5 : 0.12);
@@ -648,6 +815,7 @@ export class HanzBossStage extends BossArena {
     if (this.dShards) this.drawShatter();
     if (this.drawCinema) this.drawCinema(match);
     if (this.boss) this.drawBar();
+    if (this.moodT) this.moodT.setVisible(!!this.boss && !this.intro && !this.cut && !this.boss.dying && !match.over && this.barG.visible !== false).setAlpha(0.75 + 0.25 * Math.sin(this.t * 0.1));
   }
 
   /** The void: drifting red and grey motes and slow tear lines across the dark room. */
@@ -662,7 +830,7 @@ export class HanzBossStage extends BossArena {
   /** THIRTEEN O'CLOCK's clock face behind him: thirteen marks, XIII at the top, hands racing, glowing on each strike. */
   drawClock() {
     const g = this.backG; g.clear(); const k = this.clockK; if (k <= 0) return;
-    const c = this.headAt(), R = 230 * k, t = this.t;
+    const c = { x: this.hx, y: this.hy - 100 }, R = 175 * k, t = this.t;
     g.fillStyle(0x1a0408, 0.75 * k); g.fillCircle(c.x, c.y + 40, R);
     g.lineStyle(4, 0xff2a3a, 0.8 * k); g.strokeCircle(c.x, c.y + 40, R); g.lineStyle(1, 0xd2d0cc, 0.5 * k); g.strokeCircle(c.x, c.y + 40, R - 12);
     for (let i = 0; i < 13; i++) { const q = -Math.PI / 2 + i / 13 * Math.PI * 2, x1 = c.x + Math.cos(q) * (R - 4), y1 = c.y + 40 + Math.sin(q) * (R - 4), x2 = c.x + Math.cos(q) * (R - (i === 0 ? 34 : 20)), y2 = c.y + 40 + Math.sin(q) * (R - (i === 0 ? 34 : 20)); g.lineStyle(i === 0 ? 6 : 3, i === 0 ? 0xff4a5a : 0xd2d0cc, k); g.lineBetween(x1, y1, x2, y2); }

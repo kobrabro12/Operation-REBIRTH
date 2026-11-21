@@ -131,6 +131,7 @@ export class ShopScene extends Phaser.Scene {
 
   /** Builds the shop. data.tab = the tab to open on (coming back from LOST). */
   create(data = {}) {
+    this.goingLost = false;                                                       // (the scene object is reused: without this LOST could only be entered once)
     this.noliTapUntil=0;this.noliTapIndex=0;
     this.noli = false; unreveal('noli');              // NOLI lasts one visit: you come back to the normal shop
     this.riphood = this.soviet = false; this.mode = null; unreveal('riphood'); unreveal('papers');   // ...and so do RIPHOOD and PAPERSPLEASE
