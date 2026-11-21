@@ -626,11 +626,11 @@ export class HanzBossStage extends BossArena {
   }
 
   /** The match is over (MatchScene's shutdown): his big animation sheets are let go - unless you're going back to
-   *  LOST, which shows them anyway. (They're ~100 MB of picture once decoded.) */
+   *  LOST, which shows them anyway - and so are the other worlds' pictures. (~100 MB of picture once decoded.) */
   dispose(match) {
     if (match.bossFight && match.bossFight.from === 'Lost') return;
     const T = match.textures;
-    for (const key of T.getTextureKeys()) if (key.startsWith('lost_hanz_')) T.remove(key);
+    for (const key of T.getTextureKeys()) if (key.startsWith('lost_')) T.remove(key);
   }
 
   /** Clears every attack effect (the acts changing, his death). */
