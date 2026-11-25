@@ -2,7 +2,9 @@
 church organ in D harmonic minor, a clock ticking, a funeral bell, then distorted guitars chugging ONE-two-three,
 bass, a waltz kit (kick on one, snare on two and three) with double-kick fills, and a lead guitar taking the music
 box's tune. Everything is synthesized (the guitar / amp / drum models are tools/audio/underground_music.py's).
-Loops seamlessly (whole bars).
+Then it loses its mind: THE FRENZY - blast beats, tremolo-picked guitars, an organ screaming clusters, a bell on
+every bar, the music box stuttering an octave up, shredded arpeggio runs, the whole song shoving up a semitone every
+four bars - and a half-time BREAKDOWN on a tritone before the music box leads it back round. Loops seamlessly (whole bars).
 
 Run:  python3 tools/audio/hanz_boss_music.py
 Writes public/assets/audio/music/boss_hanz.ogg (bgm_boss_hanz, in TRACKS in src/audio/music.js).
@@ -25,7 +27,10 @@ TUNE = [12, 15, 14, 12, 10, 9, 10, 12, 7, None, 7, 9,
         12, 15, 14, 12, 17, 15, 14, 12, 10, 9, 10, 12,
         14, 12, 10, 9, 7, 5, 4, 5, 7, 2, None, None]
 # sections: (name, bars)
-FORM = [('intro', 4), ('waltz', 16), ('metal', 16), ('dirge', 8), ('metal', 12)]
+FORM = [('intro', 4), ('waltz', 16), ('metal', 16), ('dirge', 8), ('metal', 12), ('frenzy', 16), ('breakdown', 4)]
+# THE FRENZY (the rage at the end before it loops): every 4 bars the whole song shoves up a semitone; its lead's runs
+FRENZY_UP = 4
+RUN = [0, 3, 7, 12, 15, 19, 24, 19, 15, 12, 7, 3]
 
 
 def musicbox(m, dur, v=1.0):
@@ -59,6 +64,53 @@ def tick(v=1.0):
     return bp(rng.uniform(-1, 1, L), 1500, 6000) * np.exp(-t * 180) * 0.5 * v
 
 
+def frenzy(name, k, nb, t0, root, ch, gl, gr, bs, dr, ld, rest):
+    """One bar of THE FRENZY (blast beats, tremolo guitars, clusters, runs, the stuttering music box, rising) or of
+    the BREAKDOWN (half-time tritone chugs, then everything drops out but the bell and the music box)."""
+    s16 = B / 4
+    if name == 'frenzy':
+        for b in range(6): add(rest, tick(0.6), t0 + b * B / 2)                                   # the clock racing
+        add(rest, organ([root, root + 1, root + 6, root + 7, root + 12, root + 13], 3 * B, 1.8), t0)   # the organ screaming
+        add(rest, bell(D - 12 + ch + (k // FRENZY_UP), 1.2), t0)
+        for b in range(3):                                                                       # the music box, stuttering an octave up
+            m = TUNE[(k * 3 + b) % len(TUNE)]
+            if m is None: continue
+            for r in range(4 if b == 0 else 2): add(rest, musicbox(D + 24 + m + (root - D - ch), s16, 0.5 + 0.1 * r), t0 + b * B + r * s16)
+        for take, buf in ((0, gl), (1, gr)):                                                     # tremolo-picked guitars
+            j = take * 0.005
+            add(buf, power(root - 12, B * 0.9, False, take), t0 + j)
+            for q in range(4, 12): add(buf, power(root - 12 + (1 if (k % 2 and q >= 8) else 0), s16 * 0.9, True, take), t0 + q * s16 + j)
+        for q in range(6): add(bs, bass(root - 24 + (12 if q % 2 else 0), B / 2 * 0.9, 1.0), t0 + q * B / 2)
+        for q in range(12): add(dr, kick(0.75 + 0.2 * (q % 4 == 0)), t0 + q * s16)                # the blast beat
+        for q in range(6): add(dr, snare(0.85 if q % 2 else 0.6), t0 + q * B / 2 + s16)
+        add(dr, crash(0.9), t0)
+        if k % 2 == 1 or k >= nb - 4:                                                            # shredding runs (every bar at the end)
+            for q in range(12): add(ld, lead(D + 12 + (root - D) + RUN[q] - (12 if q > 6 else 0) + 12 * (k >= nb - 2), s16 * 0.95, 0.9), t0 + q * s16)
+        else:
+            for b in range(3):
+                m = TUNE[(k * 3 + b) % len(TUNE)]
+                if m is not None: add(ld, lead(D + 12 + m + (root - D - ch), B * 0.9, 1.0, bend=1.0 if b == 0 else 0), t0 + b * B)
+        if k >= nb - 2:                                                                          # a rising roar of noise into the breakdown
+            L = n(3 * B); t = np.arange(L) / SR; sweep = bp(rng.uniform(-1, 1, L), 300 + 2500 * (k - nb + 2), 6000)
+            add(rest, sweep * (t / (3 * B)) * 0.25, t0)
+    else:
+        last = k == nb - 1
+        if not last:
+            for take, buf in ((0, gl), (1, gr)):                                                  # half-time chugs on a tritone
+                j = take * 0.006
+                add(buf, power(root - 12, B * 1.4, False, take), t0 + j); add(buf, power(root - 6, B * 0.9, False, take), t0 + 1.5 * B + j)
+                add(buf, power(root - 12, B * 0.3, True, take), t0 + 2.5 * B + j)
+            add(bs, bass(root - 24, B * 1.4, 1.1), t0); add(bs, bass(root - 18, B * 0.9, 1.0), t0 + 1.5 * B)
+            add(dr, kick(1.0), t0); add(dr, crash(0.9), t0); add(dr, snare(1.0), t0 + 1.5 * B); add(dr, kick(0.9), t0 + 2.5 * B)
+            if k == nb - 2: [add(dr, tom(50 - q * 3, 0.8), t0 + 2 * B + q * B / 6) for q in range(6)]
+            add(rest, organ([root, root + 6, root + 12], 3 * B, 1.4), t0)
+        add(rest, bell(D - 12, 1.3 if last else 0.9), t0)
+        for b in range(3):                                                                       # the music box leads it back round
+            m = TUNE[(k * 3 + b) % len(TUNE)]
+            if m is not None and (last or b == 0): add(rest, musicbox(D + 12 + m, B, 0.9), t0 + b * B)
+        for b in range(3): add(rest, tick(0.8 if b == 0 else 0.5), t0 + b * B)
+
+
 def main():
     bars = sum(b for _, b in FORM); L = n(bars * 3 * B)
     gl, gr, bs, dr, ld, rest = (np.zeros(L) for _ in range(6))
@@ -67,6 +119,8 @@ def main():
         for k in range(nb):
             t0 = bar * 3 * B; ch = PROG[bar % len(PROG)]; root = D + ch
             third = 3 if ch in (0, 5) else 4 if ch == 7 else 4
+            if name in ('frenzy', 'breakdown'):
+                frenzy(name, k, nb, t0, root + (k // FRENZY_UP if name == 'frenzy' else 0), ch, gl, gr, bs, dr, ld, rest); bar += 1; continue
             # clock ticks on every beat, a tock on the off-beats, all the way through
             for b in range(3): add(rest, tick(0.8 if b == 0 else 0.5), t0 + b * B); add(rest, tick(0.25), t0 + b * B + B / 2)
             if name in ('intro', 'waltz', 'dirge') or k % 4 == 0:

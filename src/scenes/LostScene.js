@@ -26,9 +26,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { lostKeeper, setLostKeeper, getCoins, buyItem, owns, toggleEquip, isEquipped, addCoins, lostFound, markLostFound } from '../progress.js';
 import { SHOP } from '../data/shop.js';
 import { fighterById, showFighter } from '../fighters/roster.js';
-import { skinsFor, skinUnlocked } from '../fighters/skins.js';
-import { settings } from '../settings.js';
-import { TIERS } from '../data/bosses.js';
+import { skinsFor } from '../fighters/skins.js';
 import { LOST_FRAMES } from './lostFrames.js';
 import { LOST_LINES, LOST_COLORS, LOST_VOICE, LOST_ACTS } from '../data/lostLines.js';
 import { PolyRoom } from './lostPolyRoom.js';
@@ -663,8 +661,8 @@ export class LostScene extends Phaser.Scene {
   }
 
   /** LET'S SETTLE THIS: poked once too often, he slams the counter - FINE. ...LET'S SETTLE THIS. - claps the room into
-   *  his polygon world, and the camera falls into his desk: the boss fight (HANZ & $@L, SECRET_BOSSES in bosses.js),
-   *  with the fighter you last picked. Winning or quitting brings you back here. */
+   *  his polygon world, and the camera falls into his desk: BOSS FIGHTS' fighter step to pick who faces him, then the
+   *  boss fight (HANZ & $@L, SECRET_BOSSES in bosses.js; 3 lives). Winning, quitting or backing out brings you back here. */
   settle() {
     this.settling = true; this.pokeN = 0;
     this.say('settle', 0); this.play('slam', null, true);
@@ -672,13 +670,7 @@ export class LostScene extends Phaser.Scene {
     this.time.delayedCall(1700, () => { if (this.ready && this.ready.has('clap') && this.poly) this.play('clap', null, true); });   // (into his polygon world - or, if it's up already, a clap for emphasis)
     this.time.delayedCall(3900, () => {
       sfx('whoosh', 0.9, 0.5); this.cameras.main.zoomTo(4, 900, 'Cubic.easeIn'); this.cameras.main.fadeOut(900, 255, 255, 255);
-      this.time.delayedCall(950, () => {
-        const id = fighterById(settings.picks && settings.picks[0]).id;
-        const s0 = settings.skins && settings.skins[0], sk = Number.isInteger(s0) && s0 < skinsFor(id).length && skinUnlocked(id, s0) ? s0 : 0, T = TIERS[SETTLE.tier];
-        const setup = { mode: 'stock', stocks: T.stocks, hp: 150, minutes: 3, items: false, hazards: true, crt: settings.crt, stage: 'hanz-desk', track: 'auto', picks: [id], skins: [sk],
-          cpuCount: 0, difficulty: 1, cpuLevels: [], p1Pad: settings.p1Pad, extraPads: [], from: 'Lost' };
-        this.scene.start('Match', { boss: { id: 'hanz', tier: SETTLE.tier, setup, from: 'Lost' } });
-      });
+      this.time.delayedCall(950, () => this.scene.start('BossFights', { secret: 'hanz', tier: SETTLE.tier, tab: this.back }));   // (pick your fighter, then the fight)
     });
   }
 
