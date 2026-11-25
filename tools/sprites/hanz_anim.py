@@ -1218,6 +1218,8 @@ def main():
         table['anims'] = old.get('anims', {}); table['props'] = old.get('props', {})
         if 'counter' in old: table['counter'] = old['counter']
         if 'hits' in old: table['hits'] = old['hits']
+        if 'legs' in old: table['legs'] = old['legs']                              # (hanz_legs.py's)
+        if 'fight' in old: table['fight'] = old['fight']                           # (hanz_fight.py's)
     if not only or 'counter' in only:                                             # the counter and what stands on it still
         for ob in list(bpy.data.objects):
             if ob.get('hanz'): bpy.data.objects.remove(ob)
