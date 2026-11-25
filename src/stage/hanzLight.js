@@ -14,16 +14,17 @@
 import { sfx } from '../audio/sfx.js';
 import { VIEW_W, VIEW_H, PHYS } from '../config.js';
 
-// THE SPEAR OF LIGHT: frames he aims for (tracking, then locked), its speed, length, the hit (30 damage exactly)
-export const SPEAR = { track: 40, lock: 22, v: 15, len: 74, dmg: 30, kb: [40, 7.5, 0.9] };
+// THE SPEAR OF LIGHT: frames he aims for (tracking, then locked), its speed, length, the hit (30 damage exactly); the
+// least time between two spears (frames)
+export const SPEAR = { track: 40, lock: 22, v: 15, len: 74, dmg: 30, kb: [40, 7.5, 0.9], cool: 1200 };
 // the puddle it melts into: how long it stays (frames), when it raises its minions, how many, how many minions may be up at once
-const PUDDLE = { life: 600, at: [90, 330], summons: 2, max: 4, w: 70 };
+const PUDDLE = { life: 600, at: [90, 330], summons: 2, max: 3, w: 70 };
 // THE LIGHT MINIONS: colour, health, walk speed, how near they like to be, their attacks' timings and hits; how long one lasts
 const MINION = {
-  blade: { color: 0x9ae8ff, hp: 18, speed: 1.7, near: 44, wind: 18, live: 8, rest: 30, hit: [8, [40, 5.5, 0.7]], lunge: 3, lungeV: 6 },
-  bow: { color: 0xffe08a, hp: 12, speed: 1.2, near: 190, draw: 44, rest: 70, v: 9, hit: [6, [30, 4.5, 0.55]] },
-  hammer: { color: 0xff9ae6, hp: 30, speed: 0.9, near: 64, wind: 38, live: 8, rest: 52, hit: [12, [70, 7.5, 0.9]], wave: [7, [80, 5, 0.6]] },
-  life: 900, rise: 40,
+  blade: { color: 0x9ae8ff, hp: 18, speed: 1.7, near: 44, wind: 22, live: 8, rest: 55, hit: [6, [40, 5, 0.65]], lunge: 3, lungeV: 6 },
+  bow: { color: 0xffe08a, hp: 12, speed: 1.2, near: 190, draw: 50, rest: 100, v: 9, hit: [4, [30, 4, 0.5]] },
+  hammer: { color: 0xff9ae6, hp: 30, speed: 0.9, near: 64, wind: 42, live: 8, rest: 80, hit: [9, [70, 6.5, 0.8]], wave: [5, [80, 4.5, 0.5]] },
+  life: 600, rise: 40,
 };
 // THE SHIFT: how long a dimension lasts (frames), the least time between shifts, each dimension's tint on his counter;
 // low gravity in the stairs (how much of gravity is lifted off anyone in the air), the melting hour's time pools
@@ -32,7 +33,7 @@ const DIM = {
   time: 1500, cool: 1700, list: ['stairs', 'melt', 'tv'],
   tint: { stairs: 0xe8dcc4, melt: 0xffc890, tv: 0xc8d8ff },
   name: { stairs: 'THE IMPOSSIBLE STAIRS', melt: 'THE MELTING HOUR', tv: 'CHANNEL 13' },
-  lift: 0.45, pools: 2, poolW: 70, every: 230, warn: 50, live: 16, h: 28, hit: [10, [40, 6, 0.7]],
+  lift: 0.45, pools: 2, poolW: 70, every: 300, warn: 54, live: 16, h: 28, hit: [8, [40, 5.5, 0.65]],
 };
 const lerp = (a, b, k) => a + (b - a) * k;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -40,8 +41,10 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 /** THE SPEAR OF LIGHT, its puddles and light minions, and THE SHIFT into his three dimensions. */
 export class HanzLight {
   // ------------------------------------------------------------------ THE SPEAR OF LIGHT
+  /** Whether THE SPEAR OF LIGHT is ready (not too soon after the last). */
+  spearReady() { return this.t - (this.spearAt ?? -1e9) > SPEAR.cool; }
   /** He raises $@L's red hand and a spear of light forms in it. */
-  start_spear(match, a) { this.play('spear'); a.ph = 'form'; a.t0 = 0; sfx('warn', 0.6, 1.4); this.say('s', 'HOLD STILL.', 40); }
+  start_spear(match, a) { this.spearAt = this.t; this.play('spear'); a.ph = 'form'; a.t0 = 0; sfx('warn', 0.6, 1.4); this.say('s', 'HOLD STILL.', 40); }
   /** Where the spear's grip is (his red hand in this frame of `spear`), in the world. */
   spearHand() { const fr = this.frame(); return fr.hand ? this.L(fr.hand[0], fr.hand[1]) : this.headAt(); }
   /** One frame of THE SPEAR OF LIGHT: forming, aiming (tracking you, then locked), the throw. */

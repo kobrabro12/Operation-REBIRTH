@@ -414,8 +414,8 @@ export class HanzBossStage extends BossArena {
       .map((r) => this.world !== 'stars' ? r : { ...r, mult: r.mult * TRUE.armor * (r.head && this.boss && this.boss.atk && this.boss.atk.name === 'twoface' ? 1.3 : 1) });
   }
   /** His attacks by world (and LAST CALL quickens the void). */
-  /** What he can do now: his mood's moves in this world, plus THE SPEAR OF LIGHT and (when it's ready) THE SHIFT. */
-  pattern() { return [...MOVES[this.mood][this.world], 'spear', ...(this.shiftReady() ? ['shift'] : [])]; }
+  /** What he can do now: his mood's moves in this world, plus THE SPEAR OF LIGHT and THE SHIFT when they're ready. */
+  pattern() { return [...MOVES[this.mood][this.world], ...(this.spearReady() ? ['spear'] : []), ...(this.shiftReady() ? ['shift'] : [])]; }
   /** Wind-ups: the difficulty's speed and his mood's (FURIOUS is quick, GLOOMY slow). */
   sp(n) { return Math.max(1, Math.round(n / ((this.boss ? this.boss.cfg.T.speed : 1) * MOODS[this.mood].speed))); }
   /** What the death card quotes: the world he beat you in. */
