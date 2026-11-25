@@ -172,4 +172,7 @@ export function musicState() {
   return { key: current.key, loop: el.loop, playing: !el.paused, pending: !!current.pending, duration: Number.isFinite(el.duration) ? el.duration : 0, streaming: true };
 }
 
+/** Turns the music down to `k` of its volume (0 = silent, 1 = back to normal) - a cutscene's silence. */
+export function duckMusic(k) { if (current) setVol(current, base * settings.musicVolume * k); }
+
 export function updateMusicVolume() { if (current) setVol(current, base * settings.musicVolume); }

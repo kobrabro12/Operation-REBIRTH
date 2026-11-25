@@ -25,10 +25,9 @@ import { BossArena } from './bossBase.js';
 import { PixelPen } from './pixelPen.js';
 import { sfx } from '../audio/sfx.js';
 import { FONT, VIEW_W } from '../config.js';
+import { HoppleLost, FLOOR, LEDGE } from './hoppleLost.js';
 
-// the island: the floor's ends; the ? block ledges (height, inner and outer x)
-const FLOOR = { x1: -262, x2: 262 };
-const LEDGE = { y: -112, x1: 142, x2: 222 };
+// (the island's FLOOR and the ? block LEDGE live in hoppleLost.js)
 // his pixel canvas (w x h) and how he moves between attacks (hop height, hop speed, how far he roams)
 const PX = { w: 180, h: 236 };
 const BODY = { hop: 14, speed: 2.2, range: 205 };
@@ -52,8 +51,6 @@ const CAST = { alert: 70, crawls: [['lo'], ['hi'], ['lo', 'hi2']], gap: 60, spee
 const DEBUG = { cell: 40, n: 5, warn: 36, every: 22, fall: 12, lie: 260, hit: [10, [80, 5.6, 0.7]] };
 // IT SEES YOU (lost): the dark, his face rising, the bite (everything below `top` on the floor), its hit
 const SEES = { dark: 30, rise: 120, scare: 12, top: -74, hit: [18, [80, 7.2, 1.0]] };
-// THE LOST BUILD cutscene (half health): its length, when the picture breaks, when he speaks
-const LOST = { n: 230, tear: 70, smile: 120, card: 200 };
 // GAME OVER, his death: when he freezes, falls to pixels, the thank-you, the tape stops
 const DIE = { freeze: 30, pixels: 80, thanks: 150, stop: 230, len: 290 };
 // stage hazards: STATIC (warning, shock, width, hit) and TRACKING ROLL (warning, speed, height, hit)
@@ -135,7 +132,9 @@ export class HoppleBossStage extends BossArena {
     this.titleS = ui(s.add.text(VIEW_W / 2, 218, 'PRESS START', { fontFamily: FONT, fontSize: '9px', color: '#ffffff', stroke: '#1a3a8a', strokeThickness: 4 }).setOrigin(0.5).setDepth(3.8).setVisible(false));
     this.cardT = ui(s.add.text(VIEW_W / 2, 180, '', { fontFamily: FONT, fontSize: '12px', color: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center', lineSpacing: 8 }).setOrigin(0.5).setDepth(3.9).setVisible(false));
     this.scareT = ui(s.add.text(VIEW_W / 2, 268, '', { fontFamily: FONT, fontSize: '10px', color: '#ff2a2a', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(3.9).setVisible(false));
-    this.scareG = ui(s.add.graphics().setDepth(3.85));
+    this.scareG = ui(s.add.graphics().setDepth(49));                                   // (above the haunting too: the jumpscare)
+    this.ledgeG = [s.add.graphics(), s.add.graphics()]; world.push(...this.ledgeG);
+    this.makeLost(s, world, bg, ui);
     this.signT = s.add.text(-233, -40, 'START', { fontFamily: FONT, fontSize: '5px', color: '#3a2a10' }).setOrigin(0.5); world.push(this.signT);
     this.paintGround();
     this.cycle.makeBanner(s);
@@ -159,7 +158,8 @@ export class HoppleBossStage extends BossArena {
     if (this.signT) this.signT.setText(L > 0.5 ? 'STOP' : 'START').setColor(L > 0.5 ? '#a01010' : '#3a2a10');
     // the ? blocks
     for (const s of [-1, 1]) for (let i = 0; i < 5; i++) {
-      const x = (s < 0 ? -LEDGE.x2 : LEDGE.x1) + i * 16, y = LEDGE.y, q = i === 2;
+      const x = (s < 0 ? -LEDGE.x2 : LEDGE.x1) + i * 16, y = LEDGE.y, q = i === 2, g = this.ledgeG[s < 0 ? 0 : 1];
+      if (i === 0) g.clear();
       g.fillStyle(ink, 1); g.fillRect(x, y, 16, 16);
       g.fillStyle(q ? mix(0xffc030, 0x5a4a3a, L) : mix(0xc86030, 0x4a2020, L), 1); g.fillRect(x + 1, y + 1, 14, 14);
       if (q) { g.fillStyle(mix(0xffffff, 0xff2a2a, L), 1); g.fillRect(x + 6, y + 4, 4, 2); g.fillRect(x + 9, y + 5, 2, 3); g.fillRect(x + 7, y + 8, 2, 2); g.fillRect(x + 7, y + 11, 2, 2); }
@@ -218,9 +218,9 @@ export class HoppleBossStage extends BossArena {
   }
   /** His attacks (phase 2 = the lost build). */
   pattern(phase) {
-    if (phase === 1) return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins'];
+    if (phase === 1) return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'friends'];
     if (this.sinceSees >= 4) return ['sees'];                                          // (IT SEES YOU every fifth attack or so)
-    return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'broadcast', 'debug', 'broadcast', 'debug', 'frames'];
+    return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'friends', 'broadcast', 'debug', 'run', 'credits', 'hide', 'run', 'credits', 'hide'];
   }
   /** His hits: scaled by HIT. */
   bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more = {}) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
@@ -332,7 +332,7 @@ export class HoppleBossStage extends BossArena {
 
   /** EXTRA LIVES: his life icons peel off the HUD and fly at you, chomping. One hit pops one. */
   start_lives(match, a) {
-    const n = LIVES.n[this.lostOn ? 1 : 0], cam = match.cameras.main.worldView;
+    const n = LIVES.n[this.lostOn ? 1 : 0], cam = (match.worldCam || match.cameras.main).worldView;
     for (let i = 0; i < n; i++) this.shots.push({ k: 'head', x: cam.x + 30 + i * 16, y: cam.y + 44, vx: 1 + Math.random(), vy: 1, sp: LIVES.speed * (0.85 + Math.random() * 0.3), turn: LIVES.turn, wait: 20 + i * 14, life: LIVES.life, r: LIVES.r, hit: LIVES.hit, id: this.sid('hd'), pop: true });
     this.livesShown = 0; a.k = 0; this.e.arms = 'point'; sfx('laugh', 0.5, 1.4);
   }
@@ -416,39 +416,7 @@ export class HoppleBossStage extends BossArena {
   /** A line under the picture (IT SEES YOU). */
   scareText(s) { this.scareT.setText(s).setVisible(!!s); }
 
-  // ------------------------------------------------------------------ the lost build (half health)
-  /** Half health: THE LOST BUILD - a cutscene if someone's watching, otherwise it just breaks. */
-  onRage(match) {
-    this.pinned = false; this.e.hide = false; this.clearFx();
-    if (this.watched) { this.cut = { kind: 'lost', t: 0, shot: null, once: new Set() }; this.ccam = { x: 0, y: -110, zoom: 1 }; sfx('glitch', 1, 0.5); }
-    else this.goLost();
-  }
-  /** The build is lost for good: the colours, his eyes and smile, the torn ear. */
-  goLost() { this.lostOn = true; this.lost = 1; this.e.eyes = 1; this.e.grin = 1; this.e.tear = 1; this.livesShown = 0; this.paintGround(); }
-  /** One frame of THE LOST BUILD: frozen picture, the tape tears, the world rots, he turns to you and his smile splits. */
-  cutStep(match) {
-    const C = this.cut, t = ++C.t, E = this.e, once = (k, at, fn) => { if (t >= at && !C.once.has(k)) { C.once.add(k); fn(); } };
-    this.t++; if (this.flash > 0) this.flash--; this.glitchK *= 0.92;
-    const h = this.core();
-    C.shot = t < LOST.tear ? { x: h.x, y: h.y + 10, zoom: 2.4 } : t < LOST.card ? { x: h.x, y: h.y + 4, zoom: 2.9 } : { x: 0, y: -110, zoom: 1.05 };
-    E.x = lerp(E.x, 0, 0.05); E.y = 0; E.arms = t < LOST.tear ? 'wave' : 'idle'; E.dir = 1;
-    once('hi', 4, () => { this.box = { x: 0, y: -230, shown: 0, text: 'YOU\'RE STILL PLAYING?', fade: 0, cut: true }; });
-    if (this.box && this.box.cut) { const n = Math.min(this.box.text.length, Math.floor(t / 2)); if (n > this.box.shown) { this.box.shown = n; sfx('menu', 0.25, 1.4); } }
-    once('tear', LOST.tear, () => { this.box = null; this.glitchK = 1; this.flash = 8; sfx('glitch', 1, 0.4); sfx('buzz', 0.8, 0.4); match.shake(10, 30); this.osdLine = { text: 'TRACKING', t: 120 }; });
-    if (t > LOST.tear && t < LOST.smile) { this.lost = Math.min(1, (t - LOST.tear) / (LOST.smile - LOST.tear)); E.ghost = 0.6 + Math.random() * 0.4; E.tilt = Math.sin(t * 0.7) * 0.06; if (t % 6 === 0) { this.paintGround(); sfx('glitch', 0.5, 0.4 + Math.random() * 0.5); } }
-    once('eyes', LOST.tear + 20, () => { E.eyes = 1; E.tear = 1; });
-    if (t >= LOST.smile) { E.grin = Math.min(1, (t - LOST.smile) / 40); E.tilt = lerp(E.tilt, 0.12, 0.1); }
-    once('smile', LOST.smile, () => { this.goLost(); E.grin = 0; this.box = { x: 0, y: -230, shown: 0, text: 'THEN LET\'S PLAY THE REAL GAME.', fade: 0, cut: true, red: true }; sfx('laugh', 0.8, 0.5); });
-    once('card', LOST.card, () => { this.box = null; E.tilt = 0; this.flash = 10; sfx('roar', 0.9, 0.5); });
-    if (t >= LOST.n) this.endCut(match);
-  }
-  /** A fresh press skips the rest of the cutscene. */
-  skipCut(match) { this.endCut(match); }
-  /** The cutscene's over: the lost build for good, and its name card. */
-  endCut(match) {
-    if (!this.cut) return; this.cut = null; this.box = null; this.goLost(); this.e.tilt = 0; this.e.ghost = 0;
-    this.startCard(match, { name: 'HOPPLE.LOST', title: 'THE BUILD THEY NEVER RELEASED', tag: '-  LOST BUILD  -' });
-  }
+  // ------------------------------------------------------------------ the lost build: hoppleLost.js (onRage, the haunting, the world, its attacks)
   /** The camera: the intro's, or the cutscene's own shots. */
   introCam() {
     if (!this.cut) return super.introCam();
@@ -456,7 +424,7 @@ export class HoppleBossStage extends BossArena {
     return { ...this.ccam, exact: true };
   }
   /** Clears every attack effect (a cutscene, his death). */
-  clearFx() { this.shots = []; this.waves = []; this.spikes = []; this.marks = []; this.crawls = []; this.box = null; this.card = 0; this.dark = 0; this.face = 0; this.scare = 0; this.grid = 0; this.alert = 0; this.scareText(''); this.coins = this.coins.filter((c) => c.deco); for (const b of this.blocks) if (b.plat) this.dropPlat(b.plat); this.blocks = []; }
+  clearFx() { this.rows = null; this.seek = null; this.bigLine = null; this.shots = []; this.waves = []; this.spikes = []; this.marks = []; this.crawls = []; this.box = null; this.card = 0; this.dark = 0; this.face = 0; this.scare = 0; this.grid = 0; this.alert = 0; this.scareText(''); this.coins = this.coins.filter((c) => c.deco); for (const b of this.blocks) if (b.plat) this.dropPlat(b.plat); this.blocks = []; }
   /** Takes a block's ledge away again. */
   dropPlat(p) { const i = this.platforms.indexOf(p); if (i >= 0) this.platforms.splice(i, 1); }
 
@@ -477,6 +445,7 @@ export class HoppleBossStage extends BossArena {
       if (!this.lostOn && !B.dying && Math.random() < 0.004) this.blinkT = 4;           // the cartoon's eyes... for a frame
     } else { E.y = 0; E.arms = 'idle'; E.dir = -1; this.stepFx(match, out); }
     if (this.blinkT > 0) this.blinkT--;
+    if (this.lostOn) { this.stepWorld(match); this.stepGore(); }
     E.ghost *= 0.9;
     if (this.osdLine && --this.osdLine.t <= 0) this.osdLine = null;
     return out;
@@ -493,6 +462,7 @@ export class HoppleBossStage extends BossArena {
     for (const s of this.shots) {
       s.life--;
       if (s.wait > 0) { s.wait--; s.x += s.vx; s.y += s.vy; s.vy *= 0.9; s.vx *= 0.9; continue; }
+      if (s.k === 'pal') { this.stepPal(s, match); out.push(this.bhit(s.id, s.x - s.r, s.y - s.r, s.x + s.r, s.y + s.r, ...s.hit)); continue; }
       const f = this.nearest(match, s.x);
       if (f) { const want = Math.atan2(f.y - 26 - s.y, f.x - s.x), cur = Math.atan2(s.vy, s.vx); let d = want - cur; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; const a = cur + Math.max(-s.turn, Math.min(s.turn, d)); s.vx = Math.cos(a) * s.sp; s.vy = Math.sin(a) * s.sp; }
       s.x += s.vx; s.y += s.vy;
@@ -602,9 +572,21 @@ export class HoppleBossStage extends BossArena {
     if (show) this.drawHopple();
     const gh = E.ghost > 0.08 && show;
     for (const [im, dx] of [[this.ghostR, -3], [this.ghostB, 3]]) im.setVisible(gh).setPosition(this.pen.img.x + dx * E.ghost + (Math.random() - 0.5) * 2, this.pen.img.y).setAlpha(0.6 * E.ghost);
+    for (const [i, p] of [[0, this.platforms[1]], [1, this.platforms[2]]]) if (p) this.ledgeG[i].setY(p.y - LEDGE.y);
+    this.drawWorld();
     this.drawFx();
     this.drawFace();
     this.drawTape();
+    this.drawHaunt();
+    this.drawCutBox();
+    this.drawBigText();
+    if (this.boss) this.drawBar();
+  }
+  /** The health bar, worn like the tape: tracking lines across it; in the lost build blood runs off it. */
+  barStyle(g, x, y, w, h, k) {
+    g.fillStyle(0x000000, 0.25); for (let i = 1; i < h; i += 2) g.fillRect(x, y + i, Math.round(w * k), 1);
+    if (!this.lostOn) return;
+    for (let i = 0; i < 9; i++) { const dx = x + 10 + i * (w - 20) / 8, l = 3 + ((this.t >> 2) + i * 5) % 11; if (dx > x + w * k) continue; g.fillStyle(0x8a0a12, 1); g.fillRect(dx, y + h, 2, l); g.fillCircle(dx + 1, y + h + l, 1.5); }
   }
   /** His colours now (cartoon blending into the lost build). */
   cols() { const a = COL.base, b = COL.lost, k = this.lost, o = {}; for (const n in a) o[n] = mix(a[n], b[n], k); return o; }
@@ -617,7 +599,7 @@ export class HoppleBossStage extends BossArena {
     const T = (px, py) => { const ux = px * sx * d, uy = py * sy; return { x: x0 + ux * Math.cos(rot) - uy * Math.sin(rot), y: y0 + ux * Math.sin(rot) + uy * Math.cos(rot) }; };
     const want = POSE[E.arms] || POSE.idle; for (let i = 0; i < 4; i++) E.hp[i] = lerp(E.hp[i], want[i], 0.25);
     if (E.arms === 'wave') E.hp[1] = want[1] + Math.sin(this.t * 0.35) * 8, E.hp[0] = want[0] + Math.sin(this.t * 0.35) * 6;
-    const bob = Math.sin(this.t * 0.12) * 1.5;
+    const bob = Math.sin(this.t * 0.12) * 1.5 + (E.headDown || 0) * 12;
     // ears (behind the head): long, the left one torn and flopped in the lost build
     const head = T(0, -90 + bob);
     for (const s of [-1, 1]) {
@@ -667,6 +649,7 @@ export class HoppleBossStage extends BossArena {
       const N = Math.round(6 + g * 8);
       for (let i = 0; i < N; i++) { const tx2 = mx - w / 2 + 3 + i * (w - 6) / (N - 1); P.fillTriangle(tx2 - 2, m.y + 2 - h / 2 + 1, tx2 + 2, m.y + 2 - h / 2 + 1, tx2, m.y + 2 - h / 2 + 5); P.fillTriangle(tx2 - 2, m.y + 2 + h / 2 - 1, tx2 + 2, m.y + 2 + h / 2 - 1, tx2, m.y + 2 + h / 2 - 5); }
     }
+    this.drawGore(P, T, E, { x: g < 0.15 ? m.x : m.x - d * g * 4, y: m.y, w: g < 0.15 ? 10 : 18 + g * 34 });
     const B = this.boss;
     P.finish(C.ink, B && B.flash > 0);
   }
@@ -674,6 +657,8 @@ export class HoppleBossStage extends BossArena {
   drawFx() {
     const g = this.midG, f = this.fxG, t = this.t; g.clear(); f.clear();
     for (const w of this.words) w.setVisible(false);
+    this.drawGoreFx(g);
+    this.drawCredits(f);
     for (const b of this.blockT) b.setVisible(false);
     for (const c of this.crawlT) c.setVisible(false);
     for (const m of this.marks) {
@@ -688,6 +673,7 @@ export class HoppleBossStage extends BossArena {
     let wi = 0;
     for (const s of this.shots) {
       if (s.k === 'letter') { const w = this.words[wi++]; if (w) w.setVisible(true).setText(s.ch).setPosition(s.x, s.y).setColor(this.lostOn ? '#ff3a3a' : '#ffffff').setAngle(0); f.lineStyle(1, 0xffffff, 0.25); f.lineBetween(s.x, s.y, s.x - s.vx * 3, s.y - s.vy * 3); }
+      else if (s.k === 'pal') this.drawPal(f, s);
       else this.drawHead(f, s.x, s.y, s.vx < 0 ? -1 : 1, Math.floor(t / 5) % 2);
     }
     for (const c of this.coins) {
@@ -711,7 +697,7 @@ export class HoppleBossStage extends BossArena {
       else { f.fillStyle(0x0a2a12, 1); f.fillRect(b.x - C / 2, b.y, C, C); f.lineStyle(2, 0x3aff6a, 1); f.strokeRect(b.x - C / 2 + 1, b.y + 1, C - 2, C - 2); f.lineBetween(b.x - C / 2, b.y, b.x + C / 2, b.y + C); f.lineBetween(b.x + C / 2, b.y, b.x - C / 2, b.y + C); const T = this.blockT[i]; if (T) T.setVisible(true).setPosition(b.x, b.y - 5); }
     });
     // the text box (an RPG dialogue box with his portrait)
-    const X = this.box;
+    const X = this.box && !this.box.cut ? this.box : null;                             // (a cutscene's box is on the screen: drawCutBox)
     this.boxT.setVisible(!!X);
     if (X) {
       const a = 1 - (X.fade || 0), bx = X.x - BOX.w / 2 + (X.shake ? (Math.random() - 0.5) * 4 : 0), by = X.y;
@@ -745,16 +731,30 @@ export class HoppleBossStage extends BossArena {
       g.fillStyle(0xb8ae9c, 1); g.fillEllipse(cx, cy, r * 2, r * 1.7);
       for (const s of [-1, 1]) { g.fillStyle(0x020102, 1); g.fillEllipse(cx + s * 58, cy - 30, 54, 78); g.fillStyle(0xffffff, 1); g.fillRect(cx + s * 58 - 2, cy - 30, 4, 4); }
       g.fillStyle(0x050204, 1); g.fillEllipse(cx, cy + 70, 230 * k, 70); g.fillStyle(0xe0d8c0, 1); for (let i = 0; i < 14; i++) { const x = cx - 105 * k + i * 16 * k; g.fillTriangle(x - 5, cy + 40, x + 5, cy + 40, x, cy + 56); }
+      for (const s of [-1, 1]) { g.fillStyle(0x8a0a12, 1); g.fillRect(cx + s * 58 - 3, cy + 6, 6, 40 + ((this.t >> 2) % 20)); g.fillRect(cx + s * 100, cy + 76, 8, 30 + ((this.t >> 2) % 16)); }
+      g.fillStyle(0x6a0a10, 1); g.fillEllipse(cx - 90, cy - 70, 60, 30); g.fillEllipse(cx + 70, cy - 96, 40, 22);
     }
     // the ? blocks glow while his face rises (the safe places)
-    if (this.face > 0) for (const s of [-1, 1]) { const m = this.match, c = m && m.cameras.main; if (!c) continue; const px = ((s < 0 ? -LEDGE.x2 : LEDGE.x1) - c.worldView.x) * c.zoom, py = (LEDGE.y - c.worldView.y) * c.zoom; sg.lineStyle(2, 0xffe060, 0.5 + 0.5 * Math.sin(this.t * 0.3)); sg.strokeRect(px - 2, py - 2, (LEDGE.x2 - LEDGE.x1) * c.zoom + 4, 16 * c.zoom + 4); }
-    if (this.scare > 0) {                                                                 // the jumpscare: his face fills the screen
+    if (this.face > 0) for (const s of [-1, 1]) { const m = this.match, c = m && (m.worldCam || m.cameras.main); if (!c) continue; const px = ((s < 0 ? -LEDGE.x2 : LEDGE.x1) - c.worldView.x) * c.zoom, py = ((this.platforms[s < 0 ? 1 : 2] || LEDGE).y - c.worldView.y) * c.zoom; sg.lineStyle(2, 0xffe060, 0.5 + 0.5 * Math.sin(this.t * 0.3)); sg.strokeRect(px - 2, py - 2, (LEDGE.x2 - LEDGE.x1) * c.zoom + 4, 16 * c.zoom + 4); }
+    const pic = this.scareIm && this.scene.textures.exists('hopple_scare');
+    if (this.scareIm) this.scareIm.setVisible(pic && this.scare > 0);
+    if (pic && this.scare > 0) {                                                          // the jumpscare: his face (hopple_poster.py's picture), lunging at the screen
+      const k = this.scare, j = () => (Math.random() - 0.5) * 18 * k;
+      sg.fillStyle(0x000000, k); sg.fillRect(0, 0, 640, 360);
+      this.scareIm.setPosition(320 + j(), 180 + j()).setScale(2 + (1 - k) * 0.4 + Math.random() * 0.06).setAlpha(Math.min(1, k * 1.5)).setTint(this.t % 4 < 2 ? 0xffffff : 0xffb0b0);
+    } else if (this.scare > 0) {                                                          // (no picture: drawn)
       const k = this.scare, j = () => (Math.random() - 0.5) * 16 * k;
       sg.fillStyle(0x000000, 0.9 * k); sg.fillRect(0, 0, 640, 360);
       sg.fillStyle(0xc8bea8, k); sg.fillEllipse(320 + j(), 190 + j(), 700, 560);
       for (const s of [-1, 1]) { sg.fillStyle(0x000000, k); sg.fillEllipse(320 + s * 130 + j(), 130 + j(), 150, 200); }
-      sg.fillStyle(0x050204, k); sg.fillEllipse(320 + j(), 290, 520, 170); sg.fillStyle(0xffffff, k); for (let i = 0; i < 16; i++) { const x = 90 + i * 30; sg.fillTriangle(x - 10, 214, x + 10, 214, x, 250); sg.fillTriangle(x - 10, 370, x + 10, 370, x, 330); }
+      sg.fillStyle(0x050204, k); sg.fillEllipse(320 + j(), 290, 520, 170); sg.fillStyle(this.lostOn ? 0xe8c8b8 : 0xffffff, k); for (let i = 0; i < 16; i++) { const x = 90 + i * 30; sg.fillTriangle(x - 10, 214, x + 10, 214, x, 250); sg.fillTriangle(x - 10, 370, x + 10, 370, x, 330); }
+      if (this.lostOn) {                                                                  // gored: blood from the eyes, the teeth, matted fur
+        for (const s of [-1, 1]) { sg.fillStyle(0x9a0a12, k); sg.fillRect(320 + s * 130 - 6, 210, 12, 70); sg.fillCircle(320 + s * 130, 282, 9); sg.fillStyle(0x9a0a12, k); for (let i = 0; i < 4; i++) sg.fillRect(320 + s * (60 + i * 46), 250, 5, 30 + i * 12); }
+        sg.fillStyle(0x6a0a10, k); sg.fillEllipse(170, 60, 160, 70); sg.fillEllipse(500, 40, 120, 60); sg.fillEllipse(560, 200, 90, 120);
+        sg.fillStyle(0xff1a1a, k); sg.fillCircle(320 - 130 + j() * 0.2, 130, 5); sg.fillCircle(320 + 130 + j() * 0.2, 130, 5);
+      }
     }
+    if (this.seek && this.match) this.drawSeek(sg, (this.match.worldCam || this.match.cameras.main));
   }
   /** The tape: the dark (IT SEES YOU), the test card (PLEASE STAND BY), the alert, the tracking band, the OSD, the fake game HUD, the title screen. */
   drawTape() {
@@ -766,7 +766,7 @@ export class HoppleBossStage extends BossArena {
       g.fillStyle(0x101010, 1); g.fillRect(0, 240, 640, 120); g.fillStyle(0xffffff, 1); g.fillRect(0, 270, 640 * 0.25, 60); g.fillStyle(0x2a0a5a, 1); g.fillRect(640 * 0.25, 270, 640 * 0.15, 60);
       g.fillStyle(0x000000, 0.85); g.fillRect(170, 130, 300, 60); g.lineStyle(2, 0xffffff, 1); g.strokeRect(170, 130, 300, 60);
       this.cardT.setText('PLEASE STAND BY').setColor('#ffffff').setPosition(320, 160).setVisible(true);
-      const E = this.e, m = this.match, c = m && m.cameras.main;                         // ...and in it, faintly, his eyes
+      const E = this.e, m = this.match, c = m && (m.worldCam || m.cameras.main);                         // ...and in it, faintly, his eyes
       if (c) { const px = (E.x - c.worldView.x) * c.zoom, py = (E.y - 96 - c.worldView.y) * c.zoom; g.fillStyle(0x000000, 0.6); g.fillEllipse(px - 8, py, 10, 14); g.fillEllipse(px + 8, py, 10, 14); }
     } else if (this.cardT.visible && !(this.boss && this.boss.dying)) this.cardT.setVisible(false);
     if (this.alert > 0) {
@@ -793,6 +793,13 @@ export class HoppleBossStage extends BossArena {
     if (ti) { g.fillStyle(0x2a5ad8, 0.75 * this.title); g.fillRect(0, 60, 640, 200); g.fillStyle(0xffffff, 0.6 * this.title); g.fillRect(0, 60, 640, 2); g.fillRect(0, 258, 640, 2); this.cardT.setText('(C) 1994 SUNNYSIDE SOFT').setFontSize(6).setPosition(320, 246).setVisible(true).setAlpha(this.title); }
     else if (this.cardT.text === '(C) 1994 SUNNYSIDE SOFT') this.cardT.setVisible(false).setFontSize(12).setAlpha(1);
   }
+}
+
+// his lost build (hoppleLost.js): copy its methods on; a name already here would be a bug, so it throws
+for (const k of Object.getOwnPropertyNames(HoppleLost.prototype)) {
+  if (k === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(HoppleBossStage.prototype, k)) throw new Error('hoppleLost.js: ' + k + ' is already on HoppleBossStage');
+  HoppleBossStage.prototype[k] = HoppleLost.prototype[k];
 }
 
 /** The select-screen miniature: a sunny 16-bit level gone wrong at the edges, a rabbit with black eyes. */
