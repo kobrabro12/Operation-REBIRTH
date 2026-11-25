@@ -1,4 +1,4 @@
-// Character files for the TRINKETS > CHARACTER FILES screen: a dossier and the story of each fighter,
+// Character files for the TRINKETS > LORE screen: a dossier and the story of each fighter,
 // plus lore for their special costumes. (The milestone costumes' lore lives with them in skins.js.)
 export const FILES = {
   'soul-summoner': {
@@ -98,7 +98,7 @@ export const SKIN_LORE = {
   },
 };
 
-// the full backstory of each milestone costume, shown in CHARACTER FILES (even before it's unlocked).
+// the full backstory of each milestone costume, shown in LORE (even before it's unlocked).
 // The one-line `lore` in skins.js is what the unlock screen shows.
 export const MILESTONE_LORE = {
   'soul-summoner': {

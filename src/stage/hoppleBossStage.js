@@ -220,7 +220,7 @@ export class HoppleBossStage extends BossArena {
   pattern(phase) {
     if (phase === 1) return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'friends'];
     if (this.sinceSees >= 4) return ['sees'];                                          // (IT SEES YOU every fifth attack or so)
-    return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'friends', 'broadcast', 'debug', 'run', 'credits', 'hide', 'run', 'credits', 'hide'];
+    return ['hop', 'textbox', 'frames', 'lives', 'standby', 'coins', 'friends', 'broadcast', 'debug', 'run', 'credits', 'hide', 'save', 'p2', 'continue', 'save', 'p2', 'continue'];
   }
   /** His hits: scaled by HIT. */
   bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more = {}) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
@@ -424,7 +424,7 @@ export class HoppleBossStage extends BossArena {
     return { ...this.ccam, exact: true };
   }
   /** Clears every attack effect (a cutscene, his death). */
-  clearFx() { this.rows = null; this.seek = null; this.bigLine = null; this.shots = []; this.waves = []; this.spikes = []; this.marks = []; this.crawls = []; this.box = null; this.card = 0; this.dark = 0; this.face = 0; this.scare = 0; this.grid = 0; this.alert = 0; this.scareText(''); this.coins = this.coins.filter((c) => c.deco); for (const b of this.blocks) if (b.plat) this.dropPlat(b.plat); this.blocks = []; }
+  clearFx() { this.slots = null; this.p2 = null; this.hand = null; if (this.p2T) this.p2T.setVisible(false); this.rows = null; this.seek = null; this.bigLine = null; this.shots = []; this.waves = []; this.spikes = []; this.marks = []; this.crawls = []; this.box = null; this.card = 0; this.dark = 0; this.face = 0; this.scare = 0; this.grid = 0; this.alert = 0; this.scareText(''); this.coins = this.coins.filter((c) => c.deco); for (const b of this.blocks) if (b.plat) this.dropPlat(b.plat); this.blocks = []; }
   /** Takes a block's ledge away again. */
   dropPlat(p) { const i = this.platforms.indexOf(p); if (i >= 0) this.platforms.splice(i, 1); }
 
@@ -495,6 +495,7 @@ export class HoppleBossStage extends BossArena {
       if (!hb.owner) continue;
       for (const s of this.shots) if (s.pop && !s.dead && s.wait <= 0 && hb.x1 < s.x + s.r && hb.x2 > s.x - s.r && hb.y1 < s.y + s.r && hb.y2 > s.y - s.r) { s.dead = true; match.puff(s.x, s.y, 0xffffff, 6); match.puff(s.x, s.y, s.k === 'head' ? 0xf6ecd4 : 0xff4a6a, 5); sfx('popup', 0.4, 1.6); }
     }
+    if (this.p2) this.strikeP2(match, hbs);
     super.strikeTargets(match, hbs);
   }
 
@@ -659,6 +660,10 @@ export class HoppleBossStage extends BossArena {
     for (const w of this.words) w.setVisible(false);
     this.drawGoreFx(g);
     this.drawCredits(f);
+    this.drawSlots(g);
+    if (this.p2T) this.p2T.setVisible(false);
+    this.drawP2(f);
+    this.drawGlove(f);
     for (const b of this.blockT) b.setVisible(false);
     for (const c of this.crawlT) c.setVisible(false);
     for (const m of this.marks) {

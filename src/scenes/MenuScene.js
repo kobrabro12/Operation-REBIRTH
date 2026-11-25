@@ -4,7 +4,7 @@
 //   CLASSIC      -> CLASSIC MODE: a ladder of custom fights, a boss, an ending and a trophy (ClassicScene)
 //   OPTIONS      -> sound, display and touch controls
 //   OTHER        -> training, how to play, credits
-//   TRINKETS     -> extras and experiments (Character Files, for now)
+//   TRINKETS     -> extras and experiments (LORE and the rest)
 // Move with WASD / arrows / stick, confirm with J / Enter / A, back to the title with K / Esc / B;
 // or hover and click a sector with the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -18,7 +18,7 @@ import { ArcadeBg, slant, hintBar, ARC, shade, tileDeco } from '../ui/arcade.js'
 const SECTORS = [
   { id: 'fight', name: 'FIGHT', sub: 'BATTLE FRIENDS OR CPUS', color: 0xc8283c, dark: 0x3a0a14, lit: 0xff6a72, scene: 'Setup' },
   { id: 'classic', name: 'CLASSIC', sub: 'SIX FIGHTS, A BOSS, AN ENDING', color: 0xd89a20, dark: 0x3a2408, lit: 0xffd060, scene: 'Classic' },
-  { id: 'trinkets', name: 'TRINKETS', sub: 'CHARACTER FILES & EXTRAS', color: 0x8a3fd0, dark: 0x22103a, lit: 0xc77dff, scene: 'Trinkets' },
+  { id: 'trinkets', name: 'TRINKETS', sub: 'LORE & EXTRAS', color: 0x8a3fd0, dark: 0x22103a, lit: 0xc77dff, scene: 'Trinkets' },
   { id: 'other', name: 'OTHER', sub: 'TRAINING, HOW TO PLAY, CREDITS', color: 0x2fa070, dark: 0x0c2a1e, lit: 0x6fe3a8, scene: 'Other' },
   { id: 'options', name: 'OPTIONS', sub: 'SOUND, DISPLAY & CONTROLS', color: 0x2f6fd0, dark: 0x0e1e3e, lit: 0x78a0ff, scene: 'Options' },
 ];

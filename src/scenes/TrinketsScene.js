@@ -1,4 +1,4 @@
-// Trinkets: a drawer of extras and experiments - CHARACTER FILES, TEST FIGHTERS, the SHOP, BOSS FIGHTS, ACHIEVEMENTS (with
+// Trinkets: a drawer of extras and experiments - LORE (the character files + the archive), TEST FIGHTERS, the SHOP, BOSS FIGHTS, ACHIEVEMENTS (with
 // the PROGRESS page: lifetime stats and each fighter's record) and the TROPHY HALL.
 // W/S or arrows pick, J / Enter / A opens, K / Esc / B goes back; or use the mouse.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
@@ -12,7 +12,7 @@ import { ListScreen } from '../ui/listScreen.js';
 
 const ENTRIES = [
   {name:'SOUL BOARD',icon:'star',info:'EIGHT ROTATING SLOTS FOR ALL SOULS.\n\n1-5 STARS RATE STRENGTH AND POWER.\nMAIN SOULS FORM YOUR FOUNDATION.\nAID SOULS ADD THE ABILITIES.\n\nTHE BOARD CYCLES EVERY FIVE MINUTES.',scene:'SoulBoard'},
-  { name: 'CHARACTER FILES', icon: 'files', info: 'THE FILES ON EVERY FIGHTER: WHO THEY ARE,\nWHERE THEY COME FROM, THEIR MOVES -\nAND THE STORIES BEHIND THEIR COSTUMES.', scene: 'Files' },
+  { name: 'LORE', icon: 'files', info: 'EVERY FIGHTER\'S FILE, WHO THEY WERE AND WHY\nTHEY\'RE HERE - AND THE ARCHIVE: THE STARFALL,\nTHE BOSSES, THE TAPES AND MORE.', scene: 'Files' },
   { name: 'TEST FIGHTERS', icon: 'flask', info: 'FIGHTERS STILL IN THE LAB. TRY THEM OUT\nIN TRAINING OR AGAINST A CPU BEFORE\nTHEY JOIN THE REAL ROSTER.', scene: 'TestFighters' },
   { name: 'SHOP', icon: 'shop', info: 'SPEND WHAT YOU EARN ON COSTUMES, STAGES,\nMUSIC AND OTHER EXTRAS - OR TRY YOUR\nLUCK AT THE GACHA MACHINES.', scene: 'Shop' },
   { name: 'BOSS FIGHTS', icon: 'boss', info: 'SEVEN GIANTS, EACH HARDER THAN THE LAST:\nA STEAM COLOSSUS, A 64-BIT KING, A MAD\nDEMON, A ROOTBOUND KNIGHT, AN OLD\nCOMPUTER, A KID ARTIST AND A PHANTOM.\n\nHARDER DIFFICULTIES PAY BIGGER REWARDS.', scene: 'BossFights' },
