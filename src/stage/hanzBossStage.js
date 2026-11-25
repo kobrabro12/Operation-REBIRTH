@@ -39,14 +39,14 @@ export const K = 1.16, FLOOR_Y = 303.6;
 /** A point on the LOST room's 640x360 picture -> the world. */
 export const W2 = (sx, sy) => ({ x: (sx - 320) * K, y: (sy - FLOOR_Y) * K });
 const TICKS = Math.round(60 / LOST_FRAMES.fps);              // game frames per frame of his animations
-// how hard everything he does hits: x damage, x base knockback, x growth
-const HIT = { dmg: 1.15, base: 1.1, growth: 1.15 };
+// how hard everything he does hits: x damage, x base knockback, x growth; x damage again once he's WHOLE (THE TRUE FACE)
+const HIT = { dmg: 1.0, base: 1.05, growth: 1.1, true: 1.2 };
 // where he can be hurt: head / body multipliers (the head once his face is gone)
 const HURT = { head: 1.25, void: 1.45, body: 0.75 };
 // HIM ON THE STAGE: how big he's drawn (x his LOST picture), the line across his waist on that picture (his frames end
 // about there - below it he trails off into smoke), how high his waist floats, how far he bobs, how fast he drifts
 // (px a frame) and how far toward the desk's ends he goes
-const BODY = { sc: 0.38, waist: 262, lift: 16, bob: 5, drift: 2.4, edge: 215 };
+const BODY = { sc: 0.38, waist: 262, lift: 8, bob: 5, drift: 2.4, edge: 215 };
 // his legs (hanz_legs.py: they hang below his LOST frames, which stop at his counter) - how far below his waist his
 // shoes reach on the LOST picture, then in the world; BODY.hover = his waist's height with his shoes `lift` px off the desk
 const LEGS = LOST_FRAMES.legs, WHOLE = LOST_FRAMES.fight && LOST_FRAMES.fight.f && LOST_FRAMES.fight.f.idle;   // (his whole-body idle: hanz_fight.py)
@@ -393,7 +393,7 @@ export class HanzBossStage extends BossArena {
 
   // ------------------------------------------------------------------ the fight
   /** His hits: the difficulty, then this fight's punch (`HIT`). */
-  bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg, [angle, base * HIT.base, growth * HIT.growth], more); }
+  bhit(id, x1, y1, x2, y2, dmg, [angle, base, growth], more) { return super.bhit(id, x1, y1, x2, y2, dmg * HIT.dmg * (this.world === 'stars' ? HIT.true : 1), [angle, base * HIT.base, growth * HIT.growth], more); }
   /** Where the camera and the CPU look: his chest. */
   core() { return { x: this.hx, y: this.hy - 34 * Z }; }
   /** Keep him (all of him, wherever he floats), the floor and both ledges in shot. */
