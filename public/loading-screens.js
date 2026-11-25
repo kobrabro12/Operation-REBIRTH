@@ -4,14 +4,22 @@
 (() => {
   // a: the main accent, b: the hero's offset shadow; hx / hh / hb = the hero's centre x, height and floor (% of the screen); fx = its particles
   const screens = [
-    { id: 'roster', name: 'OPERATION REBIRTH', place: 'EVERY FIGHT IS A SECOND CHANCE', lore: 'Lacy, Soul Summoner and Mr Wake. Three who came back wrong - and came back fighting.', a: '#ffb24a', b: '#7a2aa8', fx: 'embers', hx: 64, hh: 62, hb: 9 },
-    { id: 'soul-summoner', name: 'SOUL SUMMONER', place: 'THE SKY SANCTUM', lore: 'He calls his fallen friends by name, and they answer in blue fire.', a: '#ffd86a', b: '#1a6a9a', fx: 'souls', hx: 68, hh: 62, hb: 7 },
-    { id: 'mr-wake', name: 'MR WAKE', place: 'GRAVEMOON BRIDGE', lore: 'Beneath the bridge the dark water has eyes. He taught them to blink.', a: '#c89aff', b: '#3a1060', fx: 'wisps', hx: 64, hh: 58, hb: 9 },
-    { id: 'hero-knight', name: 'LACY', place: 'THE LAST OATH', lore: 'The kingdom fell. The oath did not.', a: '#ff9a4a', b: '#5a0a1a', fx: 'embers', hx: 66, hh: 78, hb: 6 },
-    { id: 'nu', name: 'NU', place: 'THE MAIN STAGE', lore: 'Every fight becomes a show. Every show ends in an encore.', a: '#ff5ae0', b: '#1ad8ff', fx: 'confetti', hx: 66, hh: 78, hb: 6 },
-    { id: 'aero', name: 'AERO', place: 'AERO MEADOW', lore: 'A living world inside a forgotten desktop - and one goldfish who refuses to be closed.', a: '#5ae0ff', b: '#1a6ad0', fx: 'bubbles', hx: 66, hh: 74, hb: 7 },
-    { id: 'gnash', name: 'GNASH', place: 'AFTER HOURS', lore: 'He drags the axe so you hear him coming. It never helps.', a: '#c8ff3a', b: '#ff2a9a', fx: 'rain', hx: 66, hh: 84, hb: 5 },
-    { id: 'hanz', name: 'HANZ & $@L', place: 'THE TRUE SHOPKEEPER', lore: 'Two halves of one man behind one counter. The shop is open. Nobody remembers coming in.', a: '#ff4a6a', b: '#d2d0cc', fx: 'glitch', hx: 66, hh: 80, hb: 4 },
+    { id: 'roster', name: 'OPERATION REBIRTH', place: 'EVERY FIGHT IS A SECOND CHANCE', lore: 'Lacy, Soul Summoner and Mr Wake. Three who came back wrong - and came back fighting.', a: '#ffb24a', b: '#7a2aa8', fx: 'embers', hx: 64, px: 1.5, hb: 9 },
+    { id: 'soul-summoner', name: 'SOUL SUMMONER', place: 'THE SKY SANCTUM', lore: 'He calls his fallen friends by name, and they answer in blue fire.', a: '#ffd86a', b: '#1a6a9a', fx: 'souls', hx: 68, px: 1.5, hb: 7 },
+    { id: 'mr-wake', name: 'MR WAKE', place: 'GRAVEMOON BRIDGE', lore: 'Beneath the bridge the dark water has eyes. He taught them to blink.', a: '#c89aff', b: '#3a1060', fx: 'wisps', hx: 64, px: 1.5, hb: 9 },
+    { id: 'hero-knight', name: 'LACY', place: 'THE LAST OATH', lore: 'The kingdom fell. The oath did not.', a: '#ff9a4a', b: '#5a0a1a', fx: 'embers', hx: 66, px: 1.5, hb: 6 },
+    { id: 'nu', name: 'NU', place: 'THE MAIN STAGE', lore: 'Every fight becomes a show. Every show ends in an encore.', a: '#ff5ae0', b: '#1ad8ff', fx: 'confetti', hx: 66, px: 2, hb: 6 },
+    { id: 'aero', name: 'AERO', place: 'AERO MEADOW', lore: 'A living world inside a forgotten desktop - and one goldfish who refuses to be closed.', a: '#5ae0ff', b: '#1a6ad0', fx: 'bubbles', hx: 66, px: 2, hb: 7 },
+    { id: 'gnash', name: 'GNASH', place: 'AFTER HOURS', lore: 'He drags the axe so you hear him coming. It never helps.', a: '#c8ff3a', b: '#ff2a9a', fx: 'rain', hx: 66, px: 1, hb: 5 },
+    { id: 'hanz', name: 'HANZ & $@L', place: 'THE TRUE SHOPKEEPER', lore: 'Two halves of one man behind one counter. The shop is open. Nobody remembers coming in.', a: '#ff4a6a', b: '#d2d0cc', fx: 'glitch', hx: 66, px: 0.5, hb: 4 },
+    // STORIES: a whole story in one picture (tools/sprites/loading_stories.py) - no hero layer, the title and the tale underneath
+    { id: 'story-names', story: true, name: 'THEIR NAMES', place: 'A SOUL SUMMONER STORY', lore: 'Every night he walks the Sanctum graves and says their names out loud. Every night, one of them answers.', a: '#8ae8ff', b: '#1a3a6a', fx: 'souls' },
+    { id: 'story-bridge', story: true, name: 'WHAT THE WATER KEEPS', place: 'A GRAVEMOON STORY', lore: 'Mr Wake has fished off Gravemoon Bridge for a hundred years and never caught a thing. Tonight, something down there is fishing back. AERO saw it first.', a: '#ffd23a', b: '#3a1060', fx: 'wisps' },
+    { id: 'story-oath', story: true, name: 'THE LAST OATH', place: 'A LACY STORY', lore: 'Her kingdom burned in a single night. Its last knight swore to win it back one fight at a time. She has a very long list.', a: '#ff9a4a', b: '#5a0a1a', fx: 'embers' },
+    { id: 'story-soundcheck', story: true, name: 'SOUNDCHECK, 6 AM', place: 'AN UNDERGROUND STORY', lore: 'The frontman is warmed up and ready to go. The roadies are... not. One is asleep on the amp. One has lost a fight with the cables.', a: '#ff5ae0', b: '#1ad8ff', fx: 'confetti' },
+    { id: 'story-eater', story: true, name: 'THE STAR-EATER', place: 'THE LAST OBSERVATORY', lore: 'The night sky is going dark, one star at a time. At the edge of the world something enormous is hungry, and three small fighters have decided to stop it.', a: '#ffc84a', b: '#3a1a6a', fx: 'embers' },
+    { id: 'story-closing', story: true, name: 'CLOSING TIME', place: 'A LOST STORY', lore: 'The little shop is open all night. Nobody remembers going in. Everybody remembers the shopkeeper - and he never forgets a customer.', a: '#ff4a8a', b: '#b8121c', fx: 'glitch' },
+    { id: 'story-dawn', story: true, name: 'SECOND LIFE', place: 'OPERATION REBIRTH', lore: 'Six who should have stayed down. One more sunrise. One more round.', a: '#ffd08a', b: '#6a1a5a', fx: 'embers' },
   ];
   const tips = [
     'Your LIMIT gauge fills as you take damage. When it\'s full, press O to unleash your Limit.',
@@ -39,9 +47,16 @@
   const $ = (q) => root.querySelector(q);
   root.dataset.screen = S.id; root.setAttribute('aria-label', 'Loading Operation REBIRTH - ' + S.name);
   root.style.setProperty('--a', S.a); root.style.setProperty('--b', S.b);
-  root.style.setProperty('--hx', S.hx + '%'); root.style.setProperty('--hh', S.hh + '%'); root.style.setProperty('--hb', S.hb + '%');
+  root.style.setProperty('--hx', (S.hx || 64) + '%'); root.style.setProperty('--hb', (S.hb || 5) + '%');
   $('.ls-bg').src = 'assets/ui/loading/' + S.id + '_bg.png';
-  const hero = $('.ls-hero'); hero.src = 'assets/ui/loading/' + S.id + '_hero.png'; hero.alt = S.name;
+  const hero = $('.ls-hero');
+  if (S.story) { root.classList.add('ls-story'); $('.ls-kicker').textContent = 'STORY'; $('.ls-bg').alt = S.name + '. ' + S.lore; }
+  else {
+    // the hero is sized in whole steps of the backdrop's own pixels (px = sprite pixels per backdrop pixel), so both
+    // scale up together and the sprite never comes out lumpy or uneven
+    hero.onload = () => root.style.setProperty('--hh', (hero.naturalHeight * (S.px || 1) / 180 * 100) + '%');
+    hero.src = 'assets/ui/loading/' + S.id + '_hero.png'; hero.alt = S.name;
+  }
   $('.ls-name').textContent = S.name; $('.ls-place').textContent = S.place; $('.ls-lore').textContent = S.lore;
 
   // the tips turn every few seconds

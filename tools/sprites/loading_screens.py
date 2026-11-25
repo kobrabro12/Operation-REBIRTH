@@ -19,9 +19,9 @@ BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
 
 # which frame of which moves sheet each hero is cut from: (fighter folder, frame w, h, moves table, frame index)
 POSES = {
-    'soul-summoner': ('soul-summoner', 112, 104, 111),     # FSMASH: the lunge, soul fire in his hand
-    'mr-wake': ('mr-wake', 176, 120, 418),                 # NEUTRAL B: the staff blast
-    'hero-knight': ('hero-knight', 180, 140, 74),          # USMASH: the arcing slash
+    'soul-summoner': ('soul-summoner', 112, 104, 777),     # TAUNT: soul fire held up high
+    'mr-wake': ('mr-wake', 176, 120, 585),                 # TAUNT: the staff held up
+    'hero-knight': ('hero-knight', 180, 140, 192),         # TAUNT: the sword raised to the sky
     'nu': ('nu', 112, 104, 167),                           # FSMASH: the flying kick
     'aero': ('aero', 112, 104, 489),                       # FSMASH: the dashing punch
     'gnash': ('gnash', 180, 168, 101),                     # USMASH: the axe overhead
@@ -255,6 +255,15 @@ def outline(im, color=(10, 6, 18, 255)):
     return Image.fromarray(a)
 
 
+def shadowed(im, color=(20, 8, 34, 255), off=(2, 2)):
+    """The comic offset shadow, baked on the sprite's own pixel grid (so it scales with it and never smears)."""
+    a = np.array(im); al = a[..., 3] > 0
+    out = np.zeros((a.shape[0] + off[1], a.shape[1] + off[0], 4), np.uint8)
+    out[off[1]:, off[0]:][al] = color
+    out[:a.shape[0], :a.shape[1]][al] = a[al]
+    return Image.fromarray(out)
+
+
 def trim(im, pad=2):
     """Crops a sprite to its pixels (plus pad)."""
     bb = im.getbbox(); return im.crop((bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad))
@@ -294,12 +303,12 @@ SCREENS = {
 def main():
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
-        if f.endswith('.png'): os.remove(os.path.join(OUT, f))
+        if f.endswith('.png') and not f.startswith('story-'): os.remove(os.path.join(OUT, f))
     previews = []
     for sid, (bgf, herof) in SCREENS.items():
         bg = bgf(); hero = herof() if herof else hero_from(*POSES[sid])
         bg.convert('RGB').quantize(255, dither=Image.NONE).save(os.path.join(OUT, sid + '_bg.png'), optimize=True)
-        hero.save(os.path.join(OUT, sid + '_hero.png'), optimize=True)
+        hero = shadowed(hero); hero.save(os.path.join(OUT, sid + '_hero.png'), optimize=True)
         print(sid, bg.size, hero.size)
         if '--preview' in sys.argv:
             p = bg.resize((BG_W * 3, BG_H * 3), Image.NEAREST); k = int(BG_H * 3 * 0.78 / hero.height) or 1

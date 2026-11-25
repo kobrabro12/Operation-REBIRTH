@@ -36,7 +36,20 @@
     .ls-bg { inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 62% 55%; animation: ls-push 16s cubic-bezier(.2,.6,.3,1) forwards; }
     .ls-rays { position: absolute; left: var(--hx, 64%); top: 52%; width: 160%; aspect-ratio: 1; transform: translate(-50%, -50%); background: repeating-conic-gradient(from 0deg, var(--a) 0deg 7deg, transparent 7deg 22deg); opacity: .22; mix-blend-mode: screen; -webkit-mask: radial-gradient(circle, #000 0%, transparent 46%); mask: radial-gradient(circle, #000 0%, transparent 46%); animation: ls-spin 60s linear infinite; }
     .ls-hero-wrap { position: absolute; left: var(--hx, 64%); bottom: var(--hb, 5%); height: var(--hh, 76%); transform: translateX(-50%); animation: ls-in .9s cubic-bezier(.2,1.4,.4,1) both .15s; }
-    .ls-hero { position: relative !important; height: 100%; width: auto; animation: ls-float 3.6s ease-in-out infinite alternate 1s; filter: drop-shadow(.55vmin .55vmin 0 var(--b)) drop-shadow(0 0 2.4vmin var(--a)); }
+    .ls-hero { position: relative !important; height: 100%; width: auto; animation: ls-float 3.6s ease-in-out infinite alternate 1s; filter: drop-shadow(0 0 2.4vmin var(--a)); }
+    /* a STORY screen: the picture is the whole thing - no hero, no rays; the camera drifts slowly across it */
+    #loading.ls-story .ls-hero-wrap, #loading.ls-story .ls-rays { display: none; }
+    #loading.ls-story .ls-stage { top: 3vh; transform: translateX(-50%); width: min(96vw, 112vh); height: auto; aspect-ratio: 16 / 9; overflow: hidden; outline: 2px solid var(--a); outline-offset: 3px; box-shadow: 0 0 0 7px rgba(0,0,0,.6), 0 0 6vh -1vh var(--a); }
+    #loading.ls-story .ls-bg { animation: ls-drift 24s ease-in-out infinite alternate; transform-origin: 50% 50%; }
+    #loading.ls-story .ls-shade { background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,.35) 100%); }
+    #loading.ls-story .ls-tip { display: none; }
+    #loading.ls-story .ls-title { bottom: 10vh; max-width: 74vw; display: grid; grid-template-columns: auto 1fr; column-gap: 2.2em; align-items: end; animation-name: ls-title; }
+    #loading.ls-story .ls-kicker { grid-column: 1; justify-self: start; }
+    #loading.ls-story .ls-name { grid-column: 1; margin: .25em 0 .15em; font-size: clamp(12px, min(2.6vw, 4.4vh), 40px); white-space: nowrap; }
+    #loading.ls-story .ls-place { grid-column: 1; }
+    #loading.ls-story .ls-lore { grid-column: 2; grid-row: 1 / span 3; margin: 0; font-size: clamp(6px, min(1vw, 1.9vh), 14px); max-width: 46em; color: #f0ecf8; border-left: 3px solid var(--a); padding-left: 1.2em; }
+    @media (max-aspect-ratio: 16/10) { #loading.ls-story .ls-title { display: block; } #loading.ls-story .ls-lore { display: block; border: 0; padding: 0; margin-top: .8em; } }
+    @keyframes ls-drift { from { transform: scale(1.0) translate(0, 0); } to { transform: scale(1.05) translate(-1%, -.6%); } }
     .ls-fx { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
     .ls-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(6,4,14,.82) 0%, rgba(6,4,14,.35) 34%, transparent 55%), linear-gradient(0deg, rgba(6,4,14,.85) 0%, transparent 26%), radial-gradient(ellipse at 60% 45%, transparent 55%, rgba(0,0,0,.45) 100%); }
     .ls-hud { position: absolute; inset: 0; }
