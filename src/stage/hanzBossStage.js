@@ -7,7 +7,7 @@
 // hunts you down and hits hard, GLOOMY HANZ hangs back and makes the room do the work, and when they're LAUGHING
 // it's chaos. His mood shifts every few attacks with how the fight is going (`pickMood`).
 //
-// THREE ACTS, a world each (`setWorld`):
+// FOUR ACTS, a world each (`setWorld`):
 //   I   THE POLYGON ROOM (100-66%): the low-poly world from his clap (tools/sprites/hanz_poly.py). DESK SLAM, POLYGON
 //       STORM (a ring of shards fired one by one), THE WHALE (it dives across the desk), CLEARANCE SALE (coins out of
 //       the till), THE WATCHER (the desk gem's prism laser), STAIRWAY DOWN (cubes falling on marks).
@@ -15,7 +15,12 @@
 //       TEATIME (geysers of tea), THE FISH, and the slam and storm in ink.
 //   III NOTHING UNDER THE MASK (33-0%): he takes his face off; the void. GLITCH TEAR (bands of broken picture),
 //       THIRTEEN O'CLOCK (thirteen rings off his clock-heart, each with a gap), MOOD SWING (his halves erupt in turn:
-//       $@L's fire, HANZ's frost), THE SNAP (fire rains on marks), and the rest, quicker. Below `LOW` LAST CALL.
+//       $@L's fire, HANZ's frost), THE SNAP (fire rains on marks), and the rest, quicker.
+//   IV  THE TRUE FACE (22-0%, hanzTrue.js): THE STARFALL breaks his mask - under it, the star that split him in two.
+//       The night sky; he's WHOLE, takes less from every hit, and fights with SUPERNOVA, CONSTELLATION, TWO-FACED,
+//       EVENT HORIZON and THE COMET. Below `TRUE.low` LAST CALL.
+// He FACES THE SIDE he fights toward (hanz_fight.py's turned renders, legs and all: `look`, `face`); cutscenes and
+// anything with no turned render show him facing you, as in LOST, with his rendered legs under him.
 // Hurt: his head x`HURT.head` (more once there's no face), his body x`HURT.body`; nothing while a cutscene plays.
 // The cutscenes, the intro, his death and the dialogue live in hanzCinema.js (methods copied onto this class).
 import { BossArena } from './bossBase.js';
@@ -26,6 +31,7 @@ import { LOST_DRAWN } from '../scenes/lostDrawn.js';
 import { LOST_POLY } from '../scenes/lostPoly.js';
 import { queueDrawn, addThingFrames, boilAt, stepThings } from '../scenes/lostDrawnRoom.js';
 import { HanzCinema } from './hanzCinema.js';
+import { HanzTrue, TRUE } from './hanzTrue.js';
 
 const DIR = 'assets/shop/lost/';
 // the LOST room's picture is laid over the world this much bigger, its counter's front edge (y, on the 640x360 room) on the floor
@@ -36,7 +42,7 @@ const TICKS = Math.round(60 / LOST_FRAMES.fps);              // game frames per 
 // how hard everything he does hits: x damage, x base knockback, x growth
 const HIT = { dmg: 1.15, base: 1.1, growth: 1.15 };
 // where he can be hurt: head / body multipliers (the head once his face is gone)
-const HURT = { head: 1.25, void: 1.45, body: 0.55 };
+const HURT = { head: 1.25, void: 1.45, body: 0.75 };
 // HIM ON THE STAGE: how big he's drawn (x his LOST picture), the line across his waist on that picture (his frames end
 // about there - below it he trails off into smoke), how high his waist floats, how far he bobs, how fast he drifts
 // (px a frame) and how far toward the desk's ends he goes
@@ -61,6 +67,8 @@ export const MOODS = {
     say: ['...WHY DO WE EVEN TRY.', 'LEAVE US ALONE. PLEASE.', 'IT\'S ALWAYS THIRTEEN O\'CLOCK IN HERE.'] },
   manic: { who: 'b', label: 'THEY\'RE LAUGHING', color: 0xa04ae6, css: '#c07aff', rest: 'idle', enter: 'laugh', move: 'blink', speed: 1.15,
     say: ['HAHAHA! EVERYTHING MUST GO!', 'HEHEHE - HAHAHAHA!', 'CLOSING TIME! CLOSING TIME!'] },
+  whole: { who: 'b', label: 'THEY ARE WHOLE', color: 0xc07aff, css: '#d8a8ff', rest: 'idle', enter: 'laugh', move: 'keep', speed: 1.3,
+    say: ['ONE STAR. ONE PRICE.', 'EVERYTHING MUST GO.'] },
 };
 // what each mood throws at you, by world
 const MOVES = {
@@ -68,6 +76,8 @@ const MOVES = {
   furious: { poly: ['slam', 'dash', 'cubes'], drawn: ['slam', 'dash', 'ink'], void: ['slam', 'dash', 'firerain', 'swing'] },
   gloomy: { poly: ['cubes', 'gem', 'storm'], drawn: ['eye', 'tea', 'ink'], void: ['thirteen', 'eye', 'tear'] },
   manic: { poly: ['whale', 'storm', 'coins'], drawn: ['fish', 'storm', 'tea'], void: ['tear', 'swing', 'storm', 'fish'] },
+  // THE TRUE FACE (hanzTrue.js): his five moves, and nothing else
+  whole: { stars: ['supernova', 'constellation', 'twoface', 'blackhole', 'comet'] },
 };
 // what tips his mood: attacks between rolls, damage taken lately per point toward FURIOUS, his hits on you toward SMUG,
 // low health toward GLOOMY / LAUGHING, how much he likes staying as he is
@@ -77,7 +87,7 @@ const DIVE = { top: -255, rise: 34, hang: 16, v: 15, land: -FEET + 2, slump: 34,
 // THE CHARGE: frames winding back, speed, the hit; how many runs (furious in the void: there and back)
 const DASH = { wind: 34, v: 12.5, hit: [14, [35, 7, 1.0]] };
 // the acts: where II and III start (fractions of his health), LAST CALL, and how short his pauses get then (frames)
-export const ACTS = { drawn: 0.66, void: 0.33, low: 0.12, lowWait: 34 };
+export const ACTS = { drawn: 0.72, void: 0.46 };
 // DESK SLAM: the frame of the slam animation his fists land on, the fists' hit, the shockwaves (speed, hit)
 const SLAM = { at: 9, fist: [14, [80, 6.2, 1.0]], waveV: 5.6, wave: [9, [70, 5, 0.7]] };
 // POLYGON STORM: shards per act, how long they orbit, the gap between launches, the aim (frames), speed, hit
@@ -109,11 +119,16 @@ export const COL = {
   poly: [0xff7ab8, 0x2fd6c6, 0xffd447, 0x7adcff, 0xa04ae6, 0xfff3dc],
   drawn: [0x261a18, 0x3a2420, 0xc8486a, 0x3a6ab0, 0xe8b860, 0xf1e8d4],
   void: [0xff2a3a, 0xd2d0cc, 0x7a0a12, 0xffffff, 0x2a2a34, 0x8a2aff],
+  stars: [0xc07aff, 0xfff4ff, 0x8a5aff, 0xffb8f0, 0x2a1050, 0xff7ab8],
 };
 const lerp = (a, b, k) => a + (b - a) * k;
 
-// the animations the fight plays (the others - FEET UP, his long looks - stay unloaded: they're big); VS only idles
-const FIGHT_ANIMS = ['idle', 'slam', 'clap', 'pitch', 'snap', 'sold', 'look_l', 'look_r', 'look_d', 'argue', 'shrug', 'glitch', 'heart', 'switch', 'twitch', 'unmask', 'laugh', 'sal_talk', 'hanz_talk', 'sob'];
+// him whole, turned to the side (r / l) or facing you (f) - tools/sprites/hanz_fight.py
+const FIGHT = LOST_FRAMES.fight || {};
+// the LOST animations the fight loads as well, facing you (cutscenes, and the ones with no turned render); VS only idles
+const FRONT_ANIMS = ['idle', 'slam', 'clap', 'pitch', 'snap', 'laugh', 'unmask', 'twitch', 'sal_talk', 'sob', 'glitch', 'heart', 'switch', 'shrug', 'sold'];
+// how far a fighter has to be past him before he turns round (px)
+const TURN = 14;
 
 /** Queues everything the fight shows (MatchScene.preload, for this boss or its arena): his animations (only the idle
  *  in VS - `boss` false), both other worlds, the PS1 counter and desk things, his pupils. */
@@ -121,7 +136,11 @@ export function queueHanz(scene, boss = true) {
   const L = (key, file) => { if (!scene.textures.exists(key)) scene.load.image(key, DIR + file); };
   for (const n of ['room_dark', 'counter', 'pupils', 'poly_room', 'poly_desk', 'poly_things']) L('lost_' + n, n + '.png');
   for (const n of Object.keys(LOST_FRAMES.props || {})) L('lost_prop_' + n, 'prop_' + n + '.png');
-  for (const a of boss ? FIGHT_ANIMS : ['idle']) LOST_FRAMES.anims[a].sheets.forEach((f, k) => L(`lost_hanz_${a}_${k}`, f));
+  for (const a of boss ? FRONT_ANIMS : ['idle']) LOST_FRAMES.anims[a].sheets.forEach((f, k) => L(`lost_hanz_${a}_${k}`, f));
+  if (boss) {
+    for (const [v, set] of Object.entries(FIGHT)) for (const [a, spec] of Object.entries(set)) spec.sheets.forEach((f, k) => L(`lost_${v}_${a}_${k}`, f));
+    L('lost_mask_halves', 'mask_halves.png');
+  }
   if (LEGS) LEGS.sheets.forEach((f, k) => L(`lost_legs_${k}`, f));
   queueDrawn(scene, true);
 }
@@ -129,6 +148,8 @@ export function queueHanz(scene, boss = true) {
 /** Cuts the loaded sheets into frames (once): his animations, the pupils, the desk things, both worlds' moving things. */
 function cutFrames(textures) {
   for (const [a, spec] of Object.entries(LOST_FRAMES.anims)) if (textures.exists(`lost_hanz_${a}_0`)) spec.frames.forEach((f, i) => { const tex = textures.get(`lost_hanz_${a}_${f.k}`); if (!tex.has(String(i))) tex.add(String(i), 0, f.sx, f.sy, f.w, f.h); });
+  for (const [v, set] of Object.entries(FIGHT)) for (const [a, spec] of Object.entries(set)) if (textures.exists(`lost_${v}_${a}_0`)) spec.frames.forEach((f, i) => { const tex = textures.get(`lost_${v}_${a}_${f.k}`); if (!tex.has(String(i))) tex.add(String(i), 0, f.sx, f.sy, f.w, f.h); });
+  if (textures.exists('lost_mask_halves')) { const mt = textures.get('lost_mask_halves'); if (!mt.has('0')) { mt.add('0', 0, 0, 0, 64, 64); mt.add('1', 0, 64, 0, 64, 64); } }
   if (LEGS && textures.exists('lost_legs_0')) LEGS.frames.forEach((f, i) => { const tex = textures.get(`lost_legs_${f.k}`); if (!tex.has(String(i))) tex.add(String(i), 0, f.sx, f.sy, f.w, f.h); });
   const pt = textures.get('lost_pupils');
   if (!pt.has('sal')) for (const [n, m] of Object.entries(LOST_FRAMES.pupils)) pt.add(n, 0, m.x, 0, m.w, m.h);
@@ -156,6 +177,7 @@ export class HanzBossStage extends BossArena {
     this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.sparks = [];
     this.flashK = 0; this.flashC = 0xffffff; this.voidFace = false; this.clockK = 0;
     this.hx = 0; this.hy = BODY.hover; this.pin = false; this.blinkX = null;
+    this.fstars = []; this.halvesM = [{}, {}]; this.halfK = 0; this.face = 'r'; this.front = false;
     this.mood = 'smug'; this.moodN = 0; this.moodAt = MOOD.every[0]; this.hurtLately = 0; this.hitsLately = 0; this.prevPct = new Map(); this.trail = [];
   }
 
@@ -175,6 +197,7 @@ export class HanzBossStage extends BossArena {
     this.drawnThings = Object.entries(LOST_DRAWN.things).map(([n, t]) => ({ n, t, s: thing('lost_drawn_things', n + '_0', t) }));
     this.bgSets.drawn.push(...this.drawnThings.map((d) => d.s));
     this.voidG = s.add.graphics().setScrollFactor(0); bg.push(this.voidG); this.bgSets.void.push(this.voidG);
+    this.starsG = s.add.graphics().setScrollFactor(0); bg.push(this.starsG); this.bgSets.stars = [this.starsG];      // (THE TRUE FACE's night sky)
     this.skyG = s.add.graphics().setScrollFactor(0); bg.push(this.skyG);                 // (screen-wide washes and flashes behind him)
     // the world: the desks (his counter is the floor), then him floating on it - his aura and tail behind him, effects
     // behind him (the clock), afterimages, two ghost copies for his glitches, him, his pupils / the void face
@@ -195,6 +218,7 @@ export class HanzBossStage extends BossArena {
     this.him = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS); world.push(this.him);
     this.pupils = ['sal', 'hanz'].map((n) => { const p = s.add.image(0, 0, 'lost_pupils', n); world.push(p); return { n, p }; });
     this.faceG = s.add.graphics(); world.push(this.faceG);
+    this.maskIm = [0, 1].map((i) => { const im = s.add.image(0, 0, s.textures.exists('lost_mask_halves') ? 'lost_mask_halves' : 'lost_pupils', s.textures.exists('lost_mask_halves') ? String(i) : undefined).setVisible(false); world.push(im); return im; });
     this.slabG = s.add.graphics(); world.push(this.slabG);
     this.midG = s.add.graphics(); world.push(this.midG);                                // effects on the desk, behind the fighters
     this.setWorld('poly');
@@ -221,11 +245,13 @@ export class HanzBossStage extends BossArena {
     match.addUI(this.moodT);
   }
 
-  /** Switches the world: 'poly' (his clap), 'drawn' (his snap) or 'void' (nothing under the mask). */
+  /** Switches the world: 'poly' (his clap), 'drawn' (his snap), 'void' (nothing under the mask) or 'stars' (his true face). */
   setWorld(w) {
     this.world = w;
+    const dk = w === 'stars' ? 'void' : w;                                            // (the night sky keeps his PS1 counter, starlit)
     for (const [k, L] of Object.entries(this.bgSets)) for (const o of L) o.setVisible(k === w);
-    for (const [k, L] of Object.entries(this.deskSets)) for (const o of L) o.setVisible(k === w);
+    for (const [k, L] of Object.entries(this.deskSets)) for (const o of L) o.setVisible(k === dk);
+    for (const o of this.deskSets.void) o.setTint(w === 'stars' ? 0xc8b4ff : 0xffffff);
     this.sparkColor = COL[w][0];
     this.paintSlab();
   }
@@ -243,6 +269,10 @@ export class HanzBossStage extends BossArena {
       g.lineStyle(2, 0x261a18, 1); g.strokeRect(P.x1, y, w, 9);
       g.lineStyle(1, 0x261a18, 0.6); for (let x = P.x1 + 10; x < P.x2; x += 14) g.lineBetween(x, y + 2, x + 6, y + 7);
       g.lineStyle(2, 0x261a18, 1); g.lineBetween(P.x1 + 10, y + 9, P.x1 + 4, y + 26); g.lineBetween(P.x2 - 10, y + 9, P.x2 - 4, y + 26);
+    } else if (this.world === 'stars') {
+      g.fillStyle(0x2a1050, 1); g.fillPoints([{ x: P.x1, y }, { x: P.x2, y }, { x: P.x2 - 14, y: y + 16 }, { x: P.x1 + w / 2, y: y + 38 }, { x: P.x1 + 12, y: y + 14 }], true);
+      g.fillStyle(0x8a5aff, 1); g.fillPoints([{ x: P.x1 + 12, y: y + 14 }, { x: P.x1 + w / 2, y: y + 38 }, { x: P.x1 + w / 2 - 6, y: y + 8 }], true);
+      g.fillStyle(0xfff4ff, 0.8); g.fillRect(P.x1 + 4, y, w - 8, 2);
     } else {
       g.fillStyle(0x07050a, 1); g.fillPoints([{ x: P.x1, y }, { x: P.x2, y }, { x: P.x2 - 18, y: y + 14 }, { x: P.x1 + 30, y: y + 30 }], true);
       g.lineStyle(1, 0xff2a3a, 0.9); g.lineBetween(P.x1, y, P.x2, y); g.lineStyle(1, 0xd2d0cc, 0.6); g.lineBetween(P.x1 + 30, y + 30, P.x2 - 18, y + 14);
@@ -250,13 +280,26 @@ export class HanzBossStage extends BossArena {
   }
 
   // ------------------------------------------------------------------ him
-  /** Plays one of his animations (from LOST): hold = stay on the last frame; then = called when it ends. */
-  play(name, { hold = false, then = null } = {}) { if (!LOST_FRAMES.anims[name] || !this.scene.textures.exists(`lost_hanz_${name}_0`)) name = 'idle'; this.an = { name, f: 0, tick: 0, hold, then, done: false }; }
+  /** An animation as he's turned now: { spec (its frame table), key (texture key before the sheet number), whole (legs
+   *  drawn in: no legs layer under it) }. Turned to the side he faces (`face`) unless `front` (cutscenes) or there's no
+   *  turned render; then facing you - his whole-body front render if there is one (THE STARFALL), else the LOST one. */
+  look(name = this.an.name) {
+    const T = this.scene.textures, has = (v) => FIGHT[v] && FIGHT[v][name] && T.exists(`lost_${v}_${name}_0`);
+    const v = this.front || !this.boss || this.boss.dying || this.boss.gloat || this.intro || this.cut ? null : this.face;
+    if (v && has(v)) return { spec: FIGHT[v][name], key: `lost_${v}_${name}_`, whole: true };
+    if (has('f') && (!LOST_FRAMES.anims[name] || !T.exists(`lost_hanz_${name}_0`) || !v)) return { spec: FIGHT.f[name], key: `lost_f_${name}_`, whole: true };
+    if (!v && !T.exists(`lost_hanz_${name}_0`)) for (const s of ['r', 'l']) if (has(s)) return { spec: FIGHT[s][name], key: `lost_${s}_${name}_`, whole: true };
+    return { spec: LOST_FRAMES.anims[name], key: `lost_hanz_${name}_`, whole: false };
+  }
+  /** Whether he has this animation in any form. */
+  hasAnim(name) { const T = this.scene.textures; return (LOST_FRAMES.anims[name] && T.exists(`lost_hanz_${name}_0`)) || ['r', 'l', 'f'].some((v) => FIGHT[v] && FIGHT[v][name] && T.exists(`lost_${v}_${name}_0`)); }
+  /** Plays one of his animations (from LOST, or turned): hold = stay on the last frame; then = called when it ends. */
+  play(name, { hold = false, then = null } = {}) { if (!this.hasAnim(name)) name = 'idle'; this.an = { name, f: 0, tick: 0, hold, then, done: false }; }
   /** Holds the animation on frame f (cutscenes). */
-  hold(f) { this.an.f = Math.min(f, LOST_FRAMES.anims[this.an.name].frames.length - 1); this.an.held = true; }
+  hold(f) { this.an.f = Math.min(f, this.look().spec.frames.length - 1); this.an.held = true; }
   /** Advances his animation one game frame (back to idle when a one-shot ends, unless held). */
   stepAnim() {
-    const A = this.an, spec = LOST_FRAMES.anims[A.name], n = spec.frames.length;
+    const A = this.an, spec = this.look(A.name).spec, n = spec.frames.length;
     if (A.held || ++A.tick < TICKS) return;
     A.tick = 0;
     if (A.f < n - 1) A.f++;
@@ -266,7 +309,9 @@ export class HanzBossStage extends BossArena {
   /** Frames into the current animation at which frame f shows. */
   static at(f) { return f * TICKS; }
   /** His current frame's table entry. */
-  frame() { const spec = LOST_FRAMES.anims[this.an.name]; return spec.frames[Math.min(this.an.f, spec.frames.length - 1)]; }
+  frame() { const spec = this.look().spec; return spec.frames[Math.min(this.an.f, spec.frames.length - 1)]; }
+  /** THE TRUE FACE's sizes go by this (his hurt boxes' scale). */
+  zK() { return Z; }
   /** Where his waist floats when he's at rest (his shoes just off the desk), and where it is when he stands on it. */
   hoverY() { return BODY.hover; }
   landY() { return DIVE.land; }
@@ -275,17 +320,17 @@ export class HanzBossStage extends BossArena {
   /** The middle of his face (between his eyes), in the world. */
   headAt() { const e = this.frame().eyes; const a = e.sal, b = e.hanz; return this.L((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
   /** A frame's `spark` point (snap / clap) in the world. */
-  sparkAt(anim) { const sp = LOST_FRAMES.anims[anim].spark; return sp ? this.L(sp.x, sp.y) : this.headAt(); }
+  sparkAt(anim) { const L = this.look(anim).spec, sp = L && L.spark; return sp ? this.L(sp.x, sp.y) : this.headAt(); }
 
   /** Puts his frame up where he floats (flashing white when hit, afterimages while he dashes, ghosts split off while he
    *  glitches), his aura and smoke tail, his pupils or the void face. */
   renderHim() {
-    const fr = this.frame(), p = this.L(fr.x, fr.y), key = `lost_hanz_${this.an.name}_${fr.k}`, f = String(Math.min(this.an.f, LOST_FRAMES.anims[this.an.name].frames.length - 1));
+    const V = this.look(), fr = this.frame(), p = this.L(fr.x, fr.y), key = V.key + fr.k, f = String(Math.min(this.an.f, V.spec.frames.length - 1));
     const B = this.boss, SC = BODY.sc;
     this.him.setTexture(key, f).setPosition(p.x, p.y).setVisible(!this.gone);
     if (this.legs) {                                                                  // his legs dangling under him, swinging (hanz_legs.py)
       const i = Math.floor(this.t / 4) % LEGS.frames.length, lf = LEGS.frames[i], q = this.L(lf.x, lf.y);
-      this.legs.setTexture(`lost_legs_${lf.k}`, String(i)).setPosition(q.x, q.y).setVisible(!this.gone && !this.voidLegs);
+      this.legs.setTexture(`lost_legs_${lf.k}`, String(i)).setPosition(q.x, q.y).setVisible(!this.gone && !V.whole);
     }
     for (const im of this.legs ? [this.him, this.legs] : [this.him]) {
       if (B && B.flash) im.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff); else im.setTintMode(Phaser.TintModes.MULTIPLY).setTint(this.tintHim || 0xffffff);
@@ -306,11 +351,12 @@ export class HanzBossStage extends BossArena {
     const g = this.faceG; g.clear();
     for (const { n, p: im } of this.pupils) {
       const e = fr.eyes[n];
-      if (!e || e[3] < 0.3 || this.voidFace || this.gone) { im.setVisible(false); continue; }
+      if (!e || e[3] < 0.3 || this.voidFace || this.trueFace || this.gone) { im.setVisible(false); continue; }
       const q = this.L(e[0], e[1]), dx = tgt.x - q.x, dy = tgt.y - q.y, d = Math.hypot(dx, dy) || 1, gz = n === 'sal' ? [1.3, 0.7] : [1.6, 1.4], kk = Math.min(1, d / 140) * e[2] * SC;
       im.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1) * SC).setPosition(q.x + dx / d * gz[0] * kk, q.y + dy / d * gz[1] * kk);
     }
-    if (this.voidFace && !this.gone) {
+    if ((this.trueFace || this.crackK > 0) && !this.gone) this.drawTrueFace(g, fr, SC);
+    if (this.voidFace && !this.trueFace && !this.gone) {
       const a = fr.eyes.sal, b = fr.eyes.hanz, sc = ((a[2] + b[2]) / 2) / 1.33, c = this.L((a[0] + b[0]) / 2 + 2, (a[1] + b[1]) / 2 + 14);
       g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y, 76 * SC * sc, 100 * SC * sc);
       g.fillStyle(0x2a0a30, 0.5); g.fillEllipse(c.x, c.y - 2, 60 * SC * sc, 80 * SC * sc);
@@ -351,9 +397,10 @@ export class HanzBossStage extends BossArena {
   hurt() {
     if (!this.boss || this.cut || this.boss.dying) return [];
     const h = this.headAt();
-    return [{ x1: h.x - 27 * Z, x2: h.x + 27 * Z, y1: h.y - 42 * Z, y2: h.y + 26 * Z, mult: this.voidFace ? HURT.void : HURT.head, head: true },
+    return [{ x1: h.x - 27 * Z, x2: h.x + 27 * Z, y1: h.y - 42 * Z, y2: h.y + 26 * Z, mult: this.voidFace || this.trueFace ? HURT.void : HURT.head, head: true },
       { x1: this.hx - 52 * Z, x2: this.hx + 52 * Z, y1: h.y + 26 * Z, y2: this.hy + 8, mult: HURT.body },
-      { x1: this.hx - 22 * Z, x2: this.hx + 22 * Z, y1: this.hy + 8, y2: this.hy + FEET, mult: HURT.body }];
+      { x1: this.hx - 22 * Z, x2: this.hx + 22 * Z, y1: this.hy + 8, y2: this.hy + FEET, mult: HURT.body }]
+      .map((r) => this.world !== 'stars' ? r : { ...r, mult: r.mult * TRUE.armor * (r.head && this.boss && this.boss.atk && this.boss.atk.name === 'twoface' ? 1.3 : 1) });
   }
   /** His attacks by world (and LAST CALL quickens the void). */
   pattern() { return MOVES[this.mood][this.world]; }
@@ -375,20 +422,33 @@ export class HanzBossStage extends BossArena {
     if (!this.boss) { this.float(match); return out; }
     const B = this.boss, had = !!B.atk;
     this.bossStep(match, out);
-    if (had && !B.atk) { this.pin = false; this.dashing = false; if (++this.moodN >= this.moodAt && !B.dying && !match.over) this.pickMood(match); }
+    if (had && !B.atk) { this.pin = false; this.dashing = false; this.front = false; if (this.mood !== 'whole' && ++this.moodN >= this.moodAt && !B.dying && !match.over) this.pickMood(match); }
     if (!B.dying && !this.pin) this.float(match);
+    this.turn(match);
     if (this.blinkT > 0 && --this.blinkT === 0) this.splitK = 0;
     this.trail.push({ x: this.hx, y: this.hy }); if (this.trail.length > 14) this.trail.shift();
     if (!B.atk && !B.dying && this.an.name === 'idle' && this.an.f === 0 && MOODS[this.mood].rest !== 'idle') this.play(MOODS[this.mood].rest);
     this.watchHits(match);
     if (!B.dying && !match.over) {
       if (this.world === 'drawn' && B.hp <= B.max * ACTS.void && !this.cut && !B.atk) this.startVoid(match);
-      if (this.world === 'void' && !this.low && B.hp <= B.max * ACTS.low) { this.low = true; this.rageText.setText('LAST CALL!'); B.rage = 90; sfx('ding', 1, 0.4); }
-      if (this.low && !B.atk && B.wait > ACTS.lowWait) B.wait = ACTS.lowWait;
+      if (this.trueDue(match)) this.startStarfall(match);
+      if (this.trueReady && !B.atk && !this.cut) this.startTrue(match);
+      if (this.world === 'stars' && !this.low && B.hp <= B.max * TRUE.low) { this.low = true; this.rageText.setText('LAST CALL!'); B.rage = 90; sfx('ding', 1, 0.4); }
+      if (this.low && !B.atk && B.wait > TRUE.lowWait) B.wait = TRUE.lowWait;
     }
     this.stepFx(match, B.dying || match.over ? null : out);
+    this.stepTrue(match, B.dying || match.over ? null : out);
     if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.06);
     return out;
+  }
+
+  /** Which way he faces: toward the nearest fighter once they're `TURN` px past him (the way he's dashing while he dashes). */
+  turn(match) {
+    const B = this.boss, A = B && B.atk;
+    if (A && A.name === 'dash' && A.dir) { this.face = A.dir > 0 ? 'r' : 'l'; return; }
+    if (A && A.name === 'comet' && A.vx && this.dashing) { this.face = A.vx > 0 ? 'r' : 'l'; return; }
+    const f = this.nearest(match, this.hx); if (!f) return;
+    if (f.x > this.hx + TURN) this.face = 'r'; else if (f.x < this.hx - TURN) this.face = 'l';
   }
 
   /** The world's own life: the polygon things turn and swim, the ink boils, the void crawls. */
@@ -794,7 +854,7 @@ export class HanzBossStage extends BossArena {
       for (let q = 0; q < Math.PI * 2; q += 0.21) {
         let d = Math.abs(((q - R.gap) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < R.gw / 2) continue;
         const x = R.x + Math.cos(q) * R.r, y = R.y + Math.sin(q) * R.r; if (y > 30 || y < -420 || Math.abs(x) > 330) continue;
-        push(this.bhit(R.id, x - 8, y - 8, x + 8, y + 8, ...CLOCK.hit, { radial: true }));
+        push(this.bhit(R.id, x - 8, y - 8, x + 8, y + 8, ...(R.hit || CLOCK.hit), { radial: true }));
       }
     }
     this.rings = this.rings.filter((R) => R.r < 700);
@@ -815,7 +875,7 @@ export class HanzBossStage extends BossArena {
   }
 
   /** Clears every attack effect (the acts changing, his death). */
-  clearFx() { this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
+  clearFx() { this.fstars = []; this.hole = null; this.novaK = 0; this.novaLine = null; this.cometLine = null; this.aimHalf = null; this.cpts = null; for (const m of this.halvesM || []) if (m.mode === 'atk') m.mode = 'home'; this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
 
   // ------------------------------------------------------------------ drawing
   /** Every frame: him, the void's crawl, every effect, the clock, the flash, the bar. */
@@ -824,6 +884,7 @@ export class HanzBossStage extends BossArena {
     this.drawVoid();
     this.drawClock();
     this.drawFx();
+    this.drawTrue();
     const g = this.skyG; g.clear();
     if (this.flashK > 0 && this.topG) { this.topG.fillStyle(this.flashC, this.flashK); this.topG.fillRect(-1200, -1000, 2400, 1600); }
     if (this.dShards) this.drawShatter();
@@ -894,6 +955,7 @@ export class HanzBossStage extends BossArena {
     }
     // beams
     for (const b of this.beams) {
+      if (b.kind === 'cline' || b.kind === 'nova') continue;                          // (THE TRUE FACE draws its own: hanzTrue.js)
       const dx = b.x2 - b.x1, dy = b.y2 - b.y1, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
       if (b.t <= b.warn) {                                                             // the warning: a pencil sketch / thin line
         const k = b.t / b.warn;
@@ -942,8 +1004,8 @@ export class HanzBossStage extends BossArena {
       for (let i = 0; i < n; i++) {
         const q = i / n * Math.PI * 2, d = Math.abs(((q - R.gap) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < R.gw / 2) continue;
         const q2 = (i + 1) / n * Math.PI * 2;
-        gl.lineStyle(10, 0xff2a3a, 0.25); gl.lineBetween(R.x + Math.cos(q) * R.r, R.y + Math.sin(q) * R.r, R.x + Math.cos(q2) * R.r, R.y + Math.sin(q2) * R.r);
-        g.lineStyle(3, i % 4 ? 0xff4a5a : 0xffffff, 1); g.lineBetween(R.x + Math.cos(q) * R.r, R.y + Math.sin(q) * R.r, R.x + Math.cos(q2) * R.r, R.y + Math.sin(q2) * R.r);
+        gl.lineStyle(10, R.c || 0xff2a3a, 0.25); gl.lineBetween(R.x + Math.cos(q) * R.r, R.y + Math.sin(q) * R.r, R.x + Math.cos(q2) * R.r, R.y + Math.sin(q2) * R.r);
+        g.lineStyle(3, i % 4 ? R.c || 0xff4a5a : 0xffffff, 1); g.lineBetween(R.x + Math.cos(q) * R.r, R.y + Math.sin(q) * R.r, R.x + Math.cos(q2) * R.r, R.y + Math.sin(q2) * R.r);
       }
     }
     // mood swing halves
@@ -1009,6 +1071,12 @@ for (const n of Object.getOwnPropertyNames(HanzCinema.prototype)) {
   if (n === 'constructor') continue;
   if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzCinema.js redefines ' + n);
   HanzBossStage.prototype[n] = HanzCinema.prototype[n];
+}
+// THE TRUE FACE (his last act) - the same
+for (const n of Object.getOwnPropertyNames(HanzTrue.prototype)) {
+  if (n === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzTrue.js redefines ' + n);
+  HanzBossStage.prototype[n] = HanzTrue.prototype[n];
 }
 
 /** The stage select miniature: his polygon world, his giant silhouette, the candy desk. */

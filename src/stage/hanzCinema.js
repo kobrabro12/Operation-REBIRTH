@@ -103,7 +103,7 @@ export class HanzCinema {
   /** One frame of a cutscene (MatchScene, while `cut` is set). */
   cutStep(match) {
     const C = this.cut, t = ++C.t, once = (k, at, fn) => { if (t >= at && !C.once.has(k)) { C.once.add(k); fn(); } };
-    this.t++; this.stepAnim(); this.ambient(); this.stepSay(); this.stepFx(match, null);
+    this.t++; this.stepAnim(); this.ambient(); this.stepSay(); this.stepFx(match, null); this.stepTrue(match, null);
     if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.04);
     this.hx = lerp(this.hx, 0, 0.06); this.hy = lerp(this.hy, this.hoverY() + Math.sin(this.t * 0.04) * 5, 0.08);   // he drifts back to the middle
     const h = this.headAt();
@@ -125,7 +125,7 @@ export class HanzCinema {
       once('nothing', VOID.swap + 14, () => this.say('h', 'NOTHING. THERE NEVER WAS.', 80));
       once('shatter', VOID.shatter, () => { const m = this.L(...MASK_AT); this.burst(match, m.x, m.y, 50, [0xb8121c, 0xd2d0cc, 0x101012, 0xffffff]); sfx('glass', 1, 0.6); sfx('bighit', 0.8, 0.9); match.shake(10, 10); this.flash(0xff2a3a, 0.5); this.an.held = false; });
       once('even', VOID.shatter + 30, () => { this.play('laugh'); this.say('s', "NOW WE'RE EVEN.", 80); sfx('laugh', 0.7, 0.5); });
-    }
+    } else if (C.kind === 'true') C.shot = this.trueStep(match, t, once, h);
     if (t >= C.n) this.endCut(match);
   }
   /** A fresh press skips the rest of a cutscene. */
@@ -134,7 +134,8 @@ export class HanzCinema {
   endCut(match) {
     const C = this.cut; if (!C) return;
     this.cut = null; this.splitK = 0; this.tearK = 0; this.an.held = false; C.now(); this.play('idle'); this.sayD = null;
-    this.startCard(match, C.kind === 'drawn' ? { name: 'HANZ & $@L', title: 'THE DRAWN ROOM', tag: '-  ACT II  -' } : { name: 'HANZ & $@L', title: 'NOTHING UNDER THE MASK', tag: '-  FINAL ACT  -' });
+    this.startCard(match, C.kind === 'drawn' ? { name: 'HANZ & $@L', title: 'THE DRAWN ROOM', tag: '-  ACT II  -' }
+      : C.kind === 'void' ? { name: 'HANZ & $@L', title: 'NOTHING UNDER THE MASK', tag: '-  ACT III  -' } : { name: 'HANZ & $@L', title: 'THE STAR THAT FELL', tag: '-  TRUE FACE  -' });
   }
 
   // ------------------------------------------------------------------ his death
@@ -145,7 +146,7 @@ export class HanzCinema {
   stepDeath(match) {
     const d = this.boss.dying;
     this.stepSay();
-    if (d === 2) { this.clearFx(); this.voidFace = this.world === 'void'; this.play('sob', { hold: true }); this.say('h', '...NO. NO, NO, NO.', 90); sfx('glitch', 0.8, 0.5); }
+    if (d === 2) { this.clearFx(); this.skyK = 0; this.voidFace = this.world === 'void'; this.play('sob', { hold: true }); this.say('h', '...NO. NO, NO, NO.', 90); sfx('glitch', 0.8, 0.5); }
     if (d === 96) { this.play('sal_talk'); this.say('s', "WE DON'T LOSE. WE NEVER LOSE!", 70); }
     if (d === 170) { this.play('glitch', { hold: true }); }
     if (d > DEATH.flicker[0] && d < DEATH.flicker[1]) {
