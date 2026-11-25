@@ -13,6 +13,11 @@
 // - THE LOST WORLD (`stepWorld` / `drawWorld`): blood rain, lightning (`WORLD.bolt`) that shows a little girl in
 //   pigtails standing on the hills - closer every time (`girl`); missing posters on the trees and the sign; the hills
 //   drift; the ? blocks bob up and down, bleeding, and carry whoever stands on them (`WORLD.bob`).
+// - Three more of his, only once he's turned: SAVE FILE (three save slots on the floor - EMPTY, CASSIE, YOU - shuffle,
+//   then DELETE ALL? and static erases every slot but the empty one: stand in it), PLAYER 2 HAS JOINED (a little black
+//   shadow of him mirrors you across the middle of the island - you move left, it moves right - and it hurts to meet it;
+//   three hits delete it) and CONTINUE? (a giant blood-soaked glove comes down out of the sky three times on your shadow
+//   while the screen counts 3... 2... 1..., then GAME OVER rolls along the floor as a shockwave - jump it).
 // - New attacks: RUN. (`run`: on all fours across the floor and back, leaving a smear - jump him), CREDITS ROLL
 //   (`credits`: the game's credits rise up the screen, each line a bar with one gap - be in it; the last line is IN
 //   MEMORY OF CASSIE HOLLOWAY), HIDE AND SEEK (`hide`: dark, he counts to ten while two red eyes move under the floor
@@ -49,6 +54,12 @@ const CREDITS = {
 const HIDE = { per: 24, eyes: 1.5, warn: 34, w: 64, hit: [15, [88, 7, 0.9]] };
 // HOPPLE'S FRIENDS: how many (calm / lost), walk speed, size, how long they last, their hit
 const PALS = { n: [3, 4], speed: 1.25, r: 12, life: 560, hit: [6, [50, 4, 0.45]] };
+// SAVE FILE: the slots (centres, width), how long they show, shuffles (calm / lost), the warning, the erase (frames, hit)
+const SAVE = { xs: [-170, 0, 170], w: 120, show: 70, shuffle: 46, n: 2, warn: 34, erase: 20, hit: [14, [85, 6.5, 0.9]] };
+// PLAYER 2: how long it plays, how quickly it follows your mirror image, hits to delete it, its hit, frames between its hits
+const P2 = { life: 480, follow: 0.16, hp: 3, hit: [8, [60, 5, 0.6]], every: 40 };
+// CONTINUE?: slams, the glove's tracking / lock frames, fall speed, its size, the slam's hit, GAME OVER's shockwave
+const CONT = { n: 3, track: 46, lock: 16, fall: 16, w: 84, hit: [13, [80, 6.4, 0.9]], wave: [9, [55, 5.4, 0.6]] };
 // blood colours
 const BLOOD = { d: 0x3a0306, m: 0x7a0a12, l: 0xb81a22, meat: 0xd85a5a, stuff: 0xe8e0c8, stitch: 0x140808 };
 
@@ -74,6 +85,8 @@ export class HoppleLost {
     // posters on the trees (background) and on the sign (world): only in the lost build
     this.treePosters = [1, 3, 5].map((i) => { const im = s.add.image(40 + i * 112 + (i % 2) * 20, 262 + (i % 3) * 8 - 10, has ? POSTER.key : '__WHITE', 0).setScrollFactor(0).setScale(0.07).setVisible(false); bg.push(im); return im; });
     this.signPoster = s.add.image(-233, -40, has ? POSTER.key : '__WHITE', 0).setScale(0.1).setVisible(false); world.push(this.signPoster);
+    this.slotT = Array.from({ length: 3 }, () => { const t = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', align: 'center', lineSpacing: 4, stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setVisible(false); world.push(t); return t; });
+    this.p2T = s.add.text(0, 0, 'P2', { fontFamily: FONT, fontSize: '7px', color: '#ff3a3a', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setVisible(false); world.push(this.p2T);
     this.creditT = Array.from({ length: CREDITS.lines.length }, () => { const t = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 1).setVisible(false); world.push(t); return t; });
     // the word positions for the haunting: fixed, so the screen fills the same creepy way each time
     let seed = 1994; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -373,6 +386,117 @@ export class HoppleLost {
     for (const e of [-1, 1]) { const ex = x + d * 2 + e * 5; if (L) { g.fillStyle(0x020102, 1); g.fillEllipse(ex, y - 1, 5, 7); g.fillStyle(0xb81a22, 1); g.fillRect(ex - 0.5, y + 3, 1, 4 + ((this.t >> 3) + e) % 4); } else { g.fillStyle(0xffffff, 1); g.fillEllipse(ex, y - 1, 5, 7); g.fillStyle(0x101018, 1); g.fillCircle(ex + d, y, 1.6); } }
     g.fillStyle(L ? 0x3a0306 : 0x6a1020, 1); g.fillEllipse(x + d * 2, y + 7, L ? 13 : 8, L ? 5 : 3);
     if (L) { g.fillStyle(0xffffff, 1); for (let i = -2; i <= 2; i++) g.fillTriangle(x + d * 2 + i * 2.4 - 1, y + 5, x + d * 2 + i * 2.4 + 1, y + 5, x + d * 2 + i * 2.4, y + 7); g.fillStyle(0x7a0a12, 1); g.fillEllipse(x - 5, y + 6, 6, 3); }
+  }
+
+  /** SAVE FILE: three save slots appear on the floor - EMPTY, CASSIE, YOU - and shuffle; then every slot but the empty one is erased. */
+  start_save(match, a) {
+    const labels = ['EMPTY', 'CASSIE', 'YOU'];
+    for (let i = labels.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [labels[i], labels[j]] = [labels[j], labels[i]]; }
+    this.slots = { labels, glitch: 0, warn: false, erase: 0 }; a.st = 'show'; a.k = 0; a.n = SAVE.n; this.e.arms = 'point';
+    this.bigText('SELECT A FILE', 60, 16); sfx('menu', 0.6, 0.7);
+  }
+  /** One frame of SAVE FILE (see start_save). */
+  atk_save(match, a, out) {
+    const S = this.slots; a.k++;
+    if (a.st === 'show' && a.k >= this.sp(SAVE.show)) { a.st = a.n > 0 ? 'shuffle' : 'warn'; a.k = 0; }
+    if (a.st === 'shuffle') {
+      S.glitch = 1; if (a.k === 1) { sfx('glitch', 0.8, 0.6); const L = S.labels, i = Math.floor(Math.random() * 3), j = (i + 1 + Math.floor(Math.random() * 2)) % 3; [L[i], L[j]] = [L[j], L[i]]; }
+      if (a.k >= this.sp(SAVE.shuffle)) { S.glitch = 0; a.n--; a.st = a.n > 0 && this.lostOn ? 'shuffle' : 'warn'; a.k = 0; if (a.st === 'warn') { this.bigText('DELETE ALL? YES', SAVE.warn + 10, 16); sfx('warn', 0.7, 0.6); } }
+    }
+    if (a.st === 'warn') { S.warn = true; if (a.k >= this.sp(SAVE.warn)) { a.st = 'erase'; a.k = 0; a.id = this.sid('save'); sfx('buzz', 0.9, 0.5); sfx('bighit', 0.8, 0.6); match.shake(8, 14); } }
+    if (a.st === 'erase') {
+      S.erase = a.k;
+      SAVE.xs.forEach((x, i) => { if (S.labels[i] !== 'EMPTY') out.push(this.bhit(a.id + i, x - SAVE.w / 2, -210, x + SAVE.w / 2, 4, ...SAVE.hit)); });
+      if (a.k >= SAVE.erase) { this.slots = null; this.e.arms = 'idle'; return true; }
+    }
+    return false;
+  }
+  /** The save slots on the floor, their names, the warning and the erasing static (world). */
+  drawSlots(g) {
+    for (const t of this.slotT) t.setVisible(false);
+    const S = this.slots; if (!S) return;
+    SAVE.xs.forEach((x, i) => {
+      const lab = S.labels[i], empty = lab === 'EMPTY', x0 = x - SAVE.w / 2, j = S.glitch ? (Math.random() - 0.5) * 8 : 0;
+      g.fillStyle(0x0a0a3a, 0.8); g.fillRect(x0 + j, -46, SAVE.w, 40); g.lineStyle(2, S.warn && !empty && this.t % 8 < 4 ? 0xff2a2a : 0xffffff, 1); g.strokeRect(x0 + 2 + j, -44, SAVE.w - 4, 36);
+      g.fillStyle(empty ? 0x2a6aff : 0xb01010, 0.18); g.fillRect(x0, -2, SAVE.w, 4);
+      if (S.warn && !empty) { g.fillStyle(0xff1a1a, 0.12 + 0.08 * Math.sin(this.t * 0.6)); g.fillRect(x0, -210, SAVE.w, 210); }
+      if (S.erase && !empty) for (let k = 0; k < 40; k++) { g.fillStyle(Math.random() < 0.5 ? 0xffffff : 0x7a7a7a, 0.8); g.fillRect(x0 + Math.random() * SAVE.w, -Math.random() * 210, 2 + Math.random() * 10, 1 + Math.random() * 2); }
+      const T = this.slotT[i];
+      if (T) T.setVisible(true).setText('FILE ' + (i + 1) + '\n' + (S.glitch && Math.random() < 0.4 ? '?????' : lab)).setPosition(x + j, -26).setColor(empty ? '#7ab8ff' : lab === 'YOU' ? '#ff3a3a' : '#ffffff');
+    });
+  }
+
+  /** PLAYER 2 HAS JOINED: a little black shadow of him mirrors the nearest fighter across the middle of the island. Three hits delete it. */
+  start_p2(match, a) {
+    const f = this.nearest(match, 0);
+    this.p2 = { f, x: f ? -f.x : 0, y: f ? f.y : 0, hp: P2.hp, life: P2.life, cool: 0, hurt: 0, id: this.sid('p2'), n: 0 };
+    a.k = 0; this.bigText('PLAYER 2 HAS JOINED', 70, 14); sfx('ding', 0.6, 0.5); sfx('glitch', 0.6, 0.7); this.e.arms = 'wave';
+  }
+  /** One frame of PLAYER 2 (see start_p2). */
+  atk_p2(match, a, out) {
+    const D = this.p2; a.k++;
+    if (!D) return true;
+    if (!D.f || !D.f.alive) D.f = this.nearest(match, D.x);
+    const f = D.f; if (f) { D.x += (-f.x - D.x) * P2.follow; D.y += (f.y - D.y) * P2.follow; }
+    D.y = Math.min(0, D.y); D.life--; if (D.hurt > 0) D.hurt--;
+    if (a.k % P2.every === 0) D.n++;
+    out.push(this.bhit(D.id + '-' + D.n, D.x - 12, D.y - 44, D.x + 12, D.y, ...P2.hit));
+    if (D.life <= 0 || D.hp <= 0) { if (D.hp <= 0) { match.puff(D.x, D.y - 20, 0x000000, 10); match.puff(D.x, D.y - 20, 0xff2a2a, 8); this.bigText('PLAYER 2 HAS LEFT', 50, 14); sfx('glass', 0.7, 0.7); } this.p2 = null; this.e.arms = 'idle'; return true; }
+    return false;
+  }
+  /** Players' hits on PLAYER 2 (three delete it). */
+  strikeP2(match, hbs) {
+    const D = this.p2; if (!D || D.hurt > 0) return;
+    for (const hb of hbs) if (hb.owner && hb.x1 < D.x + 14 && hb.x2 > D.x - 14 && hb.y1 < D.y && hb.y2 > D.y - 46) { D.hp--; D.hurt = 20; match.puff(D.x, D.y - 22, 0xffffff, 6); sfx('hit', 0.6, 0.6); break; }
+  }
+  /** PLAYER 2: a child-sized black rabbit with two white pinprick eyes and a P2 tag (world). */
+  drawP2(g) {
+    const D = this.p2; if (!D) return;
+    const x = D.x, y = D.y, fl = D.hurt > 0 && this.t % 4 < 2, k = (this.t >> 2) % 2;
+    g.fillStyle(0xff1a1a, 0.25); g.fillEllipse(x, y - 22, 40, 56);
+    g.fillStyle(fl ? 0xffffff : 0x020102, 1);
+    g.fillEllipse(x - 5, y - 52, 7, 20); g.fillEllipse(x + 5, y - 54, 7, 22); g.fillCircle(x, y - 34, 11); g.fillEllipse(x, y - 14, 20, 24); g.fillRect(x - 7, y - 4, 5, 4 + k); g.fillRect(x + 2, y - 4, 5, 4 + (1 - k));
+    g.fillStyle(0xffffff, 1); g.fillRect(x - 5, y - 36, 2, 2); g.fillRect(x + 3, y - 36, 2, 2);
+    g.fillStyle(0x8a0a12, 1); g.fillRect(x - 2, y - 30, 5, 2);
+    for (let i = 0; i < D.hp; i++) { g.fillStyle(0xff3a3a, 1); g.fillRect(x - 8 + i * 6, y - 74, 4, 3); }
+    this.p2T.setVisible(true).setPosition(x, y - 66);
+  }
+
+  /** CONTINUE?: a giant blood-soaked glove comes down out of the sky on your shadow three times, counting down - then GAME OVER rolls along the floor. */
+  start_continue(match, a) {
+    const f = this.nearest(match, 0);
+    this.hand = { x: f ? f.x : 0, y: -380, st: 'track', k: 0 }; a.n = CONT.n; a.k = 0; this.e.arms = 'up';
+    this.bigText('CONTINUE?', 70, 22); sfx('menu', 0.7, 0.5);
+  }
+  /** One frame of CONTINUE? (see start_continue). */
+  atk_continue(match, a, out) {
+    const H = this.hand; if (!H) return true;
+    H.k++; const f = this.nearest(match, H.x);
+    if (H.st === 'track') { if (f) H.x += (Math.max(FLOOR.x1 + 40, Math.min(FLOOR.x2 - 40, f.x)) - H.x) * 0.12; H.y += (-300 - H.y) * 0.1; if (H.k >= this.sp(CONT.track)) { H.st = 'lock'; H.k = 0; sfx('warn', 0.5, 1.2); } }
+    else if (H.st === 'lock') { H.y -= 1.2; if (H.k >= this.sp(CONT.lock)) { H.st = 'fall'; H.k = 0; H.id = this.sid('glove'); } }
+    else if (H.st === 'fall') {
+      H.y = Math.min(0, H.y + CONT.fall);
+      out.push(this.bhit(H.id, H.x - CONT.w / 2, H.y - 70, H.x + CONT.w / 2, H.y + 4, ...CONT.hit));
+      if (H.y >= 0) { H.st = 'rest'; H.k = 0; a.n--; sfx('bighit', 1, 0.5); match.shake(12, 12); this.bigText(String(a.n > 0 ? a.n : 0), 40, 30); for (let i = 0; i < 6; i++) this.drips.push({ x: H.x + (Math.random() - 0.5) * 60, y: -20, vy: -3 - Math.random() * 3 }); }
+    } else if (H.st === 'rest' && H.k >= 22) {
+      if (a.n > 0) { H.st = 'track'; H.k = 0; }
+      else { this.bigText('GAME OVER', 70, 22); sfx('roar', 0.8, 0.6); for (const d of [-1, 1]) this.waves.push({ x: H.x + d * 40, d, life: 80, id: this.sid('go') }); this.hand = null; this.e.arms = 'idle'; return true; }
+    }
+    return false;
+  }
+  /** The glove: its shadow on the floor and the giant white glove itself, soaked red at the fingertips (world). */
+  drawGlove(g) {
+    const H = this.hand; if (!H) return;
+    const k = Math.max(0.2, Math.min(1, 1 - (-H.y) / 380)), x = H.x, y = H.y;
+    g.fillStyle(0x000000, 0.35 + 0.3 * k); g.fillEllipse(x, 0, CONT.w * (0.6 + 0.6 * k), 12);
+    if (H.st === 'lock') { g.lineStyle(2, 0xff2a2a, this.t % 6 < 3 ? 1 : 0.4); g.strokeEllipse(x, 0, CONT.w * 1.3, 16); }
+    g.fillStyle(0x1a1020, 1); g.fillEllipse(x, y - 34, CONT.w + 8, 62);
+    for (let i = 0; i < 4; i++) { const fx = x - 30 + i * 20; g.fillStyle(0x1a1020, 1); g.fillEllipse(fx, y - 6, 20, 34); g.fillStyle(0xf4f0e8, 1); g.fillEllipse(fx, y - 7, 16, 30); g.fillStyle(0x8a0a12, 1); g.fillEllipse(fx, y + 2, 14, 10); }
+    g.fillStyle(0xf4f0e8, 1); g.fillEllipse(x, y - 34, CONT.w, 56);
+    g.fillStyle(0x1a1020, 1); g.fillRect(x - 3, y - 54, 2, 22); g.fillRect(x + 12, y - 52, 2, 18); g.fillRect(x - 18, y - 52, 2, 18);
+    g.fillStyle(0x7a0a12, 1); g.fillEllipse(x + 18, y - 26, 24, 14); g.fillEllipse(x - 22, y - 40, 14, 10);
+    g.fillStyle(0xd8d0c0, 1); g.fillRect(x - CONT.w / 2 + 4, y - 80, CONT.w - 8, 18); g.fillStyle(0x1a1020, 1); g.fillRect(x - CONT.w / 2 + 4, y - 80, CONT.w - 8, 2);
+    for (let i = 0; i < 3; i++) { const dx = x - 20 + i * 20, l = 6 + ((this.t >> 2) + i * 4) % 14; g.fillStyle(0x9a0a12, 1); g.fillRect(dx, y + 8, 2, l); }
   }
 
   /** Big words in the middle of the screen for a while (RUN., the counting). */

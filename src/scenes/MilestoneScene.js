@@ -1,4 +1,4 @@
-// THE MILESTONE ROAD (CHARACTER FILES > MILESTONE ROAD, or M there): one fighter's four milestone costumes as a
+// THE MILESTONE ROAD (LORE > MILESTONE ROAD, or M there): one fighter's four milestone costumes as a
 // gallery. Each stands on its own lit plinth along a road of KOs (0 - 25 - 50 - 75 - 100), wearing the costume
 // with its aura (motes in its colours rising, orbiting sparks, a crown of god-rays at tier IV); costumes not yet
 // earned are black silhouettes with a glowing seal and the KOs still to go. The road glows gold as far as you've
@@ -29,7 +29,7 @@ const mix = (a, b, k) => { const c = (s) => Math.round(((a >> s) & 255) * (1 - k
 export class MilestoneScene extends Phaser.Scene {
   constructor() { super('Milestones'); }
 
-  /** Builds the gallery for fighter `data.fi` of the CHARACTER FILES list. */
+  /** Builds the gallery for fighter `data.fi` of the LORE list. */
   create(data) {
     this.t = 0; this.menu = new MenuInput(this);
     this.fighters = filesFighters(); this.fi = (data && data.fi) || 0; this.sel = 0; this.motes = [];
@@ -71,7 +71,7 @@ export class MilestoneScene extends Phaser.Scene {
   }
   /** Picks costume i on the road (with a little chime). */
   pick(i) { if (i === this.sel) return; this.sel = i; sfx('menu', 0.5, 1 + i * 0.12); this.refresh(); }
-  /** Back to CHARACTER FILES, on the same fighter. */
+  /** Back to LORE, on the same fighter. */
   back() { sfx('menu', 0.6); this.scene.start('Files', { fi: this.fi }); }
 
   /** The texts: each plinth's name and tier, what's still to go, the chosen costume's story on the plaque. */

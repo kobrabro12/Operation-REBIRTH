@@ -1,8 +1,10 @@
-// Character Files (TRINKETS > CHARACTER FILES): a dossier on each fighter - file number, alias, class,
+// LORE (TRINKETS > LORE, was CHARACTER FILES): a dossier on each fighter - file number, alias, class,
 // weapon, origin, signature moves and Limit - their story, and a costume browser with each costume's
 // own story. Milestone costumes can be looked at and read here before they're unlocked (marked LOCKED,
-// with how many KOs it takes to wear one).
-// W/S switches fighter, A/D switches costume, K / Esc / B goes back.
+// with how many KOs it takes to wear one). Q turns the file's pages: the FILE, then their BACKGROUND and WHY
+// THEY'RE HERE (`BACKSTORY` in src/data/loreArchive.js, as many pages as they need - `pageList`). R opens THE
+// ARCHIVE (ArchiveScene: the world's other documents).
+// W/S switches fighter, A/D switches costume, Q page, R archive, K / Esc / B goes back.
 // Mouse: click a fighter tab, or the < > arrows under the costume.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
 import { playMusic } from '../audio/music.js';
@@ -14,10 +16,13 @@ import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
 import { skinsFor, skinUnlocked, skinTier } from '../fighters/skins.js';
 import { MILESTONE_KOS, getKOs } from '../progress.js';
 import { FILES, SKIN_LORE, MILESTONE_LORE } from '../data/lore.js';
+import { BACKSTORY } from '../data/loreArchive.js';
 import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
 
 const GOLD = '#ffd23f', DIM = '#8a87a3', LINE = ARC.sections.files, PANEL = 0x1c1230;
 // tabs: how wide, how many show at once (the row scrolls to keep the chosen one in view)
+// how many lines of a long page fit on the file panel
+const LONG_LINES = 20;
 const TAB_W = 116, TABS = 4, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
 
 /** Every fighter with a file: the roster, then the lab's test fighters. */
@@ -35,7 +40,7 @@ export class FilesScene extends Phaser.Scene {
     this.bgFx = new ArcadeBg(this, LINE, { second: ARC.sections.trinkets });
     const g = this.add.graphics();
     panel(g, L.x, L.y, L.w, L.h, LINE); panel(g, R.x, R.y, R.w, R.h, LINE);
-    titleBanner(this, 'CHARACTER FILES', LINE, { crumb: 'TRINKETS  >  FILES', size: 13 });
+    titleBanner(this, 'LORE', LINE, { crumb: 'TRINKETS  >  LORE', size: 13 });
     this.tabG = this.add.graphics();
     this.tabs = this.fighters.map((f) => this.add.text(0, TAB_Y + 8, f.name.length > 14 ? f.name.replace('THE ', '') : f.name, { fontFamily: FONT, fontSize: '6px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5));
     this.tabMore = [-1, 1].map((d) => this.add.text(d < 0 ? L.x - 8 : L.x + TABS * (TAB_W + 6) + 2, TAB_Y + 8, d < 0 ? '<' : '>', { fontFamily: FONT, fontSize: '7px', color: GOLD }).setOrigin(0.5));
@@ -56,11 +61,19 @@ export class FilesScene extends Phaser.Scene {
       this.add.text(tx, R.y + 34 + i * 12, k, { fontFamily: FONT, fontSize: '5px', color: DIM }),
       this.add.text(tx + 52, R.y + 34 + i * 12, '', { fontFamily: FONT, fontSize: '5px', color: '#ffffff' }),
     ]);
-    this.add.text(tx, R.y + 112, 'LORE', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
+    this.loreHead = this.add.text(tx, R.y + 112, 'LORE', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
     this.lore = this.add.text(tx, R.y + 124, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
     this.skinHead = this.add.text(tx, R.y + 208, '', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
     this.skinLore = this.add.text(tx, R.y + 220, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
-    hintBar(this, 'W/S FIGHTER   CLICK TAB   A/D COSTUME   M MILESTONE ROAD   K / ESC / B  BACK', LINE);
+    // the long pages (BACKGROUND / WHY THEY'RE HERE) and the buttons to turn them and to open THE ARCHIVE
+    this.pageHead = this.add.text(tx, R.y + 34, '', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
+    this.longT = this.add.text(tx, R.y + 50, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
+    this.pageBtn = makeButton(this, R.x + R.w - 8, R.y + R.h - 10, 'NEXT PAGE (Q)', () => this.turnPage(), { originX: 1, originY: 0.5, size: '6px' });
+    makeButton(this, R.x + R.w - 8, R.y + 12, 'ARCHIVE (R)', () => this.archive(), { originX: 1, originY: 0.5, size: '6px' });
+    this.input.keyboard.on('keydown-Q', () => this.turnPage());
+    this.input.keyboard.on('keydown-R', () => this.archive());
+    this.page = 0;
+    hintBar(this, 'W/S FIGHTER   A/D COSTUME   Q PAGE   R ARCHIVE   M MILESTONE ROAD   K BACK', LINE);
     makeButton(this, 8, 6, '< BACK', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.input.on('pointerdown', (p, over) => {
@@ -73,7 +86,21 @@ export class FilesScene extends Phaser.Scene {
   back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
   /** Opens THE MILESTONE ROAD for the fighter on show. */
   road() { sfx('menu', 0.7, 1.2); this.scene.start('Milestones', { fi: this.fi }); }
-  pick(i) { this.fi = i; this.si = 0; sfx('menu', 0.6); this.refresh(); }
+  pick(i) { this.fi = i; this.si = 0; this.page = 0; sfx('menu', 0.6); this.refresh(); }
+  /** Opens THE ARCHIVE (and comes back to this fighter). */
+  archive() { sfx('menu', 0.7, 1.2); this.scene.start('Archive', { fi: this.fi }); }
+  /** Turns the file to its next page (the FILE, then BACKGROUND, then WHY THEY'RE HERE, then round again). */
+  turnPage() { const n = this.pageList().length; this.page = (this.page + 1) % n; sfx('menu', 0.5, 1.3); this.refresh(); }
+  /** The file's pages for the fighter on show: the FILE, then each long story split to fit the panel. */
+  pageList() {
+    const f = this.fighters[this.fi], B = BACKSTORY[f.id], out = [{ k: 'file' }];
+    if (!B) return out;
+    for (const [k, head] of [['background', 'BACKGROUND'], ['why', 'WHY THEY\'RE HERE']]) {
+      const lines = this.longT.getWrappedText(B[k] || ''), n = Math.max(1, Math.ceil(lines.length / LONG_LINES));
+      for (let i = 0; i < n; i++) out.push({ k, head: head + (n > 1 ? '  (' + (i + 1) + '/' + n + ')' : ''), text: lines.slice(i * LONG_LINES, (i + 1) * LONG_LINES).join('\n') });
+    }
+    return out;
+  }
   stepSkin(d) { const n = skinsFor(this.fighters[this.fi].id).length; this.si = (this.si + d + n) % n; sfx('menu', 0.5, 1.2); this.refresh(); }
 
   refresh() {
@@ -89,6 +116,14 @@ export class FilesScene extends Phaser.Scene {
     this.skinHead.setText('COSTUME FILE: ' + skin.name + (tier ? '  (MILESTONE ' + tier + (open ? ')' : ' - LOCKED)') : ''));
     this.skinLore.setText(story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
     this.locked = !open;
+    // which page: the file itself, or a long page of their story
+    const pages = this.pageList(), P = pages[Math.min(this.page, pages.length - 1)], file = P.k === 'file';
+    for (const [a, b] of this.fields) { a.setVisible(file); b.setVisible(file); }
+    for (const o of [this.loreHead, this.lore, this.skinHead, this.skinLore]) o.setVisible(file);
+    this.pageHead.setVisible(!file).setText(file ? '' : P.head);
+    this.longT.setVisible(!file).setText(file ? '' : P.text);
+    this.pageBtn.setVisible(pages.length > 1);
+    if (this.pageBtn.setText) this.pageBtn.setText(pages.length > 1 ? 'PAGE ' + (this.page + 1) + '/' + pages.length + ' (Q)' : '');
   }
 
   update() {
