@@ -11,7 +11,7 @@ import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
 import { addFullscreenButton } from '../ui/fullscreen.js';
 import { ArcadeBg, titleBanner, hintBar, ARC, panel, slant, hex } from '../ui/arcade.js';
-import { BOSSES, TIERS, bossOpen, bossWins, bossBest, arenaOpen, clock, FIRST_BONUS, bestGrade } from '../data/bosses.js';
+import { BOSSES, SECRET_BOSSES, TIERS, bossOpen, bossWins, bossBest, arenaOpen, clock, FIRST_BONUS, bestGrade } from '../data/bosses.js';
 import { TROPHY_GOALS, trophyEarned } from '../achievements.js';
 import { stageById } from '../stage/stages.js';
 import { ROSTER, TEST_ROSTER, showFighter } from '../fighters/roster.js';
@@ -33,9 +33,13 @@ export class BossFightsScene extends Phaser.Scene {
   constructor() { super('BossFights'); }
 
 /** Builds the cards, panels, texts, the fighter preview and the buttons. */
-  create() {
+  create(data = {}) {
     this.t = 0; this.menu = new MenuInput(this); this.step = 'boss'; this.rush = false;
     this.sel = last.boss; this.tier = last.tier;
+    // a SECRET boss (HANZ from LOST: `{ secret: 'hanz', tier, tab }`) opens straight on the fighter step, on its own
+    // difficulty and lives, and backing out goes back where you found him
+    this.secret = data.secret ? SECRET_BOSSES.find((b) => b.id === data.secret) : null;
+    if (this.secret) { this.step = 'fighter'; this.tier = data.tier ?? 1; this.secretTab = data.tab || 0; }
     // the roster, plus THE DEVOTED (a test fighter - in her CARTRIDGE costume KING POLYGON fights her as LEGENDARY KING POLYGON)
     this.fighters = [...ROSTER.filter((f) => f.available), ...TEST_ROSTER.filter((f) => f.id === 'devoted')];
     this.fi = Math.max(0, this.fighters.findIndex((f) => f.id === (last.fighter || settings.picks[0])));
@@ -95,6 +99,11 @@ export class BossFightsScene extends Phaser.Scene {
     }
   }
 
+  /** The boss you're about to fight: the secret one, or the picked card. */
+  boss() { return this.secret || BOSSES[this.sel]; }
+  /** Your lives against it: the secret boss's own, else the difficulty's. */
+  lives() { return (this.secret && this.secret.lives) || TIERS[this.tier].stocks; }
+
   /** The costumes of a fighter you can wear (milestone / shop ones once unlocked). */
   skins(id) { return skinsFor(id).map((_, i) => i).filter((i) => skinUnlocked(id, i)); }
   /** Next / previous fighter (back to their first costume). */
@@ -108,24 +117,26 @@ export class BossFightsScene extends Phaser.Scene {
       if (!bossOpen(this.sel)) { sfx('curse', 0.4, 1.4); return; }
       this.step = 'fighter'; sfx('go', 0.6); this.refresh(); return;
     }
-    const B = BOSSES[this.sel], T = TIERS[this.tier], f = this.fighters[this.fi];
-    Object.assign(last, { boss: this.sel, tier: this.tier, fighter: f.id, skin: this.skin });
-    const setup = { mode: 'stock', stocks: T.stocks, hp: 150, minutes: 3, items: false, hazards: true, crt: settings.crt, stage: B.stage, track: 'auto', picks: [f.id], skins: [this.skin],
+    const B = this.boss(), f = this.fighters[this.fi];
+    if (this.secret) { last.fighter = f.id; last.skin = this.skin; settings.picks = [f.id, ...(settings.picks || []).slice(1)]; }
+    else Object.assign(last, { boss: this.sel, tier: this.tier, fighter: f.id, skin: this.skin });
+    const setup = { mode: 'stock', stocks: this.lives(), hp: 150, minutes: 3, items: false, hazards: true, crt: settings.crt, stage: B.stage, track: 'auto', picks: [f.id], skins: [this.skin],
       cpuCount: 0, difficulty: 1, cpuLevels: [], p1Pad: settings.p1Pad, extraPads: [], from: 'BossFights' };
     if (this.rush) {                                                     // BOSS RUSH: the first boss, with the rush's lives
-      setup.stocks = T.stocks + RUSH.extraLives; setup.stage = BOSSES[0].stage;
+      setup.stocks = this.lives() + RUSH.extraLives; setup.stage = BOSSES[0].stage;
       sfx('go', 1); this.scene.start('Match', { boss: { id: BOSSES[0].id, tier: this.tier, setup, rush: { i: 0, time: 0 } } }); return;
     }
+    if (this.secret) { setup.from = B.from; sfx('go', 1); this.scene.start('Match', { boss: { id: B.id, tier: this.tier, setup, from: B.from } }); return; }
     sfx('go', 1); this.scene.start('Match', { boss: { id: B.id, tier: this.tier, setup } });
   }
   /** BOSS RUSH: on to the fighter step for a run at every boss in a row, at the chosen difficulty. */
   startRush() { this.rush = true; this.step = 'fighter'; sfx('go', 0.8, 0.8); this.refresh(); }
   /** K / Esc: back a step, or out to Trinkets. */
-  back() { sfx('menu', 0.6); if (this.step === 'fighter') { this.step = 'boss'; this.rush = false; this.refresh(); } else this.scene.start('Trinkets'); }
+  back() { sfx('menu', 0.6); if (this.secret) { this.scene.start(this.secret.from || 'Trinkets', { tab: this.secretTab }); return; } if (this.step === 'fighter') { this.step = 'boss'; this.rush = false; this.refresh(); } else this.scene.start('Trinkets'); }
 
   /** Updates every text for what's picked (and the step), and redraws the panels. */
   refresh() {
-    const B = BOSSES[this.sel], T = TIERS[this.tier], open = bossOpen(this.sel), boss = this.step === 'boss';
+    const B = this.boss(), T = TIERS[this.tier], open = bossOpen(this.sel), boss = this.step === 'boss';
     this.setHint();
     for (const [k, o] of Object.entries(this.txt)) o.setVisible(boss ? !k.startsWith('f') : k.startsWith('f'));
     this.sprite.setVisible(!boss); this.go.setVisible(!boss); this.rushBtn.setVisible(boss);
@@ -142,7 +153,7 @@ export class BossFightsScene extends Phaser.Scene {
     } else {
       const f = this.fighters[this.fi];
       if (!this.skins(f.id).includes(this.skin)) this.skin = 0;
-      this.txt.fhead.setText(this.rush ? 'BOSS RUSH - ALL ' + BOSSES.length + ' BOSSES, ' + (T.stocks + RUSH.extraLives) + ' LIVES\n' + T.name : 'WHO FACES ' + B.name + '?\n' + T.name).setColor(this.rush ? '#d8a0ff' : '#ffffff');
+      this.txt.fhead.setText(this.rush ? 'BOSS RUSH - ALL ' + BOSSES.length + ' BOSSES, ' + (T.stocks + RUSH.extraLives) + ' LIVES\n' + T.name : 'WHO FACES ' + B.name + '?\n' + T.name + (this.secret ? '  -  ' + this.lives() + ' LIVES' : '')).setColor(this.rush ? '#d8a0ff' : '#ffffff');
       this.txt.fname.setText('<  ' + f.def.name + (f.tag ? ' (TEST)' : '') + '  >');
       const list = this.skins(f.id); this.txt.fskin.setText('<  COSTUME: ' + skinInfo(f.id, this.skin).name + '  (' + (list.indexOf(this.skin) + 1) + '/' + list.length + ')  >');
     }
@@ -170,11 +181,11 @@ export class BossFightsScene extends Phaser.Scene {
     } else {
       panel(g, 120, 56, 400, 254, TIERS[this.tier].color);
       const c = VIEW_W / 2;
-      p.fillStyle(BOSSES[this.sel].color, 0.15); p.fillCircle(c, 214, 70);
+      p.fillStyle(this.boss().color, 0.15); p.fillCircle(c, 214, 70);
       p.fillStyle(0xffffff, 1);
       const bob = Math.sin(this.t * 0.2) * 3;
       p.fillTriangle(c - 120 + bob, 214, c - 108 + bob, 204, c - 108 + bob, 224); p.fillTriangle(c + 120 - bob, 214, c + 108 - bob, 204, c + 108 - bob, 224);
-      slant(p, c - 180, 283, 360, 18, 0x000000, 0.55, 6); slant(p, c - 180, 283, 360, 3, BOSSES[this.sel].color, 1, 1);   // the costume bar (W/S or click either half)
+      slant(p, c - 180, 283, 360, 18, 0x000000, 0.55, 6); slant(p, c - 180, 283, 360, 3, this.boss().color, 1, 1);   // the costume bar (W/S or click either half)
     }
   }
 

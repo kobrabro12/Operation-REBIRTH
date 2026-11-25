@@ -78,7 +78,8 @@ export const BOSSES = [
 // HANZ & $@L: poke him enough in the LOST shop (LostScene.settle) and he fights you on his own desk
 // (src/stage/hanzBossStage.js + hanzCinema.js); `from` = the scene a win or a quit goes back to.
 export const SECRET_BOSSES = [
-  { id: 'hanz', name: 'HANZ & $@L, THE TRUE SHOPKEEPER', short: 'HANZ & $@L', title: 'THE TRUE SHOPKEEPER', stage: 'hanz-desk', arena: 'HIS DESK', hp: 720, coins: 1000, color: 0xff3a46, secret: true, from: 'Lost',
+  { id: 'hanz', name: 'HANZ & $@L, THE TRUE SHOPKEEPER', short: 'HANZ & $@L', title: 'THE TRUE SHOPKEEPER', stage: 'hanz-desk', arena: 'HIS DESK', hp: 720, coins: 1000, color: 0xff3a46, secret: true, from: 'Lost', lives: 3,   // (lives: your lives against him, whatever the difficulty)
+   
     blurb: 'ONE MAN, TWO HALVES, NO FACE. HE FIGHTS\nYOU ON HIS OWN DESK: POLYGONS, INK,\nNOTHING AT ALL - AND THEN THE STARS.',
     taunts: ['HAHAHA! THANK YOU, COME AGAIN!', 'NO REFUNDS. NO RETURNS. NO YOU.', 'THE SHOP ALWAYS WINS.'],
     // the death card when you lose (src/ui/deathCard.js): its quote by the world he beat you in, and the act marks on the progress line

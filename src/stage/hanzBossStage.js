@@ -303,8 +303,8 @@ export class HanzBossStage extends BossArena {
     const T = this.scene.textures, has = (v) => FIGHT[v] && FIGHT[v][name] && T.exists(`lost_${v}_${name}_0`);
     const v = this.front || !this.boss || this.boss.dying || this.boss.gloat || this.intro || this.cut ? null : this.face;
     if (v && has(v)) return { spec: FIGHT[v][name], key: `lost_${v}_${name}_`, whole: true };
-    if (has('f') && (!LOST_FRAMES.anims[name] || !T.exists(`lost_hanz_${name}_0`) || !v)) return { spec: FIGHT.f[name], key: `lost_f_${name}_`, whole: true };
-    if (!T.exists(`lost_hanz_${name}_0`)) for (const s of ['r', 'l', 'f']) if (has(s)) return { spec: FIGHT[s][name], key: `lost_${s}_${name}_`, whole: true };
+    // never his legless LOST frames while ANY whole-body render of the clip is loaded: facing you, then either side
+    for (const s of ['f', this.face === 'l' ? 'l' : 'r', this.face === 'l' ? 'r' : 'l']) if (has(s)) return { spec: FIGHT[s][name], key: `lost_${s}_${name}_`, whole: true };
     if (!LOST_FRAMES.anims[name]) return this.look('idle');                            // (nothing for it at all: his idle)
     return { spec: LOST_FRAMES.anims[name], key: `lost_hanz_${name}_`, whole: false };
   }
