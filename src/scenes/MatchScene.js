@@ -100,6 +100,8 @@ export class MatchScene extends Phaser.Scene {
     queueSheets(this, matchPicks(S, { demo, shopPreview: !!data.shopPreview, soulSkin: soul ? soul.skin || 0 : undefined }), { evict: true });
     if (!demo && extraOn('ext-opinion') && !this.textures.exists('lost_heads')) this.load.spritesheet('lost_heads', 'assets/shop/lost/heads.png', { frameWidth: 124, frameHeight: 124 });   // (SECOND OPINION's heads)
     if (data.boss?.id === 'hanz' || S.stage === 'hanz-desk') queueHanz(this, data.boss?.id === 'hanz');   // (HANZ & $@L: his animations and all three of his worlds)
+    if ((data.boss?.id === 'hopple' || S.stage === 'happy-hills') && !this.textures.exists('hopple_missing')) this.load.spritesheet('hopple_missing', 'assets/stages/hopple/missing.png', { frameWidth: 200, frameHeight: 272 });   // (HOPPLE's MISSING poster)
+    if ((data.boss?.id === 'hopple' || S.stage === 'happy-hills') && !this.textures.exists('hopple_scare')) this.load.image('hopple_scare', 'assets/stages/hopple/scare.png');   // (and his jumpscare)
     if (!demo && S.stage === 'underground') for (const [k, f] of [['ug_door', 'sfx/ug_door'], ['ug_crowd', 'sfx/ug_crowd'], ['voice_ug-welcome', 'voice/ug-welcome'], ['voice_ug-noise', 'voice/ug-noise']])   // (THE UNDERGROUND's opening)
       if (!this.cache.audio.exists(k)) this.load.audio(k, ['assets/audio/' + f + '.ogg', 'assets/audio/' + f + '.mp3']);
     if (!demo && (equippedStageFx() === 'fx-drawn' || extraOn('ext-eye'))) queueDrawn(this, false);   // (THE DRAWN ROOM / THE EYE's pictures)
