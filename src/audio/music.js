@@ -20,7 +20,7 @@ export const TRACKS = [
   // HANZ & $@L's secret boss theme (tools/audio/hanz_boss_music.py)
   'boss_hanz',
   // the BOSS FIGHTS themes (tools/audio/boss_music.py)
-  'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_smudge', 'boss_maestro', 'boss_stareater',
+  'boss_colossus', 'boss_polygon', 'boss_demon', 'boss_knight', 'boss_machine', 'boss_smudge', 'boss_maestro', 'boss_stareater', 'boss_hopple',
   // LEGENDARY KING POLYGON's theme: Mason's pixelated_audio 22
   'boss_legend',
   // the miracle costumes' outros (tools/audio/costume_outros.py)

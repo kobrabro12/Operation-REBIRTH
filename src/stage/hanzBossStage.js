@@ -48,6 +48,8 @@ const SAFE = { maxAtk: 900, actGrace: 150, maxWait: 200 };              // game 
 // how hard everything he does hits: x damage, x base knockback, x growth; x damage again once he's WHOLE (THE TRUE FACE)
 const HIT = { dmg: 0.85, base: 1.0, growth: 1.0, true: 1.2 };
 // where he can be hurt: head / body multipliers (the head once his face is gone)
+// THE VOID FACE: the oval (in his LOST picture's pixels x eye scale) round his eyes that turns black once the mask is off, and its colour
+const VOIDFACE = { rx: 43, ry: 54, dy: 6, col: [7, 5, 10] };
 const HURT = { head: 1.25, void: 1.45, body: 0.85 };
 // HIM ON THE STAGE: how big he's drawn (x his LOST picture), the line across his waist on that picture (his frames end
 // about there - below it he trails off into smoke), how high his waist floats, how far he bobs, how fast he drifts
@@ -342,7 +344,8 @@ export class HanzBossStage extends BossArena {
   /** Puts his frame up where he floats (flashing white when hit, afterimages while he dashes, ghosts split off while he
    *  glitches), his aura and smoke tail, his pupils or the void face. */
   renderHim() {
-    const V = this.look(), fr = this.frame(), p = this.L(fr.x, fr.y), key = V.key + fr.k, f = String(Math.min(this.an.f, V.spec.frames.length - 1));
+    const V = this.look(), fr = this.frame(), p = this.L(fr.x, fr.y), f = String(Math.min(this.an.f, V.spec.frames.length - 1));
+    const key = this.voidFace && !this.trueFace && V.whole ? this.voidKey(V, fr.k) : V.key + fr.k;
     const B = this.boss, SC = BODY.sc;
     this.him.setTexture(key, f).setPosition(p.x, p.y).setRotation(this.tilt || 0).setVisible(!this.gone);
     if (this.legs) {                                                                  // his legs dangling under him, swinging (hanz_legs.py)
@@ -373,17 +376,43 @@ export class HanzBossStage extends BossArena {
       im.setVisible(true).setScale(e[2] / (LOST_FRAMES.pupilK || 1) * SC).setPosition(q.x + dx / d * gz[0] * kk, q.y + dy / d * gz[1] * kk);
     }
     if ((this.trueFace || this.crackK > 0) && !this.gone) this.drawTrueFace(g, fr, SC);
-    if (this.voidFace && !this.trueFace && !this.gone) {
-      const a = fr.eyes.sal, b = fr.eyes.hanz, sc = ((a[2] + b[2]) / 2) / 1.33, c = this.L((a[0] + b[0]) / 2 + 2, (a[1] + b[1]) / 2 + 14);
-      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y, 76 * SC * sc, 100 * SC * sc);
-      g.fillStyle(0x2a0a30, 0.5); g.fillEllipse(c.x, c.y - 2, 60 * SC * sc, 80 * SC * sc);
-      g.fillStyle(0x07050a, 1); g.fillEllipse(c.x, c.y + 1, 54 * SC * sc, 76 * SC * sc);
+    if (this.voidFace && !this.trueFace && !this.gone) {                           // the face itself is gone (voidKey); two pinpricks in the dark
+      const a = fr.eyes.sal, b = fr.eyes.hanz;
       for (const e of [a, b]) {
         const q = this.L(e[0], e[1] + 4), dx = Math.sign(tgt.x - q.x);
         g.fillStyle(0xfff4e0, 0.18 + 0.1 * Math.sin(this.t * 0.2)); g.fillCircle(q.x + dx, q.y, 4);
         g.fillStyle(0xfff4e0, 1); g.fillRect(Math.round(q.x + dx) - 1, Math.round(q.y) - 1, 2, 2);
       }
     }
+  }
+
+  /** His face taken off for real: a copy of one of his sheets (`lost_void_...`, made the first time it's needed) where, in
+   *  every frame, everything inside an oval round his eyes - the mask's red and grey, its ink, the pale plate - is painted
+   *  the void's black, so the shadow fills his whole face. Hair, horn and collar outside the oval stay. Returns the key. */
+  voidKey(V, k) {
+    const T = this.scene.textures, src = V.key + k, key = 'lost_void_' + src.slice(5);
+    if (T.exists(key)) return key;
+    if (!T.exists(src)) return src;
+    const img = T.get(src).getSourceImage(), W = img.width, H = img.height;
+    const ct = T.createCanvas(key, W, H); if (!ct) return src;
+    const cx2 = ct.context; cx2.drawImage(img, 0, 0);
+    const D = cx2.getImageData(0, 0, W, H), px = D.data, [vr, vg, vb] = VOIDFACE.col;
+    V.spec.frames.forEach((fr, i) => {
+      if (fr.k !== k) return;
+      ct.add(String(i), 0, fr.sx, fr.sy, fr.w, fr.h);
+      const a = fr.eyes && fr.eyes.sal, b = fr.eyes && fr.eyes.hanz; if (!a || !b) return;
+      const sc = (a[2] + b[2]) / 2, cx = fr.sx + ((a[0] + b[0]) / 2 - fr.x) / 2, cy = fr.sy + ((a[1] + b[1]) / 2 + VOIDFACE.dy - fr.y) / 2;
+      const rx = VOIDFACE.rx * sc / 2, ry = VOIDFACE.ry * sc / 2;
+      const x0 = Math.max(fr.sx, Math.floor(cx - rx)), x1 = Math.min(fr.sx + fr.w, Math.ceil(cx + rx)), y0 = Math.max(fr.sy, Math.floor(cy - ry)), y1 = Math.min(fr.sy + fr.h, Math.ceil(cy + ry));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const dx = (x - cx) / rx, dy = (y - cy) / ry; if (dx * dx + dy * dy > 1) continue;
+        const o = (y * W + x) * 4, r = px[o], g = px[o + 1], bl = px[o + 2]; if (px[o + 3] < 128) continue;
+        const mn = Math.min(r, g, bl), mx = Math.max(r, g, bl);
+        if ((r > 90 && r > g * 1.5) || (mn > 105 && mx - mn < 40) || r + g + bl < 110) { px[o] = vr; px[o + 1] = vg; px[o + 2] = vb; }
+      }
+    });
+    cx2.putImageData(D, 0, 0); ct.refresh();
+    return key;
   }
 
   /** Round him glows the colour of his mood, and under his shoes a faint shimmer where he hangs in the air. */

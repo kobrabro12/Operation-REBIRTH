@@ -3,7 +3,7 @@
 // on three difficulties. The higher the difficulty, the bigger the rewards (src/scenes/BossRewardScene.js shows
 // them). The bosses themselves live in their arenas: src/stage/bossBase.js + steamBossStage.js / polyBossStage.js /
 // demonBossStage.js / knightBossStage.js / machineBossStage.js / smudgeBossStage.js /
-// maestroBossStage.js / starBossStage.js.
+// maestroBossStage.js / starBossStage.js / hoppleBossStage.js.
 import { addCoins } from '../progress.js';
 import { recordBoss } from '../achievements.js';
 
@@ -73,6 +73,13 @@ export const BOSSES = [
     card: { marks: [[0.5, 'THE CORRUPTED HEART'], [0.75, 'THE STAR KING']], quotes: { base: 'YOU STRUCK THE VOID AND THE VOID DID NOT EVEN NOTICE. LOOK UP NEXT TIME. LOOK AT THE STARS.', rage: 'MY HEAD IS NOTHING. THE SKY WAS NEVER IN MY HEAD.', heart: 'YOU CLIMBED INSIDE ME. BRAVE. NOW YOU ARE ONE MORE SKULL ON MY TONGUE.', crown: 'I SPUN MY OWN HEAD AND CROWNED IT. WHAT DID YOU EXPECT TO DO AGAINST A KING?', low: 'SO CLOSE. I FELT THE STARS STIRRING IN MY HEART. THEY WILL NEVER COME HOME NOW.' } },
     tip: 'YOUR HITS CAN\'T TOUCH HIM. HIT THE FALLEN STARS - THEY FLY INTO HIS HEART. AT HALF HIS HEAD FALLS: JUMP INTO ITS MOUTH. INSIDE, HIT THE HEART\'S BIG EYE AND JUMP ITS FLATLINE SPIKES. CROWNED, HIT HIS CHEST WOUND - HARDEST WHILE HE POWERS UP.',
     hazards: 'METEOR SHOWERS / SOLAR FLARES' },
+  { id: 'hopple', name: 'HOPPLE, THE FRIEND WHO STAYED', short: 'HOPPLE', title: 'THE MASCOT OF A GAME NOBODY RELEASED', stage: 'happy-hills', arena: 'HAPPY HILLS', hp: 700, coins: 900, color: 0xff3a3a,
+    blurb: 'THE CHEERFUL RABBIT FROM A LOST 1994\nCARTRIDGE, PLAYED BACK OFF AN OLD TAPE.\nHIS EYES ARE NOT ALWAYS CARTOON EYES.',
+    taunts: ['YOU CAN STAY HERE WITH ME. FOREVER.', 'GAME OVER! LET\'S PLAY AGAIN! AND AGAIN! AND AGAIN!', 'NOBODY EVER LEAVES HAPPY HILLS.'],
+    // the death card when you lose (src/ui/deathCard.js): its quote by the form it was in when it beat you, and the phase marks on the progress line ([fraction of the fight, name])
+    card: { marks: [[0.5, 'LOST BUILD']], quotes: { base: 'HOPPLE WINS! DON\'T WORRY, FRIEND. YOU HAVE INFINITE CONTINUES NOW.', lost: 'YOU SHOULD HAVE TURNED THE TAPE OFF WHEN IT TOLD YOU TO.' } },
+    tip: 'HIT HIS BIG HEAD. MOVE OFF THE RED X\'S BEFORE THE TEST CARD ENDS. POP HIS LETTERS AND LIFE HEADS. WHEN THE LIGHTS GO OUT, GET UP ON A ? BLOCK.',
+    hazards: 'STATIC / TRACKING ROLLS' },
 ];
 // SECRET BOSSES: never on the BOSS FIGHTS screen, in BOSS RUSH, CLASSIC or MONSTER HUNTER - you find them.
 // HANZ & $@L: poke him enough in the LOST shop (LostScene.settle) and he fights you on his own desk

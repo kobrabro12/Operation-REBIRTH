@@ -41,7 +41,7 @@ const bossTier = (s, id) => (s.bosses && s.bosses[id]) || 0;
 const MAIN = ['soul-summoner', 'mr-wake', 'hero-knight', 'nu', 'aero'];
 const TESTS = ['young-link', 'what-once-was', 'last-seen'];
 // every boss in BOSS FIGHTS (src/data/bosses.js - listed here because bosses.js imports this file)
-const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro', 'stareater'];
+const BOSS_IDS = ['colossus', 'polygon', 'demon', 'knight', 'machine', 'smudge', 'maestro', 'stareater', 'hopple'];
 const totalKOs = () => [...MAIN, ...TESTS].reduce((n, id) => n + getKOs(id), 0);
 const shopItems = () => SHOP.filter((t) => t.name !== 'GAMBLING').flatMap((t) => t.items).filter((i) => !i.hidden);   // (secret items don't count)
 const ownedCount = (kind) => shopItems().filter((i) => (!kind || i.kind === kind) && owns(i.id)).length;
@@ -61,8 +61,8 @@ export const ACHIEVEMENTS = [
   { id: 'taunts-50', group: 'FIGHTING', name: 'SHOWBOAT', info: 'TAUNT 50 TIMES IN MATCHES.', goal: 50, have: (s) => s.taunts, coins: 60 },
   { id: 'matches-50', group: 'FIGHTING', name: 'REGULAR', info: 'PLAY 50 MATCHES.', goal: 50, have: (s) => s.matches, coins: 150 },
   { id: 'boss-1', group: 'FIGHTING', name: 'GIANT SLAYER', info: 'BEAT A BOSS (TRINKETS > BOSS FIGHTS).', goal: 1, have: (s) => BOSS_IDS.filter((b) => bossTier(s, b)).length, coins: 100 },
-  { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT ALL SEVEN BOSSES.', goal: BOSS_IDS.length, have: (s) => BOSS_IDS.filter((b) => bossTier(s, b)).length, coins: 400 },
-  { id: 'boss-rush', group: 'FIGHTING', name: 'RUSH HOUR', info: 'FINISH A BOSS RUSH - ALL SEVEN BOSSES IN A ROW (BOSS FIGHTS > R).', goal: 1, have: (s) => s.rushes || 0, coins: 1500 },
+  { id: 'boss-all', group: 'FIGHTING', name: 'MONSTER HUNTER', info: 'BEAT EVERY BOSS IN BOSS FIGHTS.', goal: BOSS_IDS.length, have: (s) => BOSS_IDS.filter((b) => bossTier(s, b)).length, coins: 400 },
+  { id: 'boss-rush', group: 'FIGHTING', name: 'RUSH HOUR', info: 'FINISH A BOSS RUSH - EVERY BOSS IN A ROW (BOSS FIGHTS > R).', goal: 1, have: (s) => s.rushes || 0, coins: 1500 },
   { id: 'on-beat', group: 'FIGHTING', name: 'UNMASKED', info: 'LAND 20 HITS ON THE PHANTOM MAESTRO\'S MASK.', goal: 20, have: (s) => s.maskHits || 0, coins: 250 },
   { id: 'art-critic', group: 'FIGHTING', name: 'ART CRITIC', info: 'BEAT SMUDGE AS MR WAKE IN THE ARTIST.', goal: 1, have: (s) => s.artCritic || 0, coins: 300 },
   { id: 'matches-250', group: 'FIGHTING', name: 'VETERAN', info: 'PLAY 250 MATCHES.', goal: 250, have: (s) => s.matches, coins: 500 },
