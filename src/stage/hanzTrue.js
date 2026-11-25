@@ -290,7 +290,7 @@ export class HanzTrue {
   /** The night sky (world 'stars', and fading in under THE STARFALL): bands of deep blue to violet, nebulae, a field
    *  of twinkling stars, shooting stars, and far off the great purple star he fell from, its rays turning. */
   drawStarsBg() {
-    const g = this.starsG, k = this.world === 'stars' ? 1 : this.skyK || 0; g.clear(); g.setVisible(k > 0); if (k <= 0) return;
+    const g = this.starsG, k = this.dim ? 0 : this.world === 'stars' ? 1 : this.skyK || 0; g.clear(); g.setVisible(k > 0); if (k <= 0) return;
     const t = this.t, bands = [0x05030c, 0x0a0618, 0x120a26, 0x1c0e36, 0x2a1450, 0x3a1a62];
     bands.forEach((c, i) => { g.fillStyle(c, k); g.fillRect(0, i * VIEW_H / bands.length, VIEW_W, VIEW_H / bands.length + 1); });
     for (const [x, y, w, h, c] of [[140, 120, 360, 120, 0x8a2aff], [480, 220, 300, 140, 0xff5ab8], [320, 60, 260, 90, 0x3a6aff]]) { g.fillStyle(c, 0.09 * k); g.fillEllipse(x + Math.sin(t * 0.003) * 10, y, w, h); g.fillStyle(c, 0.06 * k); g.fillEllipse(x, y, w * 0.6, h * 0.6); }

@@ -29,7 +29,7 @@ EXTRA = 200                                      # render rows added under the L
 TOP = 50                                         # ...and over it (his hands raised over his head)
 AXIS = (0, 40)                                   # the upright line the camera swings round (x, y: through his body)
 # the animations he fights with, rendered turned both ways
-FIGHT = ['idle', 'look_d', 'sal_talk', 'hanz_talk', 'laugh', 'slam', 'argue', 'twitch', 'glitch', 'pitch', 'clap', 'snap', 'raise']
+FIGHT = ['idle', 'look_d', 'sal_talk', 'hanz_talk', 'laugh', 'slam', 'argue', 'twitch', 'glitch', 'pitch', 'clap', 'snap', 'raise', 'spear']
 TURNS = {'r': -TURN, 'l': TURN}
 # ...and facing you, whole: THE STARFALL, and everything the fight shows facing you (cutscenes, his death, his gloat)
 FRONT = ['raise', 'idle', 'slam', 'clap', 'pitch', 'snap', 'laugh', 'unmask', 'twitch', 'sal_talk', 'sob', 'glitch', 'heart', 'switch', 'shrug', 'sold']
@@ -54,8 +54,100 @@ def raise_frames():
         (2.4, A.P(body=(0, 45, 3.2, 5.5, 0), head=(-3, -27, -2), l=up(-1, 1.5), r=up(1, 1.5)))]), 0.6)
 
 
+def spear_frames():
+    """THE SPEAR OF LIGHT: $@L's red hand goes up and a spear of light forms in it (the game draws the spear at the
+    hand - `hand` in each frame), he grips it, cocks it back over his shoulder with HANZ's grey hand pointing the way,
+    twisting away to wind up - held while he aims (`SPEAR_AIM`: the game holds that frame) - then whips it forward,
+    his whole body lunging after it, and recovers. 2.6 s."""
+    W = lambda s, x, y, z, grip='fist', **k: A.arm(wb=(s * x, y, z), b=1.0, grip=grip, **k)
+    up = W(-1, 24, 8, 80, 'open', pole=(-1, 0.4, -0.3), dir=(0, -0.2, 1), nrm=(1, 0, 0))
+    hold = W(-1, 26, 10, 78, pole=(-1, 0.4, -0.3), dir=(0, -0.3, 1), nrm=(1, 0, 0))
+    cock = W(-1, 30, 26, 64, pole=(-1, 0.8, -0.2), dir=(0, -1, 0.2), nrm=(1, 0, 0))
+    point = W(1, 18, -46, 48, 'point', pole=(1, 0.2, -0.5), dir=(0, -1, 0.1), nrm=(0, 0, 1))
+    throw = W(-1, 12, -50, 38, 'open', pole=(-1, -0.2, 0.6), dir=(0.1, -1, -0.2), nrm=(0, 0, -1))
+    tuck = W(1, 22, 6, 22, pole=(1, 0.3, 0.6), dir=(0, -0.5, 0.2))
+    return A.follow(A.frames_of([
+        (0, A.P()),
+        (0.35, A.P(body=(0, 44, -2, 32, 6), head=(-6, -12, 4), l=up), 'out'),
+        (0.65, A.P(body=(0, 44, -2, 31, 8), head=(-8, -10, 4), l=hold), 'io'),
+        (1.0, A.P(body=(0, 46, -1, 28, -22), head=(14, 2, -4), l=cock, r=point), 'io'),
+        (1.6, A.P(body=(0, 46, -1, 27, -24), head=(16, 3, -4), l=cock, r=point)),
+        (1.78, A.P(body=(0, 38, -5, 54, 26), head=(10, 10, 6), l=throw, r=tuck), 'snap'),
+        (2.0, A.P(body=(0, 39, -5, 50, 22), head=(8, 8, 4), l=throw, r=tuck), 'out'),
+        (2.6, A.P(), 'io')]), 0.7)
+
+
+SPEAR_AIM = 1.3                                  # when (s) the game holds THE SPEAR OF LIGHT while he aims
+SPEAR_GO = 1.72                                  # when (s) it leaves his hand
+
+
 ANIMS = dict(A.ANIMS)
 ANIMS['raise'] = {'frames': raise_frames}
+ANIMS['spear'] = {'frames': spear_frames}
+
+# HOW HE MOVES, per animation, so he never hangs there stiff: his legs (`sw` = swing side to side / back and forth,
+# `cyc` = swings over the clip, `alt` = legs swing against each other, `reach` = how much of their length they hang,
+# `fwd` / `apart` = where his feet sit, `kicks` = (from, to, which leg: -1 red / 1 grey / 0 both, forward, up) as
+# fractions of the clip, `tuck` = (from, to, reach, forward) knees pulled up, `jit` = jitter) and his body (`sway` =
+# lean, twist (degrees), cycles over the clip). On top of all of it his feet trail behind his hips as they move.
+MOTION = {
+    'idle': dict(sw=(2.5, 6), cyc=2, alt=True, sway=(3, 5, 1)),
+    'look_d': dict(sw=(1, 3), kicks=[(0.2, 1.0, 0, 6, 5)], sway=(2, 0, 1)),
+    'sal_talk': dict(sw=(3, 6), cyc=2, kicks=[(0.05, 0.4, -1, -12, 6), (0.55, 0.9, -1, -12, 6)], sway=(4, 4, 2)),
+    'hanz_talk': dict(sw=(1, 2.5), reach=0.95, sway=(2, 3, 1)),
+    'laugh': dict(sw=(2, 3), cyc=4, kicks=[(i / 8, (i + 1) / 8, 1 if i % 2 else -1, -15, 9) for i in range(8)], sway=(5, 6, 4)),
+    'slam': dict(tuck=[(0.0, 0.5, 0.55, -12)], kicks=[(0.48, 0.75, 0, 5, -4)], sway=(0, 4, 1)),
+    'argue': dict(sw=(2, 3), cyc=2, kicks=[(0.0, 0.45, 1, -11, 7), (0.45, 0.95, -1, -11, 7)], sway=(3, 6, 2)),
+    'twitch': dict(sw=(1, 2), jit=4),
+    'glitch': dict(jit=8, sway=(4, 10, 3)),
+    'pitch': dict(kicks=[(0.1, 0.45, -1, -7, 5), (0.1, 0.45, 1, -7, 5), (0.55, 0.95, 1, -15, 12)], sway=(4, 8, 1)),
+    'clap': dict(sw=(2, 4), cyc=2, kicks=[(0.45, 0.75, 0, -11, 7)], sway=(3, 3, 1)),
+    'snap': dict(sw=(2, 4), cyc=2, kicks=[(0.5, 0.8, -1, -13, 9)], sway=(3, 5, 1)),
+    'raise': dict(apart=6, reach=0.96, sw=(1, 1.5), cyc=3, jit=0.6, sway=(1.5, 2, 2)),
+    'sob': dict(tuck=[(0.05, 0.85, 0.5, -16)], apart=0.5, jit=0.8, sway=(3, 2, 3)),
+    'heart': dict(sw=(1.5, 2.5), cyc=2, reach=0.93, sway=(2, 3, 1)),
+    'switch': dict(sw=(4, 6), cyc=3, alt=True, sway=(3, 6, 2)),
+    'shrug': dict(tuck=[(0.15, 0.75, 0.75, -7)], sway=(2, 3, 1)),
+    'sold': dict(kicks=[(i / 6, (i + 1) / 6, 1 if i % 2 else -1, -11, 7) for i in range(6)], sway=(3, 4, 2)),
+    'unmask': dict(sw=(1.5, 2.5), cyc=2, sway=(2, 3, 1)),
+    'spear': dict(tuck=[(0.32, 0.64, 0.8, 7)], kicks=[(0.66, 0.92, 0, 12, 8)], sway=(2, 0, 1)),
+}
+LAG = (3.0, 0.72)                                # his feet trailing his hips: how far (x hip movement), how slowly they catch up
+
+
+def motion(name, poses, loop):
+    """How his legs and body move through a clip (MOTION): per frame, each foot's place (from its hip, in the world)
+    and how much his body leans / twists on top of the pose. Feet trail his hips' own movement. Returns (feet, sway):
+    feet[i] = {-1: (dx, dy, dz, reach), 1: ...}, sway[i] = (lean, twist)."""
+    M = MOTION.get(name, {}); n = len(poses)
+    sw, cyc, alt = M.get('sw', (2, 4)), M.get('cyc', 1), M.get('alt', False)
+    lean, twist, scyc = M.get('sway', (2, 3, 1))
+    rng = np.random.default_rng(len(name) * 97 + n)
+    hips = [np.array(A.body_matrix(p, 0.0) @ Vector((0, A.HIP[1], A.HIP[2]))) for p in poses]
+    env = lambda u, a, b: math.sin(math.pi * (u - a) / (b - a)) if a <= u <= b else 0.0
+    lag = np.zeros(3); feet, sway = [], []
+    for rnd in range(2 if loop else 1):                                          # (a loop runs twice so its trail joins up)
+        feet, sway = [], []
+        for i in range(n):
+            u = i / max(1, n - 1) if not loop else i / n
+            d = hips[i] - hips[i - 1] if (i or loop) else np.zeros(3)
+            lag = lag * LAG[1] - d * LAG[0] * (1 - LAG[1])
+            fr = {}
+            for s, ph in ((-1, 0.0), (1, math.pi if alt else 2.2)):
+                q = 2 * math.pi * cyc * u + ph
+                dx = s * M.get('apart', HANG['apart']) + sw[0] * math.sin(q) * 0.6 + lag[0]
+                dy = M.get('fwd', HANG['fwd']) + sw[1] * math.sin(q) + lag[1]
+                dz = lag[2] * 0.5; reach = M.get('reach', HANG['reach'])
+                for a, b, leg, f, up in M.get('kicks', []):
+                    if leg in (0, s): e = env(u, a, b); dy += f * e; dz += up * e
+                for a, b, r, f in M.get('tuck', []):
+                    e = min(1.0, 2.2 * env(u, a, b)); reach = reach + (r - reach) * e; dy += f * e
+                if M.get('jit'): dx += rng.normal() * M['jit']; dy += rng.normal() * M['jit']
+                fr[s] = (dx, dy, dz, reach)
+            feet.append(fr)
+            k = math.sin(math.pi * u) if not loop else 1.0
+            sway.append((lean * math.sin(2 * math.pi * scyc * u) * k, twist * math.sin(2 * math.pi * scyc * u + 1.1) * k))
+    return feet, sway
 
 
 def mask_halves():
@@ -79,34 +171,36 @@ def mask_halves():
     Image.fromarray(out).save(os.path.join(A.OUT, 'mask_halves.png'), optimize=True)
 
 
-def upright(pose):
-    """His LOST pose straightened up out of its lean over the counter (`LEAN`): his body turns upright round his hips
-    and everything placed in the room - his hands, which way they point, their bend - turns with it, so the pose keeps
-    its shape. Returns the new pose."""
+def upright(pose, sway=(0.0, 0.0)):
+    """His LOST pose straightened up out of its lean over the counter (`LEAN`), plus a little lean / twist on top
+    (`sway`, degrees - motion()): his body turns round his hips and everything placed in the room - his hands, which
+    way they point, their bend - turns with it, so the pose keeps its shape. Returns the new pose."""
     p = dict(pose); x, y, z, rx, rz = p['body']
     old = A.body_matrix(pose, 0.0)
-    p['body'] = (x, y, z, max(4, rx - LEAN), rz)
+    p['body'] = (x, y, z, max(2, rx - LEAN + sway[0]), rz + sway[1])
     T = A.body_matrix(p, 0.0) @ old.inverted(); R = T.to_3x3()
     for k in ('l', 'r'):
         a = dict(p[k])
         if a.get('w') is not None: a['w'] = tuple(T @ Vector(a['w']))
         for d in ('dir', 'nrm', 'pole'):
-            if a.get(d) is not None and a.get('b', 0) + a.get('h', 0) < 0.999: a[d] = tuple(R @ Vector(a[d]))
+            if a.get(d) is not None: a[d] = tuple(R @ Vector(a[d]))                 # (P() keeps every direction in the room's frame)
         p[k] = a
     return p
 
 
-def hang(body, f):
-    """His legs as he floats, frame f of the swing loop (hanz_legs.N frames): each hangs from his hip under his coat,
-    knees a touch bent and forward, feet a little in front, swinging gently out of step, toes drooping. Returns
-    {'leg_sal': ..., 'leg_hanz': ...}."""
+def hang(body, f, feet=None):
+    """His legs as he floats: each hangs from his hip under his coat, knees a touch bent and forward, toes drooping -
+    where each foot goes this frame (`feet`, from motion(): offsets from the hip and how much of the leg's length
+    hangs; else a plain swing at frame f of hanz_legs.N). Returns {'leg_sal': ..., 'leg_hanz': ...}."""
     out = {}; t = 2 * math.pi * f / G.N
     for s, tag, ph in ((-1, 'sal', 0.0), (1, 'hanz', 2.2)):
         hip = np.array(body @ Vector((s * A.HIP[0], A.HIP[1], A.HIP[2])))
-        th, sh = A.THIGH * G.LONG, A.SHIN * G.LONG; L = (th + sh) * HANG['reach']
-        ankle = hip + np.array((s * HANG['apart'] + HANG['swing'][0] * math.sin(t + ph) * 0.6, HANG['fwd'] + HANG['swing'][1] * math.sin(t + ph), -L))
+        th, sh = A.THIGH * G.LONG, A.SHIN * G.LONG
+        if feet: dx, dy, dz, reach = feet[s]
+        else: dx, dy, dz, reach = s * HANG['apart'] + HANG['swing'][0] * math.sin(t + ph) * 0.6, HANG['fwd'] + HANG['swing'][1] * math.sin(t + ph), 0.0, HANG['reach']
+        ankle = hip + np.array((dx, dy, -(th + sh) * reach + dz))
         knee, ankle = A.ik(hip, ankle, (s * 0.08, -1, 0.15), th, sh)
-        droop = 0.15 * math.sin(t + ph + 0.8)
+        droop = 0.15 * math.sin(t + ph + 0.8) + 0.02 * dy
         toe = np.array((s * 0.1, -0.5 - droop, -0.86)); up = np.array((0, -0.86, 0.5 - droop))
         out['leg_' + tag] = (H.leg(s, tuple(hip), tuple(knee), tuple(ankle), tuple(toe), tuple(up)), None)
     return out
@@ -130,11 +224,11 @@ def to_screen(cam, p):
     return v.x * A.VW, ((1 - v.y) * sc.render.resolution_y - TOP) * A.SCALE
 
 
-def render(cam, mats, pose, i, tmp):
+def render(cam, mats, pose, i, tmp, feet=None):
     """Him whole in a pose with his legs hanging (frame i of their swing), lit, snapped and rendered with no desk;
     returns (RGBA, the mask's matrix)."""
     parts, mask_M, bot = A.figure(pose, 0.0)
-    parts.update(hang(A.body_matrix(pose, 0.0), i % G.N))
+    parts.update(hang(A.body_matrix(pose, 0.0), i % G.N, feet))
     obs = A.place(parts, mats, cam)
     bpy.context.scene.render.use_border = False
     img = A.clean(A.shoot(tmp))
@@ -163,20 +257,23 @@ def main():
     for view, name in jobs:
         aim(cam, TURNS.get(view, 0))
         spec = ANIMS[name]
-        poses = A.settle_collar([upright(q) for q in spec['frames']()], mats, spec.get('loop'))
+        raw = spec['frames'](); feet, sway = motion(name, raw, spec.get('loop'))
+        poses = A.settle_collar([upright(q, w) for q, w in zip(raw, sway)], mats, spec.get('loop'))
         crops, info, spark = [], [], None
         for i, pose in enumerate(poses):
             pose = dict(pose); pose['_t'] = i / A.FPS
-            img, mask_M = render(cam, mats, pose, i, tmp)
+            img, mask_M = render(cam, mats, pose, i, tmp, feet[i])
             crop, x, y = A.trim(img)
             ey = A.eyes(cam, mask_M, pmeta)
             if pose.get('glitch', 0) > 0.2: ey = {k: v[:3] + [0] for k, v in ey.items()}
             crops.append(crop); info.append({'x': x * A.SCALE, 'y': (y - TOP) * A.SCALE, 'eyes': ey})
+            if name == 'spear': info[-1]['hand'] = [round(v) for v in to_screen(cam, Vector(A.TIPS['sal']))]   # (where the game draws the spear)
             if name == 'snap' and i == math.ceil(A.SNAP_T * A.FPS): spark = [round(v) for v in to_screen(cam, Vector(A.TIPS['sal']))]
             if name == 'clap' and i == math.ceil(A.CLAP_T * A.FPS): spark = [round(v) for v in to_screen(cam, Vector((A.TIPS['sal'] + A.TIPS['hanz']) / 2))]
             print(f'  {view} {name} {i + 1}/{len(poses)}', flush=True)
         files = A.pack(crops, f'{view}_{name}', info)
         entry = {'loop': bool(spec.get('loop')), 'sheets': files, 'frames': info}
+        if name == 'spear': entry['aim'] = round(SPEAR_AIM * A.FPS); entry['go'] = round(SPEAR_GO * A.FPS)
         if spark: entry['spark'] = {'f': math.ceil((A.SNAP_T if name == 'snap' else A.CLAP_T) * A.FPS), 'x': spark[0], 'y': spark[1]}
         fight.setdefault(view, {})[name] = entry
         print(f'{view} {name}: {len(crops)} frames, {sum(os.path.getsize(os.path.join(A.OUT, f)) for f in files) // 1024} KB', flush=True)

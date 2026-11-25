@@ -82,13 +82,13 @@ export class HanzCinema {
     return { ...this.ccam, exact: true };
   }
   /** Nothing hurts him while a cutscene plays. */
-  strikeTargets(match, hbs) { if (this.cut) return; BossArena.prototype.strikeTargets.call(this, match, hbs); }
+  strikeTargets(match, hbs) { if (this.cut) return; this.strikeMinions(match, hbs); BossArena.prototype.strikeTargets.call(this, match, hbs); }
   /** The banner at the change of act. */
   rageLine() { return 'THE DRAWN ROOM!'; }
 
   /** Starts a cutscene (watched) - else runs `now` at once (the sim). */
   startCut(match, kind, n, now) {
-    const B = this.boss; B.atk = null; B.wait = 70; this.clearFx(); this.play('idle');
+    const B = this.boss; B.atk = null; B.wait = 70; if (this.dim) this.setDim(match, null); this.clearFx(); this.play('idle');
     if (!this.watched || !this.startCard) { now(); return; }
     const cam = match.worldCam || match.cameras.main;
     this.cut = { kind, t: 0, n, once: new Set(), armed: false, now };
