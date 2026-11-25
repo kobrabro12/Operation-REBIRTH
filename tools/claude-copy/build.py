@@ -12,7 +12,7 @@ for root, _, files in os.walk(DIST):
         p = os.path.relpath(os.path.join(root, f), DIST)
         if p in SKIP or p.endswith('.mp3'): continue
         parts = p.split('/')
-        if parts[0] == 'assets' and len(parts) > 2 and p != 'assets/ui/loading-screen.png':
+        if parts[0] == 'assets' and len(parts) > 2 and not p.startswith('assets/ui/loading/'):   # (the loading screen's art shows before pack-shim.js runs)
             packed.setdefault(os.path.dirname(p), []).append(p)
         else: real.append(p)
 # group folders (in path order) into bundles of ~TARGET bytes

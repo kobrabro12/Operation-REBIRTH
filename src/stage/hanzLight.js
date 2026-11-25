@@ -30,9 +30,9 @@ const MINION = {
 // low gravity in the stairs (how much of gravity is lifted off anyone in the air), the melting hour's time pools
 // (count, width, slow), Channel 13's static bands (every, warning, live, height, hit)
 const DIM = {
-  time: 1500, cool: 1700, list: ['stairs', 'melt', 'tv'],
-  tint: { stairs: 0xe8dcc4, melt: 0xffc890, tv: 0xc8d8ff },
-  name: { stairs: 'THE IMPOSSIBLE STAIRS', melt: 'THE MELTING HOUR', tv: 'CHANNEL 13' },
+  time: 1500, cool: 1700, list: ['stairs', 'melt', 'tv', 'dream'],
+  tint: { stairs: 0xe8dcc4, melt: 0xffc890, tv: 0xc8d8ff, dream: 0xffe4f2 },
+  name: { stairs: 'THE IMPOSSIBLE STAIRS', melt: 'THE MELTING HOUR', tv: 'CHANNEL 13', dream: 'THE ESCAPE' },
   lift: 0.45, pools: 2, poolW: 70, every: 300, warn: 54, live: 16, h: 28, hit: [8, [40, 5.5, 0.65]],
 };
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -191,7 +191,8 @@ export class HanzLight {
   }
   /** Turns the room into dimension d for DIM.time (or back to the act's own world with null). */
   setDim(match, d) {
-    this.dim = d; this.dimT = d ? DIM.time : 0; this.shiftAt = this.t; this.dimFx = [];
+    this.dim = d; this.dimT = d ? DIM.time : 0; this.shiftAt = this.t; this.dimFx = []; this.dreamUsed = false; if (this.dreamT) this.dreamT.setVisible(false);
+    if (d !== 'dream' && this.doors) this.clearDream();
     if (!d) { this.setWorld(this.world); this.dimG.clear(); return; }
     for (const L of Object.values(this.bgSets)) for (const o of L) o.setVisible(false);
     for (const L of Object.values(this.deskSets)) for (const o of L) o.setVisible(false);
@@ -292,6 +293,7 @@ export class HanzLight {
   drawDim() {
     const g = this.dimG; if (!g) return; g.clear(); if (!this.dim) return;
     const t = this.t, d = this.dim;
+    if (d === 'dream') { this.drawDream(g); return; }
     if (d === 'stairs') {
       g.fillStyle(0xe8dcc4, 1); g.fillRect(0, 0, VIEW_W, VIEW_H);
       for (let i = 0; i < 90; i++) { g.fillStyle(0x2a2420, 0.05); g.fillRect((i * 71) % VIEW_W, (i * 37) % VIEW_H, 40, 1); }   // (the lithograph's grain)

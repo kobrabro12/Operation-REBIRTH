@@ -82,7 +82,7 @@ export class HanzCinema {
     return { ...this.ccam, exact: true };
   }
   /** Nothing hurts him while a cutscene plays. */
-  strikeTargets(match, hbs) { if (this.cut) return; this.strikeMinions(match, hbs); this.strikeStrings(match, hbs); BossArena.prototype.strikeTargets.call(this, match, hbs); }
+  strikeTargets(match, hbs) { if (this.cut) return; this.strikeMinions(match, hbs); this.strikeStrings(match, hbs); this.strikeDoors(match, hbs); BossArena.prototype.strikeTargets.call(this, match, hbs); }
   /** The banner at the change of act. */
   rageLine() { return 'THE DRAWN ROOM!'; }
 

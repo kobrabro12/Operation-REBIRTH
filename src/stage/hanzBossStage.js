@@ -34,6 +34,7 @@ import { HanzCinema } from './hanzCinema.js';
 import { HanzTrue, TRUE } from './hanzTrue.js';
 import { HanzLight } from './hanzLight.js';
 import { HanzOdd } from './hanzOdd.js';
+import { HanzDream, DOORS } from './hanzDream.js';
 
 const DIR = 'assets/shop/lost/';
 // the LOST room's picture is laid over the world this much bigger, its counter's front edge (y, on the 640x360 room) on the floor
@@ -211,6 +212,7 @@ export class HanzBossStage extends BossArena {
     this.voidG = s.add.graphics().setScrollFactor(0); bg.push(this.voidG); this.bgSets.void.push(this.voidG);
     this.starsG = s.add.graphics().setScrollFactor(0); bg.push(this.starsG); this.bgSets.stars = [this.starsG];      // (THE TRUE FACE's night sky)
     this.dimG = s.add.graphics().setScrollFactor(0); bg.push(this.dimG);                                       // (his dimensions: hanzLight.js)
+    this.dreamT = s.add.text(VIEW_W / 2, 168, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', stroke: '#c8a8e8', strokeThickness: 2 }).setOrigin(0.5).setScrollFactor(0).setVisible(false); bg.push(this.dreamT);   // (THE ESCAPE's words: hanzDream.js)
     this.skyG = s.add.graphics().setScrollFactor(0); bg.push(this.skyG);                 // (screen-wide washes and flashes behind him)
     // the world: the desks (his counter is the floor), then him floating on it - his aura and tail behind him, effects
     // behind him (the clock), afterimages, two ghost copies for his glitches, him, his pupils / the void face
@@ -410,16 +412,16 @@ export class HanzBossStage extends BossArena {
   camPoints() { return [{ x: this.hx, y: this.hy - 140 * Z }, { x: this.hx, y: this.hy + FEET }, { x: -250, y: 10 }, { x: 250, y: 10 }]; }
   /** His head (more with no face) and his body; nothing during a cutscene or his death. */
   hurt() {
-    if (!this.boss || this.cut || this.boss.dying) return [];
-    const h = this.headAt();
-    return [{ x1: h.x - 27 * Z, x2: h.x + 27 * Z, y1: h.y - 42 * Z, y2: h.y + 26 * Z, mult: this.voidFace || this.trueFace ? HURT.void : HURT.head, head: true },
-      { x1: this.hx - 52 * Z, x2: this.hx + 52 * Z, y1: h.y + 26 * Z, y2: this.hy + 8, mult: HURT.body },
-      { x1: this.hx - 22 * Z, x2: this.hx + 22 * Z, y1: this.hy + 8, y2: this.hy + FEET, mult: HURT.body }]
+    if (!this.boss || this.cut || this.boss.dying || this.inDoor) return [];
+    const h = this.headAt(), dz = this.dazed > 0 ? DOORS.dazeHurt : 1;
+    return [{ x1: h.x - 27 * Z, x2: h.x + 27 * Z, y1: h.y - 42 * Z, y2: h.y + 26 * Z, mult: (this.voidFace || this.trueFace ? HURT.void : HURT.head) * dz, head: true },
+      { x1: this.hx - 52 * Z, x2: this.hx + 52 * Z, y1: h.y + 26 * Z, y2: this.hy + 8, mult: HURT.body * dz },
+      { x1: this.hx - 22 * Z, x2: this.hx + 22 * Z, y1: this.hy + 8, y2: this.hy + FEET, mult: HURT.body * dz }]
       .map((r) => this.world !== 'stars' ? r : { ...r, mult: r.mult * TRUE.armor * (r.head && this.boss && this.boss.atk && this.boss.atk.name === 'twoface' ? 1.3 : 1) });
   }
   /** His attacks by world (and LAST CALL quickens the void). */
   /** What he can do now: his mood's moves in this world, plus THE SPEAR OF LIGHT and THE SHIFT when they're ready. */
-  pattern() { return [...MOVES[this.mood][this.world], ...(this.spearReady() ? ['spear'] : []), ...(this.shiftReady() ? ['shift'] : []), ...this.oddReady()]; }
+  pattern() { return [...MOVES[this.mood][this.world], ...(this.spearReady() ? ['spear'] : []), ...(this.shiftReady() ? ['shift'] : []), ...this.oddReady(), ...this.dreamReady()]; }
   /** Wind-ups: the difficulty's speed and his mood's (FURIOUS is quick, GLOOMY slow). */
   sp(n) { return Math.max(1, Math.round(n / ((this.boss ? this.boss.cfg.T.speed : 1) * MOODS[this.mood].speed))); }
   /** What the death card quotes: the world he beat you in. */
@@ -440,7 +442,7 @@ export class HanzBossStage extends BossArena {
     this.bossStep(match, out);
     this.watchdog(match);
     if (had && !B.atk) { this.pin = false; this.dashing = false; this.front = false; if (this.mood !== 'whole' && ++this.moodN >= this.moodAt && !B.dying && !match.over) this.pickMood(match); }
-    if (!B.dying && !this.pin) this.float(match);
+    if (!B.dying && !this.pin && !(this.dazed > 0)) this.float(match);
     this.turn(match);
     if (this.blinkT > 0 && --this.blinkT === 0) this.splitK = 0;
     // ALIVE: he leans into the way he's moving and sways back past upright when he stops (a spring on his tilt)
@@ -461,6 +463,7 @@ export class HanzBossStage extends BossArena {
     this.stepTrue(match, B.dying || match.over ? null : out);
     this.stepLight(match, B.dying || match.over ? null : out);
     this.stepOdd(match, B.dying || match.over ? null : out);
+    this.stepDream(match);
     if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.06);
     return out;
   }
@@ -489,7 +492,7 @@ export class HanzBossStage extends BossArena {
     const B = this.boss, A = B.atk; if (!A) return;
     if (A.name === 'starfall') { this.trueFace = true; this.voidFace = false; this.trueReady = true; this.fstars = []; }
     B.atk = null; B.wait = 40;
-    this.pin = false; this.front = false; this.dashing = false; this.spearAim = null; this.spearK = 0; this.foldS = null; this.strings = []; this.hole = null;
+    this.pin = false; this.front = false; this.dashing = false; this.spearAim = null; this.spearK = 0; this.foldS = null; this.strings = []; this.hole = null; if (A.name === 'doors') { this.clearDream(); }
     this.an.held = false; this.play('idle');
   }
 
@@ -927,7 +930,7 @@ export class HanzBossStage extends BossArena {
   }
 
   /** Clears every attack effect (the acts changing, his death). */
-  clearFx() { this.minions = []; this.puddles = []; this.mwaves = []; this.spearFly = null; this.spearK = 0; this.spearAim = null; this.melt = null; this.fstars = []; this.hole = null; this.novaK = 0; this.novaLine = null; this.cometLine = null; this.aimHalf = null; this.cpts = null; for (const m of this.halvesM || []) if (m.mode === 'atk') m.mode = 'home'; this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; this.clearOdd(); if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
+  clearFx() { this.minions = []; this.puddles = []; this.mwaves = []; this.spearFly = null; this.spearK = 0; this.spearAim = null; this.melt = null; this.fstars = []; this.hole = null; this.novaK = 0; this.novaLine = null; this.cometLine = null; this.aimHalf = null; this.cpts = null; for (const m of this.halvesM || []) if (m.mode === 'atk') m.mode = 'home'; this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; this.clearOdd(); this.clearDream(); if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
 
   // ------------------------------------------------------------------ drawing
   /** Every frame: him, the void's crawl, every effect, the clock, the flash, the bar. */
@@ -937,7 +940,7 @@ export class HanzBossStage extends BossArena {
     this.drawClock();
     this.drawFx();
     this.drawTrue();
-    this.drawLight(); this.drawDimWorld(); this.drawOdd();
+    this.drawLight(); this.drawDimWorld(); this.drawOdd(); this.drawDoors(); this.drawDazed();
     const g = this.skyG; g.clear();
     if (this.flashK > 0 && this.topG) { this.topG.fillStyle(this.flashC, this.flashK); this.topG.fillRect(-1200, -1000, 2400, 1600); }
     if (this.dShards) this.drawShatter();
@@ -1097,14 +1100,14 @@ export class HanzBossStage extends BossArena {
   /** TEATIME's geyser: a wavy column of tea (dark at the edges, amber inside, a bright streak), a foaming crown on top,
    *  drops flung off it, inked round the outside like the rest of the drawn room. */
   teaColumn(g, gl, c, y1, fade, t) {
-    const n = 14, h = c.y2 - y1, Lp = [], Rp = [];
+    const n = 14, h = c.y2 - y1, Lp = [], Rp = [], P = c.pal || [0xd8a060, 0x5a3214, 0x9a5a24, 0xe8b860, 0xf1e8d4, 0x261a18];   // (c.pal: NO EXIT's pool water)
     for (let i = 0; i <= n; i++) { const y = y1 + h * i / n, w = c.w / 2 * (0.75 + 0.25 * i / n) + Math.sin(t * 0.5 + i * 1.3) * 3; Lp.push({ x: c.x - w, y }); Rp.unshift({ x: c.x + w, y }); }
-    gl.fillStyle(0xd8a060, 0.25 * fade); gl.fillRect(c.x - c.w, y1 - 10, c.w * 2, h + 10);
-    g.fillStyle(0x5a3214, fade); g.fillPoints(Lp.concat(Rp), true);
-    g.fillStyle(0x9a5a24, fade); g.fillPoints(Lp.map((p) => ({ x: c.x + (p.x - c.x) * 0.62, y: p.y })).concat(Rp.map((p) => ({ x: c.x + (p.x - c.x) * 0.62, y: p.y }))), true);
-    g.fillStyle(0xe8b860, 0.8 * fade); for (let i = 0; i < n; i++) g.fillRect(c.x - 4 + Math.sin(t * 0.4 + i) * 3, y1 + h * i / n, 3, h / n * 0.7);
-    g.lineStyle(2, 0x261a18, fade); g.strokePoints(Lp, false); g.strokePoints(Rp, false);
-    for (let i = 0; i < 6; i++) { const q = i / 6 * Math.PI * 2 + t * 0.2, r = c.w * 0.45; g.fillStyle(0xf1e8d4, fade); g.fillCircle(c.x + Math.cos(q) * r, y1 + Math.sin(q) * 4 - 2, 5 + (i % 2) * 2); g.lineStyle(1, 0x261a18, fade); g.strokeCircle(c.x + Math.cos(q) * r, y1 + Math.sin(q) * 4 - 2, 5 + (i % 2) * 2); }
+    gl.fillStyle(P[0], 0.25 * fade); gl.fillRect(c.x - c.w, y1 - 10, c.w * 2, h + 10);
+    g.fillStyle(P[1], fade); g.fillPoints(Lp.concat(Rp), true);
+    g.fillStyle(P[2], fade); g.fillPoints(Lp.map((p) => ({ x: c.x + (p.x - c.x) * 0.62, y: p.y })).concat(Rp.map((p) => ({ x: c.x + (p.x - c.x) * 0.62, y: p.y }))), true);
+    g.fillStyle(P[3], 0.8 * fade); for (let i = 0; i < n; i++) g.fillRect(c.x - 4 + Math.sin(t * 0.4 + i) * 3, y1 + h * i / n, 3, h / n * 0.7);
+    g.lineStyle(2, P[5], fade); g.strokePoints(Lp, false); g.strokePoints(Rp, false);
+    for (let i = 0; i < 6; i++) { const q = i / 6 * Math.PI * 2 + t * 0.2, r = c.w * 0.45; g.fillStyle(P[4], fade); g.fillCircle(c.x + Math.cos(q) * r, y1 + Math.sin(q) * 4 - 2, 5 + (i % 2) * 2); g.lineStyle(1, P[5], fade); g.strokeCircle(c.x + Math.cos(q) * r, y1 + Math.sin(q) * 4 - 2, 5 + (i % 2) * 2); }
     for (let i = 0; i < 6; i++) { const u = ((t * 0.04 + i / 6) % 1), side = i % 2 ? 1 : -1, x = c.x + side * (c.w * 0.4 + u * 50), y = y1 + u * u * 120 - u * 40; g.fillStyle(0x9a5a24, fade * (1 - u)); g.fillCircle(x, y, 3); }
   }
 
@@ -1136,6 +1139,12 @@ for (const n of Object.getOwnPropertyNames(HanzOdd.prototype)) {
   if (n === 'constructor') continue;
   if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzOdd.js redefines ' + n);
   HanzBossStage.prototype[n] = HanzOdd.prototype[n];
+}
+// THE ESCAPE's NO EXIT - the same
+for (const n of Object.getOwnPropertyNames(HanzDream.prototype)) {
+  if (n === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzDream.js redefines ' + n);
+  HanzBossStage.prototype[n] = HanzDream.prototype[n];
 }
 // THE TRUE FACE (his last act) - the same
 for (const n of Object.getOwnPropertyNames(HanzTrue.prototype)) {
