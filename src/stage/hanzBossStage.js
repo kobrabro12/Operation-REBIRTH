@@ -49,8 +49,8 @@ const HURT = { head: 1.25, void: 1.45, body: 0.75 };
 const BODY = { sc: 0.38, waist: 262, lift: 16, bob: 5, drift: 2.4, edge: 215 };
 // his legs (hanz_legs.py: they hang below his LOST frames, which stop at his counter) - how far below his waist his
 // shoes reach on the LOST picture, then in the world; BODY.hover = his waist's height with his shoes `lift` px off the desk
-const LEGS = LOST_FRAMES.legs;
-const DROP = LEGS ? Math.max(...LEGS.frames.map((f) => f.y + f.h * (LOST_FRAMES.scale || 2))) - BODY.waist : 0;
+const LEGS = LOST_FRAMES.legs, WHOLE = LOST_FRAMES.fight && LOST_FRAMES.fight.f && LOST_FRAMES.fight.f.idle;   // (his whole-body idle: hanz_fight.py)
+const DROP = (WHOLE || LEGS) ? Math.max(...(WHOLE || LEGS).frames.map((f) => f.y + f.h * (LOST_FRAMES.scale || 2))) - BODY.waist : 0;
 const FEET = DROP * BODY.sc;
 BODY.hover = -(FEET + BODY.lift);
 // his hurt and hit boxes were set for him drawn at 0.46: this keeps them his size
@@ -136,12 +136,16 @@ export function queueHanz(scene, boss = true) {
   const L = (key, file) => { if (!scene.textures.exists(key)) scene.load.image(key, DIR + file); };
   for (const n of ['room_dark', 'counter', 'pupils', 'poly_room', 'poly_desk', 'poly_things']) L('lost_' + n, n + '.png');
   for (const n of Object.keys(LOST_FRAMES.props || {})) L('lost_prop_' + n, 'prop_' + n + '.png');
-  for (const a of boss ? FRONT_ANIMS : ['idle']) LOST_FRAMES.anims[a].sheets.forEach((f, k) => L(`lost_hanz_${a}_${k}`, f));
+  for (const a of boss ? FRONT_ANIMS : ['idle']) {                                   // facing you: whole (legs and all) if rendered, else LOST's
+    const f = FIGHT.f && FIGHT.f[a];
+    if (f) f.sheets.forEach((s, k) => L(`lost_f_${a}_${k}`, s)); else LOST_FRAMES.anims[a].sheets.forEach((s, k) => L(`lost_hanz_${a}_${k}`, s));
+  }
   if (boss) {
-    for (const [v, set] of Object.entries(FIGHT)) for (const [a, spec] of Object.entries(set)) spec.sheets.forEach((f, k) => L(`lost_${v}_${a}_${k}`, f));
+    for (const [v, set] of Object.entries(FIGHT)) if (v !== 'f') for (const [a, spec] of Object.entries(set)) spec.sheets.forEach((f, k) => L(`lost_${v}_${a}_${k}`, f));
+    if (FIGHT.f && FIGHT.f.raise) FIGHT.f.raise.sheets.forEach((f, k) => L(`lost_f_raise_${k}`, f));
     L('lost_mask_halves', 'mask_halves.png');
   }
-  if (LEGS) LEGS.sheets.forEach((f, k) => L(`lost_legs_${k}`, f));
+  if (LEGS && !WHOLE) LEGS.sheets.forEach((f, k) => L(`lost_legs_${k}`, f));      // (the old legs layer, only without whole-body renders)
   queueDrawn(scene, true);
 }
 
@@ -212,10 +216,11 @@ export class HanzBossStage extends BossArena {
     for (const L of Object.values(this.deskSets)) world.push(...L);
     this.backG = s.add.graphics(); world.push(this.backG);
     this.tailG = s.add.graphics(); world.push(this.tailG);
-    this.after = [0, 1, 2].map(() => { const g = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
-    this.ghosts = [0, 1].map(() => { const g = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
-    this.legs = LEGS ? s.add.image(0, 0, 'lost_legs_0', '0').setOrigin(0).setScale(HS) : null; if (this.legs) world.push(this.legs);
-    this.him = s.add.image(0, 0, 'lost_hanz_idle_0', '0').setOrigin(0).setScale(HS); world.push(this.him);
+    const K0 = s.textures.exists('lost_f_idle_0') ? 'lost_f_idle_0' : 'lost_hanz_idle_0';                 // (any frame to start from)
+    this.after = [0, 1, 2].map(() => { const g = s.add.image(0, 0, K0, '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
+    this.ghosts = [0, 1].map(() => { const g = s.add.image(0, 0, K0, '0').setOrigin(0).setScale(HS).setVisible(false).setBlendMode(Phaser.BlendModes.ADD); world.push(g); return g; });
+    this.legs = LEGS && s.textures.exists('lost_legs_0') ? s.add.image(0, 0, 'lost_legs_0', '0').setOrigin(0).setScale(HS) : null; if (this.legs) world.push(this.legs);
+    this.him = s.add.image(0, 0, K0, '0').setOrigin(0).setScale(HS); world.push(this.him);
     this.pupils = ['sal', 'hanz'].map((n) => { const p = s.add.image(0, 0, 'lost_pupils', n); world.push(p); return { n, p }; });
     this.faceG = s.add.graphics(); world.push(this.faceG);
     this.maskIm = [0, 1].map((i) => { const im = s.add.image(0, 0, s.textures.exists('lost_mask_halves') ? 'lost_mask_halves' : 'lost_pupils', s.textures.exists('lost_mask_halves') ? String(i) : undefined).setVisible(false); world.push(im); return im; });

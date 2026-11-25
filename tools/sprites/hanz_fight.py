@@ -31,7 +31,13 @@ AXIS = (0, 40)                                   # the upright line the camera s
 # the animations he fights with, rendered turned both ways
 FIGHT = ['idle', 'look_d', 'sal_talk', 'hanz_talk', 'laugh', 'slam', 'argue', 'twitch', 'glitch', 'pitch', 'clap', 'snap', 'raise']
 TURNS = {'r': -TURN, 'l': TURN}
-FRONT = ['raise']                                # ...and facing you, whole (the STARFALL, in the middle of the sky)
+# ...and facing you, whole: THE STARFALL, and everything the fight shows facing you (cutscenes, his death, his gloat)
+FRONT = ['raise', 'idle', 'slam', 'clap', 'pitch', 'snap', 'laugh', 'unmask', 'twitch', 'sal_talk', 'sob', 'glitch', 'heart', 'switch', 'shrug', 'sold']
+LEAN = 28                                        # degrees of his lean over the LOST counter taken out (there's no counter here: he floats upright)
+TROUSER = 0x24242d                               # his trousers here: a shade off his coat, so his legs read as part of the same dark suit
+# his legs hanging: how far forward his feet sit (y), how far apart (x), how much of their length they hang (the rest
+# bends the knees), and how far they swing (side to side, back and forth)
+HANG = {'fwd': -7.0, 'apart': 2.5, 'reach': 0.9, 'swing': (2.0, 4.0)}
 
 
 def raise_frames():
@@ -73,6 +79,39 @@ def mask_halves():
     Image.fromarray(out).save(os.path.join(A.OUT, 'mask_halves.png'), optimize=True)
 
 
+def upright(pose):
+    """His LOST pose straightened up out of its lean over the counter (`LEAN`): his body turns upright round his hips
+    and everything placed in the room - his hands, which way they point, their bend - turns with it, so the pose keeps
+    its shape. Returns the new pose."""
+    p = dict(pose); x, y, z, rx, rz = p['body']
+    old = A.body_matrix(pose, 0.0)
+    p['body'] = (x, y, z, max(4, rx - LEAN), rz)
+    T = A.body_matrix(p, 0.0) @ old.inverted(); R = T.to_3x3()
+    for k in ('l', 'r'):
+        a = dict(p[k])
+        if a.get('w') is not None: a['w'] = tuple(T @ Vector(a['w']))
+        for d in ('dir', 'nrm', 'pole'):
+            if a.get(d) is not None and a.get('b', 0) + a.get('h', 0) < 0.999: a[d] = tuple(R @ Vector(a[d]))
+        p[k] = a
+    return p
+
+
+def hang(body, f):
+    """His legs as he floats, frame f of the swing loop (hanz_legs.N frames): each hangs from his hip under his coat,
+    knees a touch bent and forward, feet a little in front, swinging gently out of step, toes drooping. Returns
+    {'leg_sal': ..., 'leg_hanz': ...}."""
+    out = {}; t = 2 * math.pi * f / G.N
+    for s, tag, ph in ((-1, 'sal', 0.0), (1, 'hanz', 2.2)):
+        hip = np.array(body @ Vector((s * A.HIP[0], A.HIP[1], A.HIP[2])))
+        th, sh = A.THIGH * G.LONG, A.SHIN * G.LONG; L = (th + sh) * HANG['reach']
+        ankle = hip + np.array((s * HANG['apart'] + HANG['swing'][0] * math.sin(t + ph) * 0.6, HANG['fwd'] + HANG['swing'][1] * math.sin(t + ph), -L))
+        knee, ankle = A.ik(hip, ankle, (s * 0.08, -1, 0.15), th, sh)
+        droop = 0.15 * math.sin(t + ph + 0.8)
+        toe = np.array((s * 0.1, -0.5 - droop, -0.86)); up = np.array((0, -0.86, 0.5 - droop))
+        out['leg_' + tag] = (H.leg(s, tuple(hip), tuple(knee), tuple(ankle), tuple(toe), tuple(up)), None)
+    return out
+
+
 def aim(cam, deg):
     """Swings the room camera deg degrees round AXIS (same height, same tilt), so he's seen turned."""
     loc, tgt, lens = A.CAM
@@ -95,7 +134,7 @@ def render(cam, mats, pose, i, tmp):
     """Him whole in a pose with his legs hanging (frame i of their swing), lit, snapped and rendered with no desk;
     returns (RGBA, the mask's matrix)."""
     parts, mask_M, bot = A.figure(pose, 0.0)
-    parts.update(G.hang(A.body_matrix(pose, 0.0), i % G.N))
+    parts.update(hang(A.body_matrix(pose, 0.0), i % G.N))
     obs = A.place(parts, mats, cam)
     bpy.context.scene.render.use_border = False
     img = A.clean(A.shoot(tmp))
@@ -110,7 +149,7 @@ def main():
     if a.mask: mask_halves(); return
     only = [x for x in a.only.split(',') if x]
     tmp = os.path.join(bpy.app.tempdir or '/tmp', 'hanz_fight.png')
-    H.LOOK['shoe'] = (G.SHINE,) + tuple(H.LOOK['shoe'][1:]); H.SHOE_SAL, H.SHOE_HANZ = G.SHOES
+    H.LOOK['shoe'] = (G.SHINE,) + tuple(H.LOOK['shoe'][1:]); H.SHOE_SAL, H.SHOE_HANZ = G.SHOES; H.TROUSER = TROUSER
     A.to_screen = to_screen                                                       # (eyes() and the sparks use it)
     cam, mats = A.setup()
     A.desk('hide')
@@ -124,7 +163,7 @@ def main():
     for view, name in jobs:
         aim(cam, TURNS.get(view, 0))
         spec = ANIMS[name]
-        poses = A.settle_collar(spec['frames'](), mats, spec.get('loop'))
+        poses = A.settle_collar([upright(q) for q in spec['frames']()], mats, spec.get('loop'))
         crops, info, spark = [], [], None
         for i, pose in enumerate(poses):
             pose = dict(pose); pose['_t'] = i / A.FPS
