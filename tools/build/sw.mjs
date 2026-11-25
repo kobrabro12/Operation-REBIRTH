@@ -13,7 +13,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const dist = path.resolve(process.argv[2] || path.join(ROOT, 'dist'));
 // fetched when a version installs, so the game starts offline: the page, the code, the font, the home-screen bits
 const PRECACHE = (p) => p === 'index.html' || p === 'manifest.webmanifest' || p === 'loading-screens.js' || p.startsWith('icons/')
-  || (p.startsWith('assets/') && /\.(js|css|woff2?)$/.test(p) && !p.includes('/', 'assets/'.length)) || p === 'assets/ui/loading-screen.png';
+  || (p.startsWith('assets/') && /\.(js|css|woff2?)$/.test(p) && !p.includes('/', 'assets/'.length)) || p.startsWith('assets/ui/loading/');
 
 /** Every file under a folder, as paths relative to it. */
 function walk(dir, base = dir) {
