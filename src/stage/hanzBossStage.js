@@ -33,17 +33,21 @@ import { queueDrawn, addThingFrames, boilAt, stepThings } from '../scenes/lostDr
 import { HanzCinema } from './hanzCinema.js';
 import { HanzTrue, TRUE } from './hanzTrue.js';
 import { HanzLight } from './hanzLight.js';
+import { HanzOdd } from './hanzOdd.js';
 
 const DIR = 'assets/shop/lost/';
 // the LOST room's picture is laid over the world this much bigger, its counter's front edge (y, on the 640x360 room) on the floor
 export const K = 1.16, FLOOR_Y = 303.6;
 /** A point on the LOST room's 640x360 picture -> the world. */
 export const W2 = (sx, sy) => ({ x: (sx - 320) * K, y: (sy - FLOOR_Y) * K });
-const TICKS = Math.round(60 / LOST_FRAMES.fps);              // game frames per frame of his animations
+const TICKS = Math.round(60 / LOST_FRAMES.fps);
+// his safety nets (watchdog): the longest an attack may run, how long an act may wait for the attack in its way, the
+// longest pause between attacks (frames)
+const SAFE = { maxAtk: 900, actGrace: 150, maxWait: 200 };              // game frames per frame of his animations
 // how hard everything he does hits: x damage, x base knockback, x growth; x damage again once he's WHOLE (THE TRUE FACE)
-const HIT = { dmg: 1.0, base: 1.05, growth: 1.1, true: 1.2 };
+const HIT = { dmg: 0.85, base: 1.0, growth: 1.0, true: 1.2 };
 // where he can be hurt: head / body multipliers (the head once his face is gone)
-const HURT = { head: 1.25, void: 1.45, body: 0.75 };
+const HURT = { head: 1.25, void: 1.45, body: 0.85 };
 // HIM ON THE STAGE: how big he's drawn (x his LOST picture), the line across his waist on that picture (his frames end
 // about there - below it he trails off into smoke), how high his waist floats, how far he bobs, how fast he drifts
 // (px a frame) and how far toward the desk's ends he goes
@@ -415,7 +419,7 @@ export class HanzBossStage extends BossArena {
   }
   /** His attacks by world (and LAST CALL quickens the void). */
   /** What he can do now: his mood's moves in this world, plus THE SPEAR OF LIGHT and THE SHIFT when they're ready. */
-  pattern() { return [...MOVES[this.mood][this.world], ...(this.spearReady() ? ['spear'] : []), ...(this.shiftReady() ? ['shift'] : [])]; }
+  pattern() { return [...MOVES[this.mood][this.world], ...(this.spearReady() ? ['spear'] : []), ...(this.shiftReady() ? ['shift'] : []), ...this.oddReady()]; }
   /** Wind-ups: the difficulty's speed and his mood's (FURIOUS is quick, GLOOMY slow). */
   sp(n) { return Math.max(1, Math.round(n / ((this.boss ? this.boss.cfg.T.speed : 1) * MOODS[this.mood].speed))); }
   /** What the death card quotes: the world he beat you in. */
@@ -434,6 +438,7 @@ export class HanzBossStage extends BossArena {
     if (!this.boss) { this.float(match); return out; }
     const B = this.boss, had = !!B.atk;
     this.bossStep(match, out);
+    this.watchdog(match);
     if (had && !B.atk) { this.pin = false; this.dashing = false; this.front = false; if (this.mood !== 'whole' && ++this.moodN >= this.moodAt && !B.dying && !match.over) this.pickMood(match); }
     if (!B.dying && !this.pin) this.float(match);
     this.turn(match);
@@ -455,8 +460,37 @@ export class HanzBossStage extends BossArena {
     this.stepFx(match, B.dying || match.over ? null : out);
     this.stepTrue(match, B.dying || match.over ? null : out);
     this.stepLight(match, B.dying || match.over ? null : out);
+    this.stepOdd(match, B.dying || match.over ? null : out);
     if (this.flashK > 0) this.flashK = Math.max(0, this.flashK - 0.06);
     return out;
+  }
+
+  /**
+   * SAFETY NETS, so he never stands there doing nothing and every act always comes: an attack that runs past
+   * `SAFE.maxAtk` frames is ended; an act that's due (THE DRAWN ROOM, NOTHING UNDER THE MASK, THE STARFALL) ends the
+   * attack in the way after `SAFE.actGrace` frames; a pause between attacks is never longer than `SAFE.maxWait`; a
+   * held pose is let go between attacks.
+   */
+  watchdog(match) {
+    const B = this.boss; if (!B || B.dying || match.over || this.cut || this.intro) return;
+    const A = B.atk;
+    if (this.world === 'poly' && B.phase === 2 && !A) { this.onRage(match); return; }   // (the drawn room was skipped somehow)
+    const due = (this.world === 'drawn' && B.hp <= B.max * ACTS.void) || (this.world === 'void' && !this.starfallGone && B.hp <= B.max * TRUE.at);
+    if (A) {
+      A.due = due ? (A.due || 0) + 1 : 0;
+      if (A.t > SAFE.maxAtk || (A.due > SAFE.actGrace && A.name !== 'starfall')) this.endAtk(match);
+      return;
+    }
+    if (B.wait > SAFE.maxWait && B.wait < 5e4) B.wait = SAFE.maxWait;
+    if (this.an.held && this.an.name !== 'idle') { this.an.held = false; this.play('idle'); }
+  }
+  /** Ends whatever attack he's in at once and tidies up after it (THE STARFALL cut short still opens THE TRUE FACE). */
+  endAtk(match) {
+    const B = this.boss, A = B.atk; if (!A) return;
+    if (A.name === 'starfall') { this.trueFace = true; this.voidFace = false; this.trueReady = true; this.fstars = []; }
+    B.atk = null; B.wait = 40;
+    this.pin = false; this.front = false; this.dashing = false; this.spearAim = null; this.spearK = 0; this.foldS = null; this.strings = []; this.hole = null;
+    this.an.held = false; this.play('idle');
   }
 
   /** Which way he faces: toward the nearest fighter once they're `TURN` px past him (the way he's dashing while he dashes). */
@@ -643,16 +677,17 @@ export class HanzBossStage extends BossArena {
   /** THE WATCHER: the gem on his desk rises and its eye locks on - a line, then a prism laser down through you. */
   start_gem(match, a) {
     this.play('look_d'); const g = this.L(320, 215);
-    a.from = g; a.shots = GEM.shots[this.low ? 1 : 0]; a.k = 0; a.aim = null; sfx('ding', 0.6, 0.6);
+    a.from = g; a.shots = GEM.shots[this.low ? 1 : 0]; a.k = 1; a.aim = null; sfx('ding', 0.6, 0.6);
     this.gem.setTexture('lost_poly_things', 'gem_0').setPosition(g.x, g.y).setScale(1).setVisible(true);
   }
   /** GEM, frame by frame: the gem rising, then lock-on / fire for each shot. Returns true when it's over. */
   atk_gem(match, a, out) {
     const up = Math.min(1, a.t / 40), gx = lerp(a.from.x, this.hx + (this.hx > 0 ? -70 : 70), up), gy = lerp(a.from.y, -270, up);
-    this.gem.setPosition(gx, gy + Math.sin(a.t * 0.08) * 4).setScale(1 + up * 1.4).setFrame('gem_' + (Math.floor(a.t / 4) % LOST_POLY.things.gem.n));
+    this.gem.setPosition(gx, gy + Math.sin(a.t * 0.08) * 4).setScale((1 + up * 1.4) * a.k).setFrame('gem_' + (Math.floor(a.t / 4) % LOST_POLY.things.gem.n));
     if (a.t < 40) return false;
     const q = (a.t - 40) % (GEM.lock + GEM.fire + 16), shot = Math.floor((a.t - 40) / (GEM.lock + GEM.fire + 16));
-    if (shot >= a.shots) { this.gem.setScale(this.gem.scale * 0.92); if (this.gem.scale < 0.4) { this.gem.setVisible(false); this.beams = this.beams.filter((b) => b.kind !== 'prism'); return true; } return false; }
+    if (shot >= a.shots) { this.aimLine = null; a.k *= 0.9;   // (a.k = its own shrink: the rise sets the scale every frame, so shrinking the scale itself never ended it - he hung there forever)
+      if (a.k < 0.17) { this.gem.setVisible(false); this.beams = this.beams.filter((b) => b.kind !== 'prism'); return true; } return false; }
     const v = this.victim(match);
     if (q === 0) { a.tg = v ? { x: v.x, y: v.y - 20 } : { x: 0, y: -20 }; sfx('laser', 0.3, 0.5); }
     if (q < GEM.lock - 10 && v) { a.tg.x += (v.x - a.tg.x) * 0.12; a.tg.y += (v.y - 20 - a.tg.y) * 0.12; }
@@ -892,7 +927,7 @@ export class HanzBossStage extends BossArena {
   }
 
   /** Clears every attack effect (the acts changing, his death). */
-  clearFx() { this.minions = []; this.puddles = []; this.mwaves = []; this.spearFly = null; this.spearK = 0; this.spearAim = null; this.melt = null; this.fstars = []; this.hole = null; this.novaK = 0; this.novaLine = null; this.cometLine = null; this.aimHalf = null; this.cpts = null; for (const m of this.halvesM || []) if (m.mode === 'atk') m.mode = 'home'; this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
+  clearFx() { this.minions = []; this.puddles = []; this.mwaves = []; this.spearFly = null; this.spearK = 0; this.spearAim = null; this.melt = null; this.fstars = []; this.hole = null; this.novaK = 0; this.novaLine = null; this.cometLine = null; this.aimHalf = null; this.cpts = null; for (const m of this.halvesM || []) if (m.mode === 'atk') m.mode = 'home'; this.waves = []; this.shots = []; this.beams = []; this.cols = []; this.bands = []; this.rings = []; this.halves = []; this.marks = []; this.aimLine = null; this.splitK = 0; this.clockK = 0; this.clearOdd(); if (this.beast) { this.beast.setVisible(false); this.gem.setVisible(false); this.eye.setVisible(false); } }
 
   // ------------------------------------------------------------------ drawing
   /** Every frame: him, the void's crawl, every effect, the clock, the flash, the bar. */
@@ -902,7 +937,7 @@ export class HanzBossStage extends BossArena {
     this.drawClock();
     this.drawFx();
     this.drawTrue();
-    this.drawLight(); this.drawDimWorld();
+    this.drawLight(); this.drawDimWorld(); this.drawOdd();
     const g = this.skyG; g.clear();
     if (this.flashK > 0 && this.topG) { this.topG.fillStyle(this.flashC, this.flashK); this.topG.fillRect(-1200, -1000, 2400, 1600); }
     if (this.dShards) this.drawShatter();
@@ -1095,6 +1130,12 @@ for (const n of Object.getOwnPropertyNames(HanzLight.prototype)) {
   if (n === 'constructor') continue;
   if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzLight.js redefines ' + n);
   HanzBossStage.prototype[n] = HanzLight.prototype[n];
+}
+// THE REWIND, THE MARIONETTE and THE FOLD - the same
+for (const n of Object.getOwnPropertyNames(HanzOdd.prototype)) {
+  if (n === 'constructor') continue;
+  if (Object.prototype.hasOwnProperty.call(HanzBossStage.prototype, n)) throw new Error('hanzOdd.js redefines ' + n);
+  HanzBossStage.prototype[n] = HanzOdd.prototype[n];
 }
 // THE TRUE FACE (his last act) - the same
 for (const n of Object.getOwnPropertyNames(HanzTrue.prototype)) {

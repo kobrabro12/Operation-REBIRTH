@@ -29,7 +29,8 @@ EXTRA = 200                                      # render rows added under the L
 TOP = 50                                         # ...and over it (his hands raised over his head)
 AXIS = (0, 40)                                   # the upright line the camera swings round (x, y: through his body)
 # the animations he fights with, rendered turned both ways
-FIGHT = ['idle', 'look_d', 'sal_talk', 'hanz_talk', 'laugh', 'slam', 'argue', 'twitch', 'glitch', 'pitch', 'clap', 'snap', 'raise', 'spear']
+FIGHT = ['idle', 'look_d', 'sal_talk', 'hanz_talk', 'laugh', 'slam', 'argue', 'twitch', 'glitch', 'pitch', 'clap', 'snap', 'raise', 'spear',
+         'rewind', 'puppet', 'fold']
 TURNS = {'r': -TURN, 'l': TURN}
 # ...and facing you, whole: THE STARFALL, and everything the fight shows facing you (cutscenes, his death, his gloat)
 FRONT = ['raise', 'idle', 'slam', 'clap', 'pitch', 'snap', 'laugh', 'unmask', 'twitch', 'sal_talk', 'sob', 'glitch', 'heart', 'switch', 'shrug', 'sold']
@@ -81,9 +82,78 @@ SPEAR_AIM = 1.3                                  # when (s) the game holds THE S
 SPEAR_GO = 1.72                                  # when (s) it leaves his hand
 
 
+def rewind_frames():
+    """THE REWIND: both hands come up in front of his chest, palms facing, and wind round each other BACKWARDS like a
+    reel being wound back - slow, then faster and faster, his body twisting with it - then he flings both hands wide
+    open (`REWIND_GO`: the moment time snaps back) and rocks back. 2.8 s."""
+    W = lambda s, x, y, z, grip='cup', **k: A.arm(wb=(s * x, y, z), b=1.0, grip=grip, **k)
+    keys = [(0, A.P()), (0.4, A.P(body=(0, 43, -3, 30, 0), head=(0, 6, 0), l=W(-1, 14, -30, 48), r=W(1, 14, -30, 48)), 'out')]
+    n0, n1, turns = 0.4, 2.1, 2.5                                                  # (winding: from, to (s), how many turns)
+    steps = int((n1 - n0) * A.FPS)
+    for i in range(1, steps + 1):
+        u = i / steps; q = 2 * math.pi * turns * (u ** 1.6)                         # (speeding up)
+        r = 14 + 4 * u
+        def for_(s):                                                                # (each hand on its side of the circle, round the middle of his chest)
+            ph = q + (0 if s < 0 else math.pi)
+            return A.arm(wb=(r * math.cos(ph), -31 + s * 4, 48 + r * math.sin(ph)), b=1.0, grip='cup', pole=(s, 0.6, -0.5), dir=(0, -1, 0.3), nrm=(-s, 0, 0))
+        keys.append((n0 + i / A.FPS, A.P(body=(0, 43, -3, 30 - 6 * u, -10 * math.sin(q)), head=(6 * math.sin(q * 0.5), 4 - 4 * u, 0), l=for_(-1), r=for_(1))))
+    wide = lambda s: W(s, 50, -16, 70, 'open', pole=(s, 0.2, -0.6), dir=(s * 0.6, -0.4, 0.7), nrm=(0, -1, 0), spread=1.0)
+    keys += [(REWIND_GO, A.P(body=(0, 44, 2, 12, 0), head=(0, -18, 0), l=wide(-1), r=wide(1)), 'snap'),
+             (2.35, A.P(body=(0, 44, 3, 10, 0), head=(0, -20, 0), l=wide(-1), r=wide(1)), 'out'),
+             (2.8, A.P(), 'io')]
+    return A.follow(A.frames_of(keys), 0.65)
+
+
+def puppet_frames():
+    """THE MARIONETTE: both hands up in front of him at head height, palms down, fingers hanging like a puppeteer's on
+    their strings (the game draws the strings from `hand` / `hand2`), the fingers working - one hand up, the other
+    down, again and again - then a hard YANK (`PUPPET_GO`): fists, both arms snapping up and back over his shoulders.
+    3.0 s."""
+    W = lambda s, x, y, z, grip='reach', **k: A.arm(wb=(s * x, y, z), b=1.0, grip=grip, **k)
+    work = lambda s, up: W(s, 24, -38, 78 + up, pole=(s, 0.5, -0.4), dir=(0, -1, -0.15), nrm=(0, 0, -1))
+    keys = [(0, A.P()), (0.45, A.P(body=(0, 44, -3, 30, 0), head=(0, 8, 0), l=work(-1, 0), r=work(1, 0)), 'out')]
+    for i in range(6):                                                              # (working the strings)
+        k = 1 if i % 2 else -1
+        keys.append((0.65 + i * 0.22, A.P(body=(0, 44, -3, 29, 6 * k), head=(5 * k, 9, 3 * k), l=work(-1, 8 * k), r=work(1, -8 * k)), 'io'))
+    yank = lambda s: W(s, 30, 12, 84, 'fist', pole=(s, 0.6, -0.4), dir=(s * 0.2, 0.4, 1), nrm=(-s, 0, 0))
+    keys += [(1.85, A.P(body=(0, 44, -3, 34, 0), head=(0, 12, 0), l=work(-1, -6), r=work(1, -6)), 'io'),
+             (PUPPET_GO, A.P(body=(0, 45, 3, 8, 0), head=(0, -14, 0), l=yank(-1), r=yank(1)), 'snap'),
+             (2.4, A.P(body=(0, 45, 3, 10, 0), head=(0, -12, 0), l=yank(-1), r=yank(1)), 'out'),
+             (3.0, A.P(), 'io')]
+    return A.follow(A.frames_of(keys), 0.65)
+
+
+def fold_frames():
+    """THE FOLD: he reaches far out in front of him, low, and grabs the edge of the world in both fists; drags it up
+    over his head, leaning right back - then folds it down behind him like a sheet of paper (`FOLD_GO`: the crease),
+    and straightens up, dusting his hands. 2.6 s."""
+    W = lambda s, x, y, z, grip='fist', **k: A.arm(wb=(s * x, y, z), b=1.0, grip=grip, **k)
+    reach = lambda s, g: W(s, 16, -56, 22, g, pole=(s, 0.4, 0.5), dir=(0, -1, -0.3), nrm=(0, 0, 1))
+    over = lambda s: W(s, 14, -6, 92, pole=(s, 0.2, -0.6), dir=(0, 0.3, 1), nrm=(0, 1, 0))
+    back = lambda s: W(s, 18, 30, 40, pole=(s, -0.2, -0.6), dir=(0, 1, -0.4), nrm=(0, 0, -1))
+    keys = [(0, A.P()),
+            (0.45, A.P(body=(0, 40, -6, 56, 0), head=(0, 18, 0), l=reach(-1, 'open'), r=reach(1, 'open')), 'io'),
+            (0.7, A.P(body=(0, 40, -6, 58, 0), head=(0, 20, 0), l=reach(-1, 'fist'), r=reach(1, 'fist')), 'out'),
+            (1.35, A.P(body=(0, 45, 2, 6, 0), head=(0, -24, 0), l=over(-1), r=over(1)), 'io'),
+            (FOLD_GO, A.P(body=(0, 44, 4, -4, 0), head=(0, -10, 0), l=back(-1), r=back(1)), 'in'),
+            (2.1, A.P(body=(0, 44, 3, 2, 0), head=(0, -6, 0), l=back(-1), r=back(1)), 'out'),
+            (2.6, A.P(), 'io')]
+    return A.follow(A.frames_of(keys), 0.65)
+
+
+REWIND_GO = 2.2                                  # when (s) THE REWIND's hands fly open (time snaps back)
+PUPPET_GO = 2.05                                 # when (s) THE MARIONETTE yanks its strings
+FOLD_GO = 1.85                                   # when (s) THE FOLD's crease comes down
+GO = {'spear': SPEAR_GO, 'rewind': REWIND_GO, 'puppet': PUPPET_GO, 'fold': FOLD_GO}
+HANDS = ('spear', 'puppet', 'rewind')            # animations that export his fingertips every frame (`hand` red, `hand2` grey)
+
+
 ANIMS = dict(A.ANIMS)
 ANIMS['raise'] = {'frames': raise_frames}
 ANIMS['spear'] = {'frames': spear_frames}
+ANIMS['rewind'] = {'frames': rewind_frames}
+ANIMS['puppet'] = {'frames': puppet_frames}
+ANIMS['fold'] = {'frames': fold_frames}
 
 # HOW HE MOVES, per animation, so he never hangs there stiff: his legs (`sw` = swing side to side / back and forth,
 # `cyc` = swings over the clip, `alt` = legs swing against each other, `reach` = how much of their length they hang,
@@ -111,6 +181,9 @@ MOTION = {
     'sold': dict(kicks=[(i / 6, (i + 1) / 6, 1 if i % 2 else -1, -11, 7) for i in range(6)], sway=(3, 4, 2)),
     'unmask': dict(sw=(1.5, 2.5), cyc=2, sway=(2, 3, 1)),
     'spear': dict(tuck=[(0.32, 0.64, 0.8, 7)], kicks=[(0.66, 0.92, 0, 12, 8)], sway=(2, 0, 1)),
+    'rewind': dict(sw=(4, 5), cyc=5, alt=True, jit=0.8, kicks=[(0.76, 0.95, 0, -14, 10)], sway=(2, 6, 3)),
+    'puppet': dict(sw=(2, 3), cyc=3, kicks=[(0.22, 0.6, -1, -9, 6), (0.22, 0.6, 1, 9, 4), (0.66, 0.85, 0, -16, 12)], sway=(3, 4, 3)),
+    'fold': dict(tuck=[(0.05, 0.3, 0.7, 10)], kicks=[(0.45, 0.75, 0, 16, 10)], sway=(3, 2, 1)),
 }
 LAG = (3.0, 0.72)                                # his feet trailing his hips: how far (x hip movement), how slowly they catch up
 
@@ -267,13 +340,16 @@ def main():
             ey = A.eyes(cam, mask_M, pmeta)
             if pose.get('glitch', 0) > 0.2: ey = {k: v[:3] + [0] for k, v in ey.items()}
             crops.append(crop); info.append({'x': x * A.SCALE, 'y': (y - TOP) * A.SCALE, 'eyes': ey})
-            if name == 'spear': info[-1]['hand'] = [round(v) for v in to_screen(cam, Vector(A.TIPS['sal']))]   # (where the game draws the spear)
+            if name in HANDS:                                                     # (where the game draws the spear / the strings)
+                info[-1]['hand'] = [round(v) for v in to_screen(cam, Vector(A.TIPS['sal']))]
+                info[-1]['hand2'] = [round(v) for v in to_screen(cam, Vector(A.TIPS['hanz']))]
             if name == 'snap' and i == math.ceil(A.SNAP_T * A.FPS): spark = [round(v) for v in to_screen(cam, Vector(A.TIPS['sal']))]
             if name == 'clap' and i == math.ceil(A.CLAP_T * A.FPS): spark = [round(v) for v in to_screen(cam, Vector((A.TIPS['sal'] + A.TIPS['hanz']) / 2))]
             print(f'  {view} {name} {i + 1}/{len(poses)}', flush=True)
         files = A.pack(crops, f'{view}_{name}', info)
         entry = {'loop': bool(spec.get('loop')), 'sheets': files, 'frames': info}
-        if name == 'spear': entry['aim'] = round(SPEAR_AIM * A.FPS); entry['go'] = round(SPEAR_GO * A.FPS)
+        if name == 'spear': entry['aim'] = round(SPEAR_AIM * A.FPS)
+        if name in GO: entry['go'] = round(GO[name] * A.FPS)
         if spark: entry['spark'] = {'f': math.ceil((A.SNAP_T if name == 'snap' else A.CLAP_T) * A.FPS), 'x': spark[0], 'y': spark[1]}
         fight.setdefault(view, {})[name] = entry
         print(f'{view} {name}: {len(crops)} frames, {sum(os.path.getsize(os.path.join(A.OUT, f)) for f in files) // 1024} KB', flush=True)
