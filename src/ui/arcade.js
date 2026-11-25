@@ -23,6 +23,8 @@ export const ARC = {
 };
 export const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 // a colour mixed toward black (k = 0..1 how much of the colour is left)
+/** Two colours mixed: k = 0 all a, 1 all b. */
+export const mix = (a, b, k) => { const ch = (s) => Math.round(((a >> s) & 255) * (1 - k) + ((b >> s) & 255) * k); return (ch(16) << 16) | (ch(8) << 8) | ch(0); };
 export const shade = (c, k) => ((((c >> 16) & 255) * k) << 16) | ((((c >> 8) & 255) * k) << 8) | ((c & 255) * k);
 
 /** The plain arcade parallelogram, whatever the menu style (the match HUD and match overlays use this). */
@@ -138,6 +140,18 @@ export function panel(g, x, y, w, h, accent, { sk = ARC.skew, fill = ARC.panel, 
     return;
   }
   for (let i = 0; i < 3; i++) slant(g, x + w - sk - 26 + i * 7, y + h - 9, 5, 5, accent, 0.9 - i * 0.25, 3);   // little go-faster slashes in the corner
+  // BOLD ARCADE's personality: a fine diagonal hatch inside, a halftone bloom in the bottom-left, white corner brackets
+  // and a lit outline when it's the picked panel
+  if (h > 30 && w > 60) {
+    g.lineStyle(1, accent, 0.05);
+    for (let d = 10; d < w + h; d += 9) { const x1 = x + 4 + Math.max(0, d - h + 8), y1 = y + 4 + Math.min(d, h - 8), x2 = x + 4 + Math.min(d, w - sk - 8), y2 = y + 4 + Math.max(0, d - (w - sk - 8)); if (x2 > x1) g.lineBetween(x1, y1, x2, y2); }
+    for (let yy = y + h - 8; yy > y + h - 46 && yy > y + 6; yy -= 6) for (let xx = x + 8; xx < x + 60 && xx < x + w - 10; xx += 6) {
+      const k = (1 - (xx - x - 8) / 52) * (1 - (y + h - 8 - yy) / 38); if (k > 0.08) { g.fillStyle(accent, 0.22); g.fillCircle(xx, yy, k * 2.2); }
+    }
+    g.fillStyle(ARC.edge, 0.85); g.fillRect(x + sk + 4, y + 5, 10, 2); g.fillRect(x + sk + 4, y + 5, 2, 8);
+    g.fillRect(x + w - sk - 16, y + h - 8, 10, 2); g.fillRect(x + w - sk - 8, y + h - 14, 2, 8);
+    if (lit) { g.lineStyle(2, accent, 1); g.strokePoints([{ x: x + sk, y: y - 1 }, { x: x + w + 1, y: y - 1 }, { x: x + w - sk + 1, y: y + h + 1 }, { x: x - 1, y: y + h + 1 }], true); }
+  }
 }
 
 // a slanted label on top of a panel (draw the text yourself at x + 10, y + 3)
@@ -177,6 +191,8 @@ export function rowBar(g, x, y, w, h, accent, t, grow = 1) {
     return;
   }
   slant(g, x, y, ww, Math.floor(h / 2), 0xffffff, 0.14, 3);
+  const su = (t % 90) / 30; if (su < 1 && grow >= 1) { const sx = x + su * ww; slant(g, sx, y, Math.min(10, x + ww - sx), h, 0xffffff, 0.35, 6); }   // (a shine sweeping along it)
+  if (grow >= 1) { const sp = 0.5 + 0.5 * Math.sin(t * 0.2); g.fillStyle(0xffffff, 0.5 + sp * 0.5); g.fillRect(x + ww - 6, y - 2 - sp * 2, 1, 5 + sp * 3); g.fillRect(x + ww - 8 - sp, y + 0.5, 5 + sp * 2, 1); }   // (a twinkle on its end)
   if (id === 'retro') for (let i = 0; i < 3; i++) slant(g, x + 2, y + h - 6 + i * 2, ww - 4, 1, [0xffd23f, 0xff7a3b, 0xff3b9e][i], 0.8, 1);
   if (id === 'graffiti') {
     for (let i = 0; i < 4; i++) { const n = hash(i * 17 + x, y), dx = x + 6 + (n % Math.max(1, ww - 14)), len = 3 + (n >> 6) % 7; g.fillStyle(accent, 1); g.fillRect(dx, y + h - 1, 2, len); }
@@ -238,9 +254,11 @@ export function buttonFace(g, x, y, w, h, base, lit, hover, press, t = 0) {
     if (hover && (t >> 3) % 2) { g.fillStyle(0x7aff9a, 1); g.fillRect(x + w - 4, y + 3, 2, h - 6); }
     return;
   }
-  slant(g, x + 3 - p, y + 3 - p, w, h, 0x000000, 0.6, 5);
+  const lift = hover && !press ? 1 : 0; y -= lift;   // (BOLD ARCADE: it lifts off its shadow under the pointer)
+  slant(g, x + 3 - p, y + 3 - p + lift * 2, w, h, hover ? ARC.gold : 0x000000, hover ? 0.55 : 0.6, 5);
   slant(g, x, y, w, h, c, 1, 5);
   slant(g, x, y, w, Math.floor(h / 2), 0xffffff, hover ? 0.18 : 0.08, 3);
+  if (hover) { const u = (t % 50) / 25; if (u < 1) { const sx = x + u * w; slant(g, sx, y, Math.min(6, x + w - sx), h, 0xffffff, 0.4, 5); } }
   g.fillStyle(hover ? ARC.gold : ARC.edge, hover ? 1 : 0.35); g.fillRect(x, y + h - 1, w - 5, 1);
 }
 
@@ -250,6 +268,16 @@ export function buttonFace(g, x, y, w, h, base, lit, hover, press, t = 0) {
  */
 export function tileDeco(g, x, y, w, h, color, on, t) {
   const id = STYLE.id;
+  if (id === 'arcade') {
+    for (let yy = y + 6; yy < y + h - 4; yy += 6) for (let xx = x + w - 60; xx < x + w - 6; xx += 6) {   // a halftone corner
+      const k = ((xx - (x + w - 60)) / 54) * (1 - (yy - y) / h); if (k > 0.1) { g.fillStyle(color, on ? 0.35 : 0.15); g.fillCircle(xx, yy, k * 2.4); }
+    }
+    if (on) {
+      const u = (t % 120) / 36; if (u < 1) { const sx = x + u * (w + 40) - 30; plainSlant(g, Math.max(x + 4, sx), y + 3, Math.max(0, Math.min(16, x + w - 8 - sx)), h - 6, 0xffffff, 0.22, 14); }
+      for (let i = 0; i < 3; i++) { const a = (Math.sin(t * 0.08 + i * 2.1) + 1) / 2, n = hash(i * 9, x), sx = x + 20 + (n % Math.max(1, w - 40)), sy = y + 8 + ((n >> 6) % Math.max(1, h - 16)); if (a > 0.6) { g.fillStyle(0xffffff, a); g.fillRect(sx - 3, sy, 7, 1); g.fillRect(sx, sy - 3, 1, 7); } }
+    }
+    return;
+  }
   if (id === 'retro') {
     for (let i = 0; i < 4; i++) slant(g, x + 6, y + h - 14 + i * 3, w - 12, 2, [0xffd23f, 0xff7a3b, 0xff3b9e, 0xb45cff][i], on ? 0.55 : 0.25, 6);
     g.fillStyle(on ? 0x3be0ff : 0xffe0ff, on ? 1 : 0.4); g.fillRect(x + 18, y + 4, w - 22, 1);
@@ -277,6 +305,40 @@ export function tileDeco(g, x, y, w, h, color, on, t) {
   }
 }
 
+/**
+ * A menu screen's entrance (ArcadeBg calls it for every menu): slanted bands in the screen's colours slam across,
+ * then slide off one after another revealing the screen, with a little camera punch. Set `scene.skipWipe` to skip.
+ */
+export function sceneWipe(scene, accent, second = accent) {
+  if (lowEffects() || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const g = scene.add.graphics().setDepth(2000).setScrollFactor(0), cols = [ARC.ink, accent, ARC.edge, second, ARC.ink], o = { k: 0 };
+  const draw = () => {
+    g.clear();
+    cols.forEach((c, i) => {
+      const u = Math.min(1, Math.max(0, o.k * 1.6 - i * 0.12)), e = u * u * (3 - 2 * u), x = -80 + e * (VIEW_W + 260);
+      plainSlant(g, x + i * 14, -10, VIEW_W + 120, VIEW_H + 20, c, 1, 140);
+    });
+  };
+  draw();
+  scene.tweens.add({ targets: o, k: 1, duration: 520, ease: 'Linear', onUpdate: draw, onComplete: () => g.destroy() });
+  const cam = scene.cameras && scene.cameras.main;
+  if (cam && cam.zoom === 1) { cam.setZoom(1.04); scene.tweens.add({ targets: cam, zoom: 1, duration: 420, delay: 120, ease: 'Back.Out' }); }
+}
+
+/** Every click in a menu pops a little burst of stars and a ring in the screen's colours (`cols()` gives them). */
+export function clickSparks(scene, cols) {
+  if (!scene.input || lowEffects()) return;
+  scene.input.on('pointerdown', (p) => {
+    const g = scene.add.graphics().setDepth(1500).setScrollFactor(0), C = cols(), bits = Array.from({ length: 9 }, (_, i) => ({ a: i / 9 * Math.PI * 2 + Math.random() * 0.4, v: 2 + Math.random() * 2.5, c: C[i % C.length] })), o = { k: 0 };
+    const x = p.x / (scene.cameras.main.zoom || 1), y = p.y / (scene.cameras.main.zoom || 1);
+    scene.tweens.add({ targets: o, k: 1, duration: 420, ease: 'Cubic.Out', onUpdate: () => {
+      g.clear(); const k = o.k;
+      g.lineStyle(2, C[0], 1 - k); g.strokeCircle(x, y, 4 + k * 22);
+      for (const b of bits) { const r = b.v * 12 * k, bx = x + Math.cos(b.a) * r, by = y + Math.sin(b.a) * r, s = 3 * (1 - k) + 1; g.fillStyle(b.c, 1 - k); g.fillRect(bx - s, by - 0.5, s * 2, 1.5); g.fillRect(bx - 0.5, by - s, 1.5, s * 2); }
+    }, onComplete: () => g.destroy() });
+  });
+}
+
 /** The moving menu backdrop in the screen's colour, drawn in the menu style. Call `.update(t)` every frame. */
 export class ArcadeBg {
   constructor(scene, accent, { second = null, depth = -20 } = {}) {
@@ -284,6 +346,10 @@ export class ArcadeBg {
     this.g = scene.add.graphics().setDepth(depth);
     this.accent = accent; this.second = second ?? accent;
     this.sparks = Array.from({ length: 26 }, (_, i) => [((i * 7919) % 997) / 997, ((i * 104729) % 991) / 991, 0.3 + ((i * 31) % 97) / 140]);
+    // BOLD ARCADE's floating confetti: [x 0..1, y 0..1, kind, size, drift speed, spin, colour slot]
+    this.bits = Array.from({ length: 20 }, (_, i) => { const n = hash(i * 31, 77); return [(n % 1000) / 1000, ((n >> 10) % 1000) / 1000, i % 6, 4 + (n % 9), 0.15 + ((n >> 4) % 10) / 25, ((n >> 7) % 2 ? 1 : -1) * (0.01 + (n % 7) / 300), i % 3]; });
+    if (!scene.skipWipe) sceneWipe(scene, accent, this.second);
+    clickSparks(scene, () => [this.accent, this.second, ARC.edge, ARC.gold]);
   }
   /** Redraws the backdrop for frame t (every other frame on low effects). */
   update(t) {
@@ -291,6 +357,8 @@ export class ArcadeBg {
     const g = this.g; g.clear();
     const id = STYLE.id;
     if (this.osd && id !== 'retro') { this.osd.destroy(); this.osd = null; }
+    if (this.marquee && id !== 'arcade') { this.marquee.destroy(); this.marquee = null; }
+    if (this.halftone && id !== 'arcade') this.halftone.setVisible(false);
     if (id === 'retro') this.retro(g, t);
     else if (id === 'bubble') this.bubble(g, t);
     else if (id === 'graffiti') this.graffiti(g, t);
@@ -298,25 +366,72 @@ export class ArcadeBg {
     else if (id === 'corrupt') this.corrupt(g, t);
     else this.arcade(g, t);
   }
-  /** BOLD ARCADE: dark base, two big slanted colour slabs drifting, speed stripes, sparks, a dark frame. */
+  /** BOLD ARCADE: a deep wash of the screen's colour, a comic sunburst turning from the corner, a halftone field, two
+   *  big slanted slabs drifting, confetti shapes tumbling, speed stripes, sparks, a scrolling marquee band, a dark frame. */
   arcade(g, t) {
-    const W = VIEW_W, H = VIEW_H;
-    g.fillStyle(ARC.ink, 1); g.fillRect(0, 0, W, H);
-    for (let i = 0; i < 6; i++) { g.fillStyle(ARC.deep, 1 - i * 0.12); g.fillRect(0, H - 60 + i * 10, W, 10); }
+    const W = VIEW_W, H = VIEW_H, A = this.accent, B = this.second;
+    const wash = [ARC.ink, shade(A, 0.08), shade(A, 0.13), shade(A, 0.18)];
+    wash.forEach((c, i) => { g.fillStyle(c, 1); g.fillRect(0, i * H / 4, W, H / 4 + 1); });
+    // the sunburst: wedges of colour turning slowly round the bottom-right corner
+    const cx = W * 0.82, cy = H * 1.05, R = 760, n = 18, rot = t * 0.0025;
+    for (let i = 0; i < n; i++) {
+      const a0 = rot + (i / n) * Math.PI * 2, a1 = a0 + Math.PI / n;
+      g.fillStyle(i % 2 ? A : B, i % 2 ? 0.13 : 0.08); g.fillTriangle(cx, cy, cx + Math.cos(a0) * R, cy + Math.sin(a0) * R, cx + Math.cos(a1) * R, cy + Math.sin(a1) * R);
+    }
+    // the halftone field: dots that grow toward the top-left corner (baked once into a texture - ~900 live circles a
+    // frame would be slow on weak devices - and tinted the screen's colour)
+    if (!this.halftone) {
+      const T = this.scene.textures;
+      if (!T.exists('arc_halftone')) {
+        const hg = this.scene.make.graphics({ x: 0, y: 0 }, false);
+        for (let y = 6; y < H; y += 12) for (let x = 6 + ((y / 12) % 2) * 6; x < W; x += 12) {
+          const k = 1 - Math.min(1, Math.hypot(x / W, y / H) * 1.05); if (k <= 0.05) continue;
+          hg.fillStyle(0xffffff, 0.5 + k * 0.5); hg.fillCircle(x, y, k * 3.8);
+        }
+        hg.generateTexture('arc_halftone', W, H); hg.destroy();
+      }
+      this.halftone = this.scene.add.image(0, 0, 'arc_halftone').setOrigin(0).setDepth(this.depth + 0.2).setAlpha(0.22);
+    }
+    this.halftone.setTint(A).setVisible(true);
+    for (let i = 0; i < 6; i++) { g.fillStyle(ARC.deep, 0.9 - i * 0.12); g.fillRect(0, H - 60 + i * 10, W, 10); }
     // two huge slanted slabs of colour, drifting
     const d = (t * 0.25) % 80;
-    plainSlant(g, 380 + d * 0.5, -10, 340, H + 20, this.accent, 0.07, 160);
-    plainSlant(g, 460 + d * 0.5, -10, 120, H + 20, this.second, 0.06, 160);
-    plainSlant(g, -200 - d * 0.3, -10, 260, H + 20, this.accent, 0.04, 160);
+    plainSlant(g, 380 + d * 0.5, -10, 340, H + 20, A, 0.09, 160);
+    plainSlant(g, 460 + d * 0.5, -10, 120, H + 20, B, 0.08, 160);
+    plainSlant(g, -200 - d * 0.3, -10, 260, H + 20, A, 0.05, 160);
+    // a bright sheen gliding across now and then
+    const sw = (t * 6) % (W * 3) - W * 0.5; if (sw < W + 200) plainSlant(g, sw, -10, 50, H + 20, 0xffffff, 0.035, 120);
+    // confetti: triangles, squares, rings, crosses, zigzags and stars tumbling slowly up
+    const cols = [A, B, ARC.edge];
+    for (const [bx, by, kind, sz, sp, spin, ci] of this.bits) {
+      const x = ((bx * (W + 60) + Math.sin(t * 0.01 + by * 9) * 20) % (W + 60)) - 30, y = H + 30 - ((by * (H + 60) + t * sp) % (H + 60)), q = t * spin + bx * 6;
+      const c = cols[ci], a = 0.4 + 0.25 * Math.sin(t * 0.03 + bx * 20);
+      g.fillStyle(c, a); g.lineStyle(2, c, a);
+      const P = (k, r) => ({ x: x + Math.cos(q + k) * r, y: y + Math.sin(q + k) * r });
+      if (kind === 0) { const p = [0, 2.094, 4.189].map((k) => P(k, sz)); g.fillTriangle(p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y); }
+      else if (kind === 1) g.fillPoints([0, 1.571, 3.142, 4.712].map((k) => P(k + 0.785, sz)), true);
+      else if (kind === 2) g.strokeCircle(x, y, sz * 0.9);
+      else if (kind === 3) { const a1 = P(0, sz), a2 = P(Math.PI, sz), b1 = P(1.571, sz), b2 = P(4.712, sz); g.lineBetween(a1.x, a1.y, a2.x, a2.y); g.lineBetween(b1.x, b1.y, b2.x, b2.y); }
+      else if (kind === 4) { const pts = [-2, -1, 0, 1, 2].map((k) => ({ x: x + Math.cos(q) * k * sz * 0.6 - Math.sin(q) * (k % 2 ? sz * 0.5 : -sz * 0.5), y: y + Math.sin(q) * k * sz * 0.6 + Math.cos(q) * (k % 2 ? sz * 0.5 : -sz * 0.5) })); g.strokePoints(pts, false); }
+      else g.fillPoints(Array.from({ length: 8 }, (_, k) => P(k * Math.PI / 4, k % 2 ? sz * 0.45 : sz * 1.1)), true);
+    }
     // speed stripes racing across
     for (let i = 0; i < 12; i++) {
       const s = this.sparks[i], y = 20 + s[1] * (H - 40), len = 30 + s[2] * 90, x = ((s[0] * W * 2 + t * (3 + s[2] * 6)) % (W + len * 2)) - len;
-      g.fillStyle(i % 3 ? this.accent : ARC.edge, 0.06 + s[2] * 0.08); g.fillRect(x, y, len, 1);
+      g.fillStyle(i % 3 ? A : ARC.edge, 0.08 + s[2] * 0.1); g.fillRect(x, y, len, 1);
     }
-    // sparks twinkling
-    for (let i = 12; i < this.sparks.length; i++) { const s = this.sparks[i], a = (Math.sin(t * 0.05 + i * 1.7) + 1) / 2; g.fillStyle(i % 2 ? this.accent : ARC.edge, 0.15 + a * 0.4); g.fillRect(s[0] * W, s[1] * H, 1 + (a > 0.8), 1 + (a > 0.8)); }
+    // sparks twinkling (the bright ones flash into little four-point stars)
+    for (let i = 12; i < this.sparks.length; i++) {
+      const s = this.sparks[i], a = (Math.sin(t * 0.05 + i * 1.7) + 1) / 2, x = s[0] * W, y = s[1] * H;
+      g.fillStyle(i % 2 ? A : ARC.edge, 0.2 + a * 0.5); g.fillRect(x, y, 1 + (a > 0.8), 1 + (a > 0.8));
+      if (a > 0.9) { g.fillRect(x - 3, y, 7, 1); g.fillRect(x, y - 3, 1, 7); }
+    }
+    // the marquee band: a slanted strip low on the screen with the game's name scrolling along it
+    plainSlant(g, -20, H - 44, W + 40, 13, 0x000000, 0.35, 6); g.fillStyle(A, 0.5); g.fillRect(0, H - 44, W, 1); g.fillRect(0, H - 32, W, 1);
+    if (!this.marquee) this.marquee = this.scene.add.text(0, H - 42, ('OPERATION REBIRTH  ///  FIGHT FOR A SECOND LIFE  ///  ').repeat(6), { fontFamily: FONT, fontSize: '7px', color: '#ffffff' }).setDepth(this.depth + 0.5).setAlpha(0.4);
+    this.marquee.setX(-((t * 0.6) % (this.marquee.width / 6))).setColor(hex(A === ARC.ink ? 0xffffff : mix(A, 0xffffff, 0.5)));
     // a dark frame at the edges
-    for (let i = 0; i < 4; i++) { g.fillStyle(0x000000, 0.12); g.fillRect(0, i * 4, W, 4); g.fillRect(0, H - (i + 1) * 4, W, 4); }
+    for (let i = 0; i < 4; i++) { g.fillStyle(0x000000, 0.14); g.fillRect(0, i * 4, W, 4); g.fillRect(0, H - (i + 1) * 4, W, 4); g.fillRect(i * 4, 0, 4, H); g.fillRect(W - (i + 1) * 4, 0, 4, H); }
   }
   /** RETRO REWIND: a dusk sky, a striped synthwave sun, a neon grid rolling toward you, scanlines, a VHS tracking band and REW / PLAY on screen. */
   retro(g, t) {
@@ -463,6 +578,21 @@ export function titleBanner(scene, text, accent, { crumb = '', x = 70, y = 5, si
   const o = { k: -1 };
   draw(-w - 40);
   scene.tweens.add({ targets: o, k: 0, duration: 260, ease: 'Back.Out', onUpdate: () => draw(o.k * (w + 40)) });
+  // PERSONALITY: the title lands with a squash, a shine sweeps across the plate every few seconds, and a little
+  // spinning star sticker sits on its corner (not SLICK! / CORRUPTED CODE, which keep their own cool)
+  if (id !== 'slick' && id !== 'corrupt') {
+    t.setScale(1.25, 0.8); scene.tweens.add({ targets: t, scaleX: 1, scaleY: 1, duration: 380, delay: 200, ease: 'Elastic.Out', easeParams: [1.2, 0.5] });
+    const fx = scene.add.graphics().setDepth(26.5); let f = 0;
+    const shine = () => {
+      f++; fx.clear(); const X = x + ox0;
+      const u = (f % 200) / 40; if (u < 1) { const sx = X + u * (w + 30) - 20; plainSlant(fx, Math.max(X, sx), y, Math.max(0, Math.min(14, X + w - sx)), h, 0xffffff, 0.45, 12); plainSlant(fx, Math.max(X, sx + 18), y, Math.max(0, Math.min(5, X + w - sx - 18)), h, 0xffffff, 0.3, 12); }
+      const sx = X + 4, sy = y - 2, q = f * 0.05, r = 6 + Math.sin(f * 0.12);
+      fx.fillStyle(ARC.ink, 1); fx.fillPoints(Array.from({ length: 10 }, (_, k) => ({ x: sx + Math.cos(q + k * Math.PI / 5) * (k % 2 ? r * 0.45 : r) + 1, y: sy + Math.sin(q + k * Math.PI / 5) * (k % 2 ? r * 0.45 : r) + 1 })), true);
+      fx.fillStyle(ARC.gold, 1); fx.fillPoints(Array.from({ length: 10 }, (_, k) => ({ x: sx + Math.cos(q + k * Math.PI / 5) * (k % 2 ? r * 0.45 : r), y: sy + Math.sin(q + k * Math.PI / 5) * (k % 2 ? r * 0.45 : r) })), true);
+    };
+    scene.events.on('update', shine);
+    t.once('destroy', () => { scene.events.off('update', shine); fx.destroy(); });
+  }
   if (id === 'bubble') scene.tweens.add({ targets: t, scaleY: 1.06, scaleX: 0.97, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   if (ghosts.length) {
     let f = 0;
@@ -503,7 +633,7 @@ export function hintBar(scene, str, accent, { y = VIEW_H - 13, depth = 24 } = {}
   for (const it of items) {
     for (const k of it.ks) {
       const kw = k.width * scale + 4;
-      slant(g, x, y + 3, kw, 8, ARC.edge, 1, 0); g.fillStyle(accent, 1); g.fillRect(x + 1, y + 10, kw - 2, 1);
+      slant(g, x + 1, y + 4, kw, 8, accent, 1, 0); slant(g, x, y + 3, kw, 8, ARC.edge, 1, 0); g.fillStyle(accent, 1); g.fillRect(x + 1, y + 10, kw - 2, 1);
       k.setScale(scale).setPosition(x + 2, y + 4); x += kw + 3;
     }
     it.lb.setScale(scale).setPosition(x + 1, y + 4); x += it.lb.width * scale + 12 * scale;
