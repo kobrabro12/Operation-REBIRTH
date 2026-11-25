@@ -148,7 +148,9 @@ def main():
                 can.alpha_composite(im.resize((im.width * 2, im.height * 2), Image.NEAREST), (f['x'], f['y'] + TOP * 2)); fr.append(can.convert('RGB'))
             fr[0].save(os.path.join(a.preview, f'{view}_{name}.gif'), save_all=True, append_images=fr[1:], duration=1000 // A.FPS, loop=0)
         # (written after every animation, so a long run that stops keeps what it finished)
-        table['fight'] = fight
+        src = open(A.TABLE).read()                                                # (re-read: another run may have written its own since)
+        table = json.loads(src.split('LOST_FRAMES = ', 1)[1].rstrip().rstrip(';'))
+        table.setdefault('fight', {}).setdefault(view, {})[name] = entry
         head = src.split('export const LOST_FRAMES = ', 1)[0]
         if '// fight =' not in head: head = head.rstrip('\n') + '\n// fight = him whole, turned to the side (r / l) or facing you (f), for his boss fight (hanz_fight.py).\n'
         with open(A.TABLE, 'w') as fh: fh.write(head + 'export const LOST_FRAMES = ' + json.dumps(table, separators=(',', ':')) + ';\n')
