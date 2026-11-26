@@ -47,7 +47,7 @@ export class RecordsLife {
   startTape() {
     const [key] = TAPES[this.tapeI];
     this.playingTape = true;
-    playTrack(this, key, () => { if (this.sys.isActive()) { this.playingTape = false; this.tapeDue = true; } }, 0.5);
+    playTrack(this, key, () => { if (this.sys.isActive()) { this.playingTape = false; this.tapeDue = true; } }, 1);
   }
   /** Whether she's free for a routine (nothing asked, typed, open or playing). */
   free() { return !this.busy && !this.routine && this.typed === null && !this.overlay && !this.leaving && !this.talking() && !(this.queue && this.queue.length); }
@@ -204,10 +204,12 @@ export class RecordsLife {
 
   /** Every frame: tape changes and cocoa breaks when she's free, the notes, effects moving. */
   stepLife() {
-    if (this.tapeDue && this.free()) this.changeTape();
+    this.stepTrips();
+    if (this.tripDue()) this.startTrip();
+    else if (this.tapeDue && this.free()) this.changeTape();
     else if (this.t >= this.nextCocoa && this.free() && this.t - this.lastAct > 600) this.makeCocoa();
     else if (this.t >= this.nextCocoa && !this.free()) this.nextCocoa = this.t + 600;
-    if (this.playingTape && this.t % NOTES.every === 0) {
+    if (this.playingTape && this.t % NOTES.every === 0 && !this.trip) {
       const sp = RF.spots.speakers[Math.floor(Math.random() * 2)];
       this.lifeFx.push({ k: 'note', x: sp[0] + (Math.random() - 0.5) * 8, y: sp[1] - 4, t: 0, c: NOTES.cols[Math.floor(Math.random() * NOTES.cols.length)], two: Math.random() < 0.35, ph: Math.random() * 6 });
     }
@@ -236,7 +238,8 @@ export class RecordsLife {
    *  the figure in the corner, the red circle and WOW!) and the dark. */
   drawLife() {
     const g = this.lifeG, dg = this.darkG; g.clear(); dg.clear();
-    this.drawBoombox(g); this.drawDoor();
+    if (!(this.trip && this.trip.on)) this.drawBoombox(g);
+    this.drawDoor();
     const sp = RF.spots;
     if (this.cocoaLight) { g.fillStyle(0x7cf06a, 0.8); g.fillCircle(sp.light[0], sp.light[1], 2.2); }
     for (const p of this.lifeFx) {

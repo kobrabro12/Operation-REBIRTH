@@ -17,6 +17,7 @@ import { touchEnabled } from '../input/touch.js';
 import { RECORDS_FRAMES as RF } from './recordsFrames.js';
 import { findRecord, recordById, briefcase, fileAway, recordCount, ARCH_LINES } from '../data/records.js';
 import { RecordsLife } from './recordsLife.js';
+import { RecordsTrips } from './recordsTrips.js';
 
 const DIR = 'assets/lore/records/';
 const TICKS = 4;                                          // game frames per animation frame (her renders are 15 fps)
@@ -37,7 +38,8 @@ const FACE_IMG = { smug: [0, 28, 18], annoyed: [1, 25.5, 24], shocked: [2, 29.5,
 // the expression each animation starts with
 const ANIM_EXPR = { idle: 'smile', greet: 'happy', ask: 'happy', listen: 'smile', dig: 'focus', give: 'happy', portal: 'focus', think: 'think', laugh: 'laugh', shrug: 'sly', stamp: 'focus', tip: 'wink', explain: 'happy',
   cocoa: 'smile', tape: 'happy', cipher: 'focus', dizzy: 'focus', radio: 'focus', spook: 'smile', wow: 'focus',
-  door_go: 'smile', door_back: 'smug', mine: 'focus', handheld: 'focus', ears: 'annoyed', push: 'focus', binoculars: 'focus' };
+  door_go: 'smile', door_back: 'smug', mine: 'focus', handheld: 'focus', ears: 'annoyed', push: 'focus', binoculars: 'focus',
+  warp: 'sly', grab: 'focus', snapback: 'smug' };
 // left alone: a little something every IDLE frames (think / explain / a hint)
 const IDLE = 900;
 const INK = 0x16121a;
@@ -88,11 +90,12 @@ export class RecordsScene extends Phaser.Scene {
     this.inputT = this.add.text(BOX.x + 14, BOX.y + BOX.h - 24, '', { fontFamily: FONT, fontSize: '9px', color: '#7c1f30' }).setDepth(21);
     this.caseT = this.add.text(VIEW_W - 104, 26, '', { fontFamily: FONT, fontSize: '5px', color: '#f4e6c4' }).setOrigin(1, 0).setDepth(21);
     this.hintT = this.add.text(VIEW_W / 2, VIEW_H - 8, 'CLICK HER OR J: ASK FOR A FILE   C: BRIEFCASE   F: DOSSIERS   R: ARCHIVE   K: BACK', { fontFamily: FONT, fontSize: '5px', color: '#d8c8a8' }).setOrigin(0.5).setDepth(21);
-    makeButton(this, 8, 6, '< TRINKETS', () => this.leave());
-    makeButton(this, VIEW_W - 104, 6, 'BRIEFCASE', () => this.openCase(), { originX: 1 });
-    makeButton(this, 92, 6, 'DOSSIERS', () => this.go('Files'));
-    makeButton(this, 160, 6, 'ARCHIVE', () => this.go('Archive'));
-    addFullscreenButton(this, VIEW_W - 8, 6);
+    // (the buttons sit over everything, so her trinket trips' worlds don't cover them)
+    [makeButton(this, 8, 6, '< TRINKETS', () => this.leave()),
+      makeButton(this, VIEW_W - 104, 6, 'BRIEFCASE', () => this.openCase(), { originX: 1 }),
+      makeButton(this, 92, 6, 'DOSSIERS', () => this.go('Files')),
+      makeButton(this, 160, 6, 'ARCHIVE', () => this.go('Archive')),
+      addFullscreenButton(this, VIEW_W - 8, 6)].forEach((b) => { if (b && b.setDepth) b.setDepth(21); });
     this.keyG = this.add.graphics().setDepth(22); this.keyTs = [];
     this.overG = this.add.graphics().setDepth(30); this.overTs = [];
     this.input.on('pointerdown', (p, over) => this.click(p, over));
@@ -100,6 +103,7 @@ export class RecordsScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.cleanup());
     this.setExpr('smile'); this.play('idle');
     this.initLife();
+    this.initTrips();
     this.lastAct = 0; this.hintN = 0; this.misses = 0;
     const first = !localStorage.getItem('rebirth.recordsSeen');
     try { localStorage.setItem('rebirth.recordsSeen', '1'); } catch (e) { /* storage unavailable */ }
@@ -500,7 +504,7 @@ export class RecordsScene extends Phaser.Scene {
   }
   /** Opens your BRIEFCASE: every file she's given you, as folders you can open again. */
   openCase(sel = 0) {
-    if (this.busy) return;
+    if (this.busy || this.busyLine()) return;
     const ids = briefcase();
     if (!ids.length) { this.say(this.pick('empty'), 'smile'); this.play('explain'); return; }
     this.closeOver(true);
@@ -548,9 +552,14 @@ export class RecordsScene extends Phaser.Scene {
   // ------------------------------------------------------------------ input
   /** Clicks: the overlay first, then the keys, then her and the things on the counter. */
   click(p, over) {
-    this.lastAct = this.t;
+    this.lastAct = this.t; this.quietAt = this.t;
     const o = this.overlay;
     if (o) {
+      if (o.kind === 'trinket') {
+        if (p.x < 56 || p.x > 584 || p.y < 26 || p.y > 334) return this.closeOver();
+        if (o.list.length > 1) return this.flipTrinket(p.x < VIEW_W / 2 ? -1 : 1);
+        return;
+      }
       if (o.kind === 'file') {
         const inside = p.x > 70 && p.x < 570 && p.y > 18 && p.y < 334;
         if (!inside) return this.closeOver();
@@ -568,13 +577,14 @@ export class RecordsScene extends Phaser.Scene {
       return;
     }
     const inBox = (b) => b && p.x >= b[0] && p.x <= b[0] + b[2] && p.y >= b[1] && p.y <= b[1] + b[3];
+    const ti = this.shelfAt(p); if (ti >= 0) return this.openTrinket(ti);
     for (const [n, b] of Object.entries(RF.hits)) if (inBox(b)) return this.touchDesk(n);
     if (inBox(RF.her)) return this.ask();
     if (this.full && !this.talking() && !this.busy) this.nextLine();
   }
   /** Something on the counter clicked: the bell dings, the briefcase opens, the rest get a word from her. */
   touchDesk(n) {
-    if (n === 'briefcase') return this.openCase();
+    if (n === 'briefcase') return this.busyLine() || this.openCase();
     if (this.busyLine() || this.busy) return;
     if (n === 'boombox') { this.say(this.pick('boombox'), 'happy'); this.time.delayedCall(900, () => { if (this.free()) this.changeTape(); }); return; }
     if (n === 'machine' && this.t > 600) { this.say(this.pick('machine'), 'sly'); this.time.delayedCall(1200, () => { if (this.free()) this.makeCocoa(); }); return; }
@@ -631,6 +641,7 @@ export class RecordsScene extends Phaser.Scene {
     this.t++;
     const m = this.menu.poll(), o = this.overlay;
     if (m.pads.length) this.usedPad = true;
+    if (m.pads.length || m.ok || m.back || m.left || m.right || m.up || m.down) this.quietAt = this.t;
     this.lookAt = this.mouse || null;
     if (this.typed !== null) {
       // pad typing on the on-screen keys
@@ -643,7 +654,7 @@ export class RecordsScene extends Phaser.Scene {
         if (m.pads.some((q) => q.button === 'b')) { this.closeTyping(); this.cancelAsk(); }
       }
     } else if (o) {
-      if (o.kind === 'file') { if (m.left) this.turnPage(-1); if (m.right) this.turnPage(1); if (m.back || m.ok || m.pads.some((q) => q.button === 'b')) this.closeOver(); }
+      if (o.kind === 'trinket') { if (m.left) this.flipTrinket(-1); if (m.right) this.flipTrinket(1); if (m.back || m.ok || m.pads.some((q) => q.button === 'b')) this.closeOver(); } else if (o.kind === 'file') { if (m.left) this.turnPage(-1); if (m.right) this.turnPage(1); if (m.back || m.ok || m.pads.some((q) => q.button === 'b')) this.closeOver(); }
       else {
         const n = o.ids.length;
         if (m.left) o.sel = (o.sel + n - 1) % n; if (m.right) o.sel = (o.sel + 1) % n;
@@ -672,17 +683,18 @@ export class RecordsScene extends Phaser.Scene {
     // the pointer over her / the counter things
     if (this.mouse && !o && this.typed === null) {
       const p = this.mouse, inBox = (b) => b && p.x >= b[0] && p.x <= b[0] + b[2] && p.y >= b[1] && p.y <= b[1] + b[3];
-      const hot = inBox(RF.her) || Object.values(RF.hits).some(inBox);
+      const hot = inBox(RF.her) || Object.values(RF.hits).some(inBox) || this.shelfAt(p) >= 0;
       if (this.game.canvas) this.game.canvas.style.cursor = hot ? 'pointer' : '';
     }
     this.stepLife();
-    this.stepAnim(); this.stepTalk(); this.drawFace(); this.drawFx(); this.drawLife(); this.drawBox(); this.drawKeys();
+    this.stepAnim(); this.stepTalk(); this.drawFace(); this.drawFx(); this.drawLife(); this.drawTrips(); this.drawBox(); this.drawKeys();
   }
 }
 
-// her routines and mysteries (recordsLife.js) join the scene; a method name may only exist once
-for (const k of Object.getOwnPropertyNames(RecordsLife.prototype)) {
+// her routines and mysteries (recordsLife.js) and her trinket trips (recordsTrips.js) join the scene; a method name
+// may only exist once
+for (const mix of [RecordsLife, RecordsTrips]) for (const k of Object.getOwnPropertyNames(mix.prototype)) {
   if (k === 'constructor') continue;
-  if (k in RecordsScene.prototype) throw new Error('RecordsLife: ' + k + ' already exists on RecordsScene');
-  RecordsScene.prototype[k] = RecordsLife.prototype[k];
+  if (k in RecordsScene.prototype) throw new Error(mix.name + ': ' + k + ' already exists on RecordsScene');
+  RecordsScene.prototype[k] = mix.prototype[k];
 }

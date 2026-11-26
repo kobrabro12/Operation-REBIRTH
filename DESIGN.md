@@ -208,6 +208,7 @@ until you beat them), world words and secret names (BACKROOMS: she reaches throu
 she gives you stays in your BRIEFCASE. Between requests she lives there: she changes the cassette in her boombox when a tape
 ends (Mason's songs), makes herself hot cocoa, and five more secret names (internet mysteries) each have their own scene - and five video game legends, and three
 CONFIDENTIAL files she fetches through a door that appears in the wall and vanishes when she snaps.
+Left alone for 30 seconds she snaps herself into one of ten old video game worlds (our own homages: falling blocks, a neon maze, a marching sky, brick hills, a green field, a court, duck season, a sunset circuit, a rock field, a text cave) through a portal styled like it, grabs its iconic thing and snaps home; it goes on her TRINKET SHELF, each with a card of real history and her lore.
 
 ---
 
