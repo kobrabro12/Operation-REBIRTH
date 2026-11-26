@@ -202,6 +202,10 @@ Pixel font "Press Start 2P", optional CRT filter, chiptune music per stage (gene
 an announcer voice for each fighter and stage, and a title screen with a live all-CPU demo match behind the logo.
 Six menu styles to pick from in OPTIONS (BOLD ARCADE, RETRO REWIND, BUBBLE BLAST, GRAFFITI, SLICK!, CORRUPTED CODE);
 they change only the menus - a match looks the same in every one.
+The lore lives behind a counter: Trinkets > LORE is THE RECORDS OFFICE, where THE ARCHIVIST (a PS1-look 3D clerk whose
+hand-drawn face the game animates) fetches a file on any name you type - fighters, bosses (their best pages sealed
+until you beat them), world words and secret names (BACKROOMS: she reaches through a portal for it) - and every file
+she gives you stays in your BRIEFCASE.
 
 ---
 

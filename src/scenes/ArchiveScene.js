@@ -29,7 +29,7 @@ export class ArchiveScene extends Phaser.Scene {
 
   /** Builds the list of documents (grouped by section) and the reading panel. */
   create(data) {
-    this.t = 0; this.menu = new MenuInput(this); this.read = readSet(); this.fromFi = (data && data.fi) || 0;
+    this.t = 0; this.menu = new MenuInput(this); this.read = readSet(); this.fromFi = (data && data.fi) || 0; this.fromScene = (data && data.from) || 'Files';
     playMusic(this, 'bgm_title');
     this.bgFx = new ArcadeBg(this, LINE, { second: ARC.sections.trinkets });
     const g = this.add.graphics();
@@ -52,7 +52,7 @@ export class ArchiveScene extends Phaser.Scene {
     this.pageT = this.add.text(R.x + R.w / 2, R.y + R.h - 12, '', { fontFamily: FONT, fontSize: '5px', color: GOLD }).setOrigin(0.5, 0);
     this.arrows = [-1, 1].map((d) => makeButton(this, R.x + R.w / 2 + d * 60, R.y + R.h - 10, d < 0 ? '<' : '>', () => this.turn(d), { originX: 0.5, originY: 0.5, size: '7px' }));
     hintBar(this, 'W/S DOCUMENT   A/D PAGE   CLICK TO READ   K / ESC / B  BACK TO LORE', LINE);
-    makeButton(this, 8, 6, '< LORE', () => this.back());
+    makeButton(this, 8, 6, this.fromScene === 'Records' ? '< RECORDS' : '< DOSSIERS', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.input.on('pointerdown', (p, over) => {
       if (over.length || p.x < L.x || p.x > L.x + L.w || p.y < L.y + 6) return;
@@ -62,8 +62,8 @@ export class ArchiveScene extends Phaser.Scene {
     this.pick(0, true);
   }
 
-  /** Back to the LORE screen, on the fighter you came from. */
-  back() { sfx('menu', 0.6); this.scene.start('Files', { fi: this.fromFi }); }
+  /** Back where you came from: the RECORDS OFFICE, or the DOSSIERS on the fighter you came from. */
+  back() { sfx('menu', 0.6); this.scene.start(this.fromScene, { fi: this.fromFi }); }
   /** Opens document `i` at its first page (and remembers it as read). */
   pick(i, quiet) {
     this.sel = (i + this.docs.length) % this.docs.length; this.page = 0;

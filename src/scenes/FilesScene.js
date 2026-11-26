@@ -40,7 +40,7 @@ export class FilesScene extends Phaser.Scene {
     this.bgFx = new ArcadeBg(this, LINE, { second: ARC.sections.trinkets });
     const g = this.add.graphics();
     panel(g, L.x, L.y, L.w, L.h, LINE); panel(g, R.x, R.y, R.w, R.h, LINE);
-    titleBanner(this, 'LORE', LINE, { crumb: 'TRINKETS  >  LORE', size: 13 });
+    titleBanner(this, 'DOSSIERS', LINE, { crumb: 'TRINKETS  >  LORE  >  DOSSIERS', size: 13 });
     this.tabG = this.add.graphics();
     this.tabs = this.fighters.map((f) => this.add.text(0, TAB_Y + 8, f.name.length > 14 ? f.name.replace('THE ', '') : f.name, { fontFamily: FONT, fontSize: '6px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(0.5));
     this.tabMore = [-1, 1].map((d) => this.add.text(d < 0 ? L.x - 8 : L.x + TABS * (TAB_W + 6) + 2, TAB_Y + 8, d < 0 ? '<' : '>', { fontFamily: FONT, fontSize: '7px', color: GOLD }).setOrigin(0.5));
@@ -74,7 +74,7 @@ export class FilesScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-R', () => this.archive());
     this.page = 0;
     hintBar(this, 'W/S FIGHTER   A/D COSTUME   Q PAGE   R ARCHIVE   M MILESTONE ROAD   K BACK', LINE);
-    makeButton(this, 8, 6, '< BACK', () => this.back());
+    makeButton(this, 8, 6, '< RECORDS', () => this.back());
     addFullscreenButton(this, VIEW_W - 8, 6);
     this.input.on('pointerdown', (p, over) => {
       if (over.length) return;
@@ -83,7 +83,7 @@ export class FilesScene extends Phaser.Scene {
     this.refresh();
   }
 
-  back() { sfx('menu', 0.6); this.scene.start('Trinkets'); }
+  back() { sfx('menu', 0.6); this.scene.start('Records'); }
   /** Opens THE MILESTONE ROAD for the fighter on show. */
   road() { sfx('menu', 0.7, 1.2); this.scene.start('Milestones', { fi: this.fi }); }
   pick(i) { this.fi = i; this.si = 0; this.page = 0; sfx('menu', 0.6); this.refresh(); }
