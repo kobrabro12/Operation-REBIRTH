@@ -397,7 +397,7 @@ export class FighterRender {
       if (this.state === 'upb' && d.moves.upb.jet && hb.h.angle < 0) continue;   // the flame column is the effect
       if (d.ownAnims && (hb.src && hb.src.anim || this.state === 'upb' || this.state === 'ledgeattack')) continue;   // the strip draws its own sword swipe
       const fx = hb.src && hb.src.fx;
-      if (fx === 'grab') continue;
+      if (fx === 'grab' || fx === 'none') continue;   // ('none': the move draws its own effect)
       if (fx === 'hex') {     // Soul Hex: a swirling purple curse with a dark eye
         const cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, rx = (hb.x2 - hb.x1) / 2, ry = (hb.y2 - hb.y1) / 2;
         for (let k = 0; k < 10; k++) { const a = this.t * 0.4 + k * 0.63, r = 0.35 + 0.65 * (k / 10);

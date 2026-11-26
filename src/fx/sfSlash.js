@@ -8,6 +8,7 @@
 //   neonCut    - a straight cut: a hairline flash along the line that splits open, throws sparks both ways and crumbles
 //   neonImpact - a hit flash: a ring, four star spikes, plasma, a glow
 //   glitchGhost- a fighter's afterimage in RGB-split neon with scanlines and tearing rows (an echo, a save point)
+//   neonRise   - a pillar of light shooting up off the floor: chevrons rushing up it, sparks, a ring at its foot
 import { Px, Rng, Particles, K, dot, ringE, mix, outCubic, outExpo, hash, clamp, lerp, SF_WHITE as WHITE, TAU } from './sfMovement.js';
 
 const NO_GROUND = () => 1e9;
@@ -145,6 +146,54 @@ export function glitchGhost(o) {
       light.glow(s.x + s.w / 2, s.y + s.h * 0.55, s.h * 0.6, A, 0.25 * k);
     },
     done: () => t > endAt,
+  };
+}
+
+/** A pillar of light shooting up from (x, y) (the floor): a flat ring flashes at its foot, a white-hot column `h` px
+ *  tall and `w` wide races up in a blink, chevrons (`colors2`) rush up it, sparks stream off its sides and twinkles
+ *  spill from its top - then it narrows from the bottom up and is gone. `dur` s in all. */
+export function neonRise(o) {
+  const R = new Rng(o.seed ?? 1), C = o.colors, C2 = o.colors2 || C, ps = new Particles(R, NO_GROUND);
+  const { x, y } = o, H = o.h ?? 90, W = o.w ?? 10, DUR = o.dur ?? 0.42, UP = 0.07;
+  let t = 0, topped = false;
+  return {
+    update(dt) {
+      t += dt; ps.update(dt);
+      const top = y - H * outExpo(clamp(t / UP));
+      if (t < DUR * 0.6) for (let i = 0; i < 3; i++) {                                    // sparks streaming up its sides
+        const s = R.sign(), py = lerp(y, top, R.next());
+        ps.spawn(K.PLASMA, x + s * W * 0.5, py, s * R.range(10, 60), -R.range(120, 320), R.range(0.12, 0.28), R.pick([C[2], C2[2]]));
+      }
+      if (!topped && t > UP) {                                                             // it hits the top: twinkles spill off
+        topped = true;
+        for (let i = 0; i < 12; i++) { const a = R.range(-Math.PI, 0); ps.spawn(K.STAR, x, y - H, Math.cos(a) * R.range(30, 120), Math.sin(a) * R.range(30, 120), R.range(0.25, 0.5), R.pick([C[1], C[2], C2[2]]), R.next() < 0.3 ? 1.2 : 0.6); }
+      }
+    },
+    draw(f, layer) {
+      const buf = new Px(f, f.color), light = new Px(f, f.light);
+      if (layer !== 'back' && t < DUR) {
+        const q = t / DUR, grow = outExpo(clamp(t / UP)), top = y - H * grow;
+        const bottom = y - H * clamp((q - 0.35) / 0.65) ** 1.6;                         // it narrows away from the bottom up
+        const fade = 1 - clamp((q - 0.5) / 0.5), wq = W * (q < 0.1 ? 1.3 : 1 - 0.6 * q);
+        for (let py = Math.floor(top); py <= bottom; py++) {
+          const v = (bottom - py) / Math.max(1, bottom - top), half = wq / 2 * (0.35 + 0.65 * Math.min(1, v * 4)) * (1 - 0.5 * v);
+          for (let d = -half; d <= half; d += 0.5) {
+            const e = Math.abs(d) / (half + 0.01);
+            dot(buf, x + d, py, e < 0.35 ? WHITE : e < 0.7 ? C[1] : e < 0.9 ? C[2] : C[4], fade * (e > 0.9 ? 0.6 : 1));
+          }
+          if (py % 6 === 0) light.glow(x, py, 10 + wq, C[2], 0.4 * fade);
+        }
+        for (let j = 0; j < 4; j++) {                                                        // chevrons rushing up the column
+          const cy = y - ((t * 900 + j * H / 4) % H); if (cy < top || cy > bottom) continue;
+          for (let d = 0; d <= wq / 2 + 2; d++) for (const s of [-1, 1]) dot(buf, x + s * d, cy + d * 0.8, C2[1], 0.9 * fade);
+        }
+        const rq = outCubic(clamp(q / 0.5)), rr = 6 + (W * 2.6) * rq;                       // the flat ring at its foot
+        if (q < 0.5) ringE(buf, x, y, rr, rr * 0.28, 1.5, q < 0.15 ? WHITE : C2[2], 1 - q * 2);
+        light.glow(x, y, 18, C[2], 0.6 * (1 - q));
+      }
+      ps.draw(buf, light, layer === 'back' ? 'back' : 'front');
+    },
+    done: () => t > DUR && ps.list.length === 0,
   };
 }
 

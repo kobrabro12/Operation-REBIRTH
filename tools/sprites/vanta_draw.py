@@ -5,8 +5,9 @@ An original design in GNASH's family (black clothes outlined in neon - gnash_dra
 black helmet with one glowing visor slit and two swept-back neon fins (NU's `hair` slot, with a neon scarf streaming
 behind); a high-collared black techwear jacket with a neon seam down the zip, a glowing core ring on the chest and a
 split coat-tail; a long black scabbard slung across his back; strapped cargo trousers with neon bands, black boots with
-glowing soles; a thin neon katana in his front hand (the `mic` slot) - a white-hot core, a coloured edge, a black guard
-and a wrapped hilt.
+glowing soles; a thin neon katana in his front hand (the `mic` slot) held in a REVERSE GRIP - the short wrapped hilt
+rises out of the top of his fist, the black guard under it, the blade (white-hot core, coloured edge) runs down out of
+the bottom.
 
 Every part is a 64x64 layer facing right, feet on row 58, shaded with nu_draw.shade5 (5-tone ramps: highlight, light,
 base, shadow, outline - an `outlined()` ramp's outline is its neon). draw_parts() returns {name: RGBA array}.
@@ -121,16 +122,18 @@ def draw_parts():
     # ---------------- front arm: sleeve and glove; the katana (mic slot) and the fist round its hilt
     im = blank(); d = ImageDraw.Draw(im); limb(d, (38, 24), (42, 31), 4, hx(CL[2])); P['fupper'] = shade5(im, CL)
     im = blank(); d = ImageDraw.Draw(im); limb(d, (42, 31), (44, 28), 4, hx(CL[2])); a = shade5(im, CL); put(a, [(42, 29), (43, 29)], NE); P['ffore'] = a
+    # REVERSE GRIP: the short wrapped hilt rises out of the top of his fist, the guard sits under it, and the blade runs
+    # down and back from the bottom of his fist - along the outside of his forearm when he holds it up
     B = glow(BL); k = blank_arr()
-    line(k, (44, 29), (43, 33), BLACK[1]); setp(k, [(44, 31), (43, 32)], AC)                                                    # the wrapped hilt below the fist
-    for (x, y) in [(43, 24), (44, 24), (45, 24), (46, 24), (44, 23), (45, 23)]: setp(k, [(x, y)], BLACK[3])                     # the guard
-    setp(k, [(44, 24)], AC)
-    x0, y0, x1, y1 = 45, 22, 55, 1                                                                                             # the blade: edge, core, a white tip
+    line(k, (44, 24), (45, 18), BLACK[1]); setp(k, [(44, 22), (45, 20)], AC); setp(k, [(45, 17), (46, 17)], BLACK[3]); setp(k, [(45, 17)], NE)   # hilt + pommel
+    for (x, y) in [(42, 29), (43, 29), (44, 29), (45, 29), (43, 30), (44, 30)]: setp(k, [(x, y)], BLACK[3])                     # the guard
+    setp(k, [(43, 29)], AC)
+    x0, y0, x1, y1 = 43, 31, 29, 49                                                                                            # the blade: edge, core, a white tip
     n = max(abs(x1 - x0), abs(y1 - y0))
     for i in range(n + 1):
         x = int(round(x0 + (x1 - x0) * i / n)); y = int(round(y0 + (y1 - y0) * i / n))
-        setp(k, [(x + 1, y)], B[3]); setp(k, [(x - 1, y)], B[2]); setp(k, [(x, y)], B[0] if i > 3 else B[1])
-    setp(k, [(x1, y1), (x1, y1 - 1)], 0xffffff)
+        setp(k, [(x, y + 1)], B[3]); setp(k, [(x + 1, y)], B[2]); setp(k, [(x, y)], B[0] if i > 3 else B[1])
+    setp(k, [(x1, y1), (x1 - 1, y1 + 1)], 0xffffff)
     P['mic'] = k
     im = blank(); d = ImageDraw.Draw(im); d.ellipse([42, 23, 46, 28], fill=hx(BLACK[2])); a = shade5(im, BLACK); put(a, [(43, 24), (44, 24)], NE); P['ffist'] = a
     P['can'] = blank_arr()
