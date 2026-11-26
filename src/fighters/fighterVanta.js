@@ -9,7 +9,7 @@ import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
 import { burstHit, skyLayer, foesOf, nearestFoe } from './showShot.js';
 import movement, { hex } from '../fx/sfMovement.js';
-import { neonSlash, neonCut, neonImpact, glitchGhost, neonRamp } from '../fx/sfSlash.js';
+import { neonSlash, neonCut, neonImpact, glitchGhost, neonRise, neonRamp } from '../fx/sfSlash.js';
 import { sfSpawn, sfActor } from '../fx/sfRunner.js';
 
 const RAD = Math.PI / 180;
@@ -17,7 +17,7 @@ const RAD = Math.PI / 180;
 const ARCS = {
   fwd: [-120, 50], up: [160, 380], down: [-20, 200], back: [300, 130], spin: [0, 360],
 };
-const ARC_OF = { jab: 'fwd', ftilt: 'fwd', fsmash: 'fwd', fair: 'fwd', dashAttack: 'fwd', utilt: 'up', usmash: 'up', uair: 'up', dtilt: 'down', dsmash: 'down', dair: 'down', bair: 'back', nair: 'spin' };
+const ARC_OF = { jab: 'fwd', ftilt: 'fwd', fsmash: 'fwd', fair: 'fwd', dashAttack: 'fwd', uair: 'up', dtilt: 'down', dsmash: 'down', dair: 'down', bair: 'back', nair: 'spin' };
 
 /** VANTA's own methods (attached to Fighter.prototype). */
 export class FighterVanta {
@@ -52,17 +52,42 @@ export class FighterVanta {
     const [bx, by, bw, bh] = h.box, x1 = this.facing > 0 ? this.x + bx : this.x - bx - bw;
     return { x1, x2: x1 + bw, y1: this.y + by, y2: this.y + by + bh };
   }
-  /** The slash a normal draws when its hit `h` comes out (and, OVERCLOCKED, the echo it leaves a beat later). */
-  vtNormalSlash(h) {
+  /** The slash a normal draws when its hit `h` comes out (and, OVERCLOCKED, the echo it leaves a beat later);
+   *  `echoOnly` = just the echo (RISING MOON draws its own slash). */
+  vtNormalSlash(h, echoOnly) {
     const R = this.vtRect(h), cx = (R.x1 + R.x2) / 2, cy = (R.y1 + R.y2) / 2, r = Math.max(R.x2 - R.x1, R.y2 - R.y1) * 0.55 + 4;
-    let [a0, a1] = ARCS[ARC_OF[this.moveName]] || ARCS.fwd;
+    let [a0, a1] = ARCS[ARC_OF[this.moveName] || (this.move && this.move.rise ? 'up' : 'fwd')];
     if (this.facing < 0) { a0 = 180 - a0; a1 = 180 - a1; }
     const big = h.dmg >= 12;
-    this.vtSlash(cx - this.facing * 4, cy, r, a0, a1, this.vtRamps().blade, big ? 7 : 5, big ? 0.36 : 0.28);
+    if (!echoOnly) this.vtSlash(cx - this.facing * 4, cy, r, a0, a1, this.vtRamps().blade, big ? 7 : 5, big ? 0.36 : 0.28);
     if (this.vtOver > 0) {                                                            // OVERCLOCK: an echo of this cut, a beat later
       const S = this.def.show.sync;
       (this.vtEchoQ = this.vtEchoQ || []).push({ at: this.age + S.echoDelay, rect: R, cx, cy, r, a0, a1,
         h: { ...h, dmg: Math.max(1, Math.round(h.dmg * S.echoDmg)), base: h.base * 0.7, growth: h.growth * 0.6 } });
+    }
+  }
+
+  /** RISING MOON (his up tilt / up smash, `move.rise`), frame by frame: a glitch afterimage as he crouches, a pillar
+   *  of light up from the floor in front of him with the pop-up hit, then the big crescent from low in front, over his
+   *  head and behind with the launcher - an accent moon a beat after it, and on the smash a burst of light overhead.
+   *  OVERCLOCKED, the launcher's cut echoes like any normal's. */
+  vtRisingMoon(m) {
+    const t = this.t + 1, [h1, h2] = m.hits, Rz = m.rise, R = this.vtRamps(), F = this.facing, M = this.match;
+    if (t === 1) { this.vtGhost(0.32, R.accent); sfx('swing', 0.3, 0.7); }
+    if (t === h1.from) {
+      const px = this.x + F * 14;
+      this.vtFx(neonRise({ x: px, y: this.y, h: Rz.pillar, w: Rz.burst ? 12 : 9, colors: R.blade, colors2: R.accent, seed: (this.age * 7) | 0 }), px, this.y - Rz.pillar, px, this.y, 40);
+      sfx('shing', 0.45, 1.6);
+      if (!M.demo) for (let i = 0; i < 8; i++) M.particles.push({ x: px + (Math.random() - 0.5) * 18, y: this.y - 2, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2, life: 14, color: i % 2 ? this.pal.mid : (this.pal.accent ?? 0xff2ad8), size: 2, grav: 0 });
+    }
+    if (t === h2.from) {
+      const cx = this.x + F * 2, cy = this.y - (Rz.burst ? 62 : 50), r = Rz.r;
+      const a0 = F > 0 ? 40 : 140, a1 = F > 0 ? -210 : 390;                                // low in front -> straight up -> behind
+      this.vtFx(neonSlash({ x: cx, y: cy, r, a0: a0 * RAD, a1: a1 * RAD, colors: R.blade, thick: Rz.thick, sweep: 0.08, dur: Rz.burst ? 0.5 : 0.42, seed: (this.age * 31) | 0 }), cx - r, cy - r, cx + r, cy + r, 40);
+      (this.vtRiseQ = this.vtRiseQ || []).push({ at: this.age + 3, fn: () => this.vtSlash(cx, cy - 4, r + 9, a0 - 10 * F, a1, R.accent, Math.max(3, Rz.thick - 4), 0.34) });
+      sfx('slash', 0.55, Rz.burst ? 0.8 : 1.1); M.shake(Rz.burst ? 3 : 1, 5);
+      if (Rz.burst) this.vtRiseQ.push({ at: this.age + 4, fn: () => { this.vtImpact(this.x, this.y - 118, R.accent, 1.3); this.vtCut(this.x - 30, this.y - 118, this.x + 30, this.y - 118, R.blade); sfx('bighit', 0.35, 1.6); } });
+      if (this.vtOver > 0) this.vtNormalSlash(h2, true);
     }
   }
 
@@ -285,6 +310,8 @@ export class FighterVanta {
     }
     // a normal's slash comes out with its hit
     if (this.state === 'attack' && this.move && this.move.hits && ARC_OF[this.moveName]) for (const h of this.move.hits) if (h.from === this.t + 1) this.vtNormalSlash(h);
+    if (this.state === 'attack' && this.move && this.move.rise) this.vtRisingMoon(this.move);
+    if (this.vtRiseQ && this.vtRiseQ.length) { for (const q of this.vtRiseQ) if (this.age >= q.at) { q.done = true; q.fn(); } this.vtRiseQ = this.vtRiseQ.filter((q) => !q.done); }
     // OVERCLOCK's echo cuts land
     if (this.vtEchoQ && this.vtEchoQ.length) {
       for (const e of this.vtEchoQ) if (this.age >= e.at) {

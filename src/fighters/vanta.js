@@ -41,6 +41,18 @@ export const VANTA = {
   moves: {
     ...DEFAULT_GRAB,
     ...tuned(NU.moves, { dmg: 1, kb: 0.98, reach: 6 }),   // (his normals reach a little further: the katana)
+    // RISING MOON (up tilt): the blade whips up from low in front, over his head and behind - a pillar of light from
+    // his feet pops them up (`rise`), then the big crescent launches them. fighterVanta.js `vtRisingMoon` draws it.
+    utilt: { frames: 30, multi: true, fx: 'none', rise: { pillar: 92, r: 34, thick: 8 }, hits: [
+      { from: 6, to: 8, box: [4, -46, 40, 46], dmg: 3, angle: 88, base: 2.4, growth: 0, stun: 10 },
+      { from: 9, to: 13, box: [-30, -102, 62, 62], dmg: 6, angle: 88, base: 3.2, growth: 5.4 },
+    ] },
+    // RISING MOON (up smash): sinks deep, then springs off the floor with the same cut - a taller pillar, a wider moon
+    // and a burst of light over his head
+    usmash: { frames: 46, multi: true, fx: 'none', rise: { pillar: 128, r: 44, thick: 10, burst: true }, hits: [
+      { from: 16, to: 17, box: [2, -52, 44, 52], dmg: 4, angle: 88, base: 2.2, growth: 0, stun: 12 },
+      { from: 18, to: 23, box: [-36, -120, 72, 76], dmg: 11, angle: 88, base: 4.2, growth: 7.4 },
+    ] },
     // ---- specials: fighterVanta.js does them all (`show: true`)
     // IAI (neutral): HOLD to sink into a draw stance - a ring closes in on him; LET GO to cut. Release while the ring
     // flashes (the PERFECT window) for a PERFECT DRAW: a cut across `perfectReach` px, everything hit freezes, and his
