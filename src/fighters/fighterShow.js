@@ -2,7 +2,7 @@
 // hook calls that fighter's method by name if it has one (kind 'gnash' -> gnashTick, gnashBonus, gnashLanded,
 // drawGnash, gnashSpecial, gnashStep, gnashHurt, drawGnashHud). From Fighter.step (showTick), Fighter.tryCommon
 // (showSpecial), Fighter.st_attack (showStep, for moves with `show: true` or GNASH's `gnash`), MatchScene.applyHit
-// (showBonus / showLanded / showHurt), fighterRender (drawShow) and hud.js (drawShowHud). Users: GNASH
+// (showBonus / showLanded / showHurt / showKO), fighterRender (drawShow) and hud.js (drawShowHud). Users: GNASH
 // (fighterGnash.js), LUMEN (fighterLumen.js), VANTA (fighterVanta.js), KAMI (fighterKami.js). Mixed into the
 // Fighter class (Fighter.js) - `this` is the fighter.
 
@@ -18,6 +18,8 @@ export class FighterShow {
   showLanded(t, hb) { const f = this.showFn('Landed'); if (f) f.call(this, t, hb); }
   /** This fighter was hurt for dmg (from MatchScene.applyHit). */
   showHurt(dmg, hb) { const f = this.showFn('Hurt'); if (f) f.call(this, dmg, hb); }
+  /** It KO'd `victim` (from MatchScene.onKO). */
+  showKO(victim) { const f = this.showFn('KO'); if (f) f.call(this, victim); }
   /** A special pressed: the fighter's own routing (undefined = the usual specials). */
   showSpecial(c) { const f = this.showFn('Special'); return f ? f.call(this, c) : undefined; }
   /** Every frame of one of its own moves (true = it handled the frame). */

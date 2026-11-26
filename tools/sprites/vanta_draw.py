@@ -5,16 +5,30 @@ An original design in GNASH's family (black clothes outlined in neon - gnash_dra
 black helmet with one glowing visor slit and two swept-back neon fins (NU's `hair` slot, with a neon scarf streaming
 behind); a high-collared black techwear jacket with a neon seam down the zip, a glowing core ring on the chest and a
 split coat-tail; a long black scabbard slung across his back; strapped cargo trousers with neon bands, black boots with
-glowing soles; a thin neon katana in his front hand (the `mic` slot) held in a REVERSE GRIP - the short wrapped hilt
-rises out of the top of his fist, the black guard under it, the blade (white-hot core, coloured edge) runs down out of
-the bottom.
+glowing soles; TWO neon katanas, both held in a REVERSE GRIP - the short wrapped hilt rises out of the top of the fist,
+the black guard under it, the blade (white-hot core, coloured edge) runs down out of the bottom: one in his front hand
+(the `mic` slot, in the look's blade colour) and its twin in his back hand (`bsword`, a part of his own on the back
+forearm - ORDER / RIG below - in the look's accent colour).
 
 Every part is a 64x64 layer facing right, feet on row 58, shaded with nu_draw.shade5 (5-tone ramps: highlight, light,
 base, shadow, outline - an `outlined()` ramp's outline is its neon). draw_parts() returns {name: RGBA array}.
 """
 import numpy as np
 from PIL import Image, ImageDraw
-from nu_draw import blank, shade5, put, limb, hx, ORDER, RIG, composite   # noqa: F401
+from nu_draw import blank, shade5, put, limb, hx, ORDER as NU_ORDER, RIG as NU_RIG
+
+# NU's joints plus `bsword`: the second katana, held in his back fist (drawn under the glove, so the fist grips it)
+ORDER = [n for n in NU_ORDER]; ORDER.insert(ORDER.index('bfore'), 'bsword')
+RIG = {**NU_RIG, 'bsword': ((26, 37), 'bfore')}
+
+def composite(P, hide=('can',)):
+    """All his parts layered in ORDER (for previews and the rig's base picture)."""
+    out = np.zeros((64, 64, 4), np.uint8)
+    for n in ORDER:
+        if n in hide or n not in P: continue
+        a = P[n]; m = a[..., 3] > 0
+        out[m] = a[m]
+    return out
 
 VARIANT = 'default'
 
@@ -122,24 +136,28 @@ def draw_parts():
     # ---------------- front arm: sleeve and glove; the katana (mic slot) and the fist round its hilt
     im = blank(); d = ImageDraw.Draw(im); limb(d, (38, 24), (42, 31), 4, hx(CL[2])); P['fupper'] = shade5(im, CL)
     im = blank(); d = ImageDraw.Draw(im); limb(d, (42, 31), (44, 28), 4, hx(CL[2])); a = shade5(im, CL); put(a, [(42, 29), (43, 29)], NE); P['ffore'] = a
-    # REVERSE GRIP: the short wrapped hilt rises out of the top of his fist, the guard sits under it, and the blade runs
-    # down and back from the bottom of his fist - along the outside of his forearm when he holds it up
-    B = glow(BL); k = blank_arr()
-    line(k, (44, 24), (45, 18), BLACK[1]); setp(k, [(44, 22), (45, 20)], AC); setp(k, [(45, 17), (46, 17)], BLACK[3]); setp(k, [(45, 17)], NE)   # hilt + pommel
-    for (x, y) in [(42, 29), (43, 29), (44, 29), (45, 29), (43, 30), (44, 30)]: setp(k, [(x, y)], BLACK[3])                     # the guard
-    setp(k, [(43, 29)], AC)
-    x0, y0, x1, y1 = 43, 31, 29, 49                                                                                            # the blade: edge, core, a white tip
-    n = max(abs(x1 - x0), abs(y1 - y0))
-    for i in range(n + 1):
-        x = int(round(x0 + (x1 - x0) * i / n)); y = int(round(y0 + (y1 - y0) * i / n))
-        setp(k, [(x, y + 1)], B[3]); setp(k, [(x + 1, y)], B[2]); setp(k, [(x, y)], B[0] if i > 3 else B[1])
-    setp(k, [(x1, y1), (x1 - 1, y1 + 1)], 0xffffff)
-    P['mic'] = k
+    P['mic'] = katana((44, 26), glow(BL), BLACK, NE)                                                                     # the katana, reverse grip
+    P['bsword'] = katana((26, 37), glow(AC), BLACK, NE)                                                                    # its twin, in his back fist
     im = blank(); d = ImageDraw.Draw(im); d.ellipse([42, 23, 46, 28], fill=hx(BLACK[2])); a = shade5(im, BLACK); put(a, [(43, 24), (44, 24)], NE); P['ffist'] = a
     P['can'] = blank_arr()
     return P
 
 def blank_arr(): return np.zeros((64, 64, 4), np.uint8)
+
+def katana(fist, B, BLACK, NE):
+    """A reverse-grip katana for the fist at `fist`: hilt + pommel up out of the top, guard under it, the blade (ramp B:
+    white-hot core, coloured edge, white tip) running down and back out of the bottom."""
+    fx, fy = fist; k = blank_arr()
+    line(k, (fx, fy - 2), (fx + 1, fy - 8), BLACK[1]); setp(k, [(fx, fy - 4), (fx + 1, fy - 6)], B[2]); setp(k, [(fx + 1, fy - 9), (fx + 2, fy - 9)], BLACK[3]); setp(k, [(fx + 1, fy - 9)], NE)
+    for (dx, dy) in [(-2, 3), (-1, 3), (0, 3), (1, 3), (-1, 4), (0, 4)]: setp(k, [(fx + dx, fy + dy)], BLACK[3])
+    setp(k, [(fx - 1, fy + 3)], B[2])
+    x0, y0, x1, y1 = fx - 1, fy + 5, fx - 15, fy + 23
+    n = max(abs(x1 - x0), abs(y1 - y0))
+    for i in range(n + 1):
+        x = int(round(x0 + (x1 - x0) * i / n)); y = int(round(y0 + (y1 - y0) * i / n))
+        setp(k, [(x, y + 1)], B[3]); setp(k, [(x + 1, y)], B[2]); setp(k, [(x, y)], B[0] if i > 3 else B[1])
+    setp(k, [(x1, y1), (x1 - 1, y1 + 1)], 0xffffff)
+    return k
 
 if __name__ == '__main__':
     import sys

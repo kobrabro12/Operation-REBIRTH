@@ -567,6 +567,7 @@ export class MatchScene extends Phaser.Scene {
     this.extras.onKO(f, bx, by);
     if (f.lastHitBy && f.lastHitBy !== f) {
       const k = f.lastHitBy; k.kos++; if (k.quip) k.quip('ko');
+      if (k.def.show) k.showKO(f);                   // (VANTA's KO STREAK panels)
       if (!k.isCpu && !this.isTraining) {           // milestone progress: human KOs in real matches
         const tier = addKO(k.def.id);
         if (tier) { this.unlocks.push({ slot: k.slot, fighter: k.def.id, tier }); this.popText(k, 'NEW COSTUME UNLOCKED!', '#f3c358'); sfx('limitready', 1); }
