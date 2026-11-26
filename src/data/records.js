@@ -81,6 +81,77 @@ THE MORNING: I woke up behind this counter. My face was gone - not hurt, just bl
 SINCE: The star touched everything that night, and everything it touched began pulling toward the arenas. Somebody needed to write it all down. Who came back, and how. Who is fighting, and why. Whether it is working. I started a file on every one of them. Then a file on every place. Then a file on the things that do not have names yet. The drawers have not run out. I am beginning to think they never will.
 
 ABOUT THE HAT: It was already on my head that morning. I do not know whose it was. The badge is warm when a new fighter arrives. I have never taken it off, and I would prefer you didn't ask me to.` },
+  // THE FIVE MYSTERIES: internet mysteries and old campfire stories of the web, each with her own way of finding it
+  { id: 'x-cicada', names: ['CICADA', 'CICADA3301', '3301', 'LIBERPRIMUS'], name: 'CICADA 3301', tab: 'CICADA 3301', anim: 'cipher', fx: 'cicada',
+    kind: 'SECRET FILE - PUZZLE', from: 'FOUND BETWEEN THE LINES OF ANOTHER FILE',
+    say: ['OOH. THAT ONE\'S NOT A NAME, IT\'S AN INVITATION.', 'HANG ON, I NEED MY GLASS. THE PRINT ON THIS ONE IS... HIDDEN.'], after: 'IT LANDED ON MY HAT. IT\'S STILL ON MY HAT, ISN\'T IT. ...DON\'T TELL ME.',
+    text: `CICADA 3301: A RECRUITMENT NOTICE WITH NO RETURN ADDRESS.
+
+THE FIRST POST. In January of 2012, an image appeared on an anonymous message board: white text on black, signed with a picture of a cicada and the number 3301. It said, more or less, that a group was looking for highly intelligent people, and that hidden inside the picture was a message - find it, and it would lead you on.
+
+It did. Inside the image was hidden text. The text led to a code. The code led to a book, then to a phone number, then to coordinates - and the coordinates led to real posters, taped to real lampposts, in cities on different continents on the same day, each with a cicada and a QR code. Solvers had to work together across the world just to see every piece. The puzzles used old ciphers, hidden files inside pictures, a dead poet's verses and the kind of mathematics banks rely on. Every true message carried the same digital signature, so nobody could fake one.
+
+WHAT HAPPENED NEXT. A handful of people reached the end of the first puzzle. They say they were invited somewhere private, and then went quiet. New rounds came in 2013 and 2014. The last big one left behind a book written almost entirely in runes - the LIBER PRIMUS - most of which has never been read. In 2017 a short signed message warned everyone not to trust any message that wasn't signed. Then nothing.
+
+Nobody has ever proven who made it. Guesses run from a bank to a spy agency to a handful of very patient strangers. The cicada is a good choice: it spends years underground, then comes up all at once, sings, and is gone.
+
+THE ARCHIVE'S PART. On the night of the Starfall, one of my drawers opened by itself and inside was a single sheet of paper I had never filed. A grid of runes, a cicada drawn in the corner, and the number 3301. I have been working on it for a long time. I have translated one line. It reads: WE ARE LOOKING FOR THE ONES WHO LOOK.
+
+I think they found me. I think they're still deciding.` },
+  { id: 'x-polybius', names: ['POLYBIUS', 'POLYBIOS', 'SINNESLOSCHEN', 'SINNESLOESCHEN'], name: 'POLYBIUS', tab: 'POLYBIUS', anim: 'dizzy', fx: 'arcade',
+    kind: 'SECRET FILE - URBAN LEGEND', from: 'A CABINET NOBODY REMEMBERS PLUGGING IN',
+    say: ['POLYBIUS? THAT\'S AN ARCADE GAME. IT\'S NOT REAL. IT IS DEFINITELY NOT REAL.', 'LET ME JUST... LOOK AT THE SCREEN FOR A SECOND...'], after: 'WHOOO. OKAY. WHO MOVED THE OFFICE? ...HERE. TAKE IT. DON\'T PLAY IT.',
+    text: `POLYBIUS: THE ARCADE CABINET THAT WASN'T THERE.
+
+THE STORY. In 1981, the legend goes, a new arcade machine appeared in a few arcades around Portland, Oregon. Plain black cabinet, no famous name on it - just POLYBIUS. The game was fast, bright and strange: spinning vector shapes, tunnels, flashing colours. People lined up to play. Then, the story says, they started having trouble: headaches, nightmares, forgetting things, a few who could not stop playing at all.
+
+THE MEN IN BLACK. Every version has them: men in dark suits who came to the arcades after closing, opened the machines up and wrote things down - not the high scores, something else. Then one day the cabinets were gone, every one of them, as quietly as they'd come. No manufacturer ever claimed it. No receipts, no photos, no cabinet in any collection.
+
+WHERE IT REALLY COMES FROM. Nobody has ever found a scrap of evidence from 1981. The earliest written mention anyone can point to is a short entry on a website about old arcade games, around the year 2000. It may have grown out of true stories from the time - real arcade players in that city did fall ill at a tournament, and real federal agents did visit arcades, though for very ordinary reasons - stitched together and told around enough campfires to become a game nobody ever played. Since then people have built their own POLYBIUS games, cabinets and all, so it exists now. Just not the way the story says.
+
+THE ARCHIVE'S PART. On the night of the Starfall a shard came down on an empty parking lot where an arcade used to be. In the morning there was a black cabinet standing on the spot. No plug. The screen was on. I had it moved to the deepest drawer we have, which is not a drawer. Sometimes when I walk past I can hear the attract music. Sometimes it says my name in the high-score table. I have never played it. The score next to my name keeps going up.` },
+  { id: 'x-buzzer', names: ['UVB76', 'UVB', 'BUZZER', 'THEBUZZER', 'MDZHB', '4625'], name: 'UVB-76 (THE BUZZER)', tab: 'UVB-76', anim: 'radio', fx: 'buzzer',
+    kind: 'SECRET FILE - TRANSMISSION LOG', from: 'COPIED BY HAND FROM 4625 kHz',
+    say: ['THE BUZZER! HOLD ON, I HAVE TO LISTEN LIVE FOR THIS ONE.', 'SHH. SHHH. IT\'S BUZZING.'], after: 'TWENTY-FIVE BUZZES A MINUTE, FORTY YEARS STRAIGHT. AND THEN, SOMETIMES... A WORD.',
+    text: `UVB-76: THE STATION THAT NEVER STOPS BUZZING.
+
+THE SIGNAL. Tune an old shortwave radio to 4625 kHz and, for most of the last fifty years, you'd have heard it: a short, dull, flat BUZZ, about twenty-five times a minute, over and over and over, all day, all night. Radio listeners started writing it down in the late 1970s and early 1980s. They named it after the call sign it seemed to use: UVB-76. Everyone else just calls it THE BUZZER.
+
+THE VOICES. The buzz is not the whole story. Every so often - days apart, sometimes months - it stops. A man's voice reads out a short message in Russian: a call sign, then a few code words, often names, read slowly, twice. Then the buzzing comes back as if nothing happened. Over the years the call sign changed. The words never made sense to anyone outside.
+
+WHAT IT MIGHT BE. Most people who study it believe it is a military channel, kept open with a buzz so that nobody else uses the frequency, waiting for messages that matter. Others think it's a test signal nobody ever turned off, or a "dead hand" that only stops if something has gone very wrong. In 2010 it moved its transmitter and, for a while, listeners heard background voices and footsteps, as if someone had left a microphone on in the room. No official explanation has ever been given. It is still, as far as anyone knows, out there.
+
+THE ARCHIVE'S PART. Since the Starfall, there is a second voice on the frequency. Late, after midnight - eleven minutes past - between the buzzes, very quietly, a woman reads out names. I know the names. They are the fighters. She reads them in the order they arrived, and then one more name I don't recognise yet.
+
+I write each one down. I am waiting to see who comes through the door.` },
+  { id: 'x-rake', names: ['RAKE', 'THERAKE'], name: 'THE RAKE', tab: 'THE RAKE', anim: 'spook', fx: 'rake',
+    kind: 'SECRET FILE - SIGHTINGS (COLLECTED)', from: 'KEPT IN A DRAWER THAT LOCKS FROM THE INSIDE',
+    say: ['...THE RAKE.', 'I\'LL GET IT. JUST DON\'T... LOOK AT THE CORNER WHILE I DO.'], after: '...IS IT GONE? IT\'S GONE. HERE. I\'M STAYING DOWN HERE A MINUTE.',
+    text: `THE RAKE: THE THING AT THE END OF THE BED.
+
+THE STORY. Sometime around 2005, on an anonymous message board, people set out on purpose to invent a monster together - and made one that was never quite finished. They called it THE RAKE. It was pale and thin, crouched like a person who had forgotten how to stand, with long fingers and a face nobody could describe the same way twice. It didn't chase anyone. It didn't roar. It sat at the end of the bed, very still, and watched you sleep.
+
+THE DOCUMENTS. What made the story stick was the paperwork. Someone wrote it as a collection: a diary entry hundreds of years old, a captain's log, a note left behind decades ago, a modern account from a family who woke up to find it sitting there - all supposedly found and gathered by people looking into the same thing. Different hands, different centuries, the same quiet visitor. Of course, every page was written by the storytellers. But it was written well enough that people still argue about it.
+
+WHY IT WORKS. The Rake does almost nothing, and that is the trick. Every story ends the same way: it was there, and then it wasn't, and nobody ever slept well in that room again. It is a monster made of the moment just after you open your eyes in the dark.
+
+THE ARCHIVE'S PART. I keep this file in a drawer that locks from the inside. I don't know how I lock it from the outside. I just know that when I come in in the morning it is locked, and when I go home at night it is unlocked.
+
+Some nights, when the lamp flickers, the far corner of the office is darker than it should be, and taller. I don't look. I file. Paper is honest - it only says what you put on it. I have never once written down that anything is sitting in my corner. And I never will.` },
+  { id: 'x-wow', names: ['WOW', 'WOWSIGNAL', 'THEWOWSIGNAL', '6EQUJ5'], name: 'THE WOW! SIGNAL', tab: 'WOW! SIGNAL', anim: 'wow', fx: 'wow',
+    kind: 'SECRET FILE - OBSERVATION', from: 'ONE PRINTOUT, CIRCLED IN RED',
+    say: ['OH! OH, I LOVE THIS ONE. WAIT RIGHT THERE.', 'IT\'S ON A PRINTOUT. A LONG ONE. ONE SECOND...'], after: 'SEVENTY-TWO SECONDS FROM THE STARS. EVERY TIME I READ IT I SAY IT OUT LOUD.',
+    text: `THE WOW! SIGNAL: SEVENTY-TWO SECONDS FROM SOMEWHERE ELSE.
+
+THE NIGHT. On August 15, 1977, a radio telescope in Ohio called the BIG EAR was doing what it always did: sweeping the sky, listening for anything that sounded like it had been made on purpose. A computer printed what it heard as rows of numbers and letters - mostly 1s and 2s and blanks, the quiet hiss of space.
+
+THE PRINTOUT. A few days later, a volunteer astronomer named Jerry Ehman was reading back through the pages by hand and found a short run of characters that climbed and fell: 6EQUJ5. In that code, the letters meant the signal had been many, many times louder than the background - for about seventy-two seconds, exactly as long as a point in the sky took to drift through the telescope's view. It was narrow, too, sitting right near a frequency hydrogen gives off, the one many scientists had guessed someone out there might use to say hello. He circled it in red and wrote one word in the margin: WOW!
+
+THE SEARCH. They pointed the telescope back at that patch of sky, toward the constellation Sagittarius, again and again. So did other astronomers, for years, with bigger and better instruments. It never came back. Many explanations have been offered since - something passing nearby, a natural cloud of gas, an odd reflection - and none of them has ever settled it completely.
+
+THE ARCHIVE'S PART. On the night of the Starfall, the purple star was running from something, and it called out as it ran. I don't know how I know that. But I have a printout. Nobody printed it. It appeared in my in-tray at 12:11 AM, and halfway down the page, among all the quiet 1s and 2s, it climbs and falls: 6EQUJ5.
+
+Someone had already circled it in red. The handwriting in the margin is mine.` },
   { id: 'x-levelfun', names: ['LEVELFUN', 'FUN'], refuse: true, say: ['NO.', 'WE DO NOT GO TO LEVEL FUN. ASK ME SOMETHING ELSE. QUICKLY.'] },
 ];
 
@@ -168,7 +239,17 @@ export const ARCH_LINES = {
   tray: ['TODAY\'S REQUESTS. MOSTLY FROM MR WAKE. HE WANTS TO KNOW IF TEA IS A FIGHTER.', 'THAT\'S MY IN-TRAY. IT HAS NEVER ONCE BEEN EMPTY.'],
   pad: ['MY STAMP PAD! RED FOR "CLASSIFIED", RED FOR "APPROVED". I ONLY HAVE RED.'],
   case: ['THAT\'S YOUR BRIEFCASE. EVERYTHING I\'VE GIVEN YOU IS IN THERE.'],
-  hint: ['PSST. SOME FILES AREN\'T IN MY BINS. SOME ARE BEHIND YELLOW WALLPAPER THAT GOES ON FOREVER.', 'NOBODY EVER ASKS ABOUT ME. JUST SAYING. NOBODY.', 'TRY A NIGHT INSTEAD OF A NAME. A STAR FELL ON IT.', 'THE BOSSES HAVE FILES TOO - BUT THE GOOD PAGES ONLY UNSEAL ONCE YOU\'VE BEATEN THEM.', 'THE SHOPKEEPER? OH, I HAVE A FILE. HE HAS A FILE ON ME TOO, I BET.'],
+  hint: ['THE RADIO SAYS STRANGE THINGS AT NIGHT. SOMETHING THAT BUZZES. TRY ASKING ME ABOUT IT.', 'AN ARCADE GAME FROM 1981 THAT NOBODY CAN PROVE EXISTED. I HAVE ITS FILE. NOT ITS NAME, THOUGH. YOU NEED THAT.', 'SOME PUZZLES COME WITH A BUG ON THEM. A SINGING ONE. AND A NUMBER.', 'SOMEONE ONCE CIRCLED SIX CHARACTERS IN RED AND WROTE ONE WORD NEXT TO IT. GUESS THE WORD.', 'DON\'T ASK ME ABOUT THE THING IN THE CORNER. ...THE THING WITH LONG FINGERS. DON\'T.', 'PSST. SOME FILES AREN\'T IN MY BINS. SOME ARE BEHIND YELLOW WALLPAPER THAT GOES ON FOREVER.', 'NOBODY EVER ASKS ABOUT ME. JUST SAYING. NOBODY.', 'TRY A NIGHT INSTEAD OF A NAME. A STAR FELL ON IT.', 'THE BOSSES HAVE FILES TOO - BUT THE GOOD PAGES ONLY UNSEAL ONCE YOU\'VE BEATEN THEM.', 'THE SHOPKEEPER? OH, I HAVE A FILE. HE HAS A FILE ON ME TOO, I BET.'],
   idle: ['...', 'HM HM HMM...', 'WHERE DID I PUT THE GNASH FILE... OH, IT\'S CHEWED.', 'I COUNTED THE DRAWERS ONCE. I GOT A DIFFERENT NUMBER THE NEXT DAY.'],
+  busy: ['ONE SEC!', 'COMING!', 'JUST A MOMENT!', 'HOLD THAT THOUGHT!', 'BE RIGHT WITH YOU!', 'TWO SECONDS!'],
+  cocoa: ['COCOA BREAK! BACK IN A JIFFY.', 'TIME FOR A CUP. EXTRA MARSHMALLOWS. DON\'T JUDGE.', 'OOH, IS IT COCOA O\'CLOCK? IT\'S ALWAYS COCOA O\'CLOCK.'],
+  sip: ['MMMM.', 'AAAH. PERFECT.', 'THAT\'S THE GOOD STUFF.', 'MARSHMALLOW MOUSTACHE. AGAIN.'],
+  tape: ['OOP - TAPE\'S DONE. NEW ONE!', 'SIDE B? NO. NEW TAPE.', 'HOLD ON, THE MUSIC STOPPED. CAN\'T FILE IN SILENCE.'],
+  tapeOn: ['THERE WE GO!', 'OOH, THIS ONE\'S A BOP.', 'MUSIC MAKES THE DRAWERS OPEN EASIER. FACT.'],
+  rolodex: ['MY ROLODEX! EVERY CARD IS A FIGHTER. A FEW ARE JUST DOODLES OF CATS.', 'SPIN IT. GO ON. ...SEE? CATS.'],
+  pencils: ['SHARPENED THIS MORNING. I SHARPEN THEM EVERY MORNING. I DON\'T USE THEM.', 'THE RED ONE IS FOR CIRCLING THINGS THAT GO WOW.'],
+  plant: ['THAT\'S GERALD. GERALD HAS SEEN THINGS.', 'I WATER GERALD ON TUESDAYS. HE PREFERS COCOA.'],
+  boombox: ['MY BOOMBOX! THE STICKERS CAME WITH IT. THE STAR ONE IS MINE.', 'WANT A DIFFERENT TAPE? ...FINE, FINE.'],
+  machine: ['THE COCOA MACHINE. STAFF ONLY. YOU\'RE NOT STAFF. ...YET.', 'IT GOES BLURP. I LOVE WHEN IT GOES BLURP.'],
   bye: ['COME BACK SOON! THE FILES MISS YOU.', 'MIND THE STEP! THERE ISN\'T ONE, BUT MIND IT ANYWAY.', 'TOODLE-OO!'],
 };

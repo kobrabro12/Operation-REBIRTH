@@ -9,7 +9,6 @@
 // dot eyes, a wide open smile with teeth - and every expression in EXPR (she talks, laughs, winks, thinks, sulks).
 // F = THE DOSSIERS (the old LORE pages, FilesScene), R = THE ARCHIVE, K / Esc / B = back to Trinkets.
 import { VIEW_W, VIEW_H, FONT } from '../config.js';
-import { playMusic } from '../audio/music.js';
 import { MenuInput } from './menuInput.js';
 import { sfx } from '../audio/sfx.js';
 import { makeButton } from '../ui/button.js';
@@ -17,6 +16,7 @@ import { addFullscreenButton } from '../ui/fullscreen.js';
 import { touchEnabled } from '../input/touch.js';
 import { RECORDS_FRAMES as RF } from './recordsFrames.js';
 import { findRecord, recordById, briefcase, fileAway, recordCount, ARCH_LINES } from '../data/records.js';
+import { RecordsLife } from './recordsLife.js';
 
 const DIR = 'assets/lore/records/';
 const TICKS = 4;                                          // game frames per animation frame (her renders are 15 fps)
@@ -30,9 +30,13 @@ const PAD = { cols: 10, w: 34, h: 20, gap: 4, y: 196 };
 const EXPR = {
   happy: ['dot', 'grin'], smile: ['dot', 'smile'], laugh: ['shut', 'laugh', 1], wink: ['wink', 'grin', 1], surprised: ['wide', 'o'],
   think: ['think', 'flat'], sly: ['half', 'smirk'], sad: ['sad', 'frown'], focus: ['half', 'tongue'], shy: ['shut', 'smile', 1], scared: ['wide', 'wobble'],
+  sip: ['shut', 'none', 1],
 };
+// Mason's drawn faces (faces.png from tools/sprites/archivist_faces.py): frame, and where the eyes' middle sits in it
+const FACE_IMG = { smug: [0, 28, 18], annoyed: [1, 25.5, 24], shocked: [2, 29.5, 20] };
 // the expression each animation starts with
-const ANIM_EXPR = { idle: 'smile', greet: 'happy', ask: 'happy', listen: 'smile', dig: 'focus', give: 'happy', portal: 'focus', think: 'think', laugh: 'laugh', shrug: 'sly', stamp: 'focus', tip: 'wink', explain: 'happy' };
+const ANIM_EXPR = { idle: 'smile', greet: 'happy', ask: 'happy', listen: 'smile', dig: 'focus', give: 'happy', portal: 'focus', think: 'think', laugh: 'laugh', shrug: 'sly', stamp: 'focus', tip: 'wink', explain: 'happy',
+  cocoa: 'smile', tape: 'happy', cipher: 'focus', dizzy: 'focus', radio: 'focus', spook: 'smile', wow: 'focus' };
 // left alone: a little something every IDLE frames (think / explain / a hint)
 const IDLE = 900;
 const INK = 0x16121a;
@@ -54,6 +58,7 @@ export class RecordsScene extends Phaser.Scene {
   /** Loads the room, the counter and her animations. */
   preload() {
     for (const n of ['room', 'counter']) if (!this.textures.exists('rec_' + n)) this.load.image('rec_' + n, DIR + n + '.png');
+    if (!this.textures.exists('rec_faces')) this.load.spritesheet('rec_faces', DIR + 'faces.png', { frameWidth: 64, frameHeight: 64 });
     for (const [a, spec] of Object.entries(RF.anims)) if (!this.textures.exists('rec_' + a)) this.load.image('rec_' + a, DIR + spec.file);
   }
 
@@ -61,7 +66,6 @@ export class RecordsScene extends Phaser.Scene {
   create() {
     this.t = 0; this.menu = new MenuInput(this); this.busy = false; this.overlay = null; this.typed = null; this.fx = [];
     this.kC = null; this.leaving = false; this.portal = null; this.holding = null; this.sliding = null; this.full = null; this.queue = []; this.mouse = null;
-    playMusic(this, 'bgm_title');
     this.cameras.main.setBackgroundColor(0x120e10);
     for (const [a, spec] of Object.entries(RF.anims)) {
       const tex = this.textures.get('rec_' + a);
@@ -71,6 +75,7 @@ export class RecordsScene extends Phaser.Scene {
     this.add.image(RF.counter[0], RF.counter[1], 'rec_counter').setOrigin(0).setScale(RF.scale).setDepth(1);
     this.her = this.add.image(0, 0, 'rec_idle', '0').setOrigin(0).setScale(RF.scale).setDepth(2);
     this.faceG = this.add.graphics().setDepth(3);
+    this.faceImg = this.add.image(0, 0, 'rec_faces', 0).setDepth(3).setVisible(false);
     this.backG = this.add.graphics().setDepth(1.5);                   // (things behind her: a portal's far glow)
     this.fxG = this.add.graphics().setDepth(4);                       // papers, the folder in her hand, the stamp
     this.portalG = this.add.graphics().setDepth(5);
@@ -93,6 +98,7 @@ export class RecordsScene extends Phaser.Scene {
     this.input.on('pointermove', (p) => { this.mouse = { x: p.x, y: p.y }; });
     this.events.once('shutdown', () => this.cleanup());
     this.setExpr('smile'); this.play('idle');
+    this.initLife();
     this.lastAct = 0; this.hintN = 0; this.misses = 0;
     const first = !localStorage.getItem('rebirth.recordsSeen');
     try { localStorage.setItem('rebirth.recordsSeen', '1'); } catch (e) { /* storage unavailable */ }
@@ -134,21 +140,31 @@ export class RecordsScene extends Phaser.Scene {
   /** Draws her face on her head: curved lids over dot eyes and a wide smile (or whatever she's feeling). */
   drawFace() {
     const g = this.faceG; g.clear();
-    const fc = this.frame()[6]; if (!fc) return;
+    const fc = this.frame()[6]; this.faceImg.setVisible(false); if (!fc) return;
     const [cx, cy, s, roll, facing, side] = fc;
     if (facing < 0.3) return;
+    const ct = RF.spots.counterTop;                                    // (below this the counter hides her face)
     const k = Math.min(1, (facing - 0.3) / 0.25), sq = Math.max(0.35, Math.min(1, side)), r = roll * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
     const P = (u, v) => { const x = u * s * sq, y = -v * s; return { x: cx + x * cs - y * sn, y: cy + x * sn + y * cs }; };
     const lw = Math.max(1.6, s * 0.42);
     const line = (pts, w = lw, a = k) => { g.lineStyle(w, INK, a); g.strokePoints(pts.map((p) => P(p[0], p[1])), false); };
     const arc = (ux, uy, rx, ry, a0, a1, n = 9) => Array.from({ length: n }, (_, i) => { const a = a0 + (a1 - a0) * i / (n - 1); return [ux + rx * Math.cos(a), uy + ry * Math.sin(a)]; });
     const dot = (ux, uy, rr) => { const p = P(ux, uy); g.fillStyle(INK, k); g.fillEllipse(p.x, p.y, rr * 2 * s * sq, rr * 2 * s); };
+    const fi = FACE_IMG[this.expr];
+    if (fi) {                                                         // one of Mason's drawn faces, laid on her head like the drawn one
+      const sc = s / 4, eye = P(0, 2.0);
+      const top = eye.y - fi[2] * sc, rows = Math.max(0, Math.min(64, (ct - top) / sc));
+      this.faceImg.setVisible(rows > 2).setFrame(fi[0]).setOrigin(fi[1] / 64, fi[2] / 64).setPosition(eye.x, eye.y)
+        .setScale(sc * sq, sc).setRotation(r).setAlpha(k).setCrop(0, 0, 64, rows);
+      return;
+    }
     const [eyes, mouth, blush] = EXPR[this.expr] || EXPR.happy;
+    const eyesHid = P(0, 1.5).y > ct, mouthHid = P(0, -3.4).y > ct - 1;
     // where she's looking: at the pointer, gently
     let lx = 0, ly = 0;
     if (this.lookAt) { lx = Math.max(-1, Math.min(1, (this.lookAt.x - cx) / 160)); ly = Math.max(-1, Math.min(1, (cy - this.lookAt.y) / 120)); }
     const blink = (this.t % 260) < 7 && (eyes === 'dot' || eyes === 'think');
-    for (const sd of [-1, 1]) {
+    for (const sd of eyesHid ? [] : [-1, 1]) {
       const ex = sd * 3.3, ey = 2.0;
       const kind = blink ? 'blink' : eyes === 'wink' ? (sd < 0 ? 'dot' : 'closed') : eyes;
       if (kind === 'dot' || kind === 'think') {
@@ -161,6 +177,7 @@ export class RecordsScene extends Phaser.Scene {
       else if (kind === 'shut' || kind === 'closed') line(arc(ex, ey - 0.4, 1.9, 1.5, 0.1, Math.PI - 0.1));
       else if (kind === 'blink') line(arc(ex, ey + 0.4, 1.9, 0.6, Math.PI + 0.2, 2 * Math.PI - 0.2));
     }
+    if (mouthHid) return;
     if (blush) { g.fillStyle(0xff7a8a, 0.32 * k); for (const sd of [-1, 1]) { const p = P(sd * 5.4, -1.2); g.fillEllipse(p.x, p.y, 3.4 * s * sq, 1.6 * s); } }
     // the mouth (talking cycles it while she types a line)
     let m = mouth;
@@ -223,6 +240,7 @@ export class RecordsScene extends Phaser.Scene {
   // ------------------------------------------------------------------ asking for a file
   /** She leans in and asks who you want files on; typing opens. */
   ask() {
+    if (this.busyLine()) return;
     if (this.busy || this.overlay) return;
     this.busy = true; this.lastAct = this.t;
     sfx('select', 0.4, 1.2);
@@ -284,6 +302,7 @@ export class RecordsScene extends Phaser.Scene {
     }
     if (rec.refuse) { this.play('shrug', null, () => { this.busy = false; this.play('idle'); }); return this.say(rec.say, 'scared'); }
     if (rec.anim === 'portal') return this.fetchPortal(rec);
+    if (rec.fx) return this.fetchMystery(rec);
     if (rec.anim === 'self') return this.fetchSelf(rec);
     this.fetchBins(rec);
   }
@@ -549,7 +568,9 @@ export class RecordsScene extends Phaser.Scene {
   /** Something on the counter clicked: the bell dings, the briefcase opens, the rest get a word from her. */
   touchDesk(n) {
     if (n === 'briefcase') return this.openCase();
-    if (this.busy) return;
+    if (this.busyLine() || this.busy) return;
+    if (n === 'boombox') { this.say(this.pick('boombox'), 'happy'); this.time.delayedCall(900, () => { if (this.free()) this.changeTape(); }); return; }
+    if (n === 'machine' && this.t > 600) { this.say(this.pick('machine'), 'sly'); this.time.delayedCall(1200, () => { if (this.free()) this.makeCocoa(); }); return; }
     if (n === 'bell') { sfx('ding', 0.6, 1.0); this.play('laugh'); return this.say(this.pick('bell'), 'laugh'); }
     if (n === 'pad') { this.play('stamp', (ev) => { if (ev === 'hit') { sfx('clang', 0.3, 1.8); this.fx.push({ kind: 'stamp', x: RF.hits.pad[0] + 20, y: RF.hits.pad[1] - 30, t: 0, word: 'APPROVED' }); } }); return this.say(this.pick('pad'), 'wink'); }
     this.play('explain'); this.say(this.pick(n), 'happy');
@@ -635,7 +656,7 @@ export class RecordsScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.kR)) this.go('Archive');
       }
       // left alone a while: she thinks, hums, or drops a hint
-      if (!this.busy && !this.talking() && this.anim === 'idle' && this.t - this.lastAct > IDLE) {
+      if (!this.busy && !this.routine && !this.talking() && this.anim === 'idle' && this.t - this.lastAct > IDLE) {
         this.lastAct = this.t;
         const r = this.hintN++ % 3;
         if (r === 1) { this.play('think'); this.say(this.pick('hint'), 'think'); } else if (r === 2) { this.play('explain'); this.say(this.pick('idle'), 'smile'); } else { this.play('laugh'); this.say(this.pick('idle'), 'laugh'); }
@@ -647,6 +668,14 @@ export class RecordsScene extends Phaser.Scene {
       const hot = inBox(RF.her) || Object.values(RF.hits).some(inBox);
       if (this.game.canvas) this.game.canvas.style.cursor = hot ? 'pointer' : '';
     }
-    this.stepAnim(); this.stepTalk(); this.drawFace(); this.drawFx(); this.drawBox(); this.drawKeys();
+    this.stepLife();
+    this.stepAnim(); this.stepTalk(); this.drawFace(); this.drawFx(); this.drawLife(); this.drawBox(); this.drawKeys();
   }
+}
+
+// her routines and mysteries (recordsLife.js) join the scene; a method name may only exist once
+for (const k of Object.getOwnPropertyNames(RecordsLife.prototype)) {
+  if (k === 'constructor') continue;
+  if (k in RecordsScene.prototype) throw new Error('RecordsLife: ' + k + ' already exists on RecordsScene');
+  RecordsScene.prototype[k] = RecordsLife.prototype[k];
 }

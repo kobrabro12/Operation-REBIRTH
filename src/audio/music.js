@@ -30,6 +30,8 @@ export const TRACKS = [
     'noli', 'riphood', 'riphood2', 'soviet', 'korobeiniki', 'balalaika', 'troika'].map((n) => 'shop_' + n),
   // the TROPHY HALL (tools/audio/trophy_hall_music.py)
   'trophy_hall',
+  // THE ARCHIVIST's cassettes in the RECORDS OFFICE: Mason's pixelated_audio 25, 27, 28
+  'tape_25', 'tape_27', 'tape_28',
   // costume outro music (tools/audio/outro_music.py)
   ...['shrine', 'rosebud', 'abyss', 'dialup', 'western', 'monster', 'ragtime', 'victory', 'weather', 'cartridge', 'bride', 'ember', 'murder', 'heartwood', 'forge', 'keeper', 'devoted', 'surf', 'tide', 'aero64', 'pop', 'exec'].map((n) => 'outro_' + n),
 ];
@@ -150,6 +152,21 @@ export function playPlaylist(scene, keys, volume = 0.6) {
     start(scene, t);
   };
   next();
+}
+
+/**
+ * Plays a streamed track ONCE (no loop) and calls onEnd() when it finishes - THE ARCHIVIST's cassettes, where she
+ * changes the tape when one runs out. Asking for the track already playing does nothing.
+ */
+export function playTrack(scene, key, onEnd, volume = 0.6) {
+  if (key && key === currentKey && current) return;
+  stopMusic();
+  if (!KNOWN.has(key)) return;
+  base = volume;
+  const t = makeTrack(scene, key, false);
+  currentKey = key; current = t;
+  t.el.addEventListener('ended', () => { if (current === t && onEnd) onEnd(); });
+  start(scene, t);
 }
 
 export function stopMusic() {
