@@ -1,16 +1,19 @@
 // Fighter methods: VANTA (def vanta.js) - the neon street samurai. SYNC meter -> OVERCLOCK (a cut-in like GNASH's
 // PSYCHO, then everyone else at half speed and his attacks echoing), IAI (hold + a PERFECT DRAW window), GHOST DASH
 // (chained Sprite Fusion dashes whose echoes cut along their paths), NEON WIRE (a grapple), SAVE STATE (a save point he
-// rewinds to with the Sprite Fusion blink) and his Limit BLACKOUT. Every slash, cut and hit is a pixel effect from
+// rewinds to with the Sprite Fusion blink) and his Limit BLACKOUT. He fights with TWO katanas (the second in his back
+// hand): every normal's arc gets a twin in his accent colour. His NEON PANELS (vantaPanels.js) are his own comic-book
+// streak - panels for his combos, big hits and KO STREAK. Every slash, cut and hit is a pixel effect from
 // src/fx/sfSlash.js (built on the Sprite Fusion port's machinery). Reached through the `def.show` hooks
 // (fighterShow.js): vantaSpecial / vantaStep / vantaTick / vantaBonus / vantaLanded / vantaHurt / drawVanta /
-// drawVantaHud / blackoutLimit. Mixed into the Fighter class (Fighter.js) - `this` is he.
+// drawVantaHud / vantaKO / blackoutLimit. Mixed into the Fighter class (Fighter.js) - `this` is he.
 import { sfx } from '../audio/sfx.js';
 import { FONT } from '../config.js';
 import { burstHit, skyLayer, foesOf, nearestFoe } from './showShot.js';
 import movement, { hex } from '../fx/sfMovement.js';
 import { neonSlash, neonCut, neonImpact, glitchGhost, neonRise, neonRamp } from '../fx/sfSlash.js';
 import { sfSpawn, sfActor } from '../fx/sfRunner.js';
+import { NeonPanels, PANELS } from './vantaPanels.js';
 
 const RAD = Math.PI / 180;
 // which way each normal's slash sweeps (degrees, facing right: 0 = ahead, -90 = up, 90 = down)
@@ -59,7 +62,10 @@ export class FighterVanta {
     let [a0, a1] = ARCS[ARC_OF[this.moveName] || (this.move && this.move.rise ? 'up' : 'fwd')];
     if (this.facing < 0) { a0 = 180 - a0; a1 = 180 - a1; }
     const big = h.dmg >= 12;
-    if (!echoOnly) this.vtSlash(cx - this.facing * 4, cy, r, a0, a1, this.vtRamps().blade, big ? 7 : 5, big ? 0.36 : 0.28);
+    if (!echoOnly) {
+      this.vtSlash(cx - this.facing * 4, cy, r, a0, a1, this.vtRamps().blade, big ? 7 : 5, big ? 0.36 : 0.28);
+      (this.vtLater = this.vtLater || []).push({ at: this.age + 2, fn: () => this.vtSlash(cx + this.facing * 3, cy + 3, r * 0.82, a1, a0, this.vtRamps().accent, big ? 5 : 3, 0.24) });   // the second blade, back the other way
+    }
     if (this.vtOver > 0) {                                                            // OVERCLOCK: an echo of this cut, a beat later
       const S = this.def.show.sync;
       (this.vtEchoQ = this.vtEchoQ || []).push({ at: this.age + S.echoDelay, rect: R, cx, cy, r, a0, a1,
@@ -84,9 +90,9 @@ export class FighterVanta {
       const cx = this.x + F * 2, cy = this.y - (Rz.burst ? 62 : 50), r = Rz.r;
       const a0 = F > 0 ? 40 : 140, a1 = F > 0 ? -210 : 390;                                // low in front -> straight up -> behind
       this.vtFx(neonSlash({ x: cx, y: cy, r, a0: a0 * RAD, a1: a1 * RAD, colors: R.blade, thick: Rz.thick, sweep: 0.08, dur: Rz.burst ? 0.5 : 0.42, seed: (this.age * 31) | 0 }), cx - r, cy - r, cx + r, cy + r, 40);
-      (this.vtRiseQ = this.vtRiseQ || []).push({ at: this.age + 3, fn: () => this.vtSlash(cx, cy - 4, r + 9, a0 - 10 * F, a1, R.accent, Math.max(3, Rz.thick - 4), 0.34) });
+      (this.vtLater = this.vtLater || []).push({ at: this.age + 3, fn: () => this.vtSlash(cx, cy - 4, r + 9, a0 - 10 * F, a1, R.accent, Math.max(3, Rz.thick - 4), 0.34) });
       sfx('slash', 0.55, Rz.burst ? 0.8 : 1.1); M.shake(Rz.burst ? 3 : 1, 5);
-      if (Rz.burst) this.vtRiseQ.push({ at: this.age + 4, fn: () => { this.vtImpact(this.x, this.y - 118, R.accent, 1.3); this.vtCut(this.x - 30, this.y - 118, this.x + 30, this.y - 118, R.blade); sfx('bighit', 0.35, 1.6); } });
+      if (Rz.burst) this.vtLater.push({ at: this.age + 4, fn: () => { this.vtImpact(this.x, this.y - 118, R.accent, 1.3); this.vtCut(this.x - 30, this.y - 118, this.x + 30, this.y - 118, R.blade); sfx('bighit', 0.35, 1.6); } });
       if (this.vtOver > 0) this.vtNormalSlash(h2, true);
     }
   }
@@ -311,7 +317,9 @@ export class FighterVanta {
     // a normal's slash comes out with its hit
     if (this.state === 'attack' && this.move && this.move.hits && ARC_OF[this.moveName]) for (const h of this.move.hits) if (h.from === this.t + 1) this.vtNormalSlash(h);
     if (this.state === 'attack' && this.move && this.move.rise) this.vtRisingMoon(this.move);
-    if (this.vtRiseQ && this.vtRiseQ.length) { for (const q of this.vtRiseQ) if (this.age >= q.at) { q.done = true; q.fn(); } this.vtRiseQ = this.vtRiseQ.filter((q) => !q.done); }
+    if (this.vtPanels) this.vtPanels.step();
+    if (this.vtFalls !== this.falls) { this.vtFalls = this.falls; this.vtStreak = 0; this.vtCombo = 0; }   // KO'd: the streak is over
+    if (this.vtLater && this.vtLater.length) { for (const q of this.vtLater) if (this.age >= q.at) { q.done = true; q.fn(); } this.vtLater = this.vtLater.filter((q) => !q.done); }
     // OVERCLOCK's echo cuts land
     if (this.vtEchoQ && this.vtEchoQ.length) {
       for (const e of this.vtEchoQ) if (this.age >= e.at) {
@@ -344,15 +352,32 @@ export class FighterVanta {
   addSync(n) { const S = this.def.show.sync; const was = this.vtSync || 0; this.vtSync = Math.min(S.max, was + n); if (was < S.max && this.vtSync >= S.max && !(this.vtOver > 0)) { this.match.popText(this, 'SYNC 100%', '#ffffff'); sfx('limitready', 0.5, 1.4); } }
   /** OVERCLOCKED he hits a little harder. */
   vantaBonus() { return this.vtOver > 0 ? { dmg: this.def.show.sync.dmg, kb: 1 } : null; }
-  /** A hit landed: a neon flash on them, SYNC up (not while OVERCLOCKED); a PERFECT DRAW freezes them. */
+  /** A hit landed: a neon flash on them, SYNC up (not while OVERCLOCKED); a PERFECT DRAW freezes them. His combo
+   *  counts it (a panel at the milestones), and a big one gets a panel of its own. */
   vantaLanded(t, hb) {
-    const c = t.center(), dmg = hb.h.dmg || 4;
+    const c = t.center(), dmg = hb.h.dmg || 4, M = this.match;
+    if (!M.demo) {
+      const P = this.vtPanelSet(), h = hb.h, kb = (h.base || 0) + (h.growth || 0) * (t.percent || 0) / 100;
+      if (this.age - (this.vtLastHit ?? -999) > PANELS.window) this.vtCombo = 0;
+      const counts = this.age - (this.vtCounted ?? -999) >= PANELS.merge;                       // (a flurry's beats count once)
+      this.vtLastHit = this.age;
+      if (counts) { this.vtCounted = this.age; this.vtCombo = (this.vtCombo || 0) + 1; }
+      if ((h.dmg || 0) >= PANELS.big.dmg || kb >= PANELS.big.kb) P.big(t); else if (counts) P.combo(this.vtCombo, t);
+    }
     this.vtImpact(c.x, c.y, this.vtRamps().blade, dmg >= 12 ? 1.4 : 0.8);
     if (!(this.vtOver > 0)) this.addSync(dmg * this.def.show.sync.perDealt);
     if (hb.perfect) { t.hitstop = Math.max(t.hitstop, this.def.moves.neutralB.freeze); this.hitstop = Math.max(this.hitstop, 6); }
   }
-  /** He was hurt: SYNC up a little. */
-  vantaHurt(dmg) { if (!(this.vtOver > 0)) this.addSync(dmg * this.def.show.sync.perHurt); }
+  /** He was hurt: SYNC up a little, and his combo is broken. */
+  vantaHurt(dmg) { if (!(this.vtOver > 0)) this.addSync(dmg * this.def.show.sync.perHurt); this.vtCombo = 0; }
+  /** His NEON PANELS (made on first use). */
+  vtPanelSet() { if (!this.vtPanels || this.vtPanels.m !== this.match) this.vtPanels = new NeonPanels(this); return this.vtPanels; }
+  /** He KO'd `victim` (from MatchScene.onKO): his KO STREAK grows and the page plays. */
+  vantaKO(victim) {
+    if (this.match.demo || victim === this) return;
+    this.vtStreak = (this.vtStreak || 0) + 1;
+    this.vtPanelSet().ko(victim, this.vtStreak);
+  }
 
   // ------------------------------------------------------------------ drawing
   /** His world layer over everything but the effects (BLACKOUT's dark, the PERFECT DRAW flash). */

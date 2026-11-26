@@ -62,9 +62,9 @@ export const FILES = {
     lore: 'Every other fighter was touched by a shard of the purple star. LUMEN is one - the heart of it, the piece that still remembers being a star. She woke in the bell tower at eleven minutes past midnight with a crystal for a face and the sound of something enormous chewing on the sky. She plants stars, links them into constellations and blinks between them. She is very polite. She is also being hunted.',
   },
   vanta: {
-    no: '008', alias: 'THE NEON SAMURAI', cls: 'STREET SAMURAI', weapon: 'A NEON KATANA WITH A SHARD OF STARLIGHT IN THE BLADE',
+    no: '008', alias: 'THE NEON SAMURAI', cls: 'STREET SAMURAI', weapon: 'TWIN NEON KATANAS, REVERSE GRIP - A SHARD OF STARLIGHT SPLIT BETWEEN THEM',
     origin: 'THE ROOFTOPS OF A CITY THAT NEVER SWITCHES OFF', moves: 'IAI - GHOST DASH - NEON WIRE - SAVE STATE', limit: 'BLACKOUT',
-    lore: 'A courier who outran every train, every drone and every deadline in a city made of light. The night of the Starfall the whole grid went dark for eleven minutes - and when it came back, his blade was glowing on its own. He fights like he is speedrunning: he saves, he dashes, he cuts the same moment twice. Fill his SYNC and he OVERCLOCKS, and the rest of the world runs at half speed.',
+    lore: 'A courier who outran every train, every drone and every deadline in a city made of light. The night of the Starfall the whole grid went dark for eleven minutes - and when it came back, his blade was glowing on its own. He fights with two blades in a reverse grip, like he is speedrunning: he saves, he dashes, he cuts the same moment twice - and when a combo really lands, the old comic-panel ads of his city light up around him. Fill his SYNC and he OVERCLOCKS, and the rest of the world runs at half speed.',
   },
   kami: {
     no: '009', alias: 'THE PAPER FIGHTER', cls: 'ORIGAMI DUELIST', weapon: 'A FOLDED PAPER FAN (AND HIMSELF)',

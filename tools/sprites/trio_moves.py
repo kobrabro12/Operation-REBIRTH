@@ -49,13 +49,16 @@ LUMEN = {
 }
 
 # ======================================================================= VANTA
-# He holds the katana in a REVERSE GRIP (vanta_draw.py): the hilt rises out of the top of his fist and the blade runs
-# down out of the bottom - so in his guard the fist is up at his chest and the blade trails back along his forearm.
-GUARD = dict(fupper=(-10, 0, 0), ffore=(-70, 0, 0), mic=(120, 0, 0))
+# He holds TWO katanas in a REVERSE GRIP (vanta_draw.py): the hilt rises out of the top of each fist and the blade runs
+# down out of the bottom - in his guard the front fist is up at his chest, the back one low at his hip, both blades
+# trailing back (the back one is the part `bsword`, turned like `mic`).
+GUARD = dict(fupper=(-10, 0, 0), ffore=(-70, 0, 0), mic=(120, 0, 0), bupper=(20, 0, 0), bfore=(-30, 0, 0), bsword=(40, 0, 0))
+BACK_LOW = dict(bupper=(30, 0, 0), bfore=(-20, 0, 0), bsword=(40, 0, 0))   # the back blade held low behind him
 
 def vanta_idle():
-    """Street samurai at rest: reverse-grip guard - fist up at his chest, the blade trailing back along his forearm -
-    weight rolling foot to foot, the scarf streaming, and once a loop he spins the katana a full turn round his fist."""
+    """Street samurai at rest: twin reverse-grip guard - front fist up at his chest, back fist at his hip, both blades
+    trailing back - weight rolling foot to foot, the scarf streaming, and once a loop he spins the front katana a full
+    turn round his fist while the back one dips and flicks."""
     out = []
     for i in range(0, 193, 8):
         ph = i * math.pi / 48
@@ -63,36 +66,37 @@ def vanta_idle():
         spin = (1 - math.cos(q * math.pi)) / 2
         out.append(k(i, P(torso=(10 + 2 * math.sin(ph), 1, 1), head=(-8 + 3 * math.sin(ph + 1), 0, 0), hair=(10 * math.sin(ph + 0.4), 0, 0),
                           fupper=(-10 + 4 * math.sin(ph) - 20 * math.sin(q * math.pi), 0, 0), ffore=(-70 + 3 * math.sin(ph + 0.5), 0, 0), mic=(120 - 360 * spin, 0, 0),
-                          bupper=(-20 + 6 * math.sin(ph), 0, 0), bfore=(-50, 0, 0),
+                          bupper=(20 + 6 * math.sin(ph), 0, 0), bfore=(-30 + 4 * math.sin(ph + 1), 0, 0), bsword=(15 + 30 * math.sin(q * math.pi), 0, 0),
                           root=(0, 1, 1, 1, 1), **legs(12, -10, -12, 14, 8 + 2 * math.sin(ph), 4)), 'linear'))
     return out
 
-DRAW_STANCE = P(torso=(22, 2, 3), head=(-18, 1, 1), fupper=(80, 0, 0), ffore=(10, 0, 0), mic=(160, 0, 0), bupper=(40, 0, 0), bfore=(70, 0, 0), root=(0, 2, 4, 1.05, 0.95), **legs(26, -20, -26, 30, 10, 6))
-CROSS = mix(SHOVE, torso=(-10, 0, -1), head=(-6, 0, 0), fupper=(-60, 0, 0), ffore=(-60, 0, 0), mic=(150, 0, 0), root=(0, 6, 0, 1.08, 0.94))
+DRAW_STANCE = P(torso=(22, 2, 3), head=(-18, 1, 1), fupper=(80, 0, 0), ffore=(10, 0, 0), mic=(160, 0, 0), bupper=(30, 0, 0), bfore=(-10, 0, 0), bsword=(40, 0, 0), root=(0, 2, 4, 1.05, 0.95), **legs(26, -20, -26, 30, 10, 6))
+CROSS = mix(SHOVE, torso=(-10, 0, -1), head=(-6, 0, 0), fupper=(-60, 0, 0), ffore=(-60, 0, 0), mic=(150, 0, 0), root=(0, 6, 0, 1.08, 0.94), **BACK_LOW)
 CROSS2 = mix(CROSS, fupper=(-80, 0, 0), ffore=(-50, 0, 0), mic=(170, 0, 0))
-# RISING MOON (up tilt / up smash): crouched, blade low ahead - it sweeps forward, straight up over his head, and back
-UW = mix(CROUCH, torso=(26, 2, 3), head=(-14, 1, 1), hair=(-10, 0, 0), fupper=(70, 0, 0), ffore=(40, 0, 0), mic=(150, 0, 0), bupper=(20, 0, 0), bfore=(70, 0, 0))
-US = mix(CROUCH, torso=(6, 0, 1), head=(-18, 0, 0), fupper=(-70, 0, 0), ffore=(-20, 0, 0), mic=(-50, 0, 0), bupper=(40, 0, 0), bfore=(-30, 0, 0), root=(0, 2, -1, 1.02, 0.98))
-UT = mix(LIFT, torso=(-14, 0, -1), head=(-30, 0, 0), hair=(20, 0, 0), fupper=(-150, 0, -1), ffore=(-20, 0, 0), mic=(-25, 0, 0), bupper=(30, 0, 0), bfore=(-40, 0, 0), root=(0, 0, -5, 0.88, 1.14))
-UF = mix(LIFT, torso=(-20, -1, -1), head=(-34, 0, 0), hair=(26, 0, 0), fupper=(-190, 0, -1), ffore=(-20, 0, 0), mic=(-90, 0, 0), bupper=(30, 0, 0), bfore=(-40, 0, 0), root=(0, -1, -3, 0.93, 1.08))
+# RISING MOON (up tilt / up smash): crouched, front blade low ahead - it sweeps forward, straight up over his head, and
+# back; the back blade follows it up a beat later (the second moon)
+UW = mix(CROUCH, torso=(26, 2, 3), head=(-14, 1, 1), hair=(-10, 0, 0), fupper=(70, 0, 0), ffore=(40, 0, 0), mic=(150, 0, 0), **BACK_LOW)
+US = mix(CROUCH, torso=(6, 0, 1), head=(-18, 0, 0), fupper=(-70, 0, 0), ffore=(-20, 0, 0), mic=(-50, 0, 0), bupper=(40, 0, 0), bfore=(-30, 0, 0), bsword=(40, 0, 0), root=(0, 2, -1, 1.02, 0.98))
+UT = mix(LIFT, torso=(-14, 0, -1), head=(-30, 0, 0), hair=(20, 0, 0), fupper=(-150, 0, -1), ffore=(-20, 0, 0), mic=(-25, 0, 0), bupper=(-40, 0, 0), bfore=(-40, 0, 0), bsword=(20, 0, 0), root=(0, 0, -5, 0.88, 1.14))
+UF = mix(LIFT, torso=(-20, -1, -1), head=(-34, 0, 0), hair=(26, 0, 0), fupper=(-190, 0, -1), ffore=(-20, 0, 0), mic=(-90, 0, 0), bupper=(-150, 0, 0), bfore=(-20, 0, 0), bsword=(-20, 0, 0), root=(0, -1, -3, 0.93, 1.08))
 UW_DEEP = mix(UW, torso=(32, 2, 4), head=(-10, 1, 2), mic=(160, 0, 0), root=(0, 0, 0, 1.14, 0.8), **legs(36, -50, -34, 50, 14, -14))
-SWING = ('ffore', 'mic', 'ffist')
+SWING = ('ffore', 'mic', 'ffist', 'bfore', 'bsword')
 VANTA = {
     # RISING MOON (up tilt): a quick crouch, then the blade whips up in front of him, over his head and behind
-    'utilt': move(30, [k(0, REST), k(5, UW, 'out'), k(7, US, 'snap'), k(10, UT, 'snap'), k(14, UF, 'out'), k(20, mix(UF, mic=(-100, 0, 0), root=(0, -1, -2, 0.96, 1.04)), 'linear'),
+    'utilt': move(30, [k(0, REST), k(5, UW, 'out'), k(7, US, 'snap'), k(10, UT, 'snap'), k(14, UF, 'out'), k(20, mix(UF, mic=(-100, 0, 0), bupper=(-170, 0, 0), bfore=(-10, 0, 0), bsword=(-80, 0, 0), root=(0, -1, -2, 0.96, 1.04)), 'linear'),
                        k(30, REST, 'back')], smear=SWING),
     # RISING MOON (up smash): sinks deep, trembling, then springs up off the floor on the swing - a hop and a full arc
     'usmash': move(46, [k(0, REST), k(10, UW_DEEP, 'out'), k(13, mix(UW_DEEP, torso=(34, 2, 4), root=(0, 1, 0, 1.15, 0.79)), 'linear'), k(15, mix(UW_DEEP, torso=(31, 2, 4)), 'linear'),
                         k(17, mix(US, root=(0, 2, -3, 0.98, 1.04)), 'snap'), k(20, mix(UT, root=(0, 0, -12, 0.84, 1.2), **legs(14, 20, -10, 30, 10, 10)), 'snap'),
-                        k(25, mix(UF, root=(0, -1, -10, 0.9, 1.12), **legs(18, 24, -14, 34, 10, 10)), 'out'), k(33, mix(UF, mic=(-110, 0, 0), root=(0, -1, -2, 0.96, 1.04)), 'inout'),
+                        k(25, mix(UF, root=(0, -1, -10, 0.9, 1.12), **legs(18, 24, -14, 34, 10, 10)), 'out'), k(33, mix(UF, mic=(-110, 0, 0), bupper=(-170, 0, 0), bfore=(-10, 0, 0), bsword=(-80, 0, 0), root=(0, -1, -2, 0.96, 1.04)), 'inout'),
                         k(46, REST, 'back')], smear=SWING),
     # IAI (neutral, held): sinks into a draw stance, fist at his hip, the blade low - loops while special is held
     'neutralB': move(24, [k(0, mix(DRAW_STANCE, torso=(20, 2, 3))), k(12, mix(DRAW_STANCE, torso=(24, 2, 4), head=(-20, 1, 1)), 'inout'), k(24, mix(DRAW_STANCE, torso=(20, 2, 3)), 'inout')], loop=True),
     # IAI CUT: the release - his fist sweeps across, the blade trailing flat behind it, then the follow-through
     'iaicut': move(26, [k(0, DRAW_STANCE), k(3, CROSS, 'snap'), k(12, CROSS2, 'out'), k(26, REST, 'back')]),
     # GHOST DASH (side): a low lunge, fist ahead, the blade trailing back
-    'sideB': move(30, [k(0, mix(CROUCH, **GUARD)), k(4, mix(SHOVE, torso=(40, 4, 4), head=(-30, 2, 0), fupper=(10, 0, 0), ffore=(-70, 0, 0), mic=(120, 0, 0), root=(0, 6, 4, 1.15, 0.85)), 'snap'),
-                       k(20, mix(SHOVE, torso=(34, 4, 3), head=(-26, 2, 0), fupper=(0, 0, 0), ffore=(-70, 0, 0), mic=(125, 0, 0), root=(0, 6, 3, 1.1, 0.88)), 'linear'), k(30, REST, 'back')]),
+    'sideB': move(30, [k(0, mix(CROUCH, **GUARD)), k(4, mix(SHOVE, torso=(40, 4, 4), head=(-30, 2, 0), fupper=(10, 0, 0), ffore=(-70, 0, 0), mic=(120, 0, 0), bsword=(40, 0, 0), root=(0, 6, 4, 1.15, 0.85)), 'snap'),
+                       k(20, mix(SHOVE, torso=(34, 4, 3), head=(-26, 2, 0), fupper=(0, 0, 0), ffore=(-70, 0, 0), mic=(125, 0, 0), bsword=(40, 0, 0), root=(0, 6, 3, 1.1, 0.88)), 'linear'), k(30, REST, 'back')]),
     # NEON WIRE (up): fires the wire from his free hand, up and ahead, then rides it up, the blade hanging below him
     'upb': move(36, [k(0, CROUCH), k(5, mix(HORN_UP, bupper=(-150, 0, 0), bfore=(-10, 0, 0), mic=(170, 0, 0)), 'snap'), k(16, mix(LIFT, mic=(170, 0, 0)), 'out'), k(28, mix(LIFT, mic=(160, 0, 0), root=(0, 0, -2, 0.92, 1.08))), k(36, FALL)]),
     # SAVE STATE (down): two fingers to his visor, then the blade stabbed down into the floor - the checkpoint
