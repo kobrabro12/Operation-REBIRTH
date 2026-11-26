@@ -14,7 +14,7 @@ import { ArcadeBg, titleBanner, hintBar, panel, rowBar, slant, pixIcon, ARC, sha
 const ACC = ARC.sections.options;
 const ICON = ['speaker', 'speaker', 'star', 'screen', 'crt', 'touch', 'screen', 'back'];
 
-const ROW_Y = 70, ROW_H = 32, X0 = 128, X1 = 528;
+const ROW_Y = 66, ROW_H = 28, X0 = 128, X1 = 528;
 
 export class OptionsScene extends Phaser.Scene {
   constructor() { super('Options'); }
@@ -55,6 +55,7 @@ export class OptionsScene extends Phaser.Scene {
       { label: 'MENU STYLE', value: menuStyle().name, change: (d) => this.cycleStyle(d) },
       {label:'PERFORMANCE',value:s.performance==='auto'?'AUTO - '+(PHONE_DEVICE?'PHONE':'FULL'):s.performance.toUpperCase(),change:d=>{const a=['auto','low','full'];s.performance=a[(a.indexOf(s.performance)+d+3)%3];saveOptions();}},
       { label: 'CRT FILTER', value: s.crt ? 'ON' : 'OFF', change: () => { s.crt = !s.crt; saveOptions(); } },
+      { label: 'ARCHIVIST\'S TAPES', value: s.recordsTapes ? 'ON' : 'OFF', change: () => { s.recordsTapes = !s.recordsTapes; saveOptions(); } },
       { label: 'TOUCH CONTROLS', value: s.touch.toUpperCase(), change: (d) => { const o = ['auto', 'on', 'off']; s.touch = o[(o.indexOf(s.touch) + d + 3) % 3]; saveOptions(); } },
       { label: 'FULL SCREEN', value: this.scale.isFullscreen ? 'ON' : 'OFF', change: () => toggleFullscreen(this) },
       { label: 'BACK', value: '', back: true },

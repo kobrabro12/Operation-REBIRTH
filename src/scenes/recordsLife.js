@@ -12,7 +12,9 @@
 //   at the corner... it's there for a moment, the lights dim, she ducks behind the counter and peeks), THE WOW! SIGNAL
 //   (a printout, a red pen circling, WOW!). Each ends with her handing the file over.
 import { FONT, VIEW_W, VIEW_H } from '../config.js';
-import { playTrack } from '../audio/music.js';
+import { playTrack, playMusic } from '../audio/music.js';
+import { settings } from '../settings.js';
+import { ARCH_LINES } from '../data/records.js';
 import { sfx } from '../audio/sfx.js';
 import { RECORDS_FRAMES as RF } from './recordsFrames.js';
 
@@ -33,10 +35,13 @@ export class RecordsLife {
     this.routine = null; this.lifeFx = []; this.tapeDue = false; this.playingTape = false; this.busySaid = -999;
     this.nextCocoa = this.t + COCOA.first; this.dim = 0; this.dimTo = 0; this.myst = null;
     this.lifeG = this.add.graphics().setDepth(4.5);
+    this.doorG = this.add.graphics().setDepth(0.5);                   // (the back door: on the wall, behind her)
+    this.door = null;
     this.darkG = this.add.graphics().setDepth(15);
     this.mystT = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '8px', color: '#7cf06a' }).setDepth(16).setVisible(false);
     try { this.tapeI = (parseInt(localStorage.getItem(TAPE_KEY), 10) || 0) % TAPES.length; } catch (e) { this.tapeI = 0; }
-    this.startTape();
+    if (settings.recordsTapes) this.startTape();
+    else playMusic(this, 'bgm_title');                                // (OPTIONS > ARCHIVIST'S TAPES off: the boombox stays quiet)
   }
   /** Puts the current cassette on (it plays once; when it ends she changes it). */
   startTape() {
@@ -55,6 +60,7 @@ export class RecordsLife {
 
   /** THE TAPE CHANGE: she turns to the shelf, swaps the cassette and presses PLAY. */
   changeTape() {
+    if (!settings.recordsTapes) { this.tapeDue = false; return; }
     this.routine = 'tape'; this.tapeDue = false; this.playingTape = false;
     this.say(this.pick('tape'), 'happy');
     this.play('tape', (ev) => {
@@ -105,6 +111,27 @@ export class RecordsLife {
         if (ev === 'duck') { sfx('land', 0.6, 0.8); this.cameras.main.shake(120, 0.004); }
         if (ev === 'peek') this.setExpr('scared');
       }
+      if (rec.fx === 'herobrine') {
+        if (ev.startsWith('hit')) { sfx('land', 0.7, 0.7); this.cameras.main.shake(90, 0.003); const h = this.frame()[7]; for (let i = 0; i < 6; i++) this.lifeFx.push({ k: 'block', x: h[0] + 4, y: h[1] + 10, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2.5, t: 0, c: [0x8a5a34, 0x6a8a3a, 0x7a7a80][i % 3] }); }
+        if (ev === 'eyes') { M.eyes = 80; this.dimTo = 0.66; sfx('glitch', 0.18, 0.5); this.setExpr('shocked'); }
+      }
+      if (rec.fx === 'killswitch') {
+        if (ev === 'play') { M.screen = 'play'; this.setExpr('focus'); if (f % 3 === 0) sfx('menu', 0.12, 1.4 + Math.random() * 0.6); }
+        if (ev === 'delete') { M.screen = 'delete'; M.del = 0; sfx('warn', 0.3, 0.8); this.setExpr('surprised'); }
+        if (ev === 'shake') { if (f % 3 === 0) sfx('land', 0.3, 1.6); this.setExpr('annoyed'); }
+      }
+      if (rec.fx === 'lavender') {
+        if (ev === 'tune') { M.tint = Math.min(1, (M.tint || 0) + 0.06); this.setExpr('annoyed');
+          if (f % 3 === 0) { const sc = [2.0, 2.52, 3.0, 2.38, 2.0, 2.67, 3.17, 2.52]; sfx('ding', 0.12, sc[(f / 3) % 8]); }
+          if (f % 2 === 0) this.lifeFx.push({ k: 'wisp', x: 120 + Math.random() * 400, y: 330, t: 0, ph: Math.random() * 6 }); }
+      }
+      if (rec.fx === 'truck') {
+        if (ev === 'push') { M.push = (M.push || 0) + 1; this.setExpr('focus'); if (f % 4 === 0) sfx('land', 0.25, 0.6); }
+      }
+      if (rec.fx === 'bigfoot') {
+        if (ev === 'look') { M.scope = Math.min(1, (M.scope || 0) + 0.12); this.setExpr('focus'); }
+        if (ev === 'spot') { M.foot = 1; sfx('rumble', 0.25, 1.2); }
+      }
       if (rec.fx === 'wow') {
         if (ev === 'circle') { this.setExpr('focus'); M.pts.push({ x: this.frame()[7][0] + 6, y: this.frame()[7][1] - 10 }); }
         if (ev === 'wow') { M.wow = 1; sfx('item', 0.5, 0.8); sfx('limitready', 0.35, 1); this.setExpr('happy'); this.cameras.main.shake(140, 0.004);
@@ -112,10 +139,67 @@ export class RecordsLife {
       }
     }, () => {
       this.dimTo = 0; this.endMystery(); this.myst = null; this.holding = rec;
+      if (rec.fx === 'truck' || rec.fx === 'bigfoot' || rec.fx === 'killswitch') this.setExpr('smug');
       this.setExpr(rec.fx === 'rake' ? 'annoyed' : 'smug');
       this.say(rec.after, rec.fx === 'rake' ? 'annoyed' : 'smug');
       this.handOver(rec);
     });
+  }
+
+  /** THE BACK DOOR (the CONFIDENTIAL files): she snaps, a door opens in the wall behind her, she walks through it;
+   *  rustling in the back room; she comes back out with a red folder, snaps over her shoulder and the door's gone. */
+  fetchDoor(rec) {
+    this.say(rec.say, 'sly');
+    this.door = { k: 0, open: 0, rec, gone: false };
+    const D = this.door;
+    this.play('door_go', (ev, f) => {
+      if (ev === 'snap') { D.grow = true; sfx('glass', 0.35, 1.6); sfx('summon', 0.25, 1.2); for (let i = 0; i < 14; i++) this.lifeFx.push({ k: 'spark', x: this.doorMid().x, y: this.doorMid().y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, t: 0, c: 0xffd860 }); }
+      if (ev === 'walk' && f % 4 === 0) sfx('land', 0.12, 0.9);
+      if (ev === 'through') { D.open = Math.min(1, D.open + 0.15); const n = RF.anims.door_go.ev.through; this.her.setAlpha(Math.max(0, 1 - (f - n[0]) / (n[1] - n[0]))); }
+    }, () => {
+      this.her.setAlpha(0); this.faceHidden = true;
+      const lines = ARCH_LINES.backroom.slice();
+      this.say(lines, 'smile');
+      [0, 700, 1400, 2100].forEach((ms, i) => this.time.delayedCall(ms, () => sfx(i === 2 ? 'clang' : 'menu', 0.25, 0.5 + i * 0.1)));
+      this.time.delayedCall(3200, () => {
+        this.holding = rec; this.faceHidden = false;
+        this.play('door_back', (ev, f) => {
+          if (ev === 'appear') { const n = RF.anims.door_back.ev.appear; this.her.setAlpha(Math.min(1, (f - n[0] + 1) / (n[1] - n[0] + 1))); }
+          if (ev === 'walk' && f % 4 === 0) sfx('land', 0.12, 0.9);
+          if (ev === 'snap') { D.vanish = 1; sfx('glass', 0.35, 2.0); sfx('smoke', 0.3, 1.2); const m = this.doorMid(); for (let i = 0; i < 18; i++) this.lifeFx.push({ k: 'spark', x: m.x, y: m.y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, t: 0, c: [0xffd860, 0xff5a6a, 0xffffff][i % 3] }); this.setExpr('wink'); }
+        }, () => { this.her.setAlpha(1); this.door = null; this.say(rec.after, 'smug'); this.handOver(rec); });
+      });
+    });
+  }
+  /** The middle of the back door on screen. */
+  doorMid() { const q = RF.spots.backDoor; return { x: (q[0][0] + q[1][0]) / 2, y: (q[0][1] + q[2][1]) / 2 }; }
+  /** Draws the back door: it grows out of the wall with sparkles, swings open on the red-lit back room (rows of
+   *  CONFIDENTIAL drawers), and folds away to nothing when she snaps. */
+  drawDoor() {
+    const g = this.doorG; g.clear();
+    const D = this.door; if (!D) return;
+    if (D.grow) D.k = Math.min(1, D.k + 0.06);
+    if (D.vanish) { D.vanish += 1; D.k = Math.max(0, 1 - (D.vanish - 1) / 14); D.open = 0; }
+    if (D.k <= 0) return;
+    const q = RF.spots.backDoor, m = this.doorMid(), k = D.k;
+    const P = (p) => ({ x: m.x + (p[0] - m.x) * k, y: m.y + (p[1] - m.y) * k });
+    const [bl, br, tr, tl] = q.map(P);
+    const quad = (a, b, c, d, col, al = 1) => { g.fillStyle(col, al); g.fillPoints([a, b, c, d], true); };
+    quad({ x: bl.x - 4, y: bl.y }, { x: br.x + 4, y: br.y }, { x: tr.x + 4, y: tr.y - 4 }, { x: tl.x - 4, y: tl.y - 4 }, 0x3a2414);   // the frame
+    // the back room behind it: red light, drawer fronts, a CONFIDENTIAL strip
+    quad(bl, br, tr, tl, 0x1a0608);
+    const W = br.x - bl.x, Hh = bl.y - tl.y;
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 3; c++) { g.fillStyle(0x5a1a20, 0.9); g.fillRect(tl.x + 4 + c * (W - 8) / 3, tl.y + 8 + r * (Hh - 16) / 6, (W - 8) / 3 - 2, (Hh - 16) / 6 - 2); g.fillStyle(0xd9ab48, 0.8); g.fillRect(tl.x + 4 + c * (W - 8) / 3 + ((W - 8) / 3 - 2) / 2 - 1.5, tl.y + 8 + r * (Hh - 16) / 6 + 3, 3, 1.5); }
+    g.fillStyle(0xff3a3a, 0.18 + 0.08 * Math.sin(this.t * 0.2)); g.fillRect(tl.x, tl.y, W, Hh);
+    g.fillStyle(0xf8c838, 0.9); g.fillRect(tl.x, tl.y + Hh * 0.45, W, 5);
+    // the door itself, swinging open (narrows toward its hinge on the left)
+    const o = D.open, dw = W * (1 - o * 0.82);
+    quad(bl, { x: bl.x + dw, y: bl.y + o * 4 }, { x: tl.x + dw, y: tl.y - o * 4 }, tl, 0x6b4226);
+    g.fillStyle(0x4a2b18, 1); g.fillRect(tl.x + dw * 0.15, tl.y + Hh * 0.08, dw * 0.7, Hh * 0.36); g.fillRect(tl.x + dw * 0.15, tl.y + Hh * 0.52, dw * 0.7, Hh * 0.4);
+    g.fillStyle(0xd9ab48, 1); g.fillCircle(tl.x + dw * 0.86, tl.y + Hh * 0.52, Math.max(1.5, 2.6 * k));
+    g.fillStyle(0xf4efe0, 0.9); g.fillRect(tl.x + dw * 0.3, tl.y + Hh * 0.2, dw * 0.4, 5);
+    g.fillStyle(0x7c1f30, 1); g.fillRect(tl.x + dw * 0.32, tl.y + Hh * 0.2 + 1.5, dw * 0.36, 2);
+    if (D.k < 1 || D.vanish) { g.lineStyle(2, 0xffd860, 0.7 * (1 - Math.abs(k - 0.5) * 2 + 0.2)); g.strokeRect(tl.x - 3, tl.y - 3, W + 6, Hh + 6); }
   }
 
   /** Every frame: tape changes and cocoa breaks when she's free, the notes, effects moving. */
@@ -152,7 +236,7 @@ export class RecordsLife {
    *  the figure in the corner, the red circle and WOW!) and the dark. */
   drawLife() {
     const g = this.lifeG, dg = this.darkG; g.clear(); dg.clear();
-    this.drawBoombox(g);
+    this.drawBoombox(g); this.drawDoor();
     const sp = RF.spots;
     if (this.cocoaLight) { g.fillStyle(0x7cf06a, 0.8); g.fillCircle(sp.light[0], sp.light[1], 2.2); }
     for (const p of this.lifeFx) {
@@ -172,6 +256,10 @@ export class RecordsLife {
         const x = p.x, y = p.y, s = 4, R = [[[0, -s, 0, s], [0, -s, s, 0]], [[0, -s, 0, s], [-s, 0, s, -s]], [[-s, -s, s, s], [s, -s, -s, s]], [[0, -s, 0, s], [0, 0, s, s]], [[-s, s, 0, -s], [0, -s, s, s]], [[0, -s, 0, s], [-s, -s / 2, s, -s / 2]]][p.a];
         for (const l of R) g.lineBetween(x + l[0], y + l[1], x + l[2], y + l[3]);
         if (p.t > 50) p.dead = true;
+      } else if (p.k === 'block') {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.25; g.fillStyle(p.c, Math.max(0, 1 - p.t / 40)); g.fillRect(p.x - 2.5, p.y - 2.5, 5, 5); g.fillStyle(0x000000, 0.25); g.fillRect(p.x - 2.5, p.y + 1, 5, 1.5); if (p.t > 40) p.dead = true;
+      } else if (p.k === 'wisp') {
+        p.y -= 0.9; const a = Math.min(1, p.t / 10) * Math.max(0, 1 - p.t / 120); g.fillStyle(0xb07ae8, a * 0.5); g.fillCircle(p.x + Math.sin(p.t * 0.06 + p.ph) * 10, p.y, 6); g.fillStyle(0xffffff, a * 0.6); g.fillCircle(p.x + Math.sin(p.t * 0.06 + p.ph) * 10 - 2, p.y - 1, 1.2); g.fillCircle(p.x + Math.sin(p.t * 0.06 + p.ph) * 10 + 2, p.y - 1, 1.2); if (p.t > 120) p.dead = true;
       } else if (p.k === 'spark') {
         p.x += p.vx; p.y += p.vy; p.vy += 0.05; const a = Math.max(0, 1 - p.t / 60); g.fillStyle(p.c, a);
         g.fillTriangle(p.x, p.y - 4, p.x - 2, p.y, p.x + 2, p.y); g.fillTriangle(p.x, p.y + 4, p.x - 2, p.y, p.x + 2, p.y); if (p.t > 60) p.dead = true;
@@ -241,6 +329,63 @@ export class RecordsLife {
         dg.lineBetween(x + 8, y - 38, x + 2, y - 14); dg.lineBetween(x + 2, y - 14, x - 2, y + 6);
         dg.lineBetween(x + 10, y - 16, x + 18, y + 6); dg.lineBetween(x - 2, y - 12, x - 8, y + 6);   // folded legs
         dg.fillStyle(0x000000, a); dg.fillEllipse(x - 3, y - 55, 3, 4.5); dg.fillEllipse(x + 3, y - 55, 3, 4.5);
+      }
+    }
+    if (M.fx === 'herobrine' && M.eyes > 0) {
+      M.eyes--;
+      const c = [RF.spots.corner[0] + 26, RF.spots.corner[1] + 16], a = Math.min(1, M.eyes / 12) * ((M.eyes % 11 < 8) ? 1 : 0.3);
+      dg.fillStyle(0x3a3430, a * 0.8); dg.fillRect(c[0] - 15, c[1] - 30, 30, 30); dg.fillRect(c[0] - 13, c[1], 26, 46);     // a blocky head and body in the dark
+      dg.fillStyle(0xffffff, a * 0.3); dg.fillCircle(c[0] - 7, c[1] - 16, 9); dg.fillCircle(c[0] + 7, c[1] - 16, 9);
+      dg.fillStyle(0xffffff, a); dg.fillRect(c[0] - 11, c[1] - 18, 8, 4); dg.fillRect(c[0] + 3, c[1] - 18, 8, 4);          // two white eyes
+    }
+    if (M.fx === 'killswitch' && M.screen) {
+      const h = f[7] || [300, 260], x = h[0] + 2, y = h[1] - 34, W = 40, Hh = 28;
+      g.fillStyle(0x3a3a44, 1); g.fillRoundedRect(x - W / 2 - 4, y - 4, W + 8, Hh + 8, 3); g.fillStyle(0x0a140a, 1); g.fillRect(x - W / 2, y, W, Hh);
+      if (M.screen === 'play') {                                       // a little dark mine and a moving dot (you can't see yourself)
+        g.fillStyle(0x2a4a2a, 1); for (let i = 0; i < 5; i++) g.fillRect(x - W / 2 + i * 9, y + Hh - 6 - (i % 2) * 4, 7, 6 + (i % 2) * 4);
+        g.fillStyle(0x9af06a, 0.4 + 0.4 * Math.sin(this.t * 0.4)); g.fillRect(x - W / 2 + ((this.t * 0.7) % W), y + 10, 2, 2);
+      } else {
+        M.del = (M.del || 0) + 1;
+        const k = Math.min(1, M.del / 50);
+        if (k < 1) { this.mystT.setVisible(true).setOrigin(0.5).setFontSize(5).setColor('#9af06a').setPosition(x, y + 8).setText('DELETING...'); g.fillStyle(0x9af06a, 1); g.fillRect(x - W / 2 + 4, y + 17, (W - 8) * k, 4); g.lineStyle(1, 0x9af06a, 1); g.strokeRect(x - W / 2 + 4, y + 17, W - 8, 4); }
+        else this.mystT.setVisible(M.del < 90).setOrigin(0.5).setFontSize(10).setColor('#ff3a3a').setPosition(VIEW_W / 2 - 40, 80).setText('ONE PLAY ONLY.');
+      }
+    }
+    if (M.fx === 'lavender' && M.tint) {
+      dg.fillStyle(0x6a3a9a, 0.22 * M.tint + 0.06 * Math.sin(this.t * 0.15)); dg.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    if (M.fx === 'truck') {
+      const s0 = RF.slide[1], x = s0[0] + 14 + (M.push ? Math.sin(this.t * 1.7) * 0.8 : 0), y = RF.spots.counterTop - 8;
+      g.fillStyle(0xf4f1ea, 1); g.fillRect(x - 18, y - 8, 36, 8); g.fillRect(x - 2, y - 15, 15, 7);          // the bed and the cab
+      g.fillStyle(0x48a8f0, 1); g.fillRect(x + 1, y - 13, 10, 4);                                              // its window
+      g.fillStyle(0x2a2a34, 1); g.fillCircle(x - 11, y + 1, 3.4); g.fillCircle(x + 10, y + 1, 3.4);              // wheels
+      g.lineStyle(1, 0x8a8478, 1); g.strokeRect(x - 18, y - 8, 36, 8);
+      if (this.t % 150 < 40) { g.fillStyle(0xf6a8c8, 0.9); g.fillCircle(x - 3 + Math.sin(this.t * 0.2) * 4, y + 2, 2.4); g.fillStyle(0x16121a, 1); g.fillCircle(x - 3.6 + Math.sin(this.t * 0.2) * 4, y + 1.6, 0.6); }
+    }
+    if (M.fx === 'bigfoot' && M.scope) {
+      const k = M.scope, c1 = { x: 200, y: 214 }, c2 = { x: 300, y: 214 }, R = 64;
+      // the view through the binoculars: misty woods, and once - him
+      for (const c of [c1, c2]) {
+        for (let y = -R; y < R; y += 2) {
+          const half = Math.sqrt(R * R - y * y), v = (y + R) / (2 * R);
+          dg.fillStyle(v < 0.55 ? 0x6a8a7a : 0x2a3a26, k); dg.fillRect(c.x - half, c.y + y, half * 2, 2);
+        }
+        for (let i = 0; i < 9; i++) { const tx = c.x - R + ((i * 23 + this.t * 0.25) % (2 * R)); const h = Math.sqrt(Math.max(0, R * R - (tx - c.x) ** 2)); dg.fillStyle(0x1a2414, k * 0.9); dg.fillRect(tx, c.y - h * 0.9, 4, h * 1.9); }
+        if (M.foot) {
+          const fx = c.x - R + (M.foot * 1.1) - (c === c2 ? 104 : 0), fy = c.y + 6, sw = Math.sin(M.foot * 0.25);
+          if (Math.abs(fx - c.x) < R - 10) { dg.fillStyle(0x6a4a30, k); dg.fillEllipse(fx, fy - 22, 14, 16); dg.fillEllipse(fx, fy, 20, 34); dg.fillRect(fx - 8 + sw * 3, fy + 12, 5, 18); dg.fillRect(fx + 3 - sw * 3, fy + 12, 5, 18); dg.fillRect(fx - 14, fy - 10 + sw * 4, 5, 24); }
+        }
+        dg.fillStyle(0xb8d8c8, 0.15 * k); dg.fillRect(c.x - R, c.y - 10, R * 2, 14);
+      }
+      if (M.foot) M.foot++;
+      // black everywhere else
+      dg.fillStyle(0x020203, k);
+      for (let y = 0; y < VIEW_H; y += 2) {
+        const segs = [];
+        for (const c of [c1, c2]) { const dy = y - c.y; if (Math.abs(dy) < R) { const h = Math.sqrt(R * R - dy * dy); segs.push([c.x - h, c.x + h]); } }
+        segs.sort((a, b) => a[0] - b[0]);
+        let x = 0; for (const [a, b] of segs) { if (a > x) dg.fillRect(x, y, a - x, 2); x = Math.max(x, b); }
+        if (x < VIEW_W) dg.fillRect(x, y, VIEW_W - x, 2);
       }
     }
     if (M.fx === 'wow') {

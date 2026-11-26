@@ -15,6 +15,7 @@ export const settings = {
   menuStyle: 'arcade', // how the menus look: an id from MENU_STYLES in src/ui/arcade.js (OPTIONS > MENU STYLE)
   musicVolume: 0.6,
   sfxVolume: 0.8,
+  recordsTapes: true, // THE ARCHIVIST's boombox in the RECORDS OFFICE plays Mason's cassettes (OPTIONS > ARCHIVIST'S TAPES)
   // Controllers that joined on the setup screen. p1Pad = pad index that also drives player 1.
   p1Pad: null,
   extraPads: [],      // pad indexes for players 2-4
@@ -44,9 +45,10 @@ try {
   if (o && typeof o.crt === 'boolean') settings.crt = o.crt;
   if (o && ['auto', 'on', 'off'].includes(o.touch)) settings.touch = o.touch;
   if (o && typeof o.menuStyle === 'string') settings.menuStyle = o.menuStyle;
+  if (o && typeof o.recordsTapes === 'boolean') settings.recordsTapes = o.recordsTapes;
 } catch (e) { /* storage unavailable: keep the defaults */ }
 export function saveOptions() {
-  try { localStorage.setItem(OPT_KEY, JSON.stringify({ crt: settings.crt, touch: settings.touch, performance:settings.performance, menuStyle: settings.menuStyle })); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(OPT_KEY, JSON.stringify({ crt: settings.crt, touch: settings.touch, performance:settings.performance, menuStyle: settings.menuStyle, recordsTapes: settings.recordsTapes })); } catch (e) { /* ignore */ }
 }
 
 export const MODE_NAMES = { stock: 'STOCK', time: 'TIMED BATTLE', stamina: 'STAMINA', training: 'TRAINING' };
