@@ -206,7 +206,8 @@ The lore lives behind a counter: Trinkets > LORE is THE RECORDS OFFICE, where TH
 hand-drawn face the game animates) fetches a file on any name you type - fighters, bosses (their best pages sealed
 until you beat them), world words and secret names (BACKROOMS: she reaches through a portal for it) - and every file
 she gives you stays in your BRIEFCASE. Between requests she lives there: she changes the cassette in her boombox when a tape
-ends (Mason's songs), makes herself hot cocoa, and five more secret names (internet mysteries) each have their own scene.
+ends (Mason's songs), makes herself hot cocoa, and five more secret names (internet mysteries) each have their own scene - and five video game legends, and three
+CONFIDENTIAL files she fetches through a door that appears in the wall and vanishes when she snaps.
 
 ---
 

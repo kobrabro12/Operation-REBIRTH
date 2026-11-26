@@ -152,6 +152,126 @@ THE SEARCH. They pointed the telescope back at that patch of sky, toward the con
 THE ARCHIVE'S PART. On the night of the Starfall, the purple star was running from something, and it called out as it ran. I don't know how I know that. But I have a printout. Nobody printed it. It appeared in my in-tray at 12:11 AM, and halfway down the page, among all the quiet 1s and 2s, it climbs and falls: 6EQUJ5.
 
 Someone had already circled it in red. The handwriting in the margin is mine.` },
+  // THE FIVE LEGENDS: famous video game urban legends (told as history; no game's art is shown), each with its own scene
+  { id: 'x-herobrine', names: ['HEROBRINE'], name: 'HEROBRINE', tab: 'HEROBRINE', anim: 'mine', fx: 'herobrine',
+    kind: 'SECRET FILE - VIDEO GAME LEGEND', from: 'DUG OUT OF A WORLD THAT WAS SUPPOSED TO BE EMPTY',
+    say: ['HEROBRINE? HOLD ON, THAT FILE\'S... BURIED. LITERALLY.', 'I\'LL NEED A PICK.'], after: '...THE CORNER HAD EYES. WHITE ONES. HERE, TAKE THIS AND LET\'S NEVER DIG AGAIN.',
+    text: `HEROBRINE: THE PLAYER WHO WASN'T THERE.
+
+THE STORY. In 2010, on the forums of a block-building game that was barely a year old, someone posted a story. They were playing alone, in a world they had made themselves, when they saw another player in the fog: the same plain default character everyone starts with - except the eyes were blank white, no pupils at all. It stared, then walked away into the trees. Later they found things nobody had built: two-by-two tunnels cut through the hills, little pyramids of sand in the sea, trees with their leaves stripped off.
+
+When they asked on the forums, the story goes, the thread was deleted within minutes, and a private message arrived with one word: STOP. Someone said the figure was the game maker's dead brother. That part was never true; the developer has said many times that he never had a brother, and that nothing like it was ever in the game.
+
+THE LIVESTREAM. Weeks later, a video stream "caught" the figure on camera - and the people who made it soon admitted it was staged, with a doctored picture. It didn't matter. By then everybody knew the name.
+
+THE JOKE THAT KEPT IT ALIVE. For years afterwards, the official patch notes for the game ended, again and again, with the same line: REMOVED HEROBRINE. They were removing something that had never existed, on purpose, every update. That is how you make a legend live forever: deny it every time.
+
+THE ARCHIVE'S PART. On the night of the Starfall a shard fell into a world made of blocks. The next morning, one of my drawers had been dug out from the inside - a neat two-by-two tunnel through the back of it, and a single block of sand on top of the paperwork. I've filed the sand. I keep the drawer shut. Sometimes the pick I used is not where I left it.` },
+  { id: 'x-killswitch', names: ['KILLSWITCH', 'KARVINA', 'PORPHYRA'], name: 'KILLSWITCH', tab: 'KILLSWITCH', anim: 'handheld', fx: 'killswitch',
+    kind: 'SECRET FILE - VIDEO GAME LEGEND', from: 'ONE PLAY ONLY. THIS COPY HAS BEEN PLAYED.',
+    say: ['KILLSWITCH! OOH. I HAVE A COPY. I THINK. LET ME... CHECK IF IT STILL WORKS.', 'IT ONLY WORKS ONCE, SO NOBODY TALK.'], after: '...AND THAT\'S WHY I DON\'T HAVE A COPY ANY MORE. HERE\'S THE FILE ON IT, AT LEAST.',
+    text: `KILLSWITCH: THE GAME THAT ERASED ITSELF.
+
+THE STORY. Around 2005 a story began going round the internet about a computer game from 1989, made by a company called the Karvina Corporation, somewhere in what was then Czechoslovakia. It was a survival horror game before there was such a thing. You chose to play as one of two characters: a girl called Porphyra, who was invisible, or a demon called Ghast. You wandered dark mines. You never saw yourself.
+
+THE CATCH. When you finished the game - and the story was very clear about this - it deleted itself. Every file. No second play, no saves, no proof. Five thousand copies were made, it was said, and every one of them ate itself the moment it was beaten.
+
+THE AUCTION. Decades later, the story went, a sealed copy turned up for sale online and was bought for an enormous sum by a man in Japan, who promised he would film himself playing it so the world could finally see it. The video never appeared. All that came out, people said, was a short clip of a man crying in front of a computer.
+
+WHAT IT REALLY WAS. None of it can be found: not the company, not the game, not the auction. Its likeliest origin is a work of fiction - a short story told well enough, with just enough detail, that thousands of people went looking for something that was never there. In a way, it is the perfect lost game: one that cannot be found because it was designed never to be kept.
+
+THE ARCHIVE'S PART. After the Starfall, a little grey handheld turned up in my lost-and-found, with one cartridge in it. I played it on a slow afternoon. I remember a mine. I remember not being able to see my own hands. I remember finishing it. Then the screen said DELETING and went black, and it has been black ever since. I cannot remember who I played as. I keep checking my hands.` },
+  { id: 'x-lavender', names: ['LAVENDER', 'LAVENDERTOWN', 'LAVENDERTOWNSYNDROME'], name: 'LAVENDER TOWN SYNDROME', tab: 'LAVENDER', anim: 'ears', fx: 'lavender',
+    kind: 'SECRET FILE - VIDEO GAME LEGEND', from: 'FILED WITH THE VOLUME TURNED ALL THE WAY DOWN',
+    say: ['OH, NOT THAT TUNE. NOT THAT TUNE.', 'IT\'S STUCK IN THE FILE. I CAN HEAR IT FROM HERE.'], after: '...IS IT STILL PLAYING? IT\'S STILL PLAYING IN MY HEAD. TAKE THE FILE. HUM SOMETHING ELSE.',
+    text: `LAVENDER TOWN SYNDROME: THE SONG THAT MADE CHILDREN SICK.
+
+THE STORY. Around 2010 a creepypasta spread online about a monster-catching game released in Japan in 1996. Partway through, players reach a sad little town of graves and a haunted tower, with its own music: a thin, high, looping melody that never quite settles. The story claimed that in the first months after release, dozens of children who played that part of the game fell ill - headaches, nosebleeds, nightmares, worse - and that the cause was hidden in the music: tones so high that only children's ears could hear them. The game was quietly changed, it said, and the whole thing covered up.
+
+THE PROOF. There isn't any. No news reports, no doctors, no hospital records from that time mention it. People have pulled the song apart note by note and found nothing hidden in it - just a very good piece of spooky music made with very few notes. The "syndrome" seems to have been mixed together from a real event a year later, when an episode of a cartoon based on the same games really did make some viewers ill with a flashing light effect, and a long-standing fondness online for frightening stories about childhood games.
+
+WHY IT STUCK. Because the song really is unsettling. Anyone who played it remembers the town, the graves, the tower, and those high notes going round and round. The legend gave that feeling a reason.
+
+THE ARCHIVE'S PART. On the night of the Starfall, every music box in the Sanctum played the same eight notes at once, high and thin, then stopped. Nobody in the office could hum it afterwards. Nobody could forget it either. I keep this file in the quietest drawer. I still hear it when the lamp flickers.` },
+  { id: 'x-truck', names: ['TRUCK', 'MEWTRUCK', 'MEWUNDERTHETRUCK', 'THETRUCK'], name: 'THE TRUCK', tab: 'THE TRUCK', anim: 'push', fx: 'truck',
+    kind: 'SECRET FILE - VIDEO GAME LEGEND', from: 'FOUND UNDER SOMETHING VERY HEAVY',
+    say: ['THE TRUCK! EVERYBODY ASKS ABOUT THE TRUCK.', 'THE FILE\'S UNDER IT. OBVIOUSLY. HOLD ON, LET ME JUST... PUSH...'], after: 'IT WOULDN\'T BUDGE. IT NEVER BUDGES. I SLID THE FILE OUT FROM UNDER IT ANYWAY. DON\'T TELL THE TRUCK.',
+    text: `THE TRUCK: WHAT'S UNDERNEATH?
+
+THE STORY. In the 1990s, in the first monster-catching games on a little grey handheld, there was a harbour city with a big cruise ship docked in it. Board the ship and leave at just the right moment - which the game never wanted you to do - and you could reach a strip of dock that was normally closed off once the ship sailed. On it sat a lone pickup truck. It did nothing. You could not drive it, talk to it, or search it.
+
+THE RUMOUR. Nothing that strange could be there for no reason. So, in playgrounds before the internet was everywhere, the story spread: if you used the strength move to push the truck aside, the rarest monster of all - a tiny pink one that you could only otherwise get at special events - was hiding underneath. Some said you had to beat the whole game first. Some said you had to do it on a certain day. Everybody's cousin had done it.
+
+THE TRUTH. It was just a truck. The game's makers said so, people combed through the game's code and found nothing tied to it, and it cannot be pushed. But the rumour was so famous that, years later, when the games were remade, the makers put a little gift underneath the truck - not the pink one, but a nod to everyone who had pushed for a whole summer.
+
+THE ARCHIVE'S PART. The day after the Starfall, a small white toy truck was sitting on my counter. I didn't put it there. It cannot be moved - not by hand, not by crowbar, not by FISTS, who tried for an afternoon. Every so often, just at the edge of the lamp's light, I swear I see something pink and curious peek out from under it, and duck back.` },
+  { id: 'x-bigfoot', names: ['BIGFOOT', 'SASQUATCH', 'CHILIAD', 'MOUNTCHILIAD'], name: 'BIGFOOT IN THE WOODS', tab: 'BIGFOOT', anim: 'binoculars', fx: 'bigfoot',
+    kind: 'SECRET FILE - VIDEO GAME LEGEND', from: 'SIGHTED THROUGH THE FOG, ONCE',
+    say: ['BIGFOOT? HE\'S NOT IN THE BINS, HE\'S IN THE WOODS.', 'BINOCULARS! EVERYONE BE VERY QUIET.'], after: 'I SAW HIM. I DEFINITELY SAW HIM. ...I DIDN\'T GET A PHOTO. NOBODY EVER GETS A PHOTO.',
+    text: `BIGFOOT IN THE WOODS: THE HUNT THAT NEVER ENDED.
+
+THE STORY. In 2004 a huge open-world crime game came out with a whole state to wander: cities, deserts, and in the countryside, thick forests on a big mountain, often lost in fog. Almost at once, people on gaming forums started saying they'd seen something in those woods. Big. Hairy. Walking upright between the trees at night, then gone. Bigfoot.
+
+THE HUNT. Thousands of players spent thousands of hours combing the forest. They posted blurry screenshots, maps of "sightings", theories about the time of day, the weather, the phase of the in-game moon. There were famous fakes made with mods, and even more famous arguments about which fakes were fakes. Fan sites ran whole sections on it. The game's makers never said yes, and never quite said no.
+
+THE TRUTH. As far as anyone who has taken the game's files apart can tell, there is no Bigfoot. There is fog, and dark trees, and a sound engine that loves a creaking branch, and a very big world on a very small screen where your eyes will make a shape out of anything. The legend was so loved that later games by the same makers started hiding their own nods to it - footprints, odd noises, a costume or two - as if to say: keep looking.
+
+THE ARCHIVE'S PART. There is a painted forest on the far wall of the back room, behind the confidential drawers. Nobody painted it. On foggy evenings I stand at the doorway with binoculars. I've seen him twice. Both times he was walking away, and both times he stopped, turned his head - and waved.` },
+  // THE BACK ROOM: three CONFIDENTIAL files about the game's deepest lore. She opens a door out of nowhere, walks into
+  // the back room behind the office, comes back with the file and snaps the door away.
+  { id: 'x-c001', names: ['FILE001', 'FILE1', 'THEFIRSTSTAR', 'FIRSTSTAR', 'C001'], name: 'CONFIDENTIAL 001: THE FIRST STAR', tab: 'FILE 001', anim: 'door', confidential: true,
+    kind: 'CONFIDENTIAL - EYES ONLY', from: 'THE BACK ROOM. DRAWER ONE. NO COPIES.',
+    say: ['...FILE 001. WHO TOLD YOU ABOUT FILE 001?', 'THAT ONE ISN\'T OUT HERE. IT\'S IN THE BACK ROOM. WAIT HERE. DON\'T TOUCH ANYTHING.'], after: 'YOU DIDN\'T GET THIS FROM ME.',
+    text: `CONFIDENTIAL 001 - THE FIRST STAR.
+WHAT THE ARCHIVE KNOWS AND DOES NOT TELL.
+
+1. The purple star that broke over the Sky Sanctum at eleven minutes past midnight was not the first star VESPERION chased. It was the last one he had not caught. Every other light in its sky had already been swallowed. It ran because it was alone.
+
+2. It did not break by accident. Our instruments - such as they were - recorded it slowing down over the Sanctum, as if it had chosen the place. It broke itself on purpose, into as many pieces as there were things that needed bringing back, so that he could never swallow all of it at once.
+
+3. Every shard carries a part of what the star remembered. The fighters dream things that are not theirs: oceans of light, a long fall, being chased. They think it is their own past. Some of it is. Some of it is the star's.
+
+4. OPERATION REBIRTH is not, as the public notes say, an effort to rebuild the star from its shards. It is an effort to rebuild it from its shards *before he finds them*. Every fight rings the shards together. Every ring is louder. He can hear it too.
+
+5. When enough shards ring at once, the star will be whole again. We do not know what it will be. We do not know if it will remember us. We do not know if it will want to.
+
+6. I have one shard of my own. I was holding a pen when it found me. I have never told anyone where I keep it, and I never will, and I would like you to stop looking at my hat.` },
+  { id: 'x-c002', names: ['FILE002', 'FILE2', 'RHOLLOWAY', 'ROBERTHOLLOWAY', 'C002', 'THEMAKER'], name: 'CONFIDENTIAL 002: THE MAKER', tab: 'FILE 002', anim: 'door', confidential: true,
+    kind: 'CONFIDENTIAL - EYES ONLY', from: 'THE BACK ROOM. DRAWER TWO. HANDLE WITH CARE.',
+    say: ['FILE 002 IS... NOT A HAPPY FILE.', 'IT\'S IN THE BACK ROOM. I\'LL GET IT. GENTLY.'], after: 'BE KIND TO IT.',
+    text: `CONFIDENTIAL 002 - THE MAKER.
+ON R. HOLLOWAY, WHO MADE A LITTLE GAME ABOUT A RABBIT.
+
+1. R. Holloway was a programmer at a tiny company called Sunnyside Soft, who made one game in 1994: a cheerful platformer about a rabbit in a land of hills. He made it for his daughter, Cassie, and put her ideas in it - the ? blocks were her idea, so was the rabbit's waving, so were the friends.
+
+2. On October 14, 1994 - the night of the Starfall in that world - a shard fell into the house. In the morning the cartridge was still in the console. The game was still running. Cassie was not in her room. The rabbit on the screen was standing very still, looking out.
+
+3. Holloway never released the game. He spent the rest of his life trying to get into it: rewriting it, debugging it, building tools to read every byte while it ran. His notes are in this drawer. Most of them are calm and careful. The last ones are just her name.
+
+4. The tapes found later - the LOST BUILD - are his. The things the rabbit says on them are not things he wrote.
+
+5. We do not know where Cassie is. The archive's best guess, filed reluctantly: the shard that fell that night wanted to bring someone back, and found a game that a father had built for his daughter, and could not tell the difference between the girl and the game. It has been trying to keep her ever since. HOPPLE is not the villain of this file. HOPPLE is what happens when a friend is told never to let go.
+
+6. If the star is ever whole again, I intend to ask it for one thing. This file is why.` },
+  { id: 'x-c003', names: ['FILE003', 'FILE3', 'THIRTEENTHHOUR', 'THETHIRTEENTHHOUR', 'C003', '1300'], name: 'CONFIDENTIAL 003: THE THIRTEENTH HOUR', tab: 'FILE 003', anim: 'door', confidential: true,
+    kind: 'CONFIDENTIAL - EYES ONLY', from: 'THE BACK ROOM. DRAWER THREE. THE CLOCK IN THIS DRAWER IS WRONG.',
+    say: ['FILE 003? YOU\'VE BEEN TALKING TO THE SHOPKEEPER.', 'FINE. THE BACK ROOM IT IS. IF THE CLOCK STRIKES WHILE I\'M IN THERE, START WITHOUT ME.'], after: 'HE DOESN\'T KNOW I HAVE THIS. LET\'S KEEP IT THAT WAY.',
+    text: `CONFIDENTIAL 003 - THE THIRTEENTH HOUR.
+ON THE SHOP, THE MAN WITH TWO FACES, AND THE TIME BETWEEN TIMES.
+
+1. Every world the star fell on has twelve hours on its clocks. The shop has thirteen. The thirteenth hour is where things go when they are not anywhere - lost coins, forgotten songs, unworn costumes, the last minute before you fall asleep. HANZ and $@L sell from it. That is why everything in the shop is something you almost had.
+
+2. HANZ and $@L were one man before the Starfall. A shard of the purple star hit him straight on and split him in two along the line of his face. The red half kept the hunger. The grey half kept the memory. Neither can remember which one was him.
+
+3. Their faces are on the Masked King's crown. They traded them for the shop - so they could keep it open at thirteen o'clock, forever, and never have to go back to twelve. That is why there is nothing under the mask. Nothing at all.
+
+4. MEMORIES, the shop's money, are exactly what the name says. The coins you spend there are moments you didn't need. He keeps them in the till. He never says where the till goes at night.
+
+5. VESPERION cannot see into the thirteenth hour. It is the only place in any world that he cannot swallow. If the star is ever re-formed, the archive's plan - this file's real secret - is to hide it there, behind the counter, between the hourglass and the candle, until he gives up.
+
+6. The shopkeeper has not agreed to this. He does not know he has been asked. The clock in this drawer is always thirteen minutes fast. I have never managed to fix it.` },
+  { id: 'x-confidential', names: ['CONFIDENTIAL', 'BACKROOM', 'THEBACKROOM', 'CLASSIFIED', 'TOPSECRET', 'EYESONLY'], refuse: true, hintOnly: true,
+    say: ['THE BACK ROOM? THERE ARE ONLY THREE FILES IN THE BACK ROOM.', 'ASK ME FOR THEM BY NUMBER: FILE 001, FILE 002, FILE 003. ...I DIDN\'T SAY THAT.'] },
   { id: 'x-levelfun', names: ['LEVELFUN', 'FUN'], refuse: true, say: ['NO.', 'WE DO NOT GO TO LEVEL FUN. ASK ME SOMETHING ELSE. QUICKLY.'] },
 ];
 
@@ -199,6 +319,7 @@ function worldRecord(w) {
 }
 
 /** A secret's file. */
+/** A secret's file (or, for `refuse`, just what she says). */
 function secretRecord(s) { return s.refuse ? { ...s } : { ...s, secret: true, sections: [[s.name, s.text]] }; }
 
 /** The file a typed name asks for, or null if she's never heard of it. */
@@ -239,8 +360,9 @@ export const ARCH_LINES = {
   tray: ['TODAY\'S REQUESTS. MOSTLY FROM MR WAKE. HE WANTS TO KNOW IF TEA IS A FIGHTER.', 'THAT\'S MY IN-TRAY. IT HAS NEVER ONCE BEEN EMPTY.'],
   pad: ['MY STAMP PAD! RED FOR "CLASSIFIED", RED FOR "APPROVED". I ONLY HAVE RED.'],
   case: ['THAT\'S YOUR BRIEFCASE. EVERYTHING I\'VE GIVEN YOU IS IN THERE.'],
-  hint: ['THE RADIO SAYS STRANGE THINGS AT NIGHT. SOMETHING THAT BUZZES. TRY ASKING ME ABOUT IT.', 'AN ARCADE GAME FROM 1981 THAT NOBODY CAN PROVE EXISTED. I HAVE ITS FILE. NOT ITS NAME, THOUGH. YOU NEED THAT.', 'SOME PUZZLES COME WITH A BUG ON THEM. A SINGING ONE. AND A NUMBER.', 'SOMEONE ONCE CIRCLED SIX CHARACTERS IN RED AND WROTE ONE WORD NEXT TO IT. GUESS THE WORD.', 'DON\'T ASK ME ABOUT THE THING IN THE CORNER. ...THE THING WITH LONG FINGERS. DON\'T.', 'PSST. SOME FILES AREN\'T IN MY BINS. SOME ARE BEHIND YELLOW WALLPAPER THAT GOES ON FOREVER.', 'NOBODY EVER ASKS ABOUT ME. JUST SAYING. NOBODY.', 'TRY A NIGHT INSTEAD OF A NAME. A STAR FELL ON IT.', 'THE BOSSES HAVE FILES TOO - BUT THE GOOD PAGES ONLY UNSEAL ONCE YOU\'VE BEATEN THEM.', 'THE SHOPKEEPER? OH, I HAVE A FILE. HE HAS A FILE ON ME TOO, I BET.'],
+  hint: ['THERE\'S A DOOR TO THE BACK ROOM. YOU CAN\'T SEE IT. ASK ME ABOUT SOMETHING CONFIDENTIAL.', 'SOME GAMES HAVE GHOSTS WITH WHITE EYES. SOME HAVE A TRUCK NOBODY CAN MOVE. ASK ME ABOUT EITHER.', 'THERE\'S A GAME THAT DELETES ITSELF WHEN YOU WIN. AND A SONG THAT MAKES YOU DIZZY. AND A BIG HAIRY FELLA IN THE WOODS.', 'THE RADIO SAYS STRANGE THINGS AT NIGHT. SOMETHING THAT BUZZES. TRY ASKING ME ABOUT IT.', 'AN ARCADE GAME FROM 1981 THAT NOBODY CAN PROVE EXISTED. I HAVE ITS FILE. NOT ITS NAME, THOUGH. YOU NEED THAT.', 'SOME PUZZLES COME WITH A BUG ON THEM. A SINGING ONE. AND A NUMBER.', 'SOMEONE ONCE CIRCLED SIX CHARACTERS IN RED AND WROTE ONE WORD NEXT TO IT. GUESS THE WORD.', 'DON\'T ASK ME ABOUT THE THING IN THE CORNER. ...THE THING WITH LONG FINGERS. DON\'T.', 'PSST. SOME FILES AREN\'T IN MY BINS. SOME ARE BEHIND YELLOW WALLPAPER THAT GOES ON FOREVER.', 'NOBODY EVER ASKS ABOUT ME. JUST SAYING. NOBODY.', 'TRY A NIGHT INSTEAD OF A NAME. A STAR FELL ON IT.', 'THE BOSSES HAVE FILES TOO - BUT THE GOOD PAGES ONLY UNSEAL ONCE YOU\'VE BEATEN THEM.', 'THE SHOPKEEPER? OH, I HAVE A FILE. HE HAS A FILE ON ME TOO, I BET.'],
   idle: ['...', 'HM HM HMM...', 'WHERE DID I PUT THE GNASH FILE... OH, IT\'S CHEWED.', 'I COUNTED THE DRAWERS ONCE. I GOT A DIFFERENT NUMBER THE NEXT DAY.'],
+  backroom: ['...', '*RUSTLE RUSTLE*', '*A DRAWER SLAMS*', 'FOUND IT!'],
   busy: ['ONE SEC!', 'COMING!', 'JUST A MOMENT!', 'HOLD THAT THOUGHT!', 'BE RIGHT WITH YOU!', 'TWO SECONDS!'],
   cocoa: ['COCOA BREAK! BACK IN A JIFFY.', 'TIME FOR A CUP. EXTRA MARSHMALLOWS. DON\'T JUDGE.', 'OOH, IS IT COCOA O\'CLOCK? IT\'S ALWAYS COCOA O\'CLOCK.'],
   sip: ['MMMM.', 'AAAH. PERFECT.', 'THAT\'S THE GOOD STUFF.', 'MARSHMALLOW MOUSTACHE. AGAIN.'],

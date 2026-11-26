@@ -36,7 +36,8 @@ const EXPR = {
 const FACE_IMG = { smug: [0, 28, 18], annoyed: [1, 25.5, 24], shocked: [2, 29.5, 20] };
 // the expression each animation starts with
 const ANIM_EXPR = { idle: 'smile', greet: 'happy', ask: 'happy', listen: 'smile', dig: 'focus', give: 'happy', portal: 'focus', think: 'think', laugh: 'laugh', shrug: 'sly', stamp: 'focus', tip: 'wink', explain: 'happy',
-  cocoa: 'smile', tape: 'happy', cipher: 'focus', dizzy: 'focus', radio: 'focus', spook: 'smile', wow: 'focus' };
+  cocoa: 'smile', tape: 'happy', cipher: 'focus', dizzy: 'focus', radio: 'focus', spook: 'smile', wow: 'focus',
+  door_go: 'smile', door_back: 'smug', mine: 'focus', handheld: 'focus', ears: 'annoyed', push: 'focus', binoculars: 'focus' };
 // left alone: a little something every IDLE frames (think / explain / a hint)
 const IDLE = 900;
 const INK = 0x16121a;
@@ -142,9 +143,9 @@ export class RecordsScene extends Phaser.Scene {
     const g = this.faceG; g.clear();
     const fc = this.frame()[6]; this.faceImg.setVisible(false); if (!fc) return;
     const [cx, cy, s, roll, facing, side] = fc;
-    if (facing < 0.3) return;
+    if (facing < 0.3 || this.her.alpha < 0.05) return;
     const ct = RF.spots.counterTop;                                    // (below this the counter hides her face)
-    const k = Math.min(1, (facing - 0.3) / 0.25), sq = Math.max(0.35, Math.min(1, side)), r = roll * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
+    const k = Math.min(1, (facing - 0.3) / 0.25) * this.her.alpha, sq = Math.max(0.35, Math.min(1, side)), r = roll * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
     const P = (u, v) => { const x = u * s * sq, y = -v * s; return { x: cx + x * cs - y * sn, y: cy + x * sn + y * cs }; };
     const lw = Math.max(1.6, s * 0.42);
     const line = (pts, w = lw, a = k) => { g.lineStyle(w, INK, a); g.strokePoints(pts.map((p) => P(p[0], p[1])), false); };
@@ -300,7 +301,8 @@ export class RecordsScene extends Phaser.Scene {
       if (this.misses % 3 === 0) lines.push(this.pick('hint'));
       return this.say(lines, 'sly');
     }
-    if (rec.refuse) { this.play('shrug', null, () => { this.busy = false; this.play('idle'); }); return this.say(rec.say, 'scared'); }
+    if (rec.refuse) { this.play('shrug', null, () => { this.busy = false; this.play('idle'); }); return this.say(rec.say, rec.hintOnly ? 'sly' : 'scared'); }
+    if (rec.anim === 'door') return this.fetchDoor(rec);
     if (rec.anim === 'portal') return this.fetchPortal(rec);
     if (rec.fx) return this.fetchMystery(rec);
     if (rec.anim === 'self') return this.fetchSelf(rec);
@@ -364,25 +366,29 @@ export class RecordsScene extends Phaser.Scene {
     this.fx.push({ kind: 'paper', x: p[0], y: p[1], vx: (Math.random() - 0.5) * 3 - 0.6, vy: -2.6 - Math.random() * 2.2, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, t: 0, col: Math.random() < 0.35 ? 0xe2c47e : 0xf4efe0 });
   }
   /** A manila folder (with a name tab) at x, y turned by rot, w wide. */
-  folder(g, x, y, w, rot, alpha = 1) {
+  folder(g, x, y, w, rot, alpha = 1, red = false) {
     const h = w * 0.72, cs = Math.cos(rot), sn = Math.sin(rot);
+    const C = red ? [0x7c1f30, 0xf4efe0, 0x9a2a3a, 0x3a0e16, 0x16121a] : [0xc9a862, 0xf4efe0, 0xe2c47e, 0x7a5a2a, 0x7c1f30];
     const P = (u, v) => ({ x: x + u * cs - v * sn, y: y + u * sn + v * cs });
     const poly = (pts, col, a = alpha) => { g.fillStyle(col, a); g.fillPoints(pts.map(([u, v]) => P(u, v)), true); };
-    poly([[-w / 2, -h / 2 - w * 0.12], [-w / 2 + w * 0.36, -h / 2 - w * 0.12], [-w / 2 + w * 0.42, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], 0xc9a862);
-    poly([[-w / 2 + 1, -h / 2 + w * 0.06], [w / 2 - 1, -h / 2 + w * 0.06], [w / 2 - 1, -h / 2 + w * 0.1], [-w / 2 + 1, -h / 2 + w * 0.1]], 0xf4efe0);
-    poly([[-w / 2, -h / 2 + w * 0.1], [w / 2, -h / 2 + w * 0.1], [w / 2, h / 2], [-w / 2, h / 2]], 0xe2c47e);
-    g.lineStyle(1, 0x7a5a2a, alpha); g.strokePoints([P(-w / 2, -h / 2 - w * 0.12), P(-w / 2 + w * 0.36, -h / 2 - w * 0.12), P(-w / 2 + w * 0.42, -h / 2), P(w / 2, -h / 2), P(w / 2, h / 2), P(-w / 2, h / 2)], true);
-    poly([[-w * 0.3, -h * 0.05], [w * 0.3, -h * 0.05], [w * 0.3, h * 0.08], [-w * 0.3, h * 0.08]], 0x7c1f30, alpha * 0.8);
+    poly([[-w / 2, -h / 2 - w * 0.12], [-w / 2 + w * 0.36, -h / 2 - w * 0.12], [-w / 2 + w * 0.42, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], C[0]);
+    poly([[-w / 2 + 1, -h / 2 + w * 0.06], [w / 2 - 1, -h / 2 + w * 0.06], [w / 2 - 1, -h / 2 + w * 0.1], [-w / 2 + 1, -h / 2 + w * 0.1]], C[1]);
+    poly([[-w / 2, -h / 2 + w * 0.1], [w / 2, -h / 2 + w * 0.1], [w / 2, h / 2], [-w / 2, h / 2]], C[2]);
+    g.lineStyle(1, C[3], alpha); g.strokePoints([P(-w / 2, -h / 2 - w * 0.12), P(-w / 2 + w * 0.36, -h / 2 - w * 0.12), P(-w / 2 + w * 0.42, -h / 2), P(w / 2, -h / 2), P(w / 2, h / 2), P(-w / 2, h / 2)], true);
+    poly([[-w * 0.3, -h * 0.05], [w * 0.3, -h * 0.05], [w * 0.3, h * 0.08], [-w * 0.3, h * 0.08]], C[4], alpha * 0.8);
   }
   /** The portal (behind / in front of her), the folder in her hand or sliding, papers, stamps. */
   drawFx() {
     const g = this.fxG, pg = this.portalG, bg = this.backG; g.clear(); pg.clear(); bg.clear();
     const f = this.frame();
-    if (this.holding && f[7]) this.folder(g, f[7][0] + 2, f[7][1] - 6, 26, -0.25 + 0.05 * Math.sin(this.t * 0.2));
+    if (this.holding && f[7]) {                                       // (smaller when she's further away, at the back door)
+      const k = f[6] ? Math.min(1, f[6][2] / RF.anims.idle.frames[0][6][2]) : 1;
+      this.folder(g, f[7][0] + 2 * k, f[7][1] - 6 * k, 26 * k, -0.25 + 0.05 * Math.sin(this.t * 0.2), this.her.alpha, !!this.holding.confidential);
+    }
     if (this.sliding) {
       const s = this.sliding; s.t++;
       const [a, b] = RF.slide, k = Math.min(1, s.t / 14);
-      this.folder(g, a[0] + (b[0] - a[0]) * k, b[1] + 4 - s.t * 0.6, 26 + s.t * 1.6, -0.1, Math.max(0, 1 - s.t / 30));
+      this.folder(g, a[0] + (b[0] - a[0]) * k, b[1] + 4 - s.t * 0.6, 26 + s.t * 1.6, -0.1, Math.max(0, 1 - s.t / 30), !!s.rec.confidential);
     }
     for (const p of this.fx) {
       p.t++;
@@ -485,9 +491,10 @@ export class RecordsScene extends Phaser.Scene {
     }
     if (o.pages.length > 1) this.oText(X + W / 2, Y + Hh - 14, '<  PAGE ' + (o.page + 1) + ' / ' + o.pages.length + '  >', '6px', '#5a3a1a').setOrigin(0.5);
     this.oText(VIEW_W / 2, VIEW_H - 9, 'A/D TURN THE PAGE   K / ESC / CLICK OUTSIDE: CLOSE' + (o.from ? '   (BACK TO YOUR BRIEFCASE)' : ''), '5px', '#e8dcc0').setOrigin(0.5);
-    if (o.fresh || rec.sealed) {
-      const word = rec.sealed ? 'HALF SEALED' : 'FILED';
-      const st = this.oText(X + W - 150, Y + 30, word, '12px', '#c0202c').setOrigin(0.5).setAngle(-10).setAlpha(0.8);
+    if (o.fresh || rec.sealed || rec.confidential) {
+      const word = rec.confidential ? 'CONFIDENTIAL' : rec.sealed ? 'HALF SEALED' : 'FILED';
+      const st = rec.confidential ? this.oText(X + W - 96, Y + Hh - 34, word, '9px', '#c0202c').setOrigin(0.5).setAngle(-8).setAlpha(0.85)
+        : this.oText(X + W - 150, Y + 30, word, '12px', '#c0202c').setOrigin(0.5).setAngle(-10).setAlpha(0.8);
       g.lineStyle(2, 0xc0202c, 0.7); g.strokeRect(st.x - st.width / 2 - 6, st.y - 12, st.width + 12, 24);
     }
   }
@@ -521,10 +528,10 @@ export class RecordsScene extends Phaser.Scene {
       const cx = X + 30 + (i % COLS) * cw + cw / 2, cy = Y + 66 + Math.floor(i / COLS) * (ch + 4);
       const on = o.page * per + i === o.sel;
       if (on) { g.fillStyle(0xffe9a0, 0.25); g.fillRoundedRect(cx - cw / 2 + 2, cy - ch / 2 - 4, cw - 4, ch + 6, 4); }
-      this.folder(g, cx - cw / 2 + 22, cy, 30, 0, 1);
-      const col = rec.secret ? '#ffd860' : rec.sealed ? '#ff8a8a' : '#f4e6c4';
+      this.folder(g, cx - cw / 2 + 22, cy, 30, 0, 1, !!rec.confidential);
+      const col = rec.confidential ? '#ff5a6a' : rec.secret ? '#ffd860' : rec.sealed ? '#ff8a8a' : '#f4e6c4';
       this.oText(cx - cw / 2 + 42, cy - 8, rec.tab || rec.name, '6px', on ? '#ffffff' : col, { wordWrap: { width: cw - 46 } });
-      this.oText(cx - cw / 2 + 42, cy + 6, rec.secret ? 'SECRET' : rec.id[0] === 'f' ? 'FIGHTER' : rec.id[0] === 'b' ? 'WARDEN' : 'WORLD', '5px', '#c8a8a0');
+      this.oText(cx - cw / 2 + 42, cy + 6, rec.confidential ? 'CONFIDENTIAL' : rec.secret ? 'SECRET' : rec.id[0] === 'f' ? 'FIGHTER' : rec.id[0] === 'b' ? 'WARDEN' : 'WORLD', '5px', '#c8a8a0');
       o.cells.push({ x: cx - cw / 2, y: cy - ch / 2, w: cw, h: ch, i: o.page * per + i });
     });
     const pagesN = Math.ceil(o.ids.length / per);

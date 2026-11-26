@@ -178,6 +178,21 @@ def torso(M):
     return out
 
 
+def legs(M, step):
+    """Her pencil skirt, dark stockings and maroon loafers (the counter hides them until she walks to the back door).
+    step = how far through her walk she is (one stride per 0.5): each leg swings forward and back in turn."""
+    m = H.Mesh()
+    m.hull(ring((0, 0, 0), 10.2, 6.8, -22, 12) + ring((0, 0.4, 0), 9.4, 6.2, -36, 12), NAVY, M)
+    for s_ in (-1, 1):
+        ph = 2 * math.pi * step + (0 if s_ < 0 else math.pi)
+        fwd, lift = -6.5 * math.sin(ph) if step else 0, max(0, math.cos(ph)) * 2.6 if step else 0
+        knee = (s_ * 4.4, 0.4 + fwd * 0.35, -34)
+        ankle = (s_ * 4.2, 0.6 + fwd, -59 + lift)
+        m.limb(knee, ankle, 2.4, 1.6, NAVY2, sides=6, M=M)
+        m.hull([(ankle[0] + dx, ankle[1] + dy, ankle[2] + dz) for dx in (-1.8, 1.8) for dy in (-5.4, 2.0) for dz in (-2.8, 0.6)], MAROON2, M)
+    return m
+
+
 def ik(S, W, pole):
     """Two-bone arm: shoulder S, wrist target W, elbow pointing toward pole (a direction). Returns (elbow, wrist)."""
     S, W, pole = Vector(S), Vector(W), Vector(pole).normalized()
@@ -306,6 +321,26 @@ def prop(name, hc, frame, p, side):
         else:
             for k in range(-4, 5): m.box(tuple(o + up * (k * 1.3) + n * 0.25 + rt * ((k % 3) - 1) * 0.6), (2 * w - 3 - (k % 2) * 2, 0.1, 0.35), INKC)
         return m
+    if name == 'pickaxe':                                                 # a plain miner's pick, the handle through her fist
+        a = c - v * 4.0; b = c + v * 19.0
+        m.limb(tuple(a), tuple(b), 1.0, 1.0, WALNUT2, sides=6)
+        hd = [tuple(b + u * k * 1.3 - v * 0.9 * (k * k) / 36) for k in range(-7, 8)]
+        for q0, q1 in zip(hd, hd[1:]): m.limb(q0, q1, 1.4, 1.4, IRON, sides=5)
+        return m
+    if name == 'handheld':                                                # a chunky grey handheld game
+        q = c + palm * 1.8 + v * 2.0
+        m.hull([tuple(q + u * a + v * b + palm * d) for a in (-3.2, 3.2) for b in (-5.2, 5.2) for d in (-0.7, 0.7)], CHROME2)
+        m.hull([tuple(q + u * a + v * b + palm * 0.75) for a in (0.0, 2.8) for b in (-2.6, 2.6)] + [tuple(q + u * a + v * b + palm * 0.72) for a in (0.0, 2.8) for b in (-2.6, 2.6)], GRAPH)
+        for b in (-3.8, 3.8): m.hull(ell(tuple(q - u * 1.6 + v * b + palm * 0.8), (0.7, 0.7, 0.3), nu=6, nv=3), RED)
+        return m
+    if name == 'binoculars':                                              # two black barrels with brass rings
+        mid = c + palm * 4.6; fwd = -v
+        for side_ in (-1, 1):
+            o = mid + u * 0.0 + palm.cross(fwd).normalized() * 0 + (palm * side_ * 2.4)
+            m.limb(tuple(o - fwd * 1.5), tuple(o + fwd * 5.5), 1.7, 2.0, PLASTIC, sides=8)
+            m.limb(tuple(o + fwd * 5.2), tuple(o + fwd * 5.8), 2.1, 2.1, GOLD, sides=8)
+        m.limb(tuple(mid - palm * 2.4 + fwd * 1.5), tuple(mid + palm * 2.4 + fwd * 1.5), 0.6, 0.6, CHROME2, sides=5)
+        return m
     if name in ('pencil', 'redpen'):
         a = c + palm * 1.2 - u * 0.5; b = a + palm * 6.5 + u * 1.0
         m.limb(tuple(a), tuple(b), 0.45, 0.45, SUNNY if name == 'pencil' else RED, sides=6)
@@ -334,10 +369,10 @@ BASE = {
     'head': {'yaw': 0, 'pitch': 0, 'roll': 0},
     'hat': {'lift': 0, 'tilt': 0, 'back': 0, 'roll': 0},
     # hands folded on the counter: wrists (world), elbow pole, finger direction, palm normal
-    'r': {'w': V(-6.5, 3, 2.2), 'pole': V(-1, 0.4, -0.4), 'dir': V(0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat'},
-    'l': {'w': V(6.5, 3, 4.4), 'pole': V(1, 0.4, -0.4), 'dir': V(-0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat'},
+    'r': {'w': V(-6.5, 3, 2.2), 'pole': V(-1, 0.4, -0.4), 'dir': V(0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat', 'local': 0},
+    'l': {'w': V(6.5, 3, 4.4), 'pole': V(1, 0.4, -0.4), 'dir': V(-0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat', 'local': 0},
     'stamp': 0,
-    'prop_r': '', 'prop_l': '', 'cocoa': 0, 'mallows': 0, 'tape': 0, 'phones': 0,
+    'prop_r': '', 'prop_l': '', 'cocoa': 0, 'mallows': 0, 'tape': 0, 'phones': 0, 'step': 0,
 }
 
 
@@ -456,7 +491,7 @@ EVENTS = {'dig': {'rummage': (0.9, 2.1), 'grab': 2.1}, 'give': {'slide': (0.35, 
           'tip': {'off': 0.75}, 'greet': {}}
 
 # ---- the cocoa break, the tape change, and the five mysteries
-TURN_R = {'body': {'rz': 66, 'rx': 9, 'x': 2, 'y': 2}, 'head': {'pitch': 10, 'yaw': 8}}
+TURN_R = {'body': {'rz': 128, 'rx': 8, 'x': 6, 'y': 4}, 'head': {'pitch': 10, 'yaw': -6}}
 TURN_L = {'body': {'rz': -76, 'rx': 8, 'x': -9, 'y': 4}, 'head': {'pitch': -12}}
 MUG_L = lambda w, extra=None: {'w': w, 'pole': V(1, 0.2, -0.6), 'dir': V(0, 0.2, 1), 'nrm': V(-1, 0, 0), 'shape': 'hold'}
 
@@ -489,15 +524,22 @@ def _cocoa():
         k.append((t, KP(TURN_R, l=MUG_L(V(22, 34, 13)), **COCOA_HOLD, mallows=n, r={'w': V(17, 40, 16), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.3, 0.4, -1), 'nrm': V(0, 1, 0), 'shape': 'cup'})))
         n += 2
         k.append((t + 0.3, KP(TURN_R, l=MUG_L(V(22, 34, 13)), **COCOA_HOLD, mallows=n, r={'w': V(22, 30, 22), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.3, 0.2, -1), 'nrm': V(0, 1, 0), 'shape': 'open'}, head={'pitch': 14, 'roll': 4})))
-    k += [(7.0, {'l': MUG_L(V(10, 6, 22)), **COCOA_HOLD, 'mallows': 6, 'head': {'roll': 6}}),
-          (7.6, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 6, 'head': {'pitch': -10, 'roll': 3}}),
-          (8.3, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 6, 'head': {'pitch': -14, 'roll': 3}}),
-          (8.8, {'l': MUG_L(V(11, 6, 22)), **COCOA_HOLD, 'mallows': 4, 'head': {'roll': -8, 'pitch': 2}}),
-          (9.4, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 4, 'head': {'pitch': -12}}),
-          (10.0, {'l': MUG_L(V(11, 6, 22)), 'prop_l': 'mug', 'head': {'roll': 6}}),
-          (10.6, KP(TURN_R, l=MUG_L(V(39, 41, 14)), prop_l='mug')),
-          (11.0, KP(TURN_R, l={'w': V(36, 38, 17), 'pole': V(1, 0, -0.5), 'dir': V(1, 0.4, 0), 'nrm': V(0, 1, 0), 'shape': 'open'})),
-          (11.7, {})]
+    SIP = lambda m, extra=None: {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': m, **(extra or {})}
+    HOLD = lambda m, extra=None: {'l': MUG_L(V(10, 6, 23)), 'r': {'w': V(-2, 2, 21), 'pole': V(-1, 0.3, -0.6), 'dir': V(1, 0, 0.3), 'nrm': V(0, 1, 0), 'shape': 'cup'}, **COCOA_HOLD, 'mallows': m, **(extra or {})}
+    k += [(7.0, HOLD(6, {'head': {'roll': 6}})),
+          (7.6, SIP(6, {'head': {'pitch': -10, 'roll': 3}})), (8.3, SIP(6, {'head': {'pitch': -14, 'roll': 3}})),
+          (8.9, HOLD(5, {'head': {'roll': -8, 'pitch': 2}})), (9.6, HOLD(5, {'head': {'roll': 8, 'pitch': 4}, 'body': {'ry': 2}})),
+          (10.2, HOLD(5, {'head': {'roll': -6, 'pitch': 4}, 'body': {'ry': -2}})),
+          (10.8, {'l': MUG_L(V(5, 11, 32)), **COCOA_HOLD, 'mallows': 5, 'head': {'pitch': 2}}),          # she blows on it
+          (11.4, {'l': MUG_L(V(5, 11, 32)), **COCOA_HOLD, 'mallows': 5, 'head': {'pitch': 3}}),
+          (12.0, SIP(5, {'head': {'pitch': -12}})), (12.7, SIP(3, {'head': {'pitch': -15}})),
+          (13.3, HOLD(3, {'head': {'roll': 7}, 'body': {'ry': 2}})), (14.0, HOLD(3, {'head': {'roll': -7}, 'body': {'ry': -2}})),
+          (14.7, HOLD(3, {'head': {'roll': 5}})),
+          (15.3, SIP(3, {'head': {'pitch': -14}})), (16.1, SIP(0, {'head': {'pitch': -20}})),
+          (16.7, {'l': MUG_L(V(11, 6, 22)), 'prop_l': 'mug', 'head': {'roll': 6}}),
+          (17.4, KP(TURN_R, l=MUG_L(V(39, 41, 14)), prop_l='mug')),
+          (17.8, KP(TURN_R, l={'w': V(36, 38, 17), 'pole': V(1, 0, -0.5), 'dir': V(1, 0.4, 0), 'nrm': V(0, 1, 0), 'shape': 'open'})),
+          (18.5, {})]
     return k
 
 
@@ -598,13 +640,118 @@ def _wow():
 
 
 ANIMS.update({'cocoa': _cocoa(), 'tape': _tape(), 'cipher': _cipher(), 'dizzy': _dizzy(), 'radio': _radio(), 'spook': _spook(), 'wow': _wow()})
-EVENTS.update({'cocoa': {'press': 1.9, 'pour': (2.2, 4.3), 'drop1': 5.3, 'drop2': 5.9, 'drop3': 6.5, 'sip': (7.5, 8.4), 'sip2': (9.3, 9.7), 'steam': (4.4, 10.0)},
+EVENTS.update({'cocoa': {'press': 1.9, 'pour': (2.2, 4.3), 'drop1': 5.3, 'drop2': 5.9, 'drop3': 6.5, 'sip': (7.5, 8.4), 'blow': (10.8, 11.5), 'sip2': (12.0, 12.8), 'sip3': (15.3, 16.2), 'steam': (4.4, 16.6)},
                'tape': {'eject': 1.0, 'play': 3.6, 'dance': (4.0, 5.3), 'done': 5.6},
                'cipher': {'paper': (0.9, 4.1), 'land': 2.6},
                'dizzy': {'stare': (0.6, 2.4), 'dizzy': (2.4, 4.8)},
                'radio': {'buzz': (1.0, 4.2)},
                'spook': {'see': 1.5, 'duck': 2.8, 'peek': (2.8, 5.5)},
                'wow': {'circle': (1.4, 2.6), 'wow': 3.2}})
+
+
+# ---- the back door (the CONFIDENTIAL files) and five video game legends
+def HANG(sw, side):
+    """An arm hanging at her side while she walks (on her body: 'local'), swinging by sw (-1..1)."""
+    s_ = -1 if side == 'r' else 1
+    return {'w': V(s_ * 15.5, 2 - 6 * sw * s_, -3 + abs(sw) * 1.5), 'pole': V(s_ * 0.3, 1, 0), 'dir': V(0, -0.15 * sw * s_, -1), 'nrm': V(-s_, 0, 0), 'shape': 'cup', 'local': 1}
+
+
+def walk(t0, t1, y0, y1, x0, x1, rz, st0, st1, extra=None):
+    """Walking keys every two frames from t0 to t1 (y / x on her body's offset, step st0 -> st1, arms swinging)."""
+    out, n = [], max(2, int((t1 - t0) * FPS / 2))
+    for i in range(n + 1):
+        f = i / n; st = st0 + (st1 - st0) * f; sw = math.sin(2 * math.pi * st)
+        bob = abs(math.sin(2 * math.pi * st)) * 0.8
+        kp = {'body': {'y': y0 + (y1 - y0) * f, 'x': x0 + (x1 - x0) * f, 'rz': rz, 'z': bob, 'rx': 2, 'ry': sw * 2},
+              'step': st, 'r': HANG(sw, 'r'), 'l': HANG(sw, 'l'), 'head': {'roll': -sw * 2}}
+        if extra: kp = KP(kp, **extra(f))
+        out.append((t0 + (t1 - t0) * f, kp))
+    return out
+
+
+SNAP_R = lambda shape: {'w': V(-16, -8, 38), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.3, -0.2, 1), 'nrm': V(1, 0, 0), 'shape': shape}
+def _door_go():
+    """THE BACK DOOR: she snaps (a door appears in the wall behind her), turns and walks to it, and goes through."""
+    k = [(0, {}), (0.35, {'r': SNAP_R('fist'), 'head': {'roll': -6}}), (0.55, {'r': SNAP_R('point'), 'head': {'roll': -8}}),
+         (0.8, {'r': SNAP_R('open'), 'head': {'roll': -4}}),
+         (1.15, {'body': {'rz': 90, 'rx': 2}, 'r': HANG(0, 'r'), 'l': HANG(0, 'l'), 'head': {'yaw': -55}}),
+         (1.5, {'body': {'rz': 180, 'rx': 2}, 'r': HANG(0, 'r'), 'l': HANG(0, 'l'), 'head': {'yaw': -25}})]
+    return k + walk(1.6, 4.1, 0, 76, 0, -8, 180, 0, 4.0)
+
+
+def _door_back():
+    """Out of the back door with a red folder: she walks to the counter, snaps over her shoulder - the door's gone."""
+    snapl = lambda shape: {'w': V(16, -6, 41), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.3, -0.2, 1), 'nrm': V(-1, 0, 0), 'shape': shape, 'local': 1}
+    held = {'w': V(-13, -6, 14), 'pole': V(-0.3, 1, 0), 'dir': V(0.2, -0.3, 1), 'nrm': V(0, -1, 0), 'shape': 'hold', 'local': 1}
+    def ex(f):
+        e = {'r': held}
+        if 0.22 < f < 0.45: e['l'] = snapl('fist' if f < 0.33 else 'point'); e['head'] = {'yaw': 40, 'roll': 6}
+        return e
+    k = walk(0, 2.7, 76, 0, -8, 0, 0, 0, 4.0, ex)
+    k += [(3.1, {'r': {'w': V(-14, 6, 26), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.4, -0.2, 1), 'nrm': V(0, -1, 0), 'shape': 'hold'}, 'head': {'roll': 6}})]
+    return k
+
+
+PICK = lambda w: {'w': w, 'pole': V(-1, 0.3, -0.6), 'dir': V(0.2, -0.4, 0.9), 'nrm': V(1, 0, 0), 'shape': 'fist'}
+def _mine():
+    """HEROBRINE: she digs out a pickaxe and taps the counter, block by block... then looks at the dark corner."""
+    k = [(0, {}), (0.4, UNDER), (0.8, {'r': PICK(V(-16, -4, 30)), 'prop_r': 'pickaxe', 'head': {'pitch': 6}})]
+    for i, t in enumerate((1.1, 1.4, 1.7, 2.0, 2.3)):
+        k.append((t, {'r': PICK(V(-12, -8, 6) if i % 2 == 0 else V(-16, -4, 30)), 'prop_r': 'pickaxe', 'body': {'rx': 12 if i % 2 == 0 else 4}, 'head': {'pitch': 10}}))
+    k += [(2.9, {'r': PICK(V(-12, -8, 8)), 'prop_r': 'pickaxe', 'body': {'rx': 8}, 'head': {'yaw': 50, 'pitch': 2}}),
+          (3.8, {'r': PICK(V(-12, -8, 8)), 'prop_r': 'pickaxe', 'body': {'rx': 8}, 'head': {'yaw': 54, 'pitch': 4}}),
+          (4.2, {'r': PICK(V(-12, -8, 8)), 'prop_r': 'pickaxe', 'head': {'yaw': 0, 'pitch': -4}}), (4.7, UNDER), (5.2, {})]
+    return k
+
+
+def _handheld():
+    """KILLSWITCH: a handheld game, thumbs going... DELETING. She shakes it. Nothing."""
+    def hold(jr=0, jl=0, z=20, x=0): return {'r': {'w': V(-5 + x, -11, z + jr), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.3, 0, 1), 'nrm': V(0, 1, 0), 'shape': 'hold'},
+                                       'l': {'w': V(5 + x, -11, z + jl), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.3, 0, 1), 'nrm': V(0, 1, 0), 'shape': 'hold'}, 'prop_r': 'handheld', 'head': {'pitch': 14}, 'body': {'rx': 8}}
+    k = [(0, {}), (0.4, UNDER), (0.9, hold())]
+    for i in range(9): k.append((1.1 + i * 0.22, hold(0.8 if i % 2 else 0, 0 if i % 2 else 0.8)))
+    k += [(3.1, hold()), (3.35, hold(x=-3)), (3.55, hold(x=3)), (3.75, hold(x=-3)), (3.95, hold(x=2)),
+          (4.4, KP(hold(z=30), head={'pitch': 0, 'roll': 10})), (4.9, UNDER), (5.4, {})]
+    return k
+
+
+def _ears():
+    """LAVENDER: the melody gets into her head - hands over her ears, eyes shut, swaying."""
+    k = [(0, {})]
+    for i, t in enumerate((0.5, 1.2, 1.9, 2.6, 3.3, 4.0)):
+        k.append((t, {'r': EAR_R, 'l': EAR_L, 'body': {'ry': 4 if i % 2 else -4, 'x': 1.5 if i % 2 else -1.5, 'z': -1}, 'head': {'roll': 10 if i % 2 else -10, 'pitch': 6}}))
+    k += [(4.4, {'head': {'yaw': 16}}), (4.6, {'head': {'yaw': -16}}), (4.8, {'head': {'yaw': 10}}), (5.3, {})]
+    return k
+
+
+def _push():
+    """THE TRUCK: palms on a little truck on the counter, she pushes with everything she's got... it won't budge."""
+    def p_(j=0): return {'r': {'w': V(-6 + j, -12, 3.5), 'pole': V(-1, 0.6, -0.3), 'dir': V(0.1, -0.3, 1), 'nrm': V(0, -1, 0), 'shape': 'flat'},
+                         'l': {'w': V(6 + j, -12, 3.5), 'pole': V(1, 0.6, -0.3), 'dir': V(-0.1, -0.3, 1), 'nrm': V(0, -1, 0), 'shape': 'flat'},
+                         'body': {'rx': 24, 'y': -6, 'z': -1}, 'head': {'pitch': -4}}
+    k = [(0, {}), (0.6, p_())]
+    for i in range(8): k.append((0.85 + i * 0.28, KP(p_(0.6 if i % 2 else -0.6), body={'rx': 25 if i % 2 else 23, 'y': -6.5 if i % 2 else -6, 'z': -1})))
+    k += [(3.3, {'r': {'w': V(-5, -6, 47), 'pole': V(-1, 0.3, -0.6), 'dir': V(1, 0, 0.2), 'nrm': V(0, -1, 0), 'shape': 'flat'}, 'body': {'rx': -3}, 'head': {'pitch': -6}}),
+          (3.8, {'r': {'w': V(4, -6, 47), 'pole': V(-1, 0.3, -0.6), 'dir': V(1, 0, 0.2), 'nrm': V(0, -1, 0), 'shape': 'flat'}, 'body': {'rx': -3}, 'head': {'pitch': -6}}),
+          (4.4, {})]
+    return k
+
+
+def _binoculars():
+    """BIGFOOT: binoculars up, she sweeps the far woods slowly... stops... there."""
+    def b_(rz, pitch=0): return {'r': {'w': V(-5, -13, 46), 'pole': V(-1, 0.3, -0.6), 'dir': V(0, 0, 1), 'nrm': V(1, 0, 0), 'shape': 'hold', 'local': 1},
+                                 'l': {'w': V(5, -13, 46), 'pole': V(1, 0.3, -0.6), 'dir': V(0, 0, 1), 'nrm': V(-1, 0, 0), 'shape': 'hold', 'local': 1},
+                                 'prop_r': 'binoculars', 'body': {'rz': rz}, 'head': {'pitch': pitch}}
+    return [(0, {}), (0.4, UNDER), (0.9, b_(-22)), (1.8, b_(-8)), (2.6, b_(10)), (3.4, b_(12, 2)), (3.8, b_(12, 2)),
+            (4.2, {'body': {'rz': 10}, 'head': {'yaw': 0}}), (4.9, {})]
+
+
+ANIMS.update({'door_go': _door_go(), 'door_back': _door_back(), 'mine': _mine(), 'handheld': _handheld(), 'ears': _ears(), 'push': _push(), 'binoculars': _binoculars()})
+EVENTS.update({'door_go': {'snap': 0.55, 'walk': (1.6, 4.1), 'through': (3.5, 4.1)},
+               'door_back': {'appear': (0, 0.4), 'snap': 0.95, 'walk': (0, 2.7)},
+               'mine': {'hit1': 1.1, 'hit2': 1.7, 'hit3': 2.3, 'eyes': 3.0},
+               'handheld': {'play': (1.0, 3.0), 'delete': 3.1, 'shake': (3.3, 4.0)},
+               'ears': {'tune': (0.4, 4.2)}, 'push': {'push': (0.8, 3.1)}, 'binoculars': {'look': (0.8, 3.9), 'spot': 2.6}})
 
 
 def pose_at(name, t):
@@ -623,6 +770,7 @@ def figure(p):
     hx, hy, hz = HOME
     body_M = H.T(hx + b['x'], hy + b['y'], hz + b['z'], rx=b['rx'], ry=b['ry'], rz=b['rz'])
     parts = {k: (m, None) for k, m in torso(body_M).items()}
+    parts['legs'] = (legs(body_M, p.get('step', 0)), None)
     hd = p['head']
     neck = body_M @ Vector(NECK)
     rot = body_M.to_3x3().to_4x4()
@@ -634,7 +782,14 @@ def figure(p):
         S = body_M @ Vector((s * SHOULDER[0], SHOULDER[1], SHOULDER[2]))
         pole = Vector(a['pole'])
         if b['rz']: pole = Matrix.Rotation(math.radians(b['rz']), 3, 'Z') @ pole if abs(b['rz']) > 90 else pole
-        ms, E, W, (hc, frame) = arm(s, S, Vector(a['w']), pole, a['dir'], a['nrm'], a['shape'])
+        w_, d_, n_ = Vector(a['w']), a['dir'], a['nrm']
+        lk = a.get('local', 0)
+        if lk > 0:                                                        # (arms given on her body: they walk with her)
+            R3 = body_M.to_3x3()
+            w_ = w_.lerp(body_M @ Vector(a['w']), lk)
+            pole = pole.lerp(R3 @ Vector(a['pole']), lk)
+            d_ = tuple(Vector(d_).lerp(R3 @ Vector(d_), lk)); n_ = tuple(Vector(n_).lerp(R3 @ Vector(n_), lk))
+        ms, E, W, (hc, frame) = arm(s, S, w_, pole, d_, n_, a['shape'])
         for k, m in ms.items(): parts[k] = (m, None)
         hands[side] = (hc, W, a)
         pr = p.get('prop_' + side)
@@ -1065,7 +1220,8 @@ def main():
         P = lambda q: [round(c, 1) for c in to_screen(cam, q)]
         table['spots'] = {'nozzle': P((34, 42.8, 13.0)), 'light': P((29, 42.1, 21.6)), 'jar': P((22, 46, 16)),
                           'speakers': [P((-54.6, 47.4, 47)), P((-37.4, 47.4, 47))], 'window': P((-46, 47.2, 47.4)),
-                          'counterTop': P((0, -15.9, 0))[1], 'corner': P((92, 110, 10)), 'door': P((70, 96, 20))}
+                          'counterTop': P((0, -15.9, 0))[1], 'corner': P((92, 110, 10)), 'door': P((70, 96, 20)),
+                          'backDoor': [P((-30, 129.4, -63)), P((14, 129.4, -63)), P((14, 129.4, 66)), P((-30, 129.4, 66))]}
         table['slide'] = [[round(c, 1) for c in to_screen(cam, (-6, -3, 2))], [round(c, 1) for c in to_screen(cam, (-6, -15, 2))]]
     names = [n for n in ANIMS if not a.only or n in a.only.split(',')]
     for name in names:
