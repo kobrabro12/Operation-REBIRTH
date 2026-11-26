@@ -205,7 +205,8 @@ they change only the menus - a match looks the same in every one.
 The lore lives behind a counter: Trinkets > LORE is THE RECORDS OFFICE, where THE ARCHIVIST (a PS1-look 3D clerk whose
 hand-drawn face the game animates) fetches a file on any name you type - fighters, bosses (their best pages sealed
 until you beat them), world words and secret names (BACKROOMS: she reaches through a portal for it) - and every file
-she gives you stays in your BRIEFCASE.
+she gives you stays in your BRIEFCASE. Between requests she lives there: she changes the cassette in her boombox when a tape
+ends (Mason's songs), makes herself hot cocoa, and five more secret names (internet mysteries) each have their own scene.
 
 ---
 

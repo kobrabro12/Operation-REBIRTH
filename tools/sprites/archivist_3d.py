@@ -54,6 +54,12 @@ LAMPGLOW = 0xfff0b8                              # under the lamp's shade, the b
 INKPAD = 0x8a1c26; RUBBER = 0x2a2226; IRON = 0x3a3a44
 CLOCKF = 0xf2ecd8; INKC = 0x141216
 FLOOR = 0x4a3326
+COCOA = 0x5a2e1a; COCOA2 = 0x7a4228                # hot cocoa
+MALLOW = 0xfff4f0; MALLOW2 = 0xf6c8d4            # marshmallows, white and pink
+CREAM = 0xf0e4c8; CHROME = 0xc8ccd4; CHROME2 = 0x8e939e   # the cocoa machine's enamel and steel
+RED = 0xd8323a; MINT = 0x3ec8a0; SUNNY = 0xf8c838; PINK = 0xf070b0; SKY = 0x48a8f0   # boombox stickers, cassette labels
+PLASTIC = 0x2a2a34; PLASTIC2 = 0x40404c; GRILL = 0x18181e
+LEAF = 0x3e8a44; LEAF2 = 0x2c6a34; TERRA = 0xb05a34; LENS = 0xa8d8f0; GRAPH = 0x48a060
 
 for k, cols, look in (('a_skin', (SKIN, SKIN_D), (0.08, 0, 1)), ('a_hair', (HAIR, HAIR2), (0.22, 0, 1)),
                       ('a_felt', (NAVY, NAVY2, NAVY3), (0.06, 0, 1)), ('a_velvet', (MAROON, MAROON2), (0.3, 0, 1)),
@@ -61,7 +67,10 @@ for k, cols, look in (('a_skin', (SKIN, SKIN_D), (0.08, 0, 1)), ('a_hair', (HAIR
                       ('a_wood', (WALNUT, WALNUT2, WALNUT3, WALNUT4, FLOOR), (0.16, 0, 1)), ('a_wall', (WALL, WALL2), (0, 0, 1)),
                       ('a_paper', (PAPER, PAPER2, MANILA, MANILA2, CLOCKF), (0, 0, 1)), ('a_leather', (LEATHER, LEATHER2), (0.35, 0, 1)),
                       ('a_glassg', (GREEN, GREEN2), (0.55, 0, 1)), ('a_glow', (LAMPGLOW,), (0, 1.1, 1)),
-                      ('a_rubber', (INKPAD, RUBBER, IRON, INKC), (0.2, 0, 1))):
+                      ('a_rubber', (INKPAD, RUBBER, IRON, INKC), (0.2, 0, 1)),
+                      ('a_cocoa', (COCOA, COCOA2), (0.45, 0, 1)), ('a_mallow', (MALLOW, MALLOW2, CREAM), (0.05, 0, 1)),
+                      ('a_steel', (CHROME, CHROME2), (0.8, 0, 1)), ('a_plastic', (RED, MINT, SUNNY, PINK, SKY, PLASTIC, PLASTIC2, GRILL), (0.35, 0, 1)),
+                      ('a_leaf', (LEAF, LEAF2, TERRA, GRAPH), (0.1, 0, 1)), ('a_lens', (LENS,), (0.9, 0, 1))):
     H.KINDS[k] = cols; H.LOOK[k] = look
 H.SMOOTH.update({'head': 75, 'hair': 60, 'glove': 70, 'neck': 75, 'bell': 80, 'clock': 80, 'shade': 60, 'hatcrown': 40})
 # a warm reading-room light: key from the high left in front, a cool window fill from the right, a soft lamp bounce
@@ -207,7 +216,7 @@ def hand(s, W, dirv, nrm, shape):
                 ln = (0.88, 1.0, 0.96, 0.8)[k]
                 m.limb(P(5.0, b, 0), P(5 + (tip[0] - 5) * ln, b * (1.08 if shape == 'open' else 1.0), tip[1] * ln), 0.78, 0.66, WHITE)
         m.limb(P(1.4, th * 2.4, -0.4), P(5.2, th * (3.9 - 1.6 * curl), -1.4 - 1.2 * curl), 1.1, 0.9, WHITE2, sides=6)
-    return m, P(4.5, 0, 0)
+    return m, P(4.5, 0, 0), (u, v, wv)
 
 
 def arm(s, S, W, pole, dirv, nrm, shape):
@@ -220,9 +229,9 @@ def arm(s, S, W, pole, dirv, nrm, shape):
     m.hull(ell(tuple(E), (3.5, 3.5, 3.5), nu=6, nv=3), NAVY)
     c = H.Mesh(); c.limb(tuple(fw), tuple(Vector(W) + (Vector(W) - E).normalized() * 0.5), 3.1, 2.8, WHITE, sides=7)
     if dirv is None: dirv = tuple((Vector(W) - E).normalized())
-    g, hc = hand(s, tuple(W), dirv, nrm, shape)
+    g, hc, frame = hand(s, tuple(W), dirv, nrm, shape)
     side = 'r' if s < 0 else 'l'
-    return {'sleeve_' + side: m, 'cuff_' + side: c, 'glove_' + side: g}, E, W, hc
+    return {'sleeve_' + side: m, 'cuff_' + side: c, 'glove_' + side: g}, E, W, (hc, frame)
 
 
 def stamp_prop(W, dirv, nrm):
@@ -242,6 +251,81 @@ def stamp_prop(W, dirv, nrm):
     return m
 
 
+def cyl(m, c, r, z0, z1, col, n=10, M=None):
+    """An upright cylinder (centre c = x, y) from z0 to z1."""
+    m.hull([(c[0] + r * math.cos(2 * math.pi * k / n), c[1] + r * math.sin(2 * math.pi * k / n), z) for k in range(n) for z in (z0, z1)], col, M)
+
+
+def mug(c, full, mallows, M=None):
+    """Her mug: cream enamel with a maroon band and a handle; full of cocoa with `mallows` marshmallows on top."""
+    m = H.Mesh(); x, y, z = c
+    cyl(m, (x, y), 3.2, z - 3.6, z + 3.6, CREAM, 12, M)
+    cyl(m, (x, y), 3.26, z + 1.4, z + 2.4, MAROON, 12, M)
+    m.limb((x + 3.0, y - 0.2, z + 2.0), (x + 5.0, y - 0.2, z + 0.4), 0.7, 0.7, CREAM, sides=5, M=M)
+    m.limb((x + 5.0, y - 0.2, z + 0.4), (x + 3.0, y - 0.2, z - 1.8), 0.7, 0.7, CREAM, sides=5, M=M)
+    if full:
+        cyl(m, (x, y), 2.9, z + 3.0, z + 3.3, COCOA, 12, M)
+        spots = [(-1.2, -1.0), (1.1, -1.3), (0.2, 0.6), (-1.6, 0.9), (1.5, 0.8), (-0.2, -1.9), (0.4, 1.8), (1.9, -0.2)]
+        for k in range(int(mallows)):
+            dx, dy = spots[k % len(spots)]
+            m.box((x + dx, y + dy, z + 3.8 + 0.5 * (k // len(spots))), (1.3, 1.3, 1.2), MALLOW if k % 3 else MALLOW2, M)
+    return m
+
+
+def prop(name, hc, frame, p, side):
+    """What she's holding in one hand (pose prop_r / prop_l): mug / cassette / magnifier / paper / printout /
+    pencil / redpen, built in the hand's own frame (u = fingers, palm facing -wv). Returns a Mesh or None."""
+    u, v, wv = frame; c = Vector(hc); palm = -wv
+    if name == 'mug':
+        return mug(tuple(c + palm * 3.8 - Vector((0, 0, 1.0))), p.get('cocoa', 0) >= 0.5, round(p.get('mallows', 0)))
+    m = H.Mesh()
+    if name == 'cassette':
+        q = c + palm * 1.6
+        e1, e2 = u, v
+        pts = [tuple(q + e1 * a + e2 * b + palm * d) for a in (-2.4, 2.4) for b in (-3.6, 3.6) for d in (-0.5, 0.5)]
+        m.hull(pts, PLASTIC)
+        m.hull([tuple(q + e1 * a + e2 * b + palm * 0.62) for a in (-1.8, 1.0) for b in (-3.0, 3.0)] +
+               [tuple(q + e1 * a + e2 * b + palm * 0.5) for a in (-1.8, 1.0) for b in (-3.0, 3.0)], (SUNNY, PINK, MINT, SKY)[int(round(p.get('tape', 0))) % 4])
+        return m
+    if name == 'magnifier':
+        a = c + u * 3.0; b = c + u * 8.0
+        m.limb(tuple(a), tuple(b), 0.8, 0.9, WALNUT2, sides=6)
+        o = b + u * 3.6; n = Vector((0, -1, 0))
+        e1 = (u - n * u.dot(n)).normalized(); e2 = n.cross(e1)
+        ring_pts = [o + (e1 * math.cos(k * math.pi / 6) + e2 * math.sin(k * math.pi / 6)) * 3.6 for k in range(12)]
+        for k in range(12): m.limb(tuple(ring_pts[k]), tuple(ring_pts[(k + 1) % 12]), 0.55, 0.55, GOLD, sides=4)
+        m.hull([tuple(q + n * d) for q in [o + (e1 * math.cos(k * math.pi / 6) + e2 * math.sin(k * math.pi / 6)) * 3.1 for k in range(12)] for d in (-0.2, 0.2)], LENS)
+        return m
+    if name in ('paper', 'printout'):
+        n = Vector((0, -1, 0)); up = Vector((0, 0, 1)); rt = Vector((1, 0, 0))
+        o = c + up * (5.0 if name == 'paper' else -9.0) + rt * (side * 0)
+        w, h = (5.0, 6.5) if name == 'paper' else (5.5, 13.0)
+        m.hull([tuple(o + rt * a + up * b + n * d) for a in (-w, w) for b in (-h, h) for d in (-0.15, 0.15)], PAPER)
+        if name == 'printout':
+            for k in range(-5, 6, 2): m.box(tuple(o + up * (k * 2.2) + n * 0.25), (2 * w - 0.8, 0.1, 1.1), GRAPH)
+        else:
+            for k in range(-4, 5): m.box(tuple(o + up * (k * 1.3) + n * 0.25 + rt * ((k % 3) - 1) * 0.6), (2 * w - 3 - (k % 2) * 2, 0.1, 0.35), INKC)
+        return m
+    if name in ('pencil', 'redpen'):
+        a = c + palm * 1.2 - u * 0.5; b = a + palm * 6.5 + u * 1.0
+        m.limb(tuple(a), tuple(b), 0.45, 0.45, SUNNY if name == 'pencil' else RED, sides=6)
+        m.limb(tuple(b), tuple(b + (b - a).normalized() * 1.2), 0.45, 0.1, INKC, sides=5)
+        return m
+    return None
+
+
+def phones(M):
+    """Headphones over her cap (UVB-76): a band over the crown and two padded cups on her ears."""
+    m = H.Mesh()
+    pts = [(math.cos(a) * 12.6, 0.4, 6 + math.sin(a) * 12.0) for a in [math.pi * k / 10 for k in range(11)]]
+    for a, b in zip(pts, pts[1:]): m.limb(a, b, 0.9, 0.9, PLASTIC2, sides=5, M=M)
+    for sx in (-1, 1):
+        m.hull([(sx * (11.0 + d), y, z) for d in (0, 2.6) for y, z in [(3.8 * math.cos(t), -1 + 4.2 * math.sin(t)) for t in [k * math.pi / 5 for k in range(10)]]], PLASTIC, M)
+        m.hull([(sx * (13.8), y, z) for y, z in [(2.2 * math.cos(t), -1 + 2.4 * math.sin(t)) for t in [k * math.pi / 4 for k in range(8)]]] +
+               [(sx * 13.2, 0, -1)], RED, M)
+    return m
+
+
 # ------------------------------------------------------------------ poses
 def V(*a): return tuple(a)
 
@@ -253,6 +337,7 @@ BASE = {
     'r': {'w': V(-6.5, 3, 2.2), 'pole': V(-1, 0.4, -0.4), 'dir': V(0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat'},
     'l': {'w': V(6.5, 3, 4.4), 'pole': V(1, 0.4, -0.4), 'dir': V(-0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat'},
     'stamp': 0,
+    'prop_r': '', 'prop_l': '', 'cocoa': 0, 'mallows': 0, 'tape': 0, 'phones': 0,
 }
 
 
@@ -370,6 +455,157 @@ EVENTS = {'dig': {'rummage': (0.9, 2.1), 'grab': 2.1}, 'give': {'slide': (0.35, 
           'stamp': {'hit': 0.95}, 'portal': {'draw': (0.55, 1.65), 'open': 1.65, 'reach': 2.4, 'grab': 2.9, 'out': 3.4},
           'tip': {'off': 0.75}, 'greet': {}}
 
+# ---- the cocoa break, the tape change, and the five mysteries
+TURN_R = {'body': {'rz': 66, 'rx': 9, 'x': 2, 'y': 2}, 'head': {'pitch': 10, 'yaw': 8}}
+TURN_L = {'body': {'rz': -76, 'rx': 8, 'x': -9, 'y': 4}, 'head': {'pitch': -12}}
+MUG_L = lambda w, extra=None: {'w': w, 'pole': V(1, 0.2, -0.6), 'dir': V(0, 0.2, 1), 'nrm': V(-1, 0, 0), 'shape': 'hold'}
+
+
+def KP(base, **kw):
+    """A key pose: base changes with more on top (each kw value a dict merged into that part)."""
+    out = {k: (dict(v) if isinstance(v, dict) else v) for k, v in base.items()}
+    for k, v in kw.items(): out[k] = {**out.get(k, {}), **v} if isinstance(v, dict) else v
+    return out
+
+
+R_REST = {'w': V(-6.5, 3, 2.2), 'pole': V(-1, 0.4, -0.4), 'dir': V(0.75, -0.55, 0), 'nrm': V(0, 0, -1), 'shape': 'flat'}
+COCOA_HOLD = dict(prop_l='mug', cocoa=1)
+def _cocoa():
+    """THE COCOA BREAK (~11 s): mug off the tree, under the nozzle, button, pour (she hums), marshmallows from the jar
+    one at a time, two sips facing you, the empty mug back on its hook."""
+    k = [(0, {}),
+         (0.6, KP(TURN_R, l={'w': V(38, 40, 18), 'pole': V(1, 0, -0.5), 'dir': V(1, 0.4, 0), 'nrm': V(0, 1, 0), 'shape': 'open'})),
+         (1.0, KP(TURN_R, l=MUG_L(V(39, 41, 14)), prop_l='mug')),
+         (1.5, KP(TURN_R, l=MUG_L(V(29, 39, 7.5)), prop_l='mug')),
+         (1.9, KP(TURN_R, l=MUG_L(V(29, 39, 7.5)), prop_l='mug', r={'w': V(34, 37, 22.5), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.6, 0.8, 0), 'nrm': V(0, 0, -1), 'shape': 'point'})),
+         (2.3, KP(TURN_R, l=MUG_L(V(29, 39, 7.5)), prop_l='mug', r={'w': V(20, 22, 10), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.6, 0.6, -0.4), 'nrm': V(0, 0, -1), 'shape': 'open'}))]
+    for i, t in enumerate((2.8, 3.3, 3.8, 4.2)):
+        k.append((t, KP(TURN_R, l=MUG_L(V(29, 39, 7.5)), prop_l='mug', cocoa=1 if t > 3 else 0,
+                        r={'w': V(20, 22, 10), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.6, 0.6, -0.4), 'nrm': V(0, 0, -1), 'shape': 'open'},
+                        head={'pitch': 8, 'roll': 7 if i % 2 == 0 else -7})))
+    k.append((4.6, KP(TURN_R, l=MUG_L(V(22, 34, 13)), **COCOA_HOLD, r={'w': V(14, 30, 14), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.4, 0.8, 0), 'nrm': V(0, 0, -1), 'shape': 'open'})))
+    n = 0
+    for t in (5.0, 5.6, 6.2):
+        k.append((t, KP(TURN_R, l=MUG_L(V(22, 34, 13)), **COCOA_HOLD, mallows=n, r={'w': V(17, 40, 16), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.3, 0.4, -1), 'nrm': V(0, 1, 0), 'shape': 'cup'})))
+        n += 2
+        k.append((t + 0.3, KP(TURN_R, l=MUG_L(V(22, 34, 13)), **COCOA_HOLD, mallows=n, r={'w': V(22, 30, 22), 'pole': V(-0.2, -1, -0.6), 'dir': V(0.3, 0.2, -1), 'nrm': V(0, 1, 0), 'shape': 'open'}, head={'pitch': 14, 'roll': 4})))
+    k += [(7.0, {'l': MUG_L(V(10, 6, 22)), **COCOA_HOLD, 'mallows': 6, 'head': {'roll': 6}}),
+          (7.6, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 6, 'head': {'pitch': -10, 'roll': 3}}),
+          (8.3, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 6, 'head': {'pitch': -14, 'roll': 3}}),
+          (8.8, {'l': MUG_L(V(11, 6, 22)), **COCOA_HOLD, 'mallows': 4, 'head': {'roll': -8, 'pitch': 2}}),
+          (9.4, {'l': MUG_L(V(5, 13, 35)), **COCOA_HOLD, 'mallows': 4, 'head': {'pitch': -12}}),
+          (10.0, {'l': MUG_L(V(11, 6, 22)), 'prop_l': 'mug', 'head': {'roll': 6}}),
+          (10.6, KP(TURN_R, l=MUG_L(V(39, 41, 14)), prop_l='mug')),
+          (11.0, KP(TURN_R, l={'w': V(36, 38, 17), 'pole': V(1, 0, -0.5), 'dir': V(1, 0.4, 0), 'nrm': V(0, 1, 0), 'shape': 'open'})),
+          (11.7, {})]
+    return k
+
+
+def _tape():
+    """THE TAPE CHANGE (~6 s): eject, the old tape onto the shelf, a new one in, PLAY, a little dance, finger guns."""
+    def r(w, shape='point', d=V(-1, 0.3, -0.2)): return {'w': w, 'pole': V(0, -1, -0.6), 'dir': d, 'nrm': V(0, 0, -1) if shape == 'point' else V(0, 1, 0), 'shape': shape}
+    k = [(0, {}), (0.5, KP(TURN_L)),
+         (1.0, KP(TURN_L, r=r(V(-38, 46, 55.5), d=V(-0.6, 0.3, -0.8)))),
+         (1.5, KP(TURN_L, r=r(V(-39, 43, 46), 'hold', V(-1, 0.2, 0)), prop_r='cassette', tape=0)),
+         (2.1, KP(TURN_L, r=r(V(-25, 46, 45), 'hold', V(0, 0.6, -0.8)), prop_r='cassette', tape=0)),
+         (2.6, KP(TURN_L, r=r(V(-27, 46, 45), 'hold', V(0, 0.6, -0.8)), prop_r='cassette', tape=1)),
+         (3.2, KP(TURN_L, r=r(V(-39, 43, 46), 'hold', V(-1, 0.2, 0)), prop_r='cassette', tape=1)),
+         (3.6, KP(TURN_L, r=r(V(-40, 46, 56), d=V(-0.6, 0.3, -0.8)))),
+         (4.0, KP(TURN_L, head={'roll': 10, 'pitch': -4}, body={'ry': 3}))]
+    for i, t in enumerate((4.35, 4.7, 5.05)):
+        k.append((t, KP(TURN_L, head={'roll': -10 if i % 2 == 0 else 10, 'pitch': -4}, body={'ry': -3 if i % 2 == 0 else 3, 'z': 1 if i % 2 == 0 else 0})))
+    k += [(5.6, {'head': {'roll': -6}, 'r': {'w': V(-16, -10, 22), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.2, -1, 0.2), 'nrm': V(0, 0, -1), 'shape': 'point'},
+                 'l': {'w': V(16, -10, 22), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.2, -1, 0.2), 'nrm': V(0, 0, -1), 'shape': 'point'}}),
+          (6.2, {'head': {'roll': -6}, 'r': {'w': V(-15, -10, 24), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.2, -1, 0.4), 'nrm': V(0, 0, -1), 'shape': 'point'},
+                 'l': {'w': V(15, -10, 24), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.2, -1, 0.4), 'nrm': V(0, 0, -1), 'shape': 'point'}}),
+          (6.8, {})]
+    return k
+
+
+UNDER = {'r': {'w': V(-12, 2, -7), 'pole': V(-1, 0, -0.5), 'dir': V(0, -0.3, -1), 'nrm': V(1, 0, 0), 'shape': 'open'},
+         'l': {'w': V(12, 2, -7), 'pole': V(1, 0, -0.5), 'dir': V(0, -0.3, -1), 'nrm': V(-1, 0, 0), 'shape': 'open'}, 'body': {'rx': 18, 'y': -2}}
+PAPER_L = lambda w: {'w': w, 'pole': V(1, 0.3, -0.6), 'dir': V(-0.3, 0, 1), 'nrm': V(0, 1, 0), 'shape': 'hold'}
+GLASS_R = lambda w: {'w': w, 'pole': V(-1, 0.3, -0.6), 'dir': V(0.6, -0.4, 0.5), 'nrm': V(0, 0, -1), 'shape': 'fist'}
+def _cipher():
+    """CICADA 3301: magnifying glass and a page of code from under the counter, she peers... a cicada lands on her hat."""
+    return [(0, {}), (0.4, UNDER),
+            (0.9, {'l': PAPER_L(V(8, -8, 22)), 'r': GLASS_R(V(-10, -6, 22)), 'prop_l': 'paper', 'prop_r': 'magnifier', 'body': {'rx': 10}, 'head': {'pitch': 12}}),
+            (1.6, {'l': PAPER_L(V(8, -9, 22)), 'r': GLASS_R(V(-8, -10, 24)), 'prop_l': 'paper', 'prop_r': 'magnifier', 'body': {'rx': 16, 'y': -3}, 'head': {'pitch': 14, 'yaw': 6}}),
+            (2.2, {'l': PAPER_L(V(8, -9, 22)), 'r': GLASS_R(V(-3, -10, 22)), 'prop_l': 'paper', 'prop_r': 'magnifier', 'body': {'rx': 16, 'y': -3}, 'head': {'pitch': 16, 'yaw': -4}}),
+            (2.7, {'l': PAPER_L(V(9, -6, 20)), 'r': GLASS_R(V(-10, -4, 20)), 'prop_l': 'paper', 'prop_r': 'magnifier', 'body': {'rx': -4}, 'head': {'pitch': -18}}),
+            (3.7, {'l': PAPER_L(V(9, -6, 20)), 'r': GLASS_R(V(-10, -4, 20)), 'prop_l': 'paper', 'prop_r': 'magnifier', 'body': {'rx': -3}, 'head': {'pitch': -20, 'roll': 6}}),
+            (4.2, UNDER), (4.8, {})]
+
+
+GRIP = {'r': {'w': V(-11, -11, 1.2), 'pole': V(-1, 0.3, -0.4), 'dir': V(0, -1, -0.5), 'nrm': V(0, 0, -1), 'shape': 'cup'},
+        'l': {'w': V(11, -11, 1.2), 'pole': V(1, 0.3, -0.4), 'dir': V(0, -1, -0.5), 'nrm': V(0, 0, -1), 'shape': 'cup'}}
+def _dizzy():
+    """POLYBIUS: she grips the counter and stares into the screen... then her head goes round and round."""
+    k = [(0, {}), (0.6, KP(GRIP, body={'rx': 16, 'y': -4}, head={'pitch': 4})), (2.2, KP(GRIP, body={'rx': 18, 'y': -5}, head={'pitch': 6}))]
+    for i in range(7):
+        a = i * 1.1
+        k.append((2.5 + i * 0.3, {'body': {'ry': 7 * math.sin(a), 'x': 2 * math.sin(a)}, 'head': {'roll': 13 * math.sin(a + 1), 'yaw': 10 * math.cos(a), 'pitch': -4},
+                                   'r': {'w': V(-19, -2, 14 + 3 * math.sin(a)), 'pole': V(-1, 0.3, -0.6), 'dir': V(-0.3, -0.5, 0.8), 'nrm': V(0, -0.3, -1), 'shape': 'open'},
+                                   'l': {'w': V(19, -2, 14 - 3 * math.sin(a)), 'pole': V(1, 0.3, -0.6), 'dir': V(0.3, -0.5, 0.8), 'nrm': V(0, -0.3, -1), 'shape': 'open'}}))
+    k += [(4.8, {'head': {'yaw': 18}}), (5.0, {'head': {'yaw': -18}}), (5.2, {'head': {'yaw': 14}}), (5.4, {'head': {'yaw': -8}}), (5.9, {})]
+    return k
+
+
+EAR_R = {'w': V(-13, 14, 44), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.2, 0, 1), 'nrm': V(1, 0, 0), 'shape': 'cup'}
+EAR_L = {'w': V(13, 14, 44), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.2, 0, 1), 'nrm': V(-1, 0, 0), 'shape': 'cup'}
+def _radio():
+    """UVB-76: headphones on, a hand pressed to one ear, she scribbles down what she hears."""
+    def wr(x): return {'w': V(x, -6, 1.8), 'pole': V(-1, 0.3, -0.3), 'dir': V(0.3, -1, 0), 'nrm': V(0, 0, -1), 'shape': 'fist'}
+    k = [(0, {}), (0.6, {'r': EAR_R, 'l': EAR_L, 'head': {'pitch': 4}}), (0.8, {'r': EAR_R, 'l': EAR_L, 'phones': 1}),
+         (1.2, {'r': wr(-8), 'l': EAR_L, 'phones': 1, 'prop_r': 'pencil', 'head': {'roll': 12, 'pitch': 8}, 'body': {'rx': 8}})]
+    for i in range(8):
+        k.append((1.5 + i * 0.3, {'r': wr(-8 + (3 if i % 2 else -2)), 'l': EAR_L, 'phones': 1, 'prop_r': 'pencil', 'head': {'roll': 12 + (3 if i % 3 == 0 else 0), 'pitch': 9}, 'body': {'rx': 8}}))
+    k += [(4.2, {'r': EAR_R, 'l': EAR_L, 'phones': 1, 'head': {'roll': -4}}), (4.5, {'r': EAR_R, 'l': EAR_L, 'phones': 0}), (5.2, {})]
+    return k
+
+
+GRIP_LOW = {'r': {'w': V(-10, -11, 0.4), 'pole': V(-1, 0, -0.3), 'dir': V(0, -1, -0.7), 'nrm': V(0, 0, -1), 'shape': 'cup'},
+            'l': {'w': V(10, -11, 0.4), 'pole': V(1, 0, -0.3), 'dir': V(0, -1, -0.7), 'nrm': V(0, 0, -1), 'shape': 'cup'}}
+def _spook():
+    """THE RAKE: she slowly looks to the dark corner... freezes... whips back and ducks behind the counter, peeking."""
+    return [(0, {}), (1.0, {'head': {'yaw': 46, 'pitch': 2}, 'body': {'rz': 10}}), (1.9, {'head': {'yaw': 52, 'pitch': 4}, 'body': {'rz': 12}}),
+            (2.3, {'head': {'yaw': 0, 'pitch': -4}, 'body': {'rx': -6, 'z': 1},
+                   'r': {'w': V(-9, -8, 34), 'pole': V(-1, 0.3, -1), 'dir': V(0.2, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'},
+                   'l': {'w': V(9, -8, 34), 'pole': V(1, 0.3, -1), 'dir': V(-0.2, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'}}),
+            (2.8, KP(GRIP_LOW, body={'z': -42, 'rx': 6, 'y': -2})),
+            (4.0, KP(GRIP_LOW, body={'z': -40, 'rx': 6, 'y': -2}, head={'yaw': 22, 'pitch': 2})),
+            (4.8, KP(GRIP_LOW, body={'z': -40, 'rx': 6, 'y': -2}, head={'yaw': -10})),
+            (5.6, KP(GRIP_LOW, body={'z': -14, 'rx': 4})), (6.3, {})]
+
+
+def _wow():
+    """THE WOW! SIGNAL: a long printout, she runs a red pen down it, circles something... and throws her arms up. WOW!"""
+    pr = {'w': V(12, -7, 36), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.4, 0, 1), 'nrm': V(0, 1, 0), 'shape': 'hold'}
+    def pen(x, z): return {'w': V(x, -11, z), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.3, -0.3, 0.8), 'nrm': V(0.3, 0.8, 0.3), 'shape': 'fist'}
+    k = [(0, {}), (0.4, UNDER), (1.0, {'l': pr, 'r': pen(2, 30), 'prop_l': 'printout', 'prop_r': 'redpen', 'head': {'pitch': 12}, 'body': {'rx': 6}})]
+    for i in range(9):
+        a = 2 * math.pi * i / 8
+        k.append((1.4 + i * 0.15, {'l': pr, 'r': pen(3 + 2.6 * math.cos(a), 26 + 2.2 * math.sin(a)), 'prop_l': 'printout', 'prop_r': 'redpen', 'head': {'pitch': 14}, 'body': {'rx': 8}}))
+    k += [(2.9, {'l': pr, 'r': pen(5, 26), 'prop_l': 'printout', 'prop_r': 'redpen', 'head': {'pitch': 10, 'roll': 6}, 'body': {'rx': 6}}),
+          (3.2, {'body': {'rx': -8, 'z': 2.5}, 'head': {'pitch': -12},
+                 'r': {'w': V(-22, 0, 58), 'pole': V(-1, 0.3, -0.4), 'dir': V(-0.2, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'},
+                 'l': {'w': V(22, 0, 58), 'pole': V(1, 0.3, -0.4), 'dir': V(0.2, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'}}),
+          (3.9, {'body': {'rx': -6, 'z': 2}, 'head': {'pitch': -10, 'roll': 6},
+                 'r': {'w': V(-24, 0, 56), 'pole': V(-1, 0.3, -0.4), 'dir': V(-0.3, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'},
+                 'l': {'w': V(24, 0, 56), 'pole': V(1, 0.3, -0.4), 'dir': V(0.3, 0, 1), 'nrm': V(0, -1, 0), 'shape': 'open'}}),
+          (4.7, {})]
+    return k
+
+
+ANIMS.update({'cocoa': _cocoa(), 'tape': _tape(), 'cipher': _cipher(), 'dizzy': _dizzy(), 'radio': _radio(), 'spook': _spook(), 'wow': _wow()})
+EVENTS.update({'cocoa': {'press': 1.9, 'pour': (2.2, 4.3), 'drop1': 5.3, 'drop2': 5.9, 'drop3': 6.5, 'sip': (7.5, 8.4), 'sip2': (9.3, 9.7), 'steam': (4.4, 10.0)},
+               'tape': {'eject': 1.0, 'play': 3.6, 'dance': (4.0, 5.3), 'done': 5.6},
+               'cipher': {'paper': (0.9, 4.1), 'land': 2.6},
+               'dizzy': {'stare': (0.6, 2.4), 'dizzy': (2.4, 4.8)},
+               'radio': {'buzz': (1.0, 4.2)},
+               'spook': {'see': 1.5, 'duck': 2.8, 'peek': (2.8, 5.5)},
+               'wow': {'circle': (1.4, 2.6), 'wow': 3.2}})
+
 
 def pose_at(name, t):
     """The pose of animation `name` at t seconds (eased between keys)."""
@@ -398,11 +634,16 @@ def figure(p):
         S = body_M @ Vector((s * SHOULDER[0], SHOULDER[1], SHOULDER[2]))
         pole = Vector(a['pole'])
         if b['rz']: pole = Matrix.Rotation(math.radians(b['rz']), 3, 'Z') @ pole if abs(b['rz']) > 90 else pole
-        ms, E, W, hc = arm(s, S, Vector(a['w']), pole, a['dir'], a['nrm'], a['shape'])
+        ms, E, W, (hc, frame) = arm(s, S, Vector(a['w']), pole, a['dir'], a['nrm'], a['shape'])
         for k, m in ms.items(): parts[k] = (m, None)
         hands[side] = (hc, W, a)
+        pr = p.get('prop_' + side)
+        if pr:
+            pm = prop(pr, hc, frame, p, s)
+            if pm: parts['prop_' + side] = (pm, None)
     if p.get('stamp', 0) >= 0.5:
         hc, W, a = hands['r']; parts['stamp'] = (stamp_prop(W, a['dir'], a['nrm']), None)
+    if p.get('phones', 0) >= 0.5: parts['phones'] = (phones(head_M), None)
     return parts, head_M, {k: v[0] for k, v in hands.items()}
 
 
@@ -459,6 +700,33 @@ def counter():
     bc.limb((cx - 5, cy, 17.4), (cx - 3.5, cy, 20.5), 0.8, 0.8, LEATHER2); bc.limb((cx - 3.5, cy, 20.5), (cx + 3.5, cy, 20.5), 0.8, 0.8, LEATHER2)
     bc.limb((cx + 3.5, cy, 20.5), (cx + 5, cy, 17.4), 0.8, 0.8, LEATHER2)
     out['briefcase'] = bc
+    rd = H.Mesh()                                                         # a rolodex
+    rx_, ry_ = -60, -3
+    rd.box((rx_, ry_, 0.8), (11, 7, 1.6), IRON)
+    for k in range(-4, 5):
+        a = k * 0.2
+        rd.hull([(rx_ + 4.2 * math.sin(a) + dx, ry_ + dy, 3.2 + 4.2 * math.cos(a) + dz) for dx in (-0.3, 0.3) for dy in (-2.6, 2.6) for dz in (-2.4, 0)], PAPER if k % 2 else PAPER2)
+    rd.limb((rx_ - 5.4, ry_, 1.6), (rx_ - 5.4, ry_, 5.0), 0.5, 0.5, IRON, sides=4); rd.limb((rx_ + 5.4, ry_, 1.6), (rx_ + 5.4, ry_, 5.0), 0.5, 0.5, IRON, sides=4)
+    rd.limb((rx_ - 5.4, ry_, 5.0), (rx_ + 5.4, ry_, 5.0), 0.45, 0.45, IRON, sides=4)
+    rd.hull(ell((rx_ + 6.4, ry_, 5.0), (0.9, 0.9, 0.9), nu=6, nv=3), RED)
+    out['rolodex'] = rd
+    pc = H.Mesh()                                                         # a pencil cup
+    px_, py_ = 18, -6
+    cyl(pc, (px_, py_), 2.4, 0.0, 6.2, MAROON, 10)
+    for k, (dx, dy, col) in enumerate(((-0.8, 0.4, SUNNY), (0.9, -0.3, SUNNY), (0.1, 1.0, RED), (0.6, 0.9, SKY))):
+        top = (px_ + dx * 2.2, py_ + dy * 1.6, 11.0 + (k % 2) * 1.4)
+        pc.limb((px_ + dx, py_ + dy, 1.0), top, 0.45, 0.45, col, sides=6)
+        pc.hull(ell(top, (0.5, 0.5, 0.6), nu=6, nv=3), PINK if col == SUNNY else col)
+    out['pencils'] = pc
+    pl = H.Mesh()                                                         # a little potted plant
+    gx, gy = 84, -2
+    pl.hull(ring((gx, gy), 4.0, 4.0, 0.0, 10) + ring((gx, gy), 5.0, 5.0, 7.0, 10), TERRA)
+    pl.hull(ring((gx, gy), 5.4, 5.4, 6.6, 10) + ring((gx, gy), 5.4, 5.4, 8.0, 10), TERRA)
+    for k in range(7):
+        a = 2 * math.pi * k / 7
+        tip = (gx + 7.5 * math.cos(a), gy + 5 * math.sin(a), 15 + 3 * (k % 2))
+        pl.hull([(gx, gy, 7.6), (gx + 1.2 * math.cos(a + 1.5), gy + 1.2 * math.sin(a + 1.5), 8), tip, (tip[0] * 0.6 + gx * 0.4, tip[1] * 0.6 + gy * 0.4, tip[2] + 2)], LEAF if k % 2 else LEAF2)
+    out['plant'] = pl
     return out
 
 
@@ -546,7 +814,93 @@ def room():
         fr.hull([a, b, (0, 127.1, 72), (a[0], 127.4, a[2]), (b[0], 127.4, b[2]), (0, 127.4, 72)], MAROON)
     out['notice'] = fr
     out.update(bins())
+    out.update(cocoa_corner())
+    out.update(tape_shelf())
     return out
+
+
+def cocoa_corner():
+    """Her hot cocoa machine on a little cabinet behind her to the right: cream enamel with chrome, a nozzle, a drip
+    grate, a red button and a light; a mug tree, a jar of marshmallows. Returns {name: Mesh}."""
+    m = H.Mesh()
+    cx, x0, x1, y0, y1 = 36, 20, 54, 40, 60
+    m.box((cx, (y0 + y1) / 2, -18), (x1 - x0, y1 - y0, 46), WALNUT)        # the cabinet
+    m.box((cx, (y0 + y1) / 2, 5.6), (x1 - x0 + 2, y1 - y0 + 2, 1.6), WALNUT2)
+    m.box((cx, y0 - 0.8, -10), (x1 - x0 - 6, 1.4, 16), WALNUT4); m.box((cx, y0 - 1.6, -7), (6, 1, 1.4), GOLD)
+    k = H.Mesh()
+    mx, my = 34, 48
+    k.box((mx, my, 19), (15, 11, 26), CREAM)                              # the machine's body
+    k.hull(ell((mx, my, 32), (7.6, 5.6, 3.4), nu=10, nv=5, cut=lambda x, y, z: z >= 32), CREAM)
+    k.box((mx, my - 5.6, 22), (12, 0.6, 9), CHROME)                       # the front plate
+    k.box((mx, my - 6.0, 27.6), (8, 0.6, 2.2), COCOA2)                    # its label
+    k.box((mx, my - 4.6, 15.6), (5, 3, 2.2), CHROME2)                     # the spout block
+    k.limb((mx, my - 5.2, 14.6), (mx, my - 5.2, 13.2), 0.7, 0.5, CHROME, sides=6)   # the nozzle
+    k.box((mx, my - 4.0, 7.0), (12, 7, 1.4), CHROME2)                     # the drip grate
+    for gx in range(-4, 5, 2): k.box((mx + gx, my - 4.0, 7.75), (0.5, 6.4, 0.2), CHROME)
+    k.hull(ell((mx + 5.0, my - 6.0, 21.6), (1.2, 0.8, 1.2), nu=6, nv=3), RED)       # the button
+    k.box((mx - 5.0, my - 5.9, 21.6), (1.4, 0.6, 1.4), LAMPGLOW)                       # the light
+    k.limb((mx, my, 35), (mx, my, 37), 1.2, 0.9, CHROME2, sides=6)
+    out = {'cabinet2': m, 'machine': k}
+    t = H.Mesh()                                                          # the mug tree
+    tx, ty = 47, 47
+    t.box((tx, ty, 7), (7, 7, 1.4), WALNUT3); t.limb((tx, ty, 7), (tx, ty, 23), 0.7, 0.7, WALNUT3, sides=6)
+    for a, h in ((0.3, 20), (2.4, 16), (4.3, 18)):
+        t.limb((tx, ty, h), (tx + 3 * math.cos(a), ty + 3 * math.sin(a), h + 1.4), 0.4, 0.4, WALNUT3, sides=4)
+    for (a, h, col) in ((2.4, 16, CREAM), (4.3, 18, SKY)):
+        mm = mug((tx + 5.2 * math.cos(a), ty + 5.2 * math.sin(a), h - 2.6), False, 0)
+        mm.c = [col if c_ == CREAM else c_ for c_ in mm.c]
+        out['mug_%d' % h] = mm
+    out['mugtree'] = t
+    j = H.Mesh()                                                          # the marshmallow jar
+    jx, jy = 22, 46
+    cyl(j, (jx, jy), 3.4, 6.4, 15.0, LENS, 10)
+    cyl(j, (jx, jy), 3.0, 15.0, 15.6, MALLOW, 10)
+    for k2, (dx, dy) in enumerate(((-1.2, -0.8), (1.0, -1.2), (0.2, 1.0), (-1.4, 1.1), (1.5, 0.6))):
+        j.box((jx + dx, jy + dy, 16.2 + 0.4 * (k2 % 2)), (1.4, 1.4, 1.3), MALLOW2 if k2 % 2 else MALLOW)
+    j.box((jx, jy - 3.5, 10.4), (3.6, 0.2, 2.6), PAPER)
+    out['jar'] = j
+    return out
+
+
+def tape_shelf():
+    """A wall shelf over her bins: her boombox (two speakers, a cassette door, buttons on top, a handle, stickers all
+    over) and a row of cassettes. Returns {name: Mesh}."""
+    s_ = H.Mesh()
+    y0, y1, z = 44, 60, 40
+    s_.box((-46, (y0 + y1) / 2, z - 0.8), (46, y1 - y0, 1.6), WALNUT2)
+    for x in (-64, -28): s_.hull([(x - 1, y1, z - 1.6), (x + 1, y1, z - 1.6), (x - 1, y1, z - 9), (x + 1, y1, z - 9), (x - 1, y0 + 6, z - 1.6), (x + 1, y0 + 6, z - 1.6)], WALNUT3)
+    b = H.Mesh()
+    bx, by, bz = -46, 52, z                                               # (its bottom middle)
+    b.box((bx, by, bz + 7.5), (28, 8, 15), PLASTIC2)                      # the body
+    b.box((bx, by - 4.1, bz + 7.5), (27, 0.4, 14), PLASTIC)
+    for sx in (-1, 1):                                                    # the speakers
+        sc = (bx + sx * 8.6, by - 4.4, bz + 7.0)
+        b.hull([(sc[0] + 5.0 * math.cos(t_), sc[1] + d, sc[2] + 5.0 * math.sin(t_)) for t_ in [k * math.pi / 6 for k in range(12)] for d in (0, 0.3)], CHROME2)
+        b.hull([(sc[0] + 4.2 * math.cos(t_), sc[1] - 0.2 + d, sc[2] + 4.2 * math.sin(t_)) for t_ in [k * math.pi / 6 for k in range(12)] for d in (0, 0.3)], GRILL)
+        b.hull(ell((sc[0], sc[1] - 0.6, sc[2]), (1.3, 0.6, 1.3), nu=6, nv=3), CHROME)
+    b.box((bx, by - 4.5, bz + 7.4), (8.4, 0.4, 6.4), CHROME2)            # the cassette door
+    b.box((bx, by - 4.8, bz + 7.4), (7.0, 0.3, 4.0), GRILL)               # its window
+    for k, col in enumerate((CHROME, CHROME, RED, CHROME)):               # the buttons on top
+        b.box((bx - 3.6 + k * 2.4, by - 1.6, bz + 15.4), (1.8, 2.4, 1.0), col)
+    b.limb((bx - 10, by, bz + 15), (bx - 8, by, bz + 19), 0.8, 0.8, CHROME2, sides=5)   # the handle
+    b.limb((bx - 8, by, bz + 19), (bx + 8, by, bz + 19), 0.8, 0.8, CHROME2, sides=5)
+    b.limb((bx + 8, by, bz + 19), (bx + 10, by, bz + 15), 0.8, 0.8, CHROME2, sides=5)
+    b.limb((bx + 10, by - 3.0, bz + 14.2), (bx + 13.5, by - 3.0, bz + 24), 0.3, 0.2, CHROME, sides=4)   # an aerial
+    st = H.Mesh()                                                         # stickers: a star, a heart, a bolt, a smile, a stripe
+    def sticker(cx_, cz_, pts2, col):
+        st.hull([(cx_ + px_, by - 4.75 - d, cz_ + pz_) for px_, pz_ in pts2 for d in (0, 0.15)], col)
+    star = [(math.cos(math.pi / 2 + k * math.pi / 5) * (1.8 if k % 2 == 0 else 0.8), math.sin(math.pi / 2 + k * math.pi / 5) * (1.8 if k % 2 == 0 else 0.8)) for k in range(10)]
+    for k in range(10): sticker(bx - 9.2, bz + 13.2, [(0, 0), star[k], star[(k + 1) % 10]], SUNNY)
+    sticker(bx + 3.8, bz + 2.0, [(-1.2, 0.4), (1.2, 0.4), (0, -1.2), (-0.7, 1.1), (0.7, 1.1)], PINK)
+    sticker(bx - 3.6, bz + 1.8, [(-0.4, 1.4), (0.6, 1.4), (0.0, 0.1), (0.8, 0.1), (-0.6, -1.6), (-0.1, -0.2), (-0.8, -0.2)], SKY)
+    sticker(bx + 9.4, bz + 13.4, [(1.4 * math.cos(k * math.pi / 5), 1.4 * math.sin(k * math.pi / 5)) for k in range(10)], MINT)
+    sticker(bx + 13.4, bz + 6.0, [(-0.4, -5), (0.4, -5), (-0.4, 5), (0.4, 5)], RED)
+    c = H.Mesh()                                                          # the cassettes, standing in a row
+    for k, col in enumerate((SUNNY, PINK, MINT, SKY, RED, CREAM, SUNNY)):
+        x = -29.5 + k * 1.6 if k < 4 else -66 + (k - 4) * 1.6
+        c.box((x, by, bz + 3.6), (1.2, 8, 7.2), PLASTIC)
+        c.box((x, by - 3.9, bz + 4.0), (1.0, 0.3, 4.4), col)
+    return {'shelf': s_, 'boombox': b, 'stickers': st, 'cassettes': c}
 
 
 # ------------------------------------------------------------------ rendering
@@ -557,6 +911,10 @@ def to_screen(cam, p):
     """A world point -> pixel on the game's 640x360 view."""
     v = world_to_camera_view(bpy.context.scene, cam, Vector(p))
     return v.x * VW, (1 - v.y) * VH
+
+
+# the room's things she reaches into or past: they cut her out where they're in front of her
+BACK_CUT = {'bins', 'binpapers', 'cabinet2', 'machine', 'mugtree', 'jar', 'shelf', 'boombox', 'stickers', 'cassettes'}
 
 
 def setup():
@@ -572,7 +930,7 @@ def setup():
     bpy.context.view_layer.update()
     for nm, m in room().items():
         ob = H.to_object(nm, m, mats); ob['room'] = 1
-        if nm in ('bins', 'binpapers'): ob['bins'] = 1
+        if nm in BACK_CUT or nm.startswith('mug_'): ob['bins'] = 1
     for nm, m in counter().items():
         ob = H.to_object(nm, m, mats); ob['desk'] = 1
     for ob in list(bpy.data.objects):
@@ -699,9 +1057,15 @@ def main():
         table['counter'] = [x * SCALE, y * SCALE]
         desk = {nm: [bpy.data.objects[nm]] for nm in ('bell', 'briefcase', 'tray', 'pad')}
         desk['lamp'] = [bpy.data.objects['lamp'], bpy.data.objects['shade']]
+        for nm in ('rolodex', 'pencils', 'plant', 'machine'): desk[nm] = [bpy.data.objects[nm]]
+        desk['boombox'] = [bpy.data.objects['boombox'], bpy.data.objects['stickers']]
         table['hits'] = {k: box_of(cam, v) for k, v in desk.items()}
         table['plate'] = [round(c, 1) for c in to_screen(cam, (0, -14.6, -18.5))]   # the nameplate's middle
         table['bins'] = [round(c, 1) for c in to_screen(cam, (-52, 50, 18))]          # where papers fly out of the bins
+        P = lambda q: [round(c, 1) for c in to_screen(cam, q)]
+        table['spots'] = {'nozzle': P((34, 42.8, 13.0)), 'light': P((29, 42.1, 21.6)), 'jar': P((22, 46, 16)),
+                          'speakers': [P((-54.6, 47.4, 47)), P((-37.4, 47.4, 47))], 'window': P((-46, 47.2, 47.4)),
+                          'counterTop': P((0, -15.9, 0))[1], 'corner': P((92, 110, 10)), 'door': P((70, 96, 20))}
         table['slide'] = [[round(c, 1) for c in to_screen(cam, (-6, -3, 2))], [round(c, 1) for c in to_screen(cam, (-6, -15, 2))]]
     names = [n for n in ANIMS if not a.only or n in a.only.split(',')]
     for name in names:
