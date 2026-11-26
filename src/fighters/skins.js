@@ -1011,7 +1011,7 @@ SKINS['gnash'].push({ name: 'TWO-FACED', sheetSet: 'twoface', swatch: 0xb8121c, 
   pal: { outline: 0x1a0204, deep: 0x6e0810, mid: 0xe8202c, light: 0xd2d0cc, core: 0xf4f2ee, shade: 0x2a2828, void: 0x060404 },
   vfx: { hit: { shape: 'spark', colors: [0xe8202c, 0xd2d0cc, 0xf4f2ee], n: 9, ring: 0xd2d0cc }, trail: 0xe8202c } });
 
-// ---- LUMEN, MADAME MOTH, KAMI (tools/sprites/trio_moves.py): a DEFAULT, two drawn costumes each (their *_draw.py
+// ---- LUMEN, VANTA, KAMI (tools/sprites/trio_moves.py): a DEFAULT, two drawn costumes each (their *_draw.py
 // VARIANTS, sheets in <fighter>/<set>/), then four milestones with colour groups
 // LUMEN: the star's last light. Groups: the night robe and hood, her crystal face and light, the gold
 const LMG = {
@@ -1037,28 +1037,28 @@ SKINS['lumen'] = [
   ms('THE WHOLE STAR', 4, 0xfff0b8, 'Every shard she touched rang back. For a moment the purple star was whole again, and it remembered its name.', LMG, { night: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, crystal: { sat: 0.15, val: 1.3 }, gold: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 ];
 
-// MADAME MOTH: the fortune teller. Groups: the plum velvet, her teal scarf, the gold and candle colours
-const MTG = {
-  plum: { h: [282, 330], s: [0.2, 1], v: [0.08, 0.85], center: 300 },
-  teal: { h: [165, 200], s: [0.3, 1], v: [0.2, 1], center: 180 },
-  gold: { h: [28, 56], s: [0.4, 1], v: [0.35, 1], center: 42 },
+// VANTA: the neon street samurai (vanta_draw.py LOOKS). Groups: the black cloth, the outline neon (cyan), the accent (magenta)
+const VTG = {
+  black: { s: [0, 0.35], v: [0, 0.42], center: 0 },
+  neon: { h: [170, 200], s: [0.45, 1], v: [0.35, 1], center: 186 },
+  accent: { h: [295, 335], s: [0.45, 1], v: [0.35, 1], center: 312 },
 };
-SKINS['moth'] = [
-  { name: 'DEFAULT', swatch: 0xb070c8, vfx: { hit: { shape: 'dust', colors: [0xf0c060, 0xb070c8, 0xfff4d0], n: 9, ring: 0xf0c060 }, trail: 0xb070c8 } },
-  // LUNA (moth_draw.py 'luna'): pale green wings like a luna moth, silver and moonlight
-  { name: 'LUNA', sheetSet: 'luna', swatch: 0x9fe0b0, fx: 0xc8ffd8,
-    lore: 'Once a month she reads only by moonlight, and only for the moths that come to her window. They tip better than people.',
-    pal: { outline: 0x0a1a10, deep: 0x3a8a5a, mid: 0x9fe0b0, light: 0xe8fff0, core: 0xffffff, shade: 0x1a3a2a, void: 0x06100a },
-    vfx: { hit: { shape: 'feather', colors: [0xc8ffd8, 0x9fe0b0, 0xffffff], n: 9, ring: 0x9fe0b0 }, trail: 0xc8ffd8, aura: { motes: { colors: [0xe8fff0, 0x9fe0b0], rate: 8 } } } },
-  // DEATH'S-HEAD (moth_draw.py 'deathshead'): black velvet, bone and amber - the skull on her wings is watching
-  { name: "DEATH'S-HEAD", sheetSet: 'deathshead', swatch: 0xd8a040, fx: 0xd8a040,
-    lore: 'There is a card she keeps out of the deck. She wears it instead. Nobody who has asked her what it shows has asked twice.',
-    pal: { outline: 0x000000, deep: 0x3a2a1a, mid: 0xa07030, light: 0xd8a040, core: 0xfff0d0, shade: 0x1a1410, void: 0x000000 },
-    vfx: { hit: { shape: 'skull', colors: [0xfff0d0, 0xd8a040, 0x1a1410], n: 8, ring: 0xd8a040 }, trail: 0xd8a040, aura: { spooky: true } } },
-  ms('PALM READER', 1, 0xd88a5a, 'A folding table at the edge of the carnival and one candle. The line went round the block by midnight.', MTG, { plum: { to: 18, sat: 0.9 }, teal: { to: 40, sat: 0.9 } }, 'dust', [0xd88a5a, 0xffd8b0, 0xffffff]),
-  ms('CRYSTAL GAZER', 2, 0x6ac8ff, 'She bought a crystal ball from a man who swore it showed the future. It only ever shows her, winning.', MTG, { plum: { to: 214, sat: 1.0 }, teal: { to: 270, sat: 0.9 }, gold: { sat: 0.2, val: 1.3 } }, 'star', [0x6ac8ff, 0xd8f0ff, 0xffffff]),
-  ms('GRAND ORACLE', 3, 0xe8e8f0, 'Kings come to her tent now. She makes them wait like everybody else.', MTG, { plum: { sat: 0.08, val: 2.2 }, teal: { to: 290, sat: 1.0 } }, 'star', [0xffffff, 0xd0b0ff, 0xf0c060], { vfx: { aura: { halo: 0xffe08a } } }),
-  ms('MISTRESS OF FATE', 4, 0xffd860, 'The wheel stopped turning for everyone else. It turns when she says so.', MTG, { plum: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, gold: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, teal: { to: 330, sat: 1.0 } }, 'dust', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+SKINS['vanta'] = [
+  { name: 'DEFAULT', swatch: 0x3af0ff, vfx: { hit: { shape: 'spark', colors: [0x3af0ff, 0xff2ad8, 0xffffff], n: 9, ring: 0x3af0ff }, trail: 0x3af0ff } },
+  // REDLINE (vanta_draw.py 'redline'): overheated - red neon, an amber visor, a blade like a hot wire
+  { name: 'REDLINE', sheetSet: 'redline', swatch: 0xff3a2a, fx: 0xff5a2a,
+    lore: 'He ran the whole city on the redline for a night - every light, every sign, every train - and the cooling fans gave up before he did. His neon never cooled back down.',
+    pal: { outline: 0x0a0204, deep: 0x8a1a0a, mid: 0xff5a2a, light: 0xffb08a, core: 0xffffff, shade: 0x1c1c26, void: 0x07060e, accent: 0xffc83a },
+    vfx: { hit: { shape: 'spark', colors: [0xff5a2a, 0xffc83a, 0xffffff], n: 10, ring: 0xff5a2a }, trail: 0xff5a2a, aura: { inferno: true } } },
+  // GLITCHWAVE (vanta_draw.py 'glitch'): a chrome jacket, violet neon, a mint visor - he came back from a crash wrong, and better
+  { name: 'GLITCHWAVE', sheetSet: 'glitch', swatch: 0xb06aff, fx: 0xb06aff,
+    lore: 'The night the grid crashed he was halfway through a jump between two rooftops. He landed a second later in a chrome jacket nobody had sold him. He has never once landed late since.',
+    pal: { outline: 0x07060e, deep: 0x5a2aa8, mid: 0xd8b8ff, light: 0xf0e8ff, core: 0xffffff, shade: 0x6a7088, void: 0x07060e, accent: 0x6affb0 },
+    vfx: { hit: { shape: 'poly', colors: [0xd8b8ff, 0x6affb0, 0xffffff], n: 10, ring: 0xb06aff }, trail: 0xb06aff, aura: { motes: { colors: [0xb06aff, 0x6affb0], rate: 8 } } } },
+  ms('STREET RUNNER', 1, 0x6aff6a, 'A courier with a borrowed sword and a bad map. He was never late. He was never paid either.', VTG, { neon: { to: 120, sat: 1.0 }, accent: { to: 50, sat: 1.0 } }, 'spark', [0x6aff6a, 0xfff06a, 0xffffff]),
+  ms('NIGHT CITY', 2, 0xff8a2a, 'Every billboard in the district flickered his colours one night. Nobody saw who hacked them.', VTG, { neon: { to: 28, sat: 1.0 }, accent: { to: 196, sat: 1.0 } }, 'spark', [0xff8a2a, 0x3af0ff, 0xffffff]),
+  ms('GHOST PROTOCOL', 3, 0xe8f0ff, 'He moves so fast now that the cameras only catch the echo. The echo still cuts.', VTG, { black: { sat: 0.05, val: 4.2 }, neon: { to: 210, sat: 0.4, val: 1.4 }, accent: { to: 0, sat: 1.0 } }, 'spark', [0xe8f0ff, 0xff3a5a, 0xffffff], { vfx: { aura: { motes: { colors: [0xe8f0ff, 0xff3a5a], rate: 6 } } } }),
+  ms('ZERO HOUR', 4, 0xffd860, 'When the whole city went dark, one blade stayed lit. They wrote his name on the sky in gold.', VTG, { black: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, neon: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, accent: { to: 312, sat: 1.0 } }, 'spark', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 ];
 
 // KAMI: the paper fighter. Groups: the paper and the red (seal and sash)

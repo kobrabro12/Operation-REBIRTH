@@ -38,9 +38,9 @@ export const INTROS = {
   'what-once-was': { kind: 'warp', color: 0x9affd8, pre: ['glitch', 0.5, 0.8], sfx: ['buzz', 0.4, 0.8] },
   // THE DEVOTED crawls up out of a pool of black sludge (kind 'pool': pool = its colours, lava = glowing + embers)
   devoted: { kind: 'pool', dur: 120, pool: { deep: 0x060508, mid: 0x1a1720, rim: 0x2e2a38, sheen: 0x4a4458 }, pre: ['geyser', 0.35, 0.45], sfx: ['curse', 0.45, 0.6] },
-  // LUMEN: a falling star; MADAME MOTH: a great tarot card; KAMI: a sheet of paper that folds into him
+  // LUMEN: a falling star; VANTA: a neon grid boots him in, line by line; KAMI: a sheet of paper that folds into him
   lumen: { kind: 'starfall', color: 0xa862ff, color2: 0xd6a0ff, pre: ['whoosh', 0.4, 1.6], sfx: ['ding', 0.6, 1.4], shape: 'star' },
-  moth: { kind: 'tarot', color: 0x5a2a6a, color2: 0xf0c060, pre: ['petal', 0.4, 1.2], sfx: ['shing', 0.5, 1.1] },
+  vanta: { kind: 'boot', color: 0x3af0ff, color2: 0xff2ad8, pre: ['glitch', 0.4, 1.4], sfx: ['shing', 0.6, 1.5] },
   kami: { kind: 'fold', color: 0xf0503c, color2: 0xffffff, pre: ['petal', 0.45, 1.6], sfx: ['whoosh', 0.5, 1.8], shape: 'pixel' },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
@@ -180,7 +180,7 @@ export class FighterIntros {
       if (I.feathers) burst(14, [0xffffff, 0xfff4c0], 2.2, 'petal', 0.02);
     } else if (I.kind === 'bubble') { burst(16, [e.col, 0xffffff], 2.6, 'drop', 0.12); }
     else if (I.kind === 'starfall') { burst(14, [e.col2, 0xffffff], 2.8, 'star', 0.02); e.ring = { t: 0, color: e.col2 }; this.m.shake(4, 6); }
-    else if (I.kind === 'tarot') burst(12, [e.col2, 0xfff4d0, e.col], 2.2, 'pixel', 0.02);
+    else if (I.kind === 'boot') { burst(14, [e.col, e.col2, 0xffffff], 3, 'pixel', 0.02); this.m.shake(3, 5); }
     else if (I.kind === 'fold') burst(14, [0xffffff, 0xece8dc, e.col], 2.6, 'pixel', 0.06);
     else if (I.kind === 'swarm') burst(10, I.colors || [e.col], 2.4, I.shape, 0.03);
     else if (I.kind === 'paint') { burst(18, I.colors || [e.col, e.col2], 3, 'drop', 0.15); this.m.shake(3, 5); }
@@ -265,17 +265,16 @@ export class FighterIntros {
           if (e.ring) { e.ring.t++; const r = e.ring.t * 5; g.lineStyle(2, c2, Math.max(0, 1 - e.ring.t / 16)); g.strokeEllipse(x, y, r * 2, r * 0.45); g.lineStyle(0); }
           break;
         }
-        case 'tarot': {                                                    // MADAME MOTH: a great tarot card twirls down, stands on the spot, and she steps out of it
-          const cw = 22, ch = 36;
-          if (p < A + 0.25) {
-            const fall = Math.min(1, pre * 1.3), cy = y - ch - 260 * Math.pow(1 - fall, 2), spin = p < A ? Math.abs(Math.cos(pre * 9)) : 1, w = Math.max(1, cw * spin), a = p < A ? 1 : Math.max(0, 1 - post * 4);
-            g.fillStyle(0x1a0a1e, a); g.fillRect(x - w - 1, cy - ch - 1, w * 2 + 2, ch * 2 + 2);
-            g.fillStyle(0xfff4d0, a); g.fillRect(x - w, cy - ch, w * 2, ch * 2);
-            g.fillStyle(c, a); g.fillRect(x - w + 2, cy - ch + 2, w * 2 - 4, ch * 2 - 4);
-            g.fillStyle(c2, a); g.fillRect(x - w + 2, cy - ch + 2, w * 2 - 4, 2); g.fillRect(x - w + 2, cy + ch - 4, w * 2 - 4, 2);
-            if (w > 8) { g.fillStyle(c2, a); g.fillCircle(x, cy - 4, 6); g.fillStyle(c, a); g.fillCircle(x + 3, cy - 6, 5); g.fillStyle(0xfff4d0, a); g.fillRect(x - 1, cy + 14, 3, 3); }   // THE MOON on its face
-          }
-          if (p >= A) { vis = Math.min(1, post * 3); if (this.t % 3 === 0 && post < 0.6) e.parts.push({ shape: 'pixel', x: x + (R() - 0.5) * 40, y: y - 20 - R() * 40, vx: (R() - 0.5) * 1.6, vy: -0.6 - R(), life: 30, max: 30, color: R() < 0.5 ? c2 : 0xfff4d0, drag: 0.97 }); }
+        case 'boot': {                                                     // VANTA: a cut of light down the spot, a neon wireframe of him scans in line by line, then he's solid
+          const top = y - 60;
+          if (p < A) {
+            const k = pre, cut = Math.min(1, k * 3);
+            g.fillStyle(c, 0.25 * cut); g.fillRect(x - 1, y - 380 * cut, 2, 380 * cut); g.fillStyle(0xffffff, cut); g.fillRect(x, y - 380 * cut, 1, 380 * cut);
+            if (k > 0.3) { const s = Math.min(1, (k - 0.3) / 0.7), sy = y - 60 * s;
+              for (let yy = y; yy > sy; yy -= 3) { const w = 10 + 6 * Math.sin((yy - top) * 0.2); g.fillStyle((yy / 3) % 2 ? c : c2, 0.5); g.fillRect(x - w, yy, w * 2, 1); }
+              g.fillStyle(0xffffff, 1); g.fillRect(x - 18, sy, 36, 1); g.fillStyle(c2, 0.6); g.fillRect(x - 22, sy - 1, 44, 1); }
+            g.lineStyle(1, c, 0.6); g.strokeEllipse(x, y, 30 + 20 * k, 6); g.lineStyle(0);
+          } else { vis = Math.min(1, post * 5); if (post < 0.4 && this.t % 2) { g.fillStyle(c2, 0.5); g.fillRect(x - 14, y - 40 + ((this.t * 7) % 30), 28, 2); } }
           break;
         }
         case 'fold': {                                                     // KAMI: a sheet of paper drifts down, then folds itself up into him

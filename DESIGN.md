@@ -118,7 +118,7 @@ The stage grid has 12 slots, 2 across and 6 down (last = Random); 11 stages fill
 
 ## 9. Fighters
 
-The select grid has 12 slots; 9 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH, LUMEN, MADAME MOTH, KAMI). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
+The select grid has 12 slots; 9 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH, LUMEN, VANTA, KAMI). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
 
 ### Soul Summoner — summoner / all-rounder (weight 1.0)
 - **Neutral special**: fireball, hold to charge (full at 84 ticks), 4–16%.
@@ -162,13 +162,14 @@ The purple star's heart-shard (the lore fighter: see THE STARFALL in loreArchive
 - **Down special**: CONSTELLATE. Beams join her staff and stars in planting order (5% to anyone a line crosses), then every star bursts (9%). With no stars, a small flare (6%).
 - **Limit**: THE STARFALL. The sky goes dark, her heart-shard rises and breaks; shards rain on every foe (5% each, they hold), then a pillar of light under each (16% and a launch). Up to about 40%.
 
-### MADAME MOTH (`moth`) — fortune teller, all-rounder (weight 0.96)
-Normals are NU's. FORTUNE: she holds one tarot card at a time (over her head and on her player plate).
-- **Down special**: DRAW - a random card (never the same twice running).
-- **Neutral special**: CAST the card she holds: THE TOWER (lightning strikes the nearest foe after a warning, 12%), THE SUN (heals her 10%, a 6% flare), THE MOON (she fades out for 3 s; her next hit +20% damage), THE STAR (a falling star on the nearest foe, 10%), DEATH (her next hit within 10 s knocks 60% further), THE FOOL (a coin toss: a 14% burst round her - or it blows up in her face for 8%). With no card: a palm flash (5%).
-- **Side special**: CARD FAN, three spinning cards (3% each).
-- **Up special**: MOTH FLIGHT. Her wings beat her up (two hits, 4% + 6%), then she glides down slowly.
-- **Limit**: THE WHEEL. A wheel of fortune rises behind her and spins: JACKPOT (25% and a launch), STORM (three bolts on each foe, 8% x3, the last launches), FORTUNE (she heals 30%, stars fall on them, 12%) or MISFORTUNE (every foe cursed for 7 s and hit for 10%).
+### VANTA (`vanta`) — neon street samurai, experimental speedster (weight 0.92)
+GNASH's kind of fighter (black clothes outlined in neon, a meter that unlocks a cinematic power) with a katana. Normals are NU's with 6 px more reach; every swing draws a neon blade arc (src/fx/sfSlash.js, built on the Sprite Fusion port).
+- **SYNC / OVERCLOCK**: hits he lands (x1.0) and takes (x0.6) fill SYNC (ten cells on his plate). Full: his next special plays the OVERCLOCK cut-in (a cyberpunk HUD screen), then for 5 s everyone else runs at half speed, he's 15% faster, hits 10% harder, and every normal leaves an ECHO cut a beat later (40% damage).
+- **Neutral special**: IAI. Hold to sink into a draw stance while a ring closes in; let go to cut (8-13%, longer with the hold). Let go while the ring flashes white for a PERFECT DRAW: a cut 190 px long (18%), everything hit freezes, +30 SYNC.
+- **Side special**: GHOST DASH. A Sprite Fusion dash 92 px in any of 8 directions; press again for up to 3 in a row (3 per airtime). Each leaves an echo; when the chain ends every echo cuts along its own path at once (5% each, the last 7%).
+- **Up special**: NEON WIRE. A grapple aimed with the stick: latches a platform's edge or top and zips him there (no helpless fall), or catches an opponent, yanks them in and cuts (9%). A miss leaves him helpless.
+- **Down special**: SAVE STATE. First press saves (a glitching ghost of him stays, 10 s); the next REWINDS him there with the Sprite Fusion blink - the glitch trail cuts everything on the way (9%) and he gets back half the damage taken since he saved. 2 s cooldown.
+- **Limit**: BLACKOUT. The lights die; only neon shows. He's beside each foe in turn (3 cuts each, 4% that hold them), back where he started, sheathes the blade - click - and every cut lands at once (22% and a huge launch).
 
 ### KAMI (`kami`) — paper shapeshifter (weight 0.9)
 A page of THE ARCHIVE folded into a fighter. Normals are NU's. FOLDS change his stats and his neutral special:

@@ -1,4 +1,4 @@
-// Shared normals: LUMEN, MADAME MOTH and KAMI are built on NU's puppet rig (tools/sprites/trio_moves.py), so their
+// Shared normals: LUMEN, VANTA and KAMI are built on NU's puppet rig (tools/sprites/trio_moves.py), so their
 // ground attacks and aerials are NU's animations - and NU's hitboxes fit them. Each def takes NU's normals through
 // tuned() with its own feel (softer / harder hits, more or less knockback) and then adds its own specials.
 

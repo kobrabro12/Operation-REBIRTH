@@ -15,7 +15,8 @@ line at the top of each ported file). The root `AGENTS.md` (rules, stack, map) a
   one ADD-blended); MatchScene steps every effect in `stepEffects` (`sfStep`) and clears them in `cleanup` (`sfClear`).
   `sfActor(fighter)` = `{ feet(), silhouette() }`: the effect reads the fighter's real current frame (flip and trim
   handled) to burst it into pixels or leave afterimages. An effect that throws is dropped - it can never break a match.
-- Users: LUMEN's STARBLINK (fighterLumen.js `aimBlink`), KAMI's PAPER CUT (fighterKami.js `startPaperCut`). The game's
+- `sfSlash.js` (our own, in the same style and on the port's machinery - sfMovement.js exports its `Px`, `Particles`, `dot`, `ringE`, colour helpers; plasma particles take a colour through `col`): `neonSlash` (a swept sword arc: white core, blade colour, a rim, light, plasma off the tip, shattering into twinkles), `neonCut` (a straight cut: hairline flash, splits open, sparks both ways, crumbles; `delay`), `neonImpact` (ring, star spikes, plasma), `glitchGhost` (an RGB-split afterimage of a fighter with scanlines and tearing rows; `.end()`), `neonRamp(colour, hex)` (an 8-colour ramp from one colour).
+- Users: VANTA (every swing, IAI, GHOST DASH = the dash, SAVE STATE = the blink, BLACKOUT - fighterVanta.js), LUMEN's STARBLINK (fighterLumen.js `aimBlink`), KAMI's PAPER CUT (fighterKami.js `startPaperCut`). The game's
   own logic (where the fighter is, when hits land) stays in the fighter's code and frame counts; the effect only draws.
 - Sprite Fusion's site and MCP are blocked from Claude's sandbox: new effects come as the ZIPs Mason downloads into his
   Operation REBIRTH folder; port them the same way (plain JS, PX = 1, the licence line).

@@ -82,8 +82,8 @@ export class BootScene extends Phaser.Scene {
     for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet('aero_king_n64_' + k, 'assets/fighters/aero/n64/king/' + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet('aero_king_n64_moves', 'assets/fighters/aero/n64/king/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
     this.load.spritesheet('nu_moves', 'assets/fighters/nu/moves_sheet.png', { frameWidth: 112, frameHeight: 104 });
-    // LUMEN / MADAME MOTH / KAMI (tools/sprites/trio_moves.py, NU's rig): base sheets + their drawn costumes (those load per match - lazySheets.js)
-    for (const [pre, dir, sets] of [['lm', 'lumen', ['dawn', 'void']], ['mt', 'moth', ['luna', 'deathshead']], ['km', 'kami', ['newsprint', 'gold']]]) {
+    // LUMEN / VANTA / KAMI (tools/sprites/trio_moves.py, NU's rig): base sheets + their drawn costumes (those load per match - lazySheets.js)
+    for (const [pre, dir, sets] of [['lm', 'lumen', ['dawn', 'void']], ['vt', 'vanta', ['redline', 'glitch']], ['km', 'kami', ['newsprint', 'gold']]]) {
       for (const set of ['', ...sets]) {
         const key = pre + '_' + (set ? set + '_' : ''), path = 'assets/fighters/' + dir + '/' + (set ? set + '/' : '');
         for (const k of ['idle', 'run', 'jump', 'fall']) this.load.spritesheet(key + k, path + k + '_sheet.png', { frameWidth: 64, frameHeight: 64 });

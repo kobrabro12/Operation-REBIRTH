@@ -1,5 +1,5 @@
-// A plain projectile the newer fighters build their own shots from (LUMEN's comets and stars, MADAME MOTH's cards and
-// falling stars, KAMI's cranes and shuriken): it moves, hits like any projectile (MatchScene.resolveHits reads
+// A plain projectile the newer fighters build their own shots from (LUMEN's comets and stars, KAMI's cranes and
+// shuriken): it moves, hits like any projectile (MatchScene.resolveHits reads
 // hitbox()), and its owner says how it looks and anything special it does - `spec.draw(g, shot)` every frame,
 // `spec.step(shot)` before it moves (return false to stop it), `spec.onKill(shot)` as it goes. Lives in
 // match.projectiles.

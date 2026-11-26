@@ -104,7 +104,7 @@ export const CLASSIC_TROPHIES = {
   nu: { name: 'NU', line: 'THE LOUDEST MAN ALIVE. THE CITY HAS PASSED THREE LAWS ABOUT HIM. HE HAS FRAMED ALL OF THEM.' },
   aero: { name: 'AERO', line: 'THE BOY IN THE FISHBOWL. THE GOLDFISH WOULD LIKE IT KNOWN THAT IT DID MOST OF THE THINKING.' },
   lumen: { name: 'LUMEN', line: 'THE HEART OF THE PURPLE STAR, WOKEN IN A BELL TOWER AT 12:11. SHE IS STILL COUNTING THE STARS THAT CAME BACK. ONE MORE TONIGHT.' },
-  moth: { name: 'MADAME MOTH', line: 'SHE KNEW HOW THIS WOULD END BEFORE YOU PICKED HER. SHE CAME ANYWAY - SHE LIKES WATCHING PEOPLE FIND OUT.' },
+  vanta: { name: 'VANTA', line: 'A COURIER FROM A CITY THAT NEVER SWITCHES OFF, WITH A SHARD OF STARLIGHT IN HIS BLADE. HE SAVES BEFORE EVERY FIGHT. HE HAS NEVER NEEDED TO LOAD.' },
   kami: { name: 'KAMI', line: 'A PAGE OF THE ARCHIVE THAT FOLDED ITSELF INTO A HERO. HE STILL DOES NOT KNOW WHAT HE SAYS. HE IS TRYING TO BE READY.' },
   gnash: { name: 'GNASH', line: 'A STREET PUNK KID IN A NEON MASK WITH AN AXE BIGGER THAN HE IS. NOBODY KNOWS WHAT IS UNDER THE MASK. NOBODY HAS ASKED TWICE.' },
 };
@@ -184,15 +184,15 @@ export const ENDINGS = {
     { bg: 'dawn', act: 'stand', text: ['SHE IS NOT WHOLE YET.', 'BUT THE SKY IS A LITTLE LESS EMPTY.'] },
     { bg: 'road', act: 'far', night: true, text: ['LOOK UP AT ELEVEN MINUTES PAST MIDNIGHT.', 'ONE OF THEM IS WAVING.'] },
   ] },
-  moth: { music: 'bgm_trophy_hall', tint: 0xb070c8, shots: [
-    { bg: 'ruin', act: 'stand', text: ['%B HAS FALLEN.', 'SHE HAD ALREADY DRAWN THE CARD THAT SAID SO.'] },
-    { bg: 'town', act: 'walk', night: true, text: ['SHE PITCHED HER TENT', 'AT THE EDGE OF A SLEEPING TOWN.'] },
-    { bg: 'camp', act: 'sit', night: true, fire: true, text: ['ONE CANDLE. ONE TABLE.', 'BY MIDNIGHT, A LINE ROUND THE BLOCK.'] },
-    { bg: 'town', act: 'stand', night: true, quiet: true, text: ['SHE TOLD THE BAKER HE WOULD BE RICH.', 'SHE TOLD THE BULLY HE WOULD BE SORRY.'] },
-    { bg: 'shrine', act: 'stand', kid: true, text: ['A GIRL ASKED IF HER FUTURE WAS GOOD.', 'MADAME MOTH SAID: THAT DEPENDS ON YOU.'] },
-    { bg: 'sky', act: 'none', night: true, text: ['THE MOTHS CAME TO THE CANDLE', 'AND NOT ONE OF THEM GOT BURNED.'] },
-    { bg: 'dawn', act: 'stand', text: ['IN THE MORNING THE TENT WAS GONE.', 'THE CARD LEFT ON THE STEP SAID: THE STAR.'] },
-    { bg: 'road', act: 'far', text: ['SHE KNOWS HOW YOUR STORY ENDS.', 'SHE WILL NOT TELL. SHE WANTS YOU TO SEE.'] },
+  vanta: { music: 'bgm_trophy_hall', tint: 0x3af0ff, shots: [
+    { bg: 'ruin', act: 'stand', text: ['%B HAS FALLEN.', 'VANTA SHEATHED HIS BLADE. CLICK.'] },
+    { bg: 'town', act: 'walk', night: true, rain: true, text: ['THE CITY WAS STILL AWAKE.', 'IT NEVER SLEEPS. NEITHER DOES HE.'] },
+    { bg: 'road', act: 'walk', night: true, text: ['HE RAN THE ROOFTOPS HOME', 'FASTER THAN THE TRAINS BELOW.'] },
+    { bg: 'town', act: 'stand', night: true, quiet: true, text: ['ON THE BIGGEST BILLBOARD IN THE DISTRICT', 'SOMEONE HAD WRITTEN: THANK YOU.'] },
+    { bg: 'camp', act: 'sit', night: true, fire: true, text: ['HE SAT UNDER A FLICKERING SIGN', 'AND LISTENED TO HIS BLADE HUM.'] },
+    { bg: 'sky', act: 'none', night: true, star: true, text: ['THE SHARD IN IT RANG ONCE,', 'LIKE IT KNEW SOMETHING HE DIDN\'T.'] },
+    { bg: 'dawn', act: 'stand', text: ['THE SUN CAME UP OVER THE NEON.', 'HE PRESSED SAVE.'] },
+    { bg: 'road', act: 'far', text: ['IF THE LIGHTS EVER GO OUT,', 'LOOK FOR THE ONE BLADE STILL LIT.'] },
   ] },
   kami: { music: 'bgm_trophy_hall', tint: 0xf0503c, shots: [
     { bg: 'ruin', act: 'stand', text: ['%B HAS FALLEN.', 'KAMI FOLDED A CRANE TO MARK THE SPOT.'] },

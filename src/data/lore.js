@@ -61,10 +61,10 @@ export const FILES = {
     origin: 'THE BELL TOWER OF THE SKY SANCTUM, 12:11 AM, THE NIGHT OF THE STARFALL', moves: 'PLANT STAR - COMET - STARBLINK - CONSTELLATE', limit: 'THE STARFALL',
     lore: 'Every other fighter was touched by a shard of the purple star. LUMEN is one - the heart of it, the piece that still remembers being a star. She woke in the bell tower at eleven minutes past midnight with a crystal for a face and the sound of something enormous chewing on the sky. She plants stars, links them into constellations and blinks between them. She is very polite. She is also being hunted.',
   },
-  moth: {
-    no: '008', alias: 'MADAME MOTH', cls: 'FORTUNE TELLER', weapon: 'A TAROT DECK THAT DEALS ITSELF',
-    origin: 'A VELVET TENT THAT IS NEVER IN THE SAME PLACE TWICE', moves: 'CAST - CARD FAN - MOTH FLIGHT - DRAW', limit: 'THE WHEEL',
-    lore: 'She draws a card and the fight bends around it: lightning from THE TOWER, warmth from THE SUN, a vanishing act from THE MOON, a mark from DEATH. Nobody knows what she gets from it. She says she already knows how every fight ends, and only shows up because she enjoys watching people find out.',
+  vanta: {
+    no: '008', alias: 'THE NEON SAMURAI', cls: 'STREET SAMURAI', weapon: 'A NEON KATANA WITH A SHARD OF STARLIGHT IN THE BLADE',
+    origin: 'THE ROOFTOPS OF A CITY THAT NEVER SWITCHES OFF', moves: 'IAI - GHOST DASH - NEON WIRE - SAVE STATE', limit: 'BLACKOUT',
+    lore: 'A courier who outran every train, every drone and every deadline in a city made of light. The night of the Starfall the whole grid went dark for eleven minutes - and when it came back, his blade was glowing on its own. He fights like he is speedrunning: he saves, he dashes, he cuts the same moment twice. Fill his SYNC and he OVERCLOCKS, and the rest of the world runs at half speed.',
   },
   kami: {
     no: '009', alias: 'THE PAPER FIGHTER', cls: 'ORIGAMI DUELIST', weapon: 'A FOLDED PAPER FAN (AND HIMSELF)',
@@ -115,9 +115,9 @@ export const SKIN_LORE = {
     'FIRST LIGHT': 'The Archivist found her on the bell tower at dawn, glowing like the sun had come up early just for her. She has never once been late to anything since.',
     'EVENT HORIZON': 'A page in the archive nobody remembers writing: what the heart-shard would have become if the Star-Eater had caught it - a red crystal, a robe made of the dark between stars. She read it once. She keeps the robe to remind herself to keep running.',
   },
-  moth: {
-    LUNA: 'Once a month she reads only by moonlight, and only for the moths that gather at her window. They tip better than people, and they never argue with the cards.',
-    "DEATH'S-HEAD": 'There is one card she keeps out of the deck. She wears it instead - black velvet, bone and amber, a skull on each wing that watches whoever she is talking to. Nobody who has asked her what the card shows has asked twice.',
+  vanta: {
+    REDLINE: 'He ran the whole city on the redline for a night - every light, every sign, every train - and the cooling fans gave up before he did. His neon has never cooled back down.',
+    GLITCHWAVE: 'The night the grid crashed he was halfway through a jump between two rooftops. He landed a second later in a chrome jacket nobody had sold him, glowing colours that do not have names yet. He has never once landed late since.',
   },
   kami: {
     'EXTRA! EXTRA!': 'One morning he unfolded himself from yesterday\'s newspaper instead of his page. He reads his own headlines when he thinks nobody is looking. Most of them are about the weather.',
@@ -203,11 +203,11 @@ export const MILESTONE_LORE = {
     SUPERNOVA: 'For one second, in a fight she will not talk about, she shone brighter than every world at once. Somewhere very far away, the Star-Eater looked up, and then - for the first time in its long life - looked away.',
     'THE WHOLE STAR': 'Every shard she has ever touched rang back at once. For a moment the purple star was whole again, all of it, everyone it had ever touched, and it remembered its own name. She will not tell anyone what the name is. She says it is not finished yet.',
   },
-  moth: {
-    'PALM READER': 'A folding table at the edge of the carnival, one candle and a hand-painted sign. The first night three people came. By midnight the line went round the block, because every one of them had walked away looking like they had just been told a secret about themselves.',
-    'CRYSTAL GAZER': 'She bought a crystal ball from a man who swore it showed the future. It does. It only ever shows her, winning, in slightly different hats. She has kept it anyway, because it is right.',
-    'GRAND ORACLE': 'Kings come to her tent now. Generals, mayors, a dragon once, very politely. She makes them all wait in the same line as everybody else, and reads for the children first.',
-    'MISTRESS OF FATE': 'The wheel of fortune stopped turning for everyone else. It turns when she says so. She says so rarely, and only ever when somebody has been unkind.',
+  vanta: {
+    'STREET RUNNER': 'A courier with a borrowed sword, a bad map and a jacket three sizes too big. He was never late, not once, not even the night the bridge was out. He was never paid either. He kept the sword.',
+    'NIGHT CITY': 'Every billboard in the district flickered his colours one night - orange and cyan, a grinning visor forty storeys tall. Nobody ever found out who hacked them. He has a theory, and it is him.',
+    'GHOST PROTOCOL': 'He moves so fast now that the security cameras only ever catch the echo - a white blur, a red line, a cut that lands a second after he has gone. The echo still cuts. The echo has a fan club.',
+    'ZERO HOUR': 'When the whole city went dark for the second time, one blade stayed lit. He held the rooftops alone until morning. They wrote his name across the sky in gold, and the shard in his katana rang so loud the Archivist heard it in her office.',
   },
   kami: {
     ORIGAMI: 'His first fold was a crane. It took him four hundred tries, and he did it alone in the stacks after closing with the lamps turned down. The other three hundred and ninety-nine are in a bin under the Archivist\'s desk. She will not throw them away.',

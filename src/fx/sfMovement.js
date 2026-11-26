@@ -374,9 +374,9 @@ class Particles {
         if (age < 0.5) buf.alphaDisc(ax - r * 0.22, ay - r * 0.3, r * 0.5, mix(c, WHITE, 0.12), a * 0.4 * (1 - age * 2));
       } else if (p.k === K.DUST) buf.alphaDisc(ax, ay, p.size * (0.6 + (1 - k) * 0.9), p.col, Math.pow(k, 1.3) * 0.7);
       else if (p.k === K.SPARK || p.k === K.PLASMA) {
-        const hot = p.k === K.PLASMA ? (k > 0.5 ? WHITE : k > 0.25 ? PLASMA.cyan : PLASMA.deep) : k > 0.6 ? SPARKS.hot : k > 0.3 ? SPARKS.yellow : SPARKS.orange;
+        const deep = p.col ? scale(p.col, 0.55) : PLASMA.deep, hot = p.k === K.PLASMA ? (k > 0.5 ? WHITE : k > 0.25 ? (p.col || PLASMA.cyan) : deep) : k > 0.6 ? SPARKS.hot : k > 0.3 ? SPARKS.yellow : SPARKS.orange;   // (plasma takes its colour from `col` when given)
         const sp = Math.hypot(p.vx, p.vy) || 1, ux = p.vx / sp, uy = p.vy / sp, len = Math.min(9, 1 + sp * 0.011);
-        buf.line(ax - ux * len, ay - uy * len, ax - ux * len * 0.4, ay - uy * len * 0.4, k > 0.5 ? hot : p.k === K.PLASMA ? PLASMA.deep : SPARKS.tail);
+        buf.line(ax - ux * len, ay - uy * len, ax - ux * len * 0.4, ay - uy * len * 0.4, k > 0.5 ? hot : p.k === K.PLASMA ? deep : SPARKS.tail);
         buf.line(ax - ux * len * 0.45, ay - uy * len * 0.45, ax, ay, hot);
         light.glow(ax, ay, 3, hot, 0.45 * k);
       } else {
@@ -390,3 +390,6 @@ class Particles {
     }
   }
 }
+
+// shared with the game's own pixel effects in the same style (src/fx/sfSlash.js)
+export { Particles, K, dot, ringE, mix, scale, outCubic, outExpo, hash, clamp, lerp, smooth, WHITE as SF_WHITE, TAU };
