@@ -29,7 +29,7 @@ const FIGHTER_ALIASES = {
   'soul-summoner': ['SOUL', 'SUMMONER', 'SOULSUMMONER', 'THEBLUEFLAMEKNIGHT'],
   'mr-wake': ['WAKE', 'MISTERWAKE', 'MRWAKE'],
   'hero-knight': ['LACY', 'HEROKNIGHT', 'HERO', 'KNIGHT'],
-  nu: ['NU'], aero: ['AERO', 'GOLDFISH'], gnash: ['GNASH'],
+  nu: ['NU'], aero: ['AERO', 'GOLDFISH'], gnash: ['GNASH'], lumen: ['LUMEN', 'HEARTSHARD', 'THESTAR'], moth: ['MADAMEMOTH', 'MOTH', 'FORTUNETELLER'], kami: ['KAMI', 'PAPER', 'ORIGAMI'],
   'what-once-was': ['WHATONCEWAS', 'WOW', 'TV'], 'last-seen': ['ROSEMARY', 'LASTSEEN', 'SEEN', 'ROSEMARYWALTEN'],
   fists: ['FISTS'], 'young-link': ['YOUNGLINK', 'LINK'], devoted: ['DEVOTED', 'THEDEVOTED'],
 };

@@ -101,6 +101,7 @@ Arcade's hazards use their own timers in the same spirit. Hazards can be turned 
 | Fractured | a giant galaxy-crystal fragment adrift in deep space (Mason's GALAXY FRAGMENT gem, grown huge): a flat cut top, a cracked indigo underside with a galaxy glowing inside, 3 floating shard ledges, chips and far fragments bobbing, a nebula sky; music "Shattered Starlight" (123 BPM interstellar house). Locked until the GALAXY FRAGMENT is bought in the shop (EXTRAS, 1500 coins) | SHARD RAIN (four-point glints in the sky, then two volleys of crystal shards drop straight down, 7%); CRYSTAL SURGE (three cracks in the floor glow, then crystal spikes burst up out of them, 10%) |
 | Masked Throne | a dark ruin in a purple void (from Mason's picture): a studded slate yard, two broken zigzag pillars as ledges, the king's floating stone palm up top; behind it a giant faceless stone king on a pedestal, sword raised, wearing the CROWN OF MASKS; pink crystal growths, a brazier, purple light leaking from cracks. **The whole stage is dark**: a darkness layer covers the screen and only the fighters' own glow, the brazier and the seams light it. Locked until the CROWN OF MASKS is bought (hidden in EXTRAS until the shopkeeper's code NOLI). Music: Mason's pixelated_audio 14 | THE KING'S SWORD (the statue's eyes light, a purple line marks a spot over a fighter, the sword falls out of the sky: 17%, then a floor shockwave both ways: 6%); COMEDY & TRAGEDY (two giant masks over each half for 10 s: under COMEDY you heal 1% every 22 ticks, under TRAGEDY purple tears fall, 4% each; they swap sides halfway); LIGHTS OUT (8 s: the dark closes in to a sliver of light round each fighter, eyes open in the dark) |
 | The Underground | one floating stage deck over the mosh pit; a giant speaker stack in the middle and a big one either side (scenery, not platforms) with tonight's act on them - the rapper BLACKTOP or the band COFFIN NAILS, taking turns every fight; a giant ring of crowd round it all cheering, jumping and waving banners; its own opening (a room at street level, someone walks in, the camera sinks down into the cavern, the announcer calls the fighters, a flash to the act) | none |
+| Cartridge Kingdom | an 8-bit overworld drawn only in the NES's own 54 colours (Mason's palette): a grass-and-brick island of 8x8 tiles drawn at 2x, two floating block ledges and a cloud on top; snow-capped mountains, round hills, a castle with a red flag, drifting clouds. Music "Press Start" (two pulses, a triangle, noise) | BAD CARTRIDGE (a column of the screen flickers with garbage tiles near a fighter, then corrupts: 13%); CANNON VOLLEY (a cannon rises at each end and fires four cannonballs, low then high - jump or duck: 9%); NIGHTFALL (the palette swaps to night and pixel bats swoop at the nearest fighters: 5%) |
 | His Desk (secret boss arena) | his counter in his polygon world, the old till and a floating slab as ledges; HANZ & $@L floats on the desk with you, legs dangling, about three times your height, turned toward you like a fighter, and fights by mood - smug, furious, gloomy or laughing; in the last act THE STARFALL breaks his mask and he fights WHOLE under the night sky with five moves of his own; in every act he can also REWIND time (you're thrown back to where you were and your own past chases you), work you on strings like a MARIONETTE, or FOLD the room over like paper; one of the dimensions he shifts the room into is THE ESCAPE, a dreamcore pool room where he hides behind one of five doors - NO EXIT (idle in VS) | none |
 | Brass Foundry (boss arena) | riveted iron deck in a steam foundry, two catwalks; THE CLOCKWORK COLOSSUS stands behind it (switched off in VS) | PIPE BURST (steam across the catwalks); CRANE DROP (a crate on a marked spot) |
 | Polygon Peak (boss arena) | real low-poly 3D checkerboard arena in a 64-bit sky, two ledges, crystal pylons; KING POLYGON (his empty crown in VS). Faced by THE DEVOTED in CARTRIDGE he becomes LEGENDARY KING POLYGON after a cutscene (OUR FIGHT WILL BE LEGENDARY): obsidian and gold, more health, his own theme (Mason's pixelated_audio 22), new attacks (warp strike, shard storm, bad sector, twin cannons, cartridge crush, pixel vomit - corrupted floor that burns and slows; enraged: a bear-trap hand that squishes you for a lost life). At half health a mini cutscene (LET ME SETTLE THIS - fist slams, a snap) removes the ledges; beating him plays a finale (an anime-style exchange, her karambit in his eye, IN ANOTHER GAME..., he explodes into white), and the whole cartridge corrupts into a glitching void. Below 30% he plays BATTER UP: bats his own head at you (HOME RUN / POP FLY) while GLITCH TILES burn in the floor and two POLY BUMPERS float in | PYLON ZAP (arcs along both ledges); QUAKE RING (a floor shockwave - jump it) |
@@ -117,7 +118,7 @@ The stage grid has 12 slots, 2 across and 6 down (last = Random); 11 stages fill
 
 ## 9. Fighters
 
-The select grid has 12 slots; 6 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
+The select grid has 12 slots; 9 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH, LUMEN, MADAME MOTH, KAMI). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
 
 ### Soul Summoner — summoner / all-rounder (weight 1.0)
 - **Neutral special**: fireball, hold to charge (full at 84 ticks), 4–16%.
@@ -151,6 +152,33 @@ Mason's street punk kid: all-black clothes outlined in neon, a mask with neon X 
 - **Down special**: GROUND SPLITTER. Chops the floor (14%) and is thrown high into the air, hangs there for a second, then plunges axe first (12%) and slams: a shockwave hits everyone on that floor within 90 px (9%), and he bounces back up - higher the further he fell. PSYCHO METEOR: thrown higher, a longer charge, a 260 px shockwave (18%) with neon pillars.
 - **Map costumes**: HIGH SCORE (NEON ARCADE), GRAVEMOON (GRAVEMOON BRIDGE) and INFECTED.EXE - each drawn after its stage, with its own idle, SEETHE animation, hit effects, arrival and win cutscene. And POP LINES (drawn like a Keith Haring figure: one flat colour, no face, heavy black lines) and EXECUTIONER (a hooded headsman with a broad iron axe), the same treatment.
 - **Limit**: EXECUTIONER. Leaps, hangs over the nearest foe (a neon X), then drops: 32% and a huge launch where he lands, plus a 150 px shockwave (10%). Brings the axe back if it was thrown.
+
+### LUMEN (`lumen`) — trap zoner, floaty (weight 0.88)
+The purple star's heart-shard (the lore fighter: see THE STARFALL in loreArchive.js). Normals are NU's at 90% damage, 95% knockback. She floats: gentle falls (gravity x0.82, max fall 5.2) and a hover over the floor.
+- **CONSTELLATIONS**: up to 3 stars of hers hang in the air at once (20 s each; a fourth replaces the oldest). Touching one stings (4%, again every 40 ticks). Her player plate shows a pip per star.
+- **Neutral special**: PLANT STAR, ahead of her staff.
+- **Side special**: COMET (6%). Passing through a star RELAYS it to her next star (or the nearest foe after the last): +3% and faster each time.
+- **Up special**: STARBLINK (the Sprite Fusion blink, `src/fx/sfMovement.js`): aimed with the stick, she bursts into pixels and reappears up to 128 px away - or at one of her stars that way (snaps to it, spends it, and she isn't helpless after). An 8% burst where she lands.
+- **Down special**: CONSTELLATE. Beams join her staff and stars in planting order (5% to anyone a line crosses), then every star bursts (9%). With no stars, a small flare (6%).
+- **Limit**: THE STARFALL. The sky goes dark, her heart-shard rises and breaks; shards rain on every foe (5% each, they hold), then a pillar of light under each (16% and a launch). Up to about 40%.
+
+### MADAME MOTH (`moth`) — fortune teller, all-rounder (weight 0.96)
+Normals are NU's. FORTUNE: she holds one tarot card at a time (over her head and on her player plate).
+- **Down special**: DRAW - a random card (never the same twice running).
+- **Neutral special**: CAST the card she holds: THE TOWER (lightning strikes the nearest foe after a warning, 12%), THE SUN (heals her 10%, a 6% flare), THE MOON (she fades out for 3 s; her next hit +20% damage), THE STAR (a falling star on the nearest foe, 10%), DEATH (her next hit within 10 s knocks 60% further), THE FOOL (a coin toss: a 14% burst round her - or it blows up in her face for 8%). With no card: a palm flash (5%).
+- **Side special**: CARD FAN, three spinning cards (3% each).
+- **Up special**: MOTH FLIGHT. Her wings beat her up (two hits, 4% + 6%), then she glides down slowly.
+- **Limit**: THE WHEEL. A wheel of fortune rises behind her and spins: JACKPOT (25% and a launch), STORM (three bolts on each foe, 8% x3, the last launches), FORTUNE (she heals 30%, stars fall on them, 12%) or MISFORTUNE (every foe cursed for 7 s and hit for 10%).
+
+### KAMI (`kami`) — paper shapeshifter (weight 0.9)
+A page of THE ARCHIVE folded into a fighter. Normals are NU's. FOLDS change his stats and his neutral special:
+- **CRANE** (white): 0.9x damage, an extra air jump, slow falls. Neutral: a paper crane that drifts toward the nearest foe (7%).
+- **FROG** (green): 0.9x speed, takes 15% less knockback, jumps 16% higher. Neutral: a hop - stomping down on anyone under him (6%), a 10% shockwave where he lands.
+- **BLADE** (steel blue): 1.2x damage, 1.1x speed, takes 15% more knockback. Neutral: three paper shuriken (3% each).
+- **Down special**: FOLD into the next one (CRANE > FROG > BLADE).
+- **Side special**: PAPER CUT (the Sprite Fusion dash): a 120 px blur; a beat later the cut lands on everyone along the line (11%). Once per airtime.
+- **Up special**: KITE. A gust under him (6%) lifts him on a paper kite, then he glides down.
+- **Limit**: PAPER TIGER. Paper folds itself into a giant origami tiger that roars and pounces across the stage; its claws catch everyone in the way (14%), then its red ink seal stamps down on them (18% and a launch).
 
 ## 10. Costumes and unlocks
 

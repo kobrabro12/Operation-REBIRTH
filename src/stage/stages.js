@@ -29,6 +29,7 @@ import { MaestroBossStage, drawGrandOperaPreview } from './maestroBossStage.js';
 import { HoppleBossStage, drawHappyHillsPreview } from './hoppleBossStage.js';
 import { StarBossStage, drawObservatoryPreview } from './starBossStage.js';
 import { UndergroundStage, drawUndergroundPreview } from './undergroundStage.js';
+import { KingdomStage, drawKingdomPreview } from './kingdomStage.js';
 import { HanzBossStage, drawHanzPreview } from './hanzBossStage.js';
 import { owns } from '../progress.js';
 
@@ -153,6 +154,12 @@ export const STAGES = [
     blurb: ['A rap and rock show 300 feet under the city:', 'a floating stage over the pit, the crowd all round.'],
     hazard: 'NO STAGE HAZARDS.\nTONIGHT: BLACKTOP OR COFFIN NAILS LIVE.',
     preview: drawUndergroundPreview,
+  },
+  {
+    id: 'cartridge-kingdom', music: 'bgm_kingdom', name: 'CARTRIDGE KINGDOM', available: true, make: (scene) => new KingdomStage(scene),
+    blurb: ['An 8-bit overworld - every colour from the', 'NES palette: hills, a castle, block ledges.'],
+    hazard: 'BAD CARTRIDGE: A COLUMN CORRUPTS.\nCANNON VOLLEY / NIGHTFALL (PIXEL BATS).',
+    preview: drawKingdomPreview,
   },
   // BOSS ARENAS (Trinkets > BOSS FIGHTS, src/data/bosses.js): `bossArena` = locked until that boss is beaten on HARD
   // or NIGHTMARE (then playable in VS with just its hazards); never RANDOM while locked.

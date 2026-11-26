@@ -13,6 +13,9 @@ import { FighterSpeech } from './fighterSpeech.js';
 import { FighterGrab } from './fighterGrab.js';
 import { FighterSpecials } from './fighterSpecials.js';
 import { FighterGnash } from './fighterGnash.js';
+import { FighterLumen } from './fighterLumen.js';
+import { FighterMoth } from './fighterMoth.js';
+import { FighterKami } from './fighterKami.js';
 import { FighterShow } from './fighterShow.js';
 import { FighterDefense } from './fighterDefense.js';
 import { FighterLimit } from './fighterLimit.js';
@@ -261,7 +264,7 @@ export class Fighter {
       const M = this.def.moves;
       this.buffer.special = 0;
       if (this.axeLost > 0 && !c.up) { this.noAxe(); return false; }   // SEEN without its axe: only CLIMB
-      if (this.def.show && this.def.show.kind === 'gnash') { const r = this.gnashSpecial(c); if (r !== undefined) return r; }   // GNASH: no axe / PSYCHO specials (fighterGnash.js)
+      if (this.def.show) { const r = this.showSpecial(c); if (r !== undefined) return r; }   // GNASH (no axe / PSYCHO specials), LUMEN, MADAME MOTH, KAMI: their own routing (fighterShow.js)
       if (c.down) { if (M.summon) this.startSummon(); else if (M.counter) this.startCounter(); else if (M.downB && M.downB.door && this.wrongDoor()) this.startDoorWalk(); else if (M.downB && M.downB.swim && this.canSwim()) this.startSwim(); else if (M.downB) this.startAttack('downB'); return true; }
       if (c.up) { if (this.usedUpB) return false; this.startUpB(c); return true; }
       if (Math.abs(c.x) > 0.5) { this.facing = Math.sign(c.x); if (M.sideB && M.sideB.sword) { if (!this.swordOut) this.startSwordThrow(); return !this.swordOut || this.state === 'swordthrow'; } if (M.sideB) { if (((M.sideB.dive || M.sideB.noclip || M.sideB.vanish) && this.usedDive) || (M.sideB.fish && this.fishOut) || (M.sideB.mic && this.micOut) || ((M.sideB.cleaver || M.sideB.axe) && this.cleaverOut)) return false; if (this.wowMode) this.startModeSide(); else this.startAttack('sideB'); return true; } }
@@ -403,7 +406,7 @@ export class Fighter {
     if (m.noclip || m.poster || m.door || m.static || m.beam) this.wowAttackStep(m);   // WHAT ONCE WAS (fighterWhatOnceWas.js)
     if (m.projectile && this.t === m.spawnAt) this.match.spawnBolt(this, m.projectile);
     if (m.axe && this.t === m.spawnAt) this.throwAxe(m.axe);              // GNASH's AXE THROW
-    if (m.gnash && this.gnashStep(m, c)) return;                          // GNASH: SEETHE, the double slam (fighterGnash.js)
+    if ((m.gnash || m.show) && this.showStep(m, c)) return;              // GNASH (SEETHE, the double slam), LUMEN / MOTH / KAMI's own moves (fighterShow.js)
     if (m.glob && this.t === m.spawnAt) this.throwGlobs(m.glob);
     if (m.maw && this.t === m.spawnAt) this.throwMaw(m.maw);   // (THE DEVOTED's old THE MAW)
     if (m.demons && this.t === m.cmdAt) this.demonCommand();   // THE DEVOTED: his demon attacks
@@ -608,7 +611,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted, FighterShow, FighterGnash]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted, FighterShow, FighterGnash, FighterLumen, FighterMoth, FighterKami]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

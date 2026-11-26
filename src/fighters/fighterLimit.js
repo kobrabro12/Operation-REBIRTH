@@ -54,6 +54,7 @@ export class FighterLimit {
     if (L.type === 'screensaver') return this.screensaverLimit(L);
     if (L.type === 'level0') return this.level0Limit(L);
     if (L.type === 'executioner') return this.executionerLimit(L);          // GNASH (fighterGnash.js)
+    if (this[L.type + 'Limit']) return this[L.type + 'Limit'](L);         // any other fighter's own: type 'x' -> xLimit (LUMEN, MOTH, KAMI)
     this.vy = this.grounded ? 0 : Math.max(-1.2, this.vy - 0.2);
     L.hits.forEach((h, i) => { if (h.at === this.t) this.match.limitHit(this, i); });
     if (this.t >= L.beamStart && this.t <= L.beamEnd && this.t % 2 === 0) {

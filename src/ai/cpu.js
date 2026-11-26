@@ -126,6 +126,23 @@ export class CpuController extends Controller {
     // WHAT ONCE WAS: put a door down away from the action; step back out of it when things get hot
     if (M.downB && M.downB.door && !me.wrongDoor() && me.grounded && adx > 100 && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
     if (M.downB && M.downB.door && me.wrongDoor() && adx < 50 && me.percent > 70 && Math.abs(me.wrongDoor().x - tgt.x) > 120 && Math.random() < 0.15) { this.y = 1; this.tap('special'); return; }
+    // LUMEN: keep a couple of stars out, CONSTELLATE when someone is near the lines; MADAME MOTH: always hold a card,
+    // and play it when it suits; KAMI: refold now and then, PAPER CUT at mid range (fighterLumen / Moth / Kami.js)
+    const kind = me.def.show && me.def.show.kind;
+    if (kind === 'lumen') {
+      const stars = me.lumStarList();
+      if (stars.length < 2 && adx > 90 && Math.random() < 0.2 * L.aggression) { this.tap('special'); return; }
+      if (stars.length >= 2 && stars.some((st) => Math.hypot(st.x - tgt.x, st.y - (tgt.y - 25)) < 70) && Math.random() < 0.25 * L.aggression) { this.y = 1; this.tap('special'); return; }
+    }
+    if (kind === 'moth') {
+      if (!me.card && adx > 80 && Math.random() < (adx > 130 ? 0.45 : 0.15) * L.aggression) { this.y = 1; this.tap('special'); return; }
+      const c = me.card, near = adx < 70 && Math.abs(dy) < 40;
+      if (c && ((c === 'tower' || c === 'star') && adx > 60 || c === 'sun' && (me.percent > 60 || near) || c === 'fool' && near || (c === 'moon' || c === 'death') && adx < 160) && Math.random() < 0.2 * L.aggression) { this.tap('special'); return; }
+    }
+    if (kind === 'kami') {
+      if (me.grounded && adx > 160 && Math.random() < 0.01 * L.aggression) { this.y = 1; this.tap('special'); return; }
+      if (adx > 50 && adx < 130 && Math.abs(dy) < 30 && !(me.usedCut && !me.grounded) && Math.random() < 0.2 * L.aggression) { this.x = Math.sign(dx); this.tap('special'); return; }
+    }
     // ranged zoning
     if (adx > 130 && Math.abs(dy) < 50 && Math.random() < 0.35) {
       if (M.sideB && M.sideB.fish) {                                   // AERO: Goldfish Fling, or a Bubble Trap

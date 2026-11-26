@@ -1010,3 +1010,76 @@ SKINS['gnash'].push({ name: 'TWO-FACED', sheetSet: 'twoface', swatch: 0xb8121c, 
   lore: 'He stared at the man behind the counter too long, and the man stared back with both of his faces. GNASH walked out with one of each.',
   pal: { outline: 0x1a0204, deep: 0x6e0810, mid: 0xe8202c, light: 0xd2d0cc, core: 0xf4f2ee, shade: 0x2a2828, void: 0x060404 },
   vfx: { hit: { shape: 'spark', colors: [0xe8202c, 0xd2d0cc, 0xf4f2ee], n: 9, ring: 0xd2d0cc }, trail: 0xe8202c } });
+
+// ---- LUMEN, MADAME MOTH, KAMI (tools/sprites/trio_moves.py): a DEFAULT, two drawn costumes each (their *_draw.py
+// VARIANTS, sheets in <fighter>/<set>/), then four milestones with colour groups
+// LUMEN: the star's last light. Groups: the night robe and hood, her crystal face and light, the gold
+const LMG = {
+  night: { h: [235, 262], s: [0.3, 1], v: [0.08, 0.85], center: 248 },
+  crystal: { h: [262, 300], s: [0.2, 1], v: [0.35, 1], center: 278 },
+  gold: { h: [28, 58], s: [0.35, 1], v: [0.3, 1], center: 42 },
+};
+SKINS['lumen'] = [
+  { name: 'DEFAULT', swatch: 0xa862ff, vfx: { hit: { shape: 'star', colors: [0xd6a0ff, 0xffffff, 0xf8d460], n: 9, ring: 0xd6a0ff, glint: true }, trail: 0xd6a0ff } },
+  // FIRST LIGHT (lumen_draw.py 'dawn'): a sunrise robe and a crystal of morning gold
+  { name: 'FIRST LIGHT', sheetSet: 'dawn', swatch: 0xf8a070, fx: 0xffd070,
+    lore: 'The Archivist found her on the bell tower at dawn, glowing like the sun had come up early just for her. She has never once been late since.',
+    pal: { outline: 0x401418, deep: 0xa8443a, mid: 0xe0704a, light: 0xffd070, core: 0xffffff, shade: 0x5a2808, void: 0x200808 },
+    vfx: { hit: { shape: 'star', colors: [0xffd070, 0xfff0c8, 0xffffff], n: 10, ring: 0xf8a070, glint: true }, trail: 0xffd070, aura: { motes: { colors: [0xffd070, 0xfff0c8], rate: 8 } } } },
+  // EVENT HORIZON (lumen_draw.py 'void'): a robe of the dark between stars, a red crystal heart - what she'd be if VESPERION had caught her
+  { name: 'EVENT HORIZON', sheetSet: 'void', swatch: 0xff6a8a, fx: 0xff6a8a,
+    lore: 'A page in the archive nobody remembers writing: what the shard would have become if the Star-Eater had caught it. She read it once, and keeps the robe to remind herself to run.',
+    pal: { outline: 0x000000, deep: 0x6a0a2a, mid: 0xc0244a, light: 0xff6a8a, core: 0xffffff, shade: 0x16161c, void: 0x000000 },
+    vfx: { hit: { shape: 'shard', colors: [0xff6a8a, 0xffd0e0, 0xffffff], n: 10, ring: 0xc0244a }, trail: 0xff6a8a, aura: { motes: { colors: [0xff6a8a, 0x3a3a48], rate: 7 } } } },
+  ms('NIGHT WATCH', 1, 0x4a7ae0, 'One night on the bell tower with nothing but the sky. She counted every star that came back.', LMG, { night: { to: 222, sat: 1.0 }, crystal: { to: 200, sat: 0.9 } }, 'star', [0x6aa8ff, 0xd8ecff, 0xffffff]),
+  ms('CONSTELLATION', 2, 0x5ae0c0, 'She drew her own star map on the inside of her hood. The lines connect to something that is not there yet.', LMG, { night: { to: 180, sat: 0.9, val: 0.9 }, crystal: { to: 160, sat: 0.9 }, gold: { to: 52, sat: 0.6, val: 1.2 } }, 'star', [0x5ae0c0, 0xd0fff0, 0xffffff]),
+  ms('SUPERNOVA', 3, 0xff8a3a, 'For one second she shone brighter than every world at once. The Star-Eater looked away.', LMG, { night: { to: 14, sat: 1.1, val: 1.1 }, crystal: { to: 36, sat: 1.0, val: 1.2 } }, 'star', [0xff8a3a, 0xffe0a0, 0xffffff], { vfx: { aura: { inferno: true } } }),
+  ms('THE WHOLE STAR', 4, 0xfff0b8, 'Every shard she touched rang back. For a moment the purple star was whole again, and it remembered its name.', LMG, { night: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, crystal: { sat: 0.15, val: 1.3 }, gold: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+];
+
+// MADAME MOTH: the fortune teller. Groups: the plum velvet, her teal scarf, the gold and candle colours
+const MTG = {
+  plum: { h: [282, 330], s: [0.2, 1], v: [0.08, 0.85], center: 300 },
+  teal: { h: [165, 200], s: [0.3, 1], v: [0.2, 1], center: 180 },
+  gold: { h: [28, 56], s: [0.4, 1], v: [0.35, 1], center: 42 },
+};
+SKINS['moth'] = [
+  { name: 'DEFAULT', swatch: 0xb070c8, vfx: { hit: { shape: 'dust', colors: [0xf0c060, 0xb070c8, 0xfff4d0], n: 9, ring: 0xf0c060 }, trail: 0xb070c8 } },
+  // LUNA (moth_draw.py 'luna'): pale green wings like a luna moth, silver and moonlight
+  { name: 'LUNA', sheetSet: 'luna', swatch: 0x9fe0b0, fx: 0xc8ffd8,
+    lore: 'Once a month she reads only by moonlight, and only for the moths that come to her window. They tip better than people.',
+    pal: { outline: 0x0a1a10, deep: 0x3a8a5a, mid: 0x9fe0b0, light: 0xe8fff0, core: 0xffffff, shade: 0x1a3a2a, void: 0x06100a },
+    vfx: { hit: { shape: 'feather', colors: [0xc8ffd8, 0x9fe0b0, 0xffffff], n: 9, ring: 0x9fe0b0 }, trail: 0xc8ffd8, aura: { motes: { colors: [0xe8fff0, 0x9fe0b0], rate: 8 } } } },
+  // DEATH'S-HEAD (moth_draw.py 'deathshead'): black velvet, bone and amber - the skull on her wings is watching
+  { name: "DEATH'S-HEAD", sheetSet: 'deathshead', swatch: 0xd8a040, fx: 0xd8a040,
+    lore: 'There is a card she keeps out of the deck. She wears it instead. Nobody who has asked her what it shows has asked twice.',
+    pal: { outline: 0x000000, deep: 0x3a2a1a, mid: 0xa07030, light: 0xd8a040, core: 0xfff0d0, shade: 0x1a1410, void: 0x000000 },
+    vfx: { hit: { shape: 'skull', colors: [0xfff0d0, 0xd8a040, 0x1a1410], n: 8, ring: 0xd8a040 }, trail: 0xd8a040, aura: { spooky: true } } },
+  ms('PALM READER', 1, 0xd88a5a, 'A folding table at the edge of the carnival and one candle. The line went round the block by midnight.', MTG, { plum: { to: 18, sat: 0.9 }, teal: { to: 40, sat: 0.9 } }, 'dust', [0xd88a5a, 0xffd8b0, 0xffffff]),
+  ms('CRYSTAL GAZER', 2, 0x6ac8ff, 'She bought a crystal ball from a man who swore it showed the future. It only ever shows her, winning.', MTG, { plum: { to: 214, sat: 1.0 }, teal: { to: 270, sat: 0.9 }, gold: { sat: 0.2, val: 1.3 } }, 'star', [0x6ac8ff, 0xd8f0ff, 0xffffff]),
+  ms('GRAND ORACLE', 3, 0xe8e8f0, 'Kings come to her tent now. She makes them wait like everybody else.', MTG, { plum: { sat: 0.08, val: 2.2 }, teal: { to: 290, sat: 1.0 } }, 'star', [0xffffff, 0xd0b0ff, 0xf0c060], { vfx: { aura: { halo: 0xffe08a } } }),
+  ms('MISTRESS OF FATE', 4, 0xffd860, 'The wheel stopped turning for everyone else. It turns when she says so.', MTG, { plum: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 }, gold: { ramp: GOLD_RAMP, lo: 0.4, hi: 1 }, teal: { to: 330, sat: 1.0 } }, 'dust', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+];
+
+// KAMI: the paper fighter. Groups: the paper and the red (seal and sash)
+const KMG = {
+  paper: { s: [0, 0.2], v: [0.55, 1], center: 0 },
+  red: { h: [0, 14], s: [0.4, 1], v: [0.15, 1], center: 5 },
+};
+SKINS['kami'] = [
+  { name: 'DEFAULT', swatch: 0xf0503c, vfx: { hit: { shape: 'paper', colors: [0xffffff, 0xf0503c, 0xece8dc], n: 9, ring: 0xf0503c }, trail: 0xffffff } },
+  // EXTRA! EXTRA! (kami_draw.py 'newsprint'): folded from yesterday's front page, the seal in black ink
+  { name: 'EXTRA! EXTRA!', sheetSet: 'newsprint', swatch: 0xd4ccb4, fx: 0x5a5a5a,
+    lore: 'One morning he unfolded himself from a newspaper instead. He reads his own headlines when he thinks nobody is looking.',
+    pal: { outline: 0x080808, deep: 0x3a3a3a, mid: 0x5a5a5a, light: 0xe6e0cc, core: 0xffffff, shade: 0xa49c84, void: 0x080808 },
+    vfx: { hit: { shape: 'paper', colors: [0xf4f0e0, 0x5a5a5a, 0x1e1e1e], n: 9, ring: 0x3a3a3a }, trail: 0xe6e0cc } },
+  // GOLD LEAF (kami_draw.py 'gold'): gilded paper and a pink silk sash, folded for a festival
+  { name: 'GOLD LEAF', sheetSet: 'gold', swatch: 0xf0cc60, fx: 0xe04a9a,
+    lore: 'Folded for the festival of lanterns out of the one sheet of gold leaf in the whole archive. The Archivist has asked for it back. Twice.',
+    pal: { outline: 0x3a2808, deep: 0xb02870, mid: 0xe04a9a, light: 0xfce8a0, core: 0xffffff, shade: 0xc09430, void: 0x200414 },
+    vfx: { hit: { shape: 'star', colors: [0xfce8a0, 0xe04a9a, 0xffffff], n: 10, ring: 0xf0cc60, glint: true }, trail: 0xfce8a0, aura: { motes: { colors: [0xfce8a0, 0xe04a9a], rate: 8 } } } },
+  ms('ORIGAMI', 1, 0x6ab0ff, 'His first fold was a crane. It took him four hundred tries. The other three hundred and ninety-nine are in the bin.', KMG, { paper: { to: 210, sat: 0.35 }, red: { to: 220, sat: 1.0 } }, 'paper', [0x6ab0ff, 0xd8ecff, 0xffffff]),
+  ms('SENBAZURU', 2, 0xff9ac8, 'A thousand cranes, folded one a day. On the last one, he made a wish. He will not say what it was.', KMG, { paper: { to: 330, sat: 0.3 }, red: { to: 330, sat: 0.9, val: 1.1 } }, 'paper', [0xff9ac8, 0xffe0f0, 0xffffff]),
+  ms('BLACK INK', 3, 0x2a2a36, 'He fell in the ink pot. He liked it. Every cut he makes now leaves a mark that does not wash out.', KMG, { paper: { to: 240, sat: 0.2, val: 0.28 }, red: { to: 0, sat: 1.1, val: 1.2 } }, 'splat', [0x2a2a36, 0xf0503c, 0xffffff]),
+  ms('THE LAST PAGE', 4, 0xffd860, 'The final page of the archive, the one that ends the story. He folded it into himself so nobody could read it.', KMG, { paper: { ramp: GOLD_RAMP, lo: 0.55, hi: 1 }, red: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+];

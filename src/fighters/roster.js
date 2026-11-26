@@ -9,6 +9,9 @@ import { NU } from './nu.js';
 import { AERO } from './aero.js';
 import { DEVOTED } from './devoted.js';
 import { GNASH } from './gnash.js';
+import { LUMEN } from './lumen.js';
+import { MOTH } from './moth.js';
+import { KAMI } from './kami.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -23,6 +26,10 @@ export const ROSTER = [
   { id: 'aero', name: 'AERO', def: AERO, available: true },
   // from Mason's sketch: the heavy with the giant axe
   { id: 'gnash', name: 'GNASH', def: GNASH, available: true },
+  // the star's last light (lore: THE STARFALL), the fortune teller, the paper fighter
+  { id: 'lumen', name: 'LUMEN', def: LUMEN, available: true },
+  { id: 'moth', name: 'MADAME MOTH', def: MOTH, available: true },
+  { id: 'kami', name: 'KAMI', def: KAMI, available: true },
 ];
 
 // TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a

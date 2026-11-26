@@ -38,6 +38,10 @@ export const INTROS = {
   'what-once-was': { kind: 'warp', color: 0x9affd8, pre: ['glitch', 0.5, 0.8], sfx: ['buzz', 0.4, 0.8] },
   // THE DEVOTED crawls up out of a pool of black sludge (kind 'pool': pool = its colours, lava = glowing + embers)
   devoted: { kind: 'pool', dur: 120, pool: { deep: 0x060508, mid: 0x1a1720, rim: 0x2e2a38, sheen: 0x4a4458 }, pre: ['geyser', 0.35, 0.45], sfx: ['curse', 0.45, 0.6] },
+  // LUMEN: a falling star; MADAME MOTH: a great tarot card; KAMI: a sheet of paper that folds into him
+  lumen: { kind: 'starfall', color: 0xa862ff, color2: 0xd6a0ff, pre: ['whoosh', 0.4, 1.6], sfx: ['ding', 0.6, 1.4], shape: 'star' },
+  moth: { kind: 'tarot', color: 0x5a2a6a, color2: 0xf0c060, pre: ['petal', 0.4, 1.2], sfx: ['shing', 0.5, 1.1] },
+  kami: { kind: 'fold', color: 0xf0503c, color2: 0xffffff, pre: ['petal', 0.45, 1.6], sfx: ['whoosh', 0.5, 1.8], shape: 'pixel' },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
 
@@ -175,6 +179,9 @@ export class FighterIntros {
       if (I.notes) burst(8, [e.col, 0xffffff], 2.5, 'note', -0.02);
       if (I.feathers) burst(14, [0xffffff, 0xfff4c0], 2.2, 'petal', 0.02);
     } else if (I.kind === 'bubble') { burst(16, [e.col, 0xffffff], 2.6, 'drop', 0.12); }
+    else if (I.kind === 'starfall') { burst(14, [e.col2, 0xffffff], 2.8, 'star', 0.02); e.ring = { t: 0, color: e.col2 }; this.m.shake(4, 6); }
+    else if (I.kind === 'tarot') burst(12, [e.col2, 0xfff4d0, e.col], 2.2, 'pixel', 0.02);
+    else if (I.kind === 'fold') burst(14, [0xffffff, 0xece8dc, e.col], 2.6, 'pixel', 0.06);
     else if (I.kind === 'swarm') burst(10, I.colors || [e.col], 2.4, I.shape, 0.03);
     else if (I.kind === 'paint') { burst(18, I.colors || [e.col, e.col2], 3, 'drop', 0.15); this.m.shake(3, 5); }
     else if (I.kind === 'n64') { burst(10, I.gem, 3.2, 'polygem', 0.06); burst(8, [0xffe848, 0xffffff], 2.2, 'polystar', 0.02); e.ring = { t: 0, color: e.col }; this.m.shake(3, 5); }
@@ -241,6 +248,45 @@ export class FighterIntros {
             vis = 1; sc = 1 + 0.22 * Math.sin(Math.min(1, post * 3) * Math.PI) * Math.max(0, 1 - post * 3);   // a little bounce as she pops out
             if (e.ring) { e.ring.t++; for (let i = 0; i < 8; i++) { const q = i * 0.785 + e.ring.t * 0.03, r = 10 + e.ring.t * 3.2; if (e.ring.t < 26) n64Star(g, x + Math.cos(q) * r, y - 26 + Math.sin(q) * r * 0.55, 4, this.t * 0.2 + i, i % 2 ? c : 0xffe848, Math.max(0, 1 - e.ring.t / 26)); } }
           }
+          break;
+        }
+        case 'starfall': {                                                 // LUMEN: a falling star streaks down onto the spot, then a constellation draws itself round her
+          if (p < A) {
+            const k = Math.pow(pre, 1.6), hx = x + 280 * (1 - k), hy = y - 30 - 320 * (1 - k);
+            for (let i = 8; i >= 0; i--) { const tx = hx + i * 14, ty = hy - i * 16, r = 1 + (8 - i) * 0.6; g.fillStyle(i < 2 ? 0xffffff : i < 5 ? c2 : c, 0.2 + (8 - i) * 0.08); g.fillCircle(tx, ty, r); }
+            g.fillStyle(c, 0.3); g.fillCircle(hx, hy, 10); g.fillStyle(0xffffff, 1); g.fillRect(hx - 4, hy, 9, 1); g.fillRect(hx, hy - 4, 1, 9);
+            g.fillStyle(0x000000, 0.2 * pre); g.fillEllipse(x, y, 30 * pre, 5);
+          } else {
+            vis = Math.min(1, post * 5);
+            const pts = [[-34, -70], [-20, -92], [6, -84], [30, -96], [40, -64], [24, -40]], q = Math.min(1, post * 2.2), fade = Math.max(0, 1 - Math.max(0, post - 0.5) * 2);
+            for (let i = 1; i < pts.length; i++) { const u = Math.max(0, Math.min(1, q * (pts.length - 1) - (i - 1))); if (u <= 0) break; const [ax, ay] = pts[i - 1], [bx, by] = pts[i]; g.lineStyle(1, c2, fade); g.lineBetween(x + ax, y + ay, x + ax + (bx - ax) * u, y + ay + (by - ay) * u); }
+            g.lineStyle(0); for (const [px, py] of pts) { g.fillStyle(0xffffff, fade); g.fillRect(x + px - 1, y + py, 3, 1); g.fillRect(x + px, y + py - 1, 1, 3); }
+          }
+          if (e.ring) { e.ring.t++; const r = e.ring.t * 5; g.lineStyle(2, c2, Math.max(0, 1 - e.ring.t / 16)); g.strokeEllipse(x, y, r * 2, r * 0.45); g.lineStyle(0); }
+          break;
+        }
+        case 'tarot': {                                                    // MADAME MOTH: a great tarot card twirls down, stands on the spot, and she steps out of it
+          const cw = 22, ch = 36;
+          if (p < A + 0.25) {
+            const fall = Math.min(1, pre * 1.3), cy = y - ch - 260 * Math.pow(1 - fall, 2), spin = p < A ? Math.abs(Math.cos(pre * 9)) : 1, w = Math.max(1, cw * spin), a = p < A ? 1 : Math.max(0, 1 - post * 4);
+            g.fillStyle(0x1a0a1e, a); g.fillRect(x - w - 1, cy - ch - 1, w * 2 + 2, ch * 2 + 2);
+            g.fillStyle(0xfff4d0, a); g.fillRect(x - w, cy - ch, w * 2, ch * 2);
+            g.fillStyle(c, a); g.fillRect(x - w + 2, cy - ch + 2, w * 2 - 4, ch * 2 - 4);
+            g.fillStyle(c2, a); g.fillRect(x - w + 2, cy - ch + 2, w * 2 - 4, 2); g.fillRect(x - w + 2, cy + ch - 4, w * 2 - 4, 2);
+            if (w > 8) { g.fillStyle(c2, a); g.fillCircle(x, cy - 4, 6); g.fillStyle(c, a); g.fillCircle(x + 3, cy - 6, 5); g.fillStyle(0xfff4d0, a); g.fillRect(x - 1, cy + 14, 3, 3); }   // THE MOON on its face
+          }
+          if (p >= A) { vis = Math.min(1, post * 3); if (this.t % 3 === 0 && post < 0.6) e.parts.push({ shape: 'pixel', x: x + (R() - 0.5) * 40, y: y - 20 - R() * 40, vx: (R() - 0.5) * 1.6, vy: -0.6 - R(), life: 30, max: 30, color: R() < 0.5 ? c2 : 0xfff4d0, drag: 0.97 }); }
+          break;
+        }
+        case 'fold': {                                                     // KAMI: a sheet of paper drifts down, then folds itself up into him
+          if (p < A) {
+            const k = Math.min(1, pre * 1.3), cy = y - 30 - 240 * Math.pow(1 - k, 2) + Math.sin(pre * 14) * 6 * (1 - k), sw = Math.sin(pre * 9) * 10 * (1 - k);
+            const fold = Math.max(0, (pre - 0.7) / 0.3), h = 30 * (1 - fold * 0.75), cx = x + sw;
+            g.fillStyle(0x1a1418, 1); g.fillTriangle(cx - h - 1, cy, cx, cy - h - 1, cx + h + 1, cy); g.fillTriangle(cx - h - 1, cy, cx, cy + h + 1, cx + h + 1, cy);
+            g.fillStyle(0xffffff, 1); g.fillTriangle(cx - h, cy, cx, cy - h, cx + h * (1 - fold), cy); g.fillStyle(0xece8dc, 1); g.fillTriangle(cx - h * (1 - fold), cy, cx, cy + h, cx + h, cy);
+            g.lineStyle(1, 0xc4bcaa, 1); g.lineBetween(cx - h, cy, cx + h, cy); g.lineBetween(cx, cy - h, cx, cy + h); g.lineStyle(0);
+            g.fillStyle(c, 1); g.fillRect(cx + 4, cy - 8, 4, 4);
+          } else { vis = Math.min(1, post * 6); sc = 1 + Math.max(0, 0.2 * (1 - post * 5)); }
           break;
         }
         case 'warp': {                                                     // a scan line sweeps; they flicker and glitch in
