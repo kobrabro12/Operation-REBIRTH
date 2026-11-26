@@ -754,6 +754,52 @@ EVENTS.update({'door_go': {'snap': 0.55, 'walk': (1.6, 4.1), 'through': (3.5, 4.
                'ears': {'tune': (0.4, 4.2)}, 'push': {'push': (0.8, 3.1)}, 'binoculars': {'look': (0.8, 3.9), 'spot': 2.6}})
 
 
+# ---- THE TRINKET TRIPS: she snaps a portal open into an old video game, it swallows the room, she grabs something
+# out of the air there, admires it and snaps herself home (the game draws the worlds: recordsTrips.js)
+SNAP_L = lambda shape: {'w': V(16, -8, 38), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.3, -0.2, 1), 'nrm': V(-1, 0, 0), 'shape': shape}
+WHOA = {'body': {'rx': -5, 'z': 0.8}, 'head': {'pitch': -8, 'roll': 4},
+        'r': {'w': V(-24, -5, 30), 'pole': V(-1, 0.3, -0.6), 'dir': V(-0.4, -0.3, 1), 'nrm': V(0, -1, 0), 'shape': 'open'},
+        'l': {'w': V(24, -5, 30), 'pole': V(1, 0.3, -0.6), 'dir': V(0.4, -0.3, 1), 'nrm': V(0, -1, 0), 'shape': 'open'}}
+CLASP = lambda yaw, pitch=0, roll=0: {'head': {'yaw': yaw, 'pitch': pitch, 'roll': roll}, 'body': {'rz': yaw * 0.25},
+                                      'r': {'w': V(-2.5, -10, 31), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.4, -0.2, 1), 'nrm': V(1, 0, 0), 'shape': 'cup'},
+                                      'l': {'w': V(2.5, -10, 31), 'pole': V(1, 0.3, -0.6), 'dir': V(-0.4, -0.2, 1), 'nrm': V(-1, 0, 0), 'shape': 'cup'}}
+def _warp():
+    """THE SNAP OUT (~4.8 s): she snaps, a portal opens beside her, she leans back as it swallows the room - then,
+    hands clasped under her chin, looks all round the game world she's standing in."""
+    return [(0, {}), (0.35, {'r': SNAP_R('fist'), 'head': {'roll': -6}}), (0.55, {'r': SNAP_R('point'), 'head': {'roll': -8}}),
+            (0.8, {'r': SNAP_R('open'), 'head': {'roll': -4, 'yaw': -14}}),
+            (1.3, WHOA), (1.8, KP(WHOA, body={'rx': -8, 'z': 1.4}, head={'pitch': -12, 'roll': 2})),
+            (2.3, CLASP(0, -4, 6)), (2.9, CLASP(-34, -6, -4)), (3.5, CLASP(-34, -8, -6)), (4.0, CLASP(30, -6, 6)),
+            (4.4, CLASP(30, -10, 8)), (4.8, CLASP(0, -12, 4))]
+
+
+def _grab():
+    """She reaches out into the air beside her and closes her hand on the trinket hanging there."""
+    reach = lambda x, shape: {'body': {'rz': -18, 'ry': -4, 'x': -2}, 'head': {'yaw': -30, 'roll': -4},
+                              'r': {'w': V(x, -8, 33), 'pole': V(-0.2, 0.6, -1), 'dir': V(-1, -0.2, 0.2), 'nrm': V(0, 0, -1), 'shape': shape}}
+    return [(0, CLASP(0, -12, 4)), (0.45, reach(-40, 'open')), (0.8, reach(-44, 'open')), (1.0, reach(-44, 'fist')),
+            (1.5, {'body': {'rz': -8, 'ry': 2}, 'head': {'yaw': -8, 'roll': 6}, 'r': {'w': V(-18, 2, 30), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.4, -0.2, 1), 'nrm': V(0, -1, 0), 'shape': 'hold'}}),
+            (2.0, {'r': {'w': V(-14, 6, 26), 'pole': V(-1, 0.3, -0.6), 'dir': V(0.4, -0.2, 1), 'nrm': V(0, -1, 0), 'shape': 'hold'}, 'head': {'roll': 6}})]
+
+
+def _snapback():
+    """THE SNAP HOME (~3 s): she holds the trinket up to admire it, snaps with her free hand - the game's gone."""
+    held = lambda w: {'w': w, 'pole': V(-1, 0.3, -0.6), 'dir': V(0.3, -0.2, 1), 'nrm': V(0, -1, 0), 'shape': 'hold'}
+    up = held(V(-11, -7, 40))
+    return [(0, {'r': held(V(-14, 6, 26)), 'head': {'roll': 6}}),
+            (0.5, {'r': up, 'head': {'roll': 10, 'pitch': -6, 'yaw': -10}}),
+            (1.1, {'r': up, 'head': {'roll': -6, 'pitch': -4, 'yaw': -12}}),
+            (1.5, {'r': up, 'l': SNAP_L('fist'), 'head': {'roll': 4, 'yaw': 6}}),
+            (1.7, {'r': up, 'l': SNAP_L('point'), 'head': {'roll': 8, 'yaw': 8}}),
+            (1.95, {'r': {**up, 'shape': 'open'}, 'l': SNAP_L('open'), 'head': {'roll': 6}}),
+            (2.5, {'head': {'roll': 4}}), (3.0, {})]
+
+
+ANIMS.update({'warp': _warp(), 'grab': _grab(), 'snapback': _snapback()})
+EVENTS.update({'warp': {'snap': 0.55, 'swallow': 1.8, 'look': (2.3, 4.8)}, 'grab': {'reach': (0.45, 0.95), 'grab': 1.0},
+               'snapback': {'admire': (0.5, 1.4), 'snap': 1.7}})
+
+
 def pose_at(name, t):
     """The pose of animation `name` at t seconds (eased between keys)."""
     keys = ANIMS[name]
