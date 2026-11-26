@@ -126,18 +126,19 @@ export class CpuController extends Controller {
     // WHAT ONCE WAS: put a door down away from the action; step back out of it when things get hot
     if (M.downB && M.downB.door && !me.wrongDoor() && me.grounded && adx > 100 && Math.random() < 0.08 * L.aggression) { this.y = 1; this.tap('special'); return; }
     if (M.downB && M.downB.door && me.wrongDoor() && adx < 50 && me.percent > 70 && Math.abs(me.wrongDoor().x - tgt.x) > 120 && Math.random() < 0.15) { this.y = 1; this.tap('special'); return; }
-    // LUMEN: keep a couple of stars out, CONSTELLATE when someone is near the lines; MADAME MOTH: always hold a card,
-    // and play it when it suits; KAMI: refold now and then, PAPER CUT at mid range (fighterLumen / Moth / Kami.js)
+    // LUMEN: keep a couple of stars out, CONSTELLATE when someone is near the lines; VANTA: IAI, GHOST DASH and
+    // SAVE STATE when they fit; KAMI: refold now and then, PAPER CUT at mid range (fighterLumen / Moth / Kami.js)
     const kind = me.def.show && me.def.show.kind;
     if (kind === 'lumen') {
       const stars = me.lumStarList();
       if (stars.length < 2 && adx > 90 && Math.random() < 0.2 * L.aggression) { this.tap('special'); return; }
       if (stars.length >= 2 && stars.some((st) => Math.hypot(st.x - tgt.x, st.y - (tgt.y - 25)) < 70) && Math.random() < 0.25 * L.aggression) { this.y = 1; this.tap('special'); return; }
     }
-    if (kind === 'moth') {
-      if (!me.card && adx > 80 && Math.random() < (adx > 130 ? 0.45 : 0.15) * L.aggression) { this.y = 1; this.tap('special'); return; }
-      const c = me.card, near = adx < 70 && Math.abs(dy) < 40;
-      if (c && ((c === 'tower' || c === 'star') && adx > 60 || c === 'sun' && (me.percent > 60 || near) || c === 'fool' && near || (c === 'moon' || c === 'death') && adx < 160) && Math.random() < 0.2 * L.aggression) { this.tap('special'); return; }
+    if (kind === 'vanta') {
+      if (me.grounded && adx > 50 && adx < 190 && Math.abs(dy) < 30 && Math.random() < 0.08 * L.aggression) { if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; } this.tap('special'); return; }   // IAI (released by fighterVanta)
+      if (adx > 70 && adx < 220 && Math.abs(dy) < 60 && Math.random() < 0.07 * L.aggression) { this.x = Math.sign(dx); this.y = dy < -40 ? -0.7 : 0; this.tap('special'); return; }   // GHOST DASH
+      if (!me.vtSave && me.grounded && me.percent < 60 && Math.random() < 0.01) { this.y = 1; this.tap('special'); return; }   // SAVE STATE
+      if (me.vtSave && me.percent - me.vtSave.pct > 35 && Math.random() < 0.05) { this.y = 1; this.tap('special'); return; }   // ...and rewind to it
     }
     if (kind === 'kami') {
       if (me.grounded && adx > 160 && Math.random() < 0.01 * L.aggression) { this.y = 1; this.tap('special'); return; }

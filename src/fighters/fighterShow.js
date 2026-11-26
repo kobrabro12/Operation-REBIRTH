@@ -3,7 +3,7 @@
 // drawGnash, gnashSpecial, gnashStep, gnashHurt, drawGnashHud). From Fighter.step (showTick), Fighter.tryCommon
 // (showSpecial), Fighter.st_attack (showStep, for moves with `show: true` or GNASH's `gnash`), MatchScene.applyHit
 // (showBonus / showLanded / showHurt), fighterRender (drawShow) and hud.js (drawShowHud). Users: GNASH
-// (fighterGnash.js), LUMEN (fighterLumen.js), MADAME MOTH (fighterMoth.js), KAMI (fighterKami.js). Mixed into the
+// (fighterGnash.js), LUMEN (fighterLumen.js), VANTA (fighterVanta.js), KAMI (fighterKami.js). Mixed into the
 // Fighter class (Fighter.js) - `this` is the fighter.
 
 /** The `def.show` hooks, forwarding to the fighter's own code (methods attached to Fighter). */

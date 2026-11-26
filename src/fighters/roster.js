@@ -10,7 +10,7 @@ import { AERO } from './aero.js';
 import { DEVOTED } from './devoted.js';
 import { GNASH } from './gnash.js';
 import { LUMEN } from './lumen.js';
-import { MOTH } from './moth.js';
+import { VANTA } from './vanta.js';
 import { KAMI } from './kami.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
@@ -26,9 +26,9 @@ export const ROSTER = [
   { id: 'aero', name: 'AERO', def: AERO, available: true },
   // from Mason's sketch: the heavy with the giant axe
   { id: 'gnash', name: 'GNASH', def: GNASH, available: true },
-  // the star's last light (lore: THE STARFALL), the fortune teller, the paper fighter
+  // the star's last light (lore: THE STARFALL), the neon street samurai, the paper fighter
   { id: 'lumen', name: 'LUMEN', def: LUMEN, available: true },
-  { id: 'moth', name: 'MADAME MOTH', def: MOTH, available: true },
+  { id: 'vanta', name: 'VANTA', def: VANTA, available: true },
   { id: 'kami', name: 'KAMI', def: KAMI, available: true },
 ];
 

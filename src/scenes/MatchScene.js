@@ -1262,8 +1262,9 @@ export class MatchScene extends Phaser.Scene {
       this.overlay.fillStyle(0x000000, 1); this.overlay.fillRect(0, 0, VIEW_W, 34); this.overlay.fillRect(0, VIEW_H - 34, VIEW_W, 34);
     }
     if (this.psychoCut) {                              // GNASH's PSYCHO cut-in (fighterGnash.js drawPsychoCut)
-      if (this.psychoCut.t >= this.psychoCut.len || this.frozen <= 0) { this.psychoCut.f.endPsychoCut(); this.psychoCut = null; }
-      else this.psychoCut.f.drawPsychoCut(this.overlay, this.psychoCut);
+      const C = this.psychoCut;                        // (a cut-in can bring its own draw / end - VANTA's OVERCLOCK)
+      if (C.t >= C.len || this.frozen <= 0) { (C.end || C.f.endPsychoCut).call(C.f); this.psychoCut = null; }
+      else (C.draw || C.f.drawPsychoCut).call(C.f, this.overlay, C);
     }
     if (this.limitBanner) {
       const b = this.limitBanner, a = b.t < 34 ? 1 : 1 - (b.t - 34) / 14;

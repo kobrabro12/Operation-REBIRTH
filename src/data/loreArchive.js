@@ -238,17 +238,17 @@ VESPERION knows. The Star-Eater swallowed every star in its sky but one, and it 
 
 She has asked the Archivist to tell the others the truth when it is over: that they were never just touched by the star. They were it, all along, in pieces. And that the pieces were very, very brave.`,
   },
-  moth: {
-    background: `Nobody knows where MADAME MOTH came from, and she likes it that way. Her tent turns up at the edge of things - a carnival, a crossroads, the end of a pier - on nights when the moths are thick round the lamps. It is plum velvet, gold-fringed, lit by one candle. There is always a line.
+  vanta: {
+    background: `VANTA is from a city that never switches off - a stack of neon a mile high, where the trains run on the rooftops and the rain is warm because of all the signs. He was a courier. The best one. He ran parcels across forty districts in a jacket that glowed so the drones would see him coming and get out of the way, and he never, ever, delivered anything late.
 
-She reads palms, tea leaves and the cards, and she is always right, which people find either thrilling or rude depending on what she says. She is elegant in a way that makes you stand up straighter, with a veiled face, a bun pinned with a teal scarf, two feathery antennae she insists are a hat, and a pair of moth wings that are definitely not a hat. Her deck deals itself. She does not touch it, and she does not let anyone else touch it either.
+He picked up the katana on a job. Someone paid him to deliver it, then never came to collect, and after a year of carrying it everywhere he decided that made it his. It was just a sword then: a good one, black, very sharp, nothing special.
 
-On the night of the Starfall she was reading for a moth. The moth flew into the candle. The candle went purple. The deck shuffled itself for an hour without stopping and then laid out the same card six times in a row - THE STAR - and Madame Moth packed up her tent.`,
-    why: `She is in the arenas because the cards told her to be, and she has never once argued with them.
+On the night of the Starfall, at eleven minutes past midnight, the whole city's grid went dark for the first time in its history. Eleven minutes. Everyone remembers where they were. VANTA was on a rooftop in the rain, and something purple came down through the clouds and hit his blade so hard it knocked him flat. When the lights came back on, the katana was glowing on its own - and it has been ever since.`,
+    why: `The shard in his blade does something strange to time. When his SYNC fills, the world slows down around him - or he speeds up, he is honestly not sure which - and every cut he makes happens twice. He can leave a save point in the air and come back to it. He can be in three places along a dash at once. The Archivist thinks the shard he caught was the part of the star that was moving fastest when it broke - the piece still trying to outrun the Star-Eater. VANTA thinks that sounds about right.
 
-She claims to know how every fight ends before it starts. When pressed, she says she only knows the shape of it - who will fall, who will laugh, who will get up again - and that knowing the shape is no fun at all, which is why she likes to deal a few cards mid-fight and see the shape change. THE TOWER, THE SUN, THE MOON, DEATH and the rest are not tricks either. They are fates. She simply hands them out.
+He came to the arenas because of the PULL, like everyone else. He stays because nothing in his city has ever been fast enough to keep up with him, and in the arenas some things are. He treats every fight like a speedrun: he plans the route, he saves before the hard part, he takes the risky skip. He is extremely annoying to fight. He knows this.
 
-She reads for the Archivist once a week, for free, and has never told her what the cards say. The Archivist has a suspicion. The suspicion is that the deck has been laying out the same card every week since the Starfall - THE STAR, upright - and that Madame Moth has decided, quietly, to see to it that the card is right.`,
+He does not talk about the city's eleven minutes of dark. But at the end of BLACKOUT, when he sheathes the blade and every cut lands at once, the people who know him say he looks, for a second, like someone who was very frightened once in the dark, and decided he would never be frightened of it again.`,
   },
   kami: {
     background: `The archive in the Records Office holds every document about the reborn - the Archivist's notes, the field reports, the letters, the secret files behind her back door. On the night of the Starfall, when every shard came down at once, one page tore itself out of a binder on the top shelf, drifted down through the stacks, and landed on her desk.
