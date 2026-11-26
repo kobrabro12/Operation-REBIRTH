@@ -72,6 +72,7 @@ export class Hud {
       if (f.curse > 0) { g.fillStyle(0xb07ad0, 1); g.fillRect(p.x + PANEL_W - 14, p.y + 22, 6, 6); }
       if (f.def.devoted && f.sludge !== undefined && !f.eliminated) f.drawDevotionHud(g, p.x + 8, p.y - 2, frame);   // THE DEVOTED's OBLATION meter, standing on his plate
       if (f.def.show && f.def.show.kind === 'gnash' && f.drawPsychoHud && !f.eliminated) f.drawPsychoHud(g, p.x, p.y, frame);   // GNASH's PSYCHO meter, next to his damage
+      else if (f.def.show && f.drawShowHud && !f.eliminated) f.drawShowHud(g, p.x, p.y, frame);   // LUMEN's stars, MOTH's card, KAMI's fold
     }
     // timer
     if (m.mode === 'time') {

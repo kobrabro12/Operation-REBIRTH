@@ -56,6 +56,21 @@ export const FILES = {
     origin: 'THE ROOFTOPS ABOVE THE OLD ARCADE DISTRICT', moves: 'SEETHE - AXE THROW - SKYSPLITTER - GROUND SPLITTER', limit: 'EXECUTIONER',
     lore: 'Nobody knows his real name or what is under the mask - just two glowing X eyes, a stitched-on grin and a pair of neon horns he wired up himself. He is a kid. The axe is bigger than he is. He drags it everywhere, sparking along the pavement, and laughs when people stare. Make him angry enough and he stops feeling the hits at all, and then the only question left is where the axe lands.',
   },
+  lumen: {
+    no: '007', alias: 'THE STAR\'S LAST LIGHT', cls: 'CONSTELLATION CASTER', weapon: 'A SILVER STAFF WITH A CRESCENT AND A STAR',
+    origin: 'THE BELL TOWER OF THE SKY SANCTUM, 12:11 AM, THE NIGHT OF THE STARFALL', moves: 'PLANT STAR - COMET - STARBLINK - CONSTELLATE', limit: 'THE STARFALL',
+    lore: 'Every other fighter was touched by a shard of the purple star. LUMEN is one - the heart of it, the piece that still remembers being a star. She woke in the bell tower at eleven minutes past midnight with a crystal for a face and the sound of something enormous chewing on the sky. She plants stars, links them into constellations and blinks between them. She is very polite. She is also being hunted.',
+  },
+  moth: {
+    no: '008', alias: 'MADAME MOTH', cls: 'FORTUNE TELLER', weapon: 'A TAROT DECK THAT DEALS ITSELF',
+    origin: 'A VELVET TENT THAT IS NEVER IN THE SAME PLACE TWICE', moves: 'CAST - CARD FAN - MOTH FLIGHT - DRAW', limit: 'THE WHEEL',
+    lore: 'She draws a card and the fight bends around it: lightning from THE TOWER, warmth from THE SUN, a vanishing act from THE MOON, a mark from DEATH. Nobody knows what she gets from it. She says she already knows how every fight ends, and only shows up because she enjoys watching people find out.',
+  },
+  kami: {
+    no: '009', alias: 'THE PAPER FIGHTER', cls: 'ORIGAMI DUELIST', weapon: 'A FOLDED PAPER FAN (AND HIMSELF)',
+    origin: 'A TORN-OUT PAGE OF THE ARCHIVE', moves: 'FOLD ACTION - PAPER CUT - KITE - FOLD', limit: 'PAPER TIGER',
+    lore: 'A page fell out of the Archive the night of the Starfall, and in the morning it had folded itself into a small, cheerful person. He refolds himself mid-fight - a floaty CRANE, a heavy FROG, a sharp BLADE - and his paper cut lands a moment after he has already gone past you. He does not know which page he used to be. He is a little afraid to find out.',
+  },
 
 };
 
@@ -95,6 +110,18 @@ export const SKIN_LORE = {
     '1-BIT': 'An old training simulator recorded every duel she ever fought. One night the recording started fighting back.',
     AKATSUKI: '"Dawn." The name a village gave the wandering swordswoman in crimson who arrived at sunrise and left their bandits in crystal shards.',
     STARLIGHT: 'She stood night watch on the Sanctum walls so often that the stars started to stick to her armour.',
+  },
+  lumen: {
+    'FIRST LIGHT': 'The Archivist found her on the bell tower at dawn, glowing like the sun had come up early just for her. She has never once been late to anything since.',
+    'EVENT HORIZON': 'A page in the archive nobody remembers writing: what the heart-shard would have become if the Star-Eater had caught it - a red crystal, a robe made of the dark between stars. She read it once. She keeps the robe to remind herself to keep running.',
+  },
+  moth: {
+    LUNA: 'Once a month she reads only by moonlight, and only for the moths that gather at her window. They tip better than people, and they never argue with the cards.',
+    "DEATH'S-HEAD": 'There is one card she keeps out of the deck. She wears it instead - black velvet, bone and amber, a skull on each wing that watches whoever she is talking to. Nobody who has asked her what the card shows has asked twice.',
+  },
+  kami: {
+    'EXTRA! EXTRA!': 'One morning he unfolded himself from yesterday\'s newspaper instead of his page. He reads his own headlines when he thinks nobody is looking. Most of them are about the weather.',
+    'GOLD LEAF': 'Folded for the festival of lanterns out of the only sheet of gold leaf in the whole archive. The Archivist has asked for it back. Twice. He pretends not to hear her, which is easy, because he has no ears.',
   },
 };
 
@@ -169,5 +196,23 @@ export const MILESTONE_LORE = {
     'ALLEY KING': 'Every wall between the train line and the river has his tag on it - a grinning mask with X eyes - and nobody has ever seen him paint one. The other kids in the district started wearing purple. He never asked them to. He never told them to stop.',
     'CITY LIGHTS': 'The whole skyline flickers when he walks under it. The power company sent three engineers. They came back with their hair standing up and would not say what they saw. His jacket went white that winter, and the neon went the colour of the sky right before a storm.',
     'NEON LEGEND': 'They put his mask on a sign over the city - a grinning face with X eyes, forty storeys up, gold and black. It is the brightest thing in the sky. Somewhere under it a kid is sitting on a rooftop with a giant axe across his knees, grinning back.',
+  },
+  lumen: {
+    'NIGHT WATCH': 'Her first night awake she sat on the bell tower until morning and counted every star that came back to the sky. There were fewer than there should have been. She wrote the number down. She has been counting ever since.',
+    CONSTELLATION: 'She drew her own star map on the inside of her hood - lines between stars that are not there yet. The Archivist copied it into the archive and has been watching the sky to see whether they turn up. Two have.',
+    SUPERNOVA: 'For one second, in a fight she will not talk about, she shone brighter than every world at once. Somewhere very far away, the Star-Eater looked up, and then - for the first time in its long life - looked away.',
+    'THE WHOLE STAR': 'Every shard she has ever touched rang back at once. For a moment the purple star was whole again, all of it, everyone it had ever touched, and it remembered its own name. She will not tell anyone what the name is. She says it is not finished yet.',
+  },
+  moth: {
+    'PALM READER': 'A folding table at the edge of the carnival, one candle and a hand-painted sign. The first night three people came. By midnight the line went round the block, because every one of them had walked away looking like they had just been told a secret about themselves.',
+    'CRYSTAL GAZER': 'She bought a crystal ball from a man who swore it showed the future. It does. It only ever shows her, winning, in slightly different hats. She has kept it anyway, because it is right.',
+    'GRAND ORACLE': 'Kings come to her tent now. Generals, mayors, a dragon once, very politely. She makes them all wait in the same line as everybody else, and reads for the children first.',
+    'MISTRESS OF FATE': 'The wheel of fortune stopped turning for everyone else. It turns when she says so. She says so rarely, and only ever when somebody has been unkind.',
+  },
+  kami: {
+    ORIGAMI: 'His first fold was a crane. It took him four hundred tries, and he did it alone in the stacks after closing with the lamps turned down. The other three hundred and ninety-nine are in a bin under the Archivist\'s desk. She will not throw them away.',
+    SENBAZURU: 'A thousand paper cranes, folded one a day. On the last one he made a wish, and the whole flock lifted off the shelf and flew once round the archive before settling again. He will not say what the wish was.',
+    'BLACK INK': 'He fell into the ink pot. He liked it. He came out black from head to foot, and every cut he makes now leaves a mark that does not wash out - not off paper, and not off people.',
+    'THE LAST PAGE': 'The final page of the archive - the one that tells how the story ends. He folded it into himself so nobody could read it before it was time. He has never peeked. He is very proud of that.',
   },
 };

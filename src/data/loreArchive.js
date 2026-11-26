@@ -220,6 +220,50 @@ The Archivist keeps her file marked WORK IN PROGRESS, partly because her sprites
 
 She has heard both theories. She smiled at both of them, and went back to praying.`,
   },
+  lumen: {
+    background: `LUMEN is not a person the star touched. She is the star.
+
+When the purple star broke itself over the Sky Sanctum to escape VESPERION, it scattered into every world at once - a shard for a gravedigger, a shard for a goldfish, a shard in an axe, a shard in a fishing line under Gravemoon Bridge. Every one of those shards is a piece of its light. But a star is not only light. Somewhere in the middle of it there was a part that knew it was a star: that had a name, that was afraid, that chose to break rather than be eaten. That part did not scatter. It fell straight down, through the roof of the Sanctum's bell tower, at eleven minutes past midnight.
+
+The bell rang once. Then twelve more times, which bells do not do.
+
+She woke up on the bell tower floor in the shape of a slight girl in a deep-indigo hood, with a cracked violet crystal for a face and one star for an eye. She had a heart-shard glowing in her chest and a silver staff in her hand that she did not remember picking up. The first thing she heard was the sky being chewed.
+
+The Archivist found her there at dawn. LUMEN asked her, very politely, what year it was, and whether anybody had seen the rest of her.`,
+    why: `The Archivist has always believed that the star is re-forming through the fights - that every time two reborn fighters clash in the floating arenas, their shards ring, and the ringing calls the scattered light home. She named it OPERATION REBIRTH. She had no proof.
+
+LUMEN is the proof. Every time a fight happens, she feels a little more of herself come back. Her constellations are not tricks. They are her, trying to remember the shape of the sky. When she plants a star it is a real one, a little scrap of the light that used to be her, and when she links them into a constellation she is spelling something. She does not know what yet.
+
+VESPERION knows. The Star-Eater swallowed every star in its sky but one, and it can taste her in the arenas the way you can smell rain coming. It will not stop. She knows it will not stop. She runs anyway - blinking from star to star, never in one place for long - because the star chose to break rather than be eaten, and she is the part of it that made that choice. She would like very much to make it count.
+
+She has asked the Archivist to tell the others the truth when it is over: that they were never just touched by the star. They were it, all along, in pieces. And that the pieces were very, very brave.`,
+  },
+  moth: {
+    background: `Nobody knows where MADAME MOTH came from, and she likes it that way. Her tent turns up at the edge of things - a carnival, a crossroads, the end of a pier - on nights when the moths are thick round the lamps. It is plum velvet, gold-fringed, lit by one candle. There is always a line.
+
+She reads palms, tea leaves and the cards, and she is always right, which people find either thrilling or rude depending on what she says. She is elegant in a way that makes you stand up straighter, with a veiled face, a bun pinned with a teal scarf, two feathery antennae she insists are a hat, and a pair of moth wings that are definitely not a hat. Her deck deals itself. She does not touch it, and she does not let anyone else touch it either.
+
+On the night of the Starfall she was reading for a moth. The moth flew into the candle. The candle went purple. The deck shuffled itself for an hour without stopping and then laid out the same card six times in a row - THE STAR - and Madame Moth packed up her tent.`,
+    why: `She is in the arenas because the cards told her to be, and she has never once argued with them.
+
+She claims to know how every fight ends before it starts. When pressed, she says she only knows the shape of it - who will fall, who will laugh, who will get up again - and that knowing the shape is no fun at all, which is why she likes to deal a few cards mid-fight and see the shape change. THE TOWER, THE SUN, THE MOON, DEATH and the rest are not tricks either. They are fates. She simply hands them out.
+
+She reads for the Archivist once a week, for free, and has never told her what the cards say. The Archivist has a suspicion. The suspicion is that the deck has been laying out the same card every week since the Starfall - THE STAR, upright - and that Madame Moth has decided, quietly, to see to it that the card is right.`,
+  },
+  kami: {
+    background: `The archive in the Records Office holds every document about the reborn - the Archivist's notes, the field reports, the letters, the secret files behind her back door. On the night of the Starfall, when every shard came down at once, one page tore itself out of a binder on the top shelf, drifted down through the stacks, and landed on her desk.
+
+In the morning it had folded itself into a small person: a diamond for a head with two ink-dot eyes and a tiny ink smile, triangle hands and feet, a red seal stamped on its chest, a scrap of red ribbon knotted round its waist. A little paper crane was asleep on its head. It sat up, looked round at all the paper, and said: "Oh! Family."
+
+The Archivist named him KAMI, which means both paper and something rather more than paper, and he liked that very much.`,
+    why: `He does not know which page he used to be.
+
+The binder he fell out of is the one marked THE STARFALL. The Archivist has checked it twice and every page is still in it, numbered, with nothing missing - and yet there is a gap in the binding where a page clearly once was, and she does not remember writing it. KAMI thinks he might be a page of the story that has not happened yet. He thinks this a lot, late at night, folded up small in the pencil cup.
+
+He fights to find out. Every time his shard rings in the arenas a few words come back to him - not many, a line here and there, written in the Archivist's own hand - and he writes them down on the inside of his sash. So far he has: THE STAR, THE PULL, IT WILL COME FOR HER, and AND THEN THE PAPER... He would very much like to know what the paper does. He has a feeling it is something important, and he is trying to be ready.
+
+Until then, he refolds himself - a crane to fly, a frog to jump, a blade to cut - and in his Limit he folds the whole stage's worth of paper into a tiger, because when you are made of paper and something is hunting the people you love, it helps to remember that paper can also bite.`,
+  },
 };
 
 // The ARCHIVE's sections, in order: their names and colours in the list

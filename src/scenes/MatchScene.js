@@ -1,3 +1,4 @@
+import { sfStep, sfClear } from '../fx/sfRunner.js';
 import { n64Gem, n64Star, shadeCol } from '../fighters/n64Draw.js';
 import {soulEncounter} from '../souls/encounters.js';
 import {soulPower,addSoulXP,applySoulAid} from '../souls/progression.js';
@@ -485,6 +486,7 @@ export class MatchScene extends Phaser.Scene {
     if (owner && owner.def.signal) owner.addSignal(dmg * owner.def.signal.perDealt);   // WHAT ONCE WAS's SIGNAL meter
     if (t.def.signal) t.addSignal(dmg * t.def.signal.perTaken);
     if (t.def.show && t.def.show.kind === 'gnash') t.addPsycho(dmg * t.def.show.psycho.perHurt);   // GNASH's PSYCHO meter fills when he's hurt
+    if (t.def.show) t.showHurt(dmg, hb);
     if (owner && owner.def.sightings) owner.addSightings(dmg * owner.def.sightings.perDealt);   // LAST SEEN's SIGHTINGS meter
     if (t.def.sightings) t.addSightings(dmg * t.def.sightings.perTaken);
     if (owner && owner.def.devoted && t !== owner) { owner.addDevotion(1); if (!hb.projectile && owner.state === 'attack' && owner.move && owner.move.cut) owner.cutLanded(t); }   // (CROSS CUTS: the slash marks where it hit)   // THE DEVOTED: every hit he lands counts toward his next stage
@@ -1145,6 +1147,7 @@ export class MatchScene extends Phaser.Scene {
   shake(amount, frames) { this.shakeAmt = Math.max(this.shakeAmt, amount); this.shakeTime = Math.max(this.shakeTime, frames); }
 
   stepEffects() {
+    sfStep(this);                                        // Sprite Fusion pixel effects (src/fx/sfRunner.js)
     if (this.challengeNotices.length && this.frame - this.challengeNoticeAt >= 150) {
       const { f, c } = this.challengeNotices.shift();
       this.popText(f, c.name + '  +' + CHALLENGE_REWARD + ' COINS', '#7aff8a');
@@ -1312,6 +1315,7 @@ export class MatchScene extends Phaser.Scene {
   }
 
   cleanup() {
+    sfClear(this);
     for (const f of this.fighters || []) f.stopChargeSound();
     if (this.extras) this.extras.cleanup(); if (this.intros) this.intros.cleanup();              // (MOON GRAVITY puts gravity back)
     if (this.stage && this.stage.dispose) this.stage.dispose(this);                              // (a stage letting go of its big pictures: HIS DESK)
