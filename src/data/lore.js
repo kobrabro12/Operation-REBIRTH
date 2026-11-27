@@ -71,6 +71,11 @@ export const FILES = {
     origin: 'A TORN-OUT PAGE OF THE ARCHIVE', moves: 'FOLD ACTION - PAPER CUT - KITE - FOLD', limit: 'PAPER TIGER',
     lore: 'A page fell out of the Archive the night of the Starfall, and in the morning it had folded itself into a small, cheerful person. He refolds himself mid-fight - a floaty CRANE, a heavy FROG, a sharp BLADE - and his paper cut lands a moment after he has already gone past you. He does not know which page he used to be. He is a little afraid to find out.',
   },
+  vitrail: {
+    no: '010', alias: 'THE ROSE OF SEVEN HOURS', cls: 'SPELL-WEAVER (EXPERT)', weapon: 'A PRISM - AND THE THREE PANES OF HIS ROSE',
+    origin: 'THE GREAT WINDOW OF THE SKY SANCTUM\'S CHAPEL', moves: 'KINDLE - RIME - FULGURITE - INVOKE (10 SPELLS)', limit: 'THE ROSE OF SEVEN HOURS',
+    lore: 'For four hundred years he was a window: the great rose of the Sanctum chapel, seven hours of the world\'s history told in coloured glass. At eleven minutes past midnight the star came down through him. He woke up on the chapel floor in nine hundred pieces, and put himself back together in the wrong order. Now he fights the way glass works - FIRE, ICE and LIGHTNING set into the rose of his head, three panes at a time, and every combination makes a different light. He remembers everything the window ever saw. He is still learning which of it happened to him.',
+  },
 
 };
 
@@ -122,6 +127,10 @@ export const SKIN_LORE = {
   kami: {
     'EXTRA! EXTRA!': 'One morning he unfolded himself from yesterday\'s newspaper instead of his page. He reads his own headlines when he thinks nobody is looking. Most of them are about the weather.',
     'GOLD LEAF': 'Folded for the festival of lanterns out of the only sheet of gold leaf in the whole archive. The Archivist has asked for it back. Twice. He pretends not to hear her, which is easy, because he has no ears.',
+  },
+  vitrail: {
+    'THE NIGHT WINDOW': 'Nobody in the chapel ever saw the window at night - they were all asleep. The window was not. It watched the moon cross the Sanctum ten thousand times, and it remembers every one of them in blue. He wears that night when he wants to be left alone.',
+    'THE BURNING ROSE': 'Long before the Starfall, the chapel burned once. The window was the only thing left standing in the ash, glowing like a coal for three days while the monks prayed it would not crack. Some of the glass never cooled. He does not talk about the monks who did not come back.',
   },
 };
 
@@ -214,5 +223,11 @@ export const MILESTONE_LORE = {
     SENBAZURU: 'A thousand paper cranes, folded one a day. On the last one he made a wish, and the whole flock lifted off the shelf and flew once round the archive before settling again. He will not say what the wish was.',
     'BLACK INK': 'He fell into the ink pot. He liked it. He came out black from head to foot, and every cut he makes now leaves a mark that does not wash out - not off paper, and not off people.',
     'THE LAST PAGE': 'The final page of the archive - the one that tells how the story ends. He folded it into himself so nobody could read it before it was time. He has never peeked. He is very proud of that.',
+  },
+  vitrail: {
+    'CHAPEL DUST': 'A hundred years of candle smoke had dulled every pane before the star came through. He scrubbed himself for a week after he woke. Some of it never came off, and he has decided he likes it: it is the colour of the people who used to sit under him.',
+    VESPERS: 'The evening prayer, when the low sun came through the window sideways and turned the whole nave pink for nine minutes. Every evening for four hundred years. He keeps that hour in his glass so the Sanctum never has to go without it.',
+    'THE SEVENTH HOUR': 'The window was named for seven hours, and its panes told six of them - the founding, the flood, the plague, the bridge, the long peace, the fire. The seventh pane was always blank. Nobody alive remembers what it was meant to show. He does now. He will not tell.',
+    'SANCTUM REBORN': 'Every pane of him gilded, the lead turned to gold. This is what the window looked like on the morning the Sanctum was first built, before anyone needed it to remember anything. The Archivist cried when she saw it. She says it was the light.',
   },
 };

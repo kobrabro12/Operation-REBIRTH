@@ -152,7 +152,8 @@ export class Training {
     const owner = hb.owner;
     let name = 'HAZARD';
     if (owner) {
-      if (hb.projectile) name = owner.def.moves.fireball ? 'FIREBALL' : hb.projectile.kind || 'ENERGY BOLT';
+      if (hb.label) name = hb.label;                                  // (a move that names itself: VITRAIL's spells)
+      else if (hb.projectile) name = owner.def.moves.fireball ? 'FIREBALL' : hb.projectile.kind || 'ENERGY BOLT';
       else if (hb.soul) name = 'SOUL';
       else if (hb.pillar) name = 'LIMIT: ' + owner.def.limit.name;
       else if (owner.state === 'upb') name = 'UP SPECIAL';

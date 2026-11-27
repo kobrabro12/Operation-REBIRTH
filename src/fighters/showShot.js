@@ -53,15 +53,15 @@ export function nearestFoe(f, from) {
   return best;
 }
 
-/** Hits every opponent of f within r of (x, y) once (`id` keeps it to one hit each). */
-export function burstHit(f, x, y, r, hit, id) {
+/** Hits every opponent of f within r of (x, y) once (`id` keeps it to one hit each); `label` names it for training. */
+export function burstHit(f, x, y, r, hit, id, label) {
   const M = f.match;
   for (const o of M.fighters) {
     if (o === f || !o.alive || (o.team !== undefined && o.team === f.team) || o.state === 'respawn' || o.isIntangible()) continue;
     const c = o.center ? o.center() : { x: o.x, y: o.y - 25 };
     if (Math.hypot(c.x - x, c.y - y) > r) continue;
     const key = id + ':' + o.slot; if (M.hits.has(key)) continue; M.hits.add(key);
-    M.applyHit(o, { h: hit, owner: f, facing: Math.sign(o.x - x) || f.facing, id, pillar: true }, x);
+    M.applyHit(o, { h: hit, owner: f, facing: Math.sign(o.x - x) || f.facing, id, pillar: true, label }, x);
   }
 }
 

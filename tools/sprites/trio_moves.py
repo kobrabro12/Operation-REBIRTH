@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import nu_moves as N
 from nu_moves import P, k, mix, legs, REST, DEEP, CROUCH, STANCE, LIFT, SLAM, HORN_UP, POINT, SHOVE, TOSS, FALL, HOLD
 from show_moves import build
-import lumen_draw, vanta_draw, kami_draw
+import lumen_draw, vanta_draw, kami_draw, vitrail_draw
 
 def move(t, keys, step=1, smear=(), loop=False):
     """One of the fighter's own moves, in show_moves' format (ticks, keys, step, smear parts, loops, centre)."""
@@ -137,10 +137,48 @@ KAMI = {
     'taunt': move(72, [k(0, REST), k(8, HOLD, 'out'), k(16, mix(HOLD, ffore=(80, 0, 0))), k(24, HOLD), k(32, mix(HOLD, ffore=(80, 0, 0))), k(42, WIND, 'inout'), k(48, mix(HORN_UP, mic=(-30, 0, 0)), 'snap'), k(72, REST, 'back')], step=2),
 }
 
+# ======================================================================= VITRAIL
+# The rose window made a man (vitrail_draw.py). He casts with both hands: the prism in his front hand, the back hand open.
+def vitrail_idle():
+    """A window with nothing holding it up: a slow hover-bob, the rose of his head tilting as if listening, the prism
+    held up at his chest turning in his fingers, the back hand open low, the broken halo drifting."""
+    out = []
+    for i in range(0, 193, 8):
+        ph = i * math.pi / 48
+        out.append(k(i, P(root=(0, 0, round(-1 - math.sin(ph)), 1, 1), torso=(-2 + 2 * math.sin(ph), 0, 0), head=(-6 + 7 * math.sin(ph / 2 + 0.6), 0, 0), hair=(8 * math.sin(ph + 0.3), 0, 0),
+                          fupper=(-30 + 4 * math.sin(ph), 0, 0), ffore=(-60 + 6 * math.sin(ph + 1), 0, 0), mic=(30 * math.sin(ph / 2), 0, 0),
+                          bupper=(20 + 6 * math.sin(ph + 2), 0, 0), bfore=(-40 + 8 * math.sin(ph + 2.5), 0, 0), **legs(4, -4, -4, 6, 0, 0)), 'linear'))
+    return out
+
+GATHER = P(torso=(14, 2, 1), head=(4, 0, 0), hair=(-10, 0, 0), fupper=(40, 0, 0), ffore=(-50, 0, 0), mic=(0, 0, 0), bupper=(40, 0, 0), bfore=(-60, 0, 0), root=(0, -1, 1, 1.04, 0.96), **legs(14, -16, -14, 18, 4, -4))
+CAST = P(torso=(-10, -1, -1), head=(-16, 0, 0), hair=(16, 0, 0), fupper=(-95, 0, 0), ffore=(-10, 0, 0), mic=(-20, 0, 0), bupper=(-130, 0, 0), bfore=(-20, 0, 0), root=(0, 2, -2, 0.95, 1.07), **legs(10, -4, -16, 14, 0, -6))
+RAISE = P(torso=(-12, -1, -2), head=(-26, 0, 0), hair=(20, 0, 0), fupper=(-160, 0, -2), ffore=(-10, 0, 0), mic=(-10, 0, 0), bupper=(-170, 0, -2), bfore=(-14, 0, 0), root=(0, 0, -3, 0.94, 1.08), **legs(6, -2, -6, 4))
+PALM = P(torso=(18, 3, 1), head=(-14, 1, 0), hair=(14, 0, 0), fupper=(-88, 0, 0), ffore=(4, 0, 0), mic=(-30, 0, 0), bupper=(50, 0, 0), bfore=(-30, 0, 0), root=(0, 5, 1, 1.08, 0.94), **legs(24, -8, -26, 18, 0, -10))
+KNEEL = P(torso=(16, 2, 2), head=(0, 0, 0), fupper=(-10, 0, 0), ffore=(-20, 0, 0), bupper=(-20, 0, 0), bfore=(-10, 0, 0), root=(0, 1, 2, 1.08, 0.88), **legs(26, -38, -24, 36, 8, -10))
+VITRAIL = {
+    # INVOKE (neutral, 3 panes): gathers the light low in both hands, then throws both up and out - the spell leaves
+    'neutralB': move(40, [k(0, REST), k(8, GATHER, 'out'), k(12, CAST, 'snap'), k(26, mix(CAST, root=(0, 2, -2, 0.97, 1.04)), 'linear'), k(40, REST, 'back')]),
+    # REFRACT (neutral, fewer than 3 panes): a quick flick of the prism - a glass shard
+    'refract': move(24, [k(0, REST), k(4, mix(GATHER, bupper=(0, 0, 0)), 'out'), k(7, PALM, 'snap'), k(14, PALM, 'linear'), k(24, REST, 'back')]),
+    # KINDLE (side): a step and an open palm thrust ahead - the fire pane
+    'sideB': move(30, [k(0, mix(CROUCH, fupper=(30, 0, 0), ffore=(-40, 0, 0))), k(5, PALM, 'snap'), k(18, mix(PALM, torso=(22, 3, 1)), 'linear'), k(30, REST, 'back')]),
+    # RIME (down): both hands up, then both slammed flat on the floor - the ice pane
+    'downB': move(32, [k(0, REST), k(6, RAISE, 'out'), k(11, KNEEL, 'snap'), k(24, KNEEL, 'linear'), k(32, REST, 'back')]),
+    # FULGURITE (up): crouches, then stretches up into the bolt - the lightning pane (he's hidden while he travels)
+    'upb': move(36, [k(0, CROUCH), k(5, RAISE, 'snap'), k(26, mix(RAISE, root=(0, 0, -4, 0.9, 1.12))), k(36, FALL)]),
+    # THE ROSE OF SEVEN HOURS (Limit): arms open to the sky, held while the hours strike, then the last one thrown down
+    'limit': move(150, [k(0, REST), k(14, RAISE, 'out'), k(60, mix(RAISE, torso=(-16, -1, -2), head=(-30, 0, 0))), k(110, mix(RAISE, root=(0, 0, -6, 0.92, 1.1))), k(118, CAST, 'snap'),
+                        k(136, KNEEL, 'snap'), k(150, REST, 'back')], step=2),
+    # TAUNT: the rose turns - his whole head wheels round once, slow, the prism held up to catch the light
+    'taunt': move(72, [k(0, REST), k(10, mix(CAST, bupper=(30, 0, 0), bfore=(-40, 0, 0)), 'out')] + [k(10 + 5 * j, mix(CAST, bupper=(30, 0, 0), bfore=(-40, 0, 0), head=(-16 + 36 * j, 0, 0)), 'linear') for j in range(1, 11)]
+                      + [k(72, REST, 'back')], step=2),
+}
+
 FIGHTERS = {
     'lumen': (lumen_draw, LUMEN, lumen_idle, 'lumen', 'lmMoves.js', 'LM_MOVES', ['default', 'dawn', 'void'], (190, 150, 255)),
     'vanta': (vanta_draw, VANTA, vanta_idle, 'vanta', 'vtMoves.js', 'VT_MOVES', ['default', 'redline', 'glitch'], (80, 240, 255)),
     'kami': (kami_draw, KAMI, kami_idle, 'kami', 'kmMoves.js', 'KM_MOVES', ['default', 'newsprint', 'gold'], (255, 150, 140)),
+    'vitrail': (vitrail_draw, VITRAIL, vitrail_idle, 'vitrail', 'vrMoves.js', 'VR_MOVES', ['default', 'nocturne', 'ember'], (200, 150, 255)),
 }
 
 if __name__ == '__main__':

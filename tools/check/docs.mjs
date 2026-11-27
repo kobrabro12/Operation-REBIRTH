@@ -4,8 +4,8 @@
 //
 // Needs a doc block: a named function, a class, a class method or getter/setter, or a top-level
 // `const name = (...) => ...` - when it's new in this change and spans 3 or more lines, or is exported.
-// Skipped: one- and two-line helpers, constructors, callbacks passed inline, and generated files
-// ("do not edit by hand").
+// Skipped: one- and two-line helpers, constructors, callbacks passed inline, generated files
+// ("do not edit by hand") and vendored third-party code (src/fx/sf/: Sprite Fusion's effects).
 //
 //   npm run check:docs          (compares with origin/main; CHECK_BASE=<ref> to change that)
 import fs from 'node:fs';
@@ -20,6 +20,7 @@ for (const file of changes.keys()) {
   if (!/^(src|tools)\/.*\.(m?js)$/.test(file) || !fs.existsSync(file)) continue;
   const text = fs.readFileSync(file, 'utf8');
   if (/do not edit by hand/i.test(text.slice(0, 600))) continue;
+  if (/^src\/fx\/sf\//.test(file)) continue;                     // vendored third-party code: Sprite Fusion's effects, ported as they are (MIT)
   let ast;
   try { ast = espree.parse(text, { ecmaVersion: 'latest', sourceType: 'module', loc: true, range: true, comment: true }); } catch (e) { continue; }   // lint reports syntax errors
   const docEnds = new Set(ast.comments.filter((c) => c.type === 'Block' && c.value.startsWith('*')).map((c) => c.loc.end.line));

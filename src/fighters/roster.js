@@ -12,6 +12,7 @@ import { GNASH } from './gnash.js';
 import { LUMEN } from './lumen.js';
 import { VANTA } from './vanta.js';
 import { KAMI } from './kami.js';
+import { VITRAIL } from './vitrail.js';
 import { LAST_SEEN } from './lastSeen.js';
 import { WHAT_ONCE_WAS } from './whatOnceWas.js';
 import { PREMIUM_ANIMS } from './premiumAnimsData.js';
@@ -30,6 +31,8 @@ export const ROSTER = [
   { id: 'lumen', name: 'LUMEN', def: LUMEN, available: true },
   { id: 'vanta', name: 'VANTA', def: VANTA, available: true },
   { id: 'kami', name: 'KAMI', def: KAMI, available: true },
+  // the Sky Sanctum's broken rose window, reborn: the spell-weaver (the hardest fighter in the game)
+  { id: 'vitrail', name: 'VITRAIL', def: VITRAIL, available: true },
 ];
 
 // TEST FIGHTERS (Trinkets > TEST FIGHTERS): experimental fighters people can try in training or against a

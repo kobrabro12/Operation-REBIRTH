@@ -1083,3 +1083,30 @@ SKINS['kami'] = [
   ms('BLACK INK', 3, 0x2a2a36, 'He fell in the ink pot. He liked it. Every cut he makes now leaves a mark that does not wash out.', KMG, { paper: { to: 240, sat: 0.2, val: 0.28 }, red: { to: 0, sat: 1.1, val: 1.2 } }, 'splat', [0x2a2a36, 0xf0503c, 0xffffff]),
   ms('THE LAST PAGE', 4, 0xffd860, 'The final page of the archive, the one that ends the story. He folded it into himself so nobody could read it.', KMG, { paper: { ramp: GOLD_RAMP, lo: 0.55, hi: 1 }, red: { ramp: KING_CAPE_RAMP, lo: 0.1, hi: 0.6 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
 ];
+
+// VITRAIL: the rose window. Groups: the lead came (dark), the star's violet, the gilt - and every glass colour by hue
+const VRG = {
+  lead: { s: [0, 0.4], v: [0, 0.5], center: 0 },
+  violet: { h: [262, 300], s: [0.3, 1], v: [0.3, 1], center: 275 },
+  gilt: { h: [36, 52], s: [0.45, 1], v: [0.45, 1], center: 44 },
+  ruby: { h: [345, 360], s: [0.5, 1], v: [0.35, 1], center: 353 },
+  sapphire: { h: [210, 232], s: [0.5, 1], v: [0.35, 1], center: 220 },
+  emerald: { h: [130, 160], s: [0.5, 1], v: [0.3, 1], center: 143 },
+};
+SKINS['vitrail'] = [
+  { name: 'DEFAULT', swatch: 0xb87aff, vfx: { hit: { shape: 'poly', colors: [0xe0283e, 0x2a66e0, 0xf2b42a, 0xffffff], n: 10, ring: 0xb87aff }, trail: 0xb87aff } },
+  // THE NIGHT WINDOW (vitrail_draw.py 'nocturne'): the same window by moonlight - blues, teals and silver
+  { name: 'THE NIGHT WINDOW', sheetSet: 'nocturne', swatch: 0x5a7ad8, fx: 0x9ac8ff,
+    lore: 'Nobody in the chapel ever saw the window at night - they were all asleep. The window was not. It watched the moon cross the Sanctum ten thousand times, and it remembers every one in blue.',
+    pal: { outline: 0x0e1020, deep: 0x24408e, mid: 0x9ac8ff, light: 0xe8f2ff, core: 0xffffff, shade: 0x3a4058, void: 0x0e1020, accent: 0xd8e2f4 },
+    vfx: { hit: { shape: 'poly', colors: [0x9ac8ff, 0xc8d8f0, 0xffffff], n: 10, ring: 0x5a7ad8 }, trail: 0x9ac8ff, aura: { motes: { colors: [0x9ac8ff, 0xd8e2f4], rate: 6 } } } },
+  // THE BURNING ROSE (vitrail_draw.py 'ember'): the window as it was on the night the chapel burned - amber and charred lead
+  { name: 'THE BURNING ROSE', sheetSet: 'ember', swatch: 0xff8a2a, fx: 0xff8a2a,
+    lore: 'Long before the Starfall, the chapel burned once. The window was the only thing left standing in the ash, glowing like a coal for three days. Some of the glass never cooled.',
+    pal: { outline: 0x080404, deep: 0xa83a1a, mid: 0xff9a2a, light: 0xfff0b0, core: 0xffffff, shade: 0x241612, void: 0x080404, accent: 0xff6a1a },
+    vfx: { hit: { shape: 'spark', colors: [0xff9a2a, 0xffc84a, 0xffffff], n: 11, ring: 0xff6a1a }, trail: 0xff8a2a, aura: { inferno: true } } },
+  ms('CHAPEL DUST', 1, 0xd8c8a8, 'A century of candle smoke had dulled every pane before the star came through. Some of it never washed off.', VRG, { ruby: { sat: 0.35 }, sapphire: { sat: 0.35 }, emerald: { sat: 0.35 }, violet: { sat: 0.5 }, gilt: { sat: 0.5 } }, 'poly', [0xd8c8a8, 0xf0e8d8, 0xffffff]),
+  ms('VESPERS', 2, 0xff7aa8, 'The evening prayer, when the low sun came through the window sideways and turned the whole nave pink. He keeps that hour in his glass.', VRG, { ruby: { to: 330 }, sapphire: { to: 290 }, emerald: { to: 20 }, violet: { to: 320, sat: 1.0 } }, 'poly', [0xff7aa8, 0xffd0a0, 0xffffff]),
+  ms('THE SEVENTH HOUR', 3, 0x6affd8, 'The window was named for seven hours. Nobody alive remembers what the seventh one was for. He does. He will not tell.', VRG, { ruby: { to: 170 }, sapphire: { to: 190 }, emerald: { to: 150 }, violet: { to: 165, sat: 1.0 }, lead: { val: 0.6 } }, 'poly', [0x6affd8, 0xd8fff4, 0xffffff], { vfx: { aura: { motes: { colors: [0x6affd8, 0xffffff], rate: 6 } } } }),
+  ms('SANCTUM REBORN', 4, 0xffd860, 'Every pane of him gilded, the lead turned to gold. This is what the window looked like on the day the Sanctum was first built - before anyone needed it to remember anything.', VRG, { lead: { ramp: GOLD_RAMP, lo: 0.1, hi: 0.45 }, ruby: { to: 45 }, sapphire: { to: 40, sat: 0.6 }, emerald: { to: 50 }, violet: { to: 0, sat: 0, val: 1.5 } }, 'star', [0xffd860, 0xfff6dc, 0xffffff], { outline: 0x6a4a10 }),
+];

@@ -106,6 +106,7 @@ export const CLASSIC_TROPHIES = {
   lumen: { name: 'LUMEN', line: 'THE HEART OF THE PURPLE STAR, WOKEN IN A BELL TOWER AT 12:11. SHE IS STILL COUNTING THE STARS THAT CAME BACK. ONE MORE TONIGHT.' },
   vanta: { name: 'VANTA', line: 'A COURIER FROM A CITY THAT NEVER SWITCHES OFF, WITH A SHARD OF STARLIGHT IN HIS BLADE. HE SAVES BEFORE EVERY FIGHT. HE HAS NEVER NEEDED TO LOAD.' },
   kami: { name: 'KAMI', line: 'A PAGE OF THE ARCHIVE THAT FOLDED ITSELF INTO A HERO. HE STILL DOES NOT KNOW WHAT HE SAYS. HE IS TRYING TO BE READY.' },
+  vitrail: { name: 'VITRAIL', line: 'THE SANCTUM\'S ROSE WINDOW, BROKEN BY THE STAR AND REBORN IN THE WRONG ORDER. NINE HUNDRED PANES, TEN SPELLS, ONE HOUR STILL TO COME.' },
   gnash: { name: 'GNASH', line: 'A STREET PUNK KID IN A NEON MASK WITH AN AXE BIGGER THAN HE IS. NOBODY KNOWS WHAT IS UNDER THE MASK. NOBODY HAS ASKED TWICE.' },
 };
 
@@ -203,5 +204,15 @@ export const ENDINGS = {
     { bg: 'sky', act: 'none', night: true, text: ['IT SAID: AND THEN THE PAPER', 'BECAME A TIGER.'] },
     { bg: 'dawn', act: 'stand', text: ['HE STILL DOES NOT KNOW WHAT PAGE HE IS.', 'BUT NOW HE KNOWS IT IS A GOOD ONE.'] },
     { bg: 'road', act: 'far', text: ['IF YOU FIND A PAPER CRANE ON YOUR STEP,', 'SOMEBODY SMALL IS LOOKING OUT FOR YOU.'] },
+  ] },
+  vitrail: { music: 'bgm_trophy_hall', tint: 0xb87aff, shots: [
+    { bg: 'ruin', act: 'stand', text: ['%B HAS FALLEN.', 'THE LIGHT WENT THROUGH VITRAIL ONE LAST TIME.'] },
+    { bg: 'road', act: 'walk', text: ['HE CLIMBED THE SANCTUM STAIRS', 'ALL NINE HUNDRED OF THEM. ONE FOR EACH PANE.'] },
+    { bg: 'shrine', act: 'stand', text: ['THE CHAPEL WAS EMPTY.', 'THE GREAT ROUND FRAME WAS WAITING.'] },
+    { bg: 'shrine', act: 'stand', quiet: true, text: ['HE STEPPED UP INTO IT.', 'HE FIT EXACTLY. HE ALWAYS HAD.'] },
+    { bg: 'dawn', act: 'stand', text: ['THE SUN CAME UP BEHIND HIM', 'AND LAID SEVEN COLOURS ACROSS THE FLOOR.'] },
+    { bg: 'sky', act: 'none', star: true, text: ['AT THE TOP OF THE ROSE,', 'THE VIOLET PANE LIT UP.'] },
+    { bg: 'sky', act: 'none', night: true, star: true, text: ['FOR THE FIRST TIME IN FOUR HUNDRED YEARS', 'IT WAS NOT EMPTY.'] },
+    { bg: 'shrine', act: 'far', text: ['NOBODY KNOWS WHAT THE SEVENTH HOUR SHOWED.', 'BUT THE BROTHERS SAY HE WAS SMILING.'] },
   ] },
 };
