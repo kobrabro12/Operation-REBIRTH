@@ -140,20 +140,15 @@ export class CpuController extends Controller {
       if (!me.vtSave && me.grounded && me.percent < 60 && Math.random() < 0.01) { this.y = 1; this.tap('special'); return; }   // SAVE STATE
       if (me.vtSave && me.percent - me.vtSave.pct > 35 && Math.random() < 0.05) { this.y = 1; this.tap('special'); return; }   // ...and rewind to it
     }
-    if (kind === 'vitrail') {                                           // VITRAIL: build three panes (a CPU picks a spell), then INVOKE when it'll reach
-      const key = me.vrKey();
-      if (!key) {
-        const want = me.cpuSpell || (me.cpuSpell = Object.keys(me.def.show.spells)[Math.floor(Math.random() * 10)]);
-        const have = me.vrPanes().slice(), need = [...want]; for (const p of have) { const i = need.indexOf(p); if (i >= 0) need.splice(i, 1); }
-        const p = need[0] || want[0];
-        if (Math.random() < 0.12 * L.aggression) {
-          if (p === 'F' && !(me.usedKindle && !me.grounded)) { this.x = Math.sign(dx) || me.facing; this.tap('special'); return; }
-          if (p === 'I') { this.y = 1; this.tap('special'); return; }
-          if (p === 'L' && me.grounded && adx > 60) { this.y = -1; this.tap('special'); return; }   // (a FULGURITE off the floor is safe)
-        }
-      } else {
-        const range = { FFF: [20, 80], III: [30, 190], LLL: [0, 900], FFI: [40, 110], FFL: [40, 260], FII: [30, 110], IIL: [0, 70], FLL: [0, 400], ILL: [0, 50], FIL: [40, 150] }[key] || [0, 120];
-        if (adx >= range[0] && adx <= range[1] && Math.abs(dy) < 70 && Math.random() < 0.3 * L.aggression) { if (me.facing !== Math.sign(dx) && key !== 'LLL' && key !== 'FLL' && key !== 'ILL') { this.x = Math.sign(dx); return; } me.cpuSpell = null; this.tap('special'); return; }
+    if (kind === 'vitrail') {                                           // VITRAIL: cancel a move that landed into an element not in the chain yet; open with CINDER STEP / UMBRA
+      if (me.state === 'attack' && me.vrHitAt === me.attackId && Math.random() < 0.45 * L.aggression + 0.1) {
+        const C = me.vrChainNow(), left = [...'FIVL'].filter((e) => !C.els.includes(e) && me.def.moves[{ F: 'sideB', I: 'downB', L: 'upb', V: 'neutralB' }[e]] !== me.move);
+        const el = left.includes('I') && adx < 40 ? 'I' : left.includes('L') && dy < -30 ? 'L' : left[Math.floor(Math.random() * left.length)];
+        if (el) { if (el === 'F') this.x = Math.sign(dx) || me.facing; else if (el === 'I') this.y = 1; else if (el === 'L') { this.y = -1; this.x = Math.sign(dx) * 0.6; } this.tap('special'); return; }
+      }
+      if (me.state !== 'attack' && Math.abs(dy) < 40 && Math.random() < 0.06 * L.aggression) {
+        if (adx > 50 && adx < 130 && !(me.usedKindle && !me.grounded)) { this.x = Math.sign(dx); this.tap('special'); return; }
+        if (adx > 40 && adx < 90) { if (me.facing !== Math.sign(dx)) { this.x = Math.sign(dx); return; } this.tap('special'); return; }
       }
     }
     if (kind === 'kami') {

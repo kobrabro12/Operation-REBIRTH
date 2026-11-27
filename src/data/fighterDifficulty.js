@@ -36,9 +36,9 @@ export const HOW_HARD = {
   kami: { play: 3, learn: 3,
     hard: 'Three FOLDS - each changes his weight, jumps and neutral special. You have to fold for the moment.',
     tips: 'CRANE to recover and keep away, FROG to crush, BLADE to finish. Refold during a lull, not in their face.' },
-  vitrail: { play: 5, learn: 5,
-    hard: 'Nothing he does is free. Every spell has to be built first: three PANES set with three different specials (each with its own lag), then INVOKE - and ten spells to remember, by their panes. RESONANCE only pays if you cast right after landing a hit. Slow on foot, and FULGURITE leaves him helpless.',
-    tips: 'Learn three spells first: SHATTERGLASS (ICE ICE LIGHTNING) to kill, GLACIER (ICE x3) to control, ECLIPSE (one of each) to punish. Set panes while they are far, cast while they are close. Land a hit, then INVOKE inside the window - a RESONANT spell heals you. The spell your rose will make floats over your head.' },
+  vitrail: { play: 4, learn: 3,
+    hard: 'A combo fighter: his four elements are weak alone. Each one that lands can be cancelled into a DIFFERENT element (his normals into any of them), so the damage is in chains - and you have to see the hit land and pick the right next element fast. Slow on foot, and FULGURITE leaves him helpless unless it was part of a chain.',
+    tips: 'Open with a normal or CINDER STEP, then go where they fly: RIME BLOOM pops them up close, FULGURITE follows them up, UMBRA holds them in place. Each element only once per chain - all four is a PRISM BREAK, and it gives you your up special back. A hit on you breaks the chain.' },
   // the lab's test fighters
   devoted: { play: 4, learn: 5,
     hard: 'She snowballs: DEVOTION, praying at her tree, four sludge stages, eight demons with their own commands, swimming in her stains.',

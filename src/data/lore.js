@@ -72,9 +72,9 @@ export const FILES = {
     lore: 'A page fell out of the Archive the night of the Starfall, and in the morning it had folded itself into a small, cheerful person. He refolds himself mid-fight - a floaty CRANE, a heavy FROG, a sharp BLADE - and his paper cut lands a moment after he has already gone past you. He does not know which page he used to be. He is a little afraid to find out.',
   },
   vitrail: {
-    no: '010', alias: 'THE ROSE OF SEVEN HOURS', cls: 'SPELL-WEAVER (EXPERT)', weapon: 'A PRISM - AND THE THREE PANES OF HIS ROSE',
-    origin: 'THE GREAT WINDOW OF THE SKY SANCTUM\'S CHAPEL', moves: 'KINDLE - RIME - FULGURITE - INVOKE (10 SPELLS)', limit: 'THE ROSE OF SEVEN HOURS',
-    lore: 'For four hundred years he was a window: the great rose of the Sanctum chapel, seven hours of the world\'s history told in coloured glass. At eleven minutes past midnight the star came down through him. He woke up on the chapel floor in nine hundred pieces, and put himself back together in the wrong order. Now he fights the way glass works - FIRE, ICE and LIGHTNING set into the rose of his head, three panes at a time, and every combination makes a different light. He remembers everything the window ever saw. He is still learning which of it happened to him.',
+    no: '010', alias: 'THE ROSE OF SEVEN HOURS', cls: 'COMBO CASTER (ADVANCED)', weapon: 'THE FOUR PANES OF HIS ROSE: FIRE, ICE, LIGHTNING, VOID',
+    origin: 'THE GREAT WINDOW OF THE SKY SANCTUM\'S CHAPEL', moves: 'CINDER STEP - RIME BLOOM - FULGURITE - UMBRA - PRISM BREAK', limit: 'THE ROSE OF SEVEN HOURS',
+    lore: 'For four hundred years he was a window: the great rose of the Sanctum chapel, seven hours of the world\'s history told in coloured glass. At eleven minutes past midnight the star came down through him. He woke up on the chapel floor in nine hundred pieces and put himself back together in the shape of the monks who used to sit under him - a hood, a robe, a white glass mask with the star\'s crack down it - and the rose itself burning behind his head. Its glazier set four elements in it: FIRE, ICE, LIGHTNING and the dark between the stars. He throws them one into the next, and when all four go through the same person, the light comes out white. He remembers everything the window ever saw. He is still learning which of it happened to him.',
   },
 
 };
