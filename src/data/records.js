@@ -7,6 +7,7 @@
 // Her voice: warm, quick, a little nosy, delighted by paperwork. Never cruel, never gory.
 import { FILES } from './lore.js';
 import { BACKSTORY, ARCHIVE } from './loreArchive.js';
+import { howHard, hardRank, RANKS } from './fighterDifficulty.js';
 import { BOSSES, SECRET_BOSSES, bossWins } from './bosses.js';
 import { ROSTER, TEST_ROSTER } from '../fighters/roster.js';
 
@@ -29,7 +30,7 @@ const FIGHTER_ALIASES = {
   'soul-summoner': ['SOUL', 'SUMMONER', 'SOULSUMMONER', 'THEBLUEFLAMEKNIGHT'],
   'mr-wake': ['WAKE', 'MISTERWAKE', 'MRWAKE'],
   'hero-knight': ['LACY', 'HEROKNIGHT', 'HERO', 'KNIGHT'],
-  nu: ['NU'], aero: ['AERO', 'GOLDFISH'], gnash: ['GNASH'], lumen: ['LUMEN', 'HEARTSHARD', 'THESTAR'], vanta: ['VANTA', 'SAMURAI', 'NEONSAMURAI'], kami: ['KAMI', 'PAPER', 'ORIGAMI'],
+  nu: ['NU'], aero: ['AERO', 'GOLDFISH'], gnash: ['GNASH'], lumen: ['LUMEN', 'HEARTSHARD', 'THESTAR'], vanta: ['VANTA', 'SAMURAI', 'NEONSAMURAI'], kami: ['KAMI', 'PAPER', 'ORIGAMI'], vitrail: ['VITRAIL', 'ROSEWINDOW', 'THEROSE', 'STAINEDGLASS', 'THEROSEOFSEVENHOURS', 'GLAZIER'],
   'what-once-was': ['WHATONCEWAS', 'WOW', 'TV'], 'last-seen': ['ROSEMARY', 'LASTSEEN', 'SEEN', 'ROSEMARYWALTEN'],
   fists: ['FISTS'], 'young-link': ['YOUNGLINK', 'LINK'], devoted: ['DEVOTED', 'THEDEVOTED'],
 };
@@ -291,7 +292,7 @@ function fileFighters() { return [...ROSTER.filter((f) => f.available), ...TEST_
 /** Whether a boss has been beaten at least once (any difficulty). */
 const beaten = (id) => [0, 1, 2].some((t) => bossWins(id, t) > 0);
 
-/** A fighter's file: their dossier, then their BACKGROUND and WHY THEY'RE HERE. */
+/** A fighter's file: their dossier, then their BACKGROUND, WHY THEY'RE HERE and HOW HARD? they are. */
 function fighterRecord(f) {
   const d = FILES[f.id] || {}, b = BACKSTORY[f.id] || {};
   const dossier = [d.alias ? 'ALIAS: ' + d.alias : '', d.cls ? 'CLASS: ' + d.cls : '', d.weapon ? 'WEAPON: ' + d.weapon : '', d.origin ? 'ORIGIN: ' + d.origin : '',
@@ -299,6 +300,8 @@ function fighterRecord(f) {
   const sections = [['DOSSIER', dossier]];
   if (b.background) sections.push(['BACKGROUND', b.background]);
   if (b.why) sections.push(['WHY THEY\'RE HERE', b.why]);
+  const H = howHard(f.id), r = hardRank(f.id);                        // HOW HARD? (src/data/fighterDifficulty.js)
+  if (r) sections.push(['HOW HARD?', 'TO PLAY: ' + H.play + ' / 5      TO LEARN: ' + H.learn + ' / 5      ' + RANKS[r] + '\n\nWHAT MAKES THEM HARD\n' + H.hard + '\n\nHOW TO GET GOOD\n' + H.tips]);
   return { id: 'f-' + f.id, name: f.name, tab: f.name, kind: 'FIGHTER FILE NO. ' + (d.no || '???'), from: 'RECORDS OFFICE, SKY SANCTUM', icon: f.id, sections };
 }
 

@@ -264,6 +264,20 @@ He fights to find out. Every time his shard rings in the arenas a few words come
 
 Until then, he refolds himself - a crane to fly, a frog to jump, a blade to cut - and in his Limit he folds the whole stage's worth of paper into a tiger, because when you are made of paper and something is hunting the people you love, it helps to remember that paper can also bite.`,
   },
+  vitrail: {
+    background: `Before he was a person, he was a window - the great rose window of the chapel at the top of the Sky Sanctum, which the monks called THE ROSE OF SEVEN HOURS. It was older than the Archive. It was nine hundred pieces of coloured glass held together by lead, and it told the history of the Sanctum in seven panels, one for each of the hours the monks prayed: the founding, the flood, the plague, the bridge, the long peace, the fire - and a seventh panel, at the very top, that was only ever blank violet glass. Nobody knew what it was for. The glazier who made it died before anyone thought to ask.
+
+For four hundred years the window watched. It watched weddings and funerals, wars announced and wars ended, a boy who came every evening to sit under the pink light at vespers and grew up and grew old under it and one day stopped coming. It could not move and it could not speak, and so it did the only thing glass can do. It remembered. Every colour that ever passed through it is still in it somewhere.
+
+At eleven minutes past midnight the purple star came down over the Sanctum, and the largest shard of it went straight through the blank violet pane at the top of the rose. The window broke. Nine hundred pieces hit the chapel floor - and then, very slowly, in the dark, they started to crawl back toward each other. By morning there was a figure standing in the empty frame. The violet pane was in the middle of its face, and it was lit from inside.`,
+    why: `He put himself back together in the wrong order. He knows it. The founding is somewhere in his left arm and the flood is in his chest, and sometimes when he is hit a memory comes loose that is not his - a wedding, a plague bell, a boy at vespers - and he has to stand very still until it settles. The Archivist says he is the best record of the Sanctum's history that exists anywhere, and the least organised.
+
+He fights the way glass works. Glass does nothing by itself: it waits for light to come through it, and the colour it turns that light depends on the panes. So he sets panes - FIRE from his palm, ICE from the floor, LIGHTNING when he becomes the bolt - into the rose of his head, three at a time, and when he lets the light through them it comes out as whatever those three colours make. Ten different spells. He had four hundred years to learn which colours go together. Most people who pick him up have an afternoon. He finds this very funny.
+
+He came to the arenas because of the PULL, like everyone. But the Archivist thinks he stays for a different reason. The shard that woke him went through the blank seventh pane - the one nobody understood - and since the Starfall it has not been blank. It shows something now. He will not say what. He only says that when the star is whole again, the window will have its seventh hour, and he would like to be standing in the frame when it does.
+
+At the end of his Limit, when the whole rose hangs over the stage and all seven hours light at once, look at the very top. The violet pane is the last to light. For one frame, there is a picture in it.`,
+  },
 };
 
 // The ARCHIVE's sections, in order: their names and colours in the list
@@ -940,5 +954,29 @@ KNOWN ISSUES:
 - Some users report CDs falling from the sky in the screensaver, then in the room. Please do not stand under the monitor.
 
 (Appended, in a goldfish-shaped font nobody installed: WE HAVE LEFT. THANK YOU FOR THE ELEVEN YEARS. THE MEADOW IS IN THE SKY NOW. COME AND VISIT.)`,
+  },
+  { id: 'f-vitrail-glazier', cat: 'fighters', title: 'THE GLAZIER\'S LAST LETTER', kind: 'LETTER (UNSENT)', from: 'FOUND IN THE LEAD OF THE ROSE WINDOW, CHAPEL FLOOR, THE MORNING AFTER',
+    text: `To the brothers of the Sanctum, when I am gone.
+
+You asked me why the top of the rose is blank. You asked politely for eleven years, and then less politely, and I always said it was not finished. That was true. It is still true.
+
+Six hours are history. I could draw those: the founding, the water, the sickness, the bridge, the long quiet, the fire. I was there for the fire. I put my own hands in that panel - look at the bottom left, the man passing the buckets. That is me.
+
+But a window that only shows what has already happened is a mirror with better manners. I wanted the seventh hour to be the one that has not happened yet. So I left it violet and empty and I set the lead round it so that it would take a picture if one ever came. Glass remembers, brothers. I only gave it room.
+
+If something comes through that pane one night - and I think something will, I have dreamed it falling - do not sweep up the pieces. Leave them be. Let them find their own way back.
+
+- the glazier`,
+  },
+  { id: 's-vitrail-chapel', cat: 'stages', title: 'THE EMPTY FRAME', kind: 'FIELD NOTE', from: 'THE ARCHIVIST, SKY SANCTUM CHAPEL',
+    text: `Field note, the chapel at the top of the Sanctum, nine days after the Starfall.
+
+The great rose frame is empty. The stone tracery is undamaged - not a chip - and there is no glass on the floor. Not a sliver. I had the brothers check under every pew.
+
+He stands in the frame sometimes, in the evenings, at the hour the pink light used to come in. He fits it exactly. When the sun is low enough it goes through him and lays the old colours across the floor again, and the brothers who are left come and sit in them without saying anything.
+
+I asked him what the seventh pane shows now. He turned his head round once, slowly, the way a window turns when the light moves - and said: "Not yet."
+
+Filed under LEFT BEHIND, with the glazier's letter. I do not have a drawer for things that are waiting.`,
   },
 ];

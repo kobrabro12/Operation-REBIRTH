@@ -16,6 +16,7 @@ import { FighterGnash } from './fighterGnash.js';
 import { FighterLumen } from './fighterLumen.js';
 import { FighterVanta } from './fighterVanta.js';
 import { FighterKami } from './fighterKami.js';
+import { FighterVitrail } from './fighterVitrail.js';
 import { FighterShow } from './fighterShow.js';
 import { FighterDefense } from './fighterDefense.js';
 import { FighterLimit } from './fighterLimit.js';
@@ -611,7 +612,7 @@ export class Fighter {
 }
 
 // Attach the methods from the topic files to Fighter (they read and write the same `this`).
-for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted, FighterShow, FighterGnash, FighterLumen, FighterVanta, FighterKami]) {
+for (const M of [FighterSpeech, FighterGrab, FighterSpecials, FighterDefense, FighterLimit, LimitUndertow, LimitBlade, FighterCostumeFx, FighterLedge, FighterRender, FighterTaunt, LimitMosh, FighterBeat, FighterLastSeen, LimitAero, FighterWhatOnceWas, YoungLinkActions, FighterDevoted, FighterShow, FighterGnash, FighterLumen, FighterVanta, FighterKami, FighterVitrail]) {
   for (const k of Object.getOwnPropertyNames(M.prototype)) {
     if (k === 'constructor') continue;
     if (Object.prototype.hasOwnProperty.call(Fighter.prototype, k)) throw new Error('Fighter method defined twice: ' + k);

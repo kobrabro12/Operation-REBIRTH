@@ -42,6 +42,8 @@ export const INTROS = {
   lumen: { kind: 'starfall', color: 0xa862ff, color2: 0xd6a0ff, pre: ['whoosh', 0.4, 1.6], sfx: ['ding', 0.6, 1.4], shape: 'star' },
   vanta: { kind: 'boot', color: 0x3af0ff, color2: 0xff2ad8, pre: ['glitch', 0.4, 1.4], sfx: ['shing', 0.6, 1.5] },
   kami: { kind: 'fold', color: 0xf0503c, color2: 0xffffff, pre: ['petal', 0.45, 1.6], sfx: ['whoosh', 0.5, 1.8], shape: 'pixel' },
+  // VITRAIL: shards of coloured glass fly in from everywhere and lead themselves together into him
+  vitrail: { kind: 'glass', color: 0xb87aff, color2: 0xf2c84a, pre: ['glass', 0.45, 0.8], sfx: ['ding', 0.6, 1.0] },
   'last-seen': { kind: 'flicker', color: 0xfff0c0, pre: ['buzz', 0.35, 0.6], sfx: ['curse', 0.35, 0.7] },
 };
 
@@ -286,6 +288,22 @@ export class FighterIntros {
             g.lineStyle(1, 0xc4bcaa, 1); g.lineBetween(cx - h, cy, cx + h, cy); g.lineBetween(cx, cy - h, cx, cy + h); g.lineStyle(0);
             g.fillStyle(c, 1); g.fillRect(cx + 4, cy - 8, 4, 4);
           } else { vis = Math.min(1, post * 6); sc = 1 + Math.max(0, 0.2 * (1 - post * 5)); }
+          break;
+        }
+        case 'glass': {                                                    // VITRAIL: glass shards spiral in from all round and lock into him; a flash of the rose
+          const cols = [0xe0283e, 0x2a66e0, 0x26b45a, 0xf2b42a, 0x9a48e8, c];
+          if (p < A) {
+            for (let i = 0; i < 18; i++) {
+              const a0 = i * 2.4, k = Math.min(1, pre * 1.15 + (i % 5) * 0.02), r = 140 * Math.pow(1 - k, 1.6), a = a0 + (1 - k) * 3;
+              const sx = x + Math.cos(a) * r, sy = y - 30 + Math.sin(a) * r * 0.7, sz = 3 + (i % 3);
+              g.fillStyle(0x0c0a12, 1); g.fillTriangle(sx, sy - sz - 1, sx + sz + 1, sy + sz, sx - sz - 1, sy + sz);
+              g.fillStyle(cols[i % cols.length], 1); g.fillTriangle(sx, sy - sz + 1, sx + sz - 1, sy + sz - 1, sx - sz + 1, sy + sz - 1);
+            }
+            vis = pre > 0.85 ? (pre - 0.85) / 0.15 : 0;
+          } else {
+            vis = 1;
+            if (post < 0.3) { const k = 1 - post / 0.3; g.lineStyle(2, I.color2 || 0xffffff, k); g.strokeCircle(x, y - 64, 10 + 30 * (1 - k)); g.fillStyle(0xffffff, 0.5 * k); g.fillCircle(x, y - 64, 8 * k); g.lineStyle(0); }
+          }
           break;
         }
         case 'warp': {                                                     // a scan line sweeps; they flicker and glitch in

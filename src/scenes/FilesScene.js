@@ -1,7 +1,8 @@
 // LORE (TRINKETS > LORE, was CHARACTER FILES): a dossier on each fighter - file number, alias, class,
 // weapon, origin, signature moves and Limit - their story, and a costume browser with each costume's
 // own story. Milestone costumes can be looked at and read here before they're unlocked (marked LOCKED,
-// with how many KOs it takes to wear one). Q turns the file's pages: the FILE, then their BACKGROUND and WHY
+// with how many KOs it takes to wear one). Q turns the file's pages: the FILE, HOW HARD? (how hard they are to play
+// and to learn - src/data/fighterDifficulty.js; the rank also tags the FILE page), then their BACKGROUND and WHY
 // THEY'RE HERE (`BACKSTORY` in src/data/loreArchive.js, as many pages as they need - `pageList`). R opens THE
 // ARCHIVE (ArchiveScene: the world's other documents).
 // W/S switches fighter, A/D switches costume, Q page, R archive, K / Esc / B goes back.
@@ -17,12 +18,13 @@ import { skinsFor, skinUnlocked, skinTier } from '../fighters/skins.js';
 import { MILESTONE_KOS, getKOs } from '../progress.js';
 import { FILES, SKIN_LORE, MILESTONE_LORE } from '../data/lore.js';
 import { BACKSTORY } from '../data/loreArchive.js';
+import { howHard, hardRank, RANKS, RANK_COLORS } from '../data/fighterDifficulty.js';
 import { ArcadeBg, titleBanner, hintBar, panel, slant, ARC, shade } from '../ui/arcade.js';
 
 const GOLD = '#ffd23f', DIM = '#8a87a3', LINE = ARC.sections.files, PANEL = 0x1c1230;
 // tabs: how wide, how many show at once (the row scrolls to keep the chosen one in view)
 // how many lines of a long page fit on the file panel
-const LONG_LINES = 20;
+const LONG_LINES = 19;
 const TAB_W = 116, TABS = 4, TAB_Y = 44, L = { x: 16, y: 70, w: 190, h: 262 }, R = { x: 216, y: 70, w: 408, h: 262 };
 
 /** Every fighter with a file: the roster, then the lab's test fighters. */
@@ -68,6 +70,12 @@ export class FilesScene extends Phaser.Scene {
     // the long pages (BACKGROUND / WHY THEY'RE HERE) and the buttons to turn them and to open THE ARCHIVE
     this.pageHead = this.add.text(tx, R.y + 34, '', { fontFamily: FONT, fontSize: '6px', color: '#ff9ae4', stroke: '#07060e', strokeThickness: 3 });
     this.longT = this.add.text(tx, R.y + 50, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
+    // HOW HARD?: two meters (TO PLAY / TO LEARN), the rank, what makes them hard and how to get good; the rank's tag on the FILE page
+    this.diffG = this.add.graphics();
+    this.diffLbl = ['TO PLAY', 'TO LEARN'].map((k, i) => this.add.text(tx, R.y + 58 + i * 22, k, { fontFamily: FONT, fontSize: '6px', color: DIM }));
+    this.diffRank = this.add.text(R.x + R.w - 14, R.y + 66, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#07060e', strokeThickness: 4 }).setOrigin(1, 0.5);
+    this.diffT = this.add.text(tx, R.y + 108, '', { fontFamily: FONT, fontSize: '5px', color: '#e8e4f4', lineSpacing: 5, wordWrap: { width: R.w - 28 } });
+    this.rankTag = this.add.text(R.x + R.w - 8, R.y + 26, '', { fontFamily: FONT, fontSize: '6px', color: '#ffffff', stroke: '#07060e', strokeThickness: 3 }).setOrigin(1, 0);
     this.pageBtn = makeButton(this, R.x + R.w - 8, R.y + R.h - 10, 'NEXT PAGE (Q)', () => this.turnPage(), { originX: 1, originY: 0.5, size: '6px' });
     makeButton(this, R.x + R.w - 8, R.y + 12, 'ARCHIVE (R)', () => this.archive(), { originX: 1, originY: 0.5, size: '6px' });
     this.input.keyboard.on('keydown-Q', () => this.turnPage());
@@ -93,7 +101,7 @@ export class FilesScene extends Phaser.Scene {
   turnPage() { const n = this.pageList().length; this.page = (this.page + 1) % n; sfx('menu', 0.5, 1.3); this.refresh(); }
   /** The file's pages for the fighter on show: the FILE, then each long story split to fit the panel. */
   pageList() {
-    const f = this.fighters[this.fi], B = BACKSTORY[f.id], out = [{ k: 'file' }];
+    const f = this.fighters[this.fi], B = BACKSTORY[f.id], out = [{ k: 'file' }, { k: 'diff', head: 'HOW HARD?' }];
     if (!B) return out;
     for (const [k, head] of [['background', 'BACKGROUND'], ['why', 'WHY THEY\'RE HERE']]) {
       const lines = this.longT.getWrappedText(B[k] || ''), n = Math.max(1, Math.ceil(lines.length / LONG_LINES));
@@ -117,13 +125,33 @@ export class FilesScene extends Phaser.Scene {
     this.skinLore.setText(story || 'NOTHING WRITTEN ABOUT THIS COSTUME YET.');
     this.locked = !open;
     // which page: the file itself, or a long page of their story
-    const pages = this.pageList(), P = pages[Math.min(this.page, pages.length - 1)], file = P.k === 'file';
+    const pages = this.pageList(), P = pages[Math.min(this.page, pages.length - 1)], file = P.k === 'file', diff = P.k === 'diff';
+    const H = howHard(f.id), rank = hardRank(f.id);
+    this.rankTag.setVisible(file && rank > 0).setText('DIFFICULTY: ' + RANKS[rank] + '  (Q)').setColor(RANK_COLORS[rank]);
+    this.drawDiff(diff ? H : null, rank);
     for (const [a, b] of this.fields) { a.setVisible(file); b.setVisible(file); }
     for (const o of [this.loreHead, this.lore, this.skinHead, this.skinLore]) o.setVisible(file);
     this.pageHead.setVisible(!file).setText(file ? '' : P.head);
-    this.longT.setVisible(!file).setText(file ? '' : P.text);
+    this.longT.setVisible(!file && !diff).setText(file || diff ? '' : P.text);
     this.pageBtn.setVisible(pages.length > 1);
     if (this.pageBtn.setText) this.pageBtn.setText(pages.length > 1 ? 'PAGE ' + (this.page + 1) + '/' + pages.length + ' (Q)' : '');
+  }
+
+  /** HOW HARD?: the two meters (five pips each), the rank and the notes - or hides it all (H null). */
+  drawDiff(H, rank) {
+    const g = this.diffG; g.clear();
+    for (const o of [...this.diffLbl, this.diffRank, this.diffT]) o.setVisible(!!H);
+    if (!H) return;
+    const tx = R.x + 14 + 72, col = parseInt(RANK_COLORS[rank].slice(1), 16);
+    [H.play, H.learn].forEach((v, i) => {
+      for (let k = 0; k < 5; k++) {
+        const x = tx + k * 30, y = R.y + 54 + i * 22;
+        slant(g, x + 2, y + 2, 24, 12, 0x000000, 0.5, 4); slant(g, x, y, 24, 12, k < v ? col : 0x2a1f44, 1, 4);
+        if (k < v) slant(g, x, y, 24, 4, 0xffffff, 0.25, 2);
+      }
+    });
+    this.diffRank.setText(RANKS[rank] || 'NOT RATED').setColor(RANK_COLORS[rank]);
+    this.diffT.setText('WHAT MAKES THEM HARD\n' + H.hard + (H.tips ? '\n\nHOW TO GET GOOD\n' + H.tips : ''));
   }
 
   update() {

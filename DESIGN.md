@@ -118,7 +118,7 @@ The stage grid has 12 slots, 2 across and 6 down (last = Random); 11 stages fill
 
 ## 9. Fighters
 
-The select grid has 12 slots; 9 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH, LUMEN, VANTA, KAMI). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
+The select grid has 12 slots; 10 fighters are playable (Soul Summoner, Mr Wake, Lacy, NU, AERO, GNASH, LUMEN, VANTA, KAMI, VITRAIL). Fighter files are **data only**; behaviour lives in `src/fighters/fighter*.js`.
 
 ### Soul Summoner — summoner / all-rounder (weight 1.0)
 - **Neutral special**: fireball, hold to charge (full at 84 ticks), 4–16%.
@@ -182,6 +182,21 @@ A page of THE ARCHIVE folded into a fighter. Normals are NU's. FOLDS change his 
 - **Side special**: PAPER CUT (the Sprite Fusion dash): a 120 px blur; a beat later the cut lands on everyone along the line (11%). Once per airtime.
 - **Up special**: KITE. A gust under him (6%) lifts him on a paper kite, then he glides down.
 - **Limit**: PAPER TIGER. Paper folds itself into a giant origami tiger that roars and pounces across the stage; its claws catch everyone in the way (14%), then its red ink seal stamps down on them (18% and a launch).
+
+### VITRAIL (`vitrail`) — the spell-weaver, EXPERT (weight 0.96)
+The Sky Sanctum chapel's great rose window (THE ROSE OF SEVEN HOURS), broken by the star and reborn: a rose window for a head with the star's violet pane as his eye, a body that is a lancet window of leaded glass, a broken halo of loose shards. The hardest fighter in the game - built like Dota's Invoker. Slow on foot (walk 2.9, air 2.7); his normals are NU's at 0.95x - his power is in the spells.
+- **THE ROSE**: three PANE slots in his head. Each pane special sets one (the oldest falls out past three); the panes float over his head and the spell they make is named above them.
+- **Side special**: KINDLE - a palm of fire ahead (7%), it BURNS them (1% a half-second for 1.5 s). Sets FIRE. Once in the air.
+- **Down special**: RIME - ice bursts up round him (6%, freezes). Sets ICE.
+- **Up special**: FULGURITE - he becomes a bolt and strikes 124 px the way the stick points, hitting everything on the line (6%). Sets LIGHTNING. Helpless after.
+- **Neutral special**: INVOKE - casts the spell his three panes make (any order) and empties the rose; with fewer than three, REFRACT (a glass shard, 4%). Ten spells:
+  FFF INFERNO (a column of fire, 5 x 2 + 8), III GLACIER (6 ice spikes marching ahead, each freezes; the last 8), LLL TEMPEST (marks the floor under every foe, lightning strikes the marks 0.6 s later: 13), FFI STEAM (a bubble cloud: whoever is in it floats up helpless, 1% at a time), FFL PLASMA LANCE (a 270 px beam, 5 x 2 + 7), FII MIASMA (a poison cloud on the floor: poisons and slows, 1% every 1/3 s for 3 s), IIL SHATTERGLASS (three glass cuts, 4 + 4 + 11 - the killer), FLL STARFIRE (a star flares on the nearest foe, bursts 0.9 s later: 12), ILL AEGIS (a hexagon shell: untouchable for ~2 s, it shocks whoever is close), FIL ECLIPSE (a black hole that drags everyone in for 1.7 s, then collapses: 16).
+- **RESONANCE**: INVOKE within 45 frames of landing a hit and the spell is RESONANT: 1.3x damage and knockback, and the light heals him 4% (the heal + power-up effects).
+- **Limit**: THE ROSE OF SEVEN HOURS. The sky darkens and the great rose window hangs over the stage; its panes light one by one, and each hour a shaft of holy light comes down on a foe (3% each, holds them); then the eighth hour on everyone at once (18% and a huge launch). One foe: 39%.
+- Every effect he makes is one of Sprite Fusion's (src/fx/sfMagic.js).
+
+### HOW HARD?
+Every fighter is rated 1-5 TO PLAY (execution) and TO LEARN (knowledge) in `src/data/fighterDifficulty.js`; the harder of the two is the rank (EASY / STRAIGHTFORWARD / INTERMEDIATE / ADVANCED / EXPERT). Shown in THE DOSSIERS (the HOW HARD? page and a tag on the file) and in THE RECORDS OFFICE's files.
 
 ## 10. Costumes and unlocks
 
