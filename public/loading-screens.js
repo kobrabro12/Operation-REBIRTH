@@ -11,6 +11,10 @@
     { id: 'nu', name: 'NU', place: 'THE MAIN STAGE', lore: 'Every fight becomes a show. Every show ends in an encore.', a: '#ff5ae0', b: '#1ad8ff', fx: 'confetti', hx: 66, px: 2, hb: 6 },
     { id: 'aero', name: 'AERO', place: 'AERO MEADOW', lore: 'A living world inside a forgotten desktop - and one goldfish who refuses to be closed.', a: '#5ae0ff', b: '#1a6ad0', fx: 'bubbles', hx: 66, px: 2, hb: 7 },
     { id: 'gnash', name: 'GNASH', place: 'AFTER HOURS', lore: 'He drags the axe so you hear him coming. It never helps.', a: '#c8ff3a', b: '#ff2a9a', fx: 'rain', hx: 66, px: 1, hb: 5 },
+    { id: 'lumen', name: 'LUMEN', place: 'THE STARFALL', lore: 'The purple star broke over the Sanctum. The brightest piece of it woke up, picked up a staff, and started drawing the sky back together.', a: '#c89aff', b: '#2a0a6a', fx: 'stars', hx: 64, px: 2, hb: 6 },
+    { id: 'vanta', name: 'VANTA', place: 'THE NEON DISTRICT', lore: 'Two blades, drawn backwards. By the time you hear them leave the sheath, the moon is already in two pieces.', a: '#3af0ff', b: '#ff2a9a', fx: 'neon', hx: 66, px: 2, hb: 6 },
+    { id: 'kami', name: 'KAMI', place: 'THE ARCHIVE', lore: 'A page that fell out of the oldest book in the Archive, and folded itself into someone who could go and find out what was written on it.', a: '#ff5a4a', b: '#5a2a10', fx: 'paper', hx: 62, px: 2, hb: 6 },
+    { id: 'vitrail', name: 'VITRAIL', place: 'THE SANCTUM CHAPEL', lore: 'Four hundred years a window. Nine hundred pieces on the chapel floor. One monk-shaped thing standing in the empty frame, with the rose still burning behind his head.', a: '#ffd860', b: '#3a1a6a', fx: 'glass', hx: 62, px: 2, hb: 8 },
     { id: 'hanz', name: 'HANZ & $@L', place: 'THE TRUE SHOPKEEPER', lore: 'Two halves of one man behind one counter. The shop is open. Nobody remembers coming in.', a: '#ff4a6a', b: '#d2d0cc', fx: 'glitch', hx: 66, px: 0.5, hb: 4 },
     // STORIES: a whole story in one picture (tools/sprites/loading_stories.py) - no hero layer, the title and the tale underneath
     { id: 'story-names', story: true, name: 'THEIR NAMES', place: 'A SOUL SUMMONER STORY', lore: 'Every night he walks the Sanctum graves and says their names out loud. Every night, one of them answers.', a: '#8ae8ff', b: '#1a3a6a', fx: 'souls' },
@@ -19,6 +23,7 @@
     { id: 'story-soundcheck', story: true, name: 'SOUNDCHECK, 6 AM', place: 'AN UNDERGROUND STORY', lore: 'The frontman is warmed up and ready to go. The roadies are... not. One is asleep on the amp. One has lost a fight with the cables.', a: '#ff5ae0', b: '#1ad8ff', fx: 'confetti' },
     { id: 'story-eater', story: true, name: 'THE STAR-EATER', place: 'THE LAST OBSERVATORY', lore: 'The night sky is going dark, one star at a time. At the edge of the world something enormous is hungry, and three small fighters have decided to stop it.', a: '#ffc84a', b: '#3a1a6a', fx: 'embers' },
     { id: 'story-closing', story: true, name: 'CLOSING TIME', place: 'A LOST STORY', lore: 'The little shop is open all night. Nobody remembers going in. Everybody remembers the shopkeeper - and he never forgets a customer.', a: '#ff4a8a', b: '#b8121c', fx: 'glitch' },
+    { id: 'story-woke', story: true, name: 'WHAT THE STAR WOKE', place: 'A SKY SANCTUM STORY', lore: 'When the purple star broke, most of its pieces fell into the dark and went out. Four of them landed on something - a heart, a ghost, a page, a window - and woke it up.', a: '#c89aff', b: '#3a1a6a', fx: 'glass' },
     { id: 'story-dawn', story: true, name: 'SECOND LIFE', place: 'OPERATION REBIRTH', lore: 'Six who should have stayed down. One more sunrise. One more round.', a: '#ffd08a', b: '#6a1a5a', fx: 'embers' },
   ];
   const tips = [
@@ -77,10 +82,14 @@
     confetti: { n: 70, make: () => ({ x: R() * W, y: -R() * H, vx: (R() - 0.5) * 0.6, vy: 0.4 + R() * 0.7, c: ['#ff5ae0', '#1ad8ff', '#ffe84a', '#ffffff'][Math.floor(R() * 4)], s: 2, spin: R() * 6 }) },
     bubbles: { n: 26, make: () => ({ x: R() * W, y: H + R() * 30, vx: 0, vy: -0.3 - R() * 0.4, c: '#ffffff', r: 2 + R() * 5, wob: R() * 6 }) },
     rain: { n: 90, make: () => ({ x: R() * W * 1.2, y: -R() * H, vx: -0.9, vy: 3.2 + R() * 1.5, c: R() < 0.5 ? '#ff4ab8' : '#3af0ff', s: 1 }) },
+    stars: { n: 60, make: () => ({ x: R() * W, y: -R() * 20, vx: 0.12, vy: 0.08 + R() * 0.2, c: R() < 0.6 ? '#e8d8ff' : '#c89aff', s: R() < 0.2 ? 2 : 1, tw: R() * 6 }) },
+    neon: { n: 40, make: () => ({ x: R() * W * 1.3, y: -R() * H, vx: -2.2, vy: 2.2, c: R() < 0.5 ? '#3af0ff' : '#ff3aa8', len: 3 + Math.floor(R() * 6) }) },
+    paper: { n: 22, make: () => ({ x: R() * W, y: -10 - R() * 20, vx: 0.15, vy: 0.25 + R() * 0.3, c: R() < 0.7 ? '#efe0c0' : '#ff5a4a', wob: R() * 6, spin: R() * 6 }) },
+    glass: { n: 46, make: () => ({ x: R() * W, y: H + R() * 20, vx: 0, vy: -0.2 - R() * 0.35, c: ['#ff6a2a', '#7ae8ff', '#ffe04a', '#a04aff'][Math.floor(R() * 4)], s: R() < 0.35 ? 2 : 1, wob: R() * 6, tw: R() * 6 }) },
     glitch: { n: 18, make: () => ({ x: R() * W, y: R() * H, vx: 0, vy: 0, c: ['#ff2a3a', '#d2d0cc', '#2fd6c6', '#ff7ab8'][Math.floor(R() * 4)], w: 4 + R() * 30, h: 1 + R() * 3, life: 6 + R() * 24 }) },
   };
   const K = KIND[S.fx] || KIND.embers;
-  for (let i = 0; i < K.n; i++) { const p = K.make(); if (S.fx !== 'glitch') p.y -= R() * H; P.push(p); }
+  for (let i = 0; i < K.n; i++) { const p = K.make(); if (S.fx !== 'glitch') { if (p.vy > 0) p.y = R() * H; else p.y -= R() * H; } P.push(p); }
   let f = 0;
   /** One frame of the particles (stops itself once BootScene removes the loading screen). */
   const frame = () => {
@@ -95,10 +104,12 @@
       }
       p.x += p.vx + (p.wob !== undefined ? Math.sin(f * 0.03 + p.wob) * 0.25 : 0); p.y += p.vy;
       if (p.y < -10 || p.y > H + 10 || p.x < -20 || p.x > W + 20) { P[i] = K.make(); continue; }
-      g.globalAlpha = S.fx === 'embers' ? 0.55 + 0.45 * Math.sin(f * 0.2 + i) : 0.85;
+      g.globalAlpha = S.fx === 'embers' ? 0.55 + 0.45 * Math.sin(f * 0.2 + i) : p.tw !== undefined ? 0.45 + 0.55 * Math.abs(Math.sin(f * 0.05 + p.tw)) : 0.85;
       g.fillStyle = p.c;
       if (p.r) { g.strokeStyle = p.c; g.lineWidth = 1; g.beginPath(); g.arc(Math.round(p.x), Math.round(p.y), p.r, 0, 7); g.stroke(); g.fillRect(Math.round(p.x - p.r * 0.5), Math.round(p.y - p.r * 0.5), 1, 1); }
       else if (S.fx === 'rain') { g.fillRect(Math.round(p.x), Math.round(p.y), 1, 4); }
+      else if (S.fx === 'neon') { for (let k = 0; k < p.len; k++) g.fillRect(Math.round(p.x + k), Math.round(p.y - k), 1, 1); }
+      else if (S.fx === 'paper') { const w = Math.round(Math.abs(Math.cos(f * 0.05 + p.spin)) * 3) + 1; g.fillRect(Math.round(p.x), Math.round(p.y), w, 4); }
       else if (S.fx === 'confetti') { const w = Math.abs(Math.cos(f * 0.1 + p.spin)) * 2 + 1; g.fillRect(Math.round(p.x), Math.round(p.y), Math.round(w), 2); }
       else g.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
     }

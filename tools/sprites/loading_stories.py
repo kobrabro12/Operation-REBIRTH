@@ -198,7 +198,46 @@ def s_dawn():
     return P.grade(cv, 0xff8a5a, 0.06)
 
 
-STORIES = {'names': s_names, 'bridge': s_bridge, 'oath': s_oath, 'soundcheck': s_soundcheck, 'eater': s_eater, 'closing': s_closing, 'dawn': s_dawn}
+def s_woke():
+    """WHAT THE STAR WOKE: on the broken roof of the Sky Sanctum at night, the four the star's shards woke up stand
+    side by side - LUMEN, VANTA, KAMI and VITRAIL - each lit by their own colour, under the purple star breaking
+    into four falling streaks of light."""
+    img = P.sky(0x03020a, 0x0c0624, 0x1e0c44, 0x3a1a5a)
+    img = P.stars(img, 160, 17, (0xffffff, 0xd8c8ff, 0xa8e8ff), 0.75)
+    img = P.radial(160, 34, 40, [0xffffff, 0xe0c8ff, 0x8a5ad8], img, 1, 0.9)
+    cv = P.to_im(img)
+    P.glow(cv, 160, 34, 64, 0x9a6aff, 80)
+    d = P.draw(cv)
+    cols = (0xc89aff, 0x3af0ff, 0xff5a4a, 0xffd860)                                       # each streak takes one of their colours
+    ends = ((50, 96), (122, 108), (198, 108), (270, 96))
+    for (ex, ey), c in zip(ends, cols):
+        for k in range(60):
+            u = k / 60; x = 160 + (ex - 160) * u; y = 34 + (ey - 34) * u + math.sin(u * math.pi) * -10
+            w = max(1, int((1 - u) * 3))
+            d.ellipse((x - w, y - w, x + w, y + w), fill=hx(c) + (200,))
+        P.sparkle(cv, ex, ey, c, 2); d = P.draw(cv)
+    for k in range(8):                                                                    # the star's broken edge
+        a = k / 8 * math.pi * 2 + 0.2; r1 = 10 + (k % 3) * 4
+        d.polygon([(160 + math.cos(a - 0.2) * 5, 34 + math.sin(a - 0.2) * 5), (160 + math.cos(a) * r1, 34 + math.sin(a) * r1), (160 + math.cos(a + 0.2) * 5, 34 + math.sin(a + 0.2) * 5)], fill=hx(0xffffff))
+    d.ellipse((154, 28, 166, 40), fill=hx(0xffffff))
+    img = np.array(cv.convert('RGB')).astype(float)
+    img = P.ridge(img, 150, 8, 0x140a28, 12, step=3)
+    cv = P.to_im(img); d = P.draw(cv)
+    d.polygon([(10, 180), (10, 146), (310, 146), (310, 180)], fill=hx(0x1c1230))             # the roof's broken ledge
+    d.rectangle((10, 144, 310, 147), fill=hx(0x3a2a54))
+    for x in range(14, 310, 18): d.rectangle((x, 136, x + 8, 144), fill=hx(0x2a1e40)); d.rectangle((x, 136, x + 8, 137), fill=hx(0x4a3a6a))   # a broken balustrade
+    for x in (64, 172, 244): d.rectangle((x, 136, x + 8, 144), fill=hx(0x07040e))             # (gaps where it fell)
+    crew = (('lumen/idle_sheet.png', 3, 50, 0xc89aff), ('vanta/idle_sheet.png', 5, 122, 0x3af0ff),
+            ('kami/idle_sheet.png', 7, 198, 0xff5a4a), ('vitrail/idle_sheet.png', 9, 270, 0xffd860))
+    for path, f, x, c in crew:
+        P.glow(cv, x, 128, 26, c, 60)
+        P.put(cv, P.strip(path, f), x, 146, flip=x > 160, scale=2 if False else 1, light=hx(c), side=-1 if x > 160 else 1, shade=((30, 16, 60), 0.18))
+    d = P.draw(cv); d.rectangle((0, 160, W, H), fill=hx(0x07040e))
+    for i in range(24): x, y = P.rng.integers(0, W), P.rng.integers(50, 140); P.sparkle(cv, int(x), int(y), cols[i % 4], 1)
+    return P.grade(cv, 0x5a2aa8, 0.06)
+
+
+STORIES = {'names': s_names, 'bridge': s_bridge, 'oath': s_oath, 'soundcheck': s_soundcheck, 'eater': s_eater, 'closing': s_closing, 'dawn': s_dawn, 'woke': s_woke}
 
 
 def main():
@@ -209,7 +248,7 @@ def main():
         im.quantize(255, dither=Image.NONE).save(os.path.join(OUT, 'story-' + sid + '_bg.png'), optimize=True)
         shots.append(im); print('story', sid)
     if '--preview' in sys.argv:
-        sheet = Image.new('RGB', (W * 2 * 2, H * 2 * 4))
+        sheet = Image.new('RGB', (W * 2 * 2, H * 2 * ((len(shots) + 1) // 2)))
         for i, im in enumerate(shots): sheet.paste(im.resize((W * 2, H * 2), Image.NEAREST), ((i % 2) * W * 2, (i // 2) * H * 2))
         sheet.save(sys.argv[sys.argv.index('--preview') + 1])
 

@@ -25,6 +25,10 @@ POSES = {
     'nu': ('nu', 112, 104, 167),                           # FSMASH: the flying kick
     'aero': ('aero', 112, 104, 489),                       # FSMASH: the dashing punch
     'gnash': ('gnash', 180, 168, 101),                     # USMASH: the axe overhead
+    'lumen': ('lumen', 112, 104, 799),                     # TAUNT: low, the staff thrust out with a star on its tip
+    'vanta': ('vanta', 112, 104, 608),                     # IAI CUT: both blades out of the draw
+    'kami': ('kami', 112, 104, 809),                       # TAUNT: the fan flung up high
+    'vitrail': ('vitrail', 112, 104, 718),                 # THE ROSE OF SEVEN HOURS: both arms up to the sky
 }
 
 
@@ -233,6 +237,139 @@ def bg_hanz():
     return bgc.resize((BG_W, BG_H), Image.NEAREST)
 
 
+def bg_lumen():
+    """THE STARFALL: a deep violet night full of stars, constellations drawn between the bright ones, the purple
+    star falling across the sky with a long burning tail, and black mountains under it."""
+    a = bands([(0, '#03020c'), (0.4, '#120a34'), (0.75, '#2e1462'), (1, '#5a2a8a')], y1=150)
+    glow(a, 92, 46, 60, '#7a4ad8', 0.5)
+    h, w = a.shape[:2]; yy, xx = np.mgrid[0:h, 0:w]
+    # the tail: a dithered streak from the top right down to the star
+    t = ((xx - 92) * 0.82 + (yy - 46) * -0.57); dist = np.abs((xx - 92) * 0.57 + (yy - 46) * 0.82)
+    tail = (t > 0) & (t < 240) & (dist < 2 + t * 0.06)
+    dither_blend(a, tail, '#c89aff', np.clip(1 - t / 240, 0, 1) * 0.9)
+    dither_blend(a, tail & (dist < 1 + t * 0.02), '#ffffff', np.clip(1 - t / 160, 0, 1))
+    glow(a, 92, 46, 22, '#e8d0ff', 0.9); glow(a, 92, 46, 8, '#ffffff', 1)
+    im = to_im(a); d = ImageDraw.Draw(im); stars(d, 110, '#e8e0ff', 31, 130)
+    for pts in ([(196, 30), (214, 44), (238, 38), (256, 58), (282, 50)], [(20, 70), (40, 86), (34, 108)], [(220, 96), (244, 84), (270, 100)]):   # constellations
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            for k in range(0, 100, 8):
+                u = k / 100; d.point((x0 + (x1 - x0) * u, y0 + (y1 - y0) * u), fill=hexc('#8a7ad8'))
+        for x, y in pts:
+            d.point((x, y), fill=hexc('#ffffff'))
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)): d.point((x + dx, y + dy), fill=hexc('#c8b8ff'))
+    poly(d, [(0, 150), (40, 118), (70, 132), (110, 98), (150, 130), (190, 112), (240, 136), (290, 106), (320, 124), (320, 180), (0, 180)], '#1a0c36')
+    for x, y in [(110, 98), (290, 106)]: poly(d, [(x - 8, y + 8), (x, y), (x + 8, y + 8), (x + 3, y + 6), (x - 3, y + 7)], '#6a5aa8')   # snow on the peaks
+    poly(d, [(0, 160), (80, 146), (170, 156), (260, 144), (320, 152), (320, 180), (0, 180)], '#0c0620')
+    d.rectangle((0, 168, 320, 180), fill=hexc('#06030f'))
+    return im
+
+
+def bg_vanta():
+    """NEON DISTRICT: a narrow street at night under a huge white moon sliced clean in two, stacked neon sign
+    boxes up the buildings in cyan and magenta, power lines, wet asphalt throwing the colours back."""
+    a = bands([(0, '#04030c'), (0.45, '#0e0a26'), (0.8, '#2a0c44'), (1, '#4a1060')], y1=140)
+    glow(a, 168, 54, 70, '#4a2a8a', 0.5)
+    im = to_im(a); d = ImageDraw.Draw(im); stars(d, 40, '#a8c8ff', 13, 70)
+    d.ellipse((134, 20, 202, 88), fill=hexc('#e8f0ff')); d.ellipse((140, 24, 202, 88), fill=hexc('#d0dcf4'))   # the moon...
+    poly(d, [(120, 90), (124, 88), (214, 16), (210, 18)], '#04030c')                        # ...cut clean through
+    d.line((118, 92, 216, 14), fill=hexc('#3af0ff'), width=1)
+    r = random.Random(17)
+    for side, x0, x1 in ((0, -6, 112), (1, 214, 330)):                                        # the buildings either side
+        x = x0
+        while x < x1:
+            bw = 18 + r.randrange(20); top = 30 + r.randrange(60)
+            d.rectangle((x, top, x + bw, 160), fill=hexc('#0a0618'))
+            for wy in range(top + 6, 150, 7):
+                for wx in range(x + 3, x + bw - 3, 5):
+                    if r.random() < 0.25: d.rectangle((wx, wy, wx + 1, wy + 2), fill=hexc('#3a2a6a'))
+            if r.random() < 0.8:                                                             # a stacked neon sign box
+                sx = x + (bw - 8 if side == 0 else 0); sy = top + 10 + r.randrange(20); col = '#3af0ff' if r.random() < 0.5 else '#ff3aa8'
+                d.rectangle((sx, sy, sx + 8, sy + 36), fill=hexc('#06020e'), outline=hexc(col))
+                for k in range(4): d.rectangle((sx + 3, sy + 4 + k * 8, sx + 5, sy + 8 + k * 8), fill=hexc(col))
+            x += bw + 1
+    for y in (40, 46): d.line((0, y + 10, 320, y), fill=hexc('#06030c'))                      # power lines
+    a = np.array(im.convert('RGB')); glow(a, 60, 70, 40, '#ff3aa8', 0.3); glow(a, 270, 80, 40, '#3af0ff', 0.3); im = to_im(a); d = ImageDraw.Draw(im)
+    d.rectangle((0, 156, 320, 180), fill=hexc('#06030c'))
+    for x in range(0, 320, 2):                                                               # the wet street throws the neon back
+        c = '#3af0ff' if (x // 6) % 3 == 0 else '#ff3aa8' if (x // 6) % 3 == 1 else '#8a7ad8'
+        if r.random() < 0.5: d.line((x, 160 + r.randrange(6), x, 166 + r.randrange(10)), fill=hexc(c))
+    for x in range(150, 180, 3): d.point((x, 170 + (x % 4)), fill=hexc('#e8f0ff'))           # the moon in a puddle
+    return im
+
+
+def bg_kami():
+    """THE ARCHIVE: the endless stacks at night - shelves of books climbing out of sight, warm lamplight, a reading
+    desk, and loose pages drifting down through the air."""
+    a = bands([(0, '#120806'), (0.4, '#2a1410'), (0.75, '#5a3018'), (1, '#8a5a2a')], y1=170)
+    rays(a, 200, -10, 6, '#ffe0a0', 0.18, spin=1.2); glow(a, 200, 40, 90, '#ffc870', 0.45)
+    im = to_im(a); d = ImageDraw.Draw(im)
+    r = random.Random(23)
+    for sx, sw, shade in ((-4, 70, '#1a0c08'), (250, 74, '#1a0c08'), (66, 40, '#2a160e'), (214, 38, '#2a160e')):   # the stacks
+        d.rectangle((sx, 0, sx + sw, 160), fill=hexc(shade))
+        for sy in range(6, 156, 16):
+            d.rectangle((sx, sy + 13, sx + sw, sy + 15), fill=hexc('#3a2012'))
+            bx = sx + 2
+            while bx < sx + sw - 3:
+                bw = 2 + r.randrange(3); bh = 8 + r.randrange(5)
+                col = r.choice(['#7a2a1e', '#3a5a6a', '#8a6a2a', '#4a3a6a', '#6a1a1a', '#c8b890', '#2a4a2a'])
+                if shade == '#2a160e': col = '#' + ''.join('%02x' % (int(int(col[i:i + 2], 16) * 0.6)) for i in (1, 3, 5))
+                d.rectangle((bx, sy + 13 - bh, bx + bw - 1, sy + 12), fill=hexc(col)); bx += bw + (1 if r.random() < 0.2 else 0)
+    for x in (110, 196):                                                                      # hanging lamps
+        d.line((x, 0, x, 30), fill=hexc('#2a160e')); poly(d, [(x - 6, 36), (x - 3, 30), (x + 3, 30), (x + 6, 36)], '#3a2012')
+        a = np.array(im.convert('RGB')); glow(a, x, 38, 30, '#ffd890', 0.7); glow(a, x, 37, 5, '#ffffff', 1); im = to_im(a); d = ImageDraw.Draw(im)
+    d.rectangle((0, 150, 320, 180), fill=hexc('#1a0c08'))
+    for x in range(0, 320, 12): d.line((x, 150, x - 8, 180), fill=hexc('#2a1610'))           # floorboards
+    d.rectangle((40, 132, 104, 136), fill=hexc('#4a2a16')); d.rectangle((44, 136, 48, 152), fill=hexc('#2a160e')); d.rectangle((96, 136, 100, 152), fill=hexc('#2a160e'))   # a desk
+    for bx, by, bw in ((50, 124, 18), (54, 118, 14), (74, 128, 22)): d.rectangle((bx, by, bx + bw, by + 6 if bw < 20 else by + 4), fill=hexc('#c8a870'))
+    for _ in range(14):                                                                       # pages in the air
+        x, y = r.randrange(320), r.randrange(10, 140); tilt = r.randrange(-3, 4)
+        poly(d, [(x, y), (x + 7, y + tilt), (x + 7 + tilt // 2, y + 9 + tilt), (x + tilt // 2, y + 9)], '#efe0c0')
+        d.line((x + 1, y + 3, x + 5, y + 3 + tilt // 2), fill=hexc('#8a7a5a'))
+    return im
+
+
+def bg_vitrail():
+    """THE CHAPEL OF THE SKY SANCTUM: inside, at dusk - the great rose window behind him, four quarters burning fire,
+    ice, gold and violet, its light falling across the floor in coloured shafts; stone columns and candles."""
+    a = bands([(0, '#06040e'), (0.5, '#14102a'), (1, '#2a1e3a')], y1=180)
+    cx, cy, R = 200, 62, 54
+    glow(a, cx, cy, 110, '#4a3a7a', 0.5)
+    h, w = a.shape[:2]; yy, xx = np.mgrid[0:h, 0:w]
+    for k, col in enumerate(('#ff6a2a', '#7ae8ff', '#ffe04a', '#a04aff')):                    # its light on the floor
+        x0 = cx - 60 + k * 40; beam = (yy > cy) & (np.abs(xx - (x0 + (yy - cy) * (k - 1.5) * 0.35)) < 9 + (yy - cy) * 0.12)
+        dither_blend(a, beam, col, 0.25 * np.clip((yy - cy) / 120, 0, 1) + 0.05)
+    im = to_im(a); d = ImageDraw.Draw(im)
+    a = np.array(im)                                                                          # the rose window, per pixel
+    quad = {(0, 0): '#ff6a2a', (1, 0): '#7ae8ff', (1, 1): '#ffe04a', (0, 1): '#a04aff'}
+    for y in range(cy - R - 4, cy + R + 5):
+        for x in range(cx - R - 4, cx + R + 5):
+            dx, dy = x - cx, y - cy; dd = math.hypot(dx, dy)
+            if dd > R + 4: continue
+            if dd > R: a[y, x] = (*hexc('#3a3050'), 255); continue                            # the stone ring
+            if dd > R - 1.5: a[y, x] = (*hexc('#f2c84a'), 255); continue                      # gilt
+            ang = math.atan2(dy, dx); petal = abs(math.sin(ang * 4)) * 10
+            if abs(dx) < 1.5 or abs(dy) < 1.5 or abs(dd - 30) < 1.2 or abs(dd - (R - 8 + petal * 0.3)) < 0.9 or dd < 8 or abs(math.sin(ang * 8)) < 0.08 * (dd > 30):
+                a[y, x] = (*hexc('#0c0a12'), 255); continue                                   # lead
+            base = hexc(quad[(int(dx > 0), int(dy > 0))])
+            k = 0.35 if (dx + dy) < -R * 0.5 else -0.25 if dd > R - 10 else 0
+            c = tuple(int(v + (255 - v) * k) if k > 0 else int(v * (1 + k)) for v in base)
+            if (x * 7 + y * 13) % 23 == 0: c = tuple(min(255, v + 60) for v in c)              # glints in the glass
+            a[y, x] = (*c, 255)
+    for y in range(cy - 6, cy + 7):
+        for x in range(cx - 6, cx + 7):
+            if math.hypot(x - cx, y - cy) < 6: a[y, x] = (*hexc('#e8c8ff'), 255)
+    im = Image.fromarray(a); d = ImageDraw.Draw(im)
+    for x in (30, 92, 290):                                                                   # columns
+        d.rectangle((x, 0, x + 18, 156), fill=hexc('#120e20')); d.rectangle((x + 2, 0, x + 4, 156), fill=hexc('#241e3a'))
+        d.rectangle((x - 3, 150, x + 21, 158), fill=hexc('#1a1430')); d.rectangle((x - 3, 22, x + 21, 28), fill=hexc('#1a1430'))
+    d.rectangle((0, 156, 320, 180), fill=hexc('#0c0a16'))
+    for x in range(0, 320, 20): d.line((x, 156, x - 14, 180), fill=hexc('#16122a'))
+    for x in (56, 130, 262):                                                                  # candles
+        d.rectangle((x, 140, x + 3, 156), fill=hexc('#e8dcc0')); d.point((x + 1, 138), fill=hexc('#ffe8a0')); d.point((x + 1, 137), fill=hexc('#ffffff'))
+        aa = np.array(im.convert('RGB')); glow(aa, x + 1, 138, 12, '#ffd890', 0.6); im = to_im(aa); d = ImageDraw.Draw(im)
+    return im
+
+
 def bg_roster():
     """OPERATION REBIRTH: a stormy violet-to-orange sky, giant rays from the horizon, clouds lit from below."""
     a = bands([(0, '#0a0618'), (0.4, '#2a0e4a'), (0.7, '#8a2a6a'), (0.88, '#ff7a4a'), (1, '#ffd08a')], y1=150)
@@ -297,6 +434,7 @@ def hero_roster():
 SCREENS = {
     'roster': (bg_roster, hero_roster), 'soul-summoner': (bg_soul, None), 'mr-wake': (bg_wake, None),
     'hero-knight': (bg_lacy, None), 'nu': (bg_nu, None), 'aero': (bg_aero, None), 'gnash': (bg_gnash, None), 'hanz': (bg_hanz, hero_hanz),
+    'lumen': (bg_lumen, None), 'vanta': (bg_vanta, None), 'kami': (bg_kami, None), 'vitrail': (bg_vitrail, None),
 }
 
 
@@ -315,7 +453,7 @@ def main():
             hh = hero.resize((hero.width * k, hero.height * k), Image.NEAREST)
             p.alpha_composite(hh, (int(BG_W * 3 * 0.66 - hh.width / 2), BG_H * 3 - hh.height - 20)); previews.append(p)
     if previews:
-        sheet = Image.new('RGBA', (BG_W * 3 * 2, BG_H * 3 * 4))
+        sheet = Image.new('RGBA', (BG_W * 3 * 2, BG_H * 3 * ((len(previews) + 1) // 2)))
         for i, p in enumerate(previews): sheet.paste(p, ((i % 2) * BG_W * 3, (i // 2) * BG_H * 3))
         sheet.save(sys.argv[sys.argv.index('--preview') + 1])
 
