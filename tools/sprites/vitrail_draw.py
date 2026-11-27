@@ -1,43 +1,46 @@
 """VITRAIL - THE ROSE OF SEVEN HOURS. The great stained-glass window of the Sky Sanctum's chapel, broken by the falling
-star on the night of the Starfall and reborn as a person. His drawing, part by part on NU's joints (nu_draw.ORDER /
-RIG), animated by trio_moves.py with the puppet rig.
+star on the night of the Starfall and reborn as a person - in the shape of the monks who sat under it for four hundred
+years. His drawing, part by part on NU's joints (nu_draw RIG; his own ORDER - see below), animated by trio_moves.py with
+the puppet rig.
 
-An original design, made of what a window is made of - coloured glass held in black lead came:
-- his head is a ROSE WINDOW: a round frame of lead with gold tracery knots on the rim, eight petal panes in jewel colours
-  and, in the middle, one white-violet pane where the star went through - his eye;
-- behind it a broken HALO of loose glass shards that float apart from each other (the `hair` slot), and two lead
-  strips hanging down his back like the ends of a veil;
-- his body is a pointed LANCET WINDOW: a mullion down the middle, transoms across, every pane its own colour, a violet
-  star-shaped pane in his chest, and the bottom of the window broken off into three hanging shards with gaps between;
-- glass sleeves (sapphire above the elbow, ruby below) round lead hands with one glowing gold fingertip;
-- thin lead legs with a gold glass pane in each shin and pointed feet like a cathedral's finials;
-- in his front hand (the `mic` slot) a little prism - the pane he casts with.
+An original design:
+- a deep hood round a smooth white glass mask, no features but one glowing crack down it where the star went through;
+- behind his head the ROSE itself as a halo: a great round window of lead and four panes - the four elements its
+  glazier set in it: FIRE (top left), ICE (top right), STORM (bottom right) and THE DARK between the stars (bottom
+  left) - with a gilt rim and gilt knots (the `hair` slot, drawn BEHIND everything: his own ORDER);
+- a long hooded robe with gilt trim down the front and a leaded-glass STOLE hanging from his shoulders, small panes in
+  the four colours; a gilt sash;
+- his legs are the robe's split front panels over dark boots with gilt toes;
+- wide sleeves with gilt cuffs, white-gloved hands (nothing in them: the game draws the four element shards that orbit
+  him and the attacks themselves).
 
-Every part is a 64x64 layer facing right, feet on row 58. Glass is lit from behind: each pane gets its colour, a brighter
-top-left edge, a darker bottom-right edge and the odd white glint; the lead is the outline. draw_parts() returns
-{name: RGBA array}.
+Every part is a 64x64 layer facing right, feet on row 58, shaded with nu_draw.shade5 (5-tone ramps: highlight, light,
+base, shadow, outline). draw_parts() returns {name: RGBA array}.
 """
 import math
 import numpy as np
 from PIL import Image, ImageDraw
-from nu_draw import blank, shade5, limb, hx, ORDER, RIG, composite   # noqa: F401  (ORDER / RIG / composite: the rig uses them)
+from nu_draw import blank, shade5, limb, hx, ORDER as NU_ORDER, RIG   # noqa: F401  (RIG: the rig uses it)
 
 VARIANT = 'default'
+# his own draw order: the halo (`hair`) behind everything
+ORDER = ['hair'] + [n for n in NU_ORDER if n != 'hair']
 
-# each look: the lead (5 tones, light to dark), the glass colours, the eye, and the gold of the tracery
+# the four elements (the game's colours: fighterVitrail.js / vitrail.js)
+EL = {'F': 0xff6a2a, 'I': 0x7ae8ff, 'L': 0xffe04a, 'V': 0xa04aff}
+# each look: the robe (5 tones), the trim, the mask (5 tones), the crack's glow, the boots, the element colours
 LOOKS = {
-    # the window as it was: ruby, sapphire, emerald, gold and amethyst, the star's violet in the middle
-    'default': {'lead': (0x6a6480, 0x4a4560, 0x2c2838, 0x1a1724, 0x0c0a12),
-                'glass': {'ruby': 0xe0283e, 'sapphire': 0x2a66e0, 'emerald': 0x26b45a, 'gold': 0xf2b42a, 'amethyst': 0x9a48e8},
-                'eye': (0xffffff, 0xe8c8ff, 0xb87aff), 'gild': 0xf2c84a},
-    # THE NIGHT WINDOW: the same window by moonlight - blues, teals and silver, a silver eye
-    'nocturne': {'lead': (0x9aa2b8, 0x6a7088, 0x3a4058, 0x22263a, 0x0e1020),
-                 'glass': {'ruby': 0x5a7ad8, 'sapphire': 0x24408e, 'emerald': 0x2a9aa8, 'gold': 0xc8d8f0, 'amethyst': 0x6a5ac8},
-                 'eye': (0xffffff, 0xe8f2ff, 0x9ac8ff), 'gild': 0xd8e2f4},
-    # THE BURNING ROSE: the night the chapel burned - amber, orange, blood red, charred lead with glowing cracks
-    'ember': {'lead': (0x5a3a30, 0x3a2620, 0x241612, 0x160c0a, 0x080404),
-              'glass': {'ruby': 0xd8301a, 'sapphire': 0xa83a1a, 'emerald': 0xe8781e, 'gold': 0xffc84a, 'amethyst': 0x8a1a2a},
-              'eye': (0xffffff, 0xfff0b0, 0xff9a2a), 'gild': 0xff8a2a, 'crack': 0xff6a1a},
+    # deep indigo robe, gilt trim, white glass mask, the star's violet in the crack
+    'default': {'robe': (0x6a6aa8, 0x4a4a86, 0x2e2e62, 0x1e1e44, 0x0c0c1e), 'trim': (0xfff0b0, 0xf2c84a, 0xb88a24),
+                'mask': (0xffffff, 0xf2f0f8, 0xd8d4e8, 0xa8a2c0, 0x3a3650), 'crack': 0xb87aff, 'boot': (0x4a4560, 0x2c2838, 0x1a1724, 0x101016, 0x08080c), 'el': EL},
+    # THE NIGHT WINDOW: a white robe with silver trim under moonlight, a blue crack, the panes cooled to night colours
+    'nocturne': {'robe': (0xffffff, 0xe0e6f4, 0xb8c2dc, 0x7a86a8, 0x22283a), 'trim': (0xffffff, 0xc8d8f0, 0x7a8aa8),
+                 'mask': (0xffffff, 0xeef4ff, 0xc8d8f0, 0x8a9ac0, 0x22283a), 'crack': 0x9ac8ff, 'boot': (0x6a7088, 0x3a4058, 0x22263a, 0x14162a, 0x080a14),
+                 'el': {'F': 0xff8a9a, 'I': 0x9ae8ff, 'L': 0xe8f0ff, 'V': 0x6a7aff}},
+    # THE BURNING ROSE: a black robe with ember trim, the mask scorched, the crack glowing like a coal
+    'ember': {'robe': (0x5a3a30, 0x3a2620, 0x241612, 0x160c0a, 0x080404), 'trim': (0xffd08a, 0xff8a2a, 0xa83a1a),
+              'mask': (0xfff0d8, 0xd8c0a8, 0xa88a70, 0x6a4a3a, 0x241410), 'crack': 0xff6a1a, 'boot': (0x3a2620, 0x241612, 0x160c0a, 0x0c0606, 0x040202),
+              'el': {'F': 0xff5a1a, 'I': 0xffd08a, 'L': 0xffb02a, 'V': 0x8a1a2a}},
 }
 VARIANTS = {k: {} for k in LOOKS}
 
@@ -63,140 +66,80 @@ def over(a, b):
     """Lays layer b's pixels onto a."""
     m = b[..., 3] > 0; a[m] = b[m]; return a
 
-def mask_of(draw_fn):
-    """A boolean 64x64 mask from a PIL drawing function d -> None."""
-    im = Image.new('L', (64, 64), 0); draw_fn(ImageDraw.Draw(im)); return np.array(im) > 0
+def shape(fn, ramp):
+    """A part drawn with PIL (fn(d) fills in ramp[2]) and shaded with shade5."""
+    im = blank(); fn(ImageDraw.Draw(im)); return shade5(im, ramp)
 
-def glass(a, m, c, glint=None):
-    """Fills mask m with a pane of glass in colour c, lit from behind: a brighter top-left edge, a darker
-    bottom-right edge, a glint pixel (or a short diagonal glint line) if asked."""
-    H, W = m.shape
-    for y, x in zip(*np.nonzero(m)):
-        tl = (y == 0 or not m[y - 1, x]) or (x == 0 or not m[y, x - 1])
-        br = (y == H - 1 or not m[y + 1, x]) or (x == W - 1 or not m[y, x + 1])
-        a[y, x] = hx(tone(c, 0.4) if tl else tone(c, -0.35) if br else c)
-    if glint:
-        for (x, y) in glint:
-            if 0 <= x < 64 and 0 <= y < 64 and m[y, x]: a[y, x] = hx(0xffffff)
-
-def lead(a, m, outline=True):
-    """Fills mask m with lead came: dark with a lighter top edge; `outline` = darkest rim."""
-    LD = L()['lead']
-    for y, x in zip(*np.nonzero(m)):
-        edge = any(not (0 <= y + dy < 64 and 0 <= x + dx < 64 and m[y + dy, x + dx]) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        top = y > 0 and not m[y - 1, x]
-        a[y, x] = hx(LD[4] if (edge and outline and not top) else LD[1] if top else LD[2])
-
-def cracks(a, pts):
-    """THE BURNING ROSE only: glowing cracks through the lead."""
-    c = L().get('crack')
-    if c: setp(a, pts, c)
+def composite(P, hide=('can',)):
+    """All his parts layered in ORDER (for previews and the rig's base picture)."""
+    out = np.zeros((64, 64, 4), np.uint8)
+    for n in ORDER:
+        if n in hide or n not in P: continue
+        a = P[n]; m = a[..., 3] > 0
+        out[m] = a[m]
+    return out
 
 def draw_parts():
     """VITRAIL, part by part (see the top of the file)."""
-    lk = L(); G = lk['glass']; LD = lk['lead']; EYE = lk['eye']; GILD = lk['gild']
+    lk = L(); RB = lk['robe']; TR = lk['trim']; MK = lk['mask']; BT = lk['boot']; E = lk['el']
     P = {}
-    # ---------------- legs: thin lead with a gold pane in each shin, pointed finial feet
-    for side, hip, knee, ank in (('b', (29, 41), (26, 48), (25, 54)), ('f', (36, 41), (39, 48), (39, 54))):
-        dark = side == 'b'
-        a = blank_arr(); lead(a, mask_of(lambda d: limb(d, hip, knee, 4, 255))); P[side + 'thigh'] = a
-        a = blank_arr(); lead(a, mask_of(lambda d: limb(d, knee, ank, 4, 255)))
-        glass(a, mask_of(lambda d: d.line([(knee[0], knee[1] + 2), (ank[0], ank[1] - 2)], fill=255, width=2)), tone(G['gold'], -0.25 if dark else 0))
-        P[side + 'shin'] = a
+    # ---------------- legs: the robe's split front panels (gilt hem), dark boots with gilt toes
+    for side, hip, knee, ank in (('b', (29, 42), (27, 49), (26, 54)), ('f', (36, 42), (38, 49), (38, 54))):
+        R = RB if side == 'f' else tuple(tone(c, -0.25) for c in RB)
+        a = shape(lambda d: d.polygon([(hip[0] - 3, hip[1] - 2), (hip[0] + 3, hip[1] - 2), (knee[0] + 3, knee[1] + 1), (knee[0] - 3, knee[1] + 1)], fill=hx(R[2])), R)
+        setp(a, [(x, knee[1] + 1) for x in range(knee[0] - 3, knee[0] + 4)], TR[1]); P[side + 'thigh'] = a     # the hem
+        a = shape(lambda d: limb(d, knee, ank, 3, hx(BT[2])), BT); P[side + 'shin'] = a
         x0 = ank[0] - 3
-        a = blank_arr(); lead(a, mask_of(lambda d: d.polygon([(x0 + 1, 53), (x0 + 4, 53), (x0 + 9, 57), (x0 + 9, 58), (x0, 58)], fill=255)))
-        setp(a, [(x0 + 8, 57), (x0 + 9, 57)], GILD); setp(a, [(x0 + 2, 54)], tone(G['gold'], -0.2))     # a gilt point at the toe
-        P[side + 'shoe'] = a
-    # ---------------- back arm: a darker glass sleeve, a lead hand
-    a = blank_arr(); lead(a, mask_of(lambda d: limb(d, (27, 24), (25, 31), 5, 255)))
-    glass(a, mask_of(lambda d: limb(d, (27, 25), (25, 30), 2, 255)), tone(G['sapphire'], -0.3)); P['bupper'] = a
-    a = blank_arr(); lead(a, mask_of(lambda d: limb(d, (25, 31), (26, 36), 5, 255)))
-    glass(a, mask_of(lambda d: limb(d, (25, 32), (26, 35), 2, 255)), tone(G['ruby'], -0.3))
-    lead(a, mask_of(lambda d: d.ellipse([24, 35, 28, 39], fill=255))); setp(a, [(27, 39)], tone(GILD, -0.2))
-    P['bfore'] = a
+        a = shape(lambda d: d.polygon([(x0, 52), (x0 + 5, 52), (x0 + 6, 55), (x0 + 8, 56), (x0 + 8, 58), (x0 + 1, 58)], fill=hx(BT[2])), BT)
+        setp(a, [(x0 + 8, 57), (x0 + 9, 57), (x0 + 9, 56)], TR[1]); P[side + 'shoe'] = a
+    # ---------------- back arm: a wide sleeve, a gilt cuff, a white glove
+    a = shape(lambda d: limb(d, (27, 24), (25, 31), 6, hx(tone(RB[2], -0.2))), tuple(tone(c, -0.2) for c in RB)); P['bupper'] = a
+    a = shape(lambda d: d.polygon([(23, 30), (28, 30), (29, 36), (22, 36)], fill=hx(tone(RB[2], -0.2))), tuple(tone(c, -0.2) for c in RB))
+    setp(a, [(x, 36) for x in range(22, 30)], TR[2])
+    over(a, shape(lambda d: d.ellipse([24, 36, 28, 40], fill=hx(MK[2])), MK)); P['bfore'] = a
     P['can'] = blank_arr()
-    # ---------------- torso: the lancet window - a pointed arch, a mullion, transoms, panes, the star pane, the broken hem
-    a = blank_arr()
-    body = [(33, 14), (36, 15), (38, 18), (39, 24), (39, 32), (40, 40), (41, 44), (25, 44), (26, 40), (27, 32), (27, 24), (28, 18), (30, 15)]
-    lead(a, mask_of(lambda d: d.polygon(body, fill=255)))
-    inner = mask_of(lambda d: d.polygon([(33, 16), (35, 16.5), (37, 19), (38, 24), (38, 32), (39, 40), (39, 43), (27, 43), (27, 40), (28, 32), (28, 24), (29, 19), (31, 16.5)], fill=255))
-    rows = [(16, 21), (22, 27), (28, 33), (34, 38), (39, 43)]                            # transoms between these bands
-    cols = [['amethyst', 'amethyst'], ['ruby', 'sapphire'], ['gold', 'emerald'], ['sapphire', 'ruby'], ['emerald', 'gold']]
-    for (y0, y1), pair in zip(rows, cols):
-        for side, name in zip((0, 1), pair):
-            m = inner.copy(); m[:y0, :] = False; m[y1 + 1:, :] = False
-            if side == 0: m[:, 33:] = False
-            else: m[:, :34] = False
-            # each pane is split by a diagonal came into two triangles of different glass (the leading of a real window)
-            names = list(G); other = names[(names.index(name) + 2 + side) % len(names)]
-            ys, xs = np.nonzero(m)
-            if not len(xs): continue
-            X0, X1, Y0, Y1 = xs.min(), xs.max(), ys.min(), ys.max()
-            u = (np.arange(64)[None, :] - X0) / max(1, X1 - X0); v = (np.arange(64)[:, None] - Y0) / max(1, Y1 - Y0)
-            diag = (u - v) if (side + rows.index((y0, y1))) % 2 else (u + v - 1)
-            glass(a, m & (diag < -0.08), G[name], glint=[(X0 + 1, Y0 + 1)] if y0 in (22, 34) else None)
-            glass(a, m & (diag > 0.08), G[other])
-            a[m & (np.abs(diag) <= 0.08)] = hx(LD[3])
-    # the STAR PANE in his chest, where the light comes through brightest
-    star = [(33, 22), (34, 24), (36, 24.5), (34.5, 26), (35, 28), (33, 27), (31, 28), (31.5, 26), (30, 24.5), (32, 24)]
-    sm = mask_of(lambda d: d.polygon(star, fill=255))
-    a[sm] = hx(EYE[2]); setp(a, [(33, 24), (33, 25), (32, 25), (34, 25)], EYE[1]); setp(a, [(33, 25)], EYE[0])
-    rim = mask_of(lambda d: d.polygon(star, outline=255))
-    a[rim & ~sm] = hx(LD[3])
-    # the hem: broken into three hanging shards with gaps between
-    for poly, name in (([(26, 44), (30, 44), (29, 48), (27, 47)], 'ruby'), ([(31, 44), (35, 44), (34, 49), (32, 48)], 'amethyst'), ([(36, 44), (40, 44), (40, 47), (38, 49)], 'sapphire')):
-        lead(a, mask_of(lambda d: d.polygon(poly, fill=255)))
-        glass(a, mask_of(lambda d: d.polygon([(poly[0][0] + 1, poly[0][1] + 1), (poly[1][0] - 1, poly[1][1] + 1), (poly[2][0], poly[2][1] - 2), (poly[3][0], poly[3][1] - 1)], fill=255)), G[name])
-    setp(a, [(33, 13), (32, 14), (34, 14)], GILD)                                          # the finial at the arch's point
-    cracks(a, [(29, 30), (30, 31), (36, 37), (37, 38), (31, 40)])
+    # ---------------- torso: the long hooded robe, gilt trim, the leaded-glass stole, the sash
+    a = shape(lambda d: d.polygon([(28, 16), (39, 16), (40, 24), (41, 34), (43, 46), (44, 50), (22, 50), (24, 44), (26, 34), (27, 24)], fill=hx(RB[2])), RB)
+    setp(a, [(33, y) for y in range(18, 50)], TR[1]); setp(a, [(34, y) for y in range(18, 50, 4)], TR[0])          # the trim
+    setp(a, [(x, 49) for x in range(23, 44)], TR[2])
+    order = 'FILV'
+    for sx in (30, 36):                                                                     # the stole: a lead strip of small panes
+        setp(a, [(x, y) for x in range(sx - 1, sx + 3) for y in range(18, 45)], 0x0c0a12)
+        for i, y in enumerate(range(19, 43, 3)):
+            c = E[order[(i + (sx == 36) * 2) % 4]]
+            setp(a, [(sx, y), (sx + 1, y), (sx, y + 1), (sx + 1, y + 1)], c); setp(a, [(sx, y)], tone(c, 0.5)); setp(a, [(sx + 1, y + 1)], tone(c, -0.3))
+        setp(a, [(sx, 45), (sx + 1, 45), (sx, 46), (sx + 1, 47)], TR[1])                    # the stole's gilt fringe
+    setp(a, [(x, 34) for x in range(27, 41)], TR[2]); setp(a, [(x, 33) for x in range(27, 41)], TR[1])        # the sash
     P['torso'] = a
-    # ---------------- head: the ROSE WINDOW - a round lead frame, gilt knots, eight petal panes, the star's pane as his eye
-    a = blank_arr(); cx, cy, R0 = 35.0, 12.0, 7.2
-    petals = ['ruby', 'gold', 'sapphire', 'emerald', 'ruby', 'amethyst', 'sapphire', 'gold']
+    # ---------------- head: the hood round a white glass mask with one glowing crack
+    a = shape(lambda d: d.polygon([(28, 6), (33, 4), (39, 5), (42, 9), (42, 16), (40, 21), (31, 21), (28, 16), (26, 10)], fill=hx(RB[2])), RB)
+    over(a, shape(lambda d: d.ellipse([33, 8, 41, 19], fill=hx(MK[2])), MK))
+    for (x, y) in [(38, 9), (37, 10), (37, 11), (38, 12), (37, 13), (37, 14), (38, 15), (38, 16), (37, 17)]: setp(a, [(x, y)], lk['crack'])
+    setp(a, [(37, 12), (38, 13)], 0xffffff)
+    setp(a, [(29, 6), (27, 8)], tone(RB[0], 0.2)); setp(a, [(x, 20) for x in range(31, 41)], TR[2])                 # hood shine, gilt edge
+    P['head'] = a
+    # ---------------- hair: the ROSE as a halo behind his head - lead, four element panes, a gilt rim and knots
+    a = blank_arr(); cx, cy, R0 = 33.0, 12.0, 12.0
+    quad = {(0, 0): 'F', (1, 0): 'I', (1, 1): 'L', (0, 1): 'V'}                             # (right?, below?) -> element
     for y in range(64):
         for x in range(64):
             dx, dy = x + 0.5 - cx, y + 0.5 - cy; d = math.hypot(dx, dy)
             if d > R0: continue
-            ang = (math.atan2(dy, dx) + math.pi * 2 + math.pi / 8) % (math.pi * 2); sec = int(ang / (math.pi / 4)); off = ang - sec * math.pi / 4
-            if d > R0 - 1.1: a[y, x] = hx(LD[4] if dy > 0 else LD[3])                      # the outer rim
-            elif d > R0 - 1.9: a[y, x] = hx(LD[2])
-            elif d < 1.6: a[y, x] = hx(EYE[0] if d < 0.8 else EYE[1])                        # the eye: the star's pane
-            elif d < 2.4: a[y, x] = hx(LD[3])                                               # the ring round it
-            elif off < 0.11 or off > math.pi / 4 - 0.11: a[y, x] = hx(LD[3])                # lead between the petals
-            else:
-                c = G[petals[sec]]; k = 0.35 if (dx + dy) < -2 else -0.3 if (dx + dy) > 3.5 else 0
-                a[y, x] = hx(tone(c, k))
-    setp(a, [(36, 12)], EYE[2]); setp(a, [(35, 12)], EYE[0])
-    for i in range(8):                                                                       # gilt tracery knots on the rim
-        t = i * math.pi / 4; setp(a, [(int(round(cx - 0.5 + math.cos(t) * (R0 - 0.6))), int(round(cy - 0.5 + math.sin(t) * (R0 - 0.6))))], GILD)
-    setp(a, [(32, 8), (33, 7)], 0xffffff)                                                    # a glint on the glass
-    lead(a, mask_of(lambda d: d.rectangle([33, 19, 35, 21], fill=255)))                     # the lead stem it stands on
-    cracks(a, [(30, 10), (31, 9), (39, 15), (40, 14)])
-    P['head'] = a
-    # ---------------- hair: the broken HALO - loose shards fanned behind his head, two lead strips hanging down his back
-    a = blank_arr()
-    shards = [([(27, 4), (30, 2), (29, 6)], 'gold'), ([(23, 8), (26, 6), (26, 10)], 'amethyst'), ([(21, 13), (25, 12), (23, 16)], 'gold'),
-              ([(32, 1), (35, 0), (34, 3)], 'amethyst'), ([(24, 18), (27, 17), (25, 21)], 'sapphire')]
-    for poly, name in shards:
-        lead(a, mask_of(lambda d: d.polygon(poly, fill=255, outline=255)))
-        cx2 = sum(p[0] for p in poly) / 3; cy2 = sum(p[1] for p in poly) / 3
-        setp(a, [(int(cx2), int(cy2))], G[name]); setp(a, [(int(cx2) - 1, int(cy2))], tone(G[name], 0.4))
-    lead(a, mask_of(lambda d: d.line([(29, 16), (25, 26), (24, 31)], fill=255, width=1)))
-    lead(a, mask_of(lambda d: d.line([(30, 18), (27, 27), (27, 33)], fill=255, width=1)))
-    setp(a, [(24, 31), (27, 33)], GILD)
+            if d > R0 - 1.1: a[y, x] = hx(TR[2] if dy > 0 else TR[1]); continue              # the gilt rim
+            if d > R0 - 2: a[y, x] = hx(0x0c0a12); continue                                  # lead inside it
+            if abs(dx) < 0.9 or abs(dy) < 0.9 or abs(d - 5.2) < 0.6 or d < 2.2: a[y, x] = hx(0x0c0a12); continue   # the cross and the inner ring
+            c = E[quad[(int(dx > 0), int(dy > 0))]]
+            a[y, x] = hx(tone(c, 0.35) if (dx + dy) < -6 else tone(c, -0.3) if d > R0 - 3 else c)
+    for i in range(8):
+        t = i * math.pi / 4 + math.pi / 8
+        setp(a, [(int(round(cx - 0.5 + math.cos(t) * (R0 - 1.5))), int(round(cy - 0.5 + math.sin(t) * (R0 - 1.5))))], TR[0])
     P['hair'] = a
-    # ---------------- front arm: glass sleeves (sapphire, ruby), a lead hand with a gold fingertip, the prism
-    a = blank_arr(); lead(a, mask_of(lambda d: limb(d, (38, 24), (42, 31), 5, 255)))
-    glass(a, mask_of(lambda d: limb(d, (38, 25), (41, 30), 2, 255)), G['sapphire']); P['fupper'] = a
-    a = blank_arr(); lead(a, mask_of(lambda d: limb(d, (42, 31), (44, 28), 5, 255)))
-    glass(a, mask_of(lambda d: d.line([(42, 30), (43, 29)], fill=255, width=2)), G['ruby']); P['ffore'] = a
-    k = blank_arr()                                                                          # the prism floating over his hand
-    lead(k, mask_of(lambda d: d.polygon([(45, 17), (48, 22), (42, 22)], fill=255)))
-    glass(k, mask_of(lambda d: d.polygon([(45, 18.5), (47, 21.5), (43, 21.5)], fill=255)), EYE[2], glint=[(45, 19)])
-    setp(k, [(45, 20)], 0xffffff)
-    P['mic'] = k
-    a = blank_arr(); lead(a, mask_of(lambda d: d.ellipse([42, 23, 46, 28], fill=255)))
-    setp(a, [(46, 24)], GILD); setp(a, [(45, 23)], LD[0]); P['ffist'] = a
+    # ---------------- front arm: a wide sleeve, a gilt cuff, a white glove (empty-handed: the game draws his elements)
+    a = shape(lambda d: limb(d, (38, 24), (42, 31), 6, hx(RB[2])), RB); P['fupper'] = a
+    a = shape(lambda d: d.polygon([(40, 33), (44, 27), (47, 29), (44, 34)], fill=hx(RB[2])), RB)
+    setp(a, [(43, 27), (44, 28), (45, 29), (46, 30)], TR[1]); P['ffore'] = a
+    P['mic'] = blank_arr()
+    P['ffist'] = shape(lambda d: d.ellipse([42, 23, 46, 28], fill=hx(MK[2])), MK)
     return P
 
 if __name__ == '__main__':
